@@ -43,10 +43,6 @@ type BillingInvoiceLine struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
-	// PeriodStart holds the value of the "period_start" field.
-	PeriodStart time.Time `json:"period_start,omitempty"`
-	// PeriodEnd holds the value of the "period_end" field.
-	PeriodEnd time.Time `json:"period_end,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
@@ -65,6 +61,10 @@ type BillingInvoiceLine struct {
 	DiscountsTotal alpacadecimal.Decimal `json:"discounts_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
+	// PeriodStart holds the value of the "period_start" field.
+	PeriodStart time.Time `json:"period_start,omitempty"`
+	// PeriodEnd holds the value of the "period_end" field.
+	PeriodEnd time.Time `json:"period_end,omitempty"`
 	// InvoiceID holds the value of the "invoice_id" field.
 	InvoiceID string `json:"invoice_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
@@ -337,18 +337,6 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				_m.Description = new(string)
 				*_m.Description = value.String
 			}
-		case billinginvoiceline.FieldPeriodStart:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field period_start", values[i])
-			} else if value.Valid {
-				_m.PeriodStart = value.Time
-			}
-		case billinginvoiceline.FieldPeriodEnd:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field period_end", values[i])
-			} else if value.Valid {
-				_m.PeriodEnd = value.Time
-			}
 		case billinginvoiceline.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
@@ -404,6 +392,18 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				return fmt.Errorf("unexpected type %T for field total", values[i])
 			} else if value != nil {
 				_m.Total = *value
+			}
+		case billinginvoiceline.FieldPeriodStart:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field period_start", values[i])
+			} else if value.Valid {
+				_m.PeriodStart = value.Time
+			}
+		case billinginvoiceline.FieldPeriodEnd:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field period_end", values[i])
+			} else if value.Valid {
+				_m.PeriodEnd = value.Time
 			}
 		case billinginvoiceline.FieldInvoiceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -634,12 +634,6 @@ func (_m *BillingInvoiceLine) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("period_start=")
-	builder.WriteString(_m.PeriodStart.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("period_end=")
-	builder.WriteString(_m.PeriodEnd.Format(time.ANSIC))
-	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
 	builder.WriteString(", ")
@@ -666,6 +660,12 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))
+	builder.WriteString(", ")
+	builder.WriteString("period_start=")
+	builder.WriteString(_m.PeriodStart.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("period_end=")
+	builder.WriteString(_m.PeriodEnd.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("invoice_id=")
 	builder.WriteString(_m.InvoiceID)

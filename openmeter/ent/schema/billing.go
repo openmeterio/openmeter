@@ -298,9 +298,6 @@ type InvoiceLineBaseMixin struct {
 
 func (InvoiceLineBaseMixin) Fields() []ent.Field {
 	return []ent.Field{
-		field.Time("period_start"),
-		field.Time("period_end"),
-
 		field.String("currency").
 			GoType(currencyx.Code("")).
 			NotEmpty().
@@ -331,6 +328,10 @@ func (BillingInvoiceLine) Mixin() []ent.Mixin {
 
 func (BillingInvoiceLine) Fields() []ent.Field {
 	return []ent.Field{
+		// TODO: when we are done migrating the lines, let's also rename this to be service_period_start and service_period_end
+		field.Time("period_start"),
+		field.Time("period_end"),
+
 		field.String("invoice_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -592,6 +593,9 @@ func (BillingInvoiceSplitLineGroup) Mixin() []ent.Mixin {
 
 func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 	return []ent.Field{
+		field.Time("service_period_start"),
+		field.Time("service_period_end"),
+
 		field.String("unique_reference_id").
 			Optional().
 			Nillable(),
@@ -607,27 +611,31 @@ func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 
 		field.String("feature_key").
 			Optional().
-			Nillable(),
+			Nillable().
+			Immutable(),
 
 		field.String("price").
 			GoType(&productcatalog.Price{}).
 			ValueScanner(PriceValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
-			}),
+			}).Immutable(),
 
 		// Subscriptions metadata
 		field.String("subscription_id").
 			Optional().
-			Nillable(),
+			Nillable().
+			Immutable(),
 
 		field.String("subscription_phase_id").
 			Optional().
-			Nillable(),
+			Nillable().
+			Immutable(),
 
 		field.String("subscription_item_id").
 			Optional().
-			Nillable(),
+			Nillable().
+			Immutable(),
 	}
 }
 
@@ -646,15 +654,18 @@ func (BillingInvoiceSplitLineGroup) Edges() []ent.Edge {
 		edge.From("subscription", Subscription.Type).
 			Ref("billing_split_line_groups").
 			Field("subscription_id").
-			Unique(),
+			Unique().
+			Immutable(),
 		edge.From("subscription_phase", SubscriptionPhase.Type).
 			Ref("billing_split_line_groups").
 			Field("subscription_phase_id").
-			Unique(),
+			Unique().
+			Immutable(),
 		edge.From("subscription_item", SubscriptionItem.Type).
 			Ref("billing_split_line_groups").
 			Field("subscription_item_id").
-			Unique(),
+			Unique().
+			Immutable(),
 	}
 }
 

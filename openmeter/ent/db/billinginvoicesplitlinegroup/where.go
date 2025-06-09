@@ -96,20 +96,20 @@ func Description(v string) predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldDescription, v))
 }
 
-// PeriodStart applies equality check predicate on the "period_start" field. It's identical to PeriodStartEQ.
-func PeriodStart(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldPeriodStart, v))
-}
-
-// PeriodEnd applies equality check predicate on the "period_end" field. It's identical to PeriodEndEQ.
-func PeriodEnd(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldPeriodEnd, v))
-}
-
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
 func Currency(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldCurrency, vc))
+}
+
+// ServicePeriodStart applies equality check predicate on the "service_period_start" field. It's identical to ServicePeriodStartEQ.
+func ServicePeriodStart(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldServicePeriodStart, v))
+}
+
+// ServicePeriodEnd applies equality check predicate on the "service_period_end" field. It's identical to ServicePeriodEndEQ.
+func ServicePeriodEnd(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldServicePeriodEnd, v))
 }
 
 // UniqueReferenceID applies equality check predicate on the "unique_reference_id" field. It's identical to UniqueReferenceIDEQ.
@@ -482,86 +482,6 @@ func DescriptionContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldDescription, v))
 }
 
-// PeriodStartEQ applies the EQ predicate on the "period_start" field.
-func PeriodStartEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldPeriodStart, v))
-}
-
-// PeriodStartNEQ applies the NEQ predicate on the "period_start" field.
-func PeriodStartNEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldPeriodStart, v))
-}
-
-// PeriodStartIn applies the In predicate on the "period_start" field.
-func PeriodStartIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldPeriodStart, vs...))
-}
-
-// PeriodStartNotIn applies the NotIn predicate on the "period_start" field.
-func PeriodStartNotIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldPeriodStart, vs...))
-}
-
-// PeriodStartGT applies the GT predicate on the "period_start" field.
-func PeriodStartGT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldPeriodStart, v))
-}
-
-// PeriodStartGTE applies the GTE predicate on the "period_start" field.
-func PeriodStartGTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldPeriodStart, v))
-}
-
-// PeriodStartLT applies the LT predicate on the "period_start" field.
-func PeriodStartLT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldPeriodStart, v))
-}
-
-// PeriodStartLTE applies the LTE predicate on the "period_start" field.
-func PeriodStartLTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldPeriodStart, v))
-}
-
-// PeriodEndEQ applies the EQ predicate on the "period_end" field.
-func PeriodEndEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldPeriodEnd, v))
-}
-
-// PeriodEndNEQ applies the NEQ predicate on the "period_end" field.
-func PeriodEndNEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldPeriodEnd, v))
-}
-
-// PeriodEndIn applies the In predicate on the "period_end" field.
-func PeriodEndIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldPeriodEnd, vs...))
-}
-
-// PeriodEndNotIn applies the NotIn predicate on the "period_end" field.
-func PeriodEndNotIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldPeriodEnd, vs...))
-}
-
-// PeriodEndGT applies the GT predicate on the "period_end" field.
-func PeriodEndGT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldPeriodEnd, v))
-}
-
-// PeriodEndGTE applies the GTE predicate on the "period_end" field.
-func PeriodEndGTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldPeriodEnd, v))
-}
-
-// PeriodEndLT applies the LT predicate on the "period_end" field.
-func PeriodEndLT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldPeriodEnd, v))
-}
-
-// PeriodEndLTE applies the LTE predicate on the "period_end" field.
-func PeriodEndLTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
-	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldPeriodEnd, v))
-}
-
 // CurrencyEQ applies the EQ predicate on the "currency" field.
 func CurrencyEQ(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
@@ -654,6 +574,86 @@ func TaxConfigIsNil() predicate.BillingInvoiceSplitLineGroup {
 // TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
 func TaxConfigNotNil() predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldTaxConfig))
+}
+
+// ServicePeriodStartEQ applies the EQ predicate on the "service_period_start" field.
+func ServicePeriodStartEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldServicePeriodStart, v))
+}
+
+// ServicePeriodStartNEQ applies the NEQ predicate on the "service_period_start" field.
+func ServicePeriodStartNEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldServicePeriodStart, v))
+}
+
+// ServicePeriodStartIn applies the In predicate on the "service_period_start" field.
+func ServicePeriodStartIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldServicePeriodStart, vs...))
+}
+
+// ServicePeriodStartNotIn applies the NotIn predicate on the "service_period_start" field.
+func ServicePeriodStartNotIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldServicePeriodStart, vs...))
+}
+
+// ServicePeriodStartGT applies the GT predicate on the "service_period_start" field.
+func ServicePeriodStartGT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldServicePeriodStart, v))
+}
+
+// ServicePeriodStartGTE applies the GTE predicate on the "service_period_start" field.
+func ServicePeriodStartGTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldServicePeriodStart, v))
+}
+
+// ServicePeriodStartLT applies the LT predicate on the "service_period_start" field.
+func ServicePeriodStartLT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldServicePeriodStart, v))
+}
+
+// ServicePeriodStartLTE applies the LTE predicate on the "service_period_start" field.
+func ServicePeriodStartLTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldServicePeriodStart, v))
+}
+
+// ServicePeriodEndEQ applies the EQ predicate on the "service_period_end" field.
+func ServicePeriodEndEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldServicePeriodEnd, v))
+}
+
+// ServicePeriodEndNEQ applies the NEQ predicate on the "service_period_end" field.
+func ServicePeriodEndNEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldServicePeriodEnd, v))
+}
+
+// ServicePeriodEndIn applies the In predicate on the "service_period_end" field.
+func ServicePeriodEndIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldServicePeriodEnd, vs...))
+}
+
+// ServicePeriodEndNotIn applies the NotIn predicate on the "service_period_end" field.
+func ServicePeriodEndNotIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldServicePeriodEnd, vs...))
+}
+
+// ServicePeriodEndGT applies the GT predicate on the "service_period_end" field.
+func ServicePeriodEndGT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldServicePeriodEnd, v))
+}
+
+// ServicePeriodEndGTE applies the GTE predicate on the "service_period_end" field.
+func ServicePeriodEndGTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldServicePeriodEnd, v))
+}
+
+// ServicePeriodEndLT applies the LT predicate on the "service_period_end" field.
+func ServicePeriodEndLT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldServicePeriodEnd, v))
+}
+
+// ServicePeriodEndLTE applies the LTE predicate on the "service_period_end" field.
+func ServicePeriodEndLTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldServicePeriodEnd, v))
 }
 
 // UniqueReferenceIDEQ applies the EQ predicate on the "unique_reference_id" field.

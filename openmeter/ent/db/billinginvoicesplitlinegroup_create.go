@@ -104,18 +104,6 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableDescription(v *string) 
 	return _c
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (_c *BillingInvoiceSplitLineGroupCreate) SetPeriodStart(v time.Time) *BillingInvoiceSplitLineGroupCreate {
-	_c.mutation.SetPeriodStart(v)
-	return _c
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (_c *BillingInvoiceSplitLineGroupCreate) SetPeriodEnd(v time.Time) *BillingInvoiceSplitLineGroupCreate {
-	_c.mutation.SetPeriodEnd(v)
-	return _c
-}
-
 // SetCurrency sets the "currency" field.
 func (_c *BillingInvoiceSplitLineGroupCreate) SetCurrency(v currencyx.Code) *BillingInvoiceSplitLineGroupCreate {
 	_c.mutation.SetCurrency(v)
@@ -133,6 +121,18 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableTaxConfig(v *productcat
 	if v != nil {
 		_c.SetTaxConfig(*v)
 	}
+	return _c
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetServicePeriodStart(v time.Time) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetServicePeriodStart(v)
+	return _c
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetServicePeriodEnd(v time.Time) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetServicePeriodEnd(v)
 	return _c
 }
 
@@ -330,12 +330,6 @@ func (_c *BillingInvoiceSplitLineGroupCreate) check() error {
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.name"`)}
 	}
-	if _, ok := _c.mutation.PeriodStart(); !ok {
-		return &ValidationError{Name: "period_start", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.period_start"`)}
-	}
-	if _, ok := _c.mutation.PeriodEnd(); !ok {
-		return &ValidationError{Name: "period_end", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.period_end"`)}
-	}
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.currency"`)}
 	}
@@ -348,6 +342,12 @@ func (_c *BillingInvoiceSplitLineGroupCreate) check() error {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.tax_config": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.ServicePeriodStart(); !ok {
+		return &ValidationError{Name: "service_period_start", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.service_period_start"`)}
+	}
+	if _, ok := _c.mutation.ServicePeriodEnd(); !ok {
+		return &ValidationError{Name: "service_period_end", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.service_period_end"`)}
 	}
 	if _, ok := _c.mutation.Price(); !ok {
 		return &ValidationError{Name: "price", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.price"`)}
@@ -424,14 +424,6 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 		_spec.SetField(billinginvoicesplitlinegroup.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := _c.mutation.PeriodStart(); ok {
-		_spec.SetField(billinginvoicesplitlinegroup.FieldPeriodStart, field.TypeTime, value)
-		_node.PeriodStart = value
-	}
-	if value, ok := _c.mutation.PeriodEnd(); ok {
-		_spec.SetField(billinginvoicesplitlinegroup.FieldPeriodEnd, field.TypeTime, value)
-		_node.PeriodEnd = value
-	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
@@ -439,6 +431,14 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 	if value, ok := _c.mutation.TaxConfig(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldTaxConfig, field.TypeJSON, value)
 		_node.TaxConfig = value
+	}
+	if value, ok := _c.mutation.ServicePeriodStart(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldServicePeriodStart, field.TypeTime, value)
+		_node.ServicePeriodStart = value
+	}
+	if value, ok := _c.mutation.ServicePeriodEnd(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldServicePeriodEnd, field.TypeTime, value)
+		_node.ServicePeriodEnd = value
 	}
 	if value, ok := _c.mutation.UniqueReferenceID(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldUniqueReferenceID, field.TypeString, value)
@@ -661,30 +661,6 @@ func (u *BillingInvoiceSplitLineGroupUpsert) ClearDescription() *BillingInvoiceS
 	return u
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) SetPeriodStart(v time.Time) *BillingInvoiceSplitLineGroupUpsert {
-	u.Set(billinginvoicesplitlinegroup.FieldPeriodStart, v)
-	return u
-}
-
-// UpdatePeriodStart sets the "period_start" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsert) UpdatePeriodStart() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetExcluded(billinginvoicesplitlinegroup.FieldPeriodStart)
-	return u
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) SetPeriodEnd(v time.Time) *BillingInvoiceSplitLineGroupUpsert {
-	u.Set(billinginvoicesplitlinegroup.FieldPeriodEnd, v)
-	return u
-}
-
-// UpdatePeriodEnd sets the "period_end" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsert) UpdatePeriodEnd() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetExcluded(billinginvoicesplitlinegroup.FieldPeriodEnd)
-	return u
-}
-
 // SetTaxConfig sets the "tax_config" field.
 func (u *BillingInvoiceSplitLineGroupUpsert) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceSplitLineGroupUpsert {
 	u.Set(billinginvoicesplitlinegroup.FieldTaxConfig, v)
@@ -700,6 +676,30 @@ func (u *BillingInvoiceSplitLineGroupUpsert) UpdateTaxConfig() *BillingInvoiceSp
 // ClearTaxConfig clears the value of the "tax_config" field.
 func (u *BillingInvoiceSplitLineGroupUpsert) ClearTaxConfig() *BillingInvoiceSplitLineGroupUpsert {
 	u.SetNull(billinginvoicesplitlinegroup.FieldTaxConfig)
+	return u
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetServicePeriodStart(v time.Time) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldServicePeriodStart, v)
+	return u
+}
+
+// UpdateServicePeriodStart sets the "service_period_start" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateServicePeriodStart() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldServicePeriodStart)
+	return u
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetServicePeriodEnd(v time.Time) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldServicePeriodEnd, v)
+	return u
+}
+
+// UpdateServicePeriodEnd sets the "service_period_end" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateServicePeriodEnd() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldServicePeriodEnd)
 	return u
 }
 
@@ -739,90 +739,6 @@ func (u *BillingInvoiceSplitLineGroupUpsert) ClearRatecardDiscounts() *BillingIn
 	return u
 }
 
-// SetFeatureKey sets the "feature_key" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) SetFeatureKey(v string) *BillingInvoiceSplitLineGroupUpsert {
-	u.Set(billinginvoicesplitlinegroup.FieldFeatureKey, v)
-	return u
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsert) UpdateFeatureKey() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetExcluded(billinginvoicesplitlinegroup.FieldFeatureKey)
-	return u
-}
-
-// ClearFeatureKey clears the value of the "feature_key" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) ClearFeatureKey() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetNull(billinginvoicesplitlinegroup.FieldFeatureKey)
-	return u
-}
-
-// SetPrice sets the "price" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) SetPrice(v *productcatalog.Price) *BillingInvoiceSplitLineGroupUpsert {
-	u.Set(billinginvoicesplitlinegroup.FieldPrice, v)
-	return u
-}
-
-// UpdatePrice sets the "price" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsert) UpdatePrice() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetExcluded(billinginvoicesplitlinegroup.FieldPrice)
-	return u
-}
-
-// SetSubscriptionID sets the "subscription_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) SetSubscriptionID(v string) *BillingInvoiceSplitLineGroupUpsert {
-	u.Set(billinginvoicesplitlinegroup.FieldSubscriptionID, v)
-	return u
-}
-
-// UpdateSubscriptionID sets the "subscription_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsert) UpdateSubscriptionID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetExcluded(billinginvoicesplitlinegroup.FieldSubscriptionID)
-	return u
-}
-
-// ClearSubscriptionID clears the value of the "subscription_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) ClearSubscriptionID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetNull(billinginvoicesplitlinegroup.FieldSubscriptionID)
-	return u
-}
-
-// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) SetSubscriptionPhaseID(v string) *BillingInvoiceSplitLineGroupUpsert {
-	u.Set(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, v)
-	return u
-}
-
-// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsert) UpdateSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetExcluded(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
-	return u
-}
-
-// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) ClearSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetNull(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
-	return u
-}
-
-// SetSubscriptionItemID sets the "subscription_item_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) SetSubscriptionItemID(v string) *BillingInvoiceSplitLineGroupUpsert {
-	u.Set(billinginvoicesplitlinegroup.FieldSubscriptionItemID, v)
-	return u
-}
-
-// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsert) UpdateSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetExcluded(billinginvoicesplitlinegroup.FieldSubscriptionItemID)
-	return u
-}
-
-// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) ClearSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetNull(billinginvoicesplitlinegroup.FieldSubscriptionItemID)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -848,6 +764,21 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateNewValues() *BillingInvoic
 		}
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(billinginvoicesplitlinegroup.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.FeatureKey(); exists {
+			s.SetIgnore(billinginvoicesplitlinegroup.FieldFeatureKey)
+		}
+		if _, exists := u.create.mutation.Price(); exists {
+			s.SetIgnore(billinginvoicesplitlinegroup.FieldPrice)
+		}
+		if _, exists := u.create.mutation.SubscriptionID(); exists {
+			s.SetIgnore(billinginvoicesplitlinegroup.FieldSubscriptionID)
+		}
+		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
+			s.SetIgnore(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
+		}
+		if _, exists := u.create.mutation.SubscriptionItemID(); exists {
+			s.SetIgnore(billinginvoicesplitlinegroup.FieldSubscriptionItemID)
 		}
 	}))
 	return u
@@ -971,34 +902,6 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearDescription() *BillingInvoi
 	})
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) SetPeriodStart(v time.Time) *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetPeriodStart(v)
-	})
-}
-
-// UpdatePeriodStart sets the "period_start" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdatePeriodStart() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdatePeriodStart()
-	})
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) SetPeriodEnd(v time.Time) *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetPeriodEnd(v)
-	})
-}
-
-// UpdatePeriodEnd sets the "period_end" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdatePeriodEnd() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdatePeriodEnd()
-	})
-}
-
 // SetTaxConfig sets the "tax_config" field.
 func (u *BillingInvoiceSplitLineGroupUpsertOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
@@ -1017,6 +920,34 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateTaxConfig() *BillingInvoic
 func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearTaxConfig() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearTaxConfig()
+	})
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetServicePeriodStart(v time.Time) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetServicePeriodStart(v)
+	})
+}
+
+// UpdateServicePeriodStart sets the "service_period_start" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateServicePeriodStart() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateServicePeriodStart()
+	})
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetServicePeriodEnd(v time.Time) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetServicePeriodEnd(v)
+	})
+}
+
+// UpdateServicePeriodEnd sets the "service_period_end" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateServicePeriodEnd() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateServicePeriodEnd()
 	})
 }
 
@@ -1059,104 +990,6 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateRatecardDiscounts() *Billi
 func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearRatecardDiscounts() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearRatecardDiscounts()
-	})
-}
-
-// SetFeatureKey sets the "feature_key" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) SetFeatureKey(v string) *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetFeatureKey(v)
-	})
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateFeatureKey() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateFeatureKey()
-	})
-}
-
-// ClearFeatureKey clears the value of the "feature_key" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearFeatureKey() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearFeatureKey()
-	})
-}
-
-// SetPrice sets the "price" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) SetPrice(v *productcatalog.Price) *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetPrice(v)
-	})
-}
-
-// UpdatePrice sets the "price" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdatePrice() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdatePrice()
-	})
-}
-
-// SetSubscriptionID sets the "subscription_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) SetSubscriptionID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetSubscriptionID(v)
-	})
-}
-
-// UpdateSubscriptionID sets the "subscription_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateSubscriptionID() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateSubscriptionID()
-	})
-}
-
-// ClearSubscriptionID clears the value of the "subscription_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearSubscriptionID() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearSubscriptionID()
-	})
-}
-
-// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) SetSubscriptionPhaseID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetSubscriptionPhaseID(v)
-	})
-}
-
-// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateSubscriptionPhaseID()
-	})
-}
-
-// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearSubscriptionPhaseID()
-	})
-}
-
-// SetSubscriptionItemID sets the "subscription_item_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) SetSubscriptionItemID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetSubscriptionItemID(v)
-	})
-}
-
-// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateSubscriptionItemID()
-	})
-}
-
-// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearSubscriptionItemID()
 	})
 }
 
@@ -1355,6 +1188,21 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateNewValues() *BillingInvoi
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(billinginvoicesplitlinegroup.FieldCurrency)
 			}
+			if _, exists := b.mutation.FeatureKey(); exists {
+				s.SetIgnore(billinginvoicesplitlinegroup.FieldFeatureKey)
+			}
+			if _, exists := b.mutation.Price(); exists {
+				s.SetIgnore(billinginvoicesplitlinegroup.FieldPrice)
+			}
+			if _, exists := b.mutation.SubscriptionID(); exists {
+				s.SetIgnore(billinginvoicesplitlinegroup.FieldSubscriptionID)
+			}
+			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
+				s.SetIgnore(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
+			}
+			if _, exists := b.mutation.SubscriptionItemID(); exists {
+				s.SetIgnore(billinginvoicesplitlinegroup.FieldSubscriptionItemID)
+			}
 		}
 	}))
 	return u
@@ -1478,34 +1326,6 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearDescription() *BillingInvo
 	})
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetPeriodStart(v time.Time) *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetPeriodStart(v)
-	})
-}
-
-// UpdatePeriodStart sets the "period_start" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdatePeriodStart() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdatePeriodStart()
-	})
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetPeriodEnd(v time.Time) *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetPeriodEnd(v)
-	})
-}
-
-// UpdatePeriodEnd sets the "period_end" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdatePeriodEnd() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdatePeriodEnd()
-	})
-}
-
 // SetTaxConfig sets the "tax_config" field.
 func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
@@ -1524,6 +1344,34 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateTaxConfig() *BillingInvoi
 func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearTaxConfig() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearTaxConfig()
+	})
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetServicePeriodStart(v time.Time) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetServicePeriodStart(v)
+	})
+}
+
+// UpdateServicePeriodStart sets the "service_period_start" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateServicePeriodStart() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateServicePeriodStart()
+	})
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetServicePeriodEnd(v time.Time) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetServicePeriodEnd(v)
+	})
+}
+
+// UpdateServicePeriodEnd sets the "service_period_end" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateServicePeriodEnd() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateServicePeriodEnd()
 	})
 }
 
@@ -1566,104 +1414,6 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateRatecardDiscounts() *Bill
 func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearRatecardDiscounts() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearRatecardDiscounts()
-	})
-}
-
-// SetFeatureKey sets the "feature_key" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetFeatureKey(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetFeatureKey(v)
-	})
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateFeatureKey() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateFeatureKey()
-	})
-}
-
-// ClearFeatureKey clears the value of the "feature_key" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearFeatureKey() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearFeatureKey()
-	})
-}
-
-// SetPrice sets the "price" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetPrice(v *productcatalog.Price) *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetPrice(v)
-	})
-}
-
-// UpdatePrice sets the "price" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdatePrice() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdatePrice()
-	})
-}
-
-// SetSubscriptionID sets the "subscription_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetSubscriptionID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetSubscriptionID(v)
-	})
-}
-
-// UpdateSubscriptionID sets the "subscription_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateSubscriptionID() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateSubscriptionID()
-	})
-}
-
-// ClearSubscriptionID clears the value of the "subscription_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearSubscriptionID() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearSubscriptionID()
-	})
-}
-
-// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetSubscriptionPhaseID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetSubscriptionPhaseID(v)
-	})
-}
-
-// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateSubscriptionPhaseID()
-	})
-}
-
-// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearSubscriptionPhaseID() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearSubscriptionPhaseID()
-	})
-}
-
-// SetSubscriptionItemID sets the "subscription_item_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetSubscriptionItemID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetSubscriptionItemID(v)
-	})
-}
-
-// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateSubscriptionItemID()
-	})
-}
-
-// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearSubscriptionItemID() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearSubscriptionItemID()
 	})
 }
 

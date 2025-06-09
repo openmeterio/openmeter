@@ -16273,8 +16273,6 @@ type BillingInvoiceLineMutation struct {
 	deleted_at                   *time.Time
 	name                         *string
 	description                  *string
-	period_start                 *time.Time
-	period_end                   *time.Time
 	currency                     *currencyx.Code
 	tax_config                   *productcatalog.TaxConfig
 	amount                       *alpacadecimal.Decimal
@@ -16284,6 +16282,8 @@ type BillingInvoiceLineMutation struct {
 	charges_total                *alpacadecimal.Decimal
 	discounts_total              *alpacadecimal.Decimal
 	total                        *alpacadecimal.Decimal
+	period_start                 *time.Time
+	period_end                   *time.Time
 	managed_by                   *billing.InvoiceLineManagedBy
 	invoice_at                   *time.Time
 	_type                        *billing.InvoiceLineType
@@ -16719,78 +16719,6 @@ func (m *BillingInvoiceLineMutation) ResetDescription() {
 	delete(m.clearedFields, billinginvoiceline.FieldDescription)
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (m *BillingInvoiceLineMutation) SetPeriodStart(t time.Time) {
-	m.period_start = &t
-}
-
-// PeriodStart returns the value of the "period_start" field in the mutation.
-func (m *BillingInvoiceLineMutation) PeriodStart() (r time.Time, exists bool) {
-	v := m.period_start
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPeriodStart returns the old "period_start" field's value of the BillingInvoiceLine entity.
-// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldPeriodStart(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPeriodStart is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPeriodStart requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPeriodStart: %w", err)
-	}
-	return oldValue.PeriodStart, nil
-}
-
-// ResetPeriodStart resets all changes to the "period_start" field.
-func (m *BillingInvoiceLineMutation) ResetPeriodStart() {
-	m.period_start = nil
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (m *BillingInvoiceLineMutation) SetPeriodEnd(t time.Time) {
-	m.period_end = &t
-}
-
-// PeriodEnd returns the value of the "period_end" field in the mutation.
-func (m *BillingInvoiceLineMutation) PeriodEnd() (r time.Time, exists bool) {
-	v := m.period_end
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPeriodEnd returns the old "period_end" field's value of the BillingInvoiceLine entity.
-// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldPeriodEnd(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPeriodEnd is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPeriodEnd requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPeriodEnd: %w", err)
-	}
-	return oldValue.PeriodEnd, nil
-}
-
-// ResetPeriodEnd resets all changes to the "period_end" field.
-func (m *BillingInvoiceLineMutation) ResetPeriodEnd() {
-	m.period_end = nil
-}
-
 // SetCurrency sets the "currency" field.
 func (m *BillingInvoiceLineMutation) SetCurrency(c currencyx.Code) {
 	m.currency = &c
@@ -17126,6 +17054,78 @@ func (m *BillingInvoiceLineMutation) OldTotal(ctx context.Context) (v alpacadeci
 // ResetTotal resets all changes to the "total" field.
 func (m *BillingInvoiceLineMutation) ResetTotal() {
 	m.total = nil
+}
+
+// SetPeriodStart sets the "period_start" field.
+func (m *BillingInvoiceLineMutation) SetPeriodStart(t time.Time) {
+	m.period_start = &t
+}
+
+// PeriodStart returns the value of the "period_start" field in the mutation.
+func (m *BillingInvoiceLineMutation) PeriodStart() (r time.Time, exists bool) {
+	v := m.period_start
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPeriodStart returns the old "period_start" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldPeriodStart(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPeriodStart is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPeriodStart requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPeriodStart: %w", err)
+	}
+	return oldValue.PeriodStart, nil
+}
+
+// ResetPeriodStart resets all changes to the "period_start" field.
+func (m *BillingInvoiceLineMutation) ResetPeriodStart() {
+	m.period_start = nil
+}
+
+// SetPeriodEnd sets the "period_end" field.
+func (m *BillingInvoiceLineMutation) SetPeriodEnd(t time.Time) {
+	m.period_end = &t
+}
+
+// PeriodEnd returns the value of the "period_end" field in the mutation.
+func (m *BillingInvoiceLineMutation) PeriodEnd() (r time.Time, exists bool) {
+	v := m.period_end
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPeriodEnd returns the old "period_end" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldPeriodEnd(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPeriodEnd is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPeriodEnd requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPeriodEnd: %w", err)
+	}
+	return oldValue.PeriodEnd, nil
+}
+
+// ResetPeriodEnd resets all changes to the "period_end" field.
+func (m *BillingInvoiceLineMutation) ResetPeriodEnd() {
+	m.period_end = nil
 }
 
 // SetInvoiceID sets the "invoice_id" field.
@@ -18269,12 +18269,6 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	if m.description != nil {
 		fields = append(fields, billinginvoiceline.FieldDescription)
 	}
-	if m.period_start != nil {
-		fields = append(fields, billinginvoiceline.FieldPeriodStart)
-	}
-	if m.period_end != nil {
-		fields = append(fields, billinginvoiceline.FieldPeriodEnd)
-	}
 	if m.currency != nil {
 		fields = append(fields, billinginvoiceline.FieldCurrency)
 	}
@@ -18301,6 +18295,12 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	}
 	if m.total != nil {
 		fields = append(fields, billinginvoiceline.FieldTotal)
+	}
+	if m.period_start != nil {
+		fields = append(fields, billinginvoiceline.FieldPeriodStart)
+	}
+	if m.period_end != nil {
+		fields = append(fields, billinginvoiceline.FieldPeriodEnd)
 	}
 	if m.billing_invoice != nil {
 		fields = append(fields, billinginvoiceline.FieldInvoiceID)
@@ -18369,10 +18369,6 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case billinginvoiceline.FieldDescription:
 		return m.Description()
-	case billinginvoiceline.FieldPeriodStart:
-		return m.PeriodStart()
-	case billinginvoiceline.FieldPeriodEnd:
-		return m.PeriodEnd()
 	case billinginvoiceline.FieldCurrency:
 		return m.Currency()
 	case billinginvoiceline.FieldTaxConfig:
@@ -18391,6 +18387,10 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.DiscountsTotal()
 	case billinginvoiceline.FieldTotal:
 		return m.Total()
+	case billinginvoiceline.FieldPeriodStart:
+		return m.PeriodStart()
+	case billinginvoiceline.FieldPeriodEnd:
+		return m.PeriodEnd()
 	case billinginvoiceline.FieldInvoiceID:
 		return m.InvoiceID()
 	case billinginvoiceline.FieldManagedBy:
@@ -18444,10 +18444,6 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldName(ctx)
 	case billinginvoiceline.FieldDescription:
 		return m.OldDescription(ctx)
-	case billinginvoiceline.FieldPeriodStart:
-		return m.OldPeriodStart(ctx)
-	case billinginvoiceline.FieldPeriodEnd:
-		return m.OldPeriodEnd(ctx)
 	case billinginvoiceline.FieldCurrency:
 		return m.OldCurrency(ctx)
 	case billinginvoiceline.FieldTaxConfig:
@@ -18466,6 +18462,10 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldDiscountsTotal(ctx)
 	case billinginvoiceline.FieldTotal:
 		return m.OldTotal(ctx)
+	case billinginvoiceline.FieldPeriodStart:
+		return m.OldPeriodStart(ctx)
+	case billinginvoiceline.FieldPeriodEnd:
+		return m.OldPeriodEnd(ctx)
 	case billinginvoiceline.FieldInvoiceID:
 		return m.OldInvoiceID(ctx)
 	case billinginvoiceline.FieldManagedBy:
@@ -18554,20 +18554,6 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetDescription(v)
 		return nil
-	case billinginvoiceline.FieldPeriodStart:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPeriodStart(v)
-		return nil
-	case billinginvoiceline.FieldPeriodEnd:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPeriodEnd(v)
-		return nil
 	case billinginvoiceline.FieldCurrency:
 		v, ok := value.(currencyx.Code)
 		if !ok {
@@ -18630,6 +18616,20 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTotal(v)
+		return nil
+	case billinginvoiceline.FieldPeriodStart:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPeriodStart(v)
+		return nil
+	case billinginvoiceline.FieldPeriodEnd:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPeriodEnd(v)
 		return nil
 	case billinginvoiceline.FieldInvoiceID:
 		v, ok := value.(string)
@@ -18893,12 +18893,6 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 	case billinginvoiceline.FieldDescription:
 		m.ResetDescription()
 		return nil
-	case billinginvoiceline.FieldPeriodStart:
-		m.ResetPeriodStart()
-		return nil
-	case billinginvoiceline.FieldPeriodEnd:
-		m.ResetPeriodEnd()
-		return nil
 	case billinginvoiceline.FieldCurrency:
 		m.ResetCurrency()
 		return nil
@@ -18925,6 +18919,12 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceline.FieldTotal:
 		m.ResetTotal()
+		return nil
+	case billinginvoiceline.FieldPeriodStart:
+		m.ResetPeriodStart()
+		return nil
+	case billinginvoiceline.FieldPeriodEnd:
+		m.ResetPeriodEnd()
 		return nil
 	case billinginvoiceline.FieldInvoiceID:
 		m.ResetInvoiceID()
@@ -21707,10 +21707,10 @@ type BillingInvoiceSplitLineGroupMutation struct {
 	deleted_at                   *time.Time
 	name                         *string
 	description                  *string
-	period_start                 *time.Time
-	period_end                   *time.Time
 	currency                     *currencyx.Code
 	tax_config                   *productcatalog.TaxConfig
+	service_period_start         *time.Time
+	service_period_end           *time.Time
 	unique_reference_id          *string
 	ratecard_discounts           **billing.Discounts
 	feature_key                  *string
@@ -22125,78 +22125,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetDescription() {
 	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldDescription)
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (m *BillingInvoiceSplitLineGroupMutation) SetPeriodStart(t time.Time) {
-	m.period_start = &t
-}
-
-// PeriodStart returns the value of the "period_start" field in the mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) PeriodStart() (r time.Time, exists bool) {
-	v := m.period_start
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPeriodStart returns the old "period_start" field's value of the BillingInvoiceSplitLineGroup entity.
-// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceSplitLineGroupMutation) OldPeriodStart(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPeriodStart is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPeriodStart requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPeriodStart: %w", err)
-	}
-	return oldValue.PeriodStart, nil
-}
-
-// ResetPeriodStart resets all changes to the "period_start" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ResetPeriodStart() {
-	m.period_start = nil
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (m *BillingInvoiceSplitLineGroupMutation) SetPeriodEnd(t time.Time) {
-	m.period_end = &t
-}
-
-// PeriodEnd returns the value of the "period_end" field in the mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) PeriodEnd() (r time.Time, exists bool) {
-	v := m.period_end
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPeriodEnd returns the old "period_end" field's value of the BillingInvoiceSplitLineGroup entity.
-// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceSplitLineGroupMutation) OldPeriodEnd(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPeriodEnd is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPeriodEnd requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPeriodEnd: %w", err)
-	}
-	return oldValue.PeriodEnd, nil
-}
-
-// ResetPeriodEnd resets all changes to the "period_end" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ResetPeriodEnd() {
-	m.period_end = nil
-}
-
 // SetCurrency sets the "currency" field.
 func (m *BillingInvoiceSplitLineGroupMutation) SetCurrency(c currencyx.Code) {
 	m.currency = &c
@@ -22280,6 +22208,78 @@ func (m *BillingInvoiceSplitLineGroupMutation) TaxConfigCleared() bool {
 func (m *BillingInvoiceSplitLineGroupMutation) ResetTaxConfig() {
 	m.tax_config = nil
 	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldTaxConfig)
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetServicePeriodStart(t time.Time) {
+	m.service_period_start = &t
+}
+
+// ServicePeriodStart returns the value of the "service_period_start" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) ServicePeriodStart() (r time.Time, exists bool) {
+	v := m.service_period_start
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodStart returns the old "service_period_start" field's value of the BillingInvoiceSplitLineGroup entity.
+// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceSplitLineGroupMutation) OldServicePeriodStart(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodStart is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodStart requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodStart: %w", err)
+	}
+	return oldValue.ServicePeriodStart, nil
+}
+
+// ResetServicePeriodStart resets all changes to the "service_period_start" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetServicePeriodStart() {
+	m.service_period_start = nil
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetServicePeriodEnd(t time.Time) {
+	m.service_period_end = &t
+}
+
+// ServicePeriodEnd returns the value of the "service_period_end" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) ServicePeriodEnd() (r time.Time, exists bool) {
+	v := m.service_period_end
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodEnd returns the old "service_period_end" field's value of the BillingInvoiceSplitLineGroup entity.
+// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceSplitLineGroupMutation) OldServicePeriodEnd(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodEnd is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodEnd requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodEnd: %w", err)
+	}
+	return oldValue.ServicePeriodEnd, nil
+}
+
+// ResetServicePeriodEnd resets all changes to the "service_period_end" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetServicePeriodEnd() {
+	m.service_period_end = nil
 }
 
 // SetUniqueReferenceID sets the "unique_reference_id" field.
@@ -22803,17 +22803,17 @@ func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
 	if m.description != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldDescription)
 	}
-	if m.period_start != nil {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldPeriodStart)
-	}
-	if m.period_end != nil {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldPeriodEnd)
-	}
 	if m.currency != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldCurrency)
 	}
 	if m.tax_config != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxConfig)
+	}
+	if m.service_period_start != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldServicePeriodStart)
+	}
+	if m.service_period_end != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldServicePeriodEnd)
 	}
 	if m.unique_reference_id != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldUniqueReferenceID)
@@ -22858,14 +22858,14 @@ func (m *BillingInvoiceSplitLineGroupMutation) Field(name string) (ent.Value, bo
 		return m.Name()
 	case billinginvoicesplitlinegroup.FieldDescription:
 		return m.Description()
-	case billinginvoicesplitlinegroup.FieldPeriodStart:
-		return m.PeriodStart()
-	case billinginvoicesplitlinegroup.FieldPeriodEnd:
-		return m.PeriodEnd()
 	case billinginvoicesplitlinegroup.FieldCurrency:
 		return m.Currency()
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		return m.TaxConfig()
+	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
+		return m.ServicePeriodStart()
+	case billinginvoicesplitlinegroup.FieldServicePeriodEnd:
+		return m.ServicePeriodEnd()
 	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
 		return m.UniqueReferenceID()
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
@@ -22903,14 +22903,14 @@ func (m *BillingInvoiceSplitLineGroupMutation) OldField(ctx context.Context, nam
 		return m.OldName(ctx)
 	case billinginvoicesplitlinegroup.FieldDescription:
 		return m.OldDescription(ctx)
-	case billinginvoicesplitlinegroup.FieldPeriodStart:
-		return m.OldPeriodStart(ctx)
-	case billinginvoicesplitlinegroup.FieldPeriodEnd:
-		return m.OldPeriodEnd(ctx)
 	case billinginvoicesplitlinegroup.FieldCurrency:
 		return m.OldCurrency(ctx)
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		return m.OldTaxConfig(ctx)
+	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
+		return m.OldServicePeriodStart(ctx)
+	case billinginvoicesplitlinegroup.FieldServicePeriodEnd:
+		return m.OldServicePeriodEnd(ctx)
 	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
 		return m.OldUniqueReferenceID(ctx)
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
@@ -22983,20 +22983,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) SetField(name string, value ent.V
 		}
 		m.SetDescription(v)
 		return nil
-	case billinginvoicesplitlinegroup.FieldPeriodStart:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPeriodStart(v)
-		return nil
-	case billinginvoicesplitlinegroup.FieldPeriodEnd:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPeriodEnd(v)
-		return nil
 	case billinginvoicesplitlinegroup.FieldCurrency:
 		v, ok := value.(currencyx.Code)
 		if !ok {
@@ -23010,6 +22996,20 @@ func (m *BillingInvoiceSplitLineGroupMutation) SetField(name string, value ent.V
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTaxConfig(v)
+		return nil
+	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodStart(v)
+		return nil
+	case billinginvoicesplitlinegroup.FieldServicePeriodEnd:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodEnd(v)
 		return nil
 	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
 		v, ok := value.(string)
@@ -23193,17 +23193,17 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetField(name string) error {
 	case billinginvoicesplitlinegroup.FieldDescription:
 		m.ResetDescription()
 		return nil
-	case billinginvoicesplitlinegroup.FieldPeriodStart:
-		m.ResetPeriodStart()
-		return nil
-	case billinginvoicesplitlinegroup.FieldPeriodEnd:
-		m.ResetPeriodEnd()
-		return nil
 	case billinginvoicesplitlinegroup.FieldCurrency:
 		m.ResetCurrency()
 		return nil
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		m.ResetTaxConfig()
+		return nil
+	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
+		m.ResetServicePeriodStart()
+		return nil
+	case billinginvoicesplitlinegroup.FieldServicePeriodEnd:
+		m.ResetServicePeriodEnd()
 		return nil
 	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
 		m.ResetUniqueReferenceID()

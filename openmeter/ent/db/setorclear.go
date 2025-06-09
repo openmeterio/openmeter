@@ -1469,62 +1469,6 @@ func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearRatecardDiscounts(valu
 	return u.SetRatecardDiscounts(*value)
 }
 
-func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearFeatureKey(value *string) *BillingInvoiceSplitLineGroupUpdate {
-	if value == nil {
-		return u.ClearFeatureKey()
-	}
-	return u.SetFeatureKey(*value)
-}
-
-func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearFeatureKey(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
-	if value == nil {
-		return u.ClearFeatureKey()
-	}
-	return u.SetFeatureKey(*value)
-}
-
-func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearSubscriptionID(value *string) *BillingInvoiceSplitLineGroupUpdate {
-	if value == nil {
-		return u.ClearSubscriptionID()
-	}
-	return u.SetSubscriptionID(*value)
-}
-
-func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearSubscriptionID(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
-	if value == nil {
-		return u.ClearSubscriptionID()
-	}
-	return u.SetSubscriptionID(*value)
-}
-
-func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearSubscriptionPhaseID(value *string) *BillingInvoiceSplitLineGroupUpdate {
-	if value == nil {
-		return u.ClearSubscriptionPhaseID()
-	}
-	return u.SetSubscriptionPhaseID(*value)
-}
-
-func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearSubscriptionPhaseID(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
-	if value == nil {
-		return u.ClearSubscriptionPhaseID()
-	}
-	return u.SetSubscriptionPhaseID(*value)
-}
-
-func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearSubscriptionItemID(value *string) *BillingInvoiceSplitLineGroupUpdate {
-	if value == nil {
-		return u.ClearSubscriptionItemID()
-	}
-	return u.SetSubscriptionItemID(*value)
-}
-
-func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearSubscriptionItemID(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
-	if value == nil {
-		return u.ClearSubscriptionItemID()
-	}
-	return u.SetSubscriptionItemID(*value)
-}
-
 func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
 	if value == nil {
 		return u.ClearPreLinePeriodQuantity()

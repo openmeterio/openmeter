@@ -98,16 +98,6 @@ func Description(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldDescription, v))
 }
 
-// PeriodStart applies equality check predicate on the "period_start" field. It's identical to PeriodStartEQ.
-func PeriodStart(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
-}
-
-// PeriodEnd applies equality check predicate on the "period_end" field. It's identical to PeriodEndEQ.
-func PeriodEnd(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodEnd, v))
-}
-
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
 func Currency(v currencyx.Code) predicate.BillingInvoiceLine {
 	vc := string(v)
@@ -147,6 +137,16 @@ func DiscountsTotal(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 // Total applies equality check predicate on the "total" field. It's identical to TotalEQ.
 func Total(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTotal, v))
+}
+
+// PeriodStart applies equality check predicate on the "period_start" field. It's identical to PeriodStartEQ.
+func PeriodStart(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
+}
+
+// PeriodEnd applies equality check predicate on the "period_end" field. It's identical to PeriodEndEQ.
+func PeriodEnd(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodEnd, v))
 }
 
 // InvoiceID applies equality check predicate on the "invoice_id" field. It's identical to InvoiceIDEQ.
@@ -549,86 +549,6 @@ func DescriptionContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldDescription, v))
 }
 
-// PeriodStartEQ applies the EQ predicate on the "period_start" field.
-func PeriodStartEQ(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
-}
-
-// PeriodStartNEQ applies the NEQ predicate on the "period_start" field.
-func PeriodStartNEQ(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldPeriodStart, v))
-}
-
-// PeriodStartIn applies the In predicate on the "period_start" field.
-func PeriodStartIn(vs ...time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldPeriodStart, vs...))
-}
-
-// PeriodStartNotIn applies the NotIn predicate on the "period_start" field.
-func PeriodStartNotIn(vs ...time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldPeriodStart, vs...))
-}
-
-// PeriodStartGT applies the GT predicate on the "period_start" field.
-func PeriodStartGT(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGT(FieldPeriodStart, v))
-}
-
-// PeriodStartGTE applies the GTE predicate on the "period_start" field.
-func PeriodStartGTE(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldPeriodStart, v))
-}
-
-// PeriodStartLT applies the LT predicate on the "period_start" field.
-func PeriodStartLT(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLT(FieldPeriodStart, v))
-}
-
-// PeriodStartLTE applies the LTE predicate on the "period_start" field.
-func PeriodStartLTE(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldPeriodStart, v))
-}
-
-// PeriodEndEQ applies the EQ predicate on the "period_end" field.
-func PeriodEndEQ(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodEnd, v))
-}
-
-// PeriodEndNEQ applies the NEQ predicate on the "period_end" field.
-func PeriodEndNEQ(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldPeriodEnd, v))
-}
-
-// PeriodEndIn applies the In predicate on the "period_end" field.
-func PeriodEndIn(vs ...time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldPeriodEnd, vs...))
-}
-
-// PeriodEndNotIn applies the NotIn predicate on the "period_end" field.
-func PeriodEndNotIn(vs ...time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldPeriodEnd, vs...))
-}
-
-// PeriodEndGT applies the GT predicate on the "period_end" field.
-func PeriodEndGT(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGT(FieldPeriodEnd, v))
-}
-
-// PeriodEndGTE applies the GTE predicate on the "period_end" field.
-func PeriodEndGTE(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldPeriodEnd, v))
-}
-
-// PeriodEndLT applies the LT predicate on the "period_end" field.
-func PeriodEndLT(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLT(FieldPeriodEnd, v))
-}
-
-// PeriodEndLTE applies the LTE predicate on the "period_end" field.
-func PeriodEndLTE(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldPeriodEnd, v))
-}
-
 // CurrencyEQ applies the EQ predicate on the "currency" field.
 func CurrencyEQ(v currencyx.Code) predicate.BillingInvoiceLine {
 	vc := string(v)
@@ -1001,6 +921,86 @@ func TotalLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 // TotalLTE applies the LTE predicate on the "total" field.
 func TotalLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldTotal, v))
+}
+
+// PeriodStartEQ applies the EQ predicate on the "period_start" field.
+func PeriodStartEQ(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
+}
+
+// PeriodStartNEQ applies the NEQ predicate on the "period_start" field.
+func PeriodStartNEQ(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldPeriodStart, v))
+}
+
+// PeriodStartIn applies the In predicate on the "period_start" field.
+func PeriodStartIn(vs ...time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldPeriodStart, vs...))
+}
+
+// PeriodStartNotIn applies the NotIn predicate on the "period_start" field.
+func PeriodStartNotIn(vs ...time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldPeriodStart, vs...))
+}
+
+// PeriodStartGT applies the GT predicate on the "period_start" field.
+func PeriodStartGT(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldPeriodStart, v))
+}
+
+// PeriodStartGTE applies the GTE predicate on the "period_start" field.
+func PeriodStartGTE(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldPeriodStart, v))
+}
+
+// PeriodStartLT applies the LT predicate on the "period_start" field.
+func PeriodStartLT(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldPeriodStart, v))
+}
+
+// PeriodStartLTE applies the LTE predicate on the "period_start" field.
+func PeriodStartLTE(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldPeriodStart, v))
+}
+
+// PeriodEndEQ applies the EQ predicate on the "period_end" field.
+func PeriodEndEQ(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodEnd, v))
+}
+
+// PeriodEndNEQ applies the NEQ predicate on the "period_end" field.
+func PeriodEndNEQ(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldPeriodEnd, v))
+}
+
+// PeriodEndIn applies the In predicate on the "period_end" field.
+func PeriodEndIn(vs ...time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldPeriodEnd, vs...))
+}
+
+// PeriodEndNotIn applies the NotIn predicate on the "period_end" field.
+func PeriodEndNotIn(vs ...time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldPeriodEnd, vs...))
+}
+
+// PeriodEndGT applies the GT predicate on the "period_end" field.
+func PeriodEndGT(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldPeriodEnd, v))
+}
+
+// PeriodEndGTE applies the GTE predicate on the "period_end" field.
+func PeriodEndGTE(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldPeriodEnd, v))
+}
+
+// PeriodEndLT applies the LT predicate on the "period_end" field.
+func PeriodEndLT(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldPeriodEnd, v))
+}
+
+// PeriodEndLTE applies the LTE predicate on the "period_end" field.
+func PeriodEndLTE(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldPeriodEnd, v))
 }
 
 // InvoiceIDEQ applies the EQ predicate on the "invoice_id" field.

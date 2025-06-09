@@ -112,34 +112,6 @@ func (_u *BillingInvoiceLineUpdate) ClearDescription() *BillingInvoiceLineUpdate
 	return _u
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (_u *BillingInvoiceLineUpdate) SetPeriodStart(v time.Time) *BillingInvoiceLineUpdate {
-	_u.mutation.SetPeriodStart(v)
-	return _u
-}
-
-// SetNillablePeriodStart sets the "period_start" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillablePeriodStart(v *time.Time) *BillingInvoiceLineUpdate {
-	if v != nil {
-		_u.SetPeriodStart(*v)
-	}
-	return _u
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (_u *BillingInvoiceLineUpdate) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpdate {
-	_u.mutation.SetPeriodEnd(v)
-	return _u
-}
-
-// SetNillablePeriodEnd sets the "period_end" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillablePeriodEnd(v *time.Time) *BillingInvoiceLineUpdate {
-	if v != nil {
-		_u.SetPeriodEnd(*v)
-	}
-	return _u
-}
-
 // SetTaxConfig sets the "tax_config" field.
 func (_u *BillingInvoiceLineUpdate) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
 	_u.mutation.SetTaxConfig(v)
@@ -254,6 +226,34 @@ func (_u *BillingInvoiceLineUpdate) SetTotal(v alpacadecimal.Decimal) *BillingIn
 func (_u *BillingInvoiceLineUpdate) SetNillableTotal(v *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
 	if v != nil {
 		_u.SetTotal(*v)
+	}
+	return _u
+}
+
+// SetPeriodStart sets the "period_start" field.
+func (_u *BillingInvoiceLineUpdate) SetPeriodStart(v time.Time) *BillingInvoiceLineUpdate {
+	_u.mutation.SetPeriodStart(v)
+	return _u
+}
+
+// SetNillablePeriodStart sets the "period_start" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillablePeriodStart(v *time.Time) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetPeriodStart(*v)
+	}
+	return _u
+}
+
+// SetPeriodEnd sets the "period_end" field.
+func (_u *BillingInvoiceLineUpdate) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpdate {
+	_u.mutation.SetPeriodEnd(v)
+	return _u
+}
+
+// SetNillablePeriodEnd sets the "period_end" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillablePeriodEnd(v *time.Time) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetPeriodEnd(*v)
 	}
 	return _u
 }
@@ -836,12 +836,6 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(billinginvoiceline.FieldDescription, field.TypeString)
 	}
-	if value, ok := _u.mutation.PeriodStart(); ok {
-		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.PeriodEnd(); ok {
-		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
-	}
 	if value, ok := _u.mutation.TaxConfig(); ok {
 		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
 	}
@@ -868,6 +862,12 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.PeriodStart(); ok {
+		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.PeriodEnd(); ok {
+		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.ManagedBy(); ok {
 		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
@@ -1371,34 +1371,6 @@ func (_u *BillingInvoiceLineUpdateOne) ClearDescription() *BillingInvoiceLineUpd
 	return _u
 }
 
-// SetPeriodStart sets the "period_start" field.
-func (_u *BillingInvoiceLineUpdateOne) SetPeriodStart(v time.Time) *BillingInvoiceLineUpdateOne {
-	_u.mutation.SetPeriodStart(v)
-	return _u
-}
-
-// SetNillablePeriodStart sets the "period_start" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillablePeriodStart(v *time.Time) *BillingInvoiceLineUpdateOne {
-	if v != nil {
-		_u.SetPeriodStart(*v)
-	}
-	return _u
-}
-
-// SetPeriodEnd sets the "period_end" field.
-func (_u *BillingInvoiceLineUpdateOne) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpdateOne {
-	_u.mutation.SetPeriodEnd(v)
-	return _u
-}
-
-// SetNillablePeriodEnd sets the "period_end" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillablePeriodEnd(v *time.Time) *BillingInvoiceLineUpdateOne {
-	if v != nil {
-		_u.SetPeriodEnd(*v)
-	}
-	return _u
-}
-
 // SetTaxConfig sets the "tax_config" field.
 func (_u *BillingInvoiceLineUpdateOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetTaxConfig(v)
@@ -1513,6 +1485,34 @@ func (_u *BillingInvoiceLineUpdateOne) SetTotal(v alpacadecimal.Decimal) *Billin
 func (_u *BillingInvoiceLineUpdateOne) SetNillableTotal(v *alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
 	if v != nil {
 		_u.SetTotal(*v)
+	}
+	return _u
+}
+
+// SetPeriodStart sets the "period_start" field.
+func (_u *BillingInvoiceLineUpdateOne) SetPeriodStart(v time.Time) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetPeriodStart(v)
+	return _u
+}
+
+// SetNillablePeriodStart sets the "period_start" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillablePeriodStart(v *time.Time) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetPeriodStart(*v)
+	}
+	return _u
+}
+
+// SetPeriodEnd sets the "period_end" field.
+func (_u *BillingInvoiceLineUpdateOne) SetPeriodEnd(v time.Time) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetPeriodEnd(v)
+	return _u
+}
+
+// SetNillablePeriodEnd sets the "period_end" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillablePeriodEnd(v *time.Time) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetPeriodEnd(*v)
 	}
 	return _u
 }
@@ -2125,12 +2125,6 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(billinginvoiceline.FieldDescription, field.TypeString)
 	}
-	if value, ok := _u.mutation.PeriodStart(); ok {
-		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.PeriodEnd(); ok {
-		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
-	}
 	if value, ok := _u.mutation.TaxConfig(); ok {
 		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
 	}
@@ -2157,6 +2151,12 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.PeriodStart(); ok {
+		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.PeriodEnd(); ok {
+		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.ManagedBy(); ok {
 		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)

@@ -31,14 +31,14 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
-	// FieldPeriodStart holds the string denoting the period_start field in the database.
-	FieldPeriodStart = "period_start"
-	// FieldPeriodEnd holds the string denoting the period_end field in the database.
-	FieldPeriodEnd = "period_end"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
+	// FieldServicePeriodStart holds the string denoting the service_period_start field in the database.
+	FieldServicePeriodStart = "service_period_start"
+	// FieldServicePeriodEnd holds the string denoting the service_period_end field in the database.
+	FieldServicePeriodEnd = "service_period_end"
 	// FieldUniqueReferenceID holds the string denoting the unique_reference_id field in the database.
 	FieldUniqueReferenceID = "unique_reference_id"
 	// FieldRatecardDiscounts holds the string denoting the ratecard_discounts field in the database.
@@ -103,10 +103,10 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldName,
 	FieldDescription,
-	FieldPeriodStart,
-	FieldPeriodEnd,
 	FieldCurrency,
 	FieldTaxConfig,
+	FieldServicePeriodStart,
+	FieldServicePeriodEnd,
 	FieldUniqueReferenceID,
 	FieldRatecardDiscounts,
 	FieldFeatureKey,
@@ -184,19 +184,19 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
-// ByPeriodStart orders the results by the period_start field.
-func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
-}
-
-// ByPeriodEnd orders the results by the period_end field.
-func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPeriodEnd, opts...).ToFunc()
-}
-
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByServicePeriodStart orders the results by the service_period_start field.
+func ByServicePeriodStart(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldServicePeriodStart, opts...).ToFunc()
+}
+
+// ByServicePeriodEnd orders the results by the service_period_end field.
+func ByServicePeriodEnd(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldServicePeriodEnd, opts...).ToFunc()
 }
 
 // ByUniqueReferenceID orders the results by the unique_reference_id field.

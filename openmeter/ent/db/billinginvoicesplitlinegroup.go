@@ -38,14 +38,14 @@ type BillingInvoiceSplitLineGroup struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
-	// PeriodStart holds the value of the "period_start" field.
-	PeriodStart time.Time `json:"period_start,omitempty"`
-	// PeriodEnd holds the value of the "period_end" field.
-	PeriodEnd time.Time `json:"period_end,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
+	// ServicePeriodStart holds the value of the "service_period_start" field.
+	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`
+	// ServicePeriodEnd holds the value of the "service_period_end" field.
+	ServicePeriodEnd time.Time `json:"service_period_end,omitempty"`
 	// UniqueReferenceID holds the value of the "unique_reference_id" field.
 	UniqueReferenceID *string `json:"unique_reference_id,omitempty"`
 	// RatecardDiscounts holds the value of the "ratecard_discounts" field.
@@ -132,7 +132,7 @@ func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error)
 			values[i] = new([]byte)
 		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldFeatureKey, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID:
 			values[i] = new(sql.NullString)
-		case billinginvoicesplitlinegroup.FieldCreatedAt, billinginvoicesplitlinegroup.FieldUpdatedAt, billinginvoicesplitlinegroup.FieldDeletedAt, billinginvoicesplitlinegroup.FieldPeriodStart, billinginvoicesplitlinegroup.FieldPeriodEnd:
+		case billinginvoicesplitlinegroup.FieldCreatedAt, billinginvoicesplitlinegroup.FieldUpdatedAt, billinginvoicesplitlinegroup.FieldDeletedAt, billinginvoicesplitlinegroup.FieldServicePeriodStart, billinginvoicesplitlinegroup.FieldServicePeriodEnd:
 			values[i] = new(sql.NullTime)
 		case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 			values[i] = billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts.ScanValue()
@@ -205,18 +205,6 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 				_m.Description = new(string)
 				*_m.Description = value.String
 			}
-		case billinginvoicesplitlinegroup.FieldPeriodStart:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field period_start", values[i])
-			} else if value.Valid {
-				_m.PeriodStart = value.Time
-			}
-		case billinginvoicesplitlinegroup.FieldPeriodEnd:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field period_end", values[i])
-			} else if value.Valid {
-				_m.PeriodEnd = value.Time
-			}
 		case billinginvoicesplitlinegroup.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
@@ -230,6 +218,18 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
 					return fmt.Errorf("unmarshal field tax_config: %w", err)
 				}
+			}
+		case billinginvoicesplitlinegroup.FieldServicePeriodStart:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field service_period_start", values[i])
+			} else if value.Valid {
+				_m.ServicePeriodStart = value.Time
+			}
+		case billinginvoicesplitlinegroup.FieldServicePeriodEnd:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field service_period_end", values[i])
+			} else if value.Valid {
+				_m.ServicePeriodEnd = value.Time
 			}
 		case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -359,17 +359,17 @@ func (_m *BillingInvoiceSplitLineGroup) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("period_start=")
-	builder.WriteString(_m.PeriodStart.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("period_end=")
-	builder.WriteString(_m.PeriodEnd.Format(time.ANSIC))
-	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
 	builder.WriteString(", ")
 	builder.WriteString("tax_config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
+	builder.WriteString(", ")
+	builder.WriteString("service_period_start=")
+	builder.WriteString(_m.ServicePeriodStart.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("service_period_end=")
+	builder.WriteString(_m.ServicePeriodEnd.Format(time.ANSIC))
 	builder.WriteString(", ")
 	if v := _m.UniqueReferenceID; v != nil {
 		builder.WriteString("unique_reference_id=")

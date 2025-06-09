@@ -31,10 +31,6 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
-	// FieldPeriodStart holds the string denoting the period_start field in the database.
-	FieldPeriodStart = "period_start"
-	// FieldPeriodEnd holds the string denoting the period_end field in the database.
-	FieldPeriodEnd = "period_end"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
@@ -53,6 +49,10 @@ const (
 	FieldDiscountsTotal = "discounts_total"
 	// FieldTotal holds the string denoting the total field in the database.
 	FieldTotal = "total"
+	// FieldPeriodStart holds the string denoting the period_start field in the database.
+	FieldPeriodStart = "period_start"
+	// FieldPeriodEnd holds the string denoting the period_end field in the database.
+	FieldPeriodEnd = "period_end"
 	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
 	FieldInvoiceID = "invoice_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
@@ -190,8 +190,6 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldName,
 	FieldDescription,
-	FieldPeriodStart,
-	FieldPeriodEnd,
 	FieldCurrency,
 	FieldTaxConfig,
 	FieldAmount,
@@ -201,6 +199,8 @@ var Columns = []string{
 	FieldChargesTotal,
 	FieldDiscountsTotal,
 	FieldTotal,
+	FieldPeriodStart,
+	FieldPeriodEnd,
 	FieldInvoiceID,
 	FieldManagedBy,
 	FieldParentLineID,
@@ -331,16 +331,6 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
-// ByPeriodStart orders the results by the period_start field.
-func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
-}
-
-// ByPeriodEnd orders the results by the period_end field.
-func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPeriodEnd, opts...).ToFunc()
-}
-
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
@@ -379,6 +369,16 @@ func ByDiscountsTotal(opts ...sql.OrderTermOption) OrderOption {
 // ByTotal orders the results by the total field.
 func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTotal, opts...).ToFunc()
+}
+
+// ByPeriodStart orders the results by the period_start field.
+func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
+}
+
+// ByPeriodEnd orders the results by the period_end field.
+func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPeriodEnd, opts...).ToFunc()
 }
 
 // ByInvoiceID orders the results by the invoice_id field.
