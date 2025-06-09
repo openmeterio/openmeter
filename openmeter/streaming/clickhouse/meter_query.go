@@ -260,14 +260,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 				return "", nil, fmt.Errorf("empty filter for group by: %s", groupByKey)
 			}
 			mapFunc := func(value string) string {
-				column := fmt.Sprintf("JSON_VALUE(%s, '%s')", dataColumn, groupByJSONPath)
-
-				// Subject is a special case
-				if groupByKey == "subject" {
-					column = "subject"
-				}
-
-				return fmt.Sprintf("%s = '%s'", column, sqlbuilder.Escape((value)))
+				return fmt.Sprintf("JSON_VALUE(%s, '%s') = '%s'", dataColumn, groupByJSONPath, sqlbuilder.Escape((value)))
 			}
 
 			query.Where(query.Or(slicesx.Map(values, mapFunc)...))
