@@ -1,4 +1,5 @@
 -- create "billing_invoice_split_line_groups" table
+-- atlas:nolint PG110
 CREATE TABLE "billing_invoice_split_line_groups" (
   "id" character(26) NOT NULL,
   "namespace" character varying NOT NULL,
