@@ -35,6 +35,7 @@ func NewStreamingConnector(
 		AsyncInsert:                           conf.AsyncInsert,
 		AsyncInsertWait:                       conf.AsyncInsertWait,
 		InsertQuerySettings:                   conf.InsertQuerySettings,
+		MeterQuerySettings:                    conf.MeterQuerySettings,
 		ProgressManager:                       progressmanager,
 		QueryCacheEnabled:                     conf.QueryCache.Enabled,
 		QueryCacheNamespaceTemplate:           conf.QueryCache.NamespaceTemplate,
