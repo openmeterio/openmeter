@@ -307,8 +307,6 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 	sql = sql + fmt.Sprintf(" SETTINGS %s", strings.Join(settings, ", "))
 
-	fmt.Println(sql, args)
-
 	return sql, args, nil
 }
 
