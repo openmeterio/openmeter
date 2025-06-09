@@ -292,6 +292,28 @@ func (m TotalsMixin) Fields() []ent.Field {
 	}
 }
 
+type InvoiceLineBaseMixin struct {
+	mixin.Schema
+}
+
+func (InvoiceLineBaseMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("currency").
+			GoType(currencyx.Code("")).
+			NotEmpty().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "varchar(3)",
+			}),
+
+		field.JSON("tax_config", productcatalog.TaxConfig{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
+	}
+}
+
 type BillingInvoiceLine struct {
 	ent.Schema
 }
@@ -299,12 +321,17 @@ type BillingInvoiceLine struct {
 func (BillingInvoiceLine) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.ResourceMixin{},
+		InvoiceLineBaseMixin{},
 		TotalsMixin{},
 	}
 }
 
 func (BillingInvoiceLine) Fields() []ent.Field {
 	return []ent.Field{
+		// TODO: when we are done migrating the lines, let's also rename this to be service_period_start and service_period_end
+		field.Time("period_start"),
+		field.Time("period_end"),
+
 		field.String("invoice_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -318,8 +345,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}).Optional().Nillable(),
 
-		field.Time("period_start"),
-		field.Time("period_end"),
 		field.Time("invoice_at"),
 
 		// TODO[dependency]: overrides (as soon as plan override entities are ready)
@@ -331,14 +356,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 		field.Enum("status").
 			GoType(billing.InvoiceLineStatus("")),
 
-		field.String("currency").
-			GoType(currencyx.Code("")).
-			NotEmpty().
-			Immutable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
-			}),
-
 		// Quantity is optional as for usage-based billing we can only persist this value,
 		// when the invoice is issued
 		field.Other("quantity", alpacadecimal.Decimal{}).
@@ -347,12 +364,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
-
-		field.JSON("tax_config", productcatalog.TaxConfig{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional(),
 
 		field.String("ratecard_discounts").
 			GoType(&billing.Discounts{}).
@@ -389,6 +400,14 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		// NOTE: This is only valid for ubp lines, but eventually this table will become the "ubp" table
+		field.String("split_line_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable(),
+
 		// Deprecated fields
 		field.String("line_ids").
 			Optional().
@@ -419,6 +438,10 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Field("invoice_id").
 			Unique().
 			Required(),
+		edge.From("split_line_group", BillingInvoiceSplitLineGroup.Type).
+			Ref("billing_invoice_lines").
+			Field("split_line_group_id").
+			Unique(),
 		edge.To("flat_fee_line", BillingInvoiceFlatFeeLineConfig.Type).
 			StorageKey(edge.Column("fee_line_config_id")).
 			Unique().
@@ -554,6 +577,95 @@ func (BillingInvoiceLineDiscountBase) Fields() []ent.Field {
 		field.String("invoicing_app_external_id").
 			Optional().
 			Nillable(),
+	}
+}
+
+type BillingInvoiceSplitLineGroup struct {
+	ent.Schema
+}
+
+func (BillingInvoiceSplitLineGroup) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.ResourceMixin{},
+		InvoiceLineBaseMixin{},
+	}
+}
+
+func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
+	return []ent.Field{
+		field.Time("service_period_start"),
+		field.Time("service_period_end"),
+
+		field.String("unique_reference_id").
+			Optional().
+			Nillable(),
+
+		field.String("ratecard_discounts").
+			GoType(&billing.Discounts{}).
+			ValueScanner(BillingDiscountsValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
+
+		field.String("feature_key").
+			Optional().
+			Nillable().
+			Immutable(),
+
+		field.String("price").
+			GoType(&productcatalog.Price{}).
+			ValueScanner(PriceValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).Immutable(),
+
+		// Subscriptions metadata
+		field.String("subscription_id").
+			Optional().
+			Nillable().
+			Immutable(),
+
+		field.String("subscription_phase_id").
+			Optional().
+			Nillable().
+			Immutable(),
+
+		field.String("subscription_item_id").
+			Optional().
+			Nillable().
+			Immutable(),
+	}
+}
+
+func (BillingInvoiceSplitLineGroup) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+			).Unique(),
+	}
+}
+
+func (BillingInvoiceSplitLineGroup) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
+		edge.From("subscription", Subscription.Type).
+			Ref("billing_split_line_groups").
+			Field("subscription_id").
+			Unique().
+			Immutable(),
+		edge.From("subscription_phase", SubscriptionPhase.Type).
+			Ref("billing_split_line_groups").
+			Field("subscription_phase_id").
+			Unique().
+			Immutable(),
+		edge.From("subscription_item", SubscriptionItem.Type).
+			Ref("billing_split_line_groups").
+			Field("subscription_item_id").
+			Unique().
+			Immutable(),
 	}
 }
 

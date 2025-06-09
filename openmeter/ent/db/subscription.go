@@ -63,11 +63,13 @@ type SubscriptionEdges struct {
 	Phases []*SubscriptionPhase `json:"phases,omitempty"`
 	// BillingLines holds the value of the billing_lines edge.
 	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
+	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
+	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
 	// Addons holds the value of the addons edge.
 	Addons []*SubscriptionAddon `json:"addons,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // PlanOrErr returns the Plan value or an error if the edge
@@ -110,10 +112,19 @@ func (e SubscriptionEdges) BillingLinesOrErr() ([]*BillingInvoiceLine, error) {
 	return nil, &NotLoadedError{edge: "billing_lines"}
 }
 
+// BillingSplitLineGroupsOrErr returns the BillingSplitLineGroups value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
+	if e.loadedTypes[4] {
+		return e.BillingSplitLineGroups, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
+}
+
 // AddonsOrErr returns the Addons value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionEdges) AddonsOrErr() ([]*SubscriptionAddon, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.Addons, nil
 	}
 	return nil, &NotLoadedError{edge: "addons"}
@@ -268,6 +279,11 @@ func (_m *Subscription) QueryPhases() *SubscriptionPhaseQuery {
 // QueryBillingLines queries the "billing_lines" edge of the Subscription entity.
 func (_m *Subscription) QueryBillingLines() *BillingInvoiceLineQuery {
 	return NewSubscriptionClient(_m.config).QueryBillingLines(_m)
+}
+
+// QueryBillingSplitLineGroups queries the "billing_split_line_groups" edge of the Subscription entity.
+func (_m *Subscription) QueryBillingSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
+	return NewSubscriptionClient(_m.config).QueryBillingSplitLineGroups(_m)
 }
 
 // QueryAddons queries the "addons" edge of the Subscription entity.

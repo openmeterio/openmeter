@@ -31,6 +31,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -98,6 +99,8 @@ type Client struct {
 	BillingInvoiceLineDiscount *BillingInvoiceLineDiscountClient
 	// BillingInvoiceLineUsageDiscount is the client for interacting with the BillingInvoiceLineUsageDiscount builders.
 	BillingInvoiceLineUsageDiscount *BillingInvoiceLineUsageDiscountClient
+	// BillingInvoiceSplitLineGroup is the client for interacting with the BillingInvoiceSplitLineGroup builders.
+	BillingInvoiceSplitLineGroup *BillingInvoiceSplitLineGroupClient
 	// BillingInvoiceUsageBasedLineConfig is the client for interacting with the BillingInvoiceUsageBasedLineConfig builders.
 	BillingInvoiceUsageBasedLineConfig *BillingInvoiceUsageBasedLineConfigClient
 	// BillingInvoiceValidationIssue is the client for interacting with the BillingInvoiceValidationIssue builders.
@@ -177,6 +180,7 @@ func (c *Client) init() {
 	c.BillingInvoiceLine = NewBillingInvoiceLineClient(c.config)
 	c.BillingInvoiceLineDiscount = NewBillingInvoiceLineDiscountClient(c.config)
 	c.BillingInvoiceLineUsageDiscount = NewBillingInvoiceLineUsageDiscountClient(c.config)
+	c.BillingInvoiceSplitLineGroup = NewBillingInvoiceSplitLineGroupClient(c.config)
 	c.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(c.config)
 	c.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(c.config)
 	c.BillingProfile = NewBillingProfileClient(c.config)
@@ -311,6 +315,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingInvoiceLine:                 NewBillingInvoiceLineClient(cfg),
 		BillingInvoiceLineDiscount:         NewBillingInvoiceLineDiscountClient(cfg),
 		BillingInvoiceLineUsageDiscount:    NewBillingInvoiceLineUsageDiscountClient(cfg),
+		BillingInvoiceSplitLineGroup:       NewBillingInvoiceSplitLineGroupClient(cfg),
 		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
 		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
 		BillingProfile:                     NewBillingProfileClient(cfg),
@@ -372,6 +377,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingInvoiceLine:                 NewBillingInvoiceLineClient(cfg),
 		BillingInvoiceLineDiscount:         NewBillingInvoiceLineDiscountClient(cfg),
 		BillingInvoiceLineUsageDiscount:    NewBillingInvoiceLineUsageDiscountClient(cfg),
+		BillingInvoiceSplitLineGroup:       NewBillingInvoiceSplitLineGroupClient(cfg),
 		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
 		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
 		BillingProfile:                     NewBillingProfileClient(cfg),
@@ -432,13 +438,14 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
 		c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
-		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
-		c.BillingProfile, c.BillingSequenceNumbers, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.Subject, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
-		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
+		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
+		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
+		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
+		c.Feature, c.Grant, c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
+		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
+		c.SubscriptionAddonQuantity, c.SubscriptionItem, c.SubscriptionPhase,
+		c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -453,13 +460,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
 		c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
-		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
-		c.BillingProfile, c.BillingSequenceNumbers, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.Subject, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
-		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
+		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
+		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
+		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
+		c.Feature, c.Grant, c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
+		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
+		c.SubscriptionAddonQuantity, c.SubscriptionItem, c.SubscriptionPhase,
+		c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -500,6 +508,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillingInvoiceLineDiscount.mutate(ctx, m)
 	case *BillingInvoiceLineUsageDiscountMutation:
 		return c.BillingInvoiceLineUsageDiscount.mutate(ctx, m)
+	case *BillingInvoiceSplitLineGroupMutation:
+		return c.BillingInvoiceSplitLineGroup.mutate(ctx, m)
 	case *BillingInvoiceUsageBasedLineConfigMutation:
 		return c.BillingInvoiceUsageBasedLineConfig.mutate(ctx, m)
 	case *BillingInvoiceValidationIssueMutation:
@@ -2938,6 +2948,22 @@ func (c *BillingInvoiceLineClient) QueryBillingInvoice(_m *BillingInvoiceLine) *
 	return query
 }
 
+// QuerySplitLineGroup queries the split_line_group edge of a BillingInvoiceLine.
+func (c *BillingInvoiceLineClient) QuerySplitLineGroup(_m *BillingInvoiceLine) *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.SplitLineGroupTable, billinginvoiceline.SplitLineGroupColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryFlatFeeLine queries the flat_fee_line edge of a BillingInvoiceLine.
 func (c *BillingInvoiceLineClient) QueryFlatFeeLine(_m *BillingInvoiceLine) *BillingInvoiceFlatFeeLineConfigQuery {
 	query := (&BillingInvoiceFlatFeeLineConfigClient{config: c.config}).Query()
@@ -3402,6 +3428,203 @@ func (c *BillingInvoiceLineUsageDiscountClient) mutate(ctx context.Context, m *B
 		return (&BillingInvoiceLineUsageDiscountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown BillingInvoiceLineUsageDiscount mutation op: %q", m.Op())
+	}
+}
+
+// BillingInvoiceSplitLineGroupClient is a client for the BillingInvoiceSplitLineGroup schema.
+type BillingInvoiceSplitLineGroupClient struct {
+	config
+}
+
+// NewBillingInvoiceSplitLineGroupClient returns a client for the BillingInvoiceSplitLineGroup from the given config.
+func NewBillingInvoiceSplitLineGroupClient(c config) *BillingInvoiceSplitLineGroupClient {
+	return &BillingInvoiceSplitLineGroupClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billinginvoicesplitlinegroup.Hooks(f(g(h())))`.
+func (c *BillingInvoiceSplitLineGroupClient) Use(hooks ...Hook) {
+	c.hooks.BillingInvoiceSplitLineGroup = append(c.hooks.BillingInvoiceSplitLineGroup, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billinginvoicesplitlinegroup.Intercept(f(g(h())))`.
+func (c *BillingInvoiceSplitLineGroupClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingInvoiceSplitLineGroup = append(c.inters.BillingInvoiceSplitLineGroup, interceptors...)
+}
+
+// Create returns a builder for creating a BillingInvoiceSplitLineGroup entity.
+func (c *BillingInvoiceSplitLineGroupClient) Create() *BillingInvoiceSplitLineGroupCreate {
+	mutation := newBillingInvoiceSplitLineGroupMutation(c.config, OpCreate)
+	return &BillingInvoiceSplitLineGroupCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingInvoiceSplitLineGroup entities.
+func (c *BillingInvoiceSplitLineGroupClient) CreateBulk(builders ...*BillingInvoiceSplitLineGroupCreate) *BillingInvoiceSplitLineGroupCreateBulk {
+	return &BillingInvoiceSplitLineGroupCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingInvoiceSplitLineGroupClient) MapCreateBulk(slice any, setFunc func(*BillingInvoiceSplitLineGroupCreate, int)) *BillingInvoiceSplitLineGroupCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingInvoiceSplitLineGroupCreateBulk{err: fmt.Errorf("calling to BillingInvoiceSplitLineGroupClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingInvoiceSplitLineGroupCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingInvoiceSplitLineGroupCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) Update() *BillingInvoiceSplitLineGroupUpdate {
+	mutation := newBillingInvoiceSplitLineGroupMutation(c.config, OpUpdate)
+	return &BillingInvoiceSplitLineGroupUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingInvoiceSplitLineGroupClient) UpdateOne(_m *BillingInvoiceSplitLineGroup) *BillingInvoiceSplitLineGroupUpdateOne {
+	mutation := newBillingInvoiceSplitLineGroupMutation(c.config, OpUpdateOne, withBillingInvoiceSplitLineGroup(_m))
+	return &BillingInvoiceSplitLineGroupUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingInvoiceSplitLineGroupClient) UpdateOneID(id string) *BillingInvoiceSplitLineGroupUpdateOne {
+	mutation := newBillingInvoiceSplitLineGroupMutation(c.config, OpUpdateOne, withBillingInvoiceSplitLineGroupID(id))
+	return &BillingInvoiceSplitLineGroupUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) Delete() *BillingInvoiceSplitLineGroupDelete {
+	mutation := newBillingInvoiceSplitLineGroupMutation(c.config, OpDelete)
+	return &BillingInvoiceSplitLineGroupDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingInvoiceSplitLineGroupClient) DeleteOne(_m *BillingInvoiceSplitLineGroup) *BillingInvoiceSplitLineGroupDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingInvoiceSplitLineGroupClient) DeleteOneID(id string) *BillingInvoiceSplitLineGroupDeleteOne {
+	builder := c.Delete().Where(billinginvoicesplitlinegroup.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingInvoiceSplitLineGroupDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) Query() *BillingInvoiceSplitLineGroupQuery {
+	return &BillingInvoiceSplitLineGroupQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingInvoiceSplitLineGroup},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingInvoiceSplitLineGroup entity by its id.
+func (c *BillingInvoiceSplitLineGroupClient) Get(ctx context.Context, id string) (*BillingInvoiceSplitLineGroup, error) {
+	return c.Query().Where(billinginvoicesplitlinegroup.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingInvoiceSplitLineGroupClient) GetX(ctx context.Context, id string) *BillingInvoiceSplitLineGroup {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBillingInvoiceLines queries the billing_invoice_lines edge of a BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) QueryBillingInvoiceLines(_m *BillingInvoiceSplitLineGroup) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoicesplitlinegroup.BillingInvoiceLinesTable, billinginvoicesplitlinegroup.BillingInvoiceLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscription queries the subscription edge of a BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) QuerySubscription(_m *BillingInvoiceSplitLineGroup) *SubscriptionQuery {
+	query := (&SubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicesplitlinegroup.SubscriptionTable, billinginvoicesplitlinegroup.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionPhase queries the subscription_phase edge of a BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) QuerySubscriptionPhase(_m *BillingInvoiceSplitLineGroup) *SubscriptionPhaseQuery {
+	query := (&SubscriptionPhaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
+			sqlgraph.To(subscriptionphase.Table, subscriptionphase.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicesplitlinegroup.SubscriptionPhaseTable, billinginvoicesplitlinegroup.SubscriptionPhaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionItem queries the subscription_item edge of a BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) QuerySubscriptionItem(_m *BillingInvoiceSplitLineGroup) *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicesplitlinegroup.SubscriptionItemTable, billinginvoicesplitlinegroup.SubscriptionItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingInvoiceSplitLineGroupClient) Hooks() []Hook {
+	return c.hooks.BillingInvoiceSplitLineGroup
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingInvoiceSplitLineGroupClient) Interceptors() []Interceptor {
+	return c.inters.BillingInvoiceSplitLineGroup
+}
+
+func (c *BillingInvoiceSplitLineGroupClient) mutate(ctx context.Context, m *BillingInvoiceSplitLineGroupMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingInvoiceSplitLineGroupCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingInvoiceSplitLineGroupUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingInvoiceSplitLineGroupUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingInvoiceSplitLineGroupDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingInvoiceSplitLineGroup mutation op: %q", m.Op())
 	}
 }
 
@@ -6861,6 +7084,22 @@ func (c *SubscriptionClient) QueryBillingLines(_m *Subscription) *BillingInvoice
 	return query
 }
 
+// QueryBillingSplitLineGroups queries the billing_split_line_groups edge of a Subscription.
+func (c *SubscriptionClient) QueryBillingSplitLineGroups(_m *Subscription) *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, id),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.BillingSplitLineGroupsTable, subscription.BillingSplitLineGroupsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryAddons queries the addons edge of a Subscription.
 func (c *SubscriptionClient) QueryAddons(_m *Subscription) *SubscriptionAddonQuery {
 	query := (&SubscriptionAddonClient{config: c.config}).Query()
@@ -7388,6 +7627,22 @@ func (c *SubscriptionItemClient) QueryBillingLines(_m *SubscriptionItem) *Billin
 	return query
 }
 
+// QueryBillingSplitLineGroups queries the billing_split_line_groups edge of a SubscriptionItem.
+func (c *SubscriptionItemClient) QueryBillingSplitLineGroups(_m *SubscriptionItem) *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.BillingSplitLineGroupsTable, subscriptionitem.BillingSplitLineGroupsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *SubscriptionItemClient) Hooks() []Hook {
 	return c.hooks.SubscriptionItem
@@ -7562,6 +7817,22 @@ func (c *SubscriptionPhaseClient) QueryBillingLines(_m *SubscriptionPhase) *Bill
 			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, id),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.BillingLinesTable, subscriptionphase.BillingLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingSplitLineGroups queries the billing_split_line_groups edge of a SubscriptionPhase.
+func (c *SubscriptionPhaseClient) QueryBillingSplitLineGroups(_m *SubscriptionPhase) *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, id),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.BillingSplitLineGroupsTable, subscriptionphase.BillingSplitLineGroupsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -7751,13 +8022,13 @@ type (
 		BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
 		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
 		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
-		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
-		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
-		UsageReset []ent.Hook
+		BillingInvoiceSplitLineGroup, BillingInvoiceUsageBasedLineConfig,
+		BillingInvoiceValidationIssue, BillingProfile, BillingSequenceNumbers,
+		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
+		Meter, NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
+		Subscription, SubscriptionAddon, SubscriptionAddonQuantity, SubscriptionItem,
+		SubscriptionPhase, UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -7765,13 +8036,13 @@ type (
 		BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
 		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
 		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
-		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
-		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
-		UsageReset []ent.Interceptor
+		BillingInvoiceSplitLineGroup, BillingInvoiceUsageBasedLineConfig,
+		BillingInvoiceValidationIssue, BillingProfile, BillingSequenceNumbers,
+		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
+		Meter, NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
+		Subscription, SubscriptionAddon, SubscriptionAddonQuantity, SubscriptionItem,
+		SubscriptionPhase, UsageReset []ent.Interceptor
 	}
 )
 

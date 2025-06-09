@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -193,6 +194,21 @@ func (_u *SubscriptionUpdate) AddBillingLines(v ...*BillingInvoiceLine) *Subscri
 	return _u.AddBillingLineIDs(ids...)
 }
 
+// AddBillingSplitLineGroupIDs adds the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
+func (_u *SubscriptionUpdate) AddBillingSplitLineGroupIDs(ids ...string) *SubscriptionUpdate {
+	_u.mutation.AddBillingSplitLineGroupIDs(ids...)
+	return _u
+}
+
+// AddBillingSplitLineGroups adds the "billing_split_line_groups" edges to the BillingInvoiceSplitLineGroup entity.
+func (_u *SubscriptionUpdate) AddBillingSplitLineGroups(v ...*BillingInvoiceSplitLineGroup) *SubscriptionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBillingSplitLineGroupIDs(ids...)
+}
+
 // AddAddonIDs adds the "addons" edge to the SubscriptionAddon entity by IDs.
 func (_u *SubscriptionUpdate) AddAddonIDs(ids ...string) *SubscriptionUpdate {
 	_u.mutation.AddAddonIDs(ids...)
@@ -259,6 +275,27 @@ func (_u *SubscriptionUpdate) RemoveBillingLines(v ...*BillingInvoiceLine) *Subs
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingLineIDs(ids...)
+}
+
+// ClearBillingSplitLineGroups clears all "billing_split_line_groups" edges to the BillingInvoiceSplitLineGroup entity.
+func (_u *SubscriptionUpdate) ClearBillingSplitLineGroups() *SubscriptionUpdate {
+	_u.mutation.ClearBillingSplitLineGroups()
+	return _u
+}
+
+// RemoveBillingSplitLineGroupIDs removes the "billing_split_line_groups" edge to BillingInvoiceSplitLineGroup entities by IDs.
+func (_u *SubscriptionUpdate) RemoveBillingSplitLineGroupIDs(ids ...string) *SubscriptionUpdate {
+	_u.mutation.RemoveBillingSplitLineGroupIDs(ids...)
+	return _u
+}
+
+// RemoveBillingSplitLineGroups removes "billing_split_line_groups" edges to BillingInvoiceSplitLineGroup entities.
+func (_u *SubscriptionUpdate) RemoveBillingSplitLineGroups(v ...*BillingInvoiceSplitLineGroup) *SubscriptionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBillingSplitLineGroupIDs(ids...)
 }
 
 // ClearAddons clears all "addons" edges to the SubscriptionAddon entity.
@@ -495,6 +532,51 @@ func (_u *SubscriptionUpdate) sqlSave(ctx context.Context) (_node int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.BillingSplitLineGroupsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.BillingSplitLineGroupsTable,
+			Columns: []string{subscription.BillingSplitLineGroupsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBillingSplitLineGroupsIDs(); len(nodes) > 0 && !_u.mutation.BillingSplitLineGroupsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.BillingSplitLineGroupsTable,
+			Columns: []string{subscription.BillingSplitLineGroupsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingSplitLineGroupsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.BillingSplitLineGroupsTable,
+			Columns: []string{subscription.BillingSplitLineGroupsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.AddonsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -721,6 +803,21 @@ func (_u *SubscriptionUpdateOne) AddBillingLines(v ...*BillingInvoiceLine) *Subs
 	return _u.AddBillingLineIDs(ids...)
 }
 
+// AddBillingSplitLineGroupIDs adds the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
+func (_u *SubscriptionUpdateOne) AddBillingSplitLineGroupIDs(ids ...string) *SubscriptionUpdateOne {
+	_u.mutation.AddBillingSplitLineGroupIDs(ids...)
+	return _u
+}
+
+// AddBillingSplitLineGroups adds the "billing_split_line_groups" edges to the BillingInvoiceSplitLineGroup entity.
+func (_u *SubscriptionUpdateOne) AddBillingSplitLineGroups(v ...*BillingInvoiceSplitLineGroup) *SubscriptionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBillingSplitLineGroupIDs(ids...)
+}
+
 // AddAddonIDs adds the "addons" edge to the SubscriptionAddon entity by IDs.
 func (_u *SubscriptionUpdateOne) AddAddonIDs(ids ...string) *SubscriptionUpdateOne {
 	_u.mutation.AddAddonIDs(ids...)
@@ -787,6 +884,27 @@ func (_u *SubscriptionUpdateOne) RemoveBillingLines(v ...*BillingInvoiceLine) *S
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingLineIDs(ids...)
+}
+
+// ClearBillingSplitLineGroups clears all "billing_split_line_groups" edges to the BillingInvoiceSplitLineGroup entity.
+func (_u *SubscriptionUpdateOne) ClearBillingSplitLineGroups() *SubscriptionUpdateOne {
+	_u.mutation.ClearBillingSplitLineGroups()
+	return _u
+}
+
+// RemoveBillingSplitLineGroupIDs removes the "billing_split_line_groups" edge to BillingInvoiceSplitLineGroup entities by IDs.
+func (_u *SubscriptionUpdateOne) RemoveBillingSplitLineGroupIDs(ids ...string) *SubscriptionUpdateOne {
+	_u.mutation.RemoveBillingSplitLineGroupIDs(ids...)
+	return _u
+}
+
+// RemoveBillingSplitLineGroups removes "billing_split_line_groups" edges to BillingInvoiceSplitLineGroup entities.
+func (_u *SubscriptionUpdateOne) RemoveBillingSplitLineGroups(v ...*BillingInvoiceSplitLineGroup) *SubscriptionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBillingSplitLineGroupIDs(ids...)
 }
 
 // ClearAddons clears all "addons" edges to the SubscriptionAddon entity.
@@ -1046,6 +1164,51 @@ func (_u *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscripti
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BillingSplitLineGroupsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.BillingSplitLineGroupsTable,
+			Columns: []string{subscription.BillingSplitLineGroupsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBillingSplitLineGroupsIDs(); len(nodes) > 0 && !_u.mutation.BillingSplitLineGroupsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.BillingSplitLineGroupsTable,
+			Columns: []string{subscription.BillingSplitLineGroupsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingSplitLineGroupsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.BillingSplitLineGroupsTable,
+			Columns: []string{subscription.BillingSplitLineGroupsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

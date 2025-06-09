@@ -31,6 +31,10 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldCurrency holds the string denoting the currency field in the database.
+	FieldCurrency = "currency"
+	// FieldTaxConfig holds the string denoting the tax_config field in the database.
+	FieldTaxConfig = "tax_config"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldTaxesTotal holds the string denoting the taxes_total field in the database.
@@ -45,28 +49,24 @@ const (
 	FieldDiscountsTotal = "discounts_total"
 	// FieldTotal holds the string denoting the total field in the database.
 	FieldTotal = "total"
+	// FieldPeriodStart holds the string denoting the period_start field in the database.
+	FieldPeriodStart = "period_start"
+	// FieldPeriodEnd holds the string denoting the period_end field in the database.
+	FieldPeriodEnd = "period_end"
 	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
 	FieldInvoiceID = "invoice_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
 	// FieldParentLineID holds the string denoting the parent_line_id field in the database.
 	FieldParentLineID = "parent_line_id"
-	// FieldPeriodStart holds the string denoting the period_start field in the database.
-	FieldPeriodStart = "period_start"
-	// FieldPeriodEnd holds the string denoting the period_end field in the database.
-	FieldPeriodEnd = "period_end"
 	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
 	FieldInvoiceAt = "invoice_at"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
 	// FieldQuantity holds the string denoting the quantity field in the database.
 	FieldQuantity = "quantity"
-	// FieldTaxConfig holds the string denoting the tax_config field in the database.
-	FieldTaxConfig = "tax_config"
 	// FieldRatecardDiscounts holds the string denoting the ratecard_discounts field in the database.
 	FieldRatecardDiscounts = "ratecard_discounts"
 	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
@@ -79,10 +79,14 @@ const (
 	FieldSubscriptionPhaseID = "subscription_phase_id"
 	// FieldSubscriptionItemID holds the string denoting the subscription_item_id field in the database.
 	FieldSubscriptionItemID = "subscription_item_id"
+	// FieldSplitLineGroupID holds the string denoting the split_line_group_id field in the database.
+	FieldSplitLineGroupID = "split_line_group_id"
 	// FieldLineIds holds the string denoting the line_ids field in the database.
 	FieldLineIds = "line_ids"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
+	// EdgeSplitLineGroup holds the string denoting the split_line_group edge name in mutations.
+	EdgeSplitLineGroup = "split_line_group"
 	// EdgeFlatFeeLine holds the string denoting the flat_fee_line edge name in mutations.
 	EdgeFlatFeeLine = "flat_fee_line"
 	// EdgeUsageBasedLine holds the string denoting the usage_based_line edge name in mutations.
@@ -110,6 +114,13 @@ const (
 	BillingInvoiceInverseTable = "billing_invoices"
 	// BillingInvoiceColumn is the table column denoting the billing_invoice relation/edge.
 	BillingInvoiceColumn = "invoice_id"
+	// SplitLineGroupTable is the table that holds the split_line_group relation/edge.
+	SplitLineGroupTable = "billing_invoice_lines"
+	// SplitLineGroupInverseTable is the table name for the BillingInvoiceSplitLineGroup entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicesplitlinegroup" package.
+	SplitLineGroupInverseTable = "billing_invoice_split_line_groups"
+	// SplitLineGroupColumn is the table column denoting the split_line_group relation/edge.
+	SplitLineGroupColumn = "split_line_group_id"
 	// FlatFeeLineTable is the table that holds the flat_fee_line relation/edge.
 	FlatFeeLineTable = "billing_invoice_lines"
 	// FlatFeeLineInverseTable is the table name for the BillingInvoiceFlatFeeLineConfig entity.
@@ -179,6 +190,8 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldName,
 	FieldDescription,
+	FieldCurrency,
+	FieldTaxConfig,
 	FieldAmount,
 	FieldTaxesTotal,
 	FieldTaxesInclusiveTotal,
@@ -186,23 +199,22 @@ var Columns = []string{
 	FieldChargesTotal,
 	FieldDiscountsTotal,
 	FieldTotal,
+	FieldPeriodStart,
+	FieldPeriodEnd,
 	FieldInvoiceID,
 	FieldManagedBy,
 	FieldParentLineID,
-	FieldPeriodStart,
-	FieldPeriodEnd,
 	FieldInvoiceAt,
 	FieldType,
 	FieldStatus,
-	FieldCurrency,
 	FieldQuantity,
-	FieldTaxConfig,
 	FieldRatecardDiscounts,
 	FieldInvoicingAppExternalID,
 	FieldChildUniqueReferenceID,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
+	FieldSplitLineGroupID,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "billing_invoice_lines"
@@ -319,6 +331,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
+// ByCurrency orders the results by the currency field.
+func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
 // ByAmount orders the results by the amount field.
 func ByAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmount, opts...).ToFunc()
@@ -354,6 +371,16 @@ func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTotal, opts...).ToFunc()
 }
 
+// ByPeriodStart orders the results by the period_start field.
+func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
+}
+
+// ByPeriodEnd orders the results by the period_end field.
+func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPeriodEnd, opts...).ToFunc()
+}
+
 // ByInvoiceID orders the results by the invoice_id field.
 func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
@@ -369,16 +396,6 @@ func ByParentLineID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldParentLineID, opts...).ToFunc()
 }
 
-// ByPeriodStart orders the results by the period_start field.
-func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPeriodStart, opts...).ToFunc()
-}
-
-// ByPeriodEnd orders the results by the period_end field.
-func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPeriodEnd, opts...).ToFunc()
-}
-
 // ByInvoiceAt orders the results by the invoice_at field.
 func ByInvoiceAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceAt, opts...).ToFunc()
@@ -392,11 +409,6 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
-}
-
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
 // ByQuantity orders the results by the quantity field.
@@ -434,6 +446,11 @@ func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionItemID, opts...).ToFunc()
 }
 
+// BySplitLineGroupID orders the results by the split_line_group_id field.
+func BySplitLineGroupID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSplitLineGroupID, opts...).ToFunc()
+}
+
 // ByLineIds orders the results by the line_ids field.
 func ByLineIds(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLineIds, opts...).ToFunc()
@@ -443,6 +460,13 @@ func ByLineIds(opts ...sql.OrderTermOption) OrderOption {
 func ByBillingInvoiceField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// BySplitLineGroupField orders the results by split_line_group field.
+func BySplitLineGroupField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSplitLineGroupStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -534,6 +558,13 @@ func newBillingInvoiceStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceTable, BillingInvoiceColumn),
+	)
+}
+func newSplitLineGroupStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SplitLineGroupInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SplitLineGroupTable, SplitLineGroupColumn),
 	)
 }
 func newFlatFeeLineStep() *sqlgraph.Step {
