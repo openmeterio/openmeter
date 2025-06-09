@@ -1,4 +1,5 @@
 -- create "billing_invoice_split_line_groups" table
+-- atlas:nolint PG110
 CREATE TABLE "billing_invoice_split_line_groups" (
   "id" character(26) NOT NULL,
   "namespace" character varying NOT NULL,
@@ -14,6 +15,7 @@ CREATE TABLE "billing_invoice_split_line_groups" (
   "tax_config" jsonb NULL,
   "unique_reference_id" character varying NULL,
   "ratecard_discounts" jsonb NULL,
+  "feature_key" character varying NULL,
   "price" jsonb NOT NULL,
   "subscription_id" character(26) NULL,
   "subscription_item_id" character(26) NULL,

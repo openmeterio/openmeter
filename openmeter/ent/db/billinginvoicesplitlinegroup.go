@@ -50,6 +50,8 @@ type BillingInvoiceSplitLineGroup struct {
 	UniqueReferenceID *string `json:"unique_reference_id,omitempty"`
 	// RatecardDiscounts holds the value of the "ratecard_discounts" field.
 	RatecardDiscounts *billing.Discounts `json:"ratecard_discounts,omitempty"`
+	// FeatureKey holds the value of the "feature_key" field.
+	FeatureKey *string `json:"feature_key,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// SubscriptionID holds the value of the "subscription_id" field.
@@ -128,7 +130,7 @@ func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error)
 		switch columns[i] {
 		case billinginvoicesplitlinegroup.FieldMetadata, billinginvoicesplitlinegroup.FieldTaxConfig:
 			values[i] = new([]byte)
-		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID:
+		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldFeatureKey, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID:
 			values[i] = new(sql.NullString)
 		case billinginvoicesplitlinegroup.FieldCreatedAt, billinginvoicesplitlinegroup.FieldUpdatedAt, billinginvoicesplitlinegroup.FieldDeletedAt, billinginvoicesplitlinegroup.FieldPeriodStart, billinginvoicesplitlinegroup.FieldPeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -241,6 +243,13 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 				return err
 			} else {
 				_m.RatecardDiscounts = value
+			}
+		case billinginvoicesplitlinegroup.FieldFeatureKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
+			} else if value.Valid {
+				_m.FeatureKey = new(string)
+				*_m.FeatureKey = value.String
 			}
 		case billinginvoicesplitlinegroup.FieldPrice:
 			if value, err := billinginvoicesplitlinegroup.ValueScanner.Price.FromValue(values[i]); err != nil {
@@ -370,6 +379,11 @@ func (_m *BillingInvoiceSplitLineGroup) String() string {
 	if v := _m.RatecardDiscounts; v != nil {
 		builder.WriteString("ratecard_discounts=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.FeatureKey; v != nil {
+		builder.WriteString("feature_key=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("price=")

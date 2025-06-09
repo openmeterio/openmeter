@@ -43,6 +43,8 @@ const (
 	FieldUniqueReferenceID = "unique_reference_id"
 	// FieldRatecardDiscounts holds the string denoting the ratecard_discounts field in the database.
 	FieldRatecardDiscounts = "ratecard_discounts"
+	// FieldFeatureKey holds the string denoting the feature_key field in the database.
+	FieldFeatureKey = "feature_key"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
 	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
@@ -107,6 +109,7 @@ var Columns = []string{
 	FieldTaxConfig,
 	FieldUniqueReferenceID,
 	FieldRatecardDiscounts,
+	FieldFeatureKey,
 	FieldPrice,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
@@ -204,6 +207,11 @@ func ByUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
 // ByRatecardDiscounts orders the results by the ratecard_discounts field.
 func ByRatecardDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRatecardDiscounts, opts...).ToFunc()
+}
+
+// ByFeatureKey orders the results by the feature_key field.
+func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureKey, opts...).ToFunc()
 }
 
 // ByPrice orders the results by the price field.

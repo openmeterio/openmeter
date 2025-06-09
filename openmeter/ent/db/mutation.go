@@ -21713,6 +21713,7 @@ type BillingInvoiceSplitLineGroupMutation struct {
 	tax_config                   *productcatalog.TaxConfig
 	unique_reference_id          *string
 	ratecard_discounts           **billing.Discounts
+	feature_key                  *string
 	price                        **productcatalog.Price
 	clearedFields                map[string]struct{}
 	billing_invoice_lines        map[string]struct{}
@@ -22379,6 +22380,55 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetRatecardDiscounts() {
 	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldRatecardDiscounts)
 }
 
+// SetFeatureKey sets the "feature_key" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetFeatureKey(s string) {
+	m.feature_key = &s
+}
+
+// FeatureKey returns the value of the "feature_key" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) FeatureKey() (r string, exists bool) {
+	v := m.feature_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureKey returns the old "feature_key" field's value of the BillingInvoiceSplitLineGroup entity.
+// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceSplitLineGroupMutation) OldFeatureKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureKey: %w", err)
+	}
+	return oldValue.FeatureKey, nil
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearFeatureKey() {
+	m.feature_key = nil
+	m.clearedFields[billinginvoicesplitlinegroup.FieldFeatureKey] = struct{}{}
+}
+
+// FeatureKeyCleared returns if the "feature_key" field was cleared in this mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) FeatureKeyCleared() bool {
+	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldFeatureKey]
+	return ok
+}
+
+// ResetFeatureKey resets all changes to the "feature_key" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetFeatureKey() {
+	m.feature_key = nil
+	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldFeatureKey)
+}
+
 // SetPrice sets the "price" field.
 func (m *BillingInvoiceSplitLineGroupMutation) SetPrice(pr *productcatalog.Price) {
 	m.price = &pr
@@ -22731,7 +22781,7 @@ func (m *BillingInvoiceSplitLineGroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldNamespace)
 	}
@@ -22770,6 +22820,9 @@ func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
 	}
 	if m.ratecard_discounts != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldRatecardDiscounts)
+	}
+	if m.feature_key != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldFeatureKey)
 	}
 	if m.price != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldPrice)
@@ -22817,6 +22870,8 @@ func (m *BillingInvoiceSplitLineGroupMutation) Field(name string) (ent.Value, bo
 		return m.UniqueReferenceID()
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 		return m.RatecardDiscounts()
+	case billinginvoicesplitlinegroup.FieldFeatureKey:
+		return m.FeatureKey()
 	case billinginvoicesplitlinegroup.FieldPrice:
 		return m.Price()
 	case billinginvoicesplitlinegroup.FieldSubscriptionID:
@@ -22860,6 +22915,8 @@ func (m *BillingInvoiceSplitLineGroupMutation) OldField(ctx context.Context, nam
 		return m.OldUniqueReferenceID(ctx)
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 		return m.OldRatecardDiscounts(ctx)
+	case billinginvoicesplitlinegroup.FieldFeatureKey:
+		return m.OldFeatureKey(ctx)
 	case billinginvoicesplitlinegroup.FieldPrice:
 		return m.OldPrice(ctx)
 	case billinginvoicesplitlinegroup.FieldSubscriptionID:
@@ -22968,6 +23025,13 @@ func (m *BillingInvoiceSplitLineGroupMutation) SetField(name string, value ent.V
 		}
 		m.SetRatecardDiscounts(v)
 		return nil
+	case billinginvoicesplitlinegroup.FieldFeatureKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureKey(v)
+		return nil
 	case billinginvoicesplitlinegroup.FieldPrice:
 		v, ok := value.(*productcatalog.Price)
 		if !ok {
@@ -23044,6 +23108,9 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoicesplitlinegroup.FieldRatecardDiscounts) {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldRatecardDiscounts)
 	}
+	if m.FieldCleared(billinginvoicesplitlinegroup.FieldFeatureKey) {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldFeatureKey)
+	}
 	if m.FieldCleared(billinginvoicesplitlinegroup.FieldSubscriptionID) {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionID)
 	}
@@ -23084,6 +23151,9 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearField(name string) error {
 		return nil
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 		m.ClearRatecardDiscounts()
+		return nil
+	case billinginvoicesplitlinegroup.FieldFeatureKey:
+		m.ClearFeatureKey()
 		return nil
 	case billinginvoicesplitlinegroup.FieldSubscriptionID:
 		m.ClearSubscriptionID()
@@ -23140,6 +23210,9 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetField(name string) error {
 		return nil
 	case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 		m.ResetRatecardDiscounts()
+		return nil
+	case billinginvoicesplitlinegroup.FieldFeatureKey:
+		m.ResetFeatureKey()
 		return nil
 	case billinginvoicesplitlinegroup.FieldPrice:
 		m.ResetPrice()

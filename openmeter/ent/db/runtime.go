@@ -629,7 +629,7 @@ func init() {
 	billinginvoicesplitlinegroupDescRatecardDiscounts := billinginvoicesplitlinegroupFields[1].Descriptor()
 	billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts = billinginvoicesplitlinegroupDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// billinginvoicesplitlinegroupDescPrice is the schema descriptor for price field.
-	billinginvoicesplitlinegroupDescPrice := billinginvoicesplitlinegroupFields[2].Descriptor()
+	billinginvoicesplitlinegroupDescPrice := billinginvoicesplitlinegroupFields[3].Descriptor()
 	billinginvoicesplitlinegroup.ValueScanner.Price = billinginvoicesplitlinegroupDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// billinginvoicesplitlinegroupDescID is the schema descriptor for id field.
 	billinginvoicesplitlinegroupDescID := billinginvoicesplitlinegroupMixinFields0[0].Descriptor()

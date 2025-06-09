@@ -117,6 +117,11 @@ func UniqueReferenceID(v string) predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldUniqueReferenceID, v))
 }
 
+// FeatureKey applies equality check predicate on the "feature_key" field. It's identical to FeatureKeyEQ.
+func FeatureKey(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldFeatureKey, v))
+}
+
 // SubscriptionID applies equality check predicate on the "subscription_id" field. It's identical to SubscriptionIDEQ.
 func SubscriptionID(v string) predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionID, v))
@@ -734,6 +739,81 @@ func RatecardDiscountsIsNil() predicate.BillingInvoiceSplitLineGroup {
 // RatecardDiscountsNotNil applies the NotNil predicate on the "ratecard_discounts" field.
 func RatecardDiscountsNotNil() predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldRatecardDiscounts))
+}
+
+// FeatureKeyEQ applies the EQ predicate on the "feature_key" field.
+func FeatureKeyEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldFeatureKey, v))
+}
+
+// FeatureKeyNEQ applies the NEQ predicate on the "feature_key" field.
+func FeatureKeyNEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldFeatureKey, v))
+}
+
+// FeatureKeyIn applies the In predicate on the "feature_key" field.
+func FeatureKeyIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldFeatureKey, vs...))
+}
+
+// FeatureKeyNotIn applies the NotIn predicate on the "feature_key" field.
+func FeatureKeyNotIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldFeatureKey, vs...))
+}
+
+// FeatureKeyGT applies the GT predicate on the "feature_key" field.
+func FeatureKeyGT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldFeatureKey, v))
+}
+
+// FeatureKeyGTE applies the GTE predicate on the "feature_key" field.
+func FeatureKeyGTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldFeatureKey, v))
+}
+
+// FeatureKeyLT applies the LT predicate on the "feature_key" field.
+func FeatureKeyLT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldFeatureKey, v))
+}
+
+// FeatureKeyLTE applies the LTE predicate on the "feature_key" field.
+func FeatureKeyLTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldFeatureKey, v))
+}
+
+// FeatureKeyContains applies the Contains predicate on the "feature_key" field.
+func FeatureKeyContains(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContains(FieldFeatureKey, v))
+}
+
+// FeatureKeyHasPrefix applies the HasPrefix predicate on the "feature_key" field.
+func FeatureKeyHasPrefix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasPrefix(FieldFeatureKey, v))
+}
+
+// FeatureKeyHasSuffix applies the HasSuffix predicate on the "feature_key" field.
+func FeatureKeyHasSuffix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasSuffix(FieldFeatureKey, v))
+}
+
+// FeatureKeyIsNil applies the IsNil predicate on the "feature_key" field.
+func FeatureKeyIsNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIsNull(FieldFeatureKey))
+}
+
+// FeatureKeyNotNil applies the NotNil predicate on the "feature_key" field.
+func FeatureKeyNotNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldFeatureKey))
+}
+
+// FeatureKeyEqualFold applies the EqualFold predicate on the "feature_key" field.
+func FeatureKeyEqualFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEqualFold(FieldFeatureKey, v))
+}
+
+// FeatureKeyContainsFold applies the ContainsFold predicate on the "feature_key" field.
+func FeatureKeyContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldFeatureKey, v))
 }
 
 // SubscriptionIDEQ applies the EQ predicate on the "subscription_id" field.

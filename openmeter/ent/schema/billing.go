@@ -605,6 +605,10 @@ func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.String("feature_key").
+			Optional().
+			Nillable(),
+
 		field.String("price").
 			GoType(&productcatalog.Price{}).
 			ValueScanner(PriceValueScanner).

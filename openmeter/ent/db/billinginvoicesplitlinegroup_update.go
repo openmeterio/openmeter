@@ -186,6 +186,26 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) ClearRatecardDiscounts() *BillingI
 	return _u
 }
 
+// SetFeatureKey sets the "feature_key" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetFeatureKey(v string) *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.SetFeatureKey(v)
+	return _u
+}
+
+// SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableFeatureKey(v *string) *BillingInvoiceSplitLineGroupUpdate {
+	if v != nil {
+		_u.SetFeatureKey(*v)
+	}
+	return _u
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearFeatureKey() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearFeatureKey()
+	return _u
+}
+
 // SetPrice sets the "price" field.
 func (_u *BillingInvoiceSplitLineGroupUpdate) SetPrice(v *productcatalog.Price) *BillingInvoiceSplitLineGroupUpdate {
 	_u.mutation.SetPrice(v)
@@ -422,6 +442,12 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_nod
 	}
 	if _u.mutation.RatecardDiscountsCleared() {
 		_spec.ClearField(billinginvoicesplitlinegroup.FieldRatecardDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.FeatureKey(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldFeatureKey, field.TypeString, value)
+	}
+	if _u.mutation.FeatureKeyCleared() {
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldFeatureKey, field.TypeString)
 	}
 	if value, ok := _u.mutation.Price(); ok {
 		vv, err := billinginvoicesplitlinegroup.ValueScanner.Price.Value(value)
@@ -734,6 +760,26 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearRatecardDiscounts() *Billi
 	return _u
 }
 
+// SetFeatureKey sets the "feature_key" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetFeatureKey(v string) *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.SetFeatureKey(v)
+	return _u
+}
+
+// SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableFeatureKey(v *string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if v != nil {
+		_u.SetFeatureKey(*v)
+	}
+	return _u
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearFeatureKey() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearFeatureKey()
+	return _u
+}
+
 // SetPrice sets the "price" field.
 func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetPrice(v *productcatalog.Price) *BillingInvoiceSplitLineGroupUpdateOne {
 	_u.mutation.SetPrice(v)
@@ -1000,6 +1046,12 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_
 	}
 	if _u.mutation.RatecardDiscountsCleared() {
 		_spec.ClearField(billinginvoicesplitlinegroup.FieldRatecardDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.FeatureKey(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldFeatureKey, field.TypeString, value)
+	}
+	if _u.mutation.FeatureKeyCleared() {
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldFeatureKey, field.TypeString)
 	}
 	if value, ok := _u.mutation.Price(); ok {
 		vv, err := billinginvoicesplitlinegroup.ValueScanner.Price.Value(value)

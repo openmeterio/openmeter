@@ -1469,6 +1469,20 @@ func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearRatecardDiscounts(valu
 	return u.SetRatecardDiscounts(*value)
 }
 
+func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearFeatureKey(value *string) *BillingInvoiceSplitLineGroupUpdate {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearFeatureKey(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
 func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearSubscriptionID(value *string) *BillingInvoiceSplitLineGroupUpdate {
 	if value == nil {
 		return u.ClearSubscriptionID()

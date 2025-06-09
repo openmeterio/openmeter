@@ -156,6 +156,20 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetRatecardDiscounts(v *billing.Di
 	return _c
 }
 
+// SetFeatureKey sets the "feature_key" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetFeatureKey(v string) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetFeatureKey(v)
+	return _c
+}
+
+// SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableFeatureKey(v *string) *BillingInvoiceSplitLineGroupCreate {
+	if v != nil {
+		_c.SetFeatureKey(*v)
+	}
+	return _c
+}
+
 // SetPrice sets the "price" field.
 func (_c *BillingInvoiceSplitLineGroupCreate) SetPrice(v *productcatalog.Price) *BillingInvoiceSplitLineGroupCreate {
 	_c.mutation.SetPrice(v)
@@ -438,6 +452,10 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 		_spec.SetField(billinginvoicesplitlinegroup.FieldRatecardDiscounts, field.TypeString, vv)
 		_node.RatecardDiscounts = value
 	}
+	if value, ok := _c.mutation.FeatureKey(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldFeatureKey, field.TypeString, value)
+		_node.FeatureKey = &value
+	}
 	if value, ok := _c.mutation.Price(); ok {
 		vv, err := billinginvoicesplitlinegroup.ValueScanner.Price.Value(value)
 		if err != nil {
@@ -718,6 +736,24 @@ func (u *BillingInvoiceSplitLineGroupUpsert) UpdateRatecardDiscounts() *BillingI
 // ClearRatecardDiscounts clears the value of the "ratecard_discounts" field.
 func (u *BillingInvoiceSplitLineGroupUpsert) ClearRatecardDiscounts() *BillingInvoiceSplitLineGroupUpsert {
 	u.SetNull(billinginvoicesplitlinegroup.FieldRatecardDiscounts)
+	return u
+}
+
+// SetFeatureKey sets the "feature_key" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetFeatureKey(v string) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldFeatureKey, v)
+	return u
+}
+
+// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateFeatureKey() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldFeatureKey)
+	return u
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) ClearFeatureKey() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetNull(billinginvoicesplitlinegroup.FieldFeatureKey)
 	return u
 }
 
@@ -1023,6 +1059,27 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateRatecardDiscounts() *Billi
 func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearRatecardDiscounts() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearRatecardDiscounts()
+	})
+}
+
+// SetFeatureKey sets the "feature_key" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetFeatureKey(v string) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetFeatureKey(v)
+	})
+}
+
+// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateFeatureKey() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateFeatureKey()
+	})
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearFeatureKey() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearFeatureKey()
 	})
 }
 
@@ -1509,6 +1566,27 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateRatecardDiscounts() *Bill
 func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearRatecardDiscounts() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearRatecardDiscounts()
+	})
+}
+
+// SetFeatureKey sets the "feature_key" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetFeatureKey(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetFeatureKey(v)
+	})
+}
+
+// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateFeatureKey() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateFeatureKey()
+	})
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearFeatureKey() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearFeatureKey()
 	})
 }
 

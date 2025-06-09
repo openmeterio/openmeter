@@ -987,6 +987,7 @@ var (
 		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "unique_reference_id", Type: field.TypeString, Nullable: true},
 		{Name: "ratecard_discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "feature_key", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1000,19 +1001,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_split_line_groups_subscriptions_billing_split_line_groups",
-				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[15]},
+				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[16]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_split_line_groups_subscription_items_billing_split_line_groups",
-				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[16]},
+				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[17]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_split_line_groups_subscription_phases_billing_split_line_groups",
-				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[17]},
+				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[18]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
