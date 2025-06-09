@@ -12,6 +12,7 @@ Write a unit test that generates the required data. Make it fail with `t.FailNow
 
 Dump the schema and the data:
 - Schema dump: `pg_dump -s 'postgres://pgtdbuser:pgtdbpass@127.0.0.1:5432/testdb_tpl_92d6cc3e2b7979388fd8f7b12aad9c7b_inst_6aaae321?sslmode=disable' > tools/migrate/testdata/billing/flatfeetoubpflatfee/sqlc/db-schema.sql`
+  - You can also use the `-n` flag to specifiy individual schemas: `pg_dump -Ox -s -t '*billing*' 'postgres://pgtdbuser:pgtdbpass@127.0.0.1:5432/testdb_tpl_92d6cc3e2b7979388fd8f7b12aad9c7b_inst_4710adae?sslmode=disable'`
 - Data dump: `pg_dump --exclude-table-data=schema_om --column-inserts -n public --inserts -a 'postgres://pgtdbuser:pgtdbpass@127.0.0.1:5432/testdb_tpl_92d6cc3e2b7979388fd8f7b12aad9c7b_inst_bf480b8a?sslmode=disable' > tools/migrate/testdata/billing/flatfeetoubpflatfee/fixture.sql`
 
 Create sqlc.yaml:
