@@ -25,6 +25,7 @@ type SplitLineGroupBase struct {
 
 	RatecardDiscounts Discounts                 `json:"ratecardDiscounts"`
 	Price             *productcatalog.Price     `json:"price"`
+	FeatureKey        *string                   `json:"featureKey,omitempty"`
 	TaxConfig         *productcatalog.TaxConfig `json:"taxConfig,omitempty"`
 
 	Subscription *SubscriptionReference `json:"subscription,omitempty"`

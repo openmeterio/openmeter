@@ -241,6 +241,7 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 			RatecardDiscounts: l.line.RateCardDiscounts,
 			Price:             l.line.UsageBased.Price,
 			TaxConfig:         l.line.TaxConfig,
+			FeatureKey:        lo.EmptyableToPtr(l.line.UsageBased.FeatureKey),
 
 			Subscription: l.line.Subscription,
 		})

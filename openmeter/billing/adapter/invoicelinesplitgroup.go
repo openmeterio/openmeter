@@ -32,7 +32,8 @@ func (a *adapter) CreateSplitLineGroup(ctx context.Context, input billing.Create
 			SetCurrency(input.Currency).
 			SetRatecardDiscounts(&input.RatecardDiscounts).
 			SetPrice(input.Price).
-			SetNillableTaxConfig(input.TaxConfig)
+			SetNillableTaxConfig(input.TaxConfig).
+			SetNillableFeatureKey(input.FeatureKey)
 
 		if input.Subscription != nil {
 			create = create.SetSubscriptionID(input.Subscription.SubscriptionID).
@@ -68,6 +69,7 @@ func (a *adapter) UpdateSplitLineGroup(ctx context.Context, input billing.Update
 			SetRatecardDiscounts(&input.RatecardDiscounts).
 			SetPrice(input.Price).
 			SetOrClearTaxConfig(input.TaxConfig).
+			SetOrClearFeatureKey(input.FeatureKey).
 			Where(
 				billinginvoicesplitlinegroup.Namespace(input.Namespace),
 			)
@@ -186,6 +188,7 @@ func (a *adapter) mapSplitLineGroupFromDB(dbSplitLineGroup *db.BillingInvoiceSpl
 			Currency:          dbSplitLineGroup.Currency,
 			RatecardDiscounts: lo.FromPtr(dbSplitLineGroup.RatecardDiscounts),
 			Price:             dbSplitLineGroup.Price,
+			FeatureKey:        dbSplitLineGroup.FeatureKey,
 			TaxConfig:         lo.EmptyableToPtr(dbSplitLineGroup.TaxConfig),
 
 			Subscription: subscriptionRef,
