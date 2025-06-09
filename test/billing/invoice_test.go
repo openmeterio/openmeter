@@ -1906,7 +1906,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		s.NotNil(tieredGraduated.SplitLineHierarchy)
 		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
 
-		require.True(s.T(), tieredGraduatedHierarchy.Group.Period.Equal(lines.tieredGraduated.Period))
+		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.Period))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
 			Start: periodStart.Truncate(time.Minute),
@@ -2130,7 +2130,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
 		s.NotNil(tieredGraduatedHierarchy)
 
-		require.True(s.T(), tieredGraduatedHierarchy.Group.Period.Equal(lines.tieredGraduated.Period))
+		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.Period))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
 			Start: periodStart.Truncate(time.Minute),

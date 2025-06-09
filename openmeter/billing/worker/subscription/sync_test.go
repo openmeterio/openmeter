@@ -401,7 +401,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		splitLineGroup := gatheringLine.SplitLineHierarchy.Group
 
 		s.Equal(splitLineGroup.Subscription.SubscriptionID, subsView.Subscription.ID)
-		s.Equal(splitLineGroup.Period, billing.Period{
+		s.Equal(splitLineGroup.ServicePeriod, billing.Period{
 			Start: s.mustParseTime("2024-02-01T00:00:00Z"),
 			End:   s.mustParseTime("2024-02-22T00:00:00Z"),
 		})
@@ -450,7 +450,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		splitLineGroup := gatheringLine.SplitLineHierarchy.Group
 
 		s.Equal(splitLineGroup.Subscription.SubscriptionID, subsView.Subscription.ID)
-		s.Equal(splitLineGroup.Period, billing.Period{
+		s.Equal(splitLineGroup.ServicePeriod, billing.Period{
 			Start: s.mustParseTime("2024-02-01T00:00:00Z"),
 			End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 		})
@@ -3132,7 +3132,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	s.Equal(billing.Period{
 		Start: s.mustParseTime("2024-01-01T00:00:00Z"),
 		End:   s.mustParseTime("2024-01-01T11:00:00Z"),
-	}, parentGroup.Period)
+	}, parentGroup.ServicePeriod)
 	s.Equal(fmt.Sprintf("%s/first-phase/api-requests-total/v[0]/period[0]", subsView.Subscription.ID), *parentGroup.UniqueReferenceID)
 }
 

@@ -42,7 +42,7 @@ func (m *minAmountCommitmentMutator) Mutate(i PricerCalculateInput, pricerResult
 				return pricerResult, fmt.Errorf("line[%s] does not have a split line hierarchy, but is a progressive billed line", i.line.ID)
 			}
 
-			period = i.line.SplitLineHierarchy.Group.Period
+			period = i.line.SplitLineHierarchy.Group.ServicePeriod
 		}
 
 		pricerResult = append(pricerResult, newDetailedLineInput{

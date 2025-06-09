@@ -84,7 +84,7 @@ type invoicePatches struct {
 
 type splitLineGroupPatches struct {
 	deleted []models.NamespacedID
-	updated []billing.SplitLineGroup
+	updated []billing.SplitLineGroupUpdate
 }
 
 func (u *InvoiceUpdater) parsePatches(patches []linePatch) (patchesParsed, error) {
@@ -373,7 +373,7 @@ func (u *InvoiceUpdater) upsertSplitLineGroups(ctx context.Context, customerID c
 
 	// Let's upsert split line groups if needed
 	for _, group := range changes.updated {
-		if _, err := u.billingService.UpdateSplitLineGroup(ctx, billing.UpdateSplitLineGroupInput(group)); err != nil {
+		if _, err := u.billingService.UpdateSplitLineGroup(ctx, group); err != nil {
 			return fmt.Errorf("upserting split line group: %w", err)
 		}
 	}

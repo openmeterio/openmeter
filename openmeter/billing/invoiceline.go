@@ -844,15 +844,13 @@ func (c LineChildren) NonDeletedLineCount() int {
 	})
 }
 
-type Price = productcatalog.Price
-
 type UsageBasedLine struct {
 	ConfigID string `json:"configId"`
 
 	// Price is the price of the usage based line. Note: this should be a pointer or marshaling will fail for
 	// empty prices.
-	Price      *Price `json:"price"`
-	FeatureKey string `json:"featureKey"`
+	Price      *productcatalog.Price `json:"price"`
+	FeatureKey string                `json:"featureKey"`
 
 	Quantity        *alpacadecimal.Decimal `json:"quantity"`
 	MeteredQuantity *alpacadecimal.Decimal `json:"meteredQuantity,omitempty"`
@@ -1196,7 +1194,7 @@ func (u UpdateInvoiceLineBaseInput) Apply(l *Line) error {
 }
 
 type UpdateInvoiceLineUsageBasedInput struct {
-	Price *Price
+	Price *productcatalog.Price
 }
 
 func (u UpdateInvoiceLineUsageBasedInput) Validate() error {

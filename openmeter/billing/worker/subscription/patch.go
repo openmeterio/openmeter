@@ -35,7 +35,7 @@ type linePatchSplitLineGroupDelete struct {
 }
 
 type linePatchSplitLineGroupUpdate struct {
-	TargetState billing.SplitLineGroup
+	TargetState billing.SplitLineGroupUpdate
 }
 
 type linePatch struct {
@@ -121,7 +121,7 @@ func newDeleteSplitLineGroupPatch(groupID models.NamespacedID) linePatch {
 	}
 }
 
-func newUpdateSplitLineGroupPatch(group billing.SplitLineGroup) linePatch {
+func newUpdateSplitLineGroupPatch(group billing.SplitLineGroupUpdate) linePatch {
 	return linePatch{
 		op: patchOpSplitLineGroupUpdate,
 		updateSplitLineGroupPatch: linePatchSplitLineGroupUpdate{

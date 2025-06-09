@@ -27,8 +27,9 @@ func (a *adapter) CreateSplitLineGroup(ctx context.Context, input billing.Create
 			SetNillableUniqueReferenceID(input.UniqueReferenceID).
 			SetName(input.Name).
 			SetNillableDescription(input.Description).
-			SetPeriodStart(input.Period.Start.UTC()).
-			SetPeriodEnd(input.Period.End.UTC()).
+			SetMetadata(input.Metadata).
+			SetServicePeriodStart(input.ServicePeriod.Start.UTC()).
+			SetServicePeriodEnd(input.ServicePeriod.End.UTC()).
 			SetCurrency(input.Currency).
 			SetRatecardDiscounts(&input.RatecardDiscounts).
 			SetPrice(input.Price).
@@ -60,29 +61,16 @@ func (a *adapter) UpdateSplitLineGroup(ctx context.Context, input billing.Update
 	// TODO[later]: we should consider creating a batch endpoint, but updates for split line groups are rare (e.g. subscription cancellation)
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.SplitLineGroup, error) {
 		updateQuery := tx.db.BillingInvoiceSplitLineGroup.UpdateOneID(input.ID).
-			SetOrClearDeletedAt(input.DeletedAt).
-			SetOrClearUniqueReferenceID(input.UniqueReferenceID).
 			SetName(input.Name).
 			SetOrClearDescription(input.Description).
-			SetPeriodStart(input.Period.Start.UTC()).
-			SetPeriodEnd(input.Period.End.UTC()).
+			SetMetadata(input.Metadata).
+			SetServicePeriodStart(input.ServicePeriod.Start.UTC()).
+			SetServicePeriodEnd(input.ServicePeriod.End.UTC()).
 			SetRatecardDiscounts(&input.RatecardDiscounts).
-			SetPrice(input.Price).
 			SetOrClearTaxConfig(input.TaxConfig).
-			SetOrClearFeatureKey(input.FeatureKey).
 			Where(
 				billinginvoicesplitlinegroup.Namespace(input.Namespace),
 			)
-
-		if input.Subscription != nil {
-			updateQuery = updateQuery.SetSubscriptionID(input.Subscription.SubscriptionID).
-				SetSubscriptionPhaseID(input.Subscription.PhaseID).
-				SetSubscriptionItemID(input.Subscription.ItemID)
-		} else {
-			updateQuery = updateQuery.ClearSubscriptionID().
-				ClearSubscriptionPhaseID().
-				ClearSubscriptionItemID()
-		}
 
 		dbSplitLineGroup, err := updateQuery.Save(ctx)
 		if err != nil {
@@ -171,29 +159,35 @@ func (a *adapter) mapSplitLineGroupFromDB(dbSplitLineGroup *db.BillingInvoiceSpl
 	}
 
 	return billing.SplitLineGroup{
+		NamespacedID: models.NamespacedID{
+			Namespace: dbSplitLineGroup.Namespace,
+			ID:        dbSplitLineGroup.ID,
+		},
 		ManagedModel: models.ManagedModel{
 			CreatedAt: dbSplitLineGroup.CreatedAt,
 			UpdatedAt: dbSplitLineGroup.UpdatedAt,
 			DeletedAt: dbSplitLineGroup.DeletedAt,
 		},
-		SplitLineGroupBase: billing.SplitLineGroupBase{
-			Namespace:         dbSplitLineGroup.Namespace,
-			UniqueReferenceID: dbSplitLineGroup.UniqueReferenceID,
-			Name:              dbSplitLineGroup.Name,
-			Description:       dbSplitLineGroup.Description,
-			Period: billing.Period{
-				Start: dbSplitLineGroup.PeriodStart.UTC(),
-				End:   dbSplitLineGroup.PeriodEnd.UTC(),
-			},
-			Currency:          dbSplitLineGroup.Currency,
-			RatecardDiscounts: lo.FromPtr(dbSplitLineGroup.RatecardDiscounts),
-			Price:             dbSplitLineGroup.Price,
-			FeatureKey:        dbSplitLineGroup.FeatureKey,
-			TaxConfig:         lo.EmptyableToPtr(dbSplitLineGroup.TaxConfig),
+		SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+			Name:        dbSplitLineGroup.Name,
+			Description: dbSplitLineGroup.Description,
+			Metadata:    dbSplitLineGroup.Metadata,
 
-			Subscription: subscriptionRef,
+			ServicePeriod: billing.Period{
+				Start: dbSplitLineGroup.ServicePeriodStart.UTC(),
+				End:   dbSplitLineGroup.ServicePeriodEnd.UTC(),
+			},
+
+			RatecardDiscounts: lo.FromPtr(dbSplitLineGroup.RatecardDiscounts),
+
+			TaxConfig: lo.EmptyableToPtr(dbSplitLineGroup.TaxConfig),
 		},
-		ID: dbSplitLineGroup.ID,
+		UniqueReferenceID: dbSplitLineGroup.UniqueReferenceID,
+
+		Currency:     dbSplitLineGroup.Currency,
+		Price:        dbSplitLineGroup.Price,
+		FeatureKey:   dbSplitLineGroup.FeatureKey,
+		Subscription: subscriptionRef,
 	}, nil
 }
 

@@ -70,7 +70,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 	lineHierarchy := in.Line.SplitLineHierarchy
 
 	// If we are the first line in the split, we don't need to calculate the pre period
-	if lineHierarchy == nil || lineHierarchy.Group.Period.Start.Equal(in.Line.Period.Start) {
+	if lineHierarchy == nil || lineHierarchy.Group.ServicePeriod.Start.Equal(in.Line.Period.Start) {
 		meterValues, err := s.StreamingConnector.QueryMeter(
 			ctx,
 			in.Line.Namespace,
@@ -88,7 +88,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 
 	// Let's calculate [parent.start ... line.start] values
 	preLineQuery := meterQueryParams
-	preLineQuery.From = &lineHierarchy.Group.Period.Start
+	preLineQuery.From = &lineHierarchy.Group.ServicePeriod.Start
 	preLineQuery.To = &in.Line.Period.Start
 
 	preLineResult, err := s.StreamingConnector.QueryMeter(
@@ -105,7 +105,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 
 	// Let's calculate [parent.start ... line.end] values
 	upToLineEnd := meterQueryParams
-	upToLineEnd.From = &lineHierarchy.Group.Period.Start
+	upToLineEnd.From = &lineHierarchy.Group.ServicePeriod.Start
 	upToLineEnd.To = &in.Line.Period.End
 
 	upToLineEndResult, err := s.StreamingConnector.QueryMeter(

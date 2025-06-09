@@ -13,48 +13,29 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type SplitLineGroupBase struct {
-	Namespace         string  `json:"namespace"`
-	UniqueReferenceID *string `json:"childUniqueReferenceId,omitempty"`
+type SplitLineGroupMutableFields struct {
+	Name        string          `json:"name"`
+	Description *string         `json:"description,omitempty"`
+	Metadata    models.Metadata `json:"metadata,omitempty"`
 
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-
-	Period   Period         `json:"period"`
-	Currency currencyx.Code `json:"currency"`
+	ServicePeriod Period `json:"period"`
 
 	RatecardDiscounts Discounts                 `json:"ratecardDiscounts"`
-	Price             *productcatalog.Price     `json:"price"`
-	FeatureKey        *string                   `json:"featureKey,omitempty"`
 	TaxConfig         *productcatalog.TaxConfig `json:"taxConfig,omitempty"`
-
-	Subscription *SubscriptionReference `json:"subscription,omitempty"`
 }
 
-func (i SplitLineGroupBase) Validate() error {
+func (i SplitLineGroupMutableFields) ValidateForPrice(price *productcatalog.Price) error {
 	var errs []error
-
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace is required"))
-	}
 
 	if i.Name == "" {
 		errs = append(errs, errors.New("name is required"))
 	}
 
-	if i.Price == nil {
-		errs = append(errs, errors.New("price is required"))
-	} else {
-		if err := i.Price.Validate(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	if err := i.Period.Validate(); err != nil {
+	if err := i.ServicePeriod.Validate(); err != nil {
 		errs = append(errs, err)
 	}
 
-	if err := i.RatecardDiscounts.ValidateForPrice(i.Price); err != nil {
+	if err := i.RatecardDiscounts.ValidateForPrice(price); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -64,16 +45,10 @@ func (i SplitLineGroupBase) Validate() error {
 		}
 	}
 
-	if i.Subscription != nil {
-		if err := i.Subscription.Validate(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
 	return errors.Join(errs...)
 }
 
-func (i SplitLineGroupBase) Clone() SplitLineGroupBase {
+func (i SplitLineGroupMutableFields) Clone() SplitLineGroupMutableFields {
 	clone := i
 	clone.RatecardDiscounts = i.RatecardDiscounts.Clone()
 
@@ -84,22 +59,126 @@ func (i SplitLineGroupBase) Clone() SplitLineGroupBase {
 	return clone
 }
 
-type SplitLineGroup struct {
-	models.ManagedModel `json:",inline"`
-	SplitLineGroupBase  `json:",inline"`
+type SplitLineGroupCreate struct {
+	Namespace string `json:"namespace"`
 
-	ID string `json:"id"`
+	SplitLineGroupMutableFields `json:",inline"`
+
+	Price             *productcatalog.Price  `json:"price"`
+	FeatureKey        *string                `json:"featureKey,omitempty"`
+	Subscription      *SubscriptionReference `json:"subscription,omitempty"`
+	Currency          currencyx.Code         `json:"currency"`
+	UniqueReferenceID *string                `json:"childUniqueReferenceId,omitempty"`
+}
+
+func (i SplitLineGroupCreate) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if err := i.SplitLineGroupMutableFields.ValidateForPrice(i.Price); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.Price == nil {
+		errs = append(errs, errors.New("price is required"))
+	} else {
+		if err := i.Price.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if i.Subscription != nil {
+		if err := i.Subscription.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if i.Currency == "" {
+		errs = append(errs, errors.New("currency is required"))
+	}
+
+	if i.UniqueReferenceID != nil && *i.UniqueReferenceID == "" {
+		errs = append(errs, errors.New("unique reference id is required"))
+	}
+
+	if err := i.RatecardDiscounts.ValidateForPrice(i.Price); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
+type SplitLineGroupUpdate struct {
+	models.NamespacedID `json:",inline"`
+
+	SplitLineGroupMutableFields `json:",inline"`
+}
+
+func (i SplitLineGroupUpdate) ValidateWithPrice(price *productcatalog.Price) error {
+	var errs []error
+
+	if err := i.SplitLineGroupMutableFields.ValidateForPrice(price); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := i.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
+type SplitLineGroup struct {
+	models.ManagedModel         `json:",inline"`
+	models.NamespacedID         `json:",inline"`
+	SplitLineGroupMutableFields `json:",inline"`
+
+	Price             *productcatalog.Price  `json:"price"`
+	FeatureKey        *string                `json:"featureKey,omitempty"`
+	Subscription      *SubscriptionReference `json:"subscription,omitempty"`
+	Currency          currencyx.Code         `json:"currency"`
+	UniqueReferenceID *string                `json:"childUniqueReferenceId,omitempty"`
 }
 
 func (i SplitLineGroup) Validate() error {
-	return i.SplitLineGroupBase.Validate()
+	var errs []error
+
+	if err := i.SplitLineGroupMutableFields.ValidateForPrice(i.Price); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.Price != nil {
+		if err := i.Price.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if i.Currency == "" {
+		errs = append(errs, errors.New("currency is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+func (i SplitLineGroup) ToUpdate() SplitLineGroupUpdate {
+	return SplitLineGroupUpdate{
+		NamespacedID:                i.NamespacedID,
+		SplitLineGroupMutableFields: i.SplitLineGroupMutableFields.Clone(),
+	}
 }
 
 func (i SplitLineGroup) Clone() SplitLineGroup {
 	return SplitLineGroup{
-		ManagedModel:       i.ManagedModel,
-		SplitLineGroupBase: i.SplitLineGroupBase.Clone(),
-		ID:                 i.ID,
+		ManagedModel:                i.ManagedModel,
+		SplitLineGroupMutableFields: i.SplitLineGroupMutableFields.Clone(),
+		Price:                       i.Price,
+		FeatureKey:                  i.FeatureKey,
+		Subscription:                i.Subscription,
+		Currency:                    i.Currency,
+		UniqueReferenceID:           i.UniqueReferenceID,
 	}
 }
 
@@ -188,24 +267,11 @@ func (h *SplitLineHierarchy) ForEachChild(in ForEachChildInput) error {
 
 // Adapter
 type (
-	CreateSplitLineGroupAdapterInput = SplitLineGroupBase
-	UpdateSplitLineGroupInput        SplitLineGroup
+	CreateSplitLineGroupAdapterInput = SplitLineGroupCreate
+	UpdateSplitLineGroupInput        = SplitLineGroupUpdate
 	DeleteSplitLineGroupInput        = models.NamespacedID
 	GetSplitLineGroupInput           = models.NamespacedID
 )
-
-func (i UpdateSplitLineGroupInput) Validate() error {
-	err := i.SplitLineGroupBase.Validate()
-	if err != nil {
-		return err
-	}
-
-	if i.ID == "" {
-		return errors.New("id is required")
-	}
-
-	return nil
-}
 
 // LineOrHierarchy is a wrapper around a line or a split line hierarchy
 
@@ -221,15 +287,6 @@ type LineOrHierarchy struct {
 	line               *Line
 	splitLineHierarchy *SplitLineHierarchy
 }
-
-type lineOrHierarchy interface {
-	Type() LineOrHierarchyType
-	AsLine() (*Line, error)
-	AsHierarchy() (*SplitLineHierarchy, error)
-	ChildUniqueReferenceID() *string
-}
-
-var _ lineOrHierarchy = (*LineOrHierarchy)(nil)
 
 func NewLineOrHierarchy[T Line | SplitLineHierarchy](line *T) LineOrHierarchy {
 	switch v := any(line).(type) {

@@ -40,13 +40,18 @@ func (s *Service) DeleteSplitLineGroup(ctx context.Context, input billing.Delete
 }
 
 func (s *Service) UpdateSplitLineGroup(ctx context.Context, input billing.UpdateSplitLineGroupInput) (billing.SplitLineGroup, error) {
-	if err := input.Validate(); err != nil {
-		return billing.SplitLineGroup{}, billing.ValidationError{
-			Err: err,
-		}
-	}
-
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.SplitLineGroup, error) {
+		splitLineGroup, err := s.adapter.GetSplitLineGroup(ctx, input.NamespacedID)
+		if err != nil {
+			return billing.SplitLineGroup{}, err
+		}
+
+		if err := input.ValidateWithPrice(splitLineGroup.Group.Price); err != nil {
+			return billing.SplitLineGroup{}, billing.ValidationError{
+				Err: err,
+			}
+		}
+
 		return s.adapter.UpdateSplitLineGroup(ctx, input)
 	})
 }

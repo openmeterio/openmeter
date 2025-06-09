@@ -114,7 +114,7 @@ func (l lineBase) IsLastInPeriod() bool {
 		return true
 	}
 
-	if l.line.SplitLineHierarchy.Group.Period.End.Equal(l.line.Period.End) {
+	if l.line.SplitLineHierarchy.Group.ServicePeriod.End.Equal(l.line.Period.End) {
 		return true
 	}
 
@@ -126,7 +126,7 @@ func (l lineBase) IsFirstInPeriod() bool {
 		return true
 	}
 
-	if l.line.SplitLineHierarchy.Group.Period.Start.Equal(l.line.Period.Start) {
+	if l.line.SplitLineHierarchy.Group.ServicePeriod.Start.Equal(l.line.Period.Start) {
 		return true
 	}
 
@@ -229,19 +229,23 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 		}
 
 		splitLineGroup, err := l.service.BillingAdapter.CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput{
-			Namespace:         l.line.Namespace,
+			Namespace: l.line.Namespace,
+
+			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+				Name:        l.line.Name,
+				Description: l.line.Description,
+
+				ServicePeriod:     l.line.Period,
+				RatecardDiscounts: l.line.RateCardDiscounts,
+				TaxConfig:         l.line.TaxConfig,
+			},
+
 			UniqueReferenceID: l.line.ChildUniqueReferenceID,
 
-			Name:        l.line.Name,
-			Description: l.line.Description,
-
-			Period:   l.line.Period,
 			Currency: l.line.Currency,
 
-			RatecardDiscounts: l.line.RateCardDiscounts,
-			Price:             l.line.UsageBased.Price,
-			TaxConfig:         l.line.TaxConfig,
-			FeatureKey:        lo.EmptyableToPtr(l.line.UsageBased.FeatureKey),
+			Price:      l.line.UsageBased.Price,
+			FeatureKey: lo.EmptyableToPtr(l.line.UsageBased.FeatureKey),
 
 			Subscription: l.line.Subscription,
 		})

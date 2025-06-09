@@ -652,7 +652,7 @@ func (h *Handler) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 	// TODO[later]: When we implement progressive billing based pro-rating, we need to support adjusting flat fee
 	// segments here.
 
-	if existingHierarchy.Group.Period.End.Equal(expectedLine.Period.End) {
+	if existingHierarchy.Group.ServicePeriod.End.Equal(expectedLine.Period.End) {
 		// The line is already in the expected state, so we can safely return here
 		return nil, nil
 	}
@@ -660,7 +660,7 @@ func (h *Handler) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 	patches := []linePatch{}
 
 	// Case #1: The line is being expanded (e.g. continue subscription)
-	if existingHierarchy.Group.Period.End.Before(expectedLine.Period.End) {
+	if existingHierarchy.Group.ServicePeriod.End.Before(expectedLine.Period.End) {
 		// Expansion of the line (e.g. continue subscription)
 
 		children := existingHierarchy.Lines
@@ -685,8 +685,8 @@ func (h *Handler) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 		}
 
 		// We have already updated the last child, so we need to update at least the periods regardless of managed_by to keep the consistency
-		updatedGroup := existingHierarchy.Group.Clone()
-		updatedGroup.Period.End = expectedLine.Period.End
+		updatedGroup := existingHierarchy.Group.ToUpdate()
+		updatedGroup.ServicePeriod.End = expectedLine.Period.End
 		patches = append(patches, newUpdateSplitLineGroupPatch(updatedGroup))
 
 		return patches, nil
@@ -735,8 +735,8 @@ func (h *Handler) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 	// Let's make sure that the group's end is updated to the expected period end, so that
 	// we can reliably detect last child
 
-	updatedGroup := existingHierarchy.Group.Clone()
-	updatedGroup.Period.End = expectedLine.Period.End
+	updatedGroup := existingHierarchy.Group.ToUpdate()
+	updatedGroup.ServicePeriod.End = expectedLine.Period.End
 	patches = append(patches, newUpdateSplitLineGroupPatch(updatedGroup))
 
 	return patches, nil

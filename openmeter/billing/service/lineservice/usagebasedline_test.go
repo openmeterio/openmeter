@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type testLineMode string
@@ -62,9 +63,12 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 	}
 
 	fakeParentGroup := billing.SplitLineGroup{
-		ID: "fake-parent-group",
-		SplitLineGroupBase: billing.SplitLineGroupBase{
-			Period: ubpTestFullPeriod,
+		NamespacedID: models.NamespacedID{
+			Namespace: "fake-namespace",
+			ID:        "fake-parent-group",
+		},
+		SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+			ServicePeriod: ubpTestFullPeriod,
 		},
 	}
 
