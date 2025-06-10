@@ -243,7 +243,7 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 
 	for _, line := range linePatches.deletedLines {
 		validationIssues = append(validationIssues,
-			newValidationIssueOnLine(invoice.Lines.GetByID(line.ID), "line should be updated, but the invoice is immutable"),
+			newValidationIssueOnLine(invoice.Lines.GetByID(line.ID), "line should be deleted, but the invoice is immutable"),
 		)
 	}
 

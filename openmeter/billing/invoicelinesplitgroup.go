@@ -104,10 +104,6 @@ func (i SplitLineGroupCreate) Validate() error {
 		errs = append(errs, errors.New("unique reference id is required"))
 	}
 
-	if err := i.RatecardDiscounts.ValidateForPrice(i.Price); err != nil {
-		errs = append(errs, err)
-	}
-
 	return errors.Join(errs...)
 }
 
