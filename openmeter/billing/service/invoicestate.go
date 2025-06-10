@@ -554,8 +554,22 @@ func (m *InvoiceStateMachine) HandleInvoiceTrigger(ctx context.Context, trigger 
 		return fmt.Errorf("trigger invoice ID does not match the current invoice ID")
 	}
 
-	err := m.FireAndActivate(ctx, trigger.Trigger)
+	preAdvanceState, err := billing.NewEventInvoice(m.Invoice)
 	if err != nil {
+		return err
+	}
+
+	err = m.FireAndActivate(ctx, trigger.Trigger)
+	if err != nil {
+		return err
+	}
+
+	event, err := billing.NewInvoiceUpdatedEvent(m.Invoice, preAdvanceState)
+	if err != nil {
+		return err
+	}
+
+	if err := m.Publisher.Publish(ctx, event); err != nil {
 		return err
 	}
 
