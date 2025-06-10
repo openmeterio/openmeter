@@ -231,11 +231,8 @@ func TestLockerLockForTx(t *testing.T) {
 			results = append(results, fin)
 		}
 
-		// If the goroutines start in the correct order, we assert that they also end in the correct order
-		// otherwise, we just go around again
-		if results[0] == "1 start" && results[1] == "2 start" {
-			require.Equal(t, []string{"1 start", "2 start", "1 done", "2 done"}, results)
-		}
+		// We assert that they end in the correct order
+		require.Equal(t, []string{"1 start", "2 start", "1 done", "2 done"}, results)
 	}))
 
 	t.Run("Should error if acquiring lock takes longer than timeout", func(t *testing.T) {
