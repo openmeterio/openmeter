@@ -11,7 +11,7 @@ require (
 	entgo.io/ent v0.14.5-0.20250325141242-9db6f4df431f
 	github.com/AppsFlyer/go-sundheit v0.6.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.36.0
-	github.com/IBM/sarama v1.45.1
+	github.com/IBM/sarama v1.45.2
 	github.com/ThreeDotsLabs/watermill v1.4.6
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.0.6
 	github.com/XSAM/otelsql v0.38.0
