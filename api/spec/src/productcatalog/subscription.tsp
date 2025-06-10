@@ -2,7 +2,6 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi";
 import "@typespec/openapi3";
-import "@typespec/versioning";
 
 import "../types.tsp";
 import "../errors.tsp";
@@ -11,10 +10,7 @@ import "./ratecards.tsp";
 import "./discounts.tsp";
 import "../entitlements/main.tsp";
 
-using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
-using TypeSpec.Versioning;
 
 namespace OpenMeter.ProductCatalog;
 
@@ -95,6 +91,27 @@ model Subscription {
    */
   @summary("Currency")
   currency: CurrencyCode = "USD";
+
+  /**
+   * The billing cadence for the subscriptions.
+   * Defines how often customers are billed using ISO8601 duration format.
+   * Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Billing cadence")
+  @encode(DurationKnownEncoding.ISO8601)
+  @example(duration.fromISO("P1M"))
+  billingCadence: duration;
+
+  /**
+   * The pro-rating configuration for the subscriptions.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Pro-rating configuration")
+  proRatingConfig?: ProRatingConfig = #{
+    enabled: true,
+    mode: ProRatingMode.proratePrices,
+  };
 }
 
 /**

@@ -877,6 +877,10 @@ type nonPointerRateCard struct{}
 
 var _ productcatalog.RateCard = nonPointerRateCard{}
 
+func (n nonPointerRateCard) IsBillable() bool {
+	return true
+}
+
 func (n nonPointerRateCard) AsMeta() productcatalog.RateCardMeta {
 	return productcatalog.RateCardMeta{}
 }

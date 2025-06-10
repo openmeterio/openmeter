@@ -9165,6 +9165,12 @@ export const createPlanBodyCurrencyMaxOne = 3
 
 export const createPlanBodyCurrencyRegExpOne = new RegExp('^[A-Z]{3}$')
 export const createPlanBodyCurrencyDefault = 'USD'
+export const createPlanBodyProRatingConfigEnabledDefault = true
+export const createPlanBodyProRatingConfigModeDefault = 'prorate_prices'
+export const createPlanBodyProRatingConfigDefault = {
+  enabled: true,
+  mode: 'prorate_prices',
+}
 export const createPlanBodyPhasesItemKeyMax = 64
 
 export const createPlanBodyPhasesItemKeyRegExp = new RegExp(
@@ -9271,6 +9277,11 @@ export const createPlanBody = zod
       .describe('Alignment configuration for a plan or subscription.')
       .optional()
       .describe('Alignment configuration for the plan.'),
+    billingCadence: zod
+      .string()
+      .describe(
+        'The default billing cadence for subscriptions using this plan.\nDefines how often customers are billed using ISO8601 duration format.\nExamples: \"P1M\" (monthly), \"P3M\" (quarterly), \"P1Y\" (annually).'
+      ),
     currency: zod
       .string()
       .min(createPlanBodyCurrencyMinOne)
@@ -10142,6 +10153,23 @@ export const createPlanBody = zod
       .describe(
         "The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.\nA phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices."
       ),
+    proRatingConfig: zod
+      .object({
+        enabled: zod
+          .boolean()
+          .describe('Whether pro-rating is enabled for this plan.'),
+        mode: zod
+          .enum(['prorate_prices'])
+          .describe(
+            'Pro-rating mode options for handling billing period changes.'
+          )
+          .describe('How to handle pro-rating for billing period changes.'),
+      })
+      .describe('Configuration for pro-rating behavior.')
+      .default(createPlanBodyProRatingConfigDefault)
+      .describe(
+        'Default pro-rating configuration for subscriptions using this plan.'
+      ),
   })
   .describe('Resource create operation model.')
 
@@ -10179,6 +10207,12 @@ export const updatePlanParams = zod.object({
 
 export const updatePlanBodyNameMax = 256
 export const updatePlanBodyDescriptionMax = 1024
+export const updatePlanBodyProRatingConfigEnabledDefault = true
+export const updatePlanBodyProRatingConfigModeDefault = 'prorate_prices'
+export const updatePlanBodyProRatingConfigDefault = {
+  enabled: true,
+  mode: 'prorate_prices',
+}
 export const updatePlanBodyPhasesItemKeyMax = 64
 
 export const updatePlanBodyPhasesItemKeyRegExp = new RegExp(
@@ -10285,6 +10319,11 @@ export const updatePlanBody = zod
       .describe('Alignment configuration for a plan or subscription.')
       .optional()
       .describe('Alignment configuration for the plan.'),
+    billingCadence: zod
+      .string()
+      .describe(
+        'The default billing cadence for subscriptions using this plan.\nDefines how often customers are billed using ISO8601 duration format.\nExamples: \"P1M\" (monthly), \"P3M\" (quarterly), \"P1Y\" (annually).'
+      ),
     description: zod
       .string()
       .max(updatePlanBodyDescriptionMax)
@@ -11140,6 +11179,23 @@ export const updatePlanBody = zod
       .min(1)
       .describe(
         "The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.\nA phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices."
+      ),
+    proRatingConfig: zod
+      .object({
+        enabled: zod
+          .boolean()
+          .describe('Whether pro-rating is enabled for this plan.'),
+        mode: zod
+          .enum(['prorate_prices'])
+          .describe(
+            'Pro-rating mode options for handling billing period changes.'
+          )
+          .describe('How to handle pro-rating for billing period changes.'),
+      })
+      .describe('Configuration for pro-rating behavior.')
+      .default(updatePlanBodyProRatingConfigDefault)
+      .describe(
+        'Default pro-rating configuration for subscriptions using this plan.'
       ),
   })
   .describe('Resource update operation model.')
@@ -12755,6 +12811,14 @@ export const createSubscriptionBodyCustomPlanCurrencyRegExpOne = new RegExp(
   '^[A-Z]{3}$'
 )
 export const createSubscriptionBodyCustomPlanCurrencyDefault = 'USD'
+export const createSubscriptionBodyCustomPlanProRatingConfigEnabledDefault =
+  true
+export const createSubscriptionBodyCustomPlanProRatingConfigModeDefault =
+  'prorate_prices'
+export const createSubscriptionBodyCustomPlanProRatingConfigDefault = {
+  enabled: true,
+  mode: 'prorate_prices',
+}
 export const createSubscriptionBodyCustomPlanPhasesItemKeyMax = 64
 
 export const createSubscriptionBodyCustomPlanPhasesItemKeyRegExp = new RegExp(
@@ -12966,6 +13030,11 @@ export const createSubscriptionBody = zod
               .describe('Alignment configuration for a plan or subscription.')
               .optional()
               .describe('Alignment configuration for the plan.'),
+            billingCadence: zod
+              .string()
+              .describe(
+                'The default billing cadence for subscriptions using this plan.\nDefines how often customers are billed using ISO8601 duration format.\nExamples: \"P1M\" (monthly), \"P3M\" (quarterly), \"P1Y\" (annually).'
+              ),
             currency: zod
               .string()
               .min(createSubscriptionBodyCustomPlanCurrencyMinOne)
@@ -13878,6 +13947,25 @@ export const createSubscriptionBody = zod
               .min(1)
               .describe(
                 "The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.\nA phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices."
+              ),
+            proRatingConfig: zod
+              .object({
+                enabled: zod
+                  .boolean()
+                  .describe('Whether pro-rating is enabled for this plan.'),
+                mode: zod
+                  .enum(['prorate_prices'])
+                  .describe(
+                    'Pro-rating mode options for handling billing period changes.'
+                  )
+                  .describe(
+                    'How to handle pro-rating for billing period changes.'
+                  ),
+              })
+              .describe('Configuration for pro-rating behavior.')
+              .default(createSubscriptionBodyCustomPlanProRatingConfigDefault)
+              .describe(
+                'Default pro-rating configuration for subscriptions using this plan.'
               ),
           })
           .describe('The template for omitting properties.')
@@ -15242,6 +15330,14 @@ export const changeSubscriptionBodyCustomPlanCurrencyRegExpOne = new RegExp(
   '^[A-Z]{3}$'
 )
 export const changeSubscriptionBodyCustomPlanCurrencyDefault = 'USD'
+export const changeSubscriptionBodyCustomPlanProRatingConfigEnabledDefault =
+  true
+export const changeSubscriptionBodyCustomPlanProRatingConfigModeDefault =
+  'prorate_prices'
+export const changeSubscriptionBodyCustomPlanProRatingConfigDefault = {
+  enabled: true,
+  mode: 'prorate_prices',
+}
 export const changeSubscriptionBodyCustomPlanPhasesItemKeyMax = 64
 
 export const changeSubscriptionBodyCustomPlanPhasesItemKeyRegExp = new RegExp(
@@ -15421,6 +15517,11 @@ export const changeSubscriptionBody = zod
               .describe('Alignment configuration for a plan or subscription.')
               .optional()
               .describe('Alignment configuration for the plan.'),
+            billingCadence: zod
+              .string()
+              .describe(
+                'The default billing cadence for subscriptions using this plan.\nDefines how often customers are billed using ISO8601 duration format.\nExamples: \"P1M\" (monthly), \"P3M\" (quarterly), \"P1Y\" (annually).'
+              ),
             currency: zod
               .string()
               .min(changeSubscriptionBodyCustomPlanCurrencyMinOne)
@@ -16333,6 +16434,25 @@ export const changeSubscriptionBody = zod
               .min(1)
               .describe(
                 "The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.\nA phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices."
+              ),
+            proRatingConfig: zod
+              .object({
+                enabled: zod
+                  .boolean()
+                  .describe('Whether pro-rating is enabled for this plan.'),
+                mode: zod
+                  .enum(['prorate_prices'])
+                  .describe(
+                    'Pro-rating mode options for handling billing period changes.'
+                  )
+                  .describe(
+                    'How to handle pro-rating for billing period changes.'
+                  ),
+              })
+              .describe('Configuration for pro-rating behavior.')
+              .default(changeSubscriptionBodyCustomPlanProRatingConfigDefault)
+              .describe(
+                'Default pro-rating configuration for subscriptions using this plan.'
               ),
           })
           .describe('The template for omitting properties.')

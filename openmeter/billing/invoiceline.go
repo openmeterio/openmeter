@@ -178,7 +178,7 @@ func (i LineBase) Validate() error {
 	if i.InvoiceAt.IsZero() {
 		errs = append(errs, errors.New("invoice at is required"))
 	} else if i.InvoiceAt.Before(i.Period.Start) {
-		errs = append(errs, errors.New("invoice at must be after period start"))
+		errs = append(errs, fmt.Errorf("invoice at (%s) must be after period start (%s)", i.InvoiceAt, i.Period.Start))
 	}
 
 	if i.Name == "" {
@@ -454,7 +454,7 @@ func (i Line) Validate() error {
 	}
 
 	if i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).Start) {
-		errs = append(errs, errors.New("invoice at must be after period start"))
+		errs = append(errs, fmt.Errorf("invoice at (%s) must be after period start (%s)", i.InvoiceAt, i.Period.Truncate(DefaultMeterResolution).Start))
 	}
 
 	if err := i.Discounts.Validate(); err != nil {
@@ -550,7 +550,7 @@ func (i Line) ValidateUsageBased() error {
 	}
 
 	if i.DependsOnMeteredQuantity() && i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).End) {
-		errs = append(errs, errors.New("invoice at must be after period end for usage based line"))
+		errs = append(errs, fmt.Errorf("invoice at (%s) must be after period end (%s) for usage based line", i.InvoiceAt, i.Period.Truncate(DefaultMeterResolution).End))
 	}
 
 	return errors.Join(errs...)

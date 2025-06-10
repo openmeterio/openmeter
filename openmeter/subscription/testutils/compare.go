@@ -107,7 +107,7 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 					require.NotNil(t, period)
 
 					// Unfortunately entitlements has minute precision so it can only be aligned to the truncated minute
-					rec, err := timeutil.FromISODuration(period, ent.Cadence.ActiveFrom.Truncate(time.Minute))
+					rec, err := timeutil.RecurrenceFromISODuration(period, ent.Cadence.ActiveFrom.Truncate(time.Minute))
 					up := entitlement.UsagePeriod(rec)
 					assert.NoError(t, err)
 					assert.Equal(t, &up, ent.Entitlement.UsagePeriod)

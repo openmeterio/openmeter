@@ -154,10 +154,15 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 
 			Phases: []productcatalog.Phase{
@@ -556,10 +561,15 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 
 			Phases: []productcatalog.Phase{
@@ -643,7 +653,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		s.Equal(flatFeeLine.FlatFee.Quantity.InexactFloat64(), 1.0)
 	})
 
-	s.Run("canceling the subscription causes the existing item to be pro-rated", func() {
+	s.Run("canceling the subscription DOES NOT cause the existing item to be pro-rated", func() {
 		clock.SetTime(s.mustParseTime("2024-01-01T10:00:00Z"))
 
 		cancelAt := s.mustParseTime("2024-01-01T12:00:00Z")
@@ -686,8 +696,8 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 			Start: s.mustParseTime("2024-01-01T00:00:00Z"),
 			End:   cancelAt,
 		})
-		s.Equal(flatFeeLine.FlatFee.PerUnitAmount.InexactFloat64(), 2.5)
-		s.Equal(flatFeeLine.FlatFee.Quantity.InexactFloat64(), 1.0)
+		s.Equal(5.0, flatFeeLine.FlatFee.PerUnitAmount.InexactFloat64())
+		s.Equal(1.0, flatFeeLine.FlatFee.Quantity.InexactFloat64())
 	})
 }
 
@@ -781,24 +791,44 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 	//  the gathering invoice will only contain both versions of the fee as we are not
 	//  doing any pro-rating logic
 
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-advance",
-						Name: "in-advance",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(5),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
+	planInput := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: false,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: isodate.MustParse(s.T(), "P1D"),
+						},
 					},
-					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
-	})
+	}
+
+	subsView := s.createSubscriptionFromPlan(planInput)
 
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
@@ -877,24 +907,44 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 	//  the gathering invoice will only contain both versions of the fee as we are not
 	//  doing any pro-rating logic
 
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-arrears",
-						Name: "in-arrears",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(5),
-							PaymentTerm: productcatalog.InArrearsPaymentTerm,
-						}),
+	planInput := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: false,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-arrears",
+								Name: "in-arrears",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
+							BillingCadence: isodate.MustParse(s.T(), "P1D"),
+						},
 					},
-					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
-	})
+	}
+
+	subsView := s.createSubscriptionFromPlan(planInput)
 
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
@@ -942,7 +992,8 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 					End:   s.mustParseTime("2024-01-01T00:00:40Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:40Z")},
+			// We'll wait till the end of the billing cadence of the item
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1368,6 +1419,11 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
 				},
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: []productcatalog.Phase{
 				{
@@ -1438,6 +1494,11 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				Currency: currency.USD,
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
+				},
+				BillingCadence: isodate.MustParse(s.T(), "P4W"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: false,
+					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
 			},
 			Phases: []productcatalog.Phase{
@@ -1606,7 +1667,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-08T00:00:00Z")},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-29T00:00:00Z")},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1625,7 +1686,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 					End:   s.mustParseTime("2024-01-08T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-08T00:00:00Z")},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-29T00:00:00Z")},
 		},
 	})
 }
@@ -1656,6 +1717,11 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 				Currency: currency.USD,
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
+				},
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
 			},
 			Phases: []productcatalog.Phase{
@@ -1820,6 +1886,11 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 				Currency: currency.USD,
 				Alignment: productcatalog.Alignment{
 					BillablesMustAlign: true,
+				},
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
 			},
 			Phases: []productcatalog.Phase{
@@ -3527,6 +3598,228 @@ func (s *SubscriptionHandlerTestSuite) TestUseUsageBasedFlatFeeLinesCompatibilit
 	s.Len(linesByType[billing.InvoiceLineTypeUsageBased], 3)
 }
 
+func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	// Given
+	//	a subscription with two phases started, with prorating enabled
+	//   the first phase is 2 weeks long, the second phase is unlimited
+	//   the phases have in advance, in arrears and usage based lines
+	// When
+	//  we cancel the subscription asof 2025-03-01
+	//  we syncronize the subscription data up to 2025-03-01
+	// Then
+	//  The in-advance and in arrears lines should be prorated for the first phase
+	//  The usage based line's price is intact, only the period length is changed
+	//  The second phase's lines are aligned to the phase's start (as we don't have custom anchor set)
+	//  The second phase's in-advance and in arreas lines are not prorated (for the 2nd half period), as we only support prorating due to alignment for now
+
+	// NOTE[implicit behavior]: Handler's prorating logic is disabled before the test execution.
+
+	secondPhase := productcatalog.Phase{
+		PhaseMeta: s.phaseMeta("second-phase", ""),
+		RateCards: productcatalog.RateCards{
+			&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  "in-advance",
+					Name: "in-advance",
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(5),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+				},
+				BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1M")),
+			},
+			&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  "in-arrears",
+					Name: "in-arrears",
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(5),
+						PaymentTerm: productcatalog.InArrearsPaymentTerm,
+					}),
+				},
+				BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1M")),
+			},
+			&productcatalog.UsageBasedRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:        s.APIRequestsTotalFeature.Key,
+					Name:       s.APIRequestsTotalFeature.Key,
+					FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+					FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromFloat(10),
+					}),
+				},
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+			},
+		},
+	}
+
+	firstPhase := secondPhase // Note: we are not copying the phase's rate cards, but that's fine
+	firstPhase.PhaseMeta = s.phaseMeta("first-phase", "P2W")
+
+	// Let's create the initial subscription
+	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:     "Test Plan",
+				Key:      "test-plan",
+				Version:  1,
+				Currency: currency.USD,
+				Alignment: productcatalog.Alignment{
+					BillablesMustAlign: true,
+				},
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				firstPhase,
+				secondPhase,
+			},
+		},
+	})
+
+	// Let's cancel the subscription asof 2025-03-01
+	clock.FreezeTime(s.mustParseTime("2024-03-01T00:00:00Z"))
+	_, err := s.SubscriptionService.Cancel(ctx, subView.Subscription.NamespacedID, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	})
+	s.NoError(err)
+
+	// Let's refetch the subscription view
+	subView, err = s.SubscriptionService.GetView(ctx, subView.Subscription.NamespacedID)
+	s.NoError(err)
+
+	// Let's syncrhonize subscription data for 1 month
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subView, s.mustParseTime("2024-03-01T00:00:00Z")))
+
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	// January is 31 days, wechange phase after 2 weeks (14 days)
+	// 5 * 14/31 = 2.258... which we round to 2.26
+
+	s.expectLines(gatheringInvoice, subView.Subscription.ID, []expectedLine{
+		// First phase lines
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-advance",
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(2.26),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-arrears",
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(2.26),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "api-requests-total",
+			},
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10)})),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z")},
+		},
+		// Second phase lines
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "second-phase",
+				ItemKey:   "in-advance",
+				PeriodMin: 0,
+				PeriodMax: 1,
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(5.0),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
+				},
+				{
+					Start: s.mustParseTime("2024-02-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z"), s.mustParseTime("2024-02-15T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "second-phase",
+				ItemKey:   "in-arrears",
+				PeriodMin: 0,
+				PeriodMax: 1,
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(5.0),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
+				},
+				{
+					Start: s.mustParseTime("2024-02-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-02-15T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "second-phase",
+				ItemKey:   "api-requests-total",
+				PeriodMin: 0,
+				PeriodMax: 1,
+			},
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10)})),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
+				},
+				{
+					Start: s.mustParseTime("2024-02-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-02-15T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")},
+		},
+	})
+}
+
 type expectedLine struct {
 	Matcher   lineMatcher
 	Qty       mo.Option[float64]
@@ -3562,26 +3855,36 @@ func (s *SubscriptionHandlerTestSuite) expectLines(invoice billing.Invoice, subs
 
 			if expectedLine.Qty.IsPresent() {
 				if line.Type == billing.InvoiceLineTypeFee {
-					s.Equal(expectedLine.Qty.OrEmpty(), line.FlatFee.Quantity.InexactFloat64(), childID)
+					if line.FlatFee == nil {
+						s.Failf("flat fee line not found", "line not found with child id %s", childID)
+					} else {
+						s.Equal(expectedLine.Qty.OrEmpty(), line.FlatFee.Quantity.InexactFloat64(), "%s: quantity", childID)
+					}
 				} else {
-					s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), childID)
+					if line.UsageBased == nil {
+						s.Failf("usage based line not found", "line not found with child id %s", childID)
+					} else if line.UsageBased.Quantity == nil {
+						s.Failf("usage based line quantity not found", "line not found with child id %s", childID)
+					} else {
+						s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), "%s: quantity", childID)
+					}
 				}
 			}
 
 			if expectedLine.UnitPrice.IsPresent() {
-				s.Equal(line.Type, billing.InvoiceLineTypeFee, childID)
-				s.Equal(expectedLine.UnitPrice.OrEmpty(), line.FlatFee.PerUnitAmount.InexactFloat64(), childID)
+				s.Equal(billing.InvoiceLineTypeFee, line.Type, "%s: line type", childID)
+				s.Equal(expectedLine.UnitPrice.OrEmpty(), line.FlatFee.PerUnitAmount.InexactFloat64(), "%s: unit price", childID)
 			}
 
 			if expectedLine.Price.IsPresent() {
-				s.Equal(line.Type, billing.InvoiceLineTypeUsageBased)
-				s.Equal(*expectedLine.Price.OrEmpty(), *line.UsageBased.Price, childID)
+				s.Equal(billing.InvoiceLineTypeUsageBased, line.Type, "%s: line type", childID)
+				s.Equal(*expectedLine.Price.OrEmpty(), *line.UsageBased.Price, "%s: price", childID)
 			}
 
-			s.Equal(expectedLine.Periods[idx].Start, line.Period.Start, childID)
-			s.Equal(expectedLine.Periods[idx].End, line.Period.End, childID)
+			s.Equal(expectedLine.Periods[idx].Start, line.Period.Start, "%s: period start", childID)
+			s.Equal(expectedLine.Periods[idx].End, line.Period.End, "%s: period end", childID)
 
-			s.Equal(expectedLine.InvoiceAt[idx], line.InvoiceAt, childID)
+			s.Equal(expectedLine.InvoiceAt[idx], line.InvoiceAt, "%s: invoice at", childID)
 		}
 	}
 }
@@ -3763,10 +4066,15 @@ func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlanPhases(phases [
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: phases,
 		},

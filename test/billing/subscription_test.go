@@ -112,10 +112,15 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "paid-plan",
-				Version:  1,
-				Currency: currency.USD,
+				Name:           "Test Plan",
+				Key:            "paid-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 
 			Phases: []productcatalog.Phase{
@@ -158,10 +163,15 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "free-plan",
-				Version:  1,
-				Currency: currency.USD,
+				Name:           "Test Plan",
+				Key:            "free-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 
 			Phases: []productcatalog.Phase{

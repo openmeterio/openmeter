@@ -24,13 +24,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var (
-	MonthPeriod    = isodate.FromDuration(30 * 24 * time.Hour)
-	TwoMonthPeriod = isodate.FromDuration(60 * 24 * time.Hour)
-	SixMonthPeriod = isodate.FromDuration(180 * 24 * time.Hour)
-)
-
 func TestPlanService(t *testing.T) {
+	MonthPeriod := isodate.MustParse(t, "P1M")
+	TwoMonthPeriod := isodate.MustParse(t, "P2M")
+	SixMonthPeriod := isodate.MustParse(t, "P6M")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

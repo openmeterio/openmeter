@@ -38,6 +38,7 @@ type RateCard interface {
 	Clone() RateCard
 	Compatible(RateCard) error
 	GetBillingCadence() *isodate.Period
+	IsBillable() bool
 }
 
 type RateCardSerde struct {
@@ -221,6 +222,10 @@ func (r RateCardMeta) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (r RateCardMeta) IsBillable() bool {
+	return r.Price != nil
 }
 
 var (

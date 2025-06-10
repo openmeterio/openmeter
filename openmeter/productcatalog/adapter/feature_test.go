@@ -319,6 +319,11 @@ func TestArchiveFeature(t *testing.T) {
 			SetVersion(1).
 			SetEffectiveFrom(time.Now()).
 			SetNamespace(testFeature.Namespace).
+			SetBillingCadence("P1M").
+			SetProRatingConfig(productcatalog.ProRatingConfig{
+				Enabled: true,
+				Mode:    productcatalog.ProRatingModeProratePrices,
+			}).
 			Save(ctx)
 		assert.NoError(t, err)
 

@@ -16,6 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // PlanCreate is the builder for creating a Plan entity.
@@ -136,6 +138,26 @@ func (_c *PlanCreate) SetCurrency(v string) *PlanCreate {
 func (_c *PlanCreate) SetNillableCurrency(v *string) *PlanCreate {
 	if v != nil {
 		_c.SetCurrency(*v)
+	}
+	return _c
+}
+
+// SetBillingCadence sets the "billing_cadence" field.
+func (_c *PlanCreate) SetBillingCadence(v isodate.String) *PlanCreate {
+	_c.mutation.SetBillingCadence(v)
+	return _c
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (_c *PlanCreate) SetProRatingConfig(v productcatalog.ProRatingConfig) *PlanCreate {
+	_c.mutation.SetProRatingConfig(v)
+	return _c
+}
+
+// SetNillableProRatingConfig sets the "pro_rating_config" field if the given value is not nil.
+func (_c *PlanCreate) SetNillableProRatingConfig(v *productcatalog.ProRatingConfig) *PlanCreate {
+	if v != nil {
+		_c.SetProRatingConfig(*v)
 	}
 	return _c
 }
@@ -278,6 +300,10 @@ func (_c *PlanCreate) defaults() {
 		v := plan.DefaultCurrency
 		_c.mutation.SetCurrency(v)
 	}
+	if _, ok := _c.mutation.ProRatingConfig(); !ok {
+		v := plan.DefaultProRatingConfig()
+		_c.mutation.SetProRatingConfig(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := plan.DefaultID()
 		_c.mutation.SetID(v)
@@ -330,6 +356,17 @@ func (_c *PlanCreate) check() error {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Plan.currency": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.BillingCadence(); !ok {
+		return &ValidationError{Name: "billing_cadence", err: errors.New(`db: missing required field "Plan.billing_cadence"`)}
+	}
+	if _, ok := _c.mutation.ProRatingConfig(); !ok {
+		return &ValidationError{Name: "pro_rating_config", err: errors.New(`db: missing required field "Plan.pro_rating_config"`)}
+	}
+	if v, ok := _c.mutation.ProRatingConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "pro_rating_config", err: fmt.Errorf(`db: validator failed for field "Plan.pro_rating_config": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -337,7 +374,10 @@ func (_c *PlanCreate) sqlSave(ctx context.Context) (*Plan, error) {
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -356,7 +396,7 @@ func (_c *PlanCreate) sqlSave(ctx context.Context) (*Plan, error) {
 	return _node, nil
 }
 
-func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
+func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &Plan{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(plan.Table, sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString))
@@ -409,6 +449,18 @@ func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(plan.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := _c.mutation.BillingCadence(); ok {
+		_spec.SetField(plan.FieldBillingCadence, field.TypeString, value)
+		_node.BillingCadence = value
+	}
+	if value, ok := _c.mutation.ProRatingConfig(); ok {
+		vv, err := plan.ValueScanner.ProRatingConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(plan.FieldProRatingConfig, field.TypeString, vv)
+		_node.ProRatingConfig = value
 	}
 	if value, ok := _c.mutation.EffectiveFrom(); ok {
 		_spec.SetField(plan.FieldEffectiveFrom, field.TypeTime, value)
@@ -466,7 +518,7 @@ func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -623,6 +675,30 @@ func (u *PlanUpsert) UpdateVersion() *PlanUpsert {
 // AddVersion adds v to the "version" field.
 func (u *PlanUpsert) AddVersion(v int) *PlanUpsert {
 	u.Add(plan.FieldVersion, v)
+	return u
+}
+
+// SetBillingCadence sets the "billing_cadence" field.
+func (u *PlanUpsert) SetBillingCadence(v isodate.String) *PlanUpsert {
+	u.Set(plan.FieldBillingCadence, v)
+	return u
+}
+
+// UpdateBillingCadence sets the "billing_cadence" field to the value that was provided on create.
+func (u *PlanUpsert) UpdateBillingCadence() *PlanUpsert {
+	u.SetExcluded(plan.FieldBillingCadence)
+	return u
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (u *PlanUpsert) SetProRatingConfig(v productcatalog.ProRatingConfig) *PlanUpsert {
+	u.Set(plan.FieldProRatingConfig, v)
+	return u
+}
+
+// UpdateProRatingConfig sets the "pro_rating_config" field to the value that was provided on create.
+func (u *PlanUpsert) UpdateProRatingConfig() *PlanUpsert {
+	u.SetExcluded(plan.FieldProRatingConfig)
 	return u
 }
 
@@ -848,6 +924,34 @@ func (u *PlanUpsertOne) UpdateVersion() *PlanUpsertOne {
 	})
 }
 
+// SetBillingCadence sets the "billing_cadence" field.
+func (u *PlanUpsertOne) SetBillingCadence(v isodate.String) *PlanUpsertOne {
+	return u.Update(func(s *PlanUpsert) {
+		s.SetBillingCadence(v)
+	})
+}
+
+// UpdateBillingCadence sets the "billing_cadence" field to the value that was provided on create.
+func (u *PlanUpsertOne) UpdateBillingCadence() *PlanUpsertOne {
+	return u.Update(func(s *PlanUpsert) {
+		s.UpdateBillingCadence()
+	})
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (u *PlanUpsertOne) SetProRatingConfig(v productcatalog.ProRatingConfig) *PlanUpsertOne {
+	return u.Update(func(s *PlanUpsert) {
+		s.SetProRatingConfig(v)
+	})
+}
+
+// UpdateProRatingConfig sets the "pro_rating_config" field to the value that was provided on create.
+func (u *PlanUpsertOne) UpdateProRatingConfig() *PlanUpsertOne {
+	return u.Update(func(s *PlanUpsert) {
+		s.UpdateProRatingConfig()
+	})
+}
+
 // SetEffectiveFrom sets the "effective_from" field.
 func (u *PlanUpsertOne) SetEffectiveFrom(v time.Time) *PlanUpsertOne {
 	return u.Update(func(s *PlanUpsert) {
@@ -958,7 +1062,10 @@ func (_c *PlanCreateBulk) Save(ctx context.Context) ([]*Plan, error) {
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -1240,6 +1347,34 @@ func (u *PlanUpsertBulk) AddVersion(v int) *PlanUpsertBulk {
 func (u *PlanUpsertBulk) UpdateVersion() *PlanUpsertBulk {
 	return u.Update(func(s *PlanUpsert) {
 		s.UpdateVersion()
+	})
+}
+
+// SetBillingCadence sets the "billing_cadence" field.
+func (u *PlanUpsertBulk) SetBillingCadence(v isodate.String) *PlanUpsertBulk {
+	return u.Update(func(s *PlanUpsert) {
+		s.SetBillingCadence(v)
+	})
+}
+
+// UpdateBillingCadence sets the "billing_cadence" field to the value that was provided on create.
+func (u *PlanUpsertBulk) UpdateBillingCadence() *PlanUpsertBulk {
+	return u.Update(func(s *PlanUpsert) {
+		s.UpdateBillingCadence()
+	})
+}
+
+// SetProRatingConfig sets the "pro_rating_config" field.
+func (u *PlanUpsertBulk) SetProRatingConfig(v productcatalog.ProRatingConfig) *PlanUpsertBulk {
+	return u.Update(func(s *PlanUpsert) {
+		s.SetProRatingConfig(v)
+	})
+}
+
+// UpdateProRatingConfig sets the "pro_rating_config" field to the value that was provided on create.
+func (u *PlanUpsertBulk) UpdateProRatingConfig() *PlanUpsertBulk {
+	return u.Update(func(s *PlanUpsert) {
+		s.UpdateProRatingConfig()
 	})
 }
 
