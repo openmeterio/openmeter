@@ -9,6 +9,7 @@
     // Useful when the schema is evolving during development (currently only supported
     // by billing)
     // "TEST_DISABLE_ATLAS": "true"
+    "TEST_REDIS_ADDR": "127.0.0.1:6379"
   },
   "gopls": {
     "formatting.gofumpt": true
