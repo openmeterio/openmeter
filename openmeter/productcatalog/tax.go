@@ -76,6 +76,18 @@ func (c *TaxConfig) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+func (c TaxConfig) Clone() TaxConfig {
+	out := TaxConfig{
+		Behavior: c.Behavior,
+	}
+
+	if c.Stripe != nil {
+		out.Stripe = lo.ToPtr(c.Stripe.Clone())
+	}
+
+	return out
+}
+
 func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	if base != nil && overrides != nil {
 		return &TaxConfig{
@@ -118,4 +130,8 @@ func (s *StripeTaxConfig) Validate() error {
 	}
 
 	return nil
+}
+
+func (s StripeTaxConfig) Clone() StripeTaxConfig {
+	return s
 }

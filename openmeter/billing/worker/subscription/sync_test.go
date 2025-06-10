@@ -379,17 +379,12 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll.SetSplitLines(true),
+			Expand:  billing.InvoiceExpandAll,
 		})
 		s.NoError(err)
 
-		s.Len(gatheringInvoice.Lines.OrEmpty(), 2)
-		gatheringLinesByType := lo.GroupBy(gatheringInvoice.Lines.OrEmpty(), func(line *billing.Line) billing.InvoiceLineStatus {
-			return line.Status
-		})
-
-		s.Len(gatheringLinesByType[billing.InvoiceLineStatusValid], 1)
-		gatheringLine := gatheringLinesByType[billing.InvoiceLineStatusValid][0]
+		s.Len(gatheringInvoice.Lines.OrEmpty(), 1)
+		gatheringLine := gatheringInvoice.Lines.OrEmpty()[0]
 
 		s.Equal(gatheringLine.Subscription.SubscriptionID, subsView.Subscription.ID)
 		s.Equal(gatheringLine.Subscription.PhaseID, discountedPhase.SubscriptionPhase.ID)
@@ -401,12 +396,12 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		})
 		s.Equal(gatheringLine.InvoiceAt, cancelAt)
 
-		// split line
-		s.Len(gatheringLinesByType[billing.InvoiceLineStatusSplit], 1)
-		splitLine := gatheringLinesByType[billing.InvoiceLineStatusSplit][0]
+		// split group
+		s.NotNil(gatheringLine.SplitLineHierarchy)
+		splitLineGroup := gatheringLine.SplitLineHierarchy.Group
 
-		s.Equal(splitLine.Subscription.SubscriptionID, subsView.Subscription.ID)
-		s.Equal(splitLine.Period, billing.Period{
+		s.Equal(splitLineGroup.Subscription.SubscriptionID, subsView.Subscription.ID)
+		s.Equal(splitLineGroup.ServicePeriod, billing.Period{
 			Start: s.mustParseTime("2024-02-01T00:00:00Z"),
 			End:   s.mustParseTime("2024-02-22T00:00:00Z"),
 		})
@@ -433,17 +428,12 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll.SetSplitLines(true),
+			Expand:  billing.InvoiceExpandAll,
 		})
 		s.NoError(err)
 
-		s.Len(gatheringInvoice.Lines.OrEmpty(), 2)
-		gatheringLinesByType := lo.GroupBy(gatheringInvoice.Lines.OrEmpty(), func(line *billing.Line) billing.InvoiceLineStatus {
-			return line.Status
-		})
-
-		s.Len(gatheringLinesByType[billing.InvoiceLineStatusValid], 1)
-		gatheringLine := gatheringLinesByType[billing.InvoiceLineStatusValid][0]
+		s.Len(gatheringInvoice.Lines.OrEmpty(), 1)
+		gatheringLine := gatheringInvoice.Lines.OrEmpty()[0]
 
 		s.Equal(gatheringLine.Subscription.SubscriptionID, subsView.Subscription.ID)
 		s.Equal(gatheringLine.Subscription.PhaseID, discountedPhase.SubscriptionPhase.ID)
@@ -455,12 +445,12 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		})
 		s.Equal(gatheringLine.InvoiceAt, s.mustParseTime("2024-03-01T00:00:00Z"))
 
-		// split line
-		s.Len(gatheringLinesByType[billing.InvoiceLineStatusSplit], 1)
-		splitLine := gatheringLinesByType[billing.InvoiceLineStatusSplit][0]
+		// split group
+		s.NotNil(gatheringLine.SplitLineHierarchy)
+		splitLineGroup := gatheringLine.SplitLineHierarchy.Group
 
-		s.Equal(splitLine.Subscription.SubscriptionID, subsView.Subscription.ID)
-		s.Equal(splitLine.Period, billing.Period{
+		s.Equal(splitLineGroup.Subscription.SubscriptionID, subsView.Subscription.ID)
+		s.Equal(splitLineGroup.ServicePeriod, billing.Period{
 			Start: s.mustParseTime("2024-02-01T00:00:00Z"),
 			End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 		})
@@ -3136,14 +3126,14 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 		End:   s.mustParseTime("2024-01-01T11:00:00Z"),
 	}, line.Period)
 
-	s.NotNil(line.ParentLine)
-	parentLine := line.ParentLine
+	s.NotNil(line.SplitLineHierarchy)
+	parentGroup := line.SplitLineHierarchy.Group
 	// Parent's period is in sync with the child
 	s.Equal(billing.Period{
 		Start: s.mustParseTime("2024-01-01T00:00:00Z"),
 		End:   s.mustParseTime("2024-01-01T11:00:00Z"),
-	}, parentLine.Period)
-	s.Equal(fmt.Sprintf("%s/first-phase/api-requests-total/v[0]/period[0]", subsView.Subscription.ID), *parentLine.ChildUniqueReferenceID)
+	}, parentGroup.ServicePeriod)
+	s.Equal(fmt.Sprintf("%s/first-phase/api-requests-total/v[0]/period[0]", subsView.Subscription.ID), *parentGroup.UniqueReferenceID)
 }
 
 func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
@@ -3758,8 +3748,8 @@ func (s *SubscriptionHandlerTestSuite) generateDailyTimestamps(startStr string, 
 // end up on a single invoice.
 func (s *SubscriptionHandlerTestSuite) populateChildIDsFromParents(invoice *billing.Invoice) {
 	for _, line := range invoice.Lines.OrEmpty() {
-		if line.ChildUniqueReferenceID == nil && line.ParentLine != nil {
-			line.ChildUniqueReferenceID = line.ParentLine.ChildUniqueReferenceID
+		if line.ChildUniqueReferenceID == nil && line.SplitLineGroupID != nil {
+			line.ChildUniqueReferenceID = line.SplitLineHierarchy.Group.UniqueReferenceID
 		}
 	}
 }

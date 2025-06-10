@@ -1441,20 +1441,6 @@ func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearTaxConfig(value *produ
 	return u.SetTaxConfig(*value)
 }
 
-func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearUniqueReferenceID(value *string) *BillingInvoiceSplitLineGroupUpdate {
-	if value == nil {
-		return u.ClearUniqueReferenceID()
-	}
-	return u.SetUniqueReferenceID(*value)
-}
-
-func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearUniqueReferenceID(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
-	if value == nil {
-		return u.ClearUniqueReferenceID()
-	}
-	return u.SetUniqueReferenceID(*value)
-}
-
 func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingInvoiceSplitLineGroupUpdate {
 	if value == nil {
 		return u.ClearRatecardDiscounts()

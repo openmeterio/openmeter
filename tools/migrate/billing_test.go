@@ -4,14 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
 	flatfeetoubpflatfeedb "github.com/openmeterio/openmeter/tools/migrate/testdata/billing/flatfeetoubpflatfee/db"
+	removesplitlinesdb "github.com/openmeterio/openmeter/tools/migrate/testdata/billing/removesplitlines/db"
 )
 
 func TestMigrateFlatFeesToUBPFlatFees(t *testing.T) {
@@ -128,6 +131,79 @@ func TestMigrateFlatFeesToUBPFlatFees(t *testing.T) {
 					require.True(t, ubpLine.DeletedAt.Valid, "ubp line should be deleted")
 					require.True(t, detailedLine.DeletedAt.Valid, "detailed line should be deleted")
 					require.Equal(t, detailedLine.DeletedAt.Time, ubpLine.DeletedAt.Time, "detailed line and ubp line should have the same deleted at")
+				})
+			},
+		},
+	}}.Test(t)
+}
+
+func TestMigrateSplitLinesToSplitLineGroups(t *testing.T) {
+	var preMigrationLineCountsByType map[string]int64
+	runner{stops{
+		{
+			version:   20250609172811,
+			direction: directionUp,
+			action: func(t *testing.T, db *sql.DB) {
+				loadFixture(t, db, "testdata/billing/removesplitlines/fixture.sql")
+
+				q := removesplitlinesdb.New(db)
+				lineCounts, err := q.CountLinesByStatusType(t.Context())
+				require.NoError(t, err)
+
+				preMigrationLineCountsByType = make(map[string]int64)
+				for _, lineCount := range lineCounts {
+					preMigrationLineCountsByType[fmt.Sprintf("%s-%s", lineCount.Status, lineCount.Type)] = lineCount.Count
+				}
+			},
+		},
+		{
+			version:   20250609204117,
+			direction: directionUp,
+			action: func(t *testing.T, db *sql.DB) {
+				const (
+					SplitLineGroupID = "01JXA7Y5CRJF0NJ5ADKNZVDTGH"
+				)
+				q := removesplitlinesdb.New(db)
+
+				t.Run("split line group exists", func(t *testing.T) {
+					splitLineGroup, err := q.GetSplitLineGroup(t.Context(), SplitLineGroupID)
+					require.NoError(t, err)
+
+					require.Equal(t, SplitLineGroupID, splitLineGroup.ID)
+					require.Equal(t, "ns-ubp-invoicing-progressive", splitLineGroup.Namespace)
+					require.Equal(t, "flat-per-unit", splitLineGroup.FeatureKey.String)
+					require.Equal(t, `{"type": "unit", "amount": "100", "maximumAmount": "2000"}`, string(splitLineGroup.Price))
+					require.Equal(t, "2024-09-02T12:13:00Z", splitLineGroup.ServicePeriodStart.Format(time.RFC3339))
+					require.Equal(t, "2024-09-03T12:13:00Z", splitLineGroup.ServicePeriodEnd.Format(time.RFC3339))
+				})
+
+				t.Run("line counts are unchanged except of the split line", func(t *testing.T) {
+					lineCounts, err := q.CountLinesByStatusType(t.Context())
+					require.NoError(t, err)
+
+					postMigrationLineCountsByType := make(map[string]int64)
+					for _, lineCount := range lineCounts {
+						postMigrationLineCountsByType[fmt.Sprintf("%s-%s", lineCount.Status, lineCount.Type)] = lineCount.Count
+					}
+
+					delete(preMigrationLineCountsByType, "split-usage_based")
+
+					require.Equal(t, preMigrationLineCountsByType, postMigrationLineCountsByType)
+				})
+
+				t.Run("split line group is associated with the correct lines", func(t *testing.T) {
+					splitLineGroup, err := q.GetSplitLineGroup(t.Context(), SplitLineGroupID)
+					require.NoError(t, err)
+
+					lines, err := q.GetUsageBasedLinesBySplitLineGroup(t.Context(), sql.NullString{String: SplitLineGroupID, Valid: true})
+					require.NoError(t, err)
+
+					require.Len(t, lines, 2)
+					for _, line := range lines {
+						require.Equal(t, SplitLineGroupID, line.SplitLineGroupID.String)
+						require.Equal(t, splitLineGroup.FeatureKey.String, line.FeatureKey.String)
+						require.Equal(t, splitLineGroup.Price, line.Price)
+					}
 				})
 			},
 		},

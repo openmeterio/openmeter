@@ -703,24 +703,6 @@ func (u *BillingInvoiceSplitLineGroupUpsert) UpdateServicePeriodEnd() *BillingIn
 	return u
 }
 
-// SetUniqueReferenceID sets the "unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpsert {
-	u.Set(billinginvoicesplitlinegroup.FieldUniqueReferenceID, v)
-	return u
-}
-
-// UpdateUniqueReferenceID sets the "unique_reference_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsert) UpdateUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetExcluded(billinginvoicesplitlinegroup.FieldUniqueReferenceID)
-	return u
-}
-
-// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsert) ClearUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsert {
-	u.SetNull(billinginvoicesplitlinegroup.FieldUniqueReferenceID)
-	return u
-}
-
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
 func (u *BillingInvoiceSplitLineGroupUpsert) SetRatecardDiscounts(v *billing.Discounts) *BillingInvoiceSplitLineGroupUpsert {
 	u.Set(billinginvoicesplitlinegroup.FieldRatecardDiscounts, v)
@@ -764,6 +746,9 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateNewValues() *BillingInvoic
 		}
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(billinginvoicesplitlinegroup.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.UniqueReferenceID(); exists {
+			s.SetIgnore(billinginvoicesplitlinegroup.FieldUniqueReferenceID)
 		}
 		if _, exists := u.create.mutation.FeatureKey(); exists {
 			s.SetIgnore(billinginvoicesplitlinegroup.FieldFeatureKey)
@@ -948,27 +933,6 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) SetServicePeriodEnd(v time.Time)
 func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateServicePeriodEnd() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.UpdateServicePeriodEnd()
-	})
-}
-
-// SetUniqueReferenceID sets the "unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetUniqueReferenceID(v)
-	})
-}
-
-// UpdateUniqueReferenceID sets the "unique_reference_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateUniqueReferenceID()
-	})
-}
-
-// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertOne {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearUniqueReferenceID()
 	})
 }
 
@@ -1188,6 +1152,9 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateNewValues() *BillingInvoi
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(billinginvoicesplitlinegroup.FieldCurrency)
 			}
+			if _, exists := b.mutation.UniqueReferenceID(); exists {
+				s.SetIgnore(billinginvoicesplitlinegroup.FieldUniqueReferenceID)
+			}
 			if _, exists := b.mutation.FeatureKey(); exists {
 				s.SetIgnore(billinginvoicesplitlinegroup.FieldFeatureKey)
 			}
@@ -1372,27 +1339,6 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetServicePeriodEnd(v time.Time
 func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateServicePeriodEnd() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.UpdateServicePeriodEnd()
-	})
-}
-
-// SetUniqueReferenceID sets the "unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.SetUniqueReferenceID(v)
-	})
-}
-
-// UpdateUniqueReferenceID sets the "unique_reference_id" field to the value that was provided on create.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.UpdateUniqueReferenceID()
-	})
-}
-
-// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
-func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearUniqueReferenceID() *BillingInvoiceSplitLineGroupUpsertBulk {
-	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
-		s.ClearUniqueReferenceID()
 	})
 }
 

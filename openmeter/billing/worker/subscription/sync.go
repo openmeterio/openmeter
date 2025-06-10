@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -145,17 +144,16 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 			return nil
 		}
 
+		customerID := customer.CustomerID{
+			Namespace: subs.Subscription.Namespace,
+			ID:        subs.Subscription.CustomerId,
+		}
+
 		// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
 		// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
-		_, err := h.billingService.GetCustomerOverride(
-			ctx,
-			billing.GetCustomerOverrideInput{
-				Customer: customer.CustomerID{
-					Namespace: subs.Subscription.Namespace,
-					ID:        subs.Subscription.CustomerId,
-				},
-			},
-		)
+		_, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customerID,
+		})
 		if err != nil {
 			return fmt.Errorf("getting billing profile: %w", err)
 		}
@@ -169,62 +167,37 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 			Namespace: subs.Subscription.Namespace,
 			ID:        subs.Subscription.CustomerId,
 		}, func(ctx context.Context) error {
-			plan, err := h.calculateSyncPlan(ctx, subs, asOf)
+			// Calculate per line patches
+			linesDiff, err := h.compareSubscriptionWithExistingLines(ctx, subs, asOf)
 			if err != nil {
 				return err
 			}
 
-			if plan == nil {
+			if linesDiff == nil {
 				return nil
 			}
 
-			patches, err := h.getPatchesFromPlan(plan, subs, currency)
+			patches, err := h.getPatchesFromPlan(linesDiff, subs, currency)
 			if err != nil {
 				return err
 			}
 
-			err = h.provisionPendingLines(ctx,
+			// Apply the patches to the customer's invoices
+
+			newLinePatches, err := h.getNewUpcomingLinePatches(ctx,
 				subs,
 				currency,
-				plan.NewSubscriptionItems,
+				linesDiff.NewSubscriptionItems,
 			)
 			if err != nil {
 				return fmt.Errorf("provisioning pending lines: %w", err)
 			}
 
-			patchesByInvoiceID := lo.GroupBy(patches, func(p linePatch) string {
-				return p.InvoiceID
-			})
+			patches = append(patches, newLinePatches...)
 
-			invoiceHeadersByID := make(map[string]billing.Invoice, len(patchesByInvoiceID))
-			for invoiceID := range patchesByInvoiceID {
-				invoice, err := h.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-					Invoice: billing.InvoiceID{
-						Namespace: subs.Subscription.Namespace,
-						ID:        invoiceID,
-					},
-					Expand: billing.InvoiceExpand{},
-				})
-				if err != nil {
-					return fmt.Errorf("getting invoice[%s]: %w", invoiceID, err)
-				}
-
-				invoiceHeadersByID[invoiceID] = invoice
-			}
-
-			for invoiceID, patches := range patchesByInvoiceID {
-				invoice := invoiceHeadersByID[invoiceID]
-
-				if !invoice.StatusDetails.Immutable {
-					if err := h.updateMutableInvoice(ctx, invoice, patches); err != nil {
-						return fmt.Errorf("updating mutable invoice[%s]: %w", invoiceID, err)
-					}
-					continue
-				}
-
-				if err := h.updateImmutableInvoice(ctx, invoice, patches); err != nil {
-					return fmt.Errorf("updating immutable invoice[%s]: %w", invoiceID, err)
-				}
+			invoiceUpdater := NewInvoiceUpdater(h.billingService)
+			if err := invoiceUpdater.ApplyPatches(ctx, customerID, patches); err != nil {
+				return fmt.Errorf("updating invoices: %w", err)
 			}
 
 			return nil
@@ -232,65 +205,24 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 	})
 }
 
-type syncPlan struct {
+type subscriptionSyncPlan struct {
 	NewSubscriptionItems []subscriptionItemWithPeriod
-	LinesToDelete        []*billing.Line
-	LinesToUpsert        []syncPlanLineUpsert
+	LinesToDelete        []billing.LineOrHierarchy
+	LinesToUpsert        []subscriptionSyncPlanLineUpsert
 }
 
-type syncPlanLineUpsert struct {
+type subscriptionSyncPlanLineUpsert struct {
 	Target   subscriptionItemWithPeriod
-	Existing *billing.Line
+	Existing billing.LineOrHierarchy
 }
 
-func (h *Handler) getPatchesFromPlan(p *syncPlan, subs subscription.SubscriptionView, currency currencyx.Calculator) ([]linePatch, error) {
-	patches := make([]linePatch, 0, len(p.LinesToDelete)+len(p.LinesToUpsert))
+// calculateSyncPlan calculates the sync plan for the subscription, it returns the lines to delete, the lines to upsert and the new subscription items.
+func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (*subscriptionSyncPlan, error) {
+	ctx, span := tracex.Start[*subscriptionSyncPlan](ctx, h.tracer, "billing.worker.subscription.sync.compareSubscriptionWithExistingLines")
 
-	// Let's update the existing lines
-	for _, line := range p.LinesToDelete {
-		patches = append(patches, h.getDeletePatchesForLine(line)...)
-	}
-
-	for _, line := range p.LinesToUpsert {
-		expectedLine, err := h.lineFromSubscritionRateCard(subs, line.Target, currency)
-		if err != nil {
-			return nil, fmt.Errorf("generating expected line[%s]: %w", line.Target.UniqueID, err)
-		}
-
-		if expectedLine == nil {
-			// The line should be deleted, let's see how
-			patches = append(patches, h.getDeletePatchesForLine(line.Existing)...)
-			continue
-		}
-
-		updatePatches, err := h.inScopeLinePatches(line.Existing, expectedLine)
-		if err != nil {
-			return nil, fmt.Errorf("updating line[%s]: %w", line.Target.UniqueID, err)
-		}
-
-		for _, patch := range updatePatches {
-			// If a line is an empty UBP line, we should delete it instead of updating it or we will end up having validation errors
-			// during invoice save processing.
-			if patch.Op == patchOpUpdate && patch.TargetState.Type == billing.InvoiceLineTypeUsageBased {
-				if patch.TargetState.Period.Truncate(billing.DefaultMeterResolution).IsEmpty() {
-					// This is an empty line, we should delete it
-					patches = append(patches, h.getDeletePatchesForLine(line.Existing)...)
-					continue
-				}
-			}
-
-			patches = append(patches, patch)
-		}
-	}
-
-	return patches, nil
-}
-
-func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (*syncPlan, error) {
-	ctx, span := tracex.Start[*syncPlan](ctx, h.tracer, "billing.worker.subscription.sync.calculateSyncPlan")
-
-	return span.Wrap(ctx, func(ctx context.Context) (*syncPlan, error) {
+	return span.Wrap(ctx, func(ctx context.Context) (*subscriptionSyncPlan, error) {
 		// Let's see what's in scope for the subscription
+		// TODO: afaik this is already sorted, let's doublecheck that
 		slices.SortFunc(subs.Phases, func(i, j subscription.SubscriptionPhaseView) int {
 			return timeutil.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
 		})
@@ -322,11 +254,11 @@ func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.Subsc
 		}
 
 		existingLinesByUniqueID, unique := slicesx.UniqueGroupBy(
-			lo.Filter(existingLines, func(l *billing.Line, _ int) bool {
-				return l.ChildUniqueReferenceID != nil
+			lo.Filter(existingLines, func(l billing.LineOrHierarchy, _ int) bool {
+				return l.ChildUniqueReferenceID() != nil
 			}),
-			func(l *billing.Line) string {
-				return *l.ChildUniqueReferenceID
+			func(l billing.LineOrHierarchy) string {
+				return *l.ChildUniqueReferenceID()
 			})
 		if !unique {
 			return nil, fmt.Errorf("duplicate unique ids in the existing lines")
@@ -338,10 +270,10 @@ func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.Subsc
 		deletedLines, newLines := lo.Difference(existingLineUniqueIDs, inScopeLineUniqueIDs)
 		lineIDsToUpsert := lo.Intersect(existingLineUniqueIDs, inScopeLineUniqueIDs)
 
-		linesToDelete, err := slicesx.MapWithErr(deletedLines, func(id string) (*billing.Line, error) {
+		linesToDelete, err := slicesx.MapWithErr(deletedLines, func(id string) (billing.LineOrHierarchy, error) {
 			line, ok := existingLinesByUniqueID[id]
 			if !ok {
-				return nil, fmt.Errorf("existing line[%s] not found in the existing lines", id)
+				return billing.LineOrHierarchy{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
 			}
 
 			return line, nil
@@ -350,13 +282,13 @@ func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.Subsc
 			return nil, fmt.Errorf("mapping deleted lines: %w", err)
 		}
 
-		linesToUpsert, err := slicesx.MapWithErr(lineIDsToUpsert, func(id string) (syncPlanLineUpsert, error) {
+		linesToUpsert, err := slicesx.MapWithErr(lineIDsToUpsert, func(id string) (subscriptionSyncPlanLineUpsert, error) {
 			existingLine, ok := existingLinesByUniqueID[id]
 			if !ok {
-				return syncPlanLineUpsert{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
+				return subscriptionSyncPlanLineUpsert{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
 			}
 
-			return syncPlanLineUpsert{
+			return subscriptionSyncPlanLineUpsert{
 				Target:   inScopeLinesByUniqueID[id],
 				Existing: existingLine,
 			}, nil
@@ -365,7 +297,7 @@ func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.Subsc
 			return nil, fmt.Errorf("mapping upsert lines: %w", err)
 		}
 
-		return &syncPlan{
+		return &subscriptionSyncPlan{
 			NewSubscriptionItems: lo.Map(newLines, func(id string, _ int) subscriptionItemWithPeriod {
 				return inScopeLinesByUniqueID[id]
 			}),
@@ -373,6 +305,48 @@ func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.Subsc
 			LinesToUpsert: linesToUpsert,
 		}, nil
 	})
+}
+
+func (h *Handler) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.SubscriptionView, currency currencyx.Calculator) ([]linePatch, error) {
+	patches := make([]linePatch, 0, len(p.LinesToDelete)+len(p.LinesToUpsert))
+
+	// Let's update the existing lines
+	for _, line := range p.LinesToDelete {
+		deletePatches, err := h.getDeletePatchesForLine(line)
+		if err != nil {
+			return nil, fmt.Errorf("getting delete patches for line: %w", err)
+		}
+
+		patches = append(patches, deletePatches...)
+	}
+
+	for _, line := range p.LinesToUpsert {
+		expectedLine, err := h.lineFromSubscritionRateCard(subs, line.Target, currency)
+		if err != nil {
+			return nil, fmt.Errorf("generating expected line[%s]: %w", line.Target.UniqueID, err)
+		}
+
+		// The line have 0 amount, so we are not going to bill it. This can happen if we are quickly changing subscriptions
+		// immediately.
+		if expectedLine == nil {
+			deletePatches, err := h.getDeletePatchesForLine(line.Existing)
+			if err != nil {
+				return nil, fmt.Errorf("getting delete patches for line: %w", err)
+			}
+
+			patches = append(patches, deletePatches...)
+			continue
+		}
+
+		updatePatches, err := h.getPatchesForExistingLineOrHierarchy(line.Existing, expectedLine)
+		if err != nil {
+			return nil, fmt.Errorf("updating line[%s]: %w", line.Target.UniqueID, err)
+		}
+
+		patches = append(patches, updatePatches...)
+	}
+
+	return patches, nil
 }
 
 // TODO[OM-1038]: manually deleted lines might come back to draft/gathering invoices (see ticket)
@@ -431,27 +405,6 @@ func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.Su
 	})
 }
 
-func (h *Handler) getDeletePatchesForLine(line *billing.Line) []linePatch {
-	patches := make([]linePatch, 0, 1+len(line.Children.OrEmpty()))
-
-	if line.DeletedAt == nil {
-		patches = append(patches, patchFromLine(patchOpDelete, line))
-	}
-
-	if line.Status == billing.InvoiceLineStatusSplit {
-		// let's delete all the children
-		for _, child := range line.Children.OrEmpty() {
-			if child.DeletedAt != nil {
-				continue
-			}
-
-			patches = append(patches, patchFromLine(patchOpDelete, child))
-		}
-	}
-
-	return patches
-}
-
 func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriod, currency currencyx.Calculator) (*billing.Line, error) {
 	line := &billing.Line{
 		LineBase: billing.LineBase{
@@ -492,7 +445,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		// TODO[OM-1040]: We should support rounding errors in prorating calculations (such as 1/3 of a dollar is $0.33, 3*$0.33 is $0.99, if we bill
 		// $1.00 in three equal pieces we should charge the customer $0.01 as the last split)
 		perUnitAmount := currency.RoundToPrecision(price.Amount)
-		if !item.Period.IsEmpty() && h.shouldProrateFlatFee(price) {
+		if !item.Period.IsEmpty() && h.shouldProrateFlatFee(price) && !item.NonTruncatedPeriod.Equal(item.Period) {
 			perUnitAmount = currency.RoundToPrecision(price.Amount.Mul(item.PeriodPercentage()))
 		}
 
@@ -577,7 +530,7 @@ func (h *Handler) shouldProrateFlatFee(price productcatalog.FlatPrice) bool {
 	}
 }
 
-func (h *Handler) provisionPendingLines(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriod) error {
+func (h *Handler) getNewUpcomingLinePatches(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriod) ([]linePatch, error) {
 	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriod) (*billing.Line, error) {
 		line, err := h.lineFromSubscritionRateCard(subs, subsItem, currency)
 		if err != nil {
@@ -587,24 +540,19 @@ func (h *Handler) provisionPendingLines(ctx context.Context, subs subscription.S
 		return line, nil
 	})
 	if err != nil {
-		return fmt.Errorf("creating new lines: %w", err)
+		return nil, fmt.Errorf("creating new lines: %w", err)
 	}
 
-	_, err = h.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: subs.Subscription.GetCustomerID(),
-		Currency: subs.Spec.Currency,
-		Lines: lo.Filter(newLines, func(l *billing.Line, _ int) bool {
-			return l != nil
-		}),
+	lines := lo.Filter(newLines, func(l *billing.Line, _ int) bool {
+		return l != nil
 	})
-	if err != nil {
-		return fmt.Errorf("creating pending invoice lines: %w", err)
-	}
 
-	return nil
+	return lo.Map(lines, func(l *billing.Line, _ int) linePatch {
+		return newCreateLinePatch(*l)
+	}), nil
 }
 
-func (h *Handler) inScopeLinePatches(existingLine *billing.Line, expectedLine *billing.Line) ([]linePatch, error) {
+func (h *Handler) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine *billing.Line) ([]linePatch, error) {
 	// TODO/WARNING[later]: This logic should be fine with everything that can be billed progressively, however the following use-cases
 	// will behave strangely:
 	//
@@ -615,375 +563,181 @@ func (h *Handler) inScopeLinePatches(existingLine *billing.Line, expectedLine *b
 	//   and the new tiered price will be billed for the second half, meaning that the customer will be billed for less sum traffic) [OM]
 	// - If a meter is unique counted, then the unique count will be reset at the change's time
 
-	// This is a non-split line, so it's either assigned to a gathering invoice or an already paid invoice, we can just update the line
-	// and let billing service handle the rest
-	if existingLine.Status == billing.InvoiceLineStatusValid {
-		if existingLine.ManagedBy != billing.SubscriptionManagedLine {
-			return nil, nil
-		}
-
-		mergeResult, err := h.mergeChangesFromLine(h.cloneLineForUpsert(existingLine), expectedLine)
+	switch existingLine.Type() {
+	case billing.LineOrHierarchyTypeLine:
+		line, err := existingLine.AsLine()
 		if err != nil {
-			return nil, fmt.Errorf("merging changes from line: %w", err)
+			return nil, fmt.Errorf("getting line: %w", err)
 		}
 
-		if !mergeResult.WasChange {
-			return nil, nil
+		return h.getPatchesForExistingLine(line, expectedLine)
+	case billing.LineOrHierarchyTypeHierarchy:
+		group, err := existingLine.AsHierarchy()
+		if err != nil {
+			return nil, fmt.Errorf("getting hierarchy: %w", err)
 		}
 
-		return []linePatch{
-			patchFromLine(patchOpUpdate, mergeResult.Line),
-		}, nil
-	}
-
-	// Parts of the line has been already invoiced using progressive invoicing, so we need to examine the children
-	if existingLine.Status == billing.InvoiceLineStatusSplit {
-		if existingLine.Type == billing.InvoiceLineTypeFee {
-			// This is defensive programming, as the existing split logic should not allow flat fee lines to be split
-			// but if we implement progressive billing for flat fee lines, we need to handle the split here
-			return nil, fmt.Errorf("flat fee lines should not be split [lineID=%s]", existingLine.ID)
-		}
-
-		// Nothing to do here, as split lines are UBP lines and thus we don't need the flat fee corrections
-		// TODO[later]: When we implement progressive billing based pro-rating, we need to support adjusting flat fee
-		// segments here.
-
-		if existingLine.Period.End.Equal(expectedLine.Period.End) {
-			// The line is already in the expected state, so we can safely return here
-			return nil, nil
-		}
-
-		patches := []linePatch{}
-
-		switch {
-		case existingLine.Period.End.Before(expectedLine.Period.End):
-
-			// Expansion of the line (e.g. continue subscription)
-
-			children := existingLine.Children.OrEmpty()
-			if len(children) > 0 {
-				slices.SortFunc(children, func(i, j *billing.Line) int {
-					return timeutil.Compare(i.Period.End, j.Period.End)
-				})
-
-				lastChild := h.cloneLineForUpsert(children[len(children)-1])
-
-				if lastChild.ManagedBy == billing.SubscriptionManagedLine {
-					// We are not supporting period changes for children, and we need to maintain the consistency so
-					// even for overridden lines we need to update the period
-
-					// We however allow deletions, so we are only un-deleting the line here if it was deleted by the sync engine
-					lastChild.DeletedAt = nil
-				}
-
-				lastChild.Period.End = expectedLine.Period.End
-				lastChild.InvoiceAt = expectedLine.Period.End
-				patches = append(patches, patchFromLine(patchOpUpdate, lastChild))
-			}
-
-			// We have already updated the last child, so we need to update at least the periods regardless of managed_by to keep the consistency
-			updatedExistingLine := h.cloneLineForUpsert(existingLine)
-			updatedExistingLine.Period.End = expectedLine.Period.End
-			updatedExistingLine.InvoiceAt = expectedLine.Period.End
-
-			if updatedExistingLine.ManagedBy == billing.SubscriptionManagedLine {
-				updatedExistingLine.DeletedAt = nil
-			}
-
-			patches = append(patches, patchFromLine(patchOpUpdate, updatedExistingLine))
-		case existingLine.Period.End.After(expectedLine.Period.End):
-			// Shrink of the line (e.g. subscription cancled, subscription item edit)
-
-			for _, child := range existingLine.Children.OrEmpty() {
-				if child.Period.End.Before(expectedLine.Period.End) {
-					// The child is not affected by the period shrink, so we can skip it
-					continue
-				}
-
-				if child.Period.Start.After(expectedLine.Period.End) {
-					// The child is after the period shrink, so we need to delete it as it became invalid
-					patches = append(patches, patchFromLine(patchOpDelete, child))
-					continue
-				}
-
-				// The child is partially affected by the period shrink, so we need to adjust the period
-				if !child.Period.End.Equal(expectedLine.Period.End) {
-					updatedChild := h.cloneLineForUpsert(child)
-					updatedChild.Period.End = expectedLine.Period.End
-
-					if updatedChild.InvoiceAt.After(expectedLine.Period.End) {
-						// The child is invoiced after the period end, so we need to adjust the invoice date
-						updatedChild.InvoiceAt = expectedLine.Period.End
-					}
-
-					if child.ManagedBy == billing.SubscriptionManagedLine {
-						updatedChild.DeletedAt = nil
-					}
-
-					patches = append(patches, patchFromLine(patchOpUpdate, updatedChild))
-				}
-			}
-			// Split lines are always associated with gathering invoices, so we can safely update the line without checking for
-			// snapshot update requirements
-
-			updatedExistingLine := h.cloneLineForUpsert(existingLine)
-			updatedExistingLine.Period.End = expectedLine.Period.End
-			updatedExistingLine.InvoiceAt = expectedLine.Period.End
-
-			patches = append(patches, patchFromLine(patchOpUpdate, updatedExistingLine))
-		default:
-			return nil, fmt.Errorf("could not handle split line update [lineID=%s, status=%s]", existingLine.ID, existingLine.Status)
-		}
-
-		return patches, nil
-	}
-
-	// There is no other state in which a line can be in, so we can safely return an error here
-	return nil, fmt.Errorf("could not handle line update [lineID=%s, status=%s]", existingLine.ID, existingLine.Status)
-}
-
-type typeWithEqual[T any] interface {
-	Equal(T) bool
-}
-
-func setIfDoesNotEqual[T typeWithEqual[T]](existing *T, expected T, wasChange *bool) {
-	if !(*existing).Equal(expected) {
-		*existing = expected
-		*wasChange = true
+		return h.getPatchesForExistingHierarchy(group, expectedLine)
+	default:
+		return nil, fmt.Errorf("unsupported line or hierarchy type: %s", existingLine.Type())
 	}
 }
 
-type mergeLineResult struct {
-	Line      *billing.Line
-	WasChange bool
-}
+func (h *Handler) getPatchesForExistingLine(existingLine *billing.Line, expectedLine *billing.Line) ([]linePatch, error) {
+	// Manual edits prevent resyncronization so that we preserve the user intent
+	if existingLine.ManagedBy != billing.SubscriptionManagedLine {
+		return nil, nil
+	}
 
-func (h *Handler) mergeChangesFromLine(existingLine *billing.Line, expectedLine *billing.Line) (mergeLineResult, error) {
 	// We assume that only the period can change, maybe some pricing data due to prorating (for flat lines)
+
+	targetLine := existingLine.CloneWithoutChildren()
 
 	wasChange := false
 
-	setIfDoesNotEqual(&existingLine.Period, expectedLine.Period, &wasChange)
-	setIfDoesNotEqual(&existingLine.InvoiceAt, expectedLine.InvoiceAt, &wasChange)
+	setIfDoesNotEqual(&targetLine.Period, expectedLine.Period, &wasChange)
+	setIfDoesNotEqual(&targetLine.InvoiceAt, expectedLine.InvoiceAt, &wasChange)
 
-	if existingLine.DeletedAt != nil {
-		existingLine.DeletedAt = nil
+	if !isFlatFee(targetLine) {
+		// UBP Empty lines are not allowed, let's delete them instead
+		if targetLine.Period.Truncate(billing.DefaultMeterResolution).IsEmpty() {
+			return []linePatch{
+				newDeleteLinePatch(existingLine.LineID(), existingLine.InvoiceID),
+			}, nil
+		}
+	}
+
+	if targetLine.DeletedAt != nil {
+		targetLine.DeletedAt = nil
 		wasChange = true
 	}
 
 	// Let's handle the flat fee prorating (e.g. syncronizing the amount maybe in retrospect)
-	if isFlatFee(existingLine) {
+	if isFlatFee(targetLine) {
 		if !isFlatFee(expectedLine) {
-			return mergeLineResult{}, errors.New("cannot merge flat fee line with usage based line")
+			return nil, errors.New("cannot merge flat fee line with usage based line")
 		}
 
 		perUnitAmountExisting, err := getFlatFeePerUnitAmount(existingLine)
 		if err != nil {
-			return mergeLineResult{}, fmt.Errorf("getting flat fee per unit amount: %w", err)
+			return nil, fmt.Errorf("getting flat fee per unit amount: %w", err)
 		}
 
 		perUnitAmountExpected, err := getFlatFeePerUnitAmount(expectedLine)
 		if err != nil {
-			return mergeLineResult{}, fmt.Errorf("getting flat fee per unit amount: %w", err)
+			return nil, fmt.Errorf("getting flat fee per unit amount: %w", err)
 		}
 
 		if !perUnitAmountExisting.Equal(perUnitAmountExpected) {
-			if err := setFlatFeePerUnitAmount(existingLine, perUnitAmountExpected); err != nil {
-				return mergeLineResult{}, fmt.Errorf("setting flat fee per unit amount: %w", err)
+			if err := setFlatFeePerUnitAmount(targetLine, perUnitAmountExpected); err != nil {
+				return nil, fmt.Errorf("setting flat fee per unit amount: %w", err)
 			}
 			wasChange = true
 		}
 	}
 
-	return mergeLineResult{
-		Line:      existingLine,
-		WasChange: wasChange,
+	if !wasChange {
+		return nil, nil
+	}
+
+	return []linePatch{
+		newUpdateLinePatch(targetLine),
 	}, nil
 }
 
-func (h *Handler) updateMutableInvoice(ctx context.Context, invoice billing.Invoice, patches []linePatch) error {
-	updatedInvoice, err := h.billingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice:             invoice.InvoiceID(),
-		IncludeDeletedLines: true,
-		EditFn: func(invoice *billing.Invoice) error {
-			for _, patch := range patches {
-				line := invoice.Lines.GetByID(patch.LineID)
-				if line == nil {
-					return fmt.Errorf("line[%s] not found in the invoice, cannot delete", patch.LineID)
-				}
+func (h *Handler) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine *billing.Line) ([]linePatch, error) {
+	// Parts of the line has been already invoiced using progressive invoicing, so we need to examine the children
 
-				if patch.Op == patchOpDelete {
-					line.DeletedAt = lo.ToPtr(clock.Now())
+	// Nothing to do here, as split lines are UBP lines and thus we don't need the flat fee corrections
+	// TODO[later]: When we implement progressive billing based pro-rating, we need to support adjusting flat fee
+	// segments here.
+
+	if existingHierarchy.Group.ServicePeriod.End.Equal(expectedLine.Period.End) {
+		// The line is already in the expected state, so we can safely return here
+		return nil, nil
+	}
+
+	patches := []linePatch{}
+
+	// Case #1: The line is being expanded (e.g. continue subscription)
+	if existingHierarchy.Group.ServicePeriod.End.Before(expectedLine.Period.End) {
+		// Expansion of the line (e.g. continue subscription)
+
+		children := existingHierarchy.Lines
+		if len(children) > 0 {
+			slices.SortFunc(children, func(i, j billing.LineWithInvoiceHeader) int {
+				return timeutil.Compare(i.Line.Period.End, j.Line.Period.End)
+			})
+
+			lastChild := children[len(children)-1].Line.CloneWithoutChildren()
+
+			if lastChild.ManagedBy == billing.SubscriptionManagedLine {
+				// We are not supporting period changes for children, and we need to maintain the consistency so
+				// even for overridden lines we need to update the period
+
+				// We however allow deletions, so we are only un-deleting the line here if it was deleted by the sync engine
+				lastChild.DeletedAt = nil
+			}
+
+			lastChild.Period.End = expectedLine.Period.End
+			lastChild.InvoiceAt = expectedLine.Period.End
+			patches = append(patches, newUpdateLinePatch(lastChild))
+		}
+
+		// We have already updated the last child, so we need to update at least the periods regardless of managed_by to keep the consistency
+		updatedGroup := existingHierarchy.Group.ToUpdate()
+		updatedGroup.ServicePeriod.End = expectedLine.Period.End
+		patches = append(patches, newUpdateSplitLineGroupPatch(updatedGroup))
+
+		return patches, nil
+	}
+
+	// Shrink of the line (e.g. subscription cancled, subscription item edit)
+
+	for _, child := range existingHierarchy.Lines {
+		if child.Line.Period.End.Before(expectedLine.Period.End) {
+			// The child is not affected by the period shrink, so we can skip it
+			continue
+		}
+
+		if child.Line.Period.Start.After(expectedLine.Period.End) {
+			// The child is after the period shrink, so we need to delete it as it became invalid
+			patches = append(patches, newDeleteLinePatch(child.Line.LineID(), child.Line.InvoiceID))
+			continue
+		}
+
+		// The child is partially affected by the period shrink, so we need to adjust the period
+		if !child.Line.Period.End.Equal(expectedLine.Period.End) {
+			updatedChild := child.Line.CloneWithoutChildren()
+			updatedChild.Period.End = expectedLine.Period.End
+
+			if updatedChild.InvoiceAt.After(expectedLine.Period.End) {
+				// The child is invoiced after the period end, so we need to adjust the invoice date
+				updatedChild.InvoiceAt = expectedLine.Period.End
+			}
+
+			if child.Line.ManagedBy == billing.SubscriptionManagedLine {
+				updatedChild.DeletedAt = nil
+			}
+
+			if !isFlatFee(updatedChild) {
+				// UBP Empty lines are not allowed, let's delete them instead
+				if updatedChild.Period.Truncate(billing.DefaultMeterResolution).IsEmpty() {
+					patches = append(patches, newDeleteLinePatch(child.Line.LineID(), child.Line.InvoiceID))
 					continue
 				}
-
-				// update
-				updatedLine := patch.TargetState
-
-				if invoice.Status != billing.InvoiceStatusGathering && patch.TargetState.Type == billing.InvoiceLineTypeUsageBased {
-					// We need to update the quantities of the usage based lines, to compensate for any changes in the period
-					// of the line
-
-					updatedQtyLine, err := h.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
-						Invoice: invoice,
-						Line:    updatedLine,
-					})
-					if err != nil {
-						return fmt.Errorf("recalculating line[%s]: %w", updatedLine.ID, err)
-					}
-
-					updatedLine = updatedQtyLine
-				}
-
-				if ok := invoice.Lines.ReplaceByID(patch.LineID, updatedLine); !ok {
-					return fmt.Errorf("line[%s/%s] not found in the invoice, cannot update", patch.LineID, lo.FromPtrOr(patch.TargetState.ChildUniqueReferenceID, "nil"))
-				}
 			}
 
-			return nil
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("updating invoice: %w", err)
-	}
-
-	if updatedInvoice.Lines.NonDeletedLineCount() == 0 {
-		if updatedInvoice.Status == billing.InvoiceStatusGathering {
-			// Gathering invoice deletion is handled by the service layer if they are empty
-			return nil
-		}
-
-		// The invoice has no lines, so let's just delete it
-		if err := h.billingService.DeleteInvoice(ctx, updatedInvoice.InvoiceID()); err != nil {
-			return fmt.Errorf("deleting empty invoice: %w", err)
+			patches = append(patches, newUpdateLinePatch(updatedChild))
 		}
 	}
 
-	return err
-}
+	// Let's make sure that the group's end is updated to the expected period end, so that
+	// we can reliably detect last child
 
-func (h *Handler) updateImmutableInvoice(ctx context.Context, invoice billing.Invoice, patches []linePatch) error {
-	invoice, err := h.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: invoice.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
-	})
-	if err != nil {
-		return fmt.Errorf("getting invoice: %w", err)
-	}
+	updatedGroup := existingHierarchy.Group.ToUpdate()
+	updatedGroup.ServicePeriod.End = expectedLine.Period.End
+	patches = append(patches, newUpdateSplitLineGroupPatch(updatedGroup))
 
-	validationIssues := make([]billing.ValidationIssue, 0, len(patches))
-
-	for _, patch := range patches {
-		if patch.Op == patchOpDelete {
-			validationIssues = append(validationIssues,
-				newValidationIssueOnLine(invoice.Lines.GetByID(patch.LineID), "line should be voided, but the invoice is immutable"),
-			)
-			continue
-		}
-
-		existingLine := invoice.Lines.GetByID(patch.LineID)
-		if existingLine == nil {
-			return fmt.Errorf("line[%s] not found in the invoice, cannot update", patch.LineID)
-		}
-
-		targetState := patch.TargetState
-
-		if targetState.Type != existingLine.Type {
-			validationIssues = append(validationIssues,
-				newValidationIssueOnLine(existingLine, "line type cannot be changed (new type: %s)", targetState.Type),
-			)
-			continue
-		}
-
-		switch targetState.Type {
-		case billing.InvoiceLineTypeFee:
-			if !targetState.FlatFee.PerUnitAmount.Equal(existingLine.FlatFee.PerUnitAmount) {
-				validationIssues = append(validationIssues,
-					newValidationIssueOnLine(existingLine, "flat fee amount cannot be changed on immutable invoice (new amount: %s)",
-						targetState.FlatFee.PerUnitAmount.String(),
-					),
-				)
-			}
-		case billing.InvoiceLineTypeUsageBased:
-			if !targetState.Period.Equal(existingLine.Period) {
-				// The period of the line has changed => we need to refetch the quantity
-				targetStateWithUpdatedQty, err := h.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
-					Invoice: &invoice,
-					Line:    targetState,
-				})
-				if err != nil {
-					return fmt.Errorf("recalculating line[%s]: %w", targetStateWithUpdatedQty.ID, err)
-				}
-
-				if !targetStateWithUpdatedQty.UsageBased.Quantity.Equal(lo.FromPtr(existingLine.UsageBased.Quantity)) {
-					validationIssues = append(validationIssues,
-						newValidationIssueOnLine(existingLine, "usage based line's quantity cannot be changed on immutable invoice (new qty: %s)",
-							targetStateWithUpdatedQty.UsageBased.Quantity.String()),
-					)
-				}
-			}
-		}
-	}
-
-	if len(validationIssues) > 0 {
-		// These calculations are not idempontent, as we are only executing it against the in-scope part of the
-		// subscription, so we cannot rely on the component based replace features of the validation issues member
-		// of the invoice, so let's manually merge the issues.
-
-		mergedValidationIssues, wasChange := h.mergeValidationIssues(invoice, validationIssues)
-		if !wasChange {
-			return nil
-		}
-
-		return h.billingService.UpsertValidationIssues(ctx, billing.UpsertValidationIssuesInput{
-			Invoice: invoice.InvoiceID(),
-			Issues:  mergedValidationIssues,
-		})
-	}
-
-	return nil
-}
-
-func newValidationIssueOnLine(line *billing.Line, message string, a ...any) billing.ValidationIssue {
-	return billing.ValidationIssue{
-		// We use warning here, to prevent the state machine from being locked up due to present
-		// validation errors
-		Severity:  billing.ValidationIssueSeverityWarning,
-		Message:   fmt.Sprintf(message, a...),
-		Code:      billing.ImmutableInvoiceHandlingNotSupportedErrorCode,
-		Component: SubscriptionSyncComponentName,
-		Path:      fmt.Sprintf("lines/%s", line.ID),
-	}
-}
-
-func (h *Handler) mergeValidationIssues(invoice billing.Invoice, issues []billing.ValidationIssue) (billing.ValidationIssues, bool) {
-	changed := false
-
-	// We don't expect much issues, and this is temporary until we have credits so let's just
-	// use this simple approach.
-
-	for _, issue := range issues {
-		_, found := lo.Find(invoice.ValidationIssues, func(i billing.ValidationIssue) bool {
-			return i.Path == issue.Path && i.Component == SubscriptionSyncComponentName && i.Code == billing.ImmutableInvoiceHandlingNotSupportedErrorCode &&
-				i.Message == issue.Message
-		})
-
-		if found {
-			continue
-		}
-
-		changed = true
-
-		invoice.ValidationIssues = append(invoice.ValidationIssues, issue)
-	}
-
-	return invoice.ValidationIssues, changed
-}
-
-func (h *Handler) cloneLineForUpsert(line *billing.Line) *billing.Line {
-	clone := line.CloneWithoutChildren()
-
-	// We need to maintain the parent line relationship, so that we can update the qty snapshots on updated usage-based lines
-	clone.ParentLine = line.ParentLine
-	return clone
+	return patches, nil
 }

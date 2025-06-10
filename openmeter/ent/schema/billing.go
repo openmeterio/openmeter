@@ -598,7 +598,8 @@ func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 
 		field.String("unique_reference_id").
 			Optional().
-			Nillable(),
+			Nillable().
+			Immutable(),
 
 		field.String("ratecard_discounts").
 			GoType(&billing.Discounts{}).

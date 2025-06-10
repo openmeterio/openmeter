@@ -45,8 +45,6 @@ type InvoiceLineStatus string
 const (
 	// InvoiceLineStatusValid is a valid invoice line.
 	InvoiceLineStatusValid InvoiceLineStatus = "valid"
-	// InvoiceLineStatusSplit is a split invoice line (the child lines will have this set as parent).
-	InvoiceLineStatusSplit InvoiceLineStatus = "split"
 	// InvoiceLineStatusDetailed is a detailed invoice line.
 	InvoiceLineStatusDetailed InvoiceLineStatus = "detailed"
 )
@@ -54,7 +52,6 @@ const (
 func (InvoiceLineStatus) Values() []string {
 	return []string{
 		string(InvoiceLineStatusValid),
-		string(InvoiceLineStatusSplit),
 		string(InvoiceLineStatusDetailed),
 	}
 }
@@ -148,7 +145,8 @@ type LineBase struct {
 	InvoiceAt time.Time `json:"invoiceAt"`
 
 	// Relationships
-	ParentLineID *string `json:"parentLine,omitempty"`
+	ParentLineID     *string `json:"parentLine,omitempty"`
+	SplitLineGroupID *string `json:"splitLineGroupId,omitempty"`
 
 	Status                 InvoiceLineStatus `json:"status"`
 	ChildUniqueReferenceID *string           `json:"childUniqueReferenceID,omitempty"`
@@ -233,6 +231,24 @@ type SubscriptionReference struct {
 	ItemID         string `json:"itemID"`
 }
 
+func (i SubscriptionReference) Validate() error {
+	var errs []error
+
+	if i.SubscriptionID == "" {
+		errs = append(errs, errors.New("subscriptionID is required"))
+	}
+
+	if i.PhaseID == "" {
+		errs = append(errs, errors.New("phaseID is required"))
+	}
+
+	if i.ItemID == "" {
+		errs = append(errs, errors.New("itemID is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
 type LineExternalIDs struct {
 	Invoicing string `json:"invoicing,omitempty"`
 }
@@ -286,9 +302,9 @@ type Line struct {
 	FlatFee    *FlatFeeLine    `json:"flatFee,omitempty"`
 	UsageBased *UsageBasedLine `json:"usageBased,omitempty"`
 
-	Children                 LineChildren                     `json:"children,omitempty"`
-	ParentLine               *Line                            `json:"parent,omitempty"`
-	ProgressiveLineHierarchy *InvoiceLineProgressiveHierarchy `json:"progressiveLineHierarchy,omitempty"`
+	Children           LineChildren        `json:"children,omitempty"`
+	ParentLine         *Line               `json:"parent,omitempty"`
+	SplitLineHierarchy *SplitLineHierarchy `json:"progressiveLineHierarchy,omitempty"`
 
 	Discounts LineDiscounts `json:"discounts,omitempty"`
 
@@ -314,7 +330,8 @@ func (i Line) CloneWithoutDependencies() *Line {
 	clone.ID = ""
 	clone.ParentLineID = nil
 	clone.ParentLine = nil
-	clone.ProgressiveLineHierarchy = nil
+	clone.SplitLineHierarchy = nil
+	clone.SplitLineGroupID = nil
 
 	if clone.FlatFee != nil {
 		clone.FlatFee.ConfigID = ""
@@ -332,8 +349,8 @@ func (i Line) WithoutDBState() *Line {
 	return &i
 }
 
-func (i Line) WithoutProgressiveLineHierarchy() *Line {
-	i.ProgressiveLineHierarchy = nil
+func (i Line) WithoutSplitLineHierarchy() *Line {
+	i.SplitLineHierarchy = nil
 	return &i
 }
 
@@ -413,8 +430,8 @@ func (i Line) clone(opts cloneOptions) *Line {
 		res.Discounts = i.Discounts.Clone()
 	}
 
-	if i.ProgressiveLineHierarchy != nil {
-		res.ProgressiveLineHierarchy = lo.ToPtr(i.ProgressiveLineHierarchy.Clone())
+	if i.SplitLineHierarchy != nil {
+		res.SplitLineHierarchy = lo.ToPtr(i.SplitLineHierarchy.Clone())
 	}
 
 	return res
@@ -462,11 +479,6 @@ func (i Line) Validate() error {
 
 					if detailedLine.Type != InvoiceLineTypeFee {
 						errs = append(errs, fmt.Errorf("detailedLines[%d]: valid line's detailed lines must be fee typed", j))
-						continue
-					}
-				case InvoiceLineStatusSplit:
-					if detailedLine.Status != InvoiceLineStatusValid {
-						errs = append(errs, fmt.Errorf("detailedLines[%d]: split line's detailed lines must have valid status", j))
 						continue
 					}
 				}
@@ -832,15 +844,13 @@ func (c LineChildren) NonDeletedLineCount() int {
 	})
 }
 
-type Price = productcatalog.Price
-
 type UsageBasedLine struct {
 	ConfigID string `json:"configId"`
 
 	// Price is the price of the usage based line. Note: this should be a pointer or marshaling will fail for
 	// empty prices.
-	Price      *Price `json:"price"`
-	FeatureKey string `json:"featureKey"`
+	Price      *productcatalog.Price `json:"price"`
+	FeatureKey string                `json:"featureKey"`
 
 	Quantity        *alpacadecimal.Decimal `json:"quantity"`
 	MeteredQuantity *alpacadecimal.Decimal `json:"meteredQuantity,omitempty"`
@@ -937,6 +947,10 @@ func (c CreatePendingInvoiceLinesInput) Validate() error {
 
 		if line.ParentLineID != nil {
 			errs = append(errs, fmt.Errorf("line.%d: parent line ID is not allowed for pending lines", id))
+		}
+
+		if line.SplitLineGroupID != nil {
+			errs = append(errs, fmt.Errorf("line.%d: split line group ID is not allowed for pending lines", id))
 		}
 	}
 
@@ -1180,7 +1194,7 @@ func (u UpdateInvoiceLineBaseInput) Apply(l *Line) error {
 }
 
 type UpdateInvoiceLineUsageBasedInput struct {
-	Price *Price
+	Price *productcatalog.Price
 }
 
 func (u UpdateInvoiceLineUsageBasedInput) Validate() error {

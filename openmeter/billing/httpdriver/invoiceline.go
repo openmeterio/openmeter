@@ -928,7 +928,7 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		// - editing requires that the discount pool's quantity cannot be less than the already used
 		//   quantity.
 
-		if existing.ParentLineID != nil && rateCardParsed.Discounts.Usage != nil && existing.RateCardDiscounts.Usage != nil {
+		if existing.SplitLineGroupID != nil && rateCardParsed.Discounts.Usage != nil && existing.RateCardDiscounts.Usage != nil {
 			if !equal.PtrEqual(rateCardParsed.Discounts.Usage, existing.RateCardDiscounts.Usage) {
 				return nil, false, billing.ValidationError{
 					Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
@@ -947,7 +947,7 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		// calculation logic and/or we would need to update multiple invoices to correct all the references.
 		//
 		// Deletion is allowed.
-		if (oldBase.Status == billing.InvoiceLineStatusSplit || oldBase.ParentLineID != nil) && !oldBase.Period.Equal(existing.Period) {
+		if oldBase.SplitLineGroupID != nil && !oldBase.Period.Equal(existing.Period) {
 			return nil, false, billing.ValidationError{
 				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
 			}

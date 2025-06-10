@@ -151,26 +151,6 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableServicePeriodEnd(v *tim
 	return _u
 }
 
-// SetUniqueReferenceID sets the "unique_reference_id" field.
-func (_u *BillingInvoiceSplitLineGroupUpdate) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpdate {
-	_u.mutation.SetUniqueReferenceID(v)
-	return _u
-}
-
-// SetNillableUniqueReferenceID sets the "unique_reference_id" field if the given value is not nil.
-func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableUniqueReferenceID(v *string) *BillingInvoiceSplitLineGroupUpdate {
-	if v != nil {
-		_u.SetUniqueReferenceID(*v)
-	}
-	return _u
-}
-
-// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
-func (_u *BillingInvoiceSplitLineGroupUpdate) ClearUniqueReferenceID() *BillingInvoiceSplitLineGroupUpdate {
-	_u.mutation.ClearUniqueReferenceID()
-	return _u
-}
-
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
 func (_u *BillingInvoiceSplitLineGroupUpdate) SetRatecardDiscounts(v *billing.Discounts) *BillingInvoiceSplitLineGroupUpdate {
 	_u.mutation.SetRatecardDiscounts(v)
@@ -304,9 +284,6 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_nod
 	}
 	if value, ok := _u.mutation.ServicePeriodEnd(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldServicePeriodEnd, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.UniqueReferenceID(); ok {
-		_spec.SetField(billinginvoicesplitlinegroup.FieldUniqueReferenceID, field.TypeString, value)
 	}
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(billinginvoicesplitlinegroup.FieldUniqueReferenceID, field.TypeString)
@@ -509,26 +486,6 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableServicePeriodEnd(v *
 	return _u
 }
 
-// SetUniqueReferenceID sets the "unique_reference_id" field.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetUniqueReferenceID(v string) *BillingInvoiceSplitLineGroupUpdateOne {
-	_u.mutation.SetUniqueReferenceID(v)
-	return _u
-}
-
-// SetNillableUniqueReferenceID sets the "unique_reference_id" field if the given value is not nil.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableUniqueReferenceID(v *string) *BillingInvoiceSplitLineGroupUpdateOne {
-	if v != nil {
-		_u.SetUniqueReferenceID(*v)
-	}
-	return _u
-}
-
-// ClearUniqueReferenceID clears the value of the "unique_reference_id" field.
-func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearUniqueReferenceID() *BillingInvoiceSplitLineGroupUpdateOne {
-	_u.mutation.ClearUniqueReferenceID()
-	return _u
-}
-
 // SetRatecardDiscounts sets the "ratecard_discounts" field.
 func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetRatecardDiscounts(v *billing.Discounts) *BillingInvoiceSplitLineGroupUpdateOne {
 	_u.mutation.SetRatecardDiscounts(v)
@@ -692,9 +649,6 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_
 	}
 	if value, ok := _u.mutation.ServicePeriodEnd(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldServicePeriodEnd, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.UniqueReferenceID(); ok {
-		_spec.SetField(billinginvoicesplitlinegroup.FieldUniqueReferenceID, field.TypeString, value)
 	}
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(billinginvoicesplitlinegroup.FieldUniqueReferenceID, field.TypeString)

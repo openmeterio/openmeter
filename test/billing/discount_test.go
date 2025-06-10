@@ -141,16 +141,19 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.Len(invoices[0].Lines.OrEmpty(), 1)
 
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.NotNil(invoiceLine.ProgressiveLineHierarchy)
+		s.NotNil(invoiceLine.SplitLineHierarchy)
 
 		// Root line has the same correlation ID for the discount
 		s.Equal(discountCorrelationID, invoiceLine.RateCardDiscounts.Percentage.CorrelationID)
 
 		// Split lines have the same correlation ID for the discount
-		s.Len(invoiceLine.ProgressiveLineHierarchy.Children, 2)
-		for _, child := range invoiceLine.ProgressiveLineHierarchy.Children {
-			s.Equal(discountCorrelationID, child.Line.RateCardDiscounts.Percentage.CorrelationID)
+		s.Len(invoiceLine.SplitLineHierarchy.Lines, 2)
+		for _, lineWithInvoice := range invoiceLine.SplitLineHierarchy.Lines {
+			s.Equal(discountCorrelationID, lineWithInvoice.Line.RateCardDiscounts.Percentage.CorrelationID)
 		}
+
+		// The split line group has the same correlation ID for the discount
+		s.Equal(discountCorrelationID, invoiceLine.SplitLineHierarchy.Group.RatecardDiscounts.Percentage.CorrelationID)
 
 		// An amount discount is also created, and it retains the same correlation ID
 		s.Len(invoiceLine.Children.OrEmpty(), 1)
@@ -331,7 +334,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		s.Len(invoices[0].Lines.OrEmpty(), 1)
 
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.NotNil(invoiceLine.ProgressiveLineHierarchy)
+		s.NotNil(invoiceLine.SplitLineHierarchy)
 
 		// The line has 0 quantity, 50 metered quantity
 		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.Quantity.InexactFloat64())
@@ -372,7 +375,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		s.Len(invoices[0].Lines.OrEmpty(), 1)
 
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.NotNil(invoiceLine.ProgressiveLineHierarchy)
+		s.NotNil(invoiceLine.SplitLineHierarchy)
 
 		// The line has 0 quantity, 50 metered quantity
 		require.Equal(s.T(), float64(15), invoiceLine.UsageBased.Quantity.InexactFloat64())
@@ -416,7 +419,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		s.Len(invoices[0].Lines.OrEmpty(), 1)
 
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.NotNil(invoiceLine.ProgressiveLineHierarchy)
+		s.NotNil(invoiceLine.SplitLineHierarchy)
 
 		// The line has 0 quantity, 50 metered quantity
 		require.Equal(s.T(), float64(30), invoiceLine.UsageBased.Quantity.InexactFloat64())

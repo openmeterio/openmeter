@@ -98,7 +98,7 @@ func (d Discounts) IsEmpty() bool {
 	return lo.IsEmpty(d)
 }
 
-func (d Discounts) ValidateForPrice(price *Price) error {
+func (d Discounts) ValidateForPrice(price *productcatalog.Price) error {
 	if d.Percentage != nil {
 		return d.Percentage.ValidateForPrice(price)
 	}
