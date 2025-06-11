@@ -540,8 +540,8 @@ func (c RateCards) Billables() RateCards {
 	return billables
 }
 
-// BillingCadenceAligned returns true if all ratecards in the collection has the same billing cadence.
-func (c RateCards) BillingCadenceAligned() bool {
+// SingleBillingCadence returns true if all ratecards in the collection has the same billing cadence.
+func (c RateCards) SingleBillingCadence() bool {
 	m := make(map[isodate.String]struct{})
 
 	for _, rc := range c {

@@ -806,7 +806,7 @@ func TestRateCards_BillingCadenceAligned(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.rateCards.BillingCadenceAligned()
+			got := tt.rateCards.SingleBillingCadence()
 			assert.Equal(t, tt.want, got)
 		})
 	}

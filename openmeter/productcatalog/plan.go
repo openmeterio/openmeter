@@ -92,12 +92,6 @@ func ValidatePlanPhases() models.ValidatorFunc[Plan] {
 			if err := phase.Validate(); err != nil {
 				errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, err))
 			}
-
-			if p.BillablesMustAlign {
-				if err := phase.ValidateWith(ValidatePhaseHasBillingCadenceAligned()); err != nil {
-					errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, err))
-				}
-			}
 		}
 
 		return errors.Join(errs...)
