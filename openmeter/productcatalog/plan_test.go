@@ -348,6 +348,6 @@ func TestAlignmentEnforcement(t *testing.T) {
 
 		err := p.Validate()
 		assert.Error(t, err)
-		assert.ErrorContains(t, err, "must have the exact same billing cadence")
+		assert.ErrorContains(t, err, "ratecards with prices must have compatible billing cadence")
 	})
 }

@@ -196,7 +196,7 @@ func (a Addon) Publishable() error {
 		ValidateAddonMeta(),
 		ValidateAddonRateCards(),
 		ValidateAddonStatusPublishable(),
-		ValidateAddonHasBillingCadenceAligned(),
+		ValidateAddonHasSingleBillingCadence(),
 		ValidateAddonHasCompatiblePrices(),
 	)
 }
@@ -273,15 +273,15 @@ func ValidateAddonWithStatus(allowed ...AddonStatus) models.ValidatorFunc[Addon]
 	}
 }
 
-func ValidateAddonHasBillingCadenceAligned() models.ValidatorFunc[Addon] {
+func ValidateAddonHasSingleBillingCadence() models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
-		if a.RateCards.BillingCadenceAligned() {
+		if a.RateCards.SingleBillingCadence() {
 			return nil
 		}
 
 		return models.ErrorWithFieldPrefix(
 			models.NewFieldSelectors(models.NewFieldSelector("ratecards").WithExpression(models.WildCard)),
-			ErrRateCardBillingCadenceUnaligned,
+			ErrRateCardMultipleBillingCadence,
 		)
 	}
 }

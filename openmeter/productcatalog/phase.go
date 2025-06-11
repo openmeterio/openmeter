@@ -136,17 +136,3 @@ func ValidatePhaseRateCards() models.ValidatorFunc[Phase] {
 		return ValidateRateCards()(p.RateCards)
 	}
 }
-
-func ValidatePhaseHasBillingCadenceAligned() models.ValidatorFunc[Phase] {
-	return func(p Phase) error {
-		if p.RateCards.BillingCadenceAligned() {
-			return nil
-		}
-
-		return models.ErrorWithFieldPrefix(
-			models.NewFieldSelectors(models.NewFieldSelector("ratecards").
-				WithExpression(models.WildCard)),
-			ErrRateCardBillingCadenceUnaligned,
-		)
-	}
-}

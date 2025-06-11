@@ -275,11 +275,20 @@ var ErrBillingCadenceInvalidValue = models.NewValidationIssue(
 	models.WithWarningSeverity(),
 )
 
+const ErrCodeRateCardMultipleBillingCadence models.ErrorCode = "rate_card_multiple_billing_cadence"
+
+var ErrRateCardMultipleBillingCadence = models.NewValidationIssue(
+	ErrCodeRateCardMultipleBillingCadence,
+	"ratecards with prices must have the exact same billing cadence",
+	models.WithFieldString("billingCadence"),
+	models.WithWarningSeverity(),
+)
+
 const ErrCodeRateCardBillingCadenceUnaligned models.ErrorCode = "rate_card_billing_cadence_unaligned"
 
 var ErrRateCardBillingCadenceUnaligned = models.NewValidationIssue(
 	ErrCodeRateCardBillingCadenceUnaligned,
-	"ratecards with prices must have the exact same billing cadence",
+	"ratecards with prices must have compatible billing cadence",
 	models.WithFieldString("billingCadence"),
 	models.WithWarningSeverity(),
 )
