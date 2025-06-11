@@ -216,8 +216,20 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 		return def, fmt.Errorf("failed to get phase cadence for phase %s: %w", phaseKey, err)
 	}
 
-	if !phaseCadence.IsActiveAt(at) {
-		return def, fmt.Errorf("phase %s is not active at %s", phaseKey, at)
+	subCad := models.CadencedModel{
+		ActiveFrom: s.ActiveFrom,
+		ActiveTo:   s.ActiveTo,
+	}
+
+	switch {
+	case subCad.IsActiveAt(at):
+		if !phaseCadence.IsActiveAt(at) {
+			return def, fmt.Errorf("phase %s is not active at %s, ", phaseKey, at)
+		}
+	case at.Before(subCad.ActiveFrom):
+		return def, fmt.Errorf("at %s is before the subscription active from %s, cannot calculate billing period", at, subCad.ActiveFrom)
+	default:
+		// We allow querying billing period after the subscription is inactive
 	}
 
 	if err := phase.Validate(phaseCadence, s.Alignment); err != nil {

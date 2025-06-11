@@ -674,8 +674,9 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 		// Aligned Subscription Tests
 		//
 		{
-			name: "aligned flat-fee recurring when billing cadence is same as service cadence",
+			name: "aligned in-advance and in-arrears recurring when billing cadence is same as service cadence",
 			items: []subscriptionItemViewMock{
+				// In Advance
 				{
 					Key:      "item-key",
 					Type:     productcatalog.FlatPriceType,
@@ -688,10 +689,17 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Cadence:    "P1D",
 					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
 				},
+				// In Arrears
+				{
+					Key:     "arrears-key",
+					Type:    productcatalog.UnitPriceType,
+					Cadence: "P1D",
+				},
 			},
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			alignedBillingCadence: isodate.MustParse(s.T(), "P1D"),
 			expected: []expectedIterations{
+				// In Advance
 				{
 					ServicePeriod: billing.Period{
 						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
@@ -737,7 +745,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					},
 					Key: "subID/phase-test/item-key/v[1]/period[0]",
 				},
-				// Given invoiceAt should be >= end, we have an extra in advance item
+				// As we want to generate all in advance items invoicable by end time, we get an extra in advance item
 				{
 					ServicePeriod: billing.Period{
 						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
@@ -752,6 +760,37 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[1]/period[1]",
+				},
+				// In Arrears
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					},
+					Key: "subID/phase-test/arrears-key/v[0]/period[0]",
+				},
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					},
+					Key: "subID/phase-test/arrears-key/v[0]/period[1]",
 				},
 			},
 		},
@@ -817,17 +856,23 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			},
 		},
 		{
-			name: "aligned flat fee recurring with billing cadence different than service cadence",
+			name: "aligned in-advance and in-arrears recurring with billing cadence different than service cadence",
 			items: []subscriptionItemViewMock{
 				{
 					Key:     "item-key",
 					Type:    productcatalog.FlatPriceType,
 					Cadence: "P1D",
 				},
+				{
+					Key:     "arrears-key",
+					Type:    productcatalog.UnitPriceType,
+					Cadence: "P1D",
+				},
 			},
-			end:                   s.mustParseTime("2021-01-02T12:00:00Z"),
+			end:                   s.mustParseTime("2021-01-04T00:00:00Z"),
 			alignedBillingCadence: isodate.MustParse(s.T(), "P3D"),
 			expected: []expectedIterations{
+				// In Advance
 				{
 					ServicePeriod: billing.Period{
 						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
@@ -872,6 +917,98 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[2]",
+				},
+				// We will also generate for the next billing period the in advance items (as their invoice at will be next start = current end = iteration end)
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-04T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-05T00:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-04T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-05T00:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-04T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-07T00:00:00Z"),
+					},
+					Key: "subID/phase-test/item-key/v[0]/period[3]",
+				},
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-05T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-06T00:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-05T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-06T00:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-04T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-07T00:00:00Z"),
+					},
+					Key: "subID/phase-test/item-key/v[0]/period[4]",
+				},
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-06T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-07T00:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-06T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-07T00:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-04T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-07T00:00:00Z"),
+					},
+					Key: "subID/phase-test/item-key/v[0]/period[5]",
+				},
+				// In Arrears
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					},
+					Key: "subID/phase-test/arrears-key/v[0]/period[0]",
+				},
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					},
+					Key: "subID/phase-test/arrears-key/v[0]/period[1]",
+				},
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-04T00:00:00Z"),
+					},
+					Key: "subID/phase-test/arrears-key/v[0]/period[2]",
 				},
 			},
 		},

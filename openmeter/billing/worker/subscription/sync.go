@@ -376,15 +376,31 @@ func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.Su
 			}
 
 			generationLimit := asOf
-			if phaseStart := iterator.PhaseStart(); phaseStart.After(asOf) {
-				// We need to have invoicable items, so we need to advance the limit here at least to phaseStart to see
-				// if we can have any invoicable items.
 
-				generationLimit = iterator.GetMinimumBillableTime()
+			// For aligned subscrptions (all subscriptions currently)
+			if subs.Spec.Alignment.BillablesMustAlign {
+				// we need to generate exactly until the end of the current billing cycle
+				// FIXME(galexi, OM-1418): passing the current phase here would result in undefined behavior if reanchoring was used
+				currBillingPeriod, err := subs.Spec.GetAlignedBillingPeriodAt(phase.SubscriptionPhase.Key, asOf)
+				if err != nil {
+					return nil, fmt.Errorf("getting aligned billing period: %w", err)
+				}
 
-				if generationLimit.IsZero() {
-					// This should not happen, but if it does, we should skip this phase
-					continue
+				// As its intended to be used as a limit we'll take it as end inclusice start exclusive (instead of normal start exclusive end inclusive)
+				if !generationLimit.Equal(currBillingPeriod.From) {
+					generationLimit = currBillingPeriod.To
+				}
+
+				if phaseStart := iterator.PhaseStart(); phaseStart.After(generationLimit) {
+					// We need to have invoicable items, so we need to advance the limit here at least to phaseStart to see
+					// if we can have any invoicable items.
+
+					generationLimit = iterator.GetMinimumBillableTime()
+
+					if generationLimit.IsZero() {
+						// This should not happen, but if it does, we should skip this phase
+						continue
+					}
 				}
 			}
 
