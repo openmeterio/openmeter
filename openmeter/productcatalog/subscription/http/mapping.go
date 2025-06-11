@@ -412,21 +412,23 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 	}
 
 	base := api.SubscriptionExpanded{
-		ActiveFrom:  apiSub.ActiveFrom,
-		ActiveTo:    apiSub.ActiveTo,
-		CreatedAt:   apiSub.CreatedAt,
-		Currency:    apiSub.Currency,
-		CustomerId:  apiSub.CustomerId,
-		DeletedAt:   apiSub.DeletedAt,
-		Description: apiSub.Description,
-		Id:          apiSub.Id,
-		Metadata:    apiSub.Metadata,
-		Name:        apiSub.Name,
-		Phases:      nil,
-		Plan:        apiSub.Plan,
-		UpdatedAt:   apiSub.UpdatedAt,
-		Status:      apiSub.Status,
-		Alignment:   &alg,
+		ActiveFrom:      apiSub.ActiveFrom,
+		ActiveTo:        apiSub.ActiveTo,
+		CreatedAt:       apiSub.CreatedAt,
+		Currency:        apiSub.Currency,
+		CustomerId:      apiSub.CustomerId,
+		DeletedAt:       apiSub.DeletedAt,
+		Description:     apiSub.Description,
+		Id:              apiSub.Id,
+		Metadata:        apiSub.Metadata,
+		ProRatingConfig: apiSub.ProRatingConfig,
+		BillingCadence:  apiSub.BillingCadence,
+		Name:            apiSub.Name,
+		Phases:          nil,
+		Plan:            apiSub.Plan,
+		UpdatedAt:       apiSub.UpdatedAt,
+		Status:          apiSub.Status,
+		Alignment:       &alg,
 	}
 
 	phases := make([]api.SubscriptionPhaseExpanded, 0, len(view.Phases))
