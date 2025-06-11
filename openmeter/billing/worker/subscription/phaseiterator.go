@@ -79,9 +79,8 @@ func (r subscriptionItemWithPeriods) GetInvoiceAt() time.Time {
 		flatFee, _ := r.Spec.RateCard.AsMeta().Price.AsFlat()
 		if flatFee.PaymentTerm == productcatalog.InAdvancePaymentTerm {
 			// In advance invoicing
-			// - cannot be before the billing period start
-			// - cannot be before the service period start
-			return lo.Latest(r.BillingPeriod.Start, r.ServicePeriod.Start)
+			// For in advance invoicing we attempt to incoice at the start of the billing period
+			return r.BillingPeriod.Start
 		}
 	}
 
@@ -276,11 +275,17 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 				return false, err
 			}
 
-			*items = append(*items, newItem)
-
 			// Let's increment
 			periodIdx = periodIdx + 1
 			at = newItem.ServicePeriod.End
+
+			// Check if we have reached the iteration end based on invoiceAt
+			if newItem.GetInvoiceAt().After(iterationEnd) {
+				logger.DebugContext(ctx, "exiting loop due to iteration end", slog.Time("at", at), slog.Time("iterationEnd", iterationEnd), slog.Time("invoiceAt", newItem.GetInvoiceAt()))
+				break
+			}
+
+			*items = append(*items, newItem)
 
 			// We start when the item activates, then advance until either
 			// 1. it deactivates
@@ -292,12 +297,6 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 			// 2. the phase ends
 			if it.phaseCadence.ActiveTo != nil && !at.Before(*it.phaseCadence.ActiveTo) {
 				logger.DebugContext(ctx, "exiting loop due to phase end", slog.Time("at", at), slog.Time("activeTo", *it.phaseCadence.ActiveTo))
-				break
-			}
-
-			// 3. we reach the iteration end
-			if !at.Before(iterationEnd) && !newItem.GetInvoiceAt().Before(iterationEnd) {
-				logger.DebugContext(ctx, "exiting loop due to iteration end", slog.Time("at", at), slog.Time("iterationEnd", iterationEnd), slog.Time("invoiceAt", newItem.GetInvoiceAt()))
 				break
 			}
 

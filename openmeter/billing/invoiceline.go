@@ -177,8 +177,6 @@ func (i LineBase) Validate() error {
 
 	if i.InvoiceAt.IsZero() {
 		errs = append(errs, errors.New("invoice at is required"))
-	} else if i.InvoiceAt.Before(i.Period.Start) {
-		errs = append(errs, fmt.Errorf("invoice at (%s) must be after period start (%s)", i.InvoiceAt, i.Period.Start))
 	}
 
 	if i.Name == "" {
@@ -451,10 +449,6 @@ func (i Line) Validate() error {
 	var errs []error
 	if err := i.LineBase.Validate(); err != nil {
 		errs = append(errs, err)
-	}
-
-	if i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).Start) {
-		errs = append(errs, fmt.Errorf("invoice at (%s) must be after period start (%s)", i.InvoiceAt, i.Period.Truncate(DefaultMeterResolution).Start))
 	}
 
 	if err := i.Discounts.Validate(); err != nil {
