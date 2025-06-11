@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -1154,6 +1155,18 @@ func TestEditCombinations(t *testing.T) {
 				},
 			}, timingNow)
 			require.Nil(t, err)
+
+			t.Run("Should properly serialize and deserialize SubscriptionView", func(t *testing.T) {
+				viewBytes, err := json.MarshalIndent(subView, "", "  ")
+				require.Nil(t, err)
+
+				var targetView subscription.SubscriptionView
+				err = json.Unmarshal(viewBytes, &targetView)
+				require.Nil(t, err)
+
+				// Lets test the item's ActiveFromOverrideRelativeToPhaseStart
+				require.Equal(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard4ForAddons.Key()][0].Spec.ActiveFromOverrideRelativeToPhaseStart, targetView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard4ForAddons.Key()][0].Spec.ActiveFromOverrideRelativeToPhaseStart)
+			})
 
 			boolItem := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard4ForAddons.Key()][0]
 			require.NotNil(t, boolItem)

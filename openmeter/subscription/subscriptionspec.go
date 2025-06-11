@@ -673,15 +673,79 @@ func (i *CreateSubscriptionItemPlanInput) UnmarshalJSON(b []byte) error {
 }
 
 type CreateSubscriptionItemCustomerInput struct {
-	ActiveFromOverrideRelativeToPhaseStart *isodate.Period `json:"activeFromOverrideRelativeToPhaseStart"`
+	ActiveFromOverrideRelativeToPhaseStart *isodate.Period `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
 	ActiveToOverrideRelativeToPhaseStart   *isodate.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
 	BillingBehaviorOverride
+}
+
+func (i *CreateSubscriptionItemCustomerInput) UnmarshalJSON(b []byte) error {
+	var serde struct {
+		ActiveFromOverrideRelativeToPhaseStart *string `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
+		ActiveToOverrideRelativeToPhaseStart   *string `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
+		BillingBehaviorOverride
+	}
+
+	if err := json.Unmarshal(b, &serde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize CreateSubscriptionItemCustomerInput: %w", err)
+	}
+
+	var def CreateSubscriptionItemCustomerInput
+
+	def.BillingBehaviorOverride = serde.BillingBehaviorOverride
+
+	if serde.ActiveFromOverrideRelativeToPhaseStart != nil {
+		activeFrom, err := isodate.String(*serde.ActiveFromOverrideRelativeToPhaseStart).Parse()
+		if err != nil {
+			return fmt.Errorf("failed to parse active from override relative to phase start: %w", err)
+		}
+		def.ActiveFromOverrideRelativeToPhaseStart = &activeFrom
+	}
+
+	if serde.ActiveToOverrideRelativeToPhaseStart != nil {
+		activeTo, err := isodate.String(*serde.ActiveToOverrideRelativeToPhaseStart).Parse()
+		if err != nil {
+			return fmt.Errorf("failed to parse active to override relative to phase start: %w", err)
+		}
+		def.ActiveToOverrideRelativeToPhaseStart = &activeTo
+	}
+
+	*i = def
+
+	return nil
 }
 
 type CreateSubscriptionItemInput struct {
 	Annotations                         models.Annotations `json:"annotations"`
 	CreateSubscriptionItemPlanInput     `json:",inline"`
 	CreateSubscriptionItemCustomerInput `json:",inline"`
+}
+
+func (i *CreateSubscriptionItemInput) UnmarshalJSON(b []byte) error {
+	var annSerde struct {
+		Annotations models.Annotations `json:"annotations"`
+	}
+
+	if err := json.Unmarshal(b, &annSerde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize CreateSubscriptionItemInput: %w", err)
+	}
+
+	var planSerde CreateSubscriptionItemPlanInput
+
+	if err := json.Unmarshal(b, &planSerde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize CreateSubscriptionItemInput: %w", err)
+	}
+
+	var customerSerde CreateSubscriptionItemCustomerInput
+
+	if err := json.Unmarshal(b, &customerSerde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize CreateSubscriptionItemInput: %w", err)
+	}
+
+	i.Annotations = annSerde.Annotations
+	i.CreateSubscriptionItemPlanInput = planSerde
+	i.CreateSubscriptionItemCustomerInput = customerSerde
+
+	return nil
 }
 
 type SubscriptionItemSpec struct {
