@@ -362,7 +362,7 @@ func (s *SubscriptionSpec) ValidateAlignment() error {
 				rateCard := item.RateCard
 				if rateCard.GetBillingCadence() != nil {
 					if err := productcatalog.ValidateBillingCadencesAlign(s.BillingCadence, lo.FromPtr(rateCard.GetBillingCadence())); err != nil {
-						errs = append(errs, fmt.Errorf("phase %s has billable item %s with billing cadence %s that is not aligned with the subscription billing cadence: %w", phase.PhaseKey, item.ItemKey, rateCard.GetBillingCadence(), err))
+						errs = append(errs, err)
 					}
 				}
 			}
