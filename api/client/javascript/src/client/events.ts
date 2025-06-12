@@ -33,19 +33,36 @@ export class Events {
   }
 
   /**
-   * List ingested events
-   * @param query - The query parameters
-   * @param signal - An optional abort signal
+   * List events
+   * @param params - The query parameters
+   * @param options - Optional request options
    * @returns The events
    */
   public async list(
-    query?: operations['listEvents']['parameters']['query'],
+    params?: operations['listEvents']['parameters']['query'],
     options?: RequestOptions
   ) {
     const resp = await this.client.GET('/api/v1/events', {
-      params: {
-        query,
-      },
+      params: { query: params },
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * List events (V2)
+   * @description List ingested events with advanced filtering and cursor pagination.
+   * @param params - The query parameters
+   * @param options - Optional request options
+   * @returns The events
+   */
+  public async listV2(
+    params?: operations['listEventsV2']['parameters']['query'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET('/api/v2/events', {
+      params: { query: params },
       ...options,
     })
 

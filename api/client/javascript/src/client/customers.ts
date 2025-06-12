@@ -127,6 +127,31 @@ export class Customers {
 
     return transformResponse(resp)
   }
+
+  /**
+   * Get customer access
+   * @param customerIdOrKey - The ID or Key of the customer
+   * @param options - Optional request options
+   * @returns The customer access information
+   */
+  public async getAccess(
+    customerIdOrKey: operations['getCustomerAccess']['parameters']['path']['customerIdOrKey'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET(
+      '/api/v1/customers/{customerIdOrKey}/access',
+      {
+        params: {
+          path: {
+            customerIdOrKey,
+          },
+        },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
 }
 
 /**
