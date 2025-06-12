@@ -199,110 +199,86 @@ func (s *SubscriptionSpec) HasMeteredBillables() bool {
 
 // For a phase in an Aligned subscription, there's a single aligned BillingPeriod for all items in that phase.
 // The period starts with the phase and iterates every subscription.BillingCadence duration, but can be reanchored to the time of an edit.
-func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Time) (timeutil.ClosedPeriod, error) {
+func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.ClosedPeriod, error) {
 	var def timeutil.ClosedPeriod
-
-	phase, exists := s.Phases[phaseKey]
-	if !exists {
-		return def, fmt.Errorf("phase %s not found", phaseKey)
-	}
 
 	if !s.Alignment.BillablesMustAlign {
 		return def, AlignmentError{Inner: fmt.Errorf("non-aligned subscription doesn't have recurring billing cadence")}
 	}
 
-	phaseCadence, err := s.GetPhaseCadence(phaseKey)
-	if err != nil {
-		return def, fmt.Errorf("failed to get phase cadence for phase %s: %w", phaseKey, err)
+	// Let's be defensive just in case
+	if s.BillingCadence.IsZero() {
+		return def, fmt.Errorf("subscription has no billing cadence")
 	}
 
+	// First, let's try to find the phase at the given time.
 	subCad := models.CadencedModel{
 		ActiveFrom: s.ActiveFrom,
 		ActiveTo:   s.ActiveTo,
 	}
 
+	var phase *SubscriptionPhaseSpec
+
 	switch {
+	// If the subscription is active at that time we'll have an active phase.
 	case subCad.IsActiveAt(at):
-		if !phaseCadence.IsActiveAt(at) {
-			return def, fmt.Errorf("phase %s is not active at %s, ", phaseKey, at)
+		p, ok := s.GetCurrentPhaseAt(at)
+		if !ok {
+			return def, fmt.Errorf("no active phase found for active subscription at %s", at)
 		}
+		phase = p
 	case at.Before(subCad.ActiveFrom):
 		return def, fmt.Errorf("at %s is before the subscription active from %s, cannot calculate billing period", at, subCad.ActiveFrom)
 	default:
-		// We allow querying billing period after the subscription is inactive
-	}
+		if subCad.ActiveTo == nil {
+			// impossible, but lets be defensive and not panic
+			return def, fmt.Errorf("subscription has no activeTo date but is not active at %s", at)
+		}
 
-	if err := phase.Validate(phaseCadence, s.Alignment); err != nil {
-		return def, fmt.Errorf("phase %s validation failed: %w", phaseKey, err)
-	}
+		for _, p := range s.GetSortedPhases() {
+			cad, err := s.GetPhaseCadence(p.PhaseKey)
+			if err != nil {
+				return def, fmt.Errorf("failed to get phase cadence for phase %s: %w", p.PhaseKey, err)
+			}
 
-	if s.BillingCadence.IsZero() {
-		return def, NoBillingPeriodError{Inner: fmt.Errorf("subscription has no billing cadence")}
-	}
+			if cad.ActiveFrom.After(*subCad.ActiveTo) {
+				break
+			}
 
-	dur := s.BillingCadence
-
-	// Reanchoring is only possible by billables
-	billables := phase.GetBillableItemsByKey()
-
-	faltBillables := lo.Flatten(lo.Values(billables))
-	recurringFlatBillables := lo.Filter(faltBillables, func(i *SubscriptionItemSpec, _ int) bool {
-		return i.RateCard.GetBillingCadence() != nil
-	})
-
-	// To find the period anchor, we need to know if any item serves as a reanchor point (RestartBillingPeriod)
-	reanchoringItems := lo.Filter(recurringFlatBillables, func(i *SubscriptionItemSpec, _ int) bool {
-		return i.BillingBehaviorOverride.RestartBillingPeriod != nil && *i.BillingBehaviorOverride.RestartBillingPeriod
-	})
-
-	reanchoringItems = lo.UniqBy(reanchoringItems, func(i *SubscriptionItemSpec) *isodate.Period { return i.ActiveFromOverrideRelativeToPhaseStart })
-
-	anchorTimes := []time.Time{phaseCadence.ActiveFrom}
-	anchorTimes = append(anchorTimes, lo.Map(reanchoringItems, func(i *SubscriptionItemSpec, _ int) time.Time { return i.GetCadence(phaseCadence).ActiveFrom })...)
-
-	// Let's sort in descending
-	slices.SortFunc(anchorTimes, func(i, j time.Time) int { return -i.Compare(j) })
-
-	// Anchor is the anchor time to be used at the queried time
-	anchor := phaseCadence.ActiveFrom
-
-	for _, anc := range anchorTimes {
-		// Lets find the first thats not after the time
-		if !anc.After(at) {
-			anchor = anc
-			break
+			phase = p
 		}
 	}
 
-	// Now let's sort in ascending and find if there's a reanchor point after the queried time
-	slices.SortFunc(anchorTimes, func(i, j time.Time) int { return i.Compare(j) })
-
-	var reanchor *time.Time
-	for _, anc := range anchorTimes {
-		if anc.After(at) {
-			reanchor = &anc
-			break
-		}
+	// Let's be defensive once again
+	if phase == nil {
+		return def, fmt.Errorf("no phase found for subscription billing period calculation at %s", at)
 	}
 
-	recurrenceOfAnchor, err := timeutil.RecurrenceFromISODuration(&dur, anchor)
+	// TODO(galexi, OM-1418): implement reanchoring
+
+	// We will use the phase start time as the cadence anchor
+	phaseCadence, err := s.GetPhaseCadence(phase.PhaseKey)
 	if err != nil {
-		return def, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
+		return def, fmt.Errorf("failed to get phase cadence for phase %s: %w", phase.PhaseKey, err)
 	}
 
-	period, err := recurrenceOfAnchor.GetPeriodAt(at)
+	billingRecurrence, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(s.BillingCadence), phaseCadence.ActiveFrom)
 	if err != nil {
-		return def, fmt.Errorf("failed to get period at %s: %w", at, err)
+		return def, fmt.Errorf("failed to get billing recurrence for phase %s: %w", phase.PhaseKey, err)
 	}
 
-	// If the phase ends we have to truncate the period (this also includes the subscription end)
+	period, err := billingRecurrence.GetPeriodAt(at)
+	if err != nil {
+		return def, fmt.Errorf("failed to get billing period for phase %s at %s: %w", phase.PhaseKey, at, err)
+	}
+
+	// The billing period must be contained within the phase
 	if phaseCadence.ActiveTo != nil && phaseCadence.ActiveTo.Before(period.To) {
 		period.To = *phaseCadence.ActiveTo
 	}
 
-	// If there's a reanchor we have to truncate the period
-	if reanchor != nil && reanchor.Before(period.To) {
-		period.To = *reanchor
+	if phaseCadence.ActiveFrom.After(period.From) {
+		period.From = phaseCadence.ActiveFrom
 	}
 
 	return period, nil

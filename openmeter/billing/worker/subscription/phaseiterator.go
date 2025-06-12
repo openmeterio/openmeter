@@ -341,7 +341,7 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 			return empty, fmt.Errorf("aligned generation is not supported for non-aligned subscriptions")
 		}
 
-		billingPeriod, err := it.sub.Spec.GetAlignedBillingPeriodAt(it.phase.Spec.PhaseKey, at)
+		billingPeriod, err := it.sub.Spec.GetAlignedBillingPeriodAt(at)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to get aligned billing period", slog.Any("error", err))
 			return empty, err
@@ -540,7 +540,7 @@ func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.Subscripti
 
 	itemCadence := item.SubscriptionItem.CadencedModel
 
-	billingPeriod, err := it.sub.Spec.GetAlignedBillingPeriodAt(it.phase.Spec.PhaseKey, itemCadence.ActiveFrom)
+	billingPeriod, err := it.sub.Spec.GetAlignedBillingPeriodAt(itemCadence.ActiveFrom)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get aligned billing period at %s: %w", itemCadence.ActiveFrom, err)
 	}
