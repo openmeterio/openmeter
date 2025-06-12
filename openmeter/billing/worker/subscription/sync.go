@@ -381,7 +381,7 @@ func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.Su
 			if subs.Spec.Alignment.BillablesMustAlign {
 				// we need to generate exactly until the end of the current billing cycle
 				// FIXME(galexi, OM-1418): passing the current phase here would result in undefined behavior if reanchoring was used
-				currBillingPeriod, err := subs.Spec.GetAlignedBillingPeriodAt(phase.SubscriptionPhase.Key, asOf)
+				currBillingPeriod, err := subs.Spec.GetAlignedBillingPeriodAt(asOf)
 				if err != nil {
 					return nil, fmt.Errorf("getting aligned billing period: %w", err)
 				}

@@ -85,7 +85,7 @@ func (c Timing) ResolveForSpec(spec SubscriptionSpec) (time.Time, error) {
 				return def, models.NewGenericValidationError(fmt.Errorf("current phase has no billables, there isn't a next_billing_cycle"))
 			}
 
-			period, err := spec.GetAlignedBillingPeriodAt(currentPhase.PhaseKey, clock.Now())
+			period, err := spec.GetAlignedBillingPeriodAt(clock.Now())
 
 			return period.To, err
 		default:
