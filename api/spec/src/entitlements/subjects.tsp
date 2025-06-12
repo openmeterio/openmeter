@@ -3,7 +3,6 @@ import "@typespec/rest";
 import "@typespec/openapi3";
 
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Entitlements;
@@ -23,7 +22,7 @@ interface Subjects {
    * Once an entitlement is created you cannot modify it, only delete it.
    */
   @post
-  @summary("Create an entitlement")
+  @summary("Create a subject entitlement")
   @operationId("createEntitlement")
   post(
     @path subjectIdOrKey: string,
@@ -38,7 +37,7 @@ interface Subjects {
    */
   @get
   @operationId("listSubjectEntitlements")
-  @summary("List entitlements")
+  @summary("List subject entitlements")
   list(
     @path subjectIdOrKey: string,
     @query includeDeleted?: boolean = false,
@@ -49,7 +48,7 @@ interface Subjects {
    */
   @get
   @operationId("getEntitlement")
-  @summary("Get entitlement")
+  @summary("Get subject entitlement")
   get(
     @path subjectIdOrKey: string,
     @path entitlementId: string,
@@ -61,7 +60,7 @@ interface Subjects {
    */
   @delete
   @operationId("deleteEntitlement")
-  @summary("Delete entitlement")
+  @summary("Delete subject entitlement")
   delete(@path subjectIdOrKey: string, @path entitlementId: string): {
     @statusCode _: 204;
   } | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
@@ -74,7 +73,7 @@ interface Subjects {
   @put
   @operationId("overrideEntitlement")
   @route("/{entitlementIdOrFeatureKey}/override")
-  @summary("Override entitlement")
+  @summary("Override subject entitlement")
   override(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -94,7 +93,7 @@ interface Subjects {
   @get
   @operationId("listEntitlementGrants")
   @route("/{entitlementIdOrFeatureKey}/grants")
-  @summary("List entitlement grants")
+  @summary("List subject entitlement grants")
   getGrants(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -118,7 +117,7 @@ interface Subjects {
   @post
   @operationId("createGrant")
   @route("/{entitlementIdOrFeatureKey}/grants")
-  @summary("Create grant")
+  @summary("Create subject entitlement grant")
   createGrant(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -136,7 +135,7 @@ interface Subjects {
   @get
   @operationId("getEntitlementValue")
   @route("/{entitlementIdOrFeatureKey}/value")
-  @summary("Get entitlement value")
+  @summary("Get subject entitlement value")
   getEntitlementValue(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -153,7 +152,7 @@ interface Subjects {
   @get
   @operationId("getEntitlementHistory")
   @route("/{entitlementId}/history")
-  @summary("Get entitlement history")
+  @summary("Get subject entitlement history")
   getEntitlementHistory(
     @path subjectIdOrKey: string,
     @path entitlementId: string,
@@ -188,7 +187,7 @@ interface Subjects {
   @post
   @operationId("resetEntitlementUsage")
   @route("/{entitlementId}/reset")
-  @summary("Reset entitlement")
+  @summary("Reset subject entitlement")
   reset(
     @path subjectIdOrKey: string,
     @path entitlementId: string,
