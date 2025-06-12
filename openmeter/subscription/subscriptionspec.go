@@ -345,25 +345,31 @@ func (s *SubscriptionSpec) Validate() error {
 			errs = append(errs, fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// HasAlignedBillingCadences validates that the billing cadence of the subscription is aligned with the billing cadence of the rate cards.
-func (s *SubscriptionSpec) HasAlignedBillingCadences() (bool, error) {
+func (s *SubscriptionSpec) ValidateAlignment() error {
+	if !s.Alignment.BillablesMustAlign {
+		return nil
+	}
+
+	var errs []error
+
 	for _, phase := range s.GetSortedPhases() {
 		for _, itemsByKey := range phase.GetBillableItemsByKey() {
 			for _, item := range itemsByKey {
 				rateCard := item.RateCard
 				if rateCard.GetBillingCadence() != nil {
 					if err := productcatalog.ValidateBillingCadencesAlign(s.BillingCadence, lo.FromPtr(rateCard.GetBillingCadence())); err != nil {
-						return false, err
+						errs = append(errs, err)
 					}
 				}
 			}
 		}
 	}
 
-	return true, nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateSubscriptionPhasePlanInput struct {
@@ -593,31 +599,6 @@ func (s SubscriptionPhaseSpec) Validate(
 				))
 			}
 		}
-	}
-
-	if alignment.BillablesMustAlign {
-		// Let's validate that all billables have the same billing cadence
-		billables := make([]SubscriptionItemSpec, 0)
-		for _, items := range s.ItemsByKey {
-			for _, item := range items {
-				if item.RateCard.AsMeta().Price != nil {
-					billables = append(billables, *item)
-				}
-			}
-		}
-
-		cadences := lo.UniqBy(lo.Filter(billables, func(i SubscriptionItemSpec, _ int) bool {
-			return i.RateCard.GetBillingCadence() != nil
-		}), func(i SubscriptionItemSpec) isodate.Period {
-			return *i.RateCard.GetBillingCadence()
-		})
-
-		if len(cadences) > 1 {
-			errs = append(errs, &AllowedDuringApplyingToSpecError{Inner: &AlignmentError{Inner: fmt.Errorf("all billables must have the same billing cadence")}})
-		}
-
-		// Some validations that might feel reasonable but are misleading:
-		// 1. The phase length doesn't have to be a multiple of the billing cadence. If an edit is done with resetanchor, alignment would drift either way. If a cancel or stretch is done, valid cancels and stretches would break this condition.
 	}
 
 	if len(errs) == 0 {

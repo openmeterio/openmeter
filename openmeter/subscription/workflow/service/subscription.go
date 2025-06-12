@@ -62,6 +62,10 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			return def, fmt.Errorf("failed to create spec from plan: %w", err)
 		}
 
+		if err := spec.ValidateAlignment(); err != nil {
+			return def, models.NewGenericValidationError(fmt.Errorf("billing cadences are not aligned: %w", err))
+		}
+
 		// Finally, let's create the subscription
 		sub, err := s.Service.Create(ctx, inp.Namespace, spec)
 		if err != nil {
@@ -145,13 +149,8 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
-	aligned, err := spec.HasAlignedBillingCadences()
-	if err != nil {
-		return subscription.SubscriptionView{}, fmt.Errorf("failed to validate billing cadences: %w", err)
-	}
-
-	if !aligned {
-		return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("billing cadences are not aligned"))
+	if err := spec.ValidateAlignment(); err != nil {
+		return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("billing cadences are not aligned: %w", err))
 	}
 
 	// Finally, let's update the subscription
