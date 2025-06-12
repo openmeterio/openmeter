@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
@@ -14,12 +15,12 @@ const (
 )
 
 type EntitlementResetEvent struct {
-	EntitlementID    string                 `json:"entitlementId"`
-	Namespace        models.NamespaceID     `json:"namespace"`
-	Subject          models.SubjectKeyAndID `json:"subject"`
-	ResetAt          time.Time              `json:"resetAt"`
-	RetainAnchor     bool                   `json:"retainAnchor"`
-	ResetRequestedAt time.Time              `json:"resetRequestedAt"`
+	EntitlementID    string             `json:"entitlementId"`
+	Namespace        models.NamespaceID `json:"namespace"`
+	Subject          subject.SubjectKey `json:"subject"`
+	ResetAt          time.Time          `json:"resetAt"`
+	RetainAnchor     bool               `json:"retainAnchor"`
+	ResetRequestedAt time.Time          `json:"resetRequestedAt"`
 }
 
 var (

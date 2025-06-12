@@ -23,7 +23,7 @@ func (q queryEventsTableV2) toSQL() (string, []interface{}) {
 	tableName := getTableName(q.Database, q.EventsTableName)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("id", "type", "subject", "source", "time", "data", "ingested_at", "stored_at")
+	query.Select("id", "type", "subject", "source", "time", "data", "ingested_at", "stored_at", "store_row_id")
 	query.From(tableName)
 
 	// Base filter for namespace

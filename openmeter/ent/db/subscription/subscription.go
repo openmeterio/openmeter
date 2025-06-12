@@ -7,6 +7,8 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -40,6 +42,10 @@ const (
 	FieldCustomerID = "customer_id"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldBillingCadence holds the string denoting the billing_cadence field in the database.
+	FieldBillingCadence = "billing_cadence"
+	// FieldProRatingConfig holds the string denoting the pro_rating_config field in the database.
+	FieldProRatingConfig = "pro_rating_config"
 	// EdgePlan holds the string denoting the plan edge name in mutations.
 	EdgePlan = "plan"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
@@ -48,6 +54,8 @@ const (
 	EdgePhases = "phases"
 	// EdgeBillingLines holds the string denoting the billing_lines edge name in mutations.
 	EdgeBillingLines = "billing_lines"
+	// EdgeBillingSplitLineGroups holds the string denoting the billing_split_line_groups edge name in mutations.
+	EdgeBillingSplitLineGroups = "billing_split_line_groups"
 	// EdgeAddons holds the string denoting the addons edge name in mutations.
 	EdgeAddons = "addons"
 	// Table holds the table name of the subscription in the database.
@@ -80,6 +88,13 @@ const (
 	BillingLinesInverseTable = "billing_invoice_lines"
 	// BillingLinesColumn is the table column denoting the billing_lines relation/edge.
 	BillingLinesColumn = "subscription_id"
+	// BillingSplitLineGroupsTable is the table that holds the billing_split_line_groups relation/edge.
+	BillingSplitLineGroupsTable = "billing_invoice_split_line_groups"
+	// BillingSplitLineGroupsInverseTable is the table name for the BillingInvoiceSplitLineGroup entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicesplitlinegroup" package.
+	BillingSplitLineGroupsInverseTable = "billing_invoice_split_line_groups"
+	// BillingSplitLineGroupsColumn is the table column denoting the billing_split_line_groups relation/edge.
+	BillingSplitLineGroupsColumn = "subscription_id"
 	// AddonsTable is the table that holds the addons relation/edge.
 	AddonsTable = "subscription_addons"
 	// AddonsInverseTable is the table name for the SubscriptionAddon entity.
@@ -105,6 +120,8 @@ var Columns = []string{
 	FieldPlanID,
 	FieldCustomerID,
 	FieldCurrency,
+	FieldBillingCadence,
+	FieldProRatingConfig,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -136,8 +153,14 @@ var (
 	CustomerIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// DefaultProRatingConfig holds the default value on creation for the "pro_rating_config" field.
+	DefaultProRatingConfig func() productcatalog.ProRatingConfig
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all Subscription fields.
+	ValueScanner struct {
+		ProRatingConfig field.TypeValueScanner[productcatalog.ProRatingConfig]
+	}
 )
 
 // OrderOption defines the ordering options for the Subscription queries.
@@ -208,6 +231,16 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
+// ByBillingCadence orders the results by the billing_cadence field.
+func ByBillingCadence(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBillingCadence, opts...).ToFunc()
+}
+
+// ByProRatingConfig orders the results by the pro_rating_config field.
+func ByProRatingConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProRatingConfig, opts...).ToFunc()
+}
+
 // ByPlanField orders the results by plan field.
 func ByPlanField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -250,6 +283,20 @@ func ByBillingLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByBillingSplitLineGroupsCount orders the results by billing_split_line_groups count.
+func ByBillingSplitLineGroupsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingSplitLineGroupsStep(), opts...)
+	}
+}
+
+// ByBillingSplitLineGroups orders the results by billing_split_line_groups terms.
+func ByBillingSplitLineGroups(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingSplitLineGroupsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByAddonsCount orders the results by addons count.
 func ByAddonsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -289,6 +336,13 @@ func newBillingLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingLinesTable, BillingLinesColumn),
+	)
+}
+func newBillingSplitLineGroupsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingSplitLineGroupsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingSplitLineGroupsTable, BillingSplitLineGroupsColumn),
 	)
 }
 func newAddonsStep() *sqlgraph.Step {

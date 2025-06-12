@@ -148,16 +148,8 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 			}
 
 			req := CreateCustomerRequest{
-				Namespace: ns,
-				CustomerMutate: customer.CustomerMutate{
-					Key:              body.Key,
-					Name:             body.Name,
-					Description:      body.Description,
-					UsageAttribution: customer.CustomerUsageAttribution(body.UsageAttribution),
-					PrimaryEmail:     body.PrimaryEmail,
-					BillingAddress:   MapAddress(body.BillingAddress),
-					Currency:         mapCurrency(body.Currency),
-				},
+				Namespace:      ns,
+				CustomerMutate: MapCustomerCreate(body),
 			}
 
 			return req, nil
@@ -214,16 +206,8 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 			}
 
 			req := UpdateCustomerRequest{
-				CustomerID: cus.GetID(),
-				CustomerMutate: customer.CustomerMutate{
-					Key:              body.Key,
-					Name:             body.Name,
-					Description:      body.Description,
-					UsageAttribution: customer.CustomerUsageAttribution(body.UsageAttribution),
-					PrimaryEmail:     body.PrimaryEmail,
-					BillingAddress:   MapAddress(body.BillingAddress),
-					Currency:         mapCurrency(body.Currency),
-				},
+				CustomerID:     cus.GetID(),
+				CustomerMutate: MapCustomerReplaceUpdate(body),
 			}
 
 			return req, nil

@@ -1021,6 +1021,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearDescription(value *string) *Bill
 	return u.SetDescription(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearParentLineID(value *string) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearParentLineID()
@@ -1047,20 +1061,6 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearQuantity(value *alpacadecimal.De
 		return u.ClearQuantity()
 	}
 	return u.SetQuantity(*value)
-}
-
-func (u *BillingInvoiceLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
-	if value == nil {
-		return u.ClearTaxConfig()
-	}
-	return u.SetTaxConfig(*value)
-}
-
-func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
-	if value == nil {
-		return u.ClearTaxConfig()
-	}
-	return u.SetTaxConfig(*value)
 }
 
 func (u *BillingInvoiceLineUpdate) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingInvoiceLineUpdate {
@@ -1145,6 +1145,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearSubscriptionItemID(value *string
 		return u.ClearSubscriptionItemID()
 	}
 	return u.SetSubscriptionItemID(*value)
+}
+
+func (u *BillingInvoiceLineUpdate) SetOrClearSplitLineGroupID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSplitLineGroupID()
+	}
+	return u.SetSplitLineGroupID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearSplitLineGroupID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSplitLineGroupID()
+	}
+	return u.SetSplitLineGroupID(*value)
 }
 
 func (u *BillingInvoiceLineUpdate) SetOrClearLineIds(value *string) *BillingInvoiceLineUpdate {
@@ -1369,6 +1383,76 @@ func (u *BillingInvoiceLineUsageDiscountUpdateOne) SetOrClearReasonDetails(value
 		return u.ClearReasonDetails()
 	}
 	return u.SetReasonDetails(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceSplitLineGroupUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceSplitLineGroupUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceSplitLineGroupUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearDescription(value *string) *BillingInvoiceSplitLineGroupUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearDescription(value *string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingInvoiceSplitLineGroupUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingInvoiceSplitLineGroupUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdate) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingInvoiceSplitLineGroupUpdate {
+	if value == nil {
+		return u.ClearRatecardDiscounts()
+	}
+	return u.SetRatecardDiscounts(*value)
+}
+
+func (u *BillingInvoiceSplitLineGroupUpdateOne) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingInvoiceSplitLineGroupUpdateOne {
+	if value == nil {
+		return u.ClearRatecardDiscounts()
+	}
+	return u.SetRatecardDiscounts(*value)
 }
 
 func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
@@ -2533,6 +2617,48 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 	return u.SetFeatureID(*value)
 }
 
+func (u *SubjectUpdate) SetOrClearDisplayName(value *string) *SubjectUpdate {
+	if value == nil {
+		return u.ClearDisplayName()
+	}
+	return u.SetDisplayName(*value)
+}
+
+func (u *SubjectUpdateOne) SetOrClearDisplayName(value *string) *SubjectUpdateOne {
+	if value == nil {
+		return u.ClearDisplayName()
+	}
+	return u.SetDisplayName(*value)
+}
+
+func (u *SubjectUpdate) SetOrClearStripeCustomerID(value *string) *SubjectUpdate {
+	if value == nil {
+		return u.ClearStripeCustomerID()
+	}
+	return u.SetStripeCustomerID(*value)
+}
+
+func (u *SubjectUpdateOne) SetOrClearStripeCustomerID(value *string) *SubjectUpdateOne {
+	if value == nil {
+		return u.ClearStripeCustomerID()
+	}
+	return u.SetStripeCustomerID(*value)
+}
+
+func (u *SubjectUpdate) SetOrClearMetadata(value *map[string]interface{}) *SubjectUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubjectUpdateOne) SetOrClearMetadata(value *map[string]interface{}) *SubjectUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
 func (u *SubscriptionUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -2895,6 +3021,20 @@ func (u *SubscriptionPhaseUpdateOne) SetOrClearDescription(value *string) *Subsc
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
+}
+
+func (u *SubscriptionPhaseUpdate) SetOrClearSortHint(value *uint8) *SubscriptionPhaseUpdate {
+	if value == nil {
+		return u.ClearSortHint()
+	}
+	return u.SetSortHint(*value)
+}
+
+func (u *SubscriptionPhaseUpdateOne) SetOrClearSortHint(value *uint8) *SubscriptionPhaseUpdateOne {
+	if value == nil {
+		return u.ClearSortHint()
+	}
+	return u.SetSortHint(*value)
 }
 
 func (u *UsageResetUpdate) SetOrClearDeletedAt(value *time.Time) *UsageResetUpdate {

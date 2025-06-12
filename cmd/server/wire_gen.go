@@ -30,6 +30,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -225,7 +226,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, service, eventbusPublisher)
+	locker, err := common.NewLocker(logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, service, eventbusPublisher, locker)
 	customerService, err := common.NewCustomerService(logger, client, entitlement, eventbusPublisher)
 	if err != nil {
 		cleanup6()
@@ -259,7 +270,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher)
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher, locker)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -447,6 +458,28 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	routerHooks := common.NewRouterHooks(v6)
+	subjectAdapter, err := common.NewSubjectAdapter(client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	subjectService, err := common.NewSubjectService(subjectAdapter)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
@@ -502,6 +535,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		ProgressManager:             progressmanagerService,
 		RouterHooks:                 routerHooks,
 		Secret:                      secretserviceService,
+		SubjectService:              subjectService,
 		Subscription:                subscriptionServiceWithWorkflow,
 		StreamingConnector:          connector,
 		TelemetryServer:             v7,
@@ -552,6 +586,7 @@ type Application struct {
 	ProgressManager             progressmanager.Service
 	RouterHooks                 *server.RouterHooks
 	Secret                      secret.Service
+	SubjectService              subject.Service
 	Subscription                common.SubscriptionServiceWithWorkflow
 	StreamingConnector          streaming.Connector
 	TelemetryServer             common.TelemetryServer

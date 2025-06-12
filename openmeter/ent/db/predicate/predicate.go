@@ -109,6 +109,20 @@ func BillingInvoiceLineUsageDiscountOrErr(p BillingInvoiceLineUsageDiscount, err
 	}
 }
 
+// BillingInvoiceSplitLineGroup is the predicate function for billinginvoicesplitlinegroup builders.
+type BillingInvoiceSplitLineGroup func(*sql.Selector)
+
+// BillingInvoiceSplitLineGroupOrErr calls the predicate only if the error is not nit.
+func BillingInvoiceSplitLineGroupOrErr(p BillingInvoiceSplitLineGroup, err error) BillingInvoiceSplitLineGroup {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // BillingInvoiceUsageBasedLineConfig is the predicate function for billinginvoiceusagebasedlineconfig builders.
 type BillingInvoiceUsageBasedLineConfig func(*sql.Selector)
 
@@ -212,6 +226,17 @@ func NotificationRuleOrErr(p NotificationRule, err error) NotificationRule {
 // Plan is the predicate function for plan builders.
 type Plan func(*sql.Selector)
 
+// PlanOrErr calls the predicate only if the error is not nit.
+func PlanOrErr(p Plan, err error) Plan {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // PlanAddon is the predicate function for planaddon builders.
 type PlanAddon func(*sql.Selector)
 
@@ -232,8 +257,22 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 	}
 }
 
+// Subject is the predicate function for subject builders.
+type Subject func(*sql.Selector)
+
 // Subscription is the predicate function for subscription builders.
 type Subscription func(*sql.Selector)
+
+// SubscriptionOrErr calls the predicate only if the error is not nit.
+func SubscriptionOrErr(p Subscription, err error) Subscription {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // SubscriptionAddon is the predicate function for subscriptionaddon builders.
 type SubscriptionAddon func(*sql.Selector)

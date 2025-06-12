@@ -38,6 +38,7 @@ type RateCard interface {
 	Clone() RateCard
 	Compatible(RateCard) error
 	GetBillingCadence() *isodate.Period
+	IsBillable() bool
 }
 
 type RateCardSerde struct {
@@ -221,6 +222,10 @@ func (r RateCardMeta) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (r RateCardMeta) IsBillable() bool {
+	return r.Price != nil
 }
 
 var (
@@ -535,8 +540,8 @@ func (c RateCards) Billables() RateCards {
 	return billables
 }
 
-// BillingCadenceAligned returns true if all ratecards in the collection has the same billing cadence.
-func (c RateCards) BillingCadenceAligned() bool {
+// SingleBillingCadence returns true if all ratecards in the collection has the same billing cadence.
+func (c RateCards) SingleBillingCadence() bool {
 	m := make(map[isodate.String]struct{})
 
 	for _, rc := range c {

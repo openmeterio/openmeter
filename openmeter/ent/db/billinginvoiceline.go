@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -42,6 +43,10 @@ type BillingInvoiceLine struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
+	// Currency holds the value of the "currency" field.
+	Currency currencyx.Code `json:"currency,omitempty"`
+	// TaxConfig holds the value of the "tax_config" field.
+	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// TaxesTotal holds the value of the "taxes_total" field.
@@ -56,28 +61,24 @@ type BillingInvoiceLine struct {
 	DiscountsTotal alpacadecimal.Decimal `json:"discounts_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
+	// PeriodStart holds the value of the "period_start" field.
+	PeriodStart time.Time `json:"period_start,omitempty"`
+	// PeriodEnd holds the value of the "period_end" field.
+	PeriodEnd time.Time `json:"period_end,omitempty"`
 	// InvoiceID holds the value of the "invoice_id" field.
 	InvoiceID string `json:"invoice_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
 	// ParentLineID holds the value of the "parent_line_id" field.
 	ParentLineID *string `json:"parent_line_id,omitempty"`
-	// PeriodStart holds the value of the "period_start" field.
-	PeriodStart time.Time `json:"period_start,omitempty"`
-	// PeriodEnd holds the value of the "period_end" field.
-	PeriodEnd time.Time `json:"period_end,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// Type holds the value of the "type" field.
 	Type billing.InvoiceLineType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
 	Status billing.InvoiceLineStatus `json:"status,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
 	// Quantity holds the value of the "quantity" field.
 	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
-	// TaxConfig holds the value of the "tax_config" field.
-	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// RatecardDiscounts holds the value of the "ratecard_discounts" field.
 	RatecardDiscounts *billing.Discounts `json:"ratecard_discounts,omitempty"`
 	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
@@ -90,6 +91,8 @@ type BillingInvoiceLine struct {
 	SubscriptionPhaseID *string `json:"subscription_phase_id,omitempty"`
 	// SubscriptionItemID holds the value of the "subscription_item_id" field.
 	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
+	// SplitLineGroupID holds the value of the "split_line_group_id" field.
+	SplitLineGroupID *string `json:"split_line_group_id,omitempty"`
 	// LineIds holds the value of the "line_ids" field.
 	//
 	// Deprecated: invoice discounts are deprecated, use line_discounts instead
@@ -106,6 +109,8 @@ type BillingInvoiceLine struct {
 type BillingInvoiceLineEdges struct {
 	// BillingInvoice holds the value of the billing_invoice edge.
 	BillingInvoice *BillingInvoice `json:"billing_invoice,omitempty"`
+	// SplitLineGroup holds the value of the split_line_group edge.
+	SplitLineGroup *BillingInvoiceSplitLineGroup `json:"split_line_group,omitempty"`
 	// FlatFeeLine holds the value of the flat_fee_line edge.
 	FlatFeeLine *BillingInvoiceFlatFeeLineConfig `json:"flat_fee_line,omitempty"`
 	// UsageBasedLine holds the value of the usage_based_line edge.
@@ -126,7 +131,7 @@ type BillingInvoiceLineEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [10]bool
+	loadedTypes [11]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -140,12 +145,23 @@ func (e BillingInvoiceLineEdges) BillingInvoiceOrErr() (*BillingInvoice, error) 
 	return nil, &NotLoadedError{edge: "billing_invoice"}
 }
 
+// SplitLineGroupOrErr returns the SplitLineGroup value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) SplitLineGroupOrErr() (*BillingInvoiceSplitLineGroup, error) {
+	if e.SplitLineGroup != nil {
+		return e.SplitLineGroup, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: billinginvoicesplitlinegroup.Label}
+	}
+	return nil, &NotLoadedError{edge: "split_line_group"}
+}
+
 // FlatFeeLineOrErr returns the FlatFeeLine value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e BillingInvoiceLineEdges) FlatFeeLineOrErr() (*BillingInvoiceFlatFeeLineConfig, error) {
 	if e.FlatFeeLine != nil {
 		return e.FlatFeeLine, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: billinginvoiceflatfeelineconfig.Label}
 	}
 	return nil, &NotLoadedError{edge: "flat_fee_line"}
@@ -156,7 +172,7 @@ func (e BillingInvoiceLineEdges) FlatFeeLineOrErr() (*BillingInvoiceFlatFeeLineC
 func (e BillingInvoiceLineEdges) UsageBasedLineOrErr() (*BillingInvoiceUsageBasedLineConfig, error) {
 	if e.UsageBasedLine != nil {
 		return e.UsageBasedLine, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: billinginvoiceusagebasedlineconfig.Label}
 	}
 	return nil, &NotLoadedError{edge: "usage_based_line"}
@@ -167,7 +183,7 @@ func (e BillingInvoiceLineEdges) UsageBasedLineOrErr() (*BillingInvoiceUsageBase
 func (e BillingInvoiceLineEdges) ParentLineOrErr() (*BillingInvoiceLine, error) {
 	if e.ParentLine != nil {
 		return e.ParentLine, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: billinginvoiceline.Label}
 	}
 	return nil, &NotLoadedError{edge: "parent_line"}
@@ -176,7 +192,7 @@ func (e BillingInvoiceLineEdges) ParentLineOrErr() (*BillingInvoiceLine, error) 
 // DetailedLinesOrErr returns the DetailedLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceLineEdges) DetailedLinesOrErr() ([]*BillingInvoiceLine, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.DetailedLines, nil
 	}
 	return nil, &NotLoadedError{edge: "detailed_lines"}
@@ -185,7 +201,7 @@ func (e BillingInvoiceLineEdges) DetailedLinesOrErr() ([]*BillingInvoiceLine, er
 // LineUsageDiscountsOrErr returns the LineUsageDiscounts value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceLineEdges) LineUsageDiscountsOrErr() ([]*BillingInvoiceLineUsageDiscount, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.LineUsageDiscounts, nil
 	}
 	return nil, &NotLoadedError{edge: "line_usage_discounts"}
@@ -194,7 +210,7 @@ func (e BillingInvoiceLineEdges) LineUsageDiscountsOrErr() ([]*BillingInvoiceLin
 // LineAmountDiscountsOrErr returns the LineAmountDiscounts value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceLineEdges) LineAmountDiscountsOrErr() ([]*BillingInvoiceLineDiscount, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.LineAmountDiscounts, nil
 	}
 	return nil, &NotLoadedError{edge: "line_amount_discounts"}
@@ -205,7 +221,7 @@ func (e BillingInvoiceLineEdges) LineAmountDiscountsOrErr() ([]*BillingInvoiceLi
 func (e BillingInvoiceLineEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -216,7 +232,7 @@ func (e BillingInvoiceLineEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e BillingInvoiceLineEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -227,7 +243,7 @@ func (e BillingInvoiceLineEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, e
 func (e BillingInvoiceLineEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -244,7 +260,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldLineIds:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldLineIds:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -321,6 +337,20 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				_m.Description = new(string)
 				*_m.Description = value.String
 			}
+		case billinginvoiceline.FieldCurrency:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field currency", values[i])
+			} else if value.Valid {
+				_m.Currency = currencyx.Code(value.String)
+			}
+		case billinginvoiceline.FieldTaxConfig:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_config", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
+					return fmt.Errorf("unmarshal field tax_config: %w", err)
+				}
+			}
 		case billinginvoiceline.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
@@ -363,6 +393,18 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 			} else if value != nil {
 				_m.Total = *value
 			}
+		case billinginvoiceline.FieldPeriodStart:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field period_start", values[i])
+			} else if value.Valid {
+				_m.PeriodStart = value.Time
+			}
+		case billinginvoiceline.FieldPeriodEnd:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field period_end", values[i])
+			} else if value.Valid {
+				_m.PeriodEnd = value.Time
+			}
 		case billinginvoiceline.FieldInvoiceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
@@ -382,18 +424,6 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				_m.ParentLineID = new(string)
 				*_m.ParentLineID = value.String
 			}
-		case billinginvoiceline.FieldPeriodStart:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field period_start", values[i])
-			} else if value.Valid {
-				_m.PeriodStart = value.Time
-			}
-		case billinginvoiceline.FieldPeriodEnd:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field period_end", values[i])
-			} else if value.Valid {
-				_m.PeriodEnd = value.Time
-			}
 		case billinginvoiceline.FieldInvoiceAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_at", values[i])
@@ -412,26 +442,12 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 			} else if value.Valid {
 				_m.Status = billing.InvoiceLineStatus(value.String)
 			}
-		case billinginvoiceline.FieldCurrency:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
-			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
-			}
 		case billinginvoiceline.FieldQuantity:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field quantity", values[i])
 			} else if value.Valid {
 				_m.Quantity = new(alpacadecimal.Decimal)
 				*_m.Quantity = *value.S.(*alpacadecimal.Decimal)
-			}
-		case billinginvoiceline.FieldTaxConfig:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_config", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
-					return fmt.Errorf("unmarshal field tax_config: %w", err)
-				}
 			}
 		case billinginvoiceline.FieldRatecardDiscounts:
 			if value, err := billinginvoiceline.ValueScanner.RatecardDiscounts.FromValue(values[i]); err != nil {
@@ -474,6 +490,13 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				_m.SubscriptionItemID = new(string)
 				*_m.SubscriptionItemID = value.String
 			}
+		case billinginvoiceline.FieldSplitLineGroupID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field split_line_group_id", values[i])
+			} else if value.Valid {
+				_m.SplitLineGroupID = new(string)
+				*_m.SplitLineGroupID = value.String
+			}
 		case billinginvoiceline.FieldLineIds:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field line_ids", values[i])
@@ -511,6 +534,11 @@ func (_m *BillingInvoiceLine) Value(name string) (ent.Value, error) {
 // QueryBillingInvoice queries the "billing_invoice" edge of the BillingInvoiceLine entity.
 func (_m *BillingInvoiceLine) QueryBillingInvoice() *BillingInvoiceQuery {
 	return NewBillingInvoiceLineClient(_m.config).QueryBillingInvoice(_m)
+}
+
+// QuerySplitLineGroup queries the "split_line_group" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QuerySplitLineGroup() *BillingInvoiceSplitLineGroupQuery {
+	return NewBillingInvoiceLineClient(_m.config).QuerySplitLineGroup(_m)
 }
 
 // QueryFlatFeeLine queries the "flat_fee_line" edge of the BillingInvoiceLine entity.
@@ -606,6 +634,12 @@ func (_m *BillingInvoiceLine) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
+	builder.WriteString("currency=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	builder.WriteString(", ")
+	builder.WriteString("tax_config=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
+	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Amount))
 	builder.WriteString(", ")
@@ -627,6 +661,12 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))
 	builder.WriteString(", ")
+	builder.WriteString("period_start=")
+	builder.WriteString(_m.PeriodStart.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("period_end=")
+	builder.WriteString(_m.PeriodEnd.Format(time.ANSIC))
+	builder.WriteString(", ")
 	builder.WriteString("invoice_id=")
 	builder.WriteString(_m.InvoiceID)
 	builder.WriteString(", ")
@@ -638,12 +678,6 @@ func (_m *BillingInvoiceLine) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("period_start=")
-	builder.WriteString(_m.PeriodStart.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("period_end=")
-	builder.WriteString(_m.PeriodEnd.Format(time.ANSIC))
-	builder.WriteString(", ")
 	builder.WriteString("invoice_at=")
 	builder.WriteString(_m.InvoiceAt.Format(time.ANSIC))
 	builder.WriteString(", ")
@@ -653,16 +687,10 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
 	builder.WriteString(", ")
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
-	builder.WriteString(", ")
 	if v := _m.Quantity; v != nil {
 		builder.WriteString("quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("tax_config=")
-	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
 	builder.WriteString(", ")
 	if v := _m.RatecardDiscounts; v != nil {
 		builder.WriteString("ratecard_discounts=")
@@ -691,6 +719,11 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	if v := _m.SubscriptionItemID; v != nil {
 		builder.WriteString("subscription_item_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SplitLineGroupID; v != nil {
+		builder.WriteString("split_line_group_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

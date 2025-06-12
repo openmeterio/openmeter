@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/XSAM/otelsql"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -46,6 +47,12 @@ func WithMetricMeter(m metric.Meter) Option {
 func WithSpanOptions(opt otelsql.SpanOptions) Option {
 	return optionFunc(func(o *options) {
 		o.otelOptions = append(o.otelOptions, otelsql.WithSpanOptions(opt))
+	})
+}
+
+func WithLockTimeout(timeout time.Duration) Option {
+	return optionFunc(func(o *options) {
+		o.connConfig.ConnConfig.RuntimeParams["lock_timeout"] = fmt.Sprintf("%d", timeout.Milliseconds())
 	})
 }
 

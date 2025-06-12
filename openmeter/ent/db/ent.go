@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -50,6 +51,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
@@ -132,6 +134,7 @@ func checkColumn(t, c string) error {
 			billinginvoiceline.Table:                 billinginvoiceline.ValidColumn,
 			billinginvoicelinediscount.Table:         billinginvoicelinediscount.ValidColumn,
 			billinginvoicelineusagediscount.Table:    billinginvoicelineusagediscount.ValidColumn,
+			billinginvoicesplitlinegroup.Table:       billinginvoicesplitlinegroup.ValidColumn,
 			billinginvoiceusagebasedlineconfig.Table: billinginvoiceusagebasedlineconfig.ValidColumn,
 			billinginvoicevalidationissue.Table:      billinginvoicevalidationissue.ValidColumn,
 			billingprofile.Table:                     billingprofile.ValidColumn,
@@ -151,6 +154,7 @@ func checkColumn(t, c string) error {
 			planaddon.Table:                          planaddon.ValidColumn,
 			planphase.Table:                          planphase.ValidColumn,
 			planratecard.Table:                       planratecard.ValidColumn,
+			subject.Table:                            subject.ValidColumn,
 			subscription.Table:                       subscription.ValidColumn,
 			subscriptionaddon.Table:                  subscriptionaddon.ValidColumn,
 			subscriptionaddonquantity.Table:          subscriptionaddonquantity.ValidColumn,

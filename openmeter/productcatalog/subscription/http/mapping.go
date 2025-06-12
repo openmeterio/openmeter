@@ -193,6 +193,11 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		Alignment: &api.Alignment{
 			BillablesMustAlign: &sub.BillablesMustAlign,
 		},
+		BillingCadence: sub.BillingCadence.String(),
+		ProRatingConfig: &api.ProRatingConfig{
+			Enabled: sub.ProRatingConfig.Enabled,
+			Mode:    api.ProRatingMode(sub.ProRatingConfig.Mode),
+		},
 	}
 }
 
@@ -407,21 +412,23 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 	}
 
 	base := api.SubscriptionExpanded{
-		ActiveFrom:  apiSub.ActiveFrom,
-		ActiveTo:    apiSub.ActiveTo,
-		CreatedAt:   apiSub.CreatedAt,
-		Currency:    apiSub.Currency,
-		CustomerId:  apiSub.CustomerId,
-		DeletedAt:   apiSub.DeletedAt,
-		Description: apiSub.Description,
-		Id:          apiSub.Id,
-		Metadata:    apiSub.Metadata,
-		Name:        apiSub.Name,
-		Phases:      nil,
-		Plan:        apiSub.Plan,
-		UpdatedAt:   apiSub.UpdatedAt,
-		Status:      apiSub.Status,
-		Alignment:   &alg,
+		ActiveFrom:      apiSub.ActiveFrom,
+		ActiveTo:        apiSub.ActiveTo,
+		CreatedAt:       apiSub.CreatedAt,
+		Currency:        apiSub.Currency,
+		CustomerId:      apiSub.CustomerId,
+		DeletedAt:       apiSub.DeletedAt,
+		Description:     apiSub.Description,
+		Id:              apiSub.Id,
+		Metadata:        apiSub.Metadata,
+		ProRatingConfig: apiSub.ProRatingConfig,
+		BillingCadence:  apiSub.BillingCadence,
+		Name:            apiSub.Name,
+		Phases:          nil,
+		Plan:            apiSub.Plan,
+		UpdatedAt:       apiSub.UpdatedAt,
+		Status:          apiSub.Status,
+		Alignment:       &alg,
 	}
 
 	phases := make([]api.SubscriptionPhaseExpanded, 0, len(view.Phases))
@@ -448,9 +455,10 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:        a.Name,
-				Description: a.Description,
-				Metadata:    lo.FromPtr(a.Metadata),
+				Name:            a.Name,
+				Description:     a.Description,
+				Metadata:        lo.FromPtr(a.Metadata),
+				ProRatingConfig: asProRatingConfig(a.ProRatingConfig),
 			},
 			Phases: nil,
 		},
@@ -467,6 +475,11 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
 
+	req.PlanMeta.BillingCadence, err = isodate.String(a.BillingCadence).Parse()
+	if err != nil {
+		return req, fmt.Errorf("invalid BillingCadence: %w", err)
+	}
+
 	if len(a.Phases) > 0 {
 		req.Phases = make([]productcatalog.Phase, 0, len(a.Phases))
 
@@ -481,4 +494,19 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 	}
 
 	return req, nil
+}
+
+// asProRatingConfig converts API ProRatingConfig to domain ProRatingConfig
+func asProRatingConfig(p *api.ProRatingConfig) productcatalog.ProRatingConfig {
+	if p == nil {
+		// Return default configuration when not provided
+		return productcatalog.ProRatingConfig{
+			Enabled: true,
+			Mode:    productcatalog.ProRatingModeProratePrices,
+		}
+	}
+	return productcatalog.ProRatingConfig{
+		Enabled: p.Enabled,
+		Mode:    productcatalog.ProRatingMode(p.Mode),
+	}
 }

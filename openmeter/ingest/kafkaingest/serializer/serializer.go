@@ -10,7 +10,7 @@ import (
 )
 
 type Serializer interface {
-	SerializeKey(topic string, ev event.Event) ([]byte, error)
+	SerializeKey(topic string, namespace string, ev event.Event) ([]byte, error)
 	SerializeValue(topic string, ev event.Event) ([]byte, error)
 	GetFormat() string
 	GetKeySchemaId() int

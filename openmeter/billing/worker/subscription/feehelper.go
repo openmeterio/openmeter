@@ -89,3 +89,14 @@ func setFlatFeePerUnitAmount(line *billing.Line, perUnitAmount alpacadecimal.Dec
 		return fmt.Errorf("line is not a (flat or usage based) fee line")
 	}
 }
+
+type typeWithEqual[T any] interface {
+	Equal(T) bool
+}
+
+func setIfDoesNotEqual[T typeWithEqual[T]](existing *T, expected T, wasChange *bool) {
+	if !(*existing).Equal(expected) {
+		*existing = expected
+		*wasChange = true
+	}
+}

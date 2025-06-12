@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/registry"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
@@ -36,7 +37,6 @@ var BalanceWorkerAdapter = wire.NewSet(
 	NewBalanceWorkerEntitlementRepo,
 
 	wire.Bind(new(balanceworker.BalanceWorkerRepository), new(BalanceWorkerEntitlementRepo)),
-	BalanceWorkerSubjectResolver,
 )
 
 type BalanceWorkerEntitlementRepo interface {
@@ -81,8 +81,8 @@ func NewBalanceWorkerOptions(
 	eventBus eventbus.Publisher,
 	entitlements *registry.Entitlement,
 	repo balanceworker.BalanceWorkerRepository,
-	subjectResolver balanceworker.SubjectResolver,
 	notificationService notification.Service,
+	subjectService subject.Service,
 	logger *slog.Logger,
 ) balanceworker.WorkerOptions {
 	return balanceworker.WorkerOptions{
@@ -93,7 +93,7 @@ func NewBalanceWorkerOptions(
 		EventBus:            eventBus,
 		Entitlement:         entitlements,
 		Repo:                repo,
-		SubjectResolver:     subjectResolver,
+		Subject:             subjectService,
 		Logger:              logger,
 		MetricMeter:         routerOptions.MetricMeter,
 		NotificationService: notificationService,
@@ -129,8 +129,4 @@ func BalanceWorkerGroup(
 	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
 
 	return group
-}
-
-func BalanceWorkerSubjectResolver() balanceworker.SubjectResolver {
-	return nil
 }

@@ -3,6 +3,7 @@ package e2e
 import (
 	"net/http"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -84,7 +85,31 @@ func TestPlan(t *testing.T) {
 	})
 
 	customer2 := customerAPIRes.JSON201
-	require.NotNil(t, customer1)
+	require.NotNil(t, customer2)
+
+	customerAPIRes, err = client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
+		Name:         "Test Customer Abused",
+		Key:          lo.ToPtr("test_customer_abused"),
+		Currency:     lo.ToPtr(api.CurrencyCode("USD")),
+		Description:  lo.ToPtr("Test Customer Description"),
+		PrimaryEmail: lo.ToPtr("customer_abused@mail.com"),
+		BillingAddress: &api.Address{
+			City:        lo.ToPtr("City"),
+			Country:     lo.ToPtr("US"),
+			Line1:       lo.ToPtr("Line 1"),
+			Line2:       lo.ToPtr("Line 2"),
+			State:       lo.ToPtr("State"),
+			PhoneNumber: lo.ToPtr("1234567890"),
+			PostalCode:  lo.ToPtr("12345"),
+		},
+		UsageAttribution: api.CustomerUsageAttribution{
+			SubjectKeys: []string{"test_customer_subject_abused"},
+		},
+	})
+	require.Nil(t, err)
+
+	customerAbused := customerAPIRes.JSON201
+	require.NotNil(t, customerAbused)
 
 	// Now, let's create dedicated features for the plan
 	featureAPIRes, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
@@ -208,10 +233,11 @@ func TestPlan(t *testing.T) {
 	require.Nil(t, err)
 
 	planCreate := api.PlanCreate{
-		Currency:    api.CurrencyCode("USD"),
-		Name:        "Test Plan",
-		Description: lo.ToPtr("Test Plan Description"),
-		Key:         PlanKey,
+		Currency:       api.CurrencyCode("USD"),
+		Name:           "Test Plan",
+		Description:    lo.ToPtr("Test Plan Description"),
+		Key:            PlanKey,
+		BillingCadence: "P1M",
 		Phases: []api.PlanPhase{
 			{
 				Name:        "Test Plan Phase 1",
@@ -231,10 +257,15 @@ func TestPlan(t *testing.T) {
 	}
 
 	customPlanInput := api.CustomPlanInput{
-		Currency:    planCreate.Currency,
-		Name:        planCreate.Name,
-		Description: planCreate.Description,
-		Phases:      planCreate.Phases,
+		Currency:       planCreate.Currency,
+		Name:           planCreate.Name,
+		Description:    planCreate.Description,
+		BillingCadence: planCreate.BillingCadence,
+		Phases:         planCreate.Phases,
+		ProRatingConfig: &api.ProRatingConfig{
+			Mode:    "prorate_prices",
+			Enabled: true,
+		},
 	}
 
 	t.Run("Should create a plan on happy path", func(t *testing.T) {
@@ -354,6 +385,7 @@ func TestPlan(t *testing.T) {
 		misalignedCreate.Alignment = &api.Alignment{
 			BillablesMustAlign: lo.ToPtr(true),
 		}
+		misalignedCreate.BillingCadence = "P1M"
 
 		misalignedCreate.Phases = slices.Clone(planCreate.Phases)
 		misalignedCreate.Phases[0].RateCards = slices.Clone(planCreate.Phases[0].RateCards)
@@ -361,7 +393,7 @@ func TestPlan(t *testing.T) {
 
 		planAPIRes, err := client.CreatePlanWithResponse(ctx, misalignedCreate)
 		require.Nil(t, err)
-		require.Equal(t, 201, planAPIRes.StatusCode())
+		require.Equal(t, 201, planAPIRes.StatusCode(), "received the following body: %s", planAPIRes.Body)
 
 		plan := planAPIRes.JSON201
 		require.NotNil(t, plan, "received the following body: %s", planAPIRes.Body)
@@ -380,7 +412,8 @@ func TestPlan(t *testing.T) {
 
 		// Now let's update the plan to remove the alignment requirement
 		updateRes, err := client.UpdatePlanWithResponse(ctx, plan.Id, api.UpdatePlanJSONRequestBody{
-			Name: plan.Name,
+			Name:           plan.Name,
+			BillingCadence: "P1M",
 			Alignment: &api.Alignment{
 				BillablesMustAlign: lo.ToPtr(false),
 			},
@@ -429,6 +462,9 @@ func TestPlan(t *testing.T) {
 		assert.Nil(t, subscription.Plan)
 
 		customSubscriptionId = subscription.Id
+		require.Equal(t, "P1M", subscription.BillingCadence)
+		require.Equal(t, api.ProRatingModeProratePrices, subscription.ProRatingConfig.Mode)
+		require.True(t, subscription.ProRatingConfig.Enabled)
 	})
 
 	t.Run("Should list customer subscriptions", func(t *testing.T) {
@@ -484,6 +520,62 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, planId, subscription.Plan.Id)
 
 		subscriptionId = subscription.Id
+		require.Equal(t, "P1M", subscription.BillingCadence)
+		require.Equal(t, api.ProRatingModeProratePrices, subscription.ProRatingConfig.Mode)
+		require.True(t, subscription.ProRatingConfig.Enabled)
+	})
+
+	t.Run("Should create only ONE subscription per customer, even if we spam the API in a short period of time", func(t *testing.T) {
+		require.NotNil(t, customerAbused)
+		require.NotNil(t, customerAbused.Id)
+
+		ct := &api.SubscriptionTiming{}
+		require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+
+		createSubscription := func() {
+			ct := &api.SubscriptionTiming{}
+			require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+
+			// Let's create a custom subscription so it doesn't affect the other tests
+			create := api.SubscriptionCreate{}
+			err := create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
+				Timing:      ct,
+				CustomerKey: customerAbused.Key,
+				CustomPlan:  customPlanInput,
+			})
+			require.Nil(t, err)
+
+			apiRes, err := client.CreateSubscriptionWithResponse(ctx, create)
+			require.Nil(t, err)
+
+			// It will either succeed or fail with 4xx
+			assert.Less(t, apiRes.StatusCode(), 500, "received the following status %d body: %s", apiRes.StatusCode(), apiRes.Body)
+		}
+
+		// Let's spam the API 10 times
+		wg := sync.WaitGroup{}
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				createSubscription()
+			}()
+		}
+
+		wg.Wait()
+
+		// Now let's fetch the customer's subscriptions and assert there's only one
+		apiRes, err := client.ListCustomerSubscriptionsWithResponse(ctx, customerAbused.Id, &api.ListCustomerSubscriptionsParams{
+			Page:     lo.ToPtr(1),
+			PageSize: lo.ToPtr(10),
+		})
+		require.Nil(t, err)
+		require.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+
+		body := apiRes.JSON200
+		require.NotNil(t, body)
+
+		require.Equal(t, 1, len(body.Items))
 	})
 
 	t.Run("Should retrieve the subscription", func(t *testing.T) {
@@ -624,9 +716,10 @@ func TestPlan(t *testing.T) {
 		}
 
 		planAPIRes, err := client.CreatePlanWithResponse(ctx, api.CreatePlanJSONRequestBody{
-			Name:     "Test Plan New Version",
-			Key:      PlanKey,
-			Currency: api.CurrencyCode("USD"),
+			Name:           "Test Plan New Version",
+			Key:            PlanKey,
+			Currency:       api.CurrencyCode("USD"),
+			BillingCadence: "P1M",
 			// Let's add a new phase
 			Phases: newPhases,
 		})
@@ -739,7 +832,7 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 		require.NotNil(t, apiRes.JSON200)
 		require.NotNil(t, apiRes.JSON200.Items)
-		require.Equal(t, 3, len(apiRes.JSON200.Items))
+		require.Equal(t, 4, len(apiRes.JSON200.Items))
 
 		// Now let's check the filtering works
 		apiRes, err = client.ListCustomersWithResponse(ctx, &api.ListCustomersParams{

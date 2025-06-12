@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -33,6 +34,7 @@ type BillingInvoiceLineQuery struct {
 	inters                  []Interceptor
 	predicates              []predicate.BillingInvoiceLine
 	withBillingInvoice      *BillingInvoiceQuery
+	withSplitLineGroup      *BillingInvoiceSplitLineGroupQuery
 	withFlatFeeLine         *BillingInvoiceFlatFeeLineConfigQuery
 	withUsageBasedLine      *BillingInvoiceUsageBasedLineConfigQuery
 	withParentLine          *BillingInvoiceLineQuery
@@ -95,6 +97,28 @@ func (_q *BillingInvoiceLineQuery) QueryBillingInvoice() *BillingInvoiceQuery {
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.BillingInvoiceTable, billinginvoiceline.BillingInvoiceColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySplitLineGroup chains the current query on the "split_line_group" edge.
+func (_q *BillingInvoiceLineQuery) QuerySplitLineGroup() *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.SplitLineGroupTable, billinginvoiceline.SplitLineGroupColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -493,6 +517,7 @@ func (_q *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		inters:                  append([]Interceptor{}, _q.inters...),
 		predicates:              append([]predicate.BillingInvoiceLine{}, _q.predicates...),
 		withBillingInvoice:      _q.withBillingInvoice.Clone(),
+		withSplitLineGroup:      _q.withSplitLineGroup.Clone(),
 		withFlatFeeLine:         _q.withFlatFeeLine.Clone(),
 		withUsageBasedLine:      _q.withUsageBasedLine.Clone(),
 		withParentLine:          _q.withParentLine.Clone(),
@@ -516,6 +541,17 @@ func (_q *BillingInvoiceLineQuery) WithBillingInvoice(opts ...func(*BillingInvoi
 		opt(query)
 	}
 	_q.withBillingInvoice = query
+	return _q
+}
+
+// WithSplitLineGroup tells the query-builder to eager-load the nodes that are connected to
+// the "split_line_group" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceLineQuery) WithSplitLineGroup(opts ...func(*BillingInvoiceSplitLineGroupQuery)) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSplitLineGroup = query
 	return _q
 }
 
@@ -697,8 +733,9 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [10]bool{
+		loadedTypes = [11]bool{
 			_q.withBillingInvoice != nil,
+			_q.withSplitLineGroup != nil,
 			_q.withFlatFeeLine != nil,
 			_q.withUsageBasedLine != nil,
 			_q.withParentLine != nil,
@@ -740,6 +777,12 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 	if query := _q.withBillingInvoice; query != nil {
 		if err := _q.loadBillingInvoice(ctx, query, nodes, nil,
 			func(n *BillingInvoiceLine, e *BillingInvoice) { n.Edges.BillingInvoice = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withSplitLineGroup; query != nil {
+		if err := _q.loadSplitLineGroup(ctx, query, nodes, nil,
+			func(n *BillingInvoiceLine, e *BillingInvoiceSplitLineGroup) { n.Edges.SplitLineGroup = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -831,6 +874,38 @@ func (_q *BillingInvoiceLineQuery) loadBillingInvoice(ctx context.Context, query
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "invoice_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *BillingInvoiceLineQuery) loadSplitLineGroup(ctx context.Context, query *BillingInvoiceSplitLineGroupQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceSplitLineGroup)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*BillingInvoiceLine)
+	for i := range nodes {
+		if nodes[i].SplitLineGroupID == nil {
+			continue
+		}
+		fk := *nodes[i].SplitLineGroupID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(billinginvoicesplitlinegroup.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "split_line_group_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -1155,6 +1230,9 @@ func (_q *BillingInvoiceLineQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withBillingInvoice != nil {
 			_spec.Node.AddColumnOnce(billinginvoiceline.FieldInvoiceID)
+		}
+		if _q.withSplitLineGroup != nil {
+			_spec.Node.AddColumnOnce(billinginvoiceline.FieldSplitLineGroupID)
 		}
 		if _q.withParentLine != nil {
 			_spec.Node.AddColumnOnce(billinginvoiceline.FieldParentLineID)

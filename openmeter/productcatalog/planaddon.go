@@ -91,6 +91,12 @@ func (c PlanAddon) Validate() error {
 		}
 	}
 
+	if err := c.Plan.ValidateWith(
+		ValidateAddonBillingCadenceAreAlignedWithPlan(c.Addon.RateCards),
+	); err != nil {
+		errs = append(errs, err)
+	}
+
 	if c.Addon.Currency != c.Plan.Currency {
 		errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanAddonCurrencyMismatch))
 	}
@@ -103,7 +109,6 @@ func (c PlanAddon) Validate() error {
 		// Validate ratecards from plan phases and addon.
 		for _, phase := range c.Plan.Phases[fromPhaseIdx:] {
 			if err := phase.ValidateWith(
-				ValidatePlanPhaseAndAddonBillingCadenceAreAligned(c.Addon.RateCards),
 				ValidatePlanPhaseAndAddonRateCardsAreCompatible(c.Addon.RateCards),
 			); err != nil {
 				errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, err))
@@ -116,18 +121,20 @@ func (c PlanAddon) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func ValidatePlanPhaseAndAddonBillingCadenceAreAligned(ratecards RateCards) models.ValidatorFunc[Phase] {
-	return func(p Phase) error {
-		v := append(p.RateCards, ratecards...)
+func ValidateAddonBillingCadenceAreAlignedWithPlan(addonRateCards RateCards) models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		for _, rc := range addonRateCards {
+			cad := rc.GetBillingCadence()
+			if cad == nil {
+				continue
+			}
 
-		if v.BillingCadenceAligned() {
-			return nil
+			if err := ValidateBillingCadencesAlign(p.BillingCadence, *cad); err != nil {
+				return err
+			}
 		}
 
-		return models.ErrorWithFieldPrefix(
-			models.NewFieldSelectors(models.NewFieldSelector("ratecards").WithExpression(models.WildCard)),
-			ErrRateCardBillingCadenceUnaligned,
-		)
+		return nil
 	}
 }
 

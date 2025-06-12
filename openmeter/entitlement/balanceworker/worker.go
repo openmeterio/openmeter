@@ -17,10 +17,10 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
-	"github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
@@ -37,10 +37,6 @@ const (
 
 type NamespacedID = pkgmodels.NamespacedID
 
-type SubjectResolver interface {
-	GetSubjectByKey(ctx context.Context, namespace, key string) (models.Subject, error)
-}
-
 type BatchedIngestEventHandler = func(ctx context.Context, event ingestevents.EventBatchedIngest) error
 
 type WorkerOptions struct {
@@ -54,8 +50,8 @@ type WorkerOptions struct {
 	Repo        BalanceWorkerRepository
 
 	// External connectors
-	SubjectResolver     SubjectResolver
 	NotificationService notification.Service
+	Subject             subject.Service
 
 	MetricMeter metric.Meter
 

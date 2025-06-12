@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -98,7 +99,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 		event := grant.CreatedEvent{
 			Grant:     *g,
 			Namespace: eventmodels.NamespaceID{ID: ownerID.Namespace},
-			Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
+			Subject:   subject.SubjectKey{Key: subjectKey},
 		}
 
 		if err := m.Publisher.Publish(ctx, event); err != nil {
@@ -162,7 +163,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 		return nil, m.Publisher.Publish(ctx, grant.VoidedEvent{
 			Grant:     g,
 			Namespace: eventmodels.NamespaceID{ID: ownerID.Namespace},
-			Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
+			Subject:   subject.SubjectKey{Key: subjectKey},
 		})
 	})
 	return err

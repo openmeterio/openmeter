@@ -12,6 +12,10 @@ func (m Metadata) Equal(v Metadata) bool {
 	return maps.Equal(m, v)
 }
 
+func (m Metadata) ToMap() map[string]string {
+	return m
+}
+
 func NewMetadata[T ~map[string]string](m T) Metadata {
 	return Metadata(m)
 }

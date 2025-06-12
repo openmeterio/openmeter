@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/govalues/decimal"
 	"github.com/rickb777/period"
 	"github.com/samber/lo"
 )
@@ -54,6 +56,64 @@ func (p Period) Normalise(exact bool) Period {
 	return Period{p.Period.Normalise(exact)}
 }
 
+func (p Period) Simplify(exact bool) Period {
+	return Period{p.Period.Simplify(exact)}
+}
+
+// InHours returns the value of the period in hours
+func (p Period) InHours(daysInMonth int) (alpacadecimal.Decimal, error) {
+	zero := alpacadecimal.NewFromInt(0)
+
+	// You might be thinking, a year is supposed to be 365 or 366 days, not 372 or 360 or 348 or 336
+	// (as this below line calculates it depending on days in the month)
+	// Lucky for us, the method as a whole gives correct results
+	years, err := p.Period.YearsDecimal().Mul(decimal.MustNew(int64(daysInMonth*12*24), 0))
+	if err != nil {
+		return zero, err
+	}
+	months, err := p.Period.MonthsDecimal().Mul(decimal.MustNew(int64(daysInMonth*24), 0))
+	if err != nil {
+		return zero, err
+	}
+	weeks, err := p.Period.WeeksDecimal().Mul(decimal.MustNew(7*24, 0))
+	if err != nil {
+		return zero, err
+	}
+	days, err := p.Period.DaysDecimal().Mul(decimal.MustNew(24, 0))
+	if err != nil {
+		return zero, err
+	}
+
+	v, err := years.Add(months)
+	if err != nil {
+		return zero, err
+	}
+	v, err = v.Add(weeks)
+	if err != nil {
+		return zero, err
+	}
+	v, err = v.Add(days)
+	if err != nil {
+		return zero, err
+	}
+	v, err = v.Add(p.Period.HoursDecimal())
+	if err != nil {
+		return zero, err
+	}
+
+	scale := v.MinScale()
+	whole, frac, ok := v.Int64(scale)
+	if !ok {
+		return zero, fmt.Errorf("failed to convert to int64")
+	}
+
+	if frac != 0 {
+		return zero, fmt.Errorf("we shouldn't have any fractional part here")
+	}
+
+	return alpacadecimal.NewFromInt(whole), nil
+}
+
 func (p Period) Add(p2 Period) (Period, error) {
 	s2 := period.ISOString(p2.String())
 	per2, err := period.Parse(string(s2))
@@ -74,41 +134,37 @@ func (p Period) Subtract(p2 Period) (Period, error) {
 	return Period{p3}, err
 }
 
-// FromDuration creates a Period from a time.Duration
-func PeriodsAlign(larger Period, smaller Period) (bool, error) {
-	p, err := larger.Subtract(smaller)
-	if err != nil {
-		return false, err
+// DivisibleBy returns true if the period is divisible by the smaller period (in hours).
+func (p Period) DivisibleBy(smaller Period) (bool, error) {
+	l := p.Simplify(true)
+	s := smaller.Simplify(true)
+
+	if l.IsZero() || s.IsZero() {
+		return false, nil
 	}
 
-	if p.Sign() == -1 {
-		return false, fmt.Errorf("smaller period is larger than larger period")
+	if l.Minutes() != 0 || l.Seconds() != 0 || s.Minutes() != 0 || s.Seconds() != 0 {
+		return false, fmt.Errorf("divisible periods must be whole numbers of hours")
 	}
 
-	per := smaller
-	for i := 1; i < MAX_SAFE_ITERATION_COUNT; i++ {
-		per, err = per.Add(smaller)
+	testDaysInMonth := []int{28, 29, 30, 31}
+	for _, daysInMonth := range testDaysInMonth {
+		// get periods in hours
+		lh, err := l.InHours(daysInMonth)
+		if err != nil {
+			return false, err
+		}
+		sh, err := s.InHours(daysInMonth)
 		if err != nil {
 			return false, err
 		}
 
-		diff, err := larger.Subtract(per)
-		if err != nil {
+		if _, r := lh.QuoRem(sh, 0); !r.IsZero() {
 			return false, err
-		}
-
-		// It's an exact match
-		if diff.Sign() == 0 {
-			return true, nil
-		}
-
-		// We've overshot without a match
-		if diff.Sign() == -1 {
-			return false, nil
 		}
 	}
 
-	return false, nil
+	return true, nil
 }
 
 func Between(start time.Time, end time.Time) Period {

@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -25,6 +26,8 @@ import (
 	workflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -308,15 +311,18 @@ func TestEditRunning(t *testing.T) {
 
 				tuDeps := subscriptiontestutils.NewService(t, deps.DBDeps)
 
+				lockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: slog.Default()})
+				require.NoError(t, err)
 				workflowService := workflowservice.NewWorkflowService(workflowservice.WorkflowServiceConfig{
 					Service:            &mSvc,
 					CustomerService:    tuDeps.CustomerService,
 					TransactionManager: tuDeps.CustomerAdapter,
 					AddonService:       tuDeps.SubscriptionAddonService,
 					Logger:             slog.Default(),
+					Lockr:              lockr,
 				})
 
-				_, err := workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1}, immediate)
+				_, err = workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1}, immediate)
 				assert.Nil(t, err)
 			},
 		},
@@ -859,10 +865,15 @@ func TestChangeToPlan(t *testing.T) {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan 2",
-				Key:      "test_plan_2",
-				Version:  1,
-				Currency: currency.USD,
+				Name:           "Test Plan 2",
+				Key:            "test_plan_2",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: []productcatalog.Phase{
 				{
@@ -1145,6 +1156,18 @@ func TestEditCombinations(t *testing.T) {
 			}, timingNow)
 			require.Nil(t, err)
 
+			t.Run("Should properly serialize and deserialize SubscriptionView", func(t *testing.T) {
+				viewBytes, err := json.MarshalIndent(subView, "", "  ")
+				require.Nil(t, err)
+
+				var targetView subscription.SubscriptionView
+				err = json.Unmarshal(viewBytes, &targetView)
+				require.Nil(t, err)
+
+				// Lets test the item's ActiveFromOverrideRelativeToPhaseStart
+				require.Equal(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard4ForAddons.Key()][0].Spec.ActiveFromOverrideRelativeToPhaseStart, targetView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard4ForAddons.Key()][0].Spec.ActiveFromOverrideRelativeToPhaseStart)
+			})
+
 			boolItem := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard4ForAddons.Key()][0]
 			require.NotNil(t, boolItem)
 			require.Equal(t, 1, subscription.AnnotationParser.GetBooleanEntitlementCount(boolItem.SubscriptionItem.Annotations))
@@ -1235,6 +1258,129 @@ func TestEditCombinations(t *testing.T) {
 			require.Nil(t, err)
 
 			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(clock.Now()))
+		})
+	})
+
+	t.Run("Let's assert that subscriptions can be cascade deleted", func(t *testing.T) {
+		// This will be a bit of a hacky test, but its better see it enforced than to leave it to human testing
+		// We'll create a subscription
+		// Then we'll delete the subscription
+		// Then we'll assert that there are no
+		// - phases left
+		// - items left
+		// - entitlements left
+		// - grants left
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			// Let's create an example subscription
+			_, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "Example Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			// Now that we've got a subscription we'll use raw SQL to do the rest, this is the hacky part
+
+			res, err := deps.DBDeps.DBClient.ExecContext(context.Background(), `DELETE FROM subscriptions`)
+			require.Nil(t, err)
+
+			affected, err := res.RowsAffected()
+			require.Nil(t, err)
+			require.Equal(t, int64(1), affected) // deleted the one subscription we had
+
+			// Now let's query the DB, lets encapsulate in inline functions for referential integrity
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM subscription_phases`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.Equal(t, 0, count)
+				}
+			}()
+
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM subscription_items`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.Equal(t, 0, count)
+				}
+			}()
+
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM entitlements`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.Equal(t, 0, count)
+				}
+			}()
+
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM grants`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.Equal(t, 0, count)
+				}
+			}()
+
+			// Just to be safe, let's also assert the things we're not deleting, being
+			// - customers
+			// - plans
+			// - features
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM customers`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.NotEqual(t, 0, count)
+				}
+			}()
+
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM plans`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.NotEqual(t, 0, count)
+				}
+			}()
+
+			func() {
+				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM features`)
+				require.Nil(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var count int
+					require.Nil(t, rows.Scan(&count))
+					require.NotEqual(t, 0, count)
+				}
+			}()
 		})
 	})
 }

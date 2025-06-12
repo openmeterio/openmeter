@@ -32,7 +32,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 					Namespace: "my_namespace",
 				},
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? ORDER BY time DESC, id DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? ORDER BY time DESC, id DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", 100},
 		},
 		{
@@ -47,7 +47,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND id = ? ORDER BY time DESC, id DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND id = ? ORDER BY time DESC, id DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", "event-123", 100},
 		},
 		{
@@ -62,7 +62,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND subject LIKE ? ORDER BY time DESC, id DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND subject LIKE ? ORDER BY time DESC, id DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", "%customer%", 100},
 		},
 		{
@@ -77,7 +77,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC, id DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC, id DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", now, 100},
 		},
 		{
@@ -94,7 +94,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 					Limit: &limit,
 				},
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time <= ? AND (time < ? OR id < ?) ORDER BY time DESC, id DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND time <= ? AND (time < ? OR id < ?) ORDER BY time DESC, id DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", cursorTime.Unix(), cursorTime.Unix(), cursorID, 50},
 		},
 		{
@@ -109,7 +109,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND ingested_at >= ? ORDER BY ingested_at DESC, id DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND ingested_at >= ? ORDER BY ingested_at DESC, id DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", now, 100},
 		},
 	}

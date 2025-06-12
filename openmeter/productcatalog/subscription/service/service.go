@@ -3,12 +3,16 @@ package service
 import (
 	"fmt"
 	"log/slog"
+	"time"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -31,20 +35,31 @@ func New(c Config) plansubscription.PlanSubscriptionService {
 	}
 }
 
-func (s *service) removePhasesBeforeStartingPhase(p *plan.Plan, startingPhase string) error {
+func (s *service) zeroPhasesBeforeStartingPhase(p *plan.Plan, startingPhase string) error {
+	nPhases := make([]plan.Phase, 0, len(p.Phases))
+
+	reachedStartingPhase := false
+
 	for idx, phase := range p.Phases {
 		if phase.Key == startingPhase {
-			// Let's filter out the phases before the starting phase
-			p.Phases = p.Phases[idx:]
-			break
+			reachedStartingPhase = true
 		}
 
-		if idx == len(p.Phases)-1 {
+		if !reachedStartingPhase {
+			// Instead of deleting the earlier phases, we set their length to 0
+			phase.Duration = lo.ToPtr(isodate.FromDuration(time.Duration(0)))
+		}
+
+		if idx == len(p.Phases)-1 && !reachedStartingPhase {
 			return models.NewGenericValidationError(
 				fmt.Errorf("starting phase %s not found in plan %s@%d", startingPhase, p.Key, p.Version),
 			)
 		}
+
+		nPhases = append(nPhases, phase)
 	}
+
+	p.Phases = nPhases
 
 	return nil
 }

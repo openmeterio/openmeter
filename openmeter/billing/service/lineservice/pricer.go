@@ -67,7 +67,7 @@ func (NonProgressiveBillingPricer) CanBeInvoicedAsOf(l usageBasedLine, asOf time
 	//
 	// This check is crucial, as when changing a price on a line from progressive billable to non-progressive
 	// billable, the CanBeInvoicedAsOf is called to ensure that the line is still valid.
-	if l.line.ParentLineID != nil {
+	if l.line.SplitLineGroupID != nil {
 		return false, billing.ValidationError{
 			Err: billing.ErrInvoiceProgressiveBillingNotSupported,
 		}

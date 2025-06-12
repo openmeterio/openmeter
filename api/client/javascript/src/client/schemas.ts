@@ -3226,7 +3226,7 @@ export interface components {
        * @description Type of the invoice.
        * @enum {string}
        */
-      type: 'credit_node_original_invoice'
+      type: 'credit_note_original_invoice'
       /**
        * Format: date-time
        * @description IssueAt reflects the time the document was issued.
@@ -3504,6 +3504,24 @@ export interface components {
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
+      /**
+       * Billing cadence
+       * Format: duration
+       * @description The default billing cadence for subscriptions using this plan.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description Default pro-rating configuration for subscriptions using this plan.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      proRatingConfig?: components['schemas']['ProRatingConfig']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -5351,26 +5369,8 @@ export interface components {
       /** @description Invoice a gathering invoice */
       readonly invoice?: components['schemas']['InvoiceAvailableActionInvoiceDetails']
     }
-    /** @description InvoiceDocumentRef is used to describe a reference to an existing document (invoice). */
-    InvoiceDocumentRef: components['schemas']['CreditNoteOriginalInvoiceRef']
-    /**
-     * @description InvoiceDocumentRefType defines the type of document that is being referenced.
-     * @enum {string}
-     */
-    InvoiceDocumentRefType: 'credit_node_original_invoice'
-    /**
-     * @description InvoiceExpand specifies the parts of the invoice to expand in the list output.
-     * @enum {string}
-     */
-    InvoiceExpand: 'lines' | 'preceding' | 'workflow.apps'
-    /**
-     * @description InvoiceFlatFeeCategory determines if the flat fee is a regular fee due to use due to a
-     *     commitment.
-     * @enum {string}
-     */
-    InvoiceFlatFeeCategory: 'regular' | 'commitment'
-    /** @description InvoiceFlatFeeLine represents a line item that is sold to the customer as a manually added fee. */
-    InvoiceFlatFeeLine: {
+    /** @description InvoiceDetailedLine represents a line item that is sold to the customer as a manually added fee. */
+    InvoiceDetailedLine: {
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -5435,8 +5435,6 @@ export interface components {
        * @description Tax config specify the tax configuration for this line.
        */
       taxConfig?: components['schemas']['TaxConfig']
-      /** @description The lines detailing the item or service sold. */
-      readonly children?: components['schemas']['InvoiceLine'][]
       /** @description Totals for this line. */
       readonly totals: components['schemas']['InvoiceTotals']
       /** @description Period of the line item applies to for revenue recognition pruposes.
@@ -5454,10 +5452,11 @@ export interface components {
       /** @description Subscription are the references to the subscritpions that this line is related to. */
       readonly subscription?: components['schemas']['InvoiceLineSubscriptionReference']
       /**
-       * @description Type of the line. (enum property replaced by openapi-typescript)
+       * @deprecated
+       * @description Type of the line.
        * @enum {string}
        */
-      type: 'flat_fee'
+      readonly type: 'flat_fee'
       /**
        * @deprecated
        * @description Price of the item being sold.
@@ -5475,144 +5474,21 @@ export interface components {
        */
       quantity?: components['schemas']['Numeric']
       /** @description The rate card that is used for this line. */
-      rateCard?: components['schemas']['InvoiceFlatFeeRateCard']
+      rateCard?: components['schemas']['InvoiceDetailedLineRateCard']
       /**
        * @description Category of the flat fee.
        * @default regular
        */
-      category?: components['schemas']['InvoiceFlatFeeCategory']
+      readonly category?: components['schemas']['InvoiceDetailedLineCostCategory']
     }
-    /** @description InvoiceFlatFeeLineReplaceUpdate represents the update model for a flat fee invoice line.
-     *
-     *     This type makes ID optional to allow for creating new lines as part of the update. */
-    InvoiceFlatFeeLineReplaceUpdate: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
-      /**
-       * @deprecated
-       * @description Tax config specify the tax configuration for this line.
-       */
-      taxConfig?: components['schemas']['TaxConfig']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
-       *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
-      period: components['schemas']['Period']
-      /**
-       * Format: date-time
-       * @description The time this line item should be invoiced.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      invoiceAt: Date
-      /**
-       * @description Type of the line. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'flat_fee'
-      /**
-       * @deprecated
-       * @description Price of the item being sold.
-       */
-      perUnitAmount?: components['schemas']['Numeric']
-      /**
-       * @deprecated
-       * @description Payment term of the line.
-       * @default in_advance
-       */
-      paymentTerm?: components['schemas']['PricePaymentTerm']
-      /**
-       * @deprecated
-       * @description Quantity of the item being sold.
-       */
-      quantity?: components['schemas']['Numeric']
-      /** @description The rate card that is used for this line. */
-      rateCard?: components['schemas']['InvoiceFlatFeeRateCard']
-      /**
-       * @description Category of the flat fee.
-       * @default regular
-       */
-      category?: components['schemas']['InvoiceFlatFeeCategory']
-      /**
-       * @description The ID of the line.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      id?: string
-    }
-    /** @description InvoiceFlatFeePendingLineCreate represents the create model for an invoice line that is sold to the customer as a manually added fee. */
-    InvoiceFlatFeePendingLineCreate: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
-      /**
-       * @deprecated
-       * @description Tax config specify the tax configuration for this line.
-       */
-      taxConfig?: components['schemas']['TaxConfig']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
-       *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
-      period: components['schemas']['Period']
-      /**
-       * Format: date-time
-       * @description The time this line item should be invoiced.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      invoiceAt: Date
-      /**
-       * @description Type of the line. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'flat_fee'
-      /**
-       * @deprecated
-       * @description Price of the item being sold.
-       */
-      perUnitAmount?: components['schemas']['Numeric']
-      /**
-       * @deprecated
-       * @description Payment term of the line.
-       * @default in_advance
-       */
-      paymentTerm?: components['schemas']['PricePaymentTerm']
-      /**
-       * @deprecated
-       * @description Quantity of the item being sold.
-       */
-      quantity?: components['schemas']['Numeric']
-      /** @description The rate card that is used for this line. */
-      rateCard?: components['schemas']['InvoiceFlatFeeRateCard']
-      /**
-       * @description Category of the flat fee.
-       * @default regular
-       */
-      category?: components['schemas']['InvoiceFlatFeeCategory']
-    }
-    /** @description InvoiceFlatFeeRateCard represents the rate card (intent) for a flat fee line. */
-    InvoiceFlatFeeRateCard: {
+    /**
+     * @description InvoiceDetailedLineCostCategory determines if the flat fee is a regular fee due to use due to a
+     *     commitment.
+     * @enum {string}
+     */
+    InvoiceDetailedLineCostCategory: 'regular' | 'commitment'
+    /** @description InvoiceDetailedLineRateCard represents the rate card (intent) for a flat fee line. */
+    InvoiceDetailedLineRateCard: {
       /**
        * Tax config
        * @description The tax config of the rate card.
@@ -5637,6 +5513,18 @@ export interface components {
       /** @description The discounts that are applied to the line. */
       discounts?: components['schemas']['BillingDiscounts']
     }
+    /** @description InvoiceDocumentRef is used to describe a reference to an existing document (invoice). */
+    InvoiceDocumentRef: components['schemas']['CreditNoteOriginalInvoiceRef']
+    /**
+     * @description InvoiceDocumentRefType defines the type of document that is being referenced.
+     * @enum {string}
+     */
+    InvoiceDocumentRefType: 'credit_note_original_invoice'
+    /**
+     * @description InvoiceExpand specifies the parts of the invoice to expand in the list output.
+     * @enum {string}
+     */
+    InvoiceExpand: 'lines' | 'preceding' | 'workflow.apps'
     /**
      * InvoiceGenericDocumentRef is used to describe an existing document or a specific part of it's contents.
      * @description Omitted fields:
@@ -5652,10 +5540,127 @@ export interface components {
       /** @description Additional details about the document. */
       readonly description?: string
     }
-    /** @description BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price. */
-    InvoiceLine:
-      | components['schemas']['InvoiceUsageBasedLine']
-      | components['schemas']['InvoiceFlatFeeLine']
+    /** @description InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage. */
+    InvoiceLine: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /**
+       * @description ID of the line.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id: string
+      /** @description managedBy specifies if the line is manually added via the api or managed by OpenMeter. */
+      readonly managedBy: components['schemas']['InvoiceLineManagedBy']
+      /** @description Status of the line.
+       *
+       *     External calls always create valid lines, other line types are managed by the
+       *     billing engine of OpenMeter. */
+      readonly status: components['schemas']['InvoiceLineStatus']
+      /** @description Discounts detailes applied to this line.
+       *
+       *     New discounts can be added via the invoice's discounts API, to facilitate
+       *     discounts that are affecting multiple lines. */
+      readonly discounts?: components['schemas']['InvoiceLineDiscounts']
+      /** @description The invoice this item belongs to. */
+      invoice?: components['schemas']['InvoiceReference']
+      /** @description The currency of this line. */
+      currency: components['schemas']['CurrencyCode']
+      /** @description Taxes applied to the invoice totals. */
+      readonly taxes?: components['schemas']['InvoiceLineTaxItem'][]
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
+      taxConfig?: components['schemas']['TaxConfig']
+      /** @description Totals for this line. */
+      readonly totals: components['schemas']['InvoiceTotals']
+      /** @description Period of the line item applies to for revenue recognition pruposes.
+       *
+       *     Billing always treats periods as start being inclusive and end being exclusive. */
+      period: components['schemas']['Period']
+      /**
+       * Format: date-time
+       * @description The time this line item should be invoiced.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      invoiceAt: Date
+      /** @description External IDs of the invoice in other apps such as Stripe. */
+      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
+      /** @description Subscription are the references to the subscritpions that this line is related to. */
+      readonly subscription?: components['schemas']['InvoiceLineSubscriptionReference']
+      /**
+       * @deprecated
+       * @description Type of the line.
+       * @enum {string}
+       */
+      readonly type: 'usage_based'
+      /**
+       * @deprecated
+       * @description Price of the usage-based item being sold.
+       */
+      price?: components['schemas']['RateCardUsageBasedPrice']
+      /**
+       * @deprecated
+       * @description The feature that the usage is based on.
+       */
+      featureKey?: string
+      /** @description The lines detailing the item or service sold. */
+      readonly children?: components['schemas']['InvoiceDetailedLine'][]
+      /** @description The rate card that is used for this line.
+       *
+       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+      rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
+      /** @description The quantity of the item being sold.
+       *
+       *     Any usage discounts applied previously are deducted from this quantity. */
+      readonly quantity?: components['schemas']['Numeric']
+      /** @description The quantity of the item that has been metered for the period before any discounts were applied. */
+      readonly meteredQuantity?: components['schemas']['Numeric']
+      /** @description The quantity of the item used before this line's period.
+       *
+       *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
+       *
+       *     Any usage discounts applied previously are deducted from this quantity. */
+      readonly preLinePeriodQuantity?: components['schemas']['Numeric']
+      /** @description The metered quantity of the item used in before this line's period without any discounts applied.
+       *
+       *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed. */
+      readonly meteredPreLinePeriodQuantity?: components['schemas']['Numeric']
+    }
     /** @description InvoiceLineAmountDiscount represents an amount deducted from the line, and will be applied before taxes. */
     InvoiceLineAmountDiscount: {
       /**
@@ -5719,10 +5724,60 @@ export interface components {
      * @enum {string}
      */
     InvoiceLineManagedBy: 'subscription' | 'system' | 'manual'
-    /** @description InvoiceLineReplaceUpdate represents the update model for an invoice line. */
-    InvoiceLineReplaceUpdate:
-      | components['schemas']['InvoiceUsageBasedLineReplaceUpdate']
-      | components['schemas']['InvoiceFlatFeeLineReplaceUpdate']
+    /** @description InvoiceLineReplaceUpdate represents the update model for an UBP invoice line.
+     *
+     *     This type makes ID optional to allow for creating new lines as part of the update. */
+    InvoiceLineReplaceUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
+      taxConfig?: components['schemas']['TaxConfig']
+      /** @description Period of the line item applies to for revenue recognition pruposes.
+       *
+       *     Billing always treats periods as start being inclusive and end being exclusive. */
+      period: components['schemas']['Period']
+      /**
+       * Format: date-time
+       * @description The time this line item should be invoiced.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      invoiceAt: Date
+      /**
+       * @deprecated
+       * @description Price of the usage-based item being sold.
+       */
+      price?: components['schemas']['RateCardUsageBasedPrice']
+      /**
+       * @deprecated
+       * @description The feature that the usage is based on.
+       */
+      featureKey?: string
+      /** @description The rate card that is used for this line.
+       *
+       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+      rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
+      /**
+       * @description The ID of the line.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id?: string
+    }
     /**
      * @description Line status specifies the status of the line.
      * @enum {string}
@@ -5853,10 +5908,53 @@ export interface components {
       /** @description The terms of payment for the invoice. */
       terms?: components['schemas']['PaymentTerms']
     }
-    /** @description InvoiceLineCreate represents the create model for an invoice line. */
-    InvoicePendingLineCreate:
-      | components['schemas']['InvoiceUsageBasedPendingLineCreate']
-      | components['schemas']['InvoiceFlatFeePendingLineCreate']
+    /** @description InvoicePendingLineCreate represents the create model for an invoice line that is sold to the customer based on usage. */
+    InvoicePendingLineCreate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * @deprecated
+       * @description Tax config specify the tax configuration for this line.
+       */
+      taxConfig?: components['schemas']['TaxConfig']
+      /** @description Period of the line item applies to for revenue recognition pruposes.
+       *
+       *     Billing always treats periods as start being inclusive and end being exclusive. */
+      period: components['schemas']['Period']
+      /**
+       * Format: date-time
+       * @description The time this line item should be invoiced.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      invoiceAt: Date
+      /**
+       * @deprecated
+       * @description Price of the usage-based item being sold.
+       */
+      price?: components['schemas']['RateCardUsageBasedPrice']
+      /**
+       * @deprecated
+       * @description The feature that the usage is based on.
+       */
+      featureKey?: string
+      /** @description The rate card that is used for this line.
+       *
+       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+      rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
+    }
     /** @description InvoicePendingLineCreate represents the create model for a pending invoice line. */
     InvoicePendingLineCreateInput: {
       /** @description The currency of the lines to be created. */
@@ -5940,74 +6038,6 @@ export interface components {
       /** @description The workflow settings for the invoice. */
       workflow: components['schemas']['InvoiceWorkflowReplaceUpdate']
     }
-    /** @description InvoiceSimulationFlatFeeLine represents a flat fee line item that can be input to the simulation endpoint. */
-    InvoiceSimulationFlatFeeLine: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
-      /**
-       * @deprecated
-       * @description Tax config specify the tax configuration for this line.
-       */
-      taxConfig?: components['schemas']['TaxConfig']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
-       *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
-      period: components['schemas']['Period']
-      /**
-       * Format: date-time
-       * @description The time this line item should be invoiced.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      invoiceAt: Date
-      /**
-       * @description Type of the line. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'flat_fee'
-      /**
-       * @deprecated
-       * @description Price of the item being sold.
-       */
-      perUnitAmount?: components['schemas']['Numeric']
-      /**
-       * @deprecated
-       * @description Payment term of the line.
-       * @default in_advance
-       */
-      paymentTerm?: components['schemas']['PricePaymentTerm']
-      /**
-       * @deprecated
-       * @description Quantity of the item being sold.
-       */
-      quantity?: components['schemas']['Numeric']
-      /** @description The rate card that is used for this line. */
-      rateCard?: components['schemas']['InvoiceFlatFeeRateCard']
-      /**
-       * @description Category of the flat fee.
-       * @default regular
-       */
-      category?: components['schemas']['InvoiceFlatFeeCategory']
-      /**
-       * @description ID of the line. If not specified it will be auto-generated.
-       *
-       *     When discounts are specified, this must be provided, so that the discount can reference it.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      id?: string
-    }
     /** @description InvoiceSimulationInput is the input for simulating an invoice. */
     InvoiceSimulationInput: {
       /** @description The number of the invoice. */
@@ -6019,12 +6049,8 @@ export interface components {
       /** @description Lines to be included in the generated invoice. */
       lines: components['schemas']['InvoiceSimulationLine'][]
     }
-    /** @description InvoiceSimulationInput represents a line item that can be input to the simulation endpoint. */
-    InvoiceSimulationLine:
-      | components['schemas']['InvoiceSimulationUsageBasedLine']
-      | components['schemas']['InvoiceSimulationFlatFeeLine']
-    /** @description InvoiceSimulationUsageBasedLine represents a usage-based line item that can be input to the simulation endpoint. */
-    InvoiceSimulationUsageBasedLine: {
+    /** @description InvoiceSimulationLine represents a usage-based line item that can be input to the simulation endpoint. */
+    InvoiceSimulationLine: {
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -6055,11 +6081,6 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: Date
-      /**
-       * @description Type of the line. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'usage_based'
       /**
        * @deprecated
        * @description Price of the usage-based item being sold.
@@ -6138,237 +6159,6 @@ export interface components {
      * @enum {string}
      */
     InvoiceType: 'standard' | 'credit_note'
-    /** @description InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage. */
-    InvoiceUsageBasedLine: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: Date
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: Date
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: Date
-      /**
-       * @description ID of the line.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      id: string
-      /** @description managedBy specifies if the line is manually added via the api or managed by OpenMeter. */
-      readonly managedBy: components['schemas']['InvoiceLineManagedBy']
-      /** @description Status of the line.
-       *
-       *     External calls always create valid lines, other line types are managed by the
-       *     billing engine of OpenMeter. */
-      readonly status: components['schemas']['InvoiceLineStatus']
-      /** @description Discounts detailes applied to this line.
-       *
-       *     New discounts can be added via the invoice's discounts API, to facilitate
-       *     discounts that are affecting multiple lines. */
-      readonly discounts?: components['schemas']['InvoiceLineDiscounts']
-      /** @description The invoice this item belongs to. */
-      invoice?: components['schemas']['InvoiceReference']
-      /** @description The currency of this line. */
-      currency: components['schemas']['CurrencyCode']
-      /** @description Taxes applied to the invoice totals. */
-      readonly taxes?: components['schemas']['InvoiceLineTaxItem'][]
-      /**
-       * @deprecated
-       * @description Tax config specify the tax configuration for this line.
-       */
-      taxConfig?: components['schemas']['TaxConfig']
-      /** @description The lines detailing the item or service sold. */
-      readonly children?: components['schemas']['InvoiceLine'][]
-      /** @description Totals for this line. */
-      readonly totals: components['schemas']['InvoiceTotals']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
-       *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
-      period: components['schemas']['Period']
-      /**
-       * Format: date-time
-       * @description The time this line item should be invoiced.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      invoiceAt: Date
-      /** @description External IDs of the invoice in other apps such as Stripe. */
-      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
-      /** @description Subscription are the references to the subscritpions that this line is related to. */
-      readonly subscription?: components['schemas']['InvoiceLineSubscriptionReference']
-      /**
-       * @description Type of the line. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'usage_based'
-      /**
-       * @deprecated
-       * @description Price of the usage-based item being sold.
-       */
-      price?: components['schemas']['RateCardUsageBasedPrice']
-      /**
-       * @deprecated
-       * @description The feature that the usage is based on.
-       */
-      featureKey?: string
-      /** @description The rate card that is used for this line.
-       *
-       *     The rate card captures the intent of the price and discounts for the usage-based item. */
-      rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
-      /** @description The quantity of the item being sold.
-       *
-       *     Any usage discounts applied previously are deducted from this quantity. */
-      readonly quantity?: components['schemas']['Numeric']
-      /** @description The quantity of the item that has been metered for the period before any discounts were applied. */
-      readonly meteredQuantity?: components['schemas']['Numeric']
-      /** @description The quantity of the item used before this line's period.
-       *
-       *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
-       *
-       *     Any usage discounts applied previously are deducted from this quantity. */
-      readonly preLinePeriodQuantity?: components['schemas']['Numeric']
-      /** @description The metered quantity of the item used in before this line's period without any discounts applied.
-       *
-       *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed. */
-      readonly meteredPreLinePeriodQuantity?: components['schemas']['Numeric']
-    }
-    /** @description InvoiceUpdateUsageBasedLineReplaceUpdate represents the update model for an UBP invoice line.
-     *
-     *     This type makes ID optional to allow for creating new lines as part of the update. */
-    InvoiceUsageBasedLineReplaceUpdate: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
-      /**
-       * @deprecated
-       * @description Tax config specify the tax configuration for this line.
-       */
-      taxConfig?: components['schemas']['TaxConfig']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
-       *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
-      period: components['schemas']['Period']
-      /**
-       * Format: date-time
-       * @description The time this line item should be invoiced.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      invoiceAt: Date
-      /**
-       * @description Type of the line. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'usage_based'
-      /**
-       * @deprecated
-       * @description Price of the usage-based item being sold.
-       */
-      price?: components['schemas']['RateCardUsageBasedPrice']
-      /**
-       * @deprecated
-       * @description The feature that the usage is based on.
-       */
-      featureKey?: string
-      /** @description The rate card that is used for this line.
-       *
-       *     The rate card captures the intent of the price and discounts for the usage-based item. */
-      rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
-      /**
-       * @description The ID of the line.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      id?: string
-    }
-    /** @description InvoiceUsageBasedLineCreateWithCustomer represents the create model for an invoice line that is sold to the customer based on usage. */
-    InvoiceUsageBasedPendingLineCreate: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
-      /**
-       * @deprecated
-       * @description Tax config specify the tax configuration for this line.
-       */
-      taxConfig?: components['schemas']['TaxConfig']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
-       *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
-      period: components['schemas']['Period']
-      /**
-       * Format: date-time
-       * @description The time this line item should be invoiced.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      invoiceAt: Date
-      /**
-       * @description Type of the line. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'usage_based'
-      /**
-       * @deprecated
-       * @description Price of the usage-based item being sold.
-       */
-      price?: components['schemas']['RateCardUsageBasedPrice']
-      /**
-       * @deprecated
-       * @description The feature that the usage is based on.
-       */
-      featureKey?: string
-      /** @description The rate card that is used for this line.
-       *
-       *     The rate card captures the intent of the price and discounts for the usage-based item. */
-      rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
-    }
     /** @description InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line. */
     InvoiceUsageBasedRateCard: {
       /**
@@ -7934,6 +7724,24 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
       /**
+       * Billing cadence
+       * Format: duration
+       * @description The default billing cadence for subscriptions using this plan.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description Default pro-rating configuration for subscriptions using this plan.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      proRatingConfig?: components['schemas']['ProRatingConfig']
+      /**
        * Effective start date
        * Format: date-time
        * @description The date and time when the plan becomes effective. When not specified, the plan is a draft.
@@ -8128,6 +7936,24 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
       /**
+       * Billing cadence
+       * Format: duration
+       * @description The default billing cadence for subscriptions using this plan.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description Default pro-rating configuration for subscriptions using this plan.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      proRatingConfig?: components['schemas']['ProRatingConfig']
+      /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
        *     A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
@@ -8232,6 +8058,24 @@ export interface components {
       metadata?: components['schemas']['Metadata'] | null
       /** @description Alignment configuration for the plan. */
       alignment?: components['schemas']['Alignment']
+      /**
+       * Billing cadence
+       * Format: duration
+       * @description The default billing cadence for subscriptions using this plan.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description Default pro-rating configuration for subscriptions using this plan.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      proRatingConfig?: components['schemas']['ProRatingConfig']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -8358,6 +8202,26 @@ export interface components {
        */
       unitPrice: components['schemas']['UnitPrice'] | null
     }
+    /** @description Configuration for pro-rating behavior. */
+    ProRatingConfig: {
+      /**
+       * Enable pro-rating
+       * @description Whether pro-rating is enabled for this plan.
+       * @default true
+       */
+      enabled: boolean
+      /**
+       * Pro-rating mode
+       * @description How to handle pro-rating for billing period changes.
+       * @default prorate_prices
+       */
+      mode: components['schemas']['ProRatingMode']
+    }
+    /**
+     * @description Pro-rating mode options for handling billing period changes.
+     * @enum {string}
+     */
+    ProRatingMode: 'prorate_prices'
     /** @description Progress describes a progress of a task. */
     Progress: {
       /**
@@ -9033,7 +8897,11 @@ export interface components {
       message?: string
     }
     /**
-     * @description A subject is a unique identifier for a user or entity.
+     * @description A subject is a unique identifier for a usage attribution by its key.
+     *     Subjects only exist in the concept of metering.
+     *     Subjects are optional to create and work as an enrichment for the subject key like displayName, metadata, etc.
+     *     Subjects are useful when you are reporting usage events with your own database ID but want to enrich the subject with a human-readable name or metadata.
+     *     For most use cases, a subject is equivalent to a customer.
      * @example {
      *       "id": "01G65Z755AFWAKHE12NY0CQ9FH",
      *       "key": "customer-id",
@@ -9041,8 +8909,6 @@ export interface components {
      *       "metadata": {
      *         "hubspotId": "123456"
      *       },
-     *       "currentPeriodStart": "2023-01-01T00:00:00Z",
-     *       "currentPeriodEnd": "2023-02-01T00:00:00Z",
      *       "stripeCustomerId": "cus_JMOlctsKV8"
      *     }
      */
@@ -9054,7 +8920,8 @@ export interface components {
       readonly id: string
       /**
        * @description A unique, human-readable identifier for the subject.
-       * @example customer-id
+       *     This is typically a database ID or a customer key.
+       * @example customer-db-id-123
        */
       key: string
       /**
@@ -9062,25 +8929,34 @@ export interface components {
        * @example Customer Name
        */
       displayName?: string | null
-      /** @example {
+      /**
+       * @description Metadata for the subject.
+       * @example {
        *       "hubspotId": "123456"
-       *     } */
+       *     }
+       */
       metadata?: {
         [key: string]: unknown
       } | null
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @deprecated
+       * @description The start of the current period for the subject.
        * @example 2023-01-01T00:00:00Z
        */
       currentPeriodStart?: Date
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @deprecated
+       * @description The end of the current period for the subject.
        * @example 2023-02-01T00:00:00Z
        */
       currentPeriodEnd?: Date
-      /** @example cus_JMOlctsKV8 */
+      /**
+       * @deprecated
+       * @description The Stripe customer ID for the subject.
+       * @example cus_JMOlctsKV8
+       */
       stripeCustomerId?: string | null
     }
     /**
@@ -9091,15 +8967,14 @@ export interface components {
      *       "metadata": {
      *         "hubspotId": "123456"
      *       },
-     *       "currentPeriodStart": "2023-01-01T00:00:00Z",
-     *       "currentPeriodEnd": "2023-02-01T00:00:00Z",
      *       "stripeCustomerId": "cus_JMOlctsKV8"
      *     }
      */
     SubjectUpsert: {
       /**
        * @description A unique, human-readable identifier for the subject.
-       * @example customer-id
+       *     This is typically a database ID or a customer key.
+       * @example customer-db-id-123
        */
       key: string
       /**
@@ -9107,25 +8982,34 @@ export interface components {
        * @example Customer Name
        */
       displayName?: string | null
-      /** @example {
+      /**
+       * @description Metadata for the subject.
+       * @example {
        *       "hubspotId": "123456"
-       *     } */
+       *     }
+       */
       metadata?: {
         [key: string]: unknown
       } | null
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @deprecated
+       * @description The start of the current period for the subject.
        * @example 2023-01-01T00:00:00Z
        */
       currentPeriodStart?: Date
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @deprecated
+       * @description The end of the current period for the subject.
        * @example 2023-02-01T00:00:00Z
        */
       currentPeriodEnd?: Date
-      /** @example cus_JMOlctsKV8 */
+      /**
+       * @deprecated
+       * @description The Stripe customer ID for the subject.
+       * @example cus_JMOlctsKV8
+       */
       stripeCustomerId?: string | null
     }
     /** @description Subscription is an exact subscription instance. */
@@ -9202,6 +9086,24 @@ export interface components {
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
+      /**
+       * Billing cadence
+       * Format: duration
+       * @description The billing cadence for the subscriptions.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      readonly billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description The pro-rating configuration for the subscriptions.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      readonly proRatingConfig?: components['schemas']['ProRatingConfig']
     }
     /** @description A subscription add-on, represents concrete instances of an add-on for a given subscription. */
     SubscriptionAddon: {
@@ -9553,6 +9455,24 @@ export interface components {
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
+      /**
+       * Billing cadence
+       * Format: duration
+       * @description The billing cadence for the subscriptions.
+       *     Defines how often customers are billed using ISO8601 duration format.
+       *     Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+       * @example P1M
+       */
+      readonly billingCadence: string
+      /**
+       * Pro-rating configuration
+       * @description The pro-rating configuration for the subscriptions.
+       * @default {
+       *       "enabled": true,
+       *       "mode": "prorate_prices"
+       *     }
+       */
+      readonly proRatingConfig?: components['schemas']['ProRatingConfig']
       /** @description Alignment details enriched with the current billing period. */
       alignment?: components['schemas']['SubscriptionAlignment']
       /** @description The phases of the subscription. */
@@ -10578,19 +10498,15 @@ export type InvoiceAvailableActionInvoiceDetails =
   components['schemas']['InvoiceAvailableActionInvoiceDetails']
 export type InvoiceAvailableActions =
   components['schemas']['InvoiceAvailableActions']
+export type InvoiceDetailedLine = components['schemas']['InvoiceDetailedLine']
+export type InvoiceDetailedLineCostCategory =
+  components['schemas']['InvoiceDetailedLineCostCategory']
+export type InvoiceDetailedLineRateCard =
+  components['schemas']['InvoiceDetailedLineRateCard']
 export type InvoiceDocumentRef = components['schemas']['InvoiceDocumentRef']
 export type InvoiceDocumentRefType =
   components['schemas']['InvoiceDocumentRefType']
 export type InvoiceExpand = components['schemas']['InvoiceExpand']
-export type InvoiceFlatFeeCategory =
-  components['schemas']['InvoiceFlatFeeCategory']
-export type InvoiceFlatFeeLine = components['schemas']['InvoiceFlatFeeLine']
-export type InvoiceFlatFeeLineReplaceUpdate =
-  components['schemas']['InvoiceFlatFeeLineReplaceUpdate']
-export type InvoiceFlatFeePendingLineCreate =
-  components['schemas']['InvoiceFlatFeePendingLineCreate']
-export type InvoiceFlatFeeRateCard =
-  components['schemas']['InvoiceFlatFeeRateCard']
 export type InvoiceGenericDocumentRef =
   components['schemas']['InvoiceGenericDocumentRef']
 export type InvoiceLine = components['schemas']['InvoiceLine']
@@ -10627,24 +10543,14 @@ export type InvoicePendingLinesActionInput =
   components['schemas']['InvoicePendingLinesActionInput']
 export type InvoiceReference = components['schemas']['InvoiceReference']
 export type InvoiceReplaceUpdate = components['schemas']['InvoiceReplaceUpdate']
-export type InvoiceSimulationFlatFeeLine =
-  components['schemas']['InvoiceSimulationFlatFeeLine']
 export type InvoiceSimulationInput =
   components['schemas']['InvoiceSimulationInput']
 export type InvoiceSimulationLine =
   components['schemas']['InvoiceSimulationLine']
-export type InvoiceSimulationUsageBasedLine =
-  components['schemas']['InvoiceSimulationUsageBasedLine']
 export type InvoiceStatus = components['schemas']['InvoiceStatus']
 export type InvoiceStatusDetails = components['schemas']['InvoiceStatusDetails']
 export type InvoiceTotals = components['schemas']['InvoiceTotals']
 export type InvoiceType = components['schemas']['InvoiceType']
-export type InvoiceUsageBasedLine =
-  components['schemas']['InvoiceUsageBasedLine']
-export type InvoiceUsageBasedLineReplaceUpdate =
-  components['schemas']['InvoiceUsageBasedLineReplaceUpdate']
-export type InvoiceUsageBasedPendingLineCreate =
-  components['schemas']['InvoiceUsageBasedPendingLineCreate']
 export type InvoiceUsageBasedRateCard =
   components['schemas']['InvoiceUsageBasedRateCard']
 export type InvoiceWorkflowInvoicingSettingsReplaceUpdate =
@@ -10784,6 +10690,8 @@ export type PreconditionFailedProblemResponse =
   components['schemas']['PreconditionFailedProblemResponse']
 export type PricePaymentTerm = components['schemas']['PricePaymentTerm']
 export type PriceTier = components['schemas']['PriceTier']
+export type ProRatingConfig = components['schemas']['ProRatingConfig']
+export type ProRatingMode = components['schemas']['ProRatingMode']
 export type Progress = components['schemas']['Progress']
 export type RateCard = components['schemas']['RateCard']
 export type RateCardBooleanEntitlement =

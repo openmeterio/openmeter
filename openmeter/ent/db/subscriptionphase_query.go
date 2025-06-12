@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -23,14 +24,15 @@ import (
 // SubscriptionPhaseQuery is the builder for querying SubscriptionPhase entities.
 type SubscriptionPhaseQuery struct {
 	config
-	ctx              *QueryContext
-	order            []subscriptionphase.OrderOption
-	inters           []Interceptor
-	predicates       []predicate.SubscriptionPhase
-	withSubscription *SubscriptionQuery
-	withItems        *SubscriptionItemQuery
-	withBillingLines *BillingInvoiceLineQuery
-	modifiers        []func(*sql.Selector)
+	ctx                        *QueryContext
+	order                      []subscriptionphase.OrderOption
+	inters                     []Interceptor
+	predicates                 []predicate.SubscriptionPhase
+	withSubscription           *SubscriptionQuery
+	withItems                  *SubscriptionItemQuery
+	withBillingLines           *BillingInvoiceLineQuery
+	withBillingSplitLineGroups *BillingInvoiceSplitLineGroupQuery
+	modifiers                  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -126,6 +128,28 @@ func (_q *SubscriptionPhaseQuery) QueryBillingLines() *BillingInvoiceLineQuery {
 			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.BillingLinesTable, subscriptionphase.BillingLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingSplitLineGroups chains the current query on the "billing_split_line_groups" edge.
+func (_q *SubscriptionPhaseQuery) QueryBillingSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, selector),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.BillingSplitLineGroupsTable, subscriptionphase.BillingSplitLineGroupsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -320,14 +344,15 @@ func (_q *SubscriptionPhaseQuery) Clone() *SubscriptionPhaseQuery {
 		return nil
 	}
 	return &SubscriptionPhaseQuery{
-		config:           _q.config,
-		ctx:              _q.ctx.Clone(),
-		order:            append([]subscriptionphase.OrderOption{}, _q.order...),
-		inters:           append([]Interceptor{}, _q.inters...),
-		predicates:       append([]predicate.SubscriptionPhase{}, _q.predicates...),
-		withSubscription: _q.withSubscription.Clone(),
-		withItems:        _q.withItems.Clone(),
-		withBillingLines: _q.withBillingLines.Clone(),
+		config:                     _q.config,
+		ctx:                        _q.ctx.Clone(),
+		order:                      append([]subscriptionphase.OrderOption{}, _q.order...),
+		inters:                     append([]Interceptor{}, _q.inters...),
+		predicates:                 append([]predicate.SubscriptionPhase{}, _q.predicates...),
+		withSubscription:           _q.withSubscription.Clone(),
+		withItems:                  _q.withItems.Clone(),
+		withBillingLines:           _q.withBillingLines.Clone(),
+		withBillingSplitLineGroups: _q.withBillingSplitLineGroups.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -364,6 +389,17 @@ func (_q *SubscriptionPhaseQuery) WithBillingLines(opts ...func(*BillingInvoiceL
 		opt(query)
 	}
 	_q.withBillingLines = query
+	return _q
+}
+
+// WithBillingSplitLineGroups tells the query-builder to eager-load the nodes that are connected to
+// the "billing_split_line_groups" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SubscriptionPhaseQuery) WithBillingSplitLineGroups(opts ...func(*BillingInvoiceSplitLineGroupQuery)) *SubscriptionPhaseQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingSplitLineGroups = query
 	return _q
 }
 
@@ -445,10 +481,11 @@ func (_q *SubscriptionPhaseQuery) sqlAll(ctx context.Context, hooks ...queryHook
 	var (
 		nodes       = []*SubscriptionPhase{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			_q.withSubscription != nil,
 			_q.withItems != nil,
 			_q.withBillingLines != nil,
+			_q.withBillingSplitLineGroups != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -490,6 +527,15 @@ func (_q *SubscriptionPhaseQuery) sqlAll(ctx context.Context, hooks ...queryHook
 			func(n *SubscriptionPhase) { n.Edges.BillingLines = []*BillingInvoiceLine{} },
 			func(n *SubscriptionPhase, e *BillingInvoiceLine) {
 				n.Edges.BillingLines = append(n.Edges.BillingLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingSplitLineGroups; query != nil {
+		if err := _q.loadBillingSplitLineGroups(ctx, query, nodes,
+			func(n *SubscriptionPhase) { n.Edges.BillingSplitLineGroups = []*BillingInvoiceSplitLineGroup{} },
+			func(n *SubscriptionPhase, e *BillingInvoiceSplitLineGroup) {
+				n.Edges.BillingSplitLineGroups = append(n.Edges.BillingSplitLineGroups, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -572,6 +618,39 @@ func (_q *SubscriptionPhaseQuery) loadBillingLines(ctx context.Context, query *B
 	}
 	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(subscriptionphase.BillingLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SubscriptionPhaseID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "subscription_phase_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "subscription_phase_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *SubscriptionPhaseQuery) loadBillingSplitLineGroups(ctx context.Context, query *BillingInvoiceSplitLineGroupQuery, nodes []*SubscriptionPhase, init func(*SubscriptionPhase), assign func(*SubscriptionPhase, *BillingInvoiceSplitLineGroup)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*SubscriptionPhase)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoicesplitlinegroup.FieldSubscriptionPhaseID)
+	}
+	query.Where(predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscriptionphase.BillingSplitLineGroupsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

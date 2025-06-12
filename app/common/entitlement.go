@@ -13,6 +13,7 @@ import (
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
 var Entitlement = wire.NewSet(
@@ -27,6 +28,7 @@ func NewEntitlementRegistry(
 	streamingConnector streaming.Connector,
 	meterService meter.Service,
 	eventPublisher eventbus.Publisher,
+	locker *lockr.Locker,
 ) *registry.Entitlement {
 	return registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:            db,
@@ -36,5 +38,6 @@ func NewEntitlementRegistry(
 		Publisher:                 eventPublisher,
 		EntitlementsConfiguration: entitlementConfig,
 		Tracer:                    tracer,
+		Locker:                    locker,
 	})
 }

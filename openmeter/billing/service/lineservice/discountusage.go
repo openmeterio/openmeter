@@ -38,7 +38,7 @@ func (m *discountUsageMutator) Mutate(l PricerCalculateInput) (PricerCalculateIn
 	}
 
 	discountBeforeLineUsedQty := alpacadecimal.Zero
-	if l.line.ParentLineID != nil {
+	if l.line.SplitLineGroupID != nil {
 		usedQty, err := m.calculateUsedQtyByCorrelationID(l.line, usageDiscount.UsageDiscount.CorrelationID)
 		if err != nil {
 			return l, err
@@ -127,15 +127,15 @@ func (m *discountUsageMutator) getUsageDiscount(l PricerCalculateInput) (*usageD
 // by checking the UBP line's discounts. This works because usage discounts are presisted to the UBP line's discounts
 // as they are affecting all the detailed lines.
 func (m *discountUsageMutator) calculateUsedQtyByCorrelationID(l *billing.Line, correlationID string) (alpacadecimal.Decimal, error) {
-	if l.ProgressiveLineHierarchy == nil {
+	if l.SplitLineHierarchy == nil {
 		return alpacadecimal.Zero, errors.New("no line hierarchy is available for a progressive billed line")
 	}
 
 	usedQty := alpacadecimal.Zero
 
-	err := l.ProgressiveLineHierarchy.ForEachChild(billing.ForEachChildInput{
+	err := l.SplitLineHierarchy.ForEachChild(billing.ForEachChildInput{
 		PeriodEndLTE: l.Period.Start,
-		Callback: func(child billing.InvoiceLineWithInvoiceBase) error {
+		Callback: func(child billing.LineWithInvoiceHeader) error {
 			for _, usageDiscount := range child.Line.Discounts.Usage {
 				// Validate that the discount is coming from this mutator by ensuring that what we set
 				// above is available here.

@@ -165,8 +165,8 @@ func (c RateCards) AsProductCatalogRateCards() productcatalog.RateCards {
 	return rcs
 }
 
-func (c RateCards) BillingCadenceAligned() bool {
-	return c.AsProductCatalogRateCards().BillingCadenceAligned()
+func (c RateCards) SingleBillingCadence() bool {
+	return c.AsProductCatalogRateCards().SingleBillingCadence()
 }
 
 func (c RateCards) Equal(v RateCards) bool {

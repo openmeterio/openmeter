@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -36,14 +37,6 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 
 	// Validate for missing functionality (this is put here, as we should remove them from here,
 	// once we have the functionality)
-
-	// TODO[OM-1015]: Updating split line's children is not supported (yet)
-	for _, line := range inputIn.Lines {
-		if line.Status == billing.InvoiceLineStatusSplit &&
-			line.Children.IsPresent() {
-			return nil, fmt.Errorf("updating split line's detailed lines is not supported")
-		}
-	}
 
 	input := &billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: inputIn.Namespace,
@@ -84,6 +77,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetPeriodStart(line.Period.Start.In(time.UTC)).
 					SetPeriodEnd(line.Period.End.In(time.UTC)).
 					SetNillableParentLineID(line.ParentLineID).
+					SetNillableSplitLineGroupID(line.SplitLineGroupID).
 					SetNillableDeletedAt(line.DeletedAt).
 					SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
 					SetStatus(line.Status).
@@ -144,7 +138,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						sql.ResolveWith(func(u *sql.UpdateSet) {
 							u.SetIgnore(billinginvoiceline.FieldCreatedAt)
 						})).
+					// TODO[OM-1416]: all nillable fileds must be listed explicitly
 					UpdateQuantity().
+					UpdateChildUniqueReferenceID().
 					Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, line *billing.Line) (*billing.Line, error) {
@@ -512,7 +508,7 @@ func (a *adapter) fetchLines(ctx context.Context, ns string, lineIDs []string) (
 	}
 
 	// Let's expand the line hierarchy so that we can have a full view of the invoice during the upcoming calculations
-	linesWithHierarchy, err := a.expandProgressiveLineHierarchy(ctx, ns, lines)
+	linesWithHierarchy, err := a.expandSplitLineHierarchy(ctx, ns, lines)
 	if err != nil {
 		return nil, err
 	}
@@ -520,14 +516,14 @@ func (a *adapter) fetchLines(ctx context.Context, ns string, lineIDs []string) (
 	return linesWithHierarchy, nil
 }
 
-func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) ([]*billing.Line, error) {
+func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
 	if err := in.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]*billing.Line, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]billing.LineOrHierarchy, error) {
 		query := tx.db.BillingInvoiceLine.Query().
 			Where(billinginvoiceline.Namespace(in.Namespace)).
 			Where(billinginvoiceline.SubscriptionID(in.SubscriptionID)).
@@ -540,9 +536,97 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			return nil, fmt.Errorf("fetching lines: %w", err)
 		}
 
-		return tx.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
+		lines, err := tx.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
 			lines:          dbLines,
 			includeDeleted: true,
 		})
+		if err != nil {
+			return nil, fmt.Errorf("mapping lines: %w", err)
+		}
+
+		dbGroups, err := tx.db.BillingInvoiceSplitLineGroup.Query().
+			Where(billinginvoicesplitlinegroup.Namespace(in.Namespace)).
+			Where(billinginvoicesplitlinegroup.SubscriptionID(in.SubscriptionID)).
+			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+				tx.expandLineItems(q)
+				q.WithBillingInvoice()
+			}).All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching split line groups: %w", err)
+		}
+
+		groups, err := slicesx.MapWithErr(dbGroups, func(dbGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineHierarchy, error) {
+			group, err := tx.mapSplitLineGroupFromDB(dbGroup)
+			if err != nil {
+				return billing.SplitLineHierarchy{}, err
+			}
+
+			lines, err := slicesx.MapWithErr(dbGroup.Edges.BillingInvoiceLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+				line, err := tx.mapInvoiceLineWithoutReferences(dbLine)
+				if err != nil {
+					return billing.LineWithInvoiceHeader{}, err
+				}
+
+				return billing.LineWithInvoiceHeader{
+					Line:    &line,
+					Invoice: tx.mapInvoiceBaseFromDB(ctx, dbLine.Edges.BillingInvoice),
+				}, nil
+			})
+			if err != nil {
+				return billing.SplitLineHierarchy{}, err
+			}
+
+			return billing.SplitLineHierarchy{
+				Group: group,
+				Lines: lines,
+			}, nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("mapping groups: %w", err)
+		}
+
+		// Sanity check: let's make sure that there are no items with overlapping childUniqueReferenceID
+		groupUniqueReferenceIDs := lo.Map(
+			lo.Filter(
+				groups,
+				func(group billing.SplitLineHierarchy, _ int) bool {
+					return group.Group.UniqueReferenceID != nil
+				},
+			),
+			func(group billing.SplitLineHierarchy, _ int) string {
+				return lo.FromPtr(group.Group.UniqueReferenceID)
+			},
+		)
+
+		lineChildUniqueReferenceIDs := lo.Map(
+			lo.Filter( // Lines can have a nil childUniqueReferenceID, when they are part of a split line group (e.g. the group has the unique reference id)
+				lines,
+				func(line *billing.Line, _ int) bool {
+					return line.ChildUniqueReferenceID != nil
+				},
+			),
+			func(line *billing.Line, _ int) string {
+				return lo.FromPtr(line.ChildUniqueReferenceID)
+			},
+		)
+
+		overlappingChildUniqueReferenceIDs := lo.Intersect(groupUniqueReferenceIDs, lineChildUniqueReferenceIDs)
+
+		if len(overlappingChildUniqueReferenceIDs) > 0 {
+			return nil, fmt.Errorf("overlapping childUniqueReferenceID: %v", overlappingChildUniqueReferenceIDs)
+		}
+
+		// Let's map to the union type
+		out := make([]billing.LineOrHierarchy, 0, len(groups)+len(lines))
+
+		out = append(out, lo.Map(groups, func(h billing.SplitLineHierarchy, _ int) billing.LineOrHierarchy {
+			return billing.NewLineOrHierarchy(&h)
+		})...)
+
+		out = append(out, lo.Map(lines, func(line *billing.Line, _ int) billing.LineOrHierarchy {
+			return billing.NewLineOrHierarchy(line)
+		})...)
+
+		return out, nil
 	})
 }

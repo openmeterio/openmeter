@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -20,11 +21,16 @@ func NewTestPlan(t *testing.T, namespace string, phases ...productcatalog.Phase)
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Key:         "test",
-				Name:        "Test",
-				Description: lo.ToPtr("Test plan"),
-				Metadata:    models.Metadata{"name": "test"},
-				Currency:    currency.USD,
+				Key:            "test",
+				Name:           "Test",
+				Description:    lo.ToPtr("Test plan"),
+				Metadata:       models.Metadata{"name": "test"},
+				Currency:       currency.USD,
+				BillingCadence: isodate.MustParse(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: phases,
 		},

@@ -222,7 +222,6 @@ type InvoiceExpand struct {
 
 	Lines        bool
 	DeletedLines bool
-	SplitLines   bool
 
 	// RecalculateGatheringInvoice is used to calculate the totals and status details of the invoice when gathering,
 	// this is temporary until we implement the full progressive billing stack, including gathering invoice recalculations.
@@ -233,7 +232,6 @@ var InvoiceExpandAll = InvoiceExpand{
 	Preceding:    true,
 	Lines:        true,
 	DeletedLines: false,
-	SplitLines:   false,
 }
 
 func (e InvoiceExpand) Validate() error {
@@ -247,11 +245,6 @@ func (e InvoiceExpand) SetLines(v bool) InvoiceExpand {
 
 func (e InvoiceExpand) SetDeletedLines(v bool) InvoiceExpand {
 	e.DeletedLines = v
-	return e
-}
-
-func (e InvoiceExpand) SetSplitLines(v bool) InvoiceExpand {
-	e.SplitLines = v
 	return e
 }
 

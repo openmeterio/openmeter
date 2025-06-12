@@ -98,6 +98,12 @@ func Description(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldDescription, v))
 }
 
+// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
+func Currency(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldCurrency, vc))
+}
+
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
 func Amount(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldAmount, v))
@@ -133,16 +139,6 @@ func Total(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldTotal, v))
 }
 
-// InvoiceID applies equality check predicate on the "invoice_id" field. It's identical to InvoiceIDEQ.
-func InvoiceID(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoiceID, v))
-}
-
-// ParentLineID applies equality check predicate on the "parent_line_id" field. It's identical to ParentLineIDEQ.
-func ParentLineID(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldParentLineID, v))
-}
-
 // PeriodStart applies equality check predicate on the "period_start" field. It's identical to PeriodStartEQ.
 func PeriodStart(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
@@ -153,15 +149,19 @@ func PeriodEnd(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodEnd, v))
 }
 
+// InvoiceID applies equality check predicate on the "invoice_id" field. It's identical to InvoiceIDEQ.
+func InvoiceID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoiceID, v))
+}
+
+// ParentLineID applies equality check predicate on the "parent_line_id" field. It's identical to ParentLineIDEQ.
+func ParentLineID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldParentLineID, v))
+}
+
 // InvoiceAt applies equality check predicate on the "invoice_at" field. It's identical to InvoiceAtEQ.
 func InvoiceAt(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoiceAt, v))
-}
-
-// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldCurrency, vc))
 }
 
 // Quantity applies equality check predicate on the "quantity" field. It's identical to QuantityEQ.
@@ -192,6 +192,11 @@ func SubscriptionPhaseID(v string) predicate.BillingInvoiceLine {
 // SubscriptionItemID applies equality check predicate on the "subscription_item_id" field. It's identical to SubscriptionItemIDEQ.
 func SubscriptionItemID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSubscriptionItemID, v))
+}
+
+// SplitLineGroupID applies equality check predicate on the "split_line_group_id" field. It's identical to SplitLineGroupIDEQ.
+func SplitLineGroupID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSplitLineGroupID, v))
 }
 
 // LineIds applies equality check predicate on the "line_ids" field. It's identical to LineIdsEQ.
@@ -544,6 +549,100 @@ func DescriptionContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldDescription, v))
 }
 
+// CurrencyEQ applies the EQ predicate on the "currency" field.
+func CurrencyEQ(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldCurrency, vc))
+}
+
+// CurrencyNEQ applies the NEQ predicate on the "currency" field.
+func CurrencyNEQ(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldCurrency, vc))
+}
+
+// CurrencyIn applies the In predicate on the "currency" field.
+func CurrencyIn(vs ...currencyx.Code) predicate.BillingInvoiceLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldCurrency, v...))
+}
+
+// CurrencyNotIn applies the NotIn predicate on the "currency" field.
+func CurrencyNotIn(vs ...currencyx.Code) predicate.BillingInvoiceLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldCurrency, v...))
+}
+
+// CurrencyGT applies the GT predicate on the "currency" field.
+func CurrencyGT(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldCurrency, vc))
+}
+
+// CurrencyGTE applies the GTE predicate on the "currency" field.
+func CurrencyGTE(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldCurrency, vc))
+}
+
+// CurrencyLT applies the LT predicate on the "currency" field.
+func CurrencyLT(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldCurrency, vc))
+}
+
+// CurrencyLTE applies the LTE predicate on the "currency" field.
+func CurrencyLTE(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldCurrency, vc))
+}
+
+// CurrencyContains applies the Contains predicate on the "currency" field.
+func CurrencyContains(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldCurrency, vc))
+}
+
+// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
+func CurrencyHasPrefix(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldCurrency, vc))
+}
+
+// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
+func CurrencyHasSuffix(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldCurrency, vc))
+}
+
+// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
+func CurrencyEqualFold(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldCurrency, vc))
+}
+
+// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
+func CurrencyContainsFold(v currencyx.Code) predicate.BillingInvoiceLine {
+	vc := string(v)
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// TaxConfigIsNil applies the IsNil predicate on the "tax_config" field.
+func TaxConfigIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldTaxConfig))
+}
+
+// TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
+func TaxConfigNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldTaxConfig))
+}
+
 // AmountEQ applies the EQ predicate on the "amount" field.
 func AmountEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldAmount, v))
@@ -824,6 +923,86 @@ func TotalLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldTotal, v))
 }
 
+// PeriodStartEQ applies the EQ predicate on the "period_start" field.
+func PeriodStartEQ(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
+}
+
+// PeriodStartNEQ applies the NEQ predicate on the "period_start" field.
+func PeriodStartNEQ(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldPeriodStart, v))
+}
+
+// PeriodStartIn applies the In predicate on the "period_start" field.
+func PeriodStartIn(vs ...time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldPeriodStart, vs...))
+}
+
+// PeriodStartNotIn applies the NotIn predicate on the "period_start" field.
+func PeriodStartNotIn(vs ...time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldPeriodStart, vs...))
+}
+
+// PeriodStartGT applies the GT predicate on the "period_start" field.
+func PeriodStartGT(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldPeriodStart, v))
+}
+
+// PeriodStartGTE applies the GTE predicate on the "period_start" field.
+func PeriodStartGTE(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldPeriodStart, v))
+}
+
+// PeriodStartLT applies the LT predicate on the "period_start" field.
+func PeriodStartLT(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldPeriodStart, v))
+}
+
+// PeriodStartLTE applies the LTE predicate on the "period_start" field.
+func PeriodStartLTE(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldPeriodStart, v))
+}
+
+// PeriodEndEQ applies the EQ predicate on the "period_end" field.
+func PeriodEndEQ(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodEnd, v))
+}
+
+// PeriodEndNEQ applies the NEQ predicate on the "period_end" field.
+func PeriodEndNEQ(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldPeriodEnd, v))
+}
+
+// PeriodEndIn applies the In predicate on the "period_end" field.
+func PeriodEndIn(vs ...time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldPeriodEnd, vs...))
+}
+
+// PeriodEndNotIn applies the NotIn predicate on the "period_end" field.
+func PeriodEndNotIn(vs ...time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldPeriodEnd, vs...))
+}
+
+// PeriodEndGT applies the GT predicate on the "period_end" field.
+func PeriodEndGT(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldPeriodEnd, v))
+}
+
+// PeriodEndGTE applies the GTE predicate on the "period_end" field.
+func PeriodEndGTE(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldPeriodEnd, v))
+}
+
+// PeriodEndLT applies the LT predicate on the "period_end" field.
+func PeriodEndLT(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldPeriodEnd, v))
+}
+
+// PeriodEndLTE applies the LTE predicate on the "period_end" field.
+func PeriodEndLTE(v time.Time) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldPeriodEnd, v))
+}
+
 // InvoiceIDEQ applies the EQ predicate on the "invoice_id" field.
 func InvoiceIDEQ(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoiceID, v))
@@ -994,86 +1173,6 @@ func ParentLineIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldParentLineID, v))
 }
 
-// PeriodStartEQ applies the EQ predicate on the "period_start" field.
-func PeriodStartEQ(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodStart, v))
-}
-
-// PeriodStartNEQ applies the NEQ predicate on the "period_start" field.
-func PeriodStartNEQ(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldPeriodStart, v))
-}
-
-// PeriodStartIn applies the In predicate on the "period_start" field.
-func PeriodStartIn(vs ...time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldPeriodStart, vs...))
-}
-
-// PeriodStartNotIn applies the NotIn predicate on the "period_start" field.
-func PeriodStartNotIn(vs ...time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldPeriodStart, vs...))
-}
-
-// PeriodStartGT applies the GT predicate on the "period_start" field.
-func PeriodStartGT(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGT(FieldPeriodStart, v))
-}
-
-// PeriodStartGTE applies the GTE predicate on the "period_start" field.
-func PeriodStartGTE(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldPeriodStart, v))
-}
-
-// PeriodStartLT applies the LT predicate on the "period_start" field.
-func PeriodStartLT(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLT(FieldPeriodStart, v))
-}
-
-// PeriodStartLTE applies the LTE predicate on the "period_start" field.
-func PeriodStartLTE(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldPeriodStart, v))
-}
-
-// PeriodEndEQ applies the EQ predicate on the "period_end" field.
-func PeriodEndEQ(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldPeriodEnd, v))
-}
-
-// PeriodEndNEQ applies the NEQ predicate on the "period_end" field.
-func PeriodEndNEQ(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldPeriodEnd, v))
-}
-
-// PeriodEndIn applies the In predicate on the "period_end" field.
-func PeriodEndIn(vs ...time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldPeriodEnd, vs...))
-}
-
-// PeriodEndNotIn applies the NotIn predicate on the "period_end" field.
-func PeriodEndNotIn(vs ...time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldPeriodEnd, vs...))
-}
-
-// PeriodEndGT applies the GT predicate on the "period_end" field.
-func PeriodEndGT(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGT(FieldPeriodEnd, v))
-}
-
-// PeriodEndGTE applies the GTE predicate on the "period_end" field.
-func PeriodEndGTE(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldPeriodEnd, v))
-}
-
-// PeriodEndLT applies the LT predicate on the "period_end" field.
-func PeriodEndLT(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLT(FieldPeriodEnd, v))
-}
-
-// PeriodEndLTE applies the LTE predicate on the "period_end" field.
-func PeriodEndLTE(v time.Time) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldPeriodEnd, v))
-}
-
 // InvoiceAtEQ applies the EQ predicate on the "invoice_at" field.
 func InvoiceAtEQ(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoiceAt, v))
@@ -1174,90 +1273,6 @@ func StatusNotIn(vs ...billing.InvoiceLineStatus) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldStatus, v...))
 }
 
-// CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldCurrency, vc))
-}
-
-// CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldCurrency, vc))
-}
-
-// CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...currencyx.Code) predicate.BillingInvoiceLine {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldCurrency, v...))
-}
-
-// CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...currencyx.Code) predicate.BillingInvoiceLine {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldCurrency, v...))
-}
-
-// CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldGT(FieldCurrency, vc))
-}
-
-// CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldCurrency, vc))
-}
-
-// CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldLT(FieldCurrency, vc))
-}
-
-// CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldCurrency, vc))
-}
-
-// CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldContains(FieldCurrency, vc))
-}
-
-// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldCurrency, vc))
-}
-
-// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldCurrency, vc))
-}
-
-// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldCurrency, vc))
-}
-
-// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v currencyx.Code) predicate.BillingInvoiceLine {
-	vc := string(v)
-	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldCurrency, vc))
-}
-
 // QuantityEQ applies the EQ predicate on the "quantity" field.
 func QuantityEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldQuantity, v))
@@ -1306,16 +1321,6 @@ func QuantityIsNil() predicate.BillingInvoiceLine {
 // QuantityNotNil applies the NotNil predicate on the "quantity" field.
 func QuantityNotNil() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldQuantity))
-}
-
-// TaxConfigIsNil applies the IsNil predicate on the "tax_config" field.
-func TaxConfigIsNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldTaxConfig))
-}
-
-// TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
-func TaxConfigNotNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldTaxConfig))
 }
 
 // RatecardDiscountsIsNil applies the IsNil predicate on the "ratecard_discounts" field.
@@ -1703,6 +1708,81 @@ func SubscriptionItemIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldSubscriptionItemID, v))
 }
 
+// SplitLineGroupIDEQ applies the EQ predicate on the "split_line_group_id" field.
+func SplitLineGroupIDEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDNEQ applies the NEQ predicate on the "split_line_group_id" field.
+func SplitLineGroupIDNEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDIn applies the In predicate on the "split_line_group_id" field.
+func SplitLineGroupIDIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldSplitLineGroupID, vs...))
+}
+
+// SplitLineGroupIDNotIn applies the NotIn predicate on the "split_line_group_id" field.
+func SplitLineGroupIDNotIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldSplitLineGroupID, vs...))
+}
+
+// SplitLineGroupIDGT applies the GT predicate on the "split_line_group_id" field.
+func SplitLineGroupIDGT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDGTE applies the GTE predicate on the "split_line_group_id" field.
+func SplitLineGroupIDGTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDLT applies the LT predicate on the "split_line_group_id" field.
+func SplitLineGroupIDLT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDLTE applies the LTE predicate on the "split_line_group_id" field.
+func SplitLineGroupIDLTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDContains applies the Contains predicate on the "split_line_group_id" field.
+func SplitLineGroupIDContains(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDHasPrefix applies the HasPrefix predicate on the "split_line_group_id" field.
+func SplitLineGroupIDHasPrefix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDHasSuffix applies the HasSuffix predicate on the "split_line_group_id" field.
+func SplitLineGroupIDHasSuffix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDIsNil applies the IsNil predicate on the "split_line_group_id" field.
+func SplitLineGroupIDIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldSplitLineGroupID))
+}
+
+// SplitLineGroupIDNotNil applies the NotNil predicate on the "split_line_group_id" field.
+func SplitLineGroupIDNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldSplitLineGroupID))
+}
+
+// SplitLineGroupIDEqualFold applies the EqualFold predicate on the "split_line_group_id" field.
+func SplitLineGroupIDEqualFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldSplitLineGroupID, v))
+}
+
+// SplitLineGroupIDContainsFold applies the ContainsFold predicate on the "split_line_group_id" field.
+func SplitLineGroupIDContainsFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldSplitLineGroupID, v))
+}
+
 // LineIdsEQ applies the EQ predicate on the "line_ids" field.
 func LineIdsEQ(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldLineIds, v))
@@ -1793,6 +1873,29 @@ func HasBillingInvoice() predicate.BillingInvoiceLine {
 func HasBillingInvoiceWith(preds ...predicate.BillingInvoice) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		step := newBillingInvoiceStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSplitLineGroup applies the HasEdge predicate on the "split_line_group" edge.
+func HasSplitLineGroup() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SplitLineGroupTable, SplitLineGroupColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSplitLineGroupWith applies the HasEdge predicate on the "split_line_group" edge with a given conditions (other predicates).
+func HasSplitLineGroupWith(preds ...predicate.BillingInvoiceSplitLineGroup) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newSplitLineGroupStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

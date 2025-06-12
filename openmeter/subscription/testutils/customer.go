@@ -7,6 +7,7 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -19,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -65,6 +67,11 @@ func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 		t.Fatalf("failed to create meter adapter: %v", err)
 	}
 
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: testutils.NewLogger(t),
+	})
+	require.NoError(t, err)
+
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbDeps.DBClient,
 		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
@@ -74,6 +81,7 @@ func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: isodate.String("P1D"),
 		},
+		Locker: locker,
 	})
 
 	customerAdapter := NewCustomerAdapter(t, dbDeps)

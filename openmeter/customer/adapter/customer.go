@@ -171,6 +171,10 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 					query = query.SetKey(*input.Key)
 				}
 
+				if input.Metadata != nil {
+					query = query.SetMetadata(input.Metadata.ToMap())
+				}
+
 				if input.BillingAddress != nil {
 					query = query.
 						SetNillableBillingAddressCity(input.BillingAddress.City).
@@ -413,6 +417,13 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 					SetNillablePrimaryEmail(input.PrimaryEmail).
 					SetNillableCurrency(input.Currency).
 					SetOrClearKey(input.Key)
+
+				// Replace metadata
+				if input.Metadata != nil {
+					query = query.SetMetadata(input.Metadata.ToMap())
+				} else {
+					query = query.ClearMetadata()
+				}
 
 				if input.BillingAddress != nil {
 					query = query.

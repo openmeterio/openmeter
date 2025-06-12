@@ -30,6 +30,7 @@ import (
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
@@ -91,6 +92,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create meter adapter: %w", err)
 	}
 
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: logger,
+	})
+	require.NoError(t, err)
+
 	// Entitlement
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     entClient,
@@ -101,6 +107,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: isodate.String("P1D"),
 		},
+		Locker: locker,
 	})
 
 	// Customer
@@ -235,6 +242,11 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	require.NoError(t, err)
 	require.NotNil(t, meterAdapter)
 
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
 	// Entitlement
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     in.DBClient,
@@ -245,6 +257,7 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: isodate.String("P1D"),
 		},
+		Locker: locker,
 	})
 
 	// Feature

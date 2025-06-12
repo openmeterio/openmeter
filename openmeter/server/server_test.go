@@ -50,6 +50,7 @@ import (
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -318,8 +319,8 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusOK,
 				body: strings.Join(
 					[]string{
-						"window_start,window_end,subject,value",
-						"2021-01-01T00:00:00Z,2021-01-01T01:00:00Z,,300.000000",
+						"window_start,window_end,value",
+						"2021-01-01T00:00:00Z,2021-01-01T01:00:00Z,300.000000",
 						"",
 					},
 					"\n",
@@ -489,6 +490,9 @@ func getTestServer(t *testing.T) *Server {
 	// Create billing service
 	billingService := &NoopBillingService{}
 
+	// Create subject service
+	subjectService := &NoopSubjectService{}
+
 	config := &Config{
 		RouterConfig: router.Config{
 			Addon:                       addonService,
@@ -526,6 +530,8 @@ func getTestServer(t *testing.T) *Server {
 			// Use the subscription workflow service
 			SubscriptionWorkflowService: subscriptionWorkflowService,
 			SubscriptionAddonService:    subscriptionAddonService,
+			// Use the subject service
+			SubjectService: subjectService,
 		},
 		RouterHooks: RouterHooks{},
 	}
@@ -1402,12 +1408,25 @@ func (n NoopBillingService) CreatePendingInvoiceLines(ctx context.Context, input
 	return nil, nil
 }
 
-func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]*billing.Line, error) {
-	return []*billing.Line{}, nil
+func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
+	return []billing.LineOrHierarchy{}, nil
 }
 
 func (n NoopBillingService) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.Line, error) {
 	return &billing.Line{}, nil
+}
+
+// InvoiceSplitLineGroupService methods
+func (n NoopBillingService) DeleteSplitLineGroup(ctx context.Context, input billing.DeleteSplitLineGroupInput) error {
+	return nil
+}
+
+func (n NoopBillingService) UpdateSplitLineGroup(ctx context.Context, input billing.UpdateSplitLineGroupInput) (billing.SplitLineGroup, error) {
+	return billing.SplitLineGroup{}, nil
+}
+
+func (n NoopBillingService) GetSplitLineGroup(ctx context.Context, input billing.GetSplitLineGroupInput) (billing.SplitLineHierarchy, error) {
+	return billing.SplitLineHierarchy{}, nil
 }
 
 // InvoiceService methods
@@ -1497,4 +1516,38 @@ func (n NoopBillingService) WithLockedNamespaces(namespaces []string) billing.Se
 // LockableService methods
 func (n NoopBillingService) WithLock(ctx context.Context, customerID customer.CustomerID, fn func(ctx context.Context) error) error {
 	return fn(ctx)
+}
+
+// SubjectService methods
+
+var _ subject.Service = &NoopSubjectService{}
+
+type NoopSubjectService struct{}
+
+func (n NoopSubjectService) Create(ctx context.Context, input subject.CreateInput) (subject.Subject, error) {
+	return subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) Update(ctx context.Context, input subject.UpdateInput) (subject.Subject, error) {
+	return subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (subject.Subject, error) {
+	return subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) GetById(ctx context.Context, id models.NamespacedID) (subject.Subject, error) {
+	return subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) GetByKey(ctx context.Context, key models.NamespacedKey) (subject.Subject, error) {
+	return subject.Subject{}, nil
+}
+
+func (n NoopSubjectService) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.PagedResponse[subject.Subject], error) {
+	return pagination.PagedResponse[subject.Subject]{}, nil
+}
+
+func (n NoopSubjectService) Delete(ctx context.Context, id models.NamespacedID) error {
+	return nil
 }

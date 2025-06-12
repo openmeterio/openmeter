@@ -14,6 +14,7 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
@@ -279,6 +280,25 @@ func (s *Sink) flush(ctx context.Context) error {
 	// Dedupe messages so if we have multiple messages in the same batch
 	dedupedMessages := dedupeSinkMessages(messages)
 
+	// If deduplicator is set, let's reexecute the deduplication to decrease the number of messages double persisted
+	if s.config.Deduplicator != nil {
+		dedupeResults, err := s.config.Deduplicator.CheckUniqueBatch(ctx, lo.Map(dedupedMessages, func(message sinkmodels.SinkMessage, _ int) dedupe.Item {
+			return message.GetDedupeItem()
+		}))
+		if err != nil {
+			return fmt.Errorf("failed to check uniqueness of kafka messages: %w", err)
+		}
+
+		updatedDedupedMessages := make([]sinkmodels.SinkMessage, 0, len(dedupedMessages))
+		for _, message := range dedupedMessages {
+			if _, ok := dedupeResults.UniqueItems[message.GetDedupeItem()]; ok {
+				updatedDedupedMessages = append(updatedDedupedMessages, message)
+			}
+		}
+
+		dedupedMessages = updatedDedupedMessages
+	}
+
 	// 1. Persist to storage
 	if len(dedupedMessages) > 0 {
 		// Persist events to permanent storage
@@ -430,6 +450,13 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 
 	dedupeItems := []dedupe.Item{}
 	for _, message := range messages {
+		// Let's not insert already dropped messages into the deduplicator as this signals
+		// that we had a problem validating the message, we could redo any validation as needed
+		// later but if any error was transient let's retry the message if it's sent again.
+		if message.Status.State == sinkmodels.DROP {
+			continue
+		}
+
 		dedupeItems = append(dedupeItems, dedupe.Item{
 			Namespace: message.Namespace,
 			ID:        message.Serialized.Id,
@@ -437,10 +464,29 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 		})
 	}
 
+	if len(dedupeItems) == 0 {
+		logger.Debug("no dedupe items to set")
+		return nil
+	}
+
 	// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
 	err := retry.Do(
 		func() error {
-			return s.config.Deduplicator.Set(dedupeCtx, dedupeItems...)
+			existingItems, err := s.config.Deduplicator.Set(dedupeCtx, dedupeItems...)
+			if err != nil {
+				return err
+			}
+
+			if len(existingItems) > 0 {
+				logger.ErrorContext(ctx, "dedupe: some items already existed in redis",
+					"items", lo.Map(existingItems, func(item dedupe.Item, _ int) string {
+						return item.Key()
+					}),
+					"code", "dedupe_set_failure",
+				)
+			}
+
+			return nil
 		},
 		retry.Context(dedupeCtx),
 		retry.OnRetry(func(n uint, err error) {
@@ -823,11 +869,7 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
 	// Dedupe is an optional dependency, so we check if it's set
 	if s.config.Deduplicator != nil {
-		isUnique, err := s.config.Deduplicator.CheckUnique(ctx, dedupe.Item{
-			Namespace: sinkMessage.Namespace,
-			ID:        sinkMessage.Serialized.Id,
-			Source:    sinkMessage.Serialized.Source,
-		})
+		isUnique, err := s.config.Deduplicator.CheckUnique(ctx, sinkMessage.GetDedupeItem())
 		if err != nil {
 			// Stop processing, non-recoverable error
 			return sinkMessage, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)

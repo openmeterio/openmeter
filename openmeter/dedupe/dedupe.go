@@ -16,9 +16,18 @@ type Deduplicator interface {
 	// CheckUnique checks if an item is unique.
 	CheckUnique(ctx context.Context, item Item) (bool, error)
 	// Set adds the item(s) to the deduplicator
-	Set(ctx context.Context, events ...Item) error
+	Set(ctx context.Context, events ...Item) ([]Item, error)
+	// CheckUniqueBatch checks if a batch of items is unique.
+	CheckUniqueBatch(ctx context.Context, items []Item) (CheckUniqueBatchResult, error)
 	// Close cleans up resources
 	Close() error
+}
+
+type ItemSet map[Item]struct{}
+
+type CheckUniqueBatchResult struct {
+	UniqueItems           ItemSet
+	AlreadyProcessedItems ItemSet
 }
 
 type Item struct {

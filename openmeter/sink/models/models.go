@@ -5,6 +5,7 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
+	"github.com/openmeterio/openmeter/openmeter/dedupe"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 )
@@ -16,6 +17,14 @@ type SinkMessage struct {
 	Status       ProcessingStatus
 	// Meters contains the list of meters this message affects
 	Meters []*meter.Meter
+}
+
+func (m SinkMessage) GetDedupeItem() dedupe.Item {
+	return dedupe.Item{
+		Namespace: m.Namespace,
+		ID:        m.Serialized.Id,
+		Source:    m.Serialized.Source,
+	}
 }
 
 type ProcessingState int8

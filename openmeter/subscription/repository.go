@@ -26,6 +26,12 @@ type CreateSubscriptionEntityInput struct {
 
 	CustomerId string `json:"customerId,omitempty"`
 	Currency   currencyx.Code
+
+	// BillingCadence is the default billing cadence for subscriptions.
+	BillingCadence isodate.Period `json:"billing_cadence"`
+
+	// ProRatingConfig is the default pro-rating configuration for subscriptions.
+	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
 }
 
 type SubscriptionRepository interface {
@@ -70,6 +76,9 @@ type CreateSubscriptionPhaseEntityInput struct {
 
 	// StartAfter
 	StartAfter isodate.Period `json:"interval"`
+
+	// SortHint
+	SortHint *uint8 `json:"sortHint,omitempty"`
 }
 
 func (i CreateSubscriptionPhaseEntityInput) Equal(other CreateSubscriptionPhaseEntityInput) bool {

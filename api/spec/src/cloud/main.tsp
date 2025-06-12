@@ -6,7 +6,6 @@ import "@typespec/openapi3";
 import "..";
 
 import "./auth.tsp";
-import "./subjects.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -237,6 +236,12 @@ namespace OpenMeterCloud.ProductCatalog {
   @tag("Subscriptions")
   interface SubscriptionAddons
     extends OpenMeter.ProductCatalog.SubscriptionAddons {}
+}
+
+namespace OpenMeterCloud.Subjects {
+  @route("/api/v1/subjects")
+  @tag("Subjects")
+  interface Subjects extends OpenMeter.Subjects {}
 }
 
 namespace OpenMeterCloud.Info {

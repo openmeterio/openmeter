@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -30,6 +31,7 @@ type ServiceConfig struct {
 	// framework
 	TransactionManager transaction.Creator
 	Publisher          eventbus.Publisher
+	Lockr              *lockr.Locker
 	// External validations (optional)
 	Validators []subscription.SubscriptionValidator
 }
@@ -61,6 +63,19 @@ func (s *service) RegisterValidator(validator subscription.SubscriptionValidator
 	return nil
 }
 
+func (s *service) lockCustomer(ctx context.Context, customerId string) error {
+	key, err := subscription.GetCustomerLock(customerId)
+	if err != nil {
+		return fmt.Errorf("failed to get customer lock: %w", err)
+	}
+
+	if err := s.Lockr.LockForTX(ctx, key); err != nil {
+		return fmt.Errorf("failed to lock customer: %w", err)
+	}
+
+	return nil
+}
+
 func (s *service) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
 	def := subscription.Subscription{}
 
@@ -84,6 +99,10 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	}
 
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
+		if err := s.lockCustomer(ctx, spec.CustomerId); err != nil {
+			return def, err
+		}
+
 		// Create subscription entity
 		sub, err := s.SubscriptionRepo.Create(ctx, spec.ToCreateSubscriptionEntityInput(namespace))
 		if err != nil {
@@ -231,28 +250,32 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 }
 
 func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID, timing subscription.Timing) (subscription.Subscription, error) {
-	// First, let's get the subscription
-	view, err := s.GetView(ctx, subscriptionID)
-	if err != nil {
-		return subscription.Subscription{}, err
-	}
-
-	if err := s.validateCancel(ctx, view, timing); err != nil {
-		return subscription.Subscription{}, err
-	}
-
-	// Cancellation means that we deactivate everything by that deadline (set ActiveTo)
-	// The different Cadences of the Spec are derived from the Subscription Cadence
-	spec := view.AsSpec()
-
-	cancelTime, err := timing.ResolveForSpec(view.Spec)
-	if err != nil {
-		return subscription.Subscription{}, fmt.Errorf("failed to get cancelation time: %w", err)
-	}
-
-	spec.ActiveTo = lo.ToPtr(cancelTime)
-
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
+		// First, let's get the subscription
+		view, err := s.GetView(ctx, subscriptionID)
+		if err != nil {
+			return subscription.Subscription{}, err
+		}
+
+		if err := s.lockCustomer(ctx, view.Subscription.CustomerId); err != nil {
+			return subscription.Subscription{}, err
+		}
+
+		if err := s.validateCancel(ctx, view, timing); err != nil {
+			return subscription.Subscription{}, err
+		}
+
+		// Cancellation means that we deactivate everything by that deadline (set ActiveTo)
+		// The different Cadences of the Spec are derived from the Subscription Cadence
+		spec := view.AsSpec()
+
+		cancelTime, err := timing.ResolveForSpec(view.Spec)
+		if err != nil {
+			return subscription.Subscription{}, fmt.Errorf("failed to get cancelation time: %w", err)
+		}
+
+		spec.ActiveTo = lo.ToPtr(cancelTime)
+
 		// We can use sync to do this
 		sub, err := s.sync(ctx, view, spec)
 		if err != nil {
@@ -260,7 +283,7 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 		}
 
 		// Let's fetch the view for event generation
-		view, err := s.GetView(ctx, sub.NamespacedID)
+		view, err = s.GetView(ctx, sub.NamespacedID)
 		if err != nil {
 			return sub, err
 		}

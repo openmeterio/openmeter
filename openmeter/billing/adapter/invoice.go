@@ -70,9 +70,6 @@ func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand b
 		}
 
 		requestedStatuses := []billing.InvoiceLineStatus{billing.InvoiceLineStatusValid}
-		if expand.SplitLines {
-			requestedStatuses = append(requestedStatuses, billing.InvoiceLineStatusSplit)
-		}
 
 		q = q.Where(
 			// Detailed lines are sub-lines of a line and should not be included in the top-level invoice
@@ -747,7 +744,7 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 			return billing.Invoice{}, err
 		}
 
-		mappedLines, err = a.expandProgressiveLineHierarchy(ctx, invoice.Namespace, mappedLines)
+		mappedLines, err = a.expandSplitLineHierarchy(ctx, invoice.Namespace, mappedLines)
 		if err != nil {
 			return billing.Invoice{}, err
 		}

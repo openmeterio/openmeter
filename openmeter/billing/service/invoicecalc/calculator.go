@@ -8,8 +8,9 @@ import (
 )
 
 type invoiceCalculatorsByType struct {
-	GatheringInvoice []Calculation
-	Invoice          []Calculation
+	GatheringInvoice             []Calculation
+	GatheringInvoiceWithLiveData []Calculation
+	Invoice                      []Calculation
 }
 
 var InvoiceCalculations = invoiceCalculatorsByType{
@@ -26,6 +27,15 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 		GatheringInvoiceCollectionAt,
 		CalculateInvoicePeriod,
 	},
+	// Calculations that should be running on a gathering invoice to populate line items
+	GatheringInvoiceWithLiveData: []Calculation{
+		UpsertDiscountCorrelationIDs,
+		GatheringInvoiceCollectionAt,
+		RecalculateDetailedLinesAndTotals,
+		CalculateInvoicePeriod,
+		SnapshotTaxConfigIntoLines,
+		FillGatheringDetailedLineMeta,
+	},
 }
 
 type (
@@ -35,6 +45,7 @@ type (
 type Calculator interface {
 	Calculate(*billing.Invoice) error
 	CalculateGatheringInvoice(*billing.Invoice) error
+	CalculateGatheringInvoiceWithLiveData(*billing.Invoice) error
 }
 
 type CalculatorDependencies interface {
@@ -93,6 +104,14 @@ func (c *calculator) CalculateGatheringInvoice(invoice *billing.Invoice) error {
 	}
 
 	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoice)
+}
+
+func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.Invoice) error {
+	if invoice.Status != billing.InvoiceStatusGathering {
+		return errors.New("invoice is not a gathering invoice")
+	}
+
+	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoiceWithLiveData)
 }
 
 func (c *calculator) LineService() *lineservice.Service {

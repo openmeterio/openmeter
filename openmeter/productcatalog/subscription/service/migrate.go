@@ -68,7 +68,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	// Let's find the starting phase
 	if request.StartingPhase != nil {
-		if err := s.removePhasesBeforeStartingPhase(p, *request.StartingPhase); err != nil {
+		if err := s.zeroPhasesBeforeStartingPhase(p, *request.StartingPhase); err != nil {
 			return def, err
 		}
 	}

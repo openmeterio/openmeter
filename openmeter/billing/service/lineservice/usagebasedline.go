@@ -154,11 +154,10 @@ func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billing.
 
 	usage, err := l.service.getFeatureUsage(ctx,
 		getFeatureUsageInput{
-			Line:       l.line,
-			ParentLine: l.line.ParentLine,
-			Feature:    featureMeter.feature,
-			Meter:      featureMeter.meter,
-			Subjects:   invoice.Customer.UsageAttribution.SubjectKeys,
+			Line:     l.line,
+			Feature:  featureMeter.feature,
+			Meter:    featureMeter.meter,
+			Subjects: invoice.Customer.UsageAttribution.SubjectKeys,
 		},
 	)
 	if err != nil {

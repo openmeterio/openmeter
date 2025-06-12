@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -31,6 +32,12 @@ import (
 type CreateSubscriptionPlanInput struct {
 	Plan *PlanRef `json:"plan"`
 	productcatalog.Alignment
+
+	// BillingCadence is the default billing cadence for subscriptions.
+	BillingCadence isodate.Period `json:"billing_cadence"`
+
+	// ProRatingConfig is the default pro-rating configuration for subscriptions.
+	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
 }
 
 type CreateSubscriptionCustomerInput struct {
@@ -56,13 +63,15 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		NamespacedModel: models.NamespacedModel{
 			Namespace: ns,
 		},
-		Alignment:     s.Alignment,
-		Plan:          s.Plan,
-		CustomerId:    s.CustomerId,
-		Currency:      s.Currency,
-		MetadataModel: s.MetadataModel,
-		Name:          s.Name,
-		Description:   s.Description,
+		Alignment:       s.Alignment,
+		Plan:            s.Plan,
+		CustomerId:      s.CustomerId,
+		Currency:        s.Currency,
+		BillingCadence:  s.BillingCadence,
+		ProRatingConfig: s.ProRatingConfig,
+		MetadataModel:   s.MetadataModel,
+		Name:            s.Name,
+		Description:     s.Description,
 		CadencedModel: models.CadencedModel{
 			ActiveFrom: s.ActiveFrom,
 			ActiveTo:   s.ActiveTo,
@@ -125,7 +134,25 @@ func (s *SubscriptionSpec) GetSortedPhases() []*SubscriptionPhaseSpec {
 	slices.SortStableFunc(phases, func(i, j *SubscriptionPhaseSpec) int {
 		iTime, _ := i.StartAfter.AddTo(s.ActiveFrom)
 		jTime, _ := j.StartAfter.AddTo(s.ActiveFrom)
-		return int(iTime.Sub(jTime))
+		diff := iTime.Compare(jTime)
+
+		if diff != 0 {
+			return diff
+		}
+
+		// We do a best effort tie-breaker
+
+		// SortHint "should" be present for all these cases
+		if i.SortHint != nil && j.SortHint != nil {
+			diff = int(*i.SortHint) - int(*j.SortHint)
+		}
+
+		if diff != 0 {
+			return diff
+		}
+
+		// We still want this to be deterministic so we use phase key as a last resort
+		return strings.Compare(i.PhaseKey, j.PhaseKey)
 	})
 
 	return phases
@@ -171,7 +198,7 @@ func (s *SubscriptionSpec) HasMeteredBillables() bool {
 }
 
 // For a phase in an Aligned subscription, there's a single aligned BillingPeriod for all items in that phase.
-// The period starts with the phase and iterates every BillingCadence duration, but can be reanchored to the time of an edit.
+// The period starts with the phase and iterates every subscription.BillingCadence duration, but can be reanchored to the time of an edit.
 func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Time) (timeutil.ClosedPeriod, error) {
 	var def timeutil.ClosedPeriod
 
@@ -189,33 +216,39 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 		return def, fmt.Errorf("failed to get phase cadence for phase %s: %w", phaseKey, err)
 	}
 
-	if !phaseCadence.IsActiveAt(at) {
-		return def, fmt.Errorf("phase %s is not active at %s", phaseKey, at)
+	subCad := models.CadencedModel{
+		ActiveFrom: s.ActiveFrom,
+		ActiveTo:   s.ActiveTo,
+	}
+
+	switch {
+	case subCad.IsActiveAt(at):
+		if !phaseCadence.IsActiveAt(at) {
+			return def, fmt.Errorf("phase %s is not active at %s, ", phaseKey, at)
+		}
+	case at.Before(subCad.ActiveFrom):
+		return def, fmt.Errorf("at %s is before the subscription active from %s, cannot calculate billing period", at, subCad.ActiveFrom)
+	default:
+		// We allow querying billing period after the subscription is inactive
 	}
 
 	if err := phase.Validate(phaseCadence, s.Alignment); err != nil {
 		return def, fmt.Errorf("phase %s validation failed: %w", phaseKey, err)
 	}
 
-	if !phase.HasBillables() {
-		return def, NoBillingPeriodError{Inner: fmt.Errorf("phase %s has no billables so it doesn't have a billing period", phaseKey)}
+	if s.BillingCadence.IsZero() {
+		return def, NoBillingPeriodError{Inner: fmt.Errorf("subscription has no billing cadence")}
 	}
 
+	dur := s.BillingCadence
+
+	// Reanchoring is only possible by billables
 	billables := phase.GetBillableItemsByKey()
 
 	faltBillables := lo.Flatten(lo.Values(billables))
 	recurringFlatBillables := lo.Filter(faltBillables, func(i *SubscriptionItemSpec, _ int) bool {
 		return i.RateCard.GetBillingCadence() != nil
 	})
-
-	if len(recurringFlatBillables) == 0 {
-		return def, NoBillingPeriodError{Inner: fmt.Errorf("phase %s has no recurring billables so it doesn't have a billing period", phaseKey)}
-	}
-
-	dur, err := phase.GetBillingCadence()
-	if err != nil {
-		return def, fmt.Errorf("failed to get billing cadence for phase %s: %w", phaseKey, err)
-	}
 
 	// To find the period anchor, we need to know if any item serves as a reanchor point (RestartBillingPeriod)
 	reanchoringItems := lo.Filter(recurringFlatBillables, func(i *SubscriptionItemSpec, _ int) bool {
@@ -252,7 +285,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 		}
 	}
 
-	recurrenceOfAnchor, err := timeutil.FromISODuration(&dur, anchor)
+	recurrenceOfAnchor, err := timeutil.RecurrenceFromISODuration(&dur, anchor)
 	if err != nil {
 		return def, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 	}
@@ -277,9 +310,9 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 
 // SyncAnnotations serves as a central place where we can calculate annotation default for the Subscription contents
 func (s *SubscriptionSpec) SyncAnnotations() error {
-	for pKey, phase := range s.Phases {
+	for _, phase := range s.GetSortedPhases() {
 		if err := phase.SyncAnnotations(); err != nil {
-			return fmt.Errorf("failed to sync annotations for phase %s: %w", pKey, err)
+			return fmt.Errorf("failed to sync annotations for phase %s: %w", phase.PhaseKey, err)
 		}
 	}
 
@@ -289,7 +322,19 @@ func (s *SubscriptionSpec) SyncAnnotations() error {
 func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
 	var errs []error
-	for _, phase := range s.Phases {
+
+	sortedPhases := s.GetSortedPhases()
+	for idx, phase := range sortedPhases {
+		// Let's validate that if there are phases with the same start time, they have sort hint present
+		if idx > 0 {
+			prevPhase := sortedPhases[idx-1]
+			if prevPhase.StartAfter.Equal(&phase.StartAfter) {
+				if phase.SortHint == nil || prevPhase.SortHint == nil {
+					errs = append(errs, fmt.Errorf("phase %s has the same start time as phase %s but no sort hint", phase.PhaseKey, prevPhase.PhaseKey))
+				}
+			}
+		}
+
 		cadence, err := s.GetPhaseCadence(phase.PhaseKey)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("during validating spec failed to get phase cadence for phase %s: %w", phase.PhaseKey, err))
@@ -303,11 +348,30 @@ func (s *SubscriptionSpec) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// HasAlignedBillingCadences validates that the billing cadence of the subscription is aligned with the billing cadence of the rate cards.
+func (s *SubscriptionSpec) HasAlignedBillingCadences() (bool, error) {
+	for _, phase := range s.GetSortedPhases() {
+		for _, itemsByKey := range phase.GetBillableItemsByKey() {
+			for _, item := range itemsByKey {
+				rateCard := item.RateCard
+				if rateCard.GetBillingCadence() != nil {
+					if err := productcatalog.ValidateBillingCadencesAlign(s.BillingCadence, lo.FromPtr(rateCard.GetBillingCadence())); err != nil {
+						return false, err
+					}
+				}
+			}
+		}
+	}
+
+	return true, nil
+}
+
 type CreateSubscriptionPhasePlanInput struct {
 	PhaseKey    string         `json:"key"`
 	StartAfter  isodate.Period `json:"startAfter"`
 	Name        string         `json:"name"`
 	Description *string        `json:"description,omitempty"`
+	SortHint    *uint8         `json:"sortHint,omitempty"`
 }
 
 func (i CreateSubscriptionPhasePlanInput) Validate() error {
@@ -381,6 +445,7 @@ func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
 		Name:           s.Name,
 		Description:    s.Description,
 		StartAfter:     s.StartAfter,
+		SortHint:       s.SortHint,
 	}
 }
 
@@ -414,31 +479,6 @@ func (s SubscriptionPhaseSpec) HasMeteredBillables() bool {
 
 func (s SubscriptionPhaseSpec) HasBillables() bool {
 	return len(s.GetBillableItemsByKey()) > 0
-}
-
-func (s SubscriptionPhaseSpec) GetBillingCadence() (isodate.Period, error) {
-	var def isodate.Period
-
-	billables := s.GetBillableItemsByKey()
-
-	faltBillables := lo.Flatten(lo.Values(billables))
-	recurringFlatBillables := lo.Filter(faltBillables, func(i *SubscriptionItemSpec, _ int) bool {
-		return i.RateCard.GetBillingCadence() != nil
-	})
-
-	if len(recurringFlatBillables) == 0 {
-		return def, fmt.Errorf("phase %s has no recurring billables", s.PhaseKey)
-	}
-
-	durs := lo.Map(recurringFlatBillables, func(i *SubscriptionItemSpec, _ int) isodate.Period {
-		return *i.RateCard.GetBillingCadence()
-	})
-
-	if len(lo.Uniq(durs)) > 1 {
-		return def, fmt.Errorf("phase %s has multiple billing cadences", s.PhaseKey)
-	}
-
-	return durs[0], nil
 }
 
 func (s SubscriptionPhaseSpec) SyncAnnotations() error {
@@ -633,15 +673,79 @@ func (i *CreateSubscriptionItemPlanInput) UnmarshalJSON(b []byte) error {
 }
 
 type CreateSubscriptionItemCustomerInput struct {
-	ActiveFromOverrideRelativeToPhaseStart *isodate.Period `json:"activeFromOverrideRelativeToPhaseStart"`
+	ActiveFromOverrideRelativeToPhaseStart *isodate.Period `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
 	ActiveToOverrideRelativeToPhaseStart   *isodate.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
 	BillingBehaviorOverride
+}
+
+func (i *CreateSubscriptionItemCustomerInput) UnmarshalJSON(b []byte) error {
+	var serde struct {
+		ActiveFromOverrideRelativeToPhaseStart *string `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
+		ActiveToOverrideRelativeToPhaseStart   *string `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
+		BillingBehaviorOverride
+	}
+
+	if err := json.Unmarshal(b, &serde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize CreateSubscriptionItemCustomerInput: %w", err)
+	}
+
+	var def CreateSubscriptionItemCustomerInput
+
+	def.BillingBehaviorOverride = serde.BillingBehaviorOverride
+
+	if serde.ActiveFromOverrideRelativeToPhaseStart != nil {
+		activeFrom, err := isodate.String(*serde.ActiveFromOverrideRelativeToPhaseStart).Parse()
+		if err != nil {
+			return fmt.Errorf("failed to parse active from override relative to phase start: %w", err)
+		}
+		def.ActiveFromOverrideRelativeToPhaseStart = &activeFrom
+	}
+
+	if serde.ActiveToOverrideRelativeToPhaseStart != nil {
+		activeTo, err := isodate.String(*serde.ActiveToOverrideRelativeToPhaseStart).Parse()
+		if err != nil {
+			return fmt.Errorf("failed to parse active to override relative to phase start: %w", err)
+		}
+		def.ActiveToOverrideRelativeToPhaseStart = &activeTo
+	}
+
+	*i = def
+
+	return nil
 }
 
 type CreateSubscriptionItemInput struct {
 	Annotations                         models.Annotations `json:"annotations"`
 	CreateSubscriptionItemPlanInput     `json:",inline"`
 	CreateSubscriptionItemCustomerInput `json:",inline"`
+}
+
+func (i *CreateSubscriptionItemInput) UnmarshalJSON(b []byte) error {
+	var annSerde struct {
+		Annotations models.Annotations `json:"annotations"`
+	}
+
+	if err := json.Unmarshal(b, &annSerde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize CreateSubscriptionItemInput: %w", err)
+	}
+
+	var planSerde CreateSubscriptionItemPlanInput
+
+	if err := json.Unmarshal(b, &planSerde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize CreateSubscriptionItemInput: %w", err)
+	}
+
+	var customerSerde CreateSubscriptionItemCustomerInput
+
+	if err := json.Unmarshal(b, &customerSerde); err != nil {
+		return fmt.Errorf("failed to JSON deserialize CreateSubscriptionItemInput: %w", err)
+	}
+
+	i.Annotations = annSerde.Annotations
+	i.CreateSubscriptionItemPlanInput = planSerde
+	i.CreateSubscriptionItemCustomerInput = customerSerde
+
+	return nil
 }
 
 type SubscriptionItemSpec struct {
@@ -682,6 +786,54 @@ func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) mode
 		ActiveFrom: start,
 		ActiveTo:   end,
 	}
+}
+
+// GetFullServicePeriodAt returns the full service period for an item at a given time
+// To get the de-facto service period, use the intersection of the item's activity with the returned period.
+func (s SubscriptionItemSpec) GetFullServicePeriodAt(
+	phaseCadence models.CadencedModel,
+	itemCadence models.CadencedModel,
+	at time.Time,
+	alignedBillingAnchor *time.Time,
+) (timeutil.ClosedPeriod, error) {
+	if !s.RateCard.AsMeta().IsBillable() {
+		return timeutil.ClosedPeriod{}, fmt.Errorf("item is not billable")
+	}
+
+	if !itemCadence.IsActiveAt(at) {
+		return timeutil.ClosedPeriod{}, fmt.Errorf("item is not active at %s", at)
+	}
+
+	if !phaseCadence.IsActiveAt(at) {
+		return timeutil.ClosedPeriod{}, fmt.Errorf("phase is not active at %s", at)
+	}
+
+	billingCadence := s.RateCard.GetBillingCadence()
+	if billingCadence == nil {
+		end := itemCadence.ActiveFrom
+
+		if itemCadence.ActiveTo != nil {
+			end = *itemCadence.ActiveTo
+		}
+
+		if phaseCadence.ActiveTo != nil {
+			end = *phaseCadence.ActiveTo
+		}
+
+		return timeutil.ClosedPeriod{
+			From: itemCadence.ActiveFrom,
+			To:   end,
+		}, nil
+	}
+
+	billingAnchor := lo.FromPtrOr(alignedBillingAnchor, itemCadence.ActiveFrom)
+
+	rec, err := timeutil.RecurrenceFromISODuration(billingCadence, billingAnchor)
+	if err != nil {
+		return timeutil.ClosedPeriod{}, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
+	}
+
+	return rec.GetPeriodAt(at)
 }
 
 func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
@@ -781,7 +933,7 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 		scheduleInput.IssueAfterReset = tpl.IssueAfterReset
 		scheduleInput.IssueAfterResetPriority = tpl.IssueAfterResetPriority
 		scheduleInput.PreserveOverageAtReset = tpl.PreserveOverageAtReset
-		rec, err := timeutil.FromISODuration(&tpl.UsagePeriod, truncatedStartTime)
+		rec, err := timeutil.RecurrenceFromISODuration(&tpl.UsagePeriod, truncatedStartTime)
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 		}

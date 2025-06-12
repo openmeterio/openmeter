@@ -23,6 +23,10 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 		return nil, fmt.Errorf("converting price to flat price: %w", err)
 	}
 
+	if flatPrice.PaymentTerm == "" {
+		flatPrice.PaymentTerm = productcatalog.DefaultPaymentTerm
+	}
+
 	if !slices.Contains(
 		[]productcatalog.PaymentTermType{productcatalog.InAdvancePaymentTerm, productcatalog.InArrearsPaymentTerm},
 		flatPrice.PaymentTerm) {

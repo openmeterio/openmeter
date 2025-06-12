@@ -13,7 +13,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // Subscription is the model entity for the Subscription schema.
@@ -47,6 +49,10 @@ type Subscription struct {
 	CustomerID string `json:"customer_id,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
+	// The default billing cadence for subscriptions.
+	BillingCadence isodate.String `json:"billing_cadence,omitempty"`
+	// Default pro-rating configuration for subscriptions.
+	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionQuery when eager-loading is set.
 	Edges        SubscriptionEdges `json:"edges"`
@@ -63,11 +69,13 @@ type SubscriptionEdges struct {
 	Phases []*SubscriptionPhase `json:"phases,omitempty"`
 	// BillingLines holds the value of the billing_lines edge.
 	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
+	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
+	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
 	// Addons holds the value of the addons edge.
 	Addons []*SubscriptionAddon `json:"addons,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // PlanOrErr returns the Plan value or an error if the edge
@@ -110,10 +118,19 @@ func (e SubscriptionEdges) BillingLinesOrErr() ([]*BillingInvoiceLine, error) {
 	return nil, &NotLoadedError{edge: "billing_lines"}
 }
 
+// BillingSplitLineGroupsOrErr returns the BillingSplitLineGroups value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
+	if e.loadedTypes[4] {
+		return e.BillingSplitLineGroups, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
+}
+
 // AddonsOrErr returns the Addons value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionEdges) AddonsOrErr() ([]*SubscriptionAddon, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.Addons, nil
 	}
 	return nil, &NotLoadedError{edge: "addons"}
@@ -128,10 +145,12 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case subscription.FieldBillablesMustAlign:
 			values[i] = new(sql.NullBool)
-		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency:
+		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency, subscription.FieldBillingCadence:
 			values[i] = new(sql.NullString)
 		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo:
 			values[i] = new(sql.NullTime)
+		case subscription.FieldProRatingConfig:
+			values[i] = subscription.ValueScanner.ProRatingConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -237,6 +256,18 @@ func (_m *Subscription) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Currency = currencyx.Code(value.String)
 			}
+		case subscription.FieldBillingCadence:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
+			} else if value.Valid {
+				_m.BillingCadence = isodate.String(value.String)
+			}
+		case subscription.FieldProRatingConfig:
+			if value, err := subscription.ValueScanner.ProRatingConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.ProRatingConfig = value
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -268,6 +299,11 @@ func (_m *Subscription) QueryPhases() *SubscriptionPhaseQuery {
 // QueryBillingLines queries the "billing_lines" edge of the Subscription entity.
 func (_m *Subscription) QueryBillingLines() *BillingInvoiceLineQuery {
 	return NewSubscriptionClient(_m.config).QueryBillingLines(_m)
+}
+
+// QueryBillingSplitLineGroups queries the "billing_split_line_groups" edge of the Subscription entity.
+func (_m *Subscription) QueryBillingSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
+	return NewSubscriptionClient(_m.config).QueryBillingSplitLineGroups(_m)
 }
 
 // QueryAddons queries the "addons" edge of the Subscription entity.
@@ -344,6 +380,12 @@ func (_m *Subscription) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	builder.WriteString(", ")
+	builder.WriteString("billing_cadence=")
+	builder.WriteString(fmt.Sprintf("%v", _m.BillingCadence))
+	builder.WriteString(", ")
+	builder.WriteString("pro_rating_config=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ProRatingConfig))
 	builder.WriteByte(')')
 	return builder.String()
 }

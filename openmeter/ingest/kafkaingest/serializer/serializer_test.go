@@ -204,3 +204,18 @@ func TestFromKafkaPayloadToCloudEvents(t *testing.T) {
 		})
 	}
 }
+
+func TestSerializeKey(t *testing.T) {
+	serializer := NewJSONSerializer()
+
+	ev := event.New()
+	ev.SetID("test-id")
+	ev.SetSource("test-source")
+	ev.SetType("test-type")
+	ev.SetSubject("test-subject")
+	ev.SetTime(time.Now())
+
+	key, err := serializer.SerializeKey("test-topic", "test-namespace", ev)
+	assert.Nil(t, err)
+	assert.Equal(t, "test-namespace-test-source-test-id", string(key))
+}

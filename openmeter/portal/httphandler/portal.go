@@ -107,7 +107,7 @@ func (h *handler) CreateToken() CreateTokenHandler {
 		func(ctx context.Context, request CreateTokenRequest) (CreateTokenResponse, error) {
 			// If allowed meter slugs are provided, validate them.
 			if request.AllowedMeterSlugs != nil {
-				meters, err := meter.ListAll(ctx, h.meterService, meter.ListMetersParams{
+				meterList, err := h.meterService.ListMeters(ctx, meter.ListMetersParams{
 					Namespace:  request.Namespace,
 					SlugFilter: request.AllowedMeterSlugs,
 				})
@@ -115,7 +115,7 @@ func (h *handler) CreateToken() CreateTokenHandler {
 					return nil, fmt.Errorf("failed to list meters by slug: %w", err)
 				}
 
-				metersBySlug := lo.KeyBy(meters, func(m meter.Meter) string {
+				metersBySlug := lo.KeyBy(meterList.Items, func(m meter.Meter) string {
 					return m.Key
 				})
 

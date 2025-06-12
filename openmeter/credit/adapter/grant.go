@@ -177,8 +177,8 @@ func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner mode
 				db_grant.EffectiveAt(to),
 			),
 		).Where(
-		db_grant.Or(db_grant.Not(db_grant.DeletedAtLTE(from)), db_grant.DeletedAtIsNil()),
-		db_grant.Or(db_grant.Not(db_grant.VoidedAtLTE(from)), db_grant.VoidedAtIsNil()),
+		db_grant.Or(db_grant.Not(db_grant.DeletedAtLT(from)), db_grant.DeletedAtIsNil()),
+		db_grant.Or(db_grant.Not(db_grant.VoidedAtLT(from)), db_grant.VoidedAtIsNil()),
 	)
 
 	entities, err := query.All(ctx)

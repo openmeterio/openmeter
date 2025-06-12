@@ -19,7 +19,7 @@ func TestCreateEventsTable(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 			},
-			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, type, subject, toStartOfHour(time))",
+			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime, store_row_id String) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, type, subject, toStartOfHour(time))",
 		},
 	}
 
@@ -51,7 +51,7 @@ func TestQueryEventsTable(t *testing.T) {
 				From:            from,
 				Limit:           100,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", from.Unix(), 100},
 		},
 		{
@@ -63,7 +63,7 @@ func TestQueryEventsTable(t *testing.T) {
 				Limit:           100,
 				Subject:         &subjectFilter,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND subject = ? ORDER BY time DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND subject = ? ORDER BY time DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", from.Unix(), subjectFilter, 100},
 		},
 		{
@@ -75,7 +75,7 @@ func TestQueryEventsTable(t *testing.T) {
 				Limit:           100,
 				ID:              &idFilter,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", from.Unix(), "%event-id-1%", 100},
 		},
 		{
@@ -88,7 +88,7 @@ func TestQueryEventsTable(t *testing.T) {
 				Limit:           100,
 				ID:              &idFilter,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND time < ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND time < ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", from.Unix(), to.Unix(), "%event-id-1%", 100},
 		},
 	}
@@ -151,6 +151,7 @@ func TestInsertEventsQuery(t *testing.T) {
 				IngestedAt: now,
 				Type:       "api-calls",
 				Data:       `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`,
+				StoreRowID: "1",
 			},
 			{
 				Namespace:  "my_namespace",
@@ -162,6 +163,7 @@ func TestInsertEventsQuery(t *testing.T) {
 				IngestedAt: now,
 				Type:       "api-calls",
 				Data:       `{"duration_ms": 80, "method": "GET", "path": "/api/v1"}`,
+				StoreRowID: "2",
 			},
 			{
 				Namespace:  "my_namespace",
@@ -173,6 +175,7 @@ func TestInsertEventsQuery(t *testing.T) {
 				IngestedAt: now,
 				Type:       "api-calls",
 				Data:       `{"duration_ms": "foo", "method": "GET", "path": "/api/v1"}`,
+				StoreRowID: "3",
 			},
 		},
 	}
@@ -180,9 +183,9 @@ func TestInsertEventsQuery(t *testing.T) {
 	sql, args := query.ToSQL()
 
 	assert.Equal(t, []interface{}{
-		"my_namespace", "1", "api-calls", "source", "subject-1", now, `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`, now, now,
-		"my_namespace", "2", "api-calls", "source", "subject-2", now, `{"duration_ms": 80, "method": "GET", "path": "/api/v1"}`, now, now,
-		"my_namespace", "3", "api-calls", "source", "subject-2", now, `{"duration_ms": "foo", "method": "GET", "path": "/api/v1"}`, now, now,
+		"my_namespace", "1", "api-calls", "source", "subject-1", now, `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`, now, now, "1",
+		"my_namespace", "2", "api-calls", "source", "subject-2", now, `{"duration_ms": 80, "method": "GET", "path": "/api/v1"}`, now, now, "2",
+		"my_namespace", "3", "api-calls", "source", "subject-2", now, `{"duration_ms": "foo", "method": "GET", "path": "/api/v1"}`, now, now, "3",
 	}, args)
-	assert.Equal(t, `INSERT INTO database.om_events (namespace, id, type, source, subject, time, data, ingested_at, stored_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?)`, sql)
+	assert.Equal(t, `INSERT INTO database.om_events (namespace, id, type, source, subject, time, data, ingested_at, stored_at, store_row_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, sql)
 }

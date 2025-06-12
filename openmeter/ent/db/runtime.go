@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -41,6 +42,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
@@ -509,6 +511,8 @@ func init() {
 	billinginvoicelineMixin := schema.BillingInvoiceLine{}.Mixin()
 	billinginvoicelineMixinFields0 := billinginvoicelineMixin[0].Fields()
 	_ = billinginvoicelineMixinFields0
+	billinginvoicelineMixinFields1 := billinginvoicelineMixin[1].Fields()
+	_ = billinginvoicelineMixinFields1
 	billinginvoicelineFields := schema.BillingInvoiceLine{}.Fields()
 	_ = billinginvoicelineFields
 	// billinginvoicelineDescNamespace is the schema descriptor for namespace field.
@@ -526,11 +530,11 @@ func init() {
 	// billinginvoiceline.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billinginvoiceline.UpdateDefaultUpdatedAt = billinginvoicelineDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// billinginvoicelineDescCurrency is the schema descriptor for currency field.
-	billinginvoicelineDescCurrency := billinginvoicelineFields[8].Descriptor()
+	billinginvoicelineDescCurrency := billinginvoicelineMixinFields1[0].Descriptor()
 	// billinginvoiceline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoiceline.CurrencyValidator = billinginvoicelineDescCurrency.Validators[0].(func(string) error)
 	// billinginvoicelineDescRatecardDiscounts is the schema descriptor for ratecard_discounts field.
-	billinginvoicelineDescRatecardDiscounts := billinginvoicelineFields[11].Descriptor()
+	billinginvoicelineDescRatecardDiscounts := billinginvoicelineFields[9].Descriptor()
 	billinginvoiceline.ValueScanner.RatecardDiscounts = billinginvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// billinginvoicelineDescID is the schema descriptor for id field.
 	billinginvoicelineDescID := billinginvoicelineMixinFields0[0].Descriptor()
@@ -596,6 +600,41 @@ func init() {
 	billinginvoicelineusagediscountDescID := billinginvoicelineusagediscountMixinFields0[0].Descriptor()
 	// billinginvoicelineusagediscount.DefaultID holds the default value on creation for the id field.
 	billinginvoicelineusagediscount.DefaultID = billinginvoicelineusagediscountDescID.Default.(func() string)
+	billinginvoicesplitlinegroupMixin := schema.BillingInvoiceSplitLineGroup{}.Mixin()
+	billinginvoicesplitlinegroupMixinFields0 := billinginvoicesplitlinegroupMixin[0].Fields()
+	_ = billinginvoicesplitlinegroupMixinFields0
+	billinginvoicesplitlinegroupMixinFields1 := billinginvoicesplitlinegroupMixin[1].Fields()
+	_ = billinginvoicesplitlinegroupMixinFields1
+	billinginvoicesplitlinegroupFields := schema.BillingInvoiceSplitLineGroup{}.Fields()
+	_ = billinginvoicesplitlinegroupFields
+	// billinginvoicesplitlinegroupDescNamespace is the schema descriptor for namespace field.
+	billinginvoicesplitlinegroupDescNamespace := billinginvoicesplitlinegroupMixinFields0[1].Descriptor()
+	// billinginvoicesplitlinegroup.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billinginvoicesplitlinegroup.NamespaceValidator = billinginvoicesplitlinegroupDescNamespace.Validators[0].(func(string) error)
+	// billinginvoicesplitlinegroupDescCreatedAt is the schema descriptor for created_at field.
+	billinginvoicesplitlinegroupDescCreatedAt := billinginvoicesplitlinegroupMixinFields0[3].Descriptor()
+	// billinginvoicesplitlinegroup.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billinginvoicesplitlinegroup.DefaultCreatedAt = billinginvoicesplitlinegroupDescCreatedAt.Default.(func() time.Time)
+	// billinginvoicesplitlinegroupDescUpdatedAt is the schema descriptor for updated_at field.
+	billinginvoicesplitlinegroupDescUpdatedAt := billinginvoicesplitlinegroupMixinFields0[4].Descriptor()
+	// billinginvoicesplitlinegroup.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billinginvoicesplitlinegroup.DefaultUpdatedAt = billinginvoicesplitlinegroupDescUpdatedAt.Default.(func() time.Time)
+	// billinginvoicesplitlinegroup.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billinginvoicesplitlinegroup.UpdateDefaultUpdatedAt = billinginvoicesplitlinegroupDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billinginvoicesplitlinegroupDescCurrency is the schema descriptor for currency field.
+	billinginvoicesplitlinegroupDescCurrency := billinginvoicesplitlinegroupMixinFields1[0].Descriptor()
+	// billinginvoicesplitlinegroup.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	billinginvoicesplitlinegroup.CurrencyValidator = billinginvoicesplitlinegroupDescCurrency.Validators[0].(func(string) error)
+	// billinginvoicesplitlinegroupDescRatecardDiscounts is the schema descriptor for ratecard_discounts field.
+	billinginvoicesplitlinegroupDescRatecardDiscounts := billinginvoicesplitlinegroupFields[3].Descriptor()
+	billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts = billinginvoicesplitlinegroupDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
+	// billinginvoicesplitlinegroupDescPrice is the schema descriptor for price field.
+	billinginvoicesplitlinegroupDescPrice := billinginvoicesplitlinegroupFields[5].Descriptor()
+	billinginvoicesplitlinegroup.ValueScanner.Price = billinginvoicesplitlinegroupDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// billinginvoicesplitlinegroupDescID is the schema descriptor for id field.
+	billinginvoicesplitlinegroupDescID := billinginvoicesplitlinegroupMixinFields0[0].Descriptor()
+	// billinginvoicesplitlinegroup.DefaultID holds the default value on creation for the id field.
+	billinginvoicesplitlinegroup.DefaultID = billinginvoicesplitlinegroupDescID.Default.(func() string)
 	billinginvoiceusagebasedlineconfigMixin := schema.BillingInvoiceUsageBasedLineConfig{}.Mixin()
 	billinginvoiceusagebasedlineconfigMixinFields0 := billinginvoiceusagebasedlineconfigMixin[0].Fields()
 	_ = billinginvoiceusagebasedlineconfigMixinFields0
@@ -1165,6 +1204,11 @@ func init() {
 	plan.DefaultCurrency = planDescCurrency.Default.(string)
 	// plan.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	plan.CurrencyValidator = planDescCurrency.Validators[0].(func(string) error)
+	// planDescProRatingConfig is the schema descriptor for pro_rating_config field.
+	planDescProRatingConfig := planFields[3].Descriptor()
+	// plan.DefaultProRatingConfig holds the default value on creation for the pro_rating_config field.
+	plan.DefaultProRatingConfig = planDescProRatingConfig.Default.(func() productcatalog.ProRatingConfig)
+	plan.ValueScanner.ProRatingConfig = planDescProRatingConfig.ValueScanner.(field.TypeValueScanner[productcatalog.ProRatingConfig])
 	// planDescID is the schema descriptor for id field.
 	planDescID := planMixinFields0[0].Descriptor()
 	// plan.DefaultID holds the default value on creation for the id field.
@@ -1278,6 +1322,35 @@ func init() {
 	planratecardDescID := planratecardMixinFields0[0].Descriptor()
 	// planratecard.DefaultID holds the default value on creation for the id field.
 	planratecard.DefaultID = planratecardDescID.Default.(func() string)
+	subjectMixin := schema.Subject{}.Mixin()
+	subjectMixinFields0 := subjectMixin[0].Fields()
+	_ = subjectMixinFields0
+	subjectMixinFields1 := subjectMixin[1].Fields()
+	_ = subjectMixinFields1
+	subjectFields := schema.Subject{}.Fields()
+	_ = subjectFields
+	// subjectDescNamespace is the schema descriptor for namespace field.
+	subjectDescNamespace := subjectMixinFields1[0].Descriptor()
+	// subject.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subject.NamespaceValidator = subjectDescNamespace.Validators[0].(func(string) error)
+	// subjectDescKey is the schema descriptor for key field.
+	subjectDescKey := subjectFields[0].Descriptor()
+	// subject.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	subject.KeyValidator = subjectDescKey.Validators[0].(func(string) error)
+	// subjectDescCreatedAt is the schema descriptor for created_at field.
+	subjectDescCreatedAt := subjectFields[4].Descriptor()
+	// subject.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subject.DefaultCreatedAt = subjectDescCreatedAt.Default.(func() time.Time)
+	// subjectDescUpdatedAt is the schema descriptor for updated_at field.
+	subjectDescUpdatedAt := subjectFields[5].Descriptor()
+	// subject.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subject.DefaultUpdatedAt = subjectDescUpdatedAt.Default.(func() time.Time)
+	// subject.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subject.UpdateDefaultUpdatedAt = subjectDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subjectDescID is the schema descriptor for id field.
+	subjectDescID := subjectMixinFields0[0].Descriptor()
+	// subject.DefaultID holds the default value on creation for the id field.
+	subject.DefaultID = subjectDescID.Default.(func() string)
 	subscriptionMixin := schema.Subscription{}.Mixin()
 	subscriptionMixinFields0 := subscriptionMixin[0].Fields()
 	_ = subscriptionMixinFields0
@@ -1336,6 +1409,11 @@ func init() {
 			return nil
 		}
 	}()
+	// subscriptionDescProRatingConfig is the schema descriptor for pro_rating_config field.
+	subscriptionDescProRatingConfig := subscriptionFields[6].Descriptor()
+	// subscription.DefaultProRatingConfig holds the default value on creation for the pro_rating_config field.
+	subscription.DefaultProRatingConfig = subscriptionDescProRatingConfig.Default.(func() productcatalog.ProRatingConfig)
+	subscription.ValueScanner.ProRatingConfig = subscriptionDescProRatingConfig.ValueScanner.(field.TypeValueScanner[productcatalog.ProRatingConfig])
 	// subscriptionDescID is the schema descriptor for id field.
 	subscriptionDescID := subscriptionMixinFields0[0].Descriptor()
 	// subscription.DefaultID holds the default value on creation for the id field.

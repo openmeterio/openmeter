@@ -50,14 +50,31 @@ func (d *Deduplicator) CheckUnique(ctx context.Context, item dedupe.Item) (bool,
 	return !isContained, nil
 }
 
-func (d *Deduplicator) Set(ctx context.Context, items ...dedupe.Item) error {
+func (d *Deduplicator) Set(ctx context.Context, items ...dedupe.Item) ([]dedupe.Item, error) {
 	for _, item := range items {
 		_ = d.store.Add(item.Key(), nil)
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (d *Deduplicator) Close() error {
 	return nil
+}
+
+func (d *Deduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item) (dedupe.CheckUniqueBatchResult, error) {
+	result := dedupe.CheckUniqueBatchResult{
+		UniqueItems:           make(dedupe.ItemSet, len(items)),
+		AlreadyProcessedItems: make(dedupe.ItemSet, len(items)),
+	}
+
+	for _, item := range items {
+		if d.store.Contains(item.Key()) {
+			result.AlreadyProcessedItems[item] = struct{}{}
+		} else {
+			result.UniqueItems[item] = struct{}{}
+		}
+	}
+
+	return result, nil
 }

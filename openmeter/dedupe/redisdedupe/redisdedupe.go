@@ -52,10 +52,10 @@ func (d Deduplicator) IsUnique(ctx context.Context, namespace string, ev event.E
 	case DedupeModeRawKey:
 		return d.setKey(ctx, item.Key())
 	case DedupeModeKeyHash:
-		keyHash := getKeyHash(item.Key())
+		keyHash := GetKeyHash(item.Key())
 		return d.setKey(ctx, keyHash)
 	case DedupeModeKeyHashMigration:
-		keyHash := getKeyHash(item.Key())
+		keyHash := GetKeyHash(item.Key())
 		isUnique, err := d.setKey(ctx, keyHash)
 		if err != nil {
 			return false, err
@@ -110,9 +110,9 @@ func (d Deduplicator) CheckUnique(ctx context.Context, item dedupe.Item) (bool, 
 	case DedupeModeRawKey:
 		keysToCheck = append(keysToCheck, item.Key())
 	case DedupeModeKeyHash:
-		keysToCheck = append(keysToCheck, getKeyHash(item.Key()))
+		keysToCheck = append(keysToCheck, GetKeyHash(item.Key()))
 	case DedupeModeKeyHashMigration:
-		keysToCheck = append(keysToCheck, item.Key(), getKeyHash(item.Key()))
+		keysToCheck = append(keysToCheck, item.Key(), GetKeyHash(item.Key()))
 	}
 
 	isSet, err := d.Redis.Exists(ctx, keysToCheck...).Result()
@@ -124,33 +124,48 @@ func (d Deduplicator) CheckUnique(ctx context.Context, item dedupe.Item) (bool, 
 }
 
 // Set sets events into redis
-func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) error {
+func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) ([]dedupe.Item, error) {
 	keys := make([]string, 0, len(items))
 	for _, item := range items {
 		switch d.Mode {
 		case DedupeModeRawKey:
 			keys = append(keys, item.Key())
 		case DedupeModeKeyHash, DedupeModeKeyHashMigration:
-			keys = append(keys, getKeyHash(item.Key()))
+			keys = append(keys, GetKeyHash(item.Key()))
 		}
 	}
 
-	// We use a lua script to set multiple keys at once, this is more efficient than calling redis one by one
-	err := setMultiple.Run(ctx, d.Redis, keys, d.Expiration.Seconds()).Err()
-	if err != nil && err != redis.Nil {
-		return fmt.Errorf("failed to set multiple keys in redis: %w", err)
+	cmds, err := d.Redis.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		for _, key := range keys {
+			_, err := pipe.SetArgs(ctx, key, "", redis.SetArgs{
+				TTL:  d.Expiration,
+				Mode: "NX",
+			}).Result()
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return nil, fmt.Errorf("failed to set multiple keys in redis: %w", err)
 	}
 
-	return nil
+	// Let's check if all the keys were created or if some of them already existed
+	existingItems := []dedupe.Item{}
+	for i, cmd := range cmds {
+		item := items[i]
+		if cmd.Err() != nil {
+			if !errors.Is(cmd.Err(), redis.Nil) {
+				return nil, fmt.Errorf("failed to set key %s in redis: %w", item.Key(), cmd.Err())
+			}
+
+			existingItems = append(existingItems, item)
+		}
+	}
+
+	return existingItems, nil
 }
-
-var setMultiple = redis.NewScript(`
-local expiration = tonumber(ARGV[1])
-
-for _, key in ipairs(KEYS) do
-  redis.call("SET", key, "", "EX", expiration)
-end
-`)
 
 // Close closes underlying redis client
 func (d Deduplicator) Close() error {
@@ -159,4 +174,41 @@ func (d Deduplicator) Close() error {
 	}
 
 	return nil
+}
+
+func (d Deduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item) (dedupe.CheckUniqueBatchResult, error) {
+	keys := make([]string, 0, len(items))
+	for _, item := range items {
+		switch d.Mode {
+		case DedupeModeRawKey:
+			keys = append(keys, item.Key())
+		case DedupeModeKeyHash, DedupeModeKeyHashMigration:
+			keys = append(keys, GetKeyHash(item.Key()))
+		}
+	}
+
+	cmdResults, err := d.Redis.MGet(ctx, keys...).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return dedupe.CheckUniqueBatchResult{}, fmt.Errorf("failed to get multiple keys in redis: %w", err)
+	}
+
+	if len(cmdResults) != len(items) {
+		return dedupe.CheckUniqueBatchResult{}, fmt.Errorf("failed to get all keys in redis")
+	}
+
+	result := dedupe.CheckUniqueBatchResult{
+		UniqueItems:           make(dedupe.ItemSet, len(items)),
+		AlreadyProcessedItems: make(dedupe.ItemSet, len(items)),
+	}
+
+	for i, cmdResult := range cmdResults {
+		if cmdResult != nil {
+			result.AlreadyProcessedItems[items[i]] = struct{}{}
+			continue
+		}
+
+		result.UniqueItems[items[i]] = struct{}{}
+	}
+
+	return result, nil
 }

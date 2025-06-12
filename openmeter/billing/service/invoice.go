@@ -164,14 +164,7 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 
 	invoice.QuantitySnapshotedAt = lo.ToPtr(now)
 
-	if err := s.invoiceCalculator.Calculate(&invoice); err != nil {
-		return invoice, fmt.Errorf("calculating invoice: %w", err)
-	}
-
-	// TODO/Hack: Here we are recalculating the invoice again to correct gathering invoice specific calculations.
-	// Once when we have proper threshold billing stack, we should not do this double calculation, but right now
-	// this is just a sugar to have the gathering invoice's data fully populated.
-	if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(&invoice); err != nil {
 		return invoice, fmt.Errorf("calculating invoice: %w", err)
 	}
 
@@ -183,10 +176,6 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		invoice.Lines = billing.NewLineChildren(
 			lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
 				if !in.Expand.DeletedLines && line.DeletedAt != nil {
-					return false
-				}
-
-				if !in.Expand.SplitLines && line.Status == billing.InvoiceLineStatusSplit {
 					return false
 				}
 
@@ -892,30 +881,12 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 		return transcationForInvoiceManipulation(ctx, s, invoice.CustomerID(), func(ctx context.Context) (billing.Invoice, error) {
 			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: input.Invoice,
-				// We need split lines too, as for gathering invoices we need to edit those too
 				Expand: billing.InvoiceExpandAll.
-					SetSplitLines(true).
 					SetDeletedLines(input.IncludeDeletedLines),
 			})
 			if err != nil {
 				return billing.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
 			}
-
-			// We have requested the invoice to include the split lines, and GetInvoiceByID will also expand
-			// the sub-lines. However given split lines are cross invoice, those should not be edited via single
-			// invoice update calls, so we strip the child line information from the invoice. This signals the adapter
-			// that we are not trying to edit the child lines, thus it will not throw an error for the operation.
-
-			invoice.Lines = billing.NewLineChildren(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) *billing.Line {
-				if line.Status != billing.InvoiceLineStatusSplit {
-					return line
-				}
-
-				// This makes the line children not present in the invoice
-				line.Children = billing.LineChildren{}
-
-				return line
-			}))
 
 			if err := input.EditFn(&invoice); err != nil {
 				return billing.Invoice{}, fmt.Errorf("editing invoice: %w", err)

@@ -39,6 +39,8 @@ type SubscriptionPhase struct {
 	Description *string `json:"description,omitempty"`
 	// ActiveFrom holds the value of the "active_from" field.
 	ActiveFrom time.Time `json:"active_from,omitempty"`
+	// Used to sort phases when they have the same active_from time (happens for 0 length phases)
+	SortHint *uint8 `json:"sort_hint,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionPhaseQuery when eager-loading is set.
 	Edges        SubscriptionPhaseEdges `json:"edges"`
@@ -53,9 +55,11 @@ type SubscriptionPhaseEdges struct {
 	Items []*SubscriptionItem `json:"items,omitempty"`
 	// BillingLines holds the value of the billing_lines edge.
 	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
+	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
+	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // SubscriptionOrErr returns the Subscription value or an error if the edge
@@ -87,6 +91,15 @@ func (e SubscriptionPhaseEdges) BillingLinesOrErr() ([]*BillingInvoiceLine, erro
 	return nil, &NotLoadedError{edge: "billing_lines"}
 }
 
+// BillingSplitLineGroupsOrErr returns the BillingSplitLineGroups value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionPhaseEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
+	if e.loadedTypes[3] {
+		return e.BillingSplitLineGroups, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*SubscriptionPhase) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -94,6 +107,8 @@ func (*SubscriptionPhase) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscriptionphase.FieldMetadata:
 			values[i] = new([]byte)
+		case subscriptionphase.FieldSortHint:
+			values[i] = new(sql.NullInt64)
 		case subscriptionphase.FieldID, subscriptionphase.FieldNamespace, subscriptionphase.FieldSubscriptionID, subscriptionphase.FieldKey, subscriptionphase.FieldName, subscriptionphase.FieldDescription:
 			values[i] = new(sql.NullString)
 		case subscriptionphase.FieldCreatedAt, subscriptionphase.FieldUpdatedAt, subscriptionphase.FieldDeletedAt, subscriptionphase.FieldActiveFrom:
@@ -183,6 +198,13 @@ func (_m *SubscriptionPhase) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				_m.ActiveFrom = value.Time
 			}
+		case subscriptionphase.FieldSortHint:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field sort_hint", values[i])
+			} else if value.Valid {
+				_m.SortHint = new(uint8)
+				*_m.SortHint = uint8(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -209,6 +231,11 @@ func (_m *SubscriptionPhase) QueryItems() *SubscriptionItemQuery {
 // QueryBillingLines queries the "billing_lines" edge of the SubscriptionPhase entity.
 func (_m *SubscriptionPhase) QueryBillingLines() *BillingInvoiceLineQuery {
 	return NewSubscriptionPhaseClient(_m.config).QueryBillingLines(_m)
+}
+
+// QueryBillingSplitLineGroups queries the "billing_split_line_groups" edge of the SubscriptionPhase entity.
+func (_m *SubscriptionPhase) QueryBillingSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
+	return NewSubscriptionPhaseClient(_m.config).QueryBillingSplitLineGroups(_m)
 }
 
 // Update returns a builder for updating this SubscriptionPhase.
@@ -267,6 +294,11 @@ func (_m *SubscriptionPhase) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("active_from=")
 	builder.WriteString(_m.ActiveFrom.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.SortHint; v != nil {
+		builder.WriteString("sort_hint=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

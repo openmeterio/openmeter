@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
@@ -15,7 +16,7 @@ const (
 type grantEvent struct {
 	Grant
 
-	Subject models.SubjectKeyAndID `json:"subject"`
+	Subject subject.SubjectKey `json:"subject"`
 	// Namespace from Grant cannot be used as it will never be serialized
 	Namespace models.NamespaceID `json:"namespace"`
 }

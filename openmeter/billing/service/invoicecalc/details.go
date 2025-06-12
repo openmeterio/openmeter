@@ -22,7 +22,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.Invoice, deps Calculator
 	var outErr error
 
 	for _, line := range lines {
-		if line.IsDeleted() || line.IsSplit() {
+		if line.IsDeleted() {
 			continue
 		}
 
@@ -47,11 +47,6 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.Invoice, deps Calculator
 	totals = totals.Add(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) billing.Totals {
 		// Deleted lines are not contributing to the totals
 		if line.DeletedAt != nil {
-			return billing.Totals{}
-		}
-
-		// Split lines cannot contribute to the totals, as they are superseded by the child lines
-		if line.Status == billing.InvoiceLineStatusSplit {
 			return billing.Totals{}
 		}
 

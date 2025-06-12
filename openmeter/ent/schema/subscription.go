@@ -37,6 +37,22 @@ func (Subscription) Fields() []ent.Field {
 		field.String("plan_id").Optional().Nillable(),
 		field.String("customer_id").NotEmpty().Immutable(),
 		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).NotEmpty().Immutable(),
+		field.String("billing_cadence").
+			GoType(isodate.String("")).
+			Comment("The default billing cadence for subscriptions."),
+		field.String("pro_rating_config").
+			GoType(productcatalog.ProRatingConfig{}).
+			ValueScanner(ProRatingConfigValueScanner).
+			DefaultFunc(func() productcatalog.ProRatingConfig {
+				return productcatalog.ProRatingConfig{
+					Mode:    productcatalog.ProRatingModeProratePrices,
+					Enabled: true,
+				}
+			}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Comment("Default pro-rating configuration for subscriptions."),
 	}
 }
 
@@ -51,8 +67,11 @@ func (Subscription) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("plan", Plan.Type).Field("plan_id").Ref("subscriptions").Unique(),
 		edge.From("customer", Customer.Type).Field("customer_id").Ref("subscription").Immutable().Unique().Required(),
-		edge.To("phases", SubscriptionPhase.Type),
+		edge.To("phases", SubscriptionPhase.Type).Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
+		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 		edge.To("addons", SubscriptionAddon.Type).
 			Annotations(entsql.Annotation{
 				OnDelete: entsql.Cascade,
@@ -80,6 +99,7 @@ func (SubscriptionPhase) Fields() []ent.Field {
 		field.String("name").NotEmpty(),
 		field.String("description").Optional().Nillable(),
 		field.Time("active_from").Immutable(),
+		field.Uint8("sort_hint").Optional().Nillable().Comment("Used to sort phases when they have the same active_from time (happens for 0 length phases)"),
 	}
 }
 
@@ -94,8 +114,11 @@ func (SubscriptionPhase) Indexes() []ent.Index {
 func (SubscriptionPhase) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("subscription", Subscription.Type).Field("subscription_id").Ref("phases").Unique().Immutable().Required(),
-		edge.To("items", SubscriptionItem.Type),
+		edge.To("items", SubscriptionItem.Type).Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
+		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 	}
 }
 
@@ -187,7 +210,10 @@ func (SubscriptionItem) Indexes() []ent.Index {
 func (SubscriptionItem) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("phase", SubscriptionPhase.Type).Field("phase_id").Ref("items").Unique().Immutable().Required(),
-		edge.From("entitlement", Entitlement.Type).Field("entitlement_id").Ref("subscription_item").Unique(),
+		edge.From("entitlement", Entitlement.Type).Field("entitlement_id").Ref("subscription_item").Unique().Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
+		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 	}
 }
