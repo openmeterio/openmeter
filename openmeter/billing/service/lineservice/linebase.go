@@ -114,6 +114,10 @@ func (l lineBase) IsLastInPeriod() bool {
 		return true
 	}
 
+	if l.line.SplitLineHierarchy == nil {
+		return true
+	}
+
 	if l.line.SplitLineHierarchy.Group.ServicePeriod.End.Equal(l.line.Period.End) {
 		return true
 	}
@@ -123,6 +127,10 @@ func (l lineBase) IsLastInPeriod() bool {
 
 func (l lineBase) IsFirstInPeriod() bool {
 	if l.line.SplitLineGroupID == nil {
+		return true
+	}
+
+	if l.line.SplitLineHierarchy == nil {
 		return true
 	}
 

@@ -415,10 +415,21 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 			return dbInvoice.Edges.BillingInvoiceLines
 		})
 
-		return tx.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
+		mappedLines, err := tx.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
 			lines:          lines,
 			includeDeleted: input.IncludeDeleted,
 		})
+		if err != nil {
+			return nil, err
+		}
+
+		// Let's expand the line hierarchy so that we can have a full view of the split line groups
+		linesWithHierarchy, err := tx.expandSplitLineHierarchy(ctx, input.Namespace, mappedLines)
+		if err != nil {
+			return nil, err
+		}
+
+		return linesWithHierarchy, nil
 	})
 }
 
