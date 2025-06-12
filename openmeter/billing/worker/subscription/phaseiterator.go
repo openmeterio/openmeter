@@ -227,10 +227,18 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 		attribute.String("itemKey", item.Spec.ItemKey),
 		attribute.Int("itemVersion", version),
 		attribute.String("phaseKey", it.phase.Spec.PhaseKey),
+		attribute.String("subscriptionId", it.sub.Subscription.ID),
+		attribute.String("phaseId", it.phase.SubscriptionPhase.ID),
 	))
 
 	return span.Wrap(ctx, func(ctx context.Context) (bool, error) {
-		logger := it.logger.With("itemKey", item.Spec.ItemKey, "itemVersion", version, "phaseKey", it.phase.Spec.PhaseKey)
+		logger := it.logger.With(
+			"itemKey", item.Spec.ItemKey,
+			"itemVersion", version,
+			"phaseKey", it.phase.Spec.PhaseKey,
+			"subscriptionId", it.sub.Subscription.ID,
+			"phaseId", it.phase.SubscriptionPhase.ID,
+		)
 
 		// Let's drop non-billable items
 		if item.Spec.RateCard.AsMeta().Price == nil {
