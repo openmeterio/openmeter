@@ -20,7 +20,7 @@ require (
 	github.com/bhmj/jsonslice v1.1.3
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cloudevents/sdk-go/v2 v2.16.0
-	github.com/confluentinc/confluent-kafka-go/v2 v2.10.0
+	github.com/confluentinc/confluent-kafka-go/v2 v2.10.1
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/cors v1.2.1
@@ -329,7 +329,7 @@ require (
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/gosimple/slug v1.14.0 // indirect
 	github.com/gosimple/unidecode v1.0.1
-	github.com/govalues/decimal v0.1.36 // indirect
+	github.com/govalues/decimal v0.1.36
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
