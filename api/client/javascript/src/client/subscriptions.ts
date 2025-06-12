@@ -169,4 +169,28 @@ export class Subscriptions {
 
     return transformResponse(resp)
   }
+
+  /**
+   * Delete subscription
+   * @description Deletes a subscription. Only scheduled subscriptions can be deleted.
+   * @param subscriptionId - The ID of the subscription to delete
+   * @param options - Optional request options
+   * @returns void or standard error response structure
+   */
+  public async delete(
+    subscriptionId: operations['deleteSubscription']['parameters']['path']['subscriptionId'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.DELETE(
+      '/api/v1/subscriptions/{subscriptionId}',
+      {
+        params: {
+          path: { subscriptionId },
+        },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
 }
