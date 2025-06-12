@@ -17,7 +17,7 @@ interface Customer {
   @get
   @operationId("getCustomerEntitlementValue")
   @route("/entitlements/{featureKey}/value")
-  @summary("Get entitlement value")
+  @summary("Get customer entitlement value")
   getCustomerEntitlementValue(
     @path customerIdOrKey: ULIDOrKey,
     @path featureKey: Key,
