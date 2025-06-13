@@ -7,17 +7,18 @@ import (
 
 // Entity types
 const (
-	EntityEntitlement  = "entitlement"
-	EntitySubscription = "subscription"
-	EntityInvoice      = "invoice"
-	EntityCustomer     = "customer"
-	EntitySubjectKey   = "subjectKey"
-	EntityGrant        = "grant"
-	EntityApp          = "app"
-	EntityMeter        = "meter"
-	EntityFeature      = "feature"
-	EntityPlan         = "plan"
-	EntityAddon        = "addon"
+	EntityEntitlement       = "entitlement"
+	EntitySubscription      = "subscription"
+	EntitySubscriptionAddon = "subscriptionAddon"
+	EntityInvoice           = "invoice"
+	EntityCustomer          = "customer"
+	EntitySubjectKey        = "subjectKey"
+	EntityGrant             = "grant"
+	EntityApp               = "app"
+	EntityMeter             = "meter"
+	EntityFeature           = "feature"
+	EntityPlan              = "plan"
+	EntityAddon             = "addon"
 )
 
 // Ingestion/Events

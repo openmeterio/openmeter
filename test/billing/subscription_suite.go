@@ -172,7 +172,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(deps.DBClient)
 	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(deps.DBClient)
 
-	s.SubscriptionAddonService = subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
+	s.SubscriptionAddonService, err = subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
 		TxManager:        subsItemRepo,
 		Logger:           slog.Default(),
 		AddonService:     addonService,
@@ -180,7 +180,9 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		SubAddRepo:       subAddRepo,
 		SubAddQtyRepo:    subAddQtyRepo,
 		PlanAddonService: planAddonService,
+		Publisher:        publisher,
 	})
+	require.NoError(t, err)
 
 	s.SubscriptionPlanAdapter = subscriptiontestutils.NewPlanSubscriptionAdapter(subscriptiontestutils.PlanSubscriptionAdapterConfig{
 		PlanService: planService,
