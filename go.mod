@@ -60,7 +60,7 @@ require (
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.49.1
 	github.com/rickb777/period v1.0.15
 	github.com/sagikazarmark/mapstructurex v0.1.0
-	github.com/samber/lo v1.50.0
+	github.com/samber/lo v1.51.0
 	github.com/samber/mo v1.14.0
 	github.com/samber/slog-multi v1.4.0
 	github.com/spf13/cobra v1.9.1
@@ -329,7 +329,7 @@ require (
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/gosimple/slug v1.14.0 // indirect
 	github.com/gosimple/unidecode v1.0.1
-	github.com/govalues/decimal v0.1.36 // indirect
+	github.com/govalues/decimal v0.1.36
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
