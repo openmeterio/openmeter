@@ -75,7 +75,7 @@ func NewChangeQuantityEvent(ctx context.Context, customer customer.Customer, sub
 type ChangeQuantityEvent event
 
 var (
-	_ marshaler.Event = CreatedEvent{}
+	_ marshaler.Event = ChangeQuantityEvent{}
 
 	subscriptionChangeQuantityEventName = metadata.GetEventName(metadata.EventType{
 		Subsystem: EventSubsystem,

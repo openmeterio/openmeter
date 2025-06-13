@@ -33,8 +33,28 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
+	if c.SubAddRepo == nil {
+		return errors.New("subscription add-on repository is required")
+	}
+
+	if c.SubAddQtyRepo == nil {
+		return errors.New("subscription add-on quantity repository is required")
+	}
+
+	if c.AddonService == nil {
+		return errors.New("addon service is required")
+	}
+
+	if c.PlanAddonService == nil {
+		return errors.New("plan add-on service is required")
+	}
+
 	if c.Publisher == nil {
 		return errors.New("publisher is required")
+	}
+
+	if c.SubService == nil {
+		return errors.New("subscription service is required")
 	}
 
 	if c.TxManager == nil {
@@ -275,6 +295,10 @@ func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, in
 		subscriptionAddon, err := s.cfg.SubAddRepo.Get(ctx, id)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get subscription add-on: %w", err)
+		}
+
+		if subscriptionAddon == nil {
+			return nil, fmt.Errorf("inconsitency error: nil subscription add-on received")
 		}
 
 		// Publish the event
