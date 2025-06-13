@@ -36,7 +36,7 @@ require (
 	github.com/google/wire v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.35.0
-	github.com/invopop/gobl v0.217.1
+	github.com/invopop/gobl v0.218.0
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/jmattheis/goverter v1.8.3
 	github.com/lmittmann/tint v1.1.2
@@ -329,7 +329,7 @@ require (
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/gosimple/slug v1.14.0 // indirect
 	github.com/gosimple/unidecode v1.0.1
-	github.com/govalues/decimal v0.1.36 // indirect
+	github.com/govalues/decimal v0.1.36
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
