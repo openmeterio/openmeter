@@ -168,7 +168,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbDeps.DBClient)
 	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(dbDeps.DBClient)
 
-	subAddSvc := subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
+	subAddSvc, err := subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
 		TxManager:        subItemRepo,
 		Logger:           logger,
 		AddonService:     addonService,
@@ -176,7 +176,9 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		SubAddRepo:       subAddRepo,
 		SubAddQtyRepo:    subAddQtyRepo,
 		PlanAddonService: planAddonService,
+		Publisher:        publisher,
 	})
+	require.NoError(t, err)
 
 	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            svc,

@@ -77,7 +77,7 @@ func NewSubscriptionServices(
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(db)
 	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(db)
 
-	subAddSvc := subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
+	subAddSvc, err := subscriptionaddonservice.NewService(subscriptionaddonservice.Config{
 		TxManager:        subAddRepo,
 		Logger:           logger,
 		AddonService:     addonService,
@@ -85,7 +85,11 @@ func NewSubscriptionServices(
 		SubAddRepo:       subAddRepo,
 		SubAddQtyRepo:    subAddQtyRepo,
 		PlanAddonService: planAddonService,
+		Publisher:        eventPublisher,
 	})
+	if err != nil {
+		return SubscriptionServiceWithWorkflow{}, err
+	}
 
 	subscriptionWorkflowService := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            subscriptionService,
