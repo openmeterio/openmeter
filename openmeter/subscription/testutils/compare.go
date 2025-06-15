@@ -48,7 +48,7 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 		assert.Equal(t, specPhase.Metadata, foundPhase.SubscriptionPhase.Metadata)
 
 		expectedStart, _ := specPhases[i].StartAfter.AddTo(found.Subscription.ActiveFrom)
-		assert.Equal(t, expectedStart.UTC(), foundPhases[i].ActiveFrom(found.Subscription.CadencedModel))
+		assert.Equal(t, expectedStart.UTC(), foundPhases[i].SubscriptionPhase.ActiveFrom.UTC())
 
 		// Test Rate Cards of Phase
 		specItemsByKey := specPhase.ItemsByKey
@@ -106,27 +106,30 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 					period := GetEntitlementTemplateUsagePeriod(t, *specItem.RateCard.AsMeta().EntitlementTemplate)
 					require.NotNil(t, period)
 
-					// Unfortunately entitlements has minute precision so it can only be aligned to the truncated minute
-					rec, err := timeutil.RecurrenceFromISODuration(period, ent.Cadence.ActiveFrom.Truncate(time.Minute))
-					up := entitlement.UsagePeriod(rec)
-					assert.NoError(t, err)
-					assert.Equal(t, &up, ent.Entitlement.UsagePeriod)
+					// Entitlement UsagePeriod should be aligned to the subscription billing anchor, which means
+					truncatedBillingAnchor := found.Subscription.BillingAnchor.Truncate(time.Minute) // Due to minute precision
+					// - its duration should be identical
+					entPeriod := ent.Entitlement.UsagePeriod.Interval.Period
+					assert.True(t, entPeriod.Equal(period), "usage period interval mismatch, expected %s, got %s", period, entPeriod)
+					// - its anchor should be "aligned" with the subscription's billingAnchor
+					require.NotNil(t, ent.Entitlement.UsagePeriod)
+					entPerAtAnchor, err := timeutil.Recurrence(*ent.Entitlement.UsagePeriod).GetPeriodAt(truncatedBillingAnchor)
+					require.NoError(t, err)
+					require.Equal(t, entPerAtAnchor.From, truncatedBillingAnchor, "entitlement usage period anchor should be aligned with the subscription billing anchor, subscription billing anchor: %s, entitlement usage period: %+v", truncatedBillingAnchor, *ent.Entitlement.UsagePeriod)
 
-					// Validate that entitlement UsagePeriod matches expected by anchor which is the phase start time
-					// Unfortunately entitlement usage period can only be aligned to the minute (due to rounding)
-					assert.Equal(t, foundPhase.ActiveFrom(found.Subscription.CadencedModel).Truncate(time.Minute), ent.Entitlement.UsagePeriod.Anchor)
-
-					// Validate that entitlement activeFrom is the same as the phase activeFrom
-					require.NotNil(t, ent.Entitlement.ActiveFrom)
-					assert.Equal(t, foundPhase.ActiveFrom(found.Subscription.CadencedModel), *ent.Entitlement.ActiveFrom)
-
-					// Validate that the entitlement is only active until the phase is scheduled to be
-					if i < len(specPhases)-1 {
-						nextPhase := specPhases[i+1]
-						nextPhaseStart, _ := nextPhase.StartAfter.AddTo(found.Subscription.ActiveFrom)
-						require.NotNil(t, ent.Entitlement.ActiveTo)
-						assert.Equal(t, nextPhaseStart.UTC(), *ent.Entitlement.ActiveTo)
+					switch rcInp.RateCard.AsMeta().EntitlementTemplate.Type() {
+					case entitlement.EntitlementTypeMetered:
+						// Validate measureUsageFrom, it should measure usage form the start of the current phase
+						require.NotNil(t, ent.Entitlement.MeasureUsageFrom)
+						assert.Equal(t, foundPhase.SubscriptionPhase.ActiveFrom.UTC().Truncate(time.Minute), ent.Entitlement.MeasureUsageFrom.UTC().Truncate(time.Minute), "measureUsageFrom should equal the truncated phase start, expected %s, got %s", foundPhase.SubscriptionPhase.ActiveFrom.UTC().Truncate(time.Minute), ent.Entitlement.MeasureUsageFrom.UTC().Truncate(time.Minute))
 					}
+
+					// Validate that entitlement activeFrom is the same as the item activeFrom
+					require.NotNil(t, ent.Entitlement.ActiveFrom)
+					assert.Equal(t, foundItem.SubscriptionItem.ActiveFrom, *ent.Entitlement.ActiveFrom)
+
+					// Validate that the entitlement is only active until the item is scheduled to be
+					assert.Equal(t, foundItem.SubscriptionItem.ActiveTo, ent.Entitlement.ActiveTo)
 				} else {
 					// If an entitlement wasn't defined then there shouldn't be an entitlement
 					assert.Nil(t, foundItem.Entitlement)
