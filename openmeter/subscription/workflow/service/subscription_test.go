@@ -1042,6 +1042,7 @@ func TestChangeToPlan(t *testing.T) {
 				CustomerId:    curr.CustomerId,
 				Currency:      deps.Plan2.Currency(),
 				ActiveFrom:    *changeInput.Custom,
+				BillingAnchor: *changeInput.Custom,
 				ActiveTo:      nil,
 			})
 			require.Nil(t, err)

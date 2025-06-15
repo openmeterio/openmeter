@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/isodate"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -72,11 +70,6 @@ type SubscriptionPhaseView struct {
 	SubscriptionPhase SubscriptionPhase                 `json:"subscriptionPhase"`
 	Spec              SubscriptionPhaseSpec             `json:"spec"`
 	ItemsByKey        map[string][]SubscriptionItemView `json:"itemsByKey"`
-}
-
-func (s *SubscriptionPhaseView) ActiveFrom(subscriptionCadence models.CadencedModel) time.Time {
-	t, _ := s.Spec.StartAfter.AddTo(subscriptionCadence.ActiveFrom)
-	return t.UTC()
 }
 
 func (s *SubscriptionPhaseView) AsSpec() SubscriptionPhaseSpec {

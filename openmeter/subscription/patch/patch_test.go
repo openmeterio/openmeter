@@ -203,10 +203,11 @@ func getDefaultSpec(t *testing.T, activeFrom time.Time) (*subscription.Subscript
 	}
 
 	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-		Name:       "Test Plan",
-		CustomerId: "test_customer",
-		Currency:   currencyx.Code("USD"),
-		ActiveFrom: activeFrom,
+		Name:          "Test Plan",
+		CustomerId:    "test_customer",
+		Currency:      currencyx.Code("USD"),
+		ActiveFrom:    activeFrom,
+		BillingAnchor: activeFrom,
 	})
 	require.Nil(t, err)
 

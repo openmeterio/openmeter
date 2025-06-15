@@ -82,10 +82,11 @@ func (s *service) createItem(
 		// First, let's see if we need to create an entitlement
 		entInput, hasEnt, err := opts.itemSpec.ToScheduleSubscriptionEntitlementInput(
 			subscription.ToScheduleSubscriptionEntitlementInputOptions{
-				Customer:     opts.cust,
-				Cadence:      itemCadence,
-				PhaseCadence: opts.phaseCadence,
-				IsAligned:    opts.sub.BillablesMustAlign,
+				Customer:             opts.cust,
+				Cadence:              itemCadence,
+				PhaseStart:           opts.phaseCadence.ActiveFrom,
+				AlignedBillingAnchor: opts.sub.BillingAnchor,
+				IsAligned:            opts.sub.BillablesMustAlign,
 			},
 		)
 		if err != nil {

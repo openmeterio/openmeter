@@ -43,10 +43,11 @@ func TestAddonServiceCreate(t *testing.T) {
 			// Let's create a subscription
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			spec1, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-				CustomerId: cust.ID,
-				Currency:   "USD",
-				ActiveFrom: now,
-				Name:       "Test Subscription",
+				CustomerId:    cust.ID,
+				Currency:      "USD",
+				ActiveFrom:    now,
+				BillingAnchor: now,
+				Name:          "Test Subscription",
 			})
 			require.Nil(t, err)
 
@@ -88,10 +89,11 @@ func TestAddonServiceCreate(t *testing.T) {
 			// Let's create a subscription
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			spec1, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-				CustomerId: cust.ID,
-				Currency:   "USD",
-				ActiveFrom: now,
-				Name:       "Test Subscription",
+				CustomerId:    cust.ID,
+				Currency:      "USD",
+				ActiveFrom:    now,
+				BillingAnchor: now,
+				Name:          "Test Subscription",
 			})
 			require.Nil(t, err)
 
@@ -160,10 +162,11 @@ func TestAddonServiceCreate(t *testing.T) {
 			// Let's create a subscription
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			spec1, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-				CustomerId: cust.ID,
-				Currency:   "USD",
-				ActiveFrom: now,
-				Name:       "Test Subscription",
+				CustomerId:    cust.ID,
+				Currency:      "USD",
+				ActiveFrom:    now,
+				BillingAnchor: now,
+				Name:          "Test Subscription",
 			})
 			require.Nil(t, err)
 
@@ -213,10 +216,11 @@ func TestAddonServiceCreate(t *testing.T) {
 			// Let's create a subscription
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			spec1, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-				CustomerId: cust.ID,
-				Currency:   "USD",
-				ActiveFrom: now,
-				Name:       "Test Subscription",
+				CustomerId:    cust.ID,
+				Currency:      "USD",
+				ActiveFrom:    now,
+				BillingAnchor: now,
+				Name:          "Test Subscription",
 			})
 			require.Nil(t, err)
 
@@ -283,10 +287,11 @@ func TestAddonServiceCreate(t *testing.T) {
 				Plan: p.AsProductCatalogPlan(),
 				Ref:  &p.NamespacedID,
 			}, subscription.CreateSubscriptionCustomerInput{
-				CustomerId: cust.ID,
-				Currency:   "USD",
-				ActiveFrom: now,
-				Name:       "Test Subscription",
+				CustomerId:    cust.ID,
+				Currency:      "USD",
+				BillingAnchor: now,
+				ActiveFrom:    now,
+				Name:          "Test Subscription",
 			})
 			require.Nil(t, err)
 
@@ -359,10 +364,11 @@ func TestAddonServiceCreate(t *testing.T) {
 				Plan: p.AsProductCatalogPlan(),
 				Ref:  &p.NamespacedID,
 			}, subscription.CreateSubscriptionCustomerInput{
-				CustomerId: cust.ID,
-				Currency:   "USD",
-				ActiveFrom: now,
-				Name:       "Test Subscription",
+				CustomerId:    cust.ID,
+				Currency:      "USD",
+				BillingAnchor: now,
+				ActiveFrom:    now,
+				Name:          "Test Subscription",
 			})
 			require.Nil(t, err)
 
@@ -401,10 +407,11 @@ func TestAddonServiceCreate(t *testing.T) {
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 			spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-				CustomerId: cust.ID,
-				Currency:   "USD",
-				ActiveFrom: now,
-				Name:       "Test Subscription",
+				CustomerId:    cust.ID,
+				Currency:      "USD",
+				ActiveFrom:    now,
+				BillingAnchor: now,
+				Name:          "Test Subscription",
 			})
 			require.Nil(t, err)
 
@@ -457,10 +464,11 @@ func TestAddonServiceCreate(t *testing.T) {
 			// Let's create a subscription
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			spec1, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-				CustomerId: cust.ID,
-				Currency:   "USD",
-				ActiveFrom: now,
-				Name:       "Test Subscription",
+				CustomerId:    cust.ID,
+				Currency:      "USD",
+				BillingAnchor: now,
+				ActiveFrom:    now,
+				Name:          "Test Subscription",
 			})
 			require.Nil(t, err)
 
@@ -549,10 +557,11 @@ func createExampleSubscription(t *testing.T, deps subscriptiontestutils.Subscrip
 	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 	spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-		CustomerId: cust.ID,
-		Currency:   "USD",
-		ActiveFrom: currentTime,
-		Name:       "Test Subscription",
+		CustomerId:    cust.ID,
+		Currency:      "USD",
+		BillingAnchor: currentTime,
+		ActiveFrom:    currentTime,
+		Name:          "Test Subscription",
 	})
 	require.Nil(t, err)
 
