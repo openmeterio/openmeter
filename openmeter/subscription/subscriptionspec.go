@@ -258,13 +258,8 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.Clo
 
 	// TODO(galexi, OM-1418): implement reanchoring
 
-	// We will use the phase start time as the cadence anchor
-	phaseCadence, err := s.GetPhaseCadence(phase.PhaseKey)
-	if err != nil {
-		return def, fmt.Errorf("failed to get phase cadence for phase %s: %w", phase.PhaseKey, err)
-	}
-
-	billingRecurrence, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(s.BillingCadence), phaseCadence.ActiveFrom)
+	// We will use the subscription billing anchor as the cadence anchor
+	billingRecurrence, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(s.BillingCadence), s.BillingAnchor)
 	if err != nil {
 		return def, fmt.Errorf("failed to get billing recurrence for phase %s: %w", phase.PhaseKey, err)
 	}
@@ -275,6 +270,11 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.Clo
 	}
 
 	// The billing period must be contained within the phase
+	phaseCadence, err := s.GetPhaseCadence(phase.PhaseKey)
+	if err != nil {
+		return def, fmt.Errorf("failed to get phase cadence for phase %s: %w", phase.PhaseKey, err)
+	}
+
 	if phaseCadence.ActiveTo != nil && phaseCadence.ActiveTo.Before(period.To) {
 		period.To = *phaseCadence.ActiveTo
 	}

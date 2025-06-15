@@ -59,14 +59,15 @@ func (s *PhaseIteratorTestSuite) mustParseTime(t string) time.Time {
 
 func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 	tcs := []struct {
-		name                  string
-		items                 []subscriptionItemViewMock
-		end                   time.Time
-		expected              []expectedIterations
-		expectedErr           error
-		phaseEnd              *time.Time
-		subscriptionEnd       *time.Time
-		alignedBillingCadence isodate.Period
+		name                                     string
+		items                                    []subscriptionItemViewMock
+		end                                      time.Time
+		expected                                 []expectedIterations
+		expectedErr                              error
+		phaseEnd                                 *time.Time
+		subscriptionEnd                          *time.Time
+		alignedBillingCadence                    isodate.Period
+		billingAnchorRelativeToSubscriptionStart isodate.Period // remember to use a negative otherwise test will fail
 	}{
 		{
 			name:     "unaligned empty",
@@ -1060,13 +1061,107 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 		},
+		//
+		// Aligned Subscription Tests with Billing Anchor
+		//
+		{
+			name: "aligned flat-fee recurring when billing cadence is same as service cadence",
+			items: []subscriptionItemViewMock{
+				{
+					Key:      "item-key",
+					Type:     productcatalog.FlatPriceType,
+					Cadence:  "P1D",
+					EndAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
+				},
+				{
+					Key:        "item-key",
+					Type:       productcatalog.FlatPriceType,
+					Cadence:    "P1D",
+					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
+				},
+			},
+			end:                                      s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedBillingCadence:                    isodate.MustParse(s.T(), "P1D"),
+			billingAnchorRelativeToSubscriptionStart: isodate.MustParse(s.T(), "-PT1H"),
+			// We expect the full service periods to be shifted
+			expected: []expectedIterations{
+				{
+					// Service Periods will be aligned to the billing anchor
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-01T23:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2020-12-31T23:00:00Z"),
+						End:   s.mustParseTime("2021-01-01T23:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						// BillingPeriod cannot fall outside of subscription active period (and phase active period) so start gets truncated
+						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-01T23:00:00Z"),
+					},
+					Key: "subID/phase-test/item-key/v[0]/period[0]",
+				},
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T23:00:00Z"),
+						// Item ends so does service period
+						End: s.mustParseTime("2021-01-02T20:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T23:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T23:00:00Z"),
+					},
+					// Billing period will be the next whole day
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T23:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T23:00:00Z"),
+					},
+					Key: "subID/phase-test/item-key/v[0]/period[1]",
+				},
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T23:00:00Z"),
+					},
+					// Item was changed during period so the full service period will be the same as that of the previous version
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T23:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T23:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-01T23:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T23:00:00Z"),
+					},
+					Key: "subID/phase-test/item-key/v[1]/period[0]",
+				},
+				// Given invoiceAt should be >= end, we have an extra in advance item
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T23:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T23:00:00Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T23:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T23:00:00Z"),
+					},
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T23:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T23:00:00Z"),
+					},
+					Key: "subID/phase-test/item-key/v[1]/period[1]",
+				},
+			},
+		},
 	}
 
 	for _, tc := range tcs {
 		s.Run(tc.name, func() {
+			subscriptionStart := s.mustParseTime("2021-01-01T00:00:00Z")
+
 			phase := subscription.SubscriptionPhaseView{
 				SubscriptionPhase: subscription.SubscriptionPhase{
-					ActiveFrom: lo.Must(time.Parse(time.RFC3339, "2021-01-01T00:00:00Z")),
+					ActiveFrom: subscriptionStart,
 					Key:        "phase-test",
 				},
 				ItemsByKey: map[string][]subscription.SubscriptionItemView{},
@@ -1179,13 +1274,15 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 
 			subs := subscription.SubscriptionView{
 				Subscription: subscription.Subscription{
+					BillingAnchor: subscriptionStart,
 					NamespacedID: models.NamespacedID{
 						ID: "subID",
 					},
 				},
 				Spec: subscription.SubscriptionSpec{
 					CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
-						ActiveFrom: phase.SubscriptionPhase.ActiveFrom,
+						ActiveFrom:    phase.SubscriptionPhase.ActiveFrom,
+						BillingAnchor: subscriptionStart,
 					},
 					Phases: map[string]*subscription.SubscriptionPhaseSpec{
 						phase.SubscriptionPhase.Key: &phase.Spec,
@@ -1199,11 +1296,20 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				subs.Spec.ActiveTo = tc.subscriptionEnd
 			}
 
+			if tc.billingAnchorRelativeToSubscriptionStart.Sign() == 1 {
+				require.Fail(s.T(), "billing anchor relative to subscription start must be negative in test-case")
+			}
+
 			if !tc.alignedBillingCadence.IsZero() {
 				subs.Subscription.BillablesMustAlign = true
 				subs.Spec.BillablesMustAlign = true
 				subs.Spec.BillingCadence = tc.alignedBillingCadence
 				subs.Subscription.BillingCadence = tc.alignedBillingCadence
+				anchorTime, ok := tc.billingAnchorRelativeToSubscriptionStart.AddTo(subscriptionStart)
+				s.True(ok)
+
+				subs.Subscription.BillingAnchor = anchorTime
+				subs.Spec.BillingAnchor = anchorTime
 			}
 
 			if tc.phaseEnd != nil {
@@ -1237,11 +1343,11 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					BillingPeriod:     item.BillingPeriod,
 				})
 
-				s.T().Logf("out[%d]: [%s..%s] %s (full-service: %s..%s) (billing: %s..%s)\n", i, item.ServicePeriod.Start, item.ServicePeriod.End, item.UniqueID, item.FullServicePeriod.Start, item.FullServicePeriod.End, item.BillingPeriod.Start, item.BillingPeriod.End)
+				s.T().Logf("out[%d]: %s \nService Period: [%s..%s] \nFull Service Period: [%s..%s] \nBilling Period: [%s..%s]\n", i, item.UniqueID, item.ServicePeriod.Start, item.ServicePeriod.End, item.FullServicePeriod.Start, item.FullServicePeriod.End, item.BillingPeriod.Start, item.BillingPeriod.End)
 			}
 
 			for i, item := range tc.expected {
-				s.T().Logf("expected[%d]: [%s..%s] %s (full-service: %s..%s) (billing: %s..%s)\n", i, item.ServicePeriod.Start, item.ServicePeriod.End, item.Key, item.FullServicePeriod.Start, item.FullServicePeriod.End, item.BillingPeriod.Start, item.BillingPeriod.End)
+				s.T().Logf("expected[%d]: %s \nService Period: [%s..%s] \nFull Service Period: [%s..%s] \nBilling Period: [%s..%s]\n", i, item.Key, item.ServicePeriod.Start, item.ServicePeriod.End, item.FullServicePeriod.Start, item.FullServicePeriod.End, item.BillingPeriod.Start, item.BillingPeriod.End)
 			}
 
 			s.ElementsMatch(tc.expected, outAsExpect)
