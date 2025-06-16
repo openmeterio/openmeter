@@ -777,7 +777,7 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Get entitlement value
+     * Get customer entitlement value
      * @description Checks customer access to a given feature (by key). All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
      */
     get: operations['getCustomerEntitlementValue']
@@ -1732,13 +1732,13 @@ export interface paths {
       cookie?: never
     }
     /**
-     * List entitlements
+     * List subject entitlements
      * @description List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
      */
     get: operations['listSubjectEntitlements']
     put?: never
     /**
-     * Create an entitlement
+     * Create a subject entitlement
      * @description OpenMeter has three types of entitlements: metered, boolean, and static. The type property determines the type of entitlement. The underlying feature has to be compatible with the entitlement type specified in the request (e.g., a metered entitlement needs a feature associated with a meter).
      *
      *     - Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
@@ -1764,13 +1764,13 @@ export interface paths {
       cookie?: never
     }
     /**
-     * List entitlement grants
+     * List subject entitlement grants
      * @description List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
      */
     get: operations['listEntitlementGrants']
     put?: never
     /**
-     * Create grant
+     * Create subject entitlement grant
      * @description Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
      *
      *     A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
@@ -1799,7 +1799,7 @@ export interface paths {
     }
     get?: never
     /**
-     * Override entitlement
+     * Override subject entitlement
      * @description Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided subject-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
      *
      *     This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
@@ -1820,7 +1820,7 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Get entitlement value
+     * Get subject entitlement value
      * @description This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
      *
      *     For convenience reasons, /value works with both entitlementId and featureKey.
@@ -1842,14 +1842,14 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Get entitlement
+     * Get subject entitlement
      * @description Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
      */
     get: operations['getEntitlement']
     put?: never
     post?: never
     /**
-     * Delete entitlement
+     * Delete subject entitlement
      * @description Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
      *     As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
      */
@@ -1867,7 +1867,7 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Get entitlement history
+     * Get subject entitlement history
      * @description Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
      *
      *     BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
@@ -1893,7 +1893,7 @@ export interface paths {
     get?: never
     put?: never
     /**
-     * Reset entitlement
+     * Reset subject entitlement
      * @description Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the subjects billing period to enforce usage based on their subscription.
      *
      *     Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
