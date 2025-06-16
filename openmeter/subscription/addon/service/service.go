@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -21,6 +22,7 @@ type Config struct {
 	SubAddRepo    subscriptionaddon.SubscriptionAddonRepository
 	SubAddQtyRepo subscriptionaddon.SubscriptionAddonQuantityRepository
 
+	Publisher eventbus.Publisher
 	TxManager transaction.Creator
 
 	// external
@@ -28,6 +30,38 @@ type Config struct {
 	PlanAddonService planaddon.Service
 	SubService       subscription.Service
 	Logger           *slog.Logger
+}
+
+func (c Config) Validate() error {
+	if c.SubAddRepo == nil {
+		return errors.New("subscription add-on repository is required")
+	}
+
+	if c.SubAddQtyRepo == nil {
+		return errors.New("subscription add-on quantity repository is required")
+	}
+
+	if c.AddonService == nil {
+		return errors.New("addon service is required")
+	}
+
+	if c.PlanAddonService == nil {
+		return errors.New("plan add-on service is required")
+	}
+
+	if c.Publisher == nil {
+		return errors.New("publisher is required")
+	}
+
+	if c.SubService == nil {
+		return errors.New("subscription service is required")
+	}
+
+	if c.TxManager == nil {
+		return errors.New("tx manager is required")
+	}
+
+	return nil
 }
 
 type service struct {
@@ -38,12 +72,17 @@ var _ subscriptionaddon.Service = &service{}
 
 func NewService(
 	cfg Config,
-) subscriptionaddon.Service {
+) (subscriptionaddon.Service, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &service{
 		cfg: cfg,
-	}
+	}, nil
 }
 
+// Create creates a new subscription add-on
 func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon.CreateSubscriptionAddonInput) (*subscriptionaddon.SubscriptionAddon, error) {
 	if err := input.Validate(); err != nil {
 		return nil, models.NewGenericValidationError(fmt.Errorf("invalid input: %w", err))
@@ -139,14 +178,31 @@ func (s *service) Create(ctx context.Context, ns string, input subscriptionaddon
 		}
 
 		// Let's fetch the addon again and return it
-		return s.cfg.SubAddRepo.Get(ctx, *subAdd)
+		subscriptionAddon, err := s.cfg.SubAddRepo.Get(ctx, *subAdd)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get subscription add-on: %w", err)
+		}
+
+		if subscriptionAddon == nil {
+			return nil, fmt.Errorf("inconsitency error: nil subscription add-on received")
+		}
+
+		// Publish the event
+		err = s.cfg.Publisher.Publish(ctx, subscriptionaddon.NewCreatedEvent(ctx, sView.Customer, *subscriptionAddon))
+		if err != nil {
+			return subscriptionAddon, fmt.Errorf("failed to publish event: %w", err)
+		}
+
+		return subscriptionAddon, nil
 	})
 }
 
+// Get gets a subscription add-on
 func (s *service) Get(ctx context.Context, id models.NamespacedID) (*subscriptionaddon.SubscriptionAddon, error) {
 	return s.cfg.SubAddRepo.Get(ctx, id)
 }
 
+// List lists subscription add-ons
 func (s *service) List(ctx context.Context, ns string, input subscriptionaddon.ListSubscriptionAddonsInput) (pagination.PagedResponse[subscriptionaddon.SubscriptionAddon], error) {
 	def := pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{}
 	if err := input.Validate(); err != nil {
@@ -156,6 +212,7 @@ func (s *service) List(ctx context.Context, ns string, input subscriptionaddon.L
 	return s.cfg.SubAddRepo.List(ctx, ns, subscriptionaddon.ListSubscriptionAddonRepositoryInput(input))
 }
 
+// ChangeQuantity changes the quantity of a subscription add-on
 func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, input subscriptionaddon.CreateSubscriptionAddonQuantityInput) (*subscriptionaddon.SubscriptionAddon, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
@@ -235,6 +292,21 @@ func (s *service) ChangeQuantity(ctx context.Context, id models.NamespacedID, in
 		}
 
 		// Let's fetch the addon and return it
-		return s.cfg.SubAddRepo.Get(ctx, id)
+		subscriptionAddon, err := s.cfg.SubAddRepo.Get(ctx, id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get subscription add-on: %w", err)
+		}
+
+		if subscriptionAddon == nil {
+			return nil, fmt.Errorf("inconsitency error: nil subscription add-on received")
+		}
+
+		// Publish the event
+		err = s.cfg.Publisher.Publish(ctx, subscriptionaddon.NewChangeQuantityEvent(ctx, sView.Customer, *subscriptionAddon))
+		if err != nil {
+			return subscriptionAddon, fmt.Errorf("failed to publish event: %w", err)
+		}
+
+		return subscriptionAddon, nil
 	})
 }
