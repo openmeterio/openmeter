@@ -19,7 +19,7 @@ require (
 	github.com/avast/retry-go/v4 v4.6.1
 	github.com/bhmj/jsonslice v1.1.3
 	github.com/brianvoe/gofakeit/v6 v6.28.0
-	github.com/cloudevents/sdk-go/v2 v2.16.0
+	github.com/cloudevents/sdk-go/v2 v2.16.1
 	github.com/confluentinc/confluent-kafka-go/v2 v2.10.1
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/go-chi/chi/v5 v5.2.1
@@ -481,7 +481,7 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
 	golang.org/x/text v0.26.0
-	golang.org/x/time v0.10.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.33.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/api v0.223.0 // indirect
