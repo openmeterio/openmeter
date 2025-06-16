@@ -46,15 +46,10 @@ using TypeSpec.OpenAPI;
     description: "Manage integrations for extending OpenMeter's functionality. ",
   }
 )
-@tagMetadata(
-  "App: Stripe",
-  #{ description: "Support for Stripe billing." }
-)
+@tagMetadata("App: Stripe", #{ description: "Support for Stripe billing." })
 @tagMetadata(
   "App: Custom Invoicing",
-  #{
-    description: "Interface third party invoicing and payment systems.",
-  }
+  #{ description: "Interface third party invoicing and payment systems." }
 )
 @tagMetadata(
   "Billing",
