@@ -324,6 +324,16 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 }
 
 func newValidationIssueOnLine(line *billing.Line, message string, a ...any) billing.ValidationIssue {
+	if line == nil {
+		return billing.ValidationIssue{
+			Severity:  billing.ValidationIssueSeverityCritical,
+			Message:   "line not found in the invoice, cannot update",
+			Code:      billing.ImmutableInvoiceHandlingNotSupportedErrorCode,
+			Component: SubscriptionSyncComponentName,
+			Path:      "lines/nil",
+		}
+	}
+
 	return billing.ValidationIssue{
 		// We use warning here, to prevent the state machine from being locked up due to present
 		// validation errors
