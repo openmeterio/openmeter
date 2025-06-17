@@ -160,6 +160,16 @@ svix:
   # This is an example Token intended for development purposes. You should create your own using the instructions in [svix documentation](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication).
   signedJwt: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdml4LXNlcnZlciIsImlhdCI6MTczMDk4NzU0MywiZXhwIjoyMjM1OTA5MDAwLCJhdWQiOiIiLCJzdWIiOiJvcmdfMjNyYjhZZEdxTVQwcUl6cGdHd2RYZkhpck11In0.J90SzVuNwecyCtWAQlOoWplJaK4rnIb3rCWXrHQPqJY"
 
+  # -- External database configuration for Svix
+  database:
+    # -- External PostgreSQL DSN for Svix. If not provided, uses internal PostgreSQL.
+    dsn: ""
+
+  # -- External Redis configuration for Svix
+  redis:
+    # -- External Redis DSN for Svix. If not provided, uses internal Redis.
+    dsn: ""
+
   # -- Number of replicas (pods) to launch.
   replicaCount: 1
 
@@ -204,7 +214,6 @@ redis:
     enabled: false
 
   nameOverride: redis
-
 
 postgresql:
   # -- Specifies whether Postgres (using the [Bitnami Chart](https://github.com/bitnami/charts/tree/main/bitnami/postgresql) should be installed.
