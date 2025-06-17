@@ -16,6 +16,8 @@ type Recurrence struct {
 	Anchor time.Time `json:"anchor"`
 }
 
+// TODO: Used by subscription
+
 // Returns a period where p.ContainsInclusive(t) is true
 func (r Recurrence) GetPeriodAt(t time.Time) (ClosedPeriod, error) {
 	var def ClosedPeriod
@@ -44,6 +46,8 @@ func (r Recurrence) GetPeriodAt(t time.Time) (ClosedPeriod, error) {
 
 	return ClosedPeriod{prev, next}, nil
 }
+
+// Entitlements
 
 // NextAfter returns the next time after t that the recurrence should occur.
 // If at t the recurrence should occur, it will return t.
