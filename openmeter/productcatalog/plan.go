@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
@@ -98,21 +97,14 @@ func ValidatePlanPhases() models.ValidatorFunc[Plan] {
 	}
 }
 
-// ValidatePlanMinimumBillingCadence validates that the billing cadence of the plan is at least a month.
-func ValidatePlanMinimumBillingCadence() models.ValidatorFunc[Plan] {
+// ValidatePlanBillingCadenceLiteral validates that the billing cadence of the plan is at least a month.
+func ValidatePlanBillingCadenceLiteral() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		var errs []error
 
-		// Billing Cadence has to be at least 28 days
+		isoString := p.BillingCadence.ISOString()
 
-		lowestHours, err := p.BillingCadence.InHours(28)
-		if err != nil {
-			errs = append(errs, err)
-		}
-
-		hoursIn28Days := alpacadecimal.NewFromInt(28 * 24)
-
-		if lowestHours.Cmp(hoursIn28Days) < 0 {
+		if !lo.Contains(ErrPlanBillingCadenceAllowedValues, isoString) {
 			errs = append(errs, ErrPlanBillingCadenceInvalid)
 		}
 
@@ -162,7 +154,7 @@ func (p Plan) Validate() error {
 	return p.ValidateWith(
 		ValidatePlanMeta(),
 		ValidatePlanPhases(),
-		ValidatePlanMinimumBillingCadence(),
+		ValidatePlanBillingCadenceLiteral(),
 		ValidatePlanHasAlignedBillingCadences(),
 	)
 }

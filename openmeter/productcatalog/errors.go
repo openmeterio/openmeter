@@ -1,6 +1,14 @@
 package productcatalog
 
-import "github.com/openmeterio/openmeter/pkg/models"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/models"
+)
 
 // PlanAddon errors
 
@@ -398,11 +406,22 @@ var ErrIDEmpty = models.NewValidationIssue(
 
 // Plan errors
 
+var ErrPlanBillingCadenceAllowedValues = []isodate.String{
+	"P1W",
+	"P2W",
+	"P4W",
+	"P1M",
+	"P3M",
+	"P6M",
+	"P12M",
+	"P1Y",
+}
+
 const ErrCodePlanBillingCadenceInvalid models.ErrorCode = "plan_billing_cadence_invalid"
 
 var ErrPlanBillingCadenceInvalid = models.NewValidationIssue(
 	ErrCodePlanBillingCadenceInvalid,
-	"billing cadence must be at least 28 days",
+	fmt.Sprintf("billing cadence must be one of the following: %s", strings.Join(lo.Map(ErrPlanBillingCadenceAllowedValues, func(v isodate.String, _ int) string { return v.String() }), ", ")),
 	models.WithFieldString("billingCadence"),
 	models.WithCriticalSeverity(),
 )
