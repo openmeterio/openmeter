@@ -3777,10 +3777,9 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
-	// January is 31 days, wechange phase after 2 weeks (14 days)
-	// 5 * 14/31 = 2.258... which we round to 2.26
-
 	s.expectLines(gatheringInvoice, subView.Subscription.ID, []expectedLine{
+		// January is 31 days, wechange phase after 2 weeks (14 days)
+		// 5 * 14/31 = 2.258... which we round to 2.26
 		// First phase lines
 		{
 			Matcher: recurringLineMatcher{
@@ -3826,48 +3825,76 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 			},
 			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z")},
 		},
+		// We align billing to the 1st of month, so we'll prorate the first iteration
+		// January is 31 days, 31 - 14 = 17 days, 5 * 17/31 = 2.741... which we round to 2.74
 		// Second phase lines
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "second-phase",
 				ItemKey:   "in-advance",
 				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(2.74),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "second-phase",
+				ItemKey:   "in-advance",
+				PeriodMin: 1,
 				PeriodMax: 1,
 			},
 			Qty:       mo.Some(1.0),
 			UnitPrice: mo.Some(5.0),
 			Periods: []billing.Period{
 				{
-					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
-				},
-				{
-					Start: s.mustParseTime("2024-02-15T00:00:00Z"),
+					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
 					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z"), s.mustParseTime("2024-02-15T00:00:00Z")},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-02-01T00:00:00Z")},
 		},
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "second-phase",
 				ItemKey:   "in-arrears",
 				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(2.74),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-02-01T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "second-phase",
+				ItemKey:   "in-arrears",
+				PeriodMin: 1,
 				PeriodMax: 1,
 			},
 			Qty:       mo.Some(1.0),
 			UnitPrice: mo.Some(5.0),
 			Periods: []billing.Period{
 				{
-					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
-				},
-				{
-					Start: s.mustParseTime("2024-02-15T00:00:00Z"),
+					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
 					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-02-15T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-03-01T00:00:00Z")},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3876,18 +3903,19 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				PeriodMin: 0,
 				PeriodMax: 1,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10)})),
+			// UBP does not need prorating on price due to period being shorter
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10.0)})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
-					End:   s.mustParseTime("2024-02-15T00:00:00Z"),
+					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2024-02-15T00:00:00Z"),
+					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
 					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-02-15T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-02-01T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")},
 		},
 	})
 }
@@ -3945,7 +3973,7 @@ func (s *SubscriptionHandlerTestSuite) expectLines(invoice billing.Invoice, subs
 
 			if expectedLine.UnitPrice.IsPresent() {
 				s.Equal(billing.InvoiceLineTypeFee, line.Type, "%s: line type", childID)
-				s.Equal(expectedLine.UnitPrice.OrEmpty(), line.FlatFee.PerUnitAmount.InexactFloat64(), "%s: unit price", childID)
+				s.Equal(expectedLine.UnitPrice.OrEmpty(), line.FlatFee.PerUnitAmount.InexactFloat64(), "%s: unit price \n out: %+v", childID, line)
 			}
 
 			if expectedLine.Price.IsPresent() {

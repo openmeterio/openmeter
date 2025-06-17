@@ -2116,6 +2116,7 @@ var (
 		{Name: "name", Type: field.TypeString, Default: "Subscription"},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, Size: 3},
+		{Name: "billing_anchor", Type: field.TypeTime},
 		{Name: "billing_cadence", Type: field.TypeString},
 		{Name: "pro_rating_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2129,13 +2130,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscriptions_customers_subscription",
-				Columns:    []*schema.Column{SubscriptionsColumns[14]},
+				Columns:    []*schema.Column{SubscriptionsColumns[15]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "subscriptions_plans_subscriptions",
-				Columns:    []*schema.Column{SubscriptionsColumns[15]},
+				Columns:    []*schema.Column{SubscriptionsColumns[16]},
 				RefColumns: []*schema.Column{PlansColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -2159,7 +2160,7 @@ var (
 			{
 				Name:    "subscription_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[14]},
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[15]},
 			},
 		},
 	}

@@ -28,6 +28,7 @@ type Subscription struct {
 	Currency   currencyx.Code `json:"currency,omitempty"`
 
 	BillingCadence  isodate.Period                 `json:"billing_cadence"`
+	BillingAnchor   time.Time                      `json:"billingAnchor"`
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
 }
 

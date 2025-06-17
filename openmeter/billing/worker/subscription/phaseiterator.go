@@ -347,11 +347,15 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 			return empty, err
 		}
 
+		if it.sub.Spec.BillingAnchor.IsZero() {
+			return empty, fmt.Errorf("billing anchor is zero for aligned generation, this should not happen")
+		}
+
 		fullServicePeriod, err := item.Spec.GetFullServicePeriodAt(
 			it.phaseCadence,
 			item.SubscriptionItem.CadencedModel,
 			at,
-			&billingPeriod.From, // We can use the billing period start as that's already aligned
+			lo.ToPtr(it.sub.Spec.BillingAnchor),
 		)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to get full service period", slog.Any("error", err))

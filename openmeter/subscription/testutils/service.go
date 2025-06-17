@@ -44,6 +44,8 @@ type SubscriptionDependencies struct {
 	CustomerAdapter          *testCustomerRepo
 	CustomerService          customer.Service
 	FeatureConnector         *testFeatureConnector
+	MeterService             meter.Service
+	MockStreamingConnector   *streamingtestutils.MockStreamingConnector
 	EntitlementAdapter       subscription.EntitlementAdapter
 	PlanHelper               *planHelper
 	PlanService              plan.Service
@@ -87,9 +89,11 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 	require.NotNil(t, meterAdapter)
 
+	mockStreaming := streamingtestutils.NewMockStreamingConnector(t)
+
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbDeps.DBClient,
-		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		StreamingConnector: mockStreaming,
 		Logger:             logger,
 		Tracer:             noop.NewTracerProvider().Tracer("test"),
 		MeterService:       meterAdapter,
@@ -204,5 +208,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		SubscriptionAddonService: subAddSvc,
 		AddonService:             NewTestAddonService(addonService),
 		PlanAddonService:         planAddonService,
+		MeterService:             meterAdapter,
 	}
 }

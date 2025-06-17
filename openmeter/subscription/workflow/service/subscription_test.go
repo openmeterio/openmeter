@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestCreateFromPlan(t *testing.T) {
@@ -89,6 +90,41 @@ func TestCreateFromPlan(t *testing.T) {
 						}
 					}
 				}
+			},
+		},
+		{
+			Name: "Should normalize billing anchor to the closest iteration",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				cad := deps.Plan.ToCreateSubscriptionPlanInput().BillingCadence
+
+				activeFrom := deps.CurrentTime
+
+				billingAnchor := activeFrom.Add(time.Hour)
+
+				cadRec, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(cad), billingAnchor)
+				require.Nil(t, err)
+
+				// Let's set an anchor one hour after the activeFrom, which will then be set to one iteration before
+
+				expectedBillingAnchor, err := cadRec.Prev(billingAnchor)
+				require.Nil(t, err)
+
+				subView, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+						Timing: subscription.Timing{
+							Custom: &deps.CurrentTime,
+						},
+					},
+					CustomerID:    deps.Customer.ID,
+					Namespace:     subscriptiontestutils.ExampleNamespace,
+					BillingAnchor: &billingAnchor,
+				}, deps.Plan)
+				require.Nil(t, err)
+
+				require.Equal(t, expectedBillingAnchor, subView.Subscription.BillingAnchor)
 			},
 		},
 	}
@@ -1006,6 +1042,7 @@ func TestChangeToPlan(t *testing.T) {
 				CustomerId:    curr.CustomerId,
 				Currency:      deps.Plan2.Currency(),
 				ActiveFrom:    *changeInput.Custom,
+				BillingAnchor: *changeInput.Custom,
 				ActiveTo:      nil,
 			})
 			require.Nil(t, err)

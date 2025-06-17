@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/isodate"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -40,6 +38,11 @@ func (s SubscriptionView) GetPhaseByKey(key string) (*SubscriptionPhaseView, boo
 
 func (s *SubscriptionView) Validate(includePhases bool) error {
 	spec := s.Spec
+
+	if s.Subscription.BillingAnchor.Compare(spec.BillingAnchor) != 0 {
+		return fmt.Errorf("subscription billing anchor %v does not match spec billing anchor %v", s.Subscription.BillingAnchor, spec.BillingAnchor)
+	}
+
 	if spec.ActiveFrom.Compare(s.Subscription.ActiveFrom) != 0 {
 		return fmt.Errorf("subscription active from %v does not match spec active from %v", s.Subscription.ActiveFrom, spec.ActiveFrom)
 	}
@@ -47,9 +50,11 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 		(spec.ActiveTo != nil && s.Subscription.ActiveTo == nil) || (spec.ActiveTo != nil && s.Subscription.ActiveTo != nil && spec.ActiveTo.Compare(*s.Subscription.ActiveTo) != 0) {
 		return fmt.Errorf("subscription active to %v does not match spec active to %v", s.Subscription.ActiveTo, spec.ActiveTo)
 	}
+
 	if spec.CustomerId != s.Subscription.CustomerId {
 		return fmt.Errorf("subscription customer id %s does not match spec customer id %s", s.Subscription.CustomerId, spec.CustomerId)
 	}
+
 	if spec.Currency != s.Subscription.Currency {
 		return fmt.Errorf("subscription currency %s does not match spec currency %s", s.Subscription.Currency, spec.Currency)
 	}
@@ -72,11 +77,6 @@ type SubscriptionPhaseView struct {
 	SubscriptionPhase SubscriptionPhase                 `json:"subscriptionPhase"`
 	Spec              SubscriptionPhaseSpec             `json:"spec"`
 	ItemsByKey        map[string][]SubscriptionItemView `json:"itemsByKey"`
-}
-
-func (s *SubscriptionPhaseView) ActiveFrom(subscriptionCadence models.CadencedModel) time.Time {
-	t, _ := s.Spec.StartAfter.AddTo(subscriptionCadence.ActiveFrom)
-	return t.UTC()
 }
 
 func (s *SubscriptionPhaseView) AsSpec() SubscriptionPhaseSpec {
@@ -252,6 +252,7 @@ func NewSubscriptionView(
 			MetadataModel: sub.MetadataModel,
 			Name:          sub.Name,
 			Description:   sub.Description,
+			BillingAnchor: sub.BillingAnchor,
 		},
 		Phases: make(map[string]*SubscriptionPhaseSpec),
 	}

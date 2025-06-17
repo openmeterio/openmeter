@@ -194,6 +194,7 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 			BillablesMustAlign: &sub.BillablesMustAlign,
 		},
 		BillingCadence: sub.BillingCadence.String(),
+		BillingAnchor:  sub.BillingAnchor,
 		ProRatingConfig: &api.ProRatingConfig{
 			Enabled: sub.ProRatingConfig.Enabled,
 			Mode:    api.ProRatingMode(sub.ProRatingConfig.Mode),

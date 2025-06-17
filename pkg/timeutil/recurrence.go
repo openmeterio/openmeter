@@ -16,7 +16,7 @@ type Recurrence struct {
 	Anchor time.Time `json:"anchor"`
 }
 
-// Returns a period where p.ContainsInclusive(t) is true
+// Returns a period where p.Contains(t) is true
 func (r Recurrence) GetPeriodAt(t time.Time) (ClosedPeriod, error) {
 	var def ClosedPeriod
 
@@ -25,7 +25,7 @@ func (r Recurrence) GetPeriodAt(t time.Time) (ClosedPeriod, error) {
 		return def, err
 	}
 
-	// As Period.ContainsInclusive() is inclusive at the start and exclusive at the end, we need to get the next time
+	// As Period.Contains() is inclusive at the start and exclusive at the end, we need to get the next time
 	if next.Equal(t) {
 		start := next
 		end, err := r.Next(start)

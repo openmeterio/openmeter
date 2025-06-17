@@ -48,6 +48,7 @@ type CreateSubscriptionCustomerInput struct {
 	Currency             currencyx.Code `json:"currency"`
 	ActiveFrom           time.Time      `json:"activeFrom,omitempty"`
 	ActiveTo             *time.Time     `json:"activeTo,omitempty"`
+	BillingAnchor        time.Time      `json:"billingAnchor,omitempty"`
 }
 
 type SubscriptionSpec struct {
@@ -69,6 +70,7 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		Currency:        s.Currency,
 		BillingCadence:  s.BillingCadence,
 		ProRatingConfig: s.ProRatingConfig,
+		BillingAnchor:   s.BillingAnchor,
 		MetadataModel:   s.MetadataModel,
 		Name:            s.Name,
 		Description:     s.Description,
@@ -256,13 +258,8 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.Clo
 
 	// TODO(galexi, OM-1418): implement reanchoring
 
-	// We will use the phase start time as the cadence anchor
-	phaseCadence, err := s.GetPhaseCadence(phase.PhaseKey)
-	if err != nil {
-		return def, fmt.Errorf("failed to get phase cadence for phase %s: %w", phase.PhaseKey, err)
-	}
-
-	billingRecurrence, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(s.BillingCadence), phaseCadence.ActiveFrom)
+	// We will use the subscription billing anchor as the cadence anchor
+	billingRecurrence, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(s.BillingCadence), s.BillingAnchor)
 	if err != nil {
 		return def, fmt.Errorf("failed to get billing recurrence for phase %s: %w", phase.PhaseKey, err)
 	}
@@ -273,6 +270,11 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.Clo
 	}
 
 	// The billing period must be contained within the phase
+	phaseCadence, err := s.GetPhaseCadence(phase.PhaseKey)
+	if err != nil {
+		return def, fmt.Errorf("failed to get phase cadence for phase %s: %w", phase.PhaseKey, err)
+	}
+
 	if phaseCadence.ActiveTo != nil && phaseCadence.ActiveTo.Before(period.To) {
 		period.To = *phaseCadence.ActiveTo
 	}
@@ -298,6 +300,21 @@ func (s *SubscriptionSpec) SyncAnnotations() error {
 func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
 	var errs []error
+
+	// Let's validate the billing anchor
+	// - is present
+	if s.BillingAnchor.IsZero() {
+		errs = append(errs, fmt.Errorf("billing anchor is required"))
+	}
+
+	// - is normalized to the closest iteration before subscriptiion start
+	if s.BillingAnchor.After(s.ActiveFrom) {
+		errs = append(errs, fmt.Errorf("billing anchor is after subscription start"))
+	}
+
+	if next, _ := s.BillingCadence.AddTo(s.BillingAnchor); next.Before(s.ActiveFrom) {
+		errs = append(errs, fmt.Errorf("billing anchor is not normalized to the closest iteration before subscription start"))
+	}
 
 	sortedPhases := s.GetSortedPhases()
 	for idx, phase := range sortedPhases {
@@ -824,10 +841,11 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 }
 
 type ToScheduleSubscriptionEntitlementInputOptions struct {
-	Customer     customer.Customer
-	Cadence      models.CadencedModel
-	PhaseCadence models.CadencedModel
-	IsAligned    bool
+	Customer             customer.Customer
+	Cadence              models.CadencedModel
+	PhaseStart           time.Time
+	AlignedBillingAnchor time.Time
+	IsAligned            bool
 }
 
 func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
@@ -879,10 +897,17 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get metered entitlement template: %w", err)
 		}
-		truncatedStartTime := opts.Cadence.ActiveFrom.Truncate(time.Minute)
+
+		truncatedAnchorTime := opts.Cadence.ActiveFrom.Truncate(time.Minute)
+		truncatedMeasureUsageFrom := truncatedAnchorTime
 
 		if opts.IsAligned {
-			truncatedStartTime = opts.PhaseCadence.ActiveFrom.Truncate(time.Minute)
+			if opts.AlignedBillingAnchor.IsZero() {
+				return def, true, fmt.Errorf("aligned billing anchor shouldn't be zero")
+			}
+
+			truncatedAnchorTime = opts.AlignedBillingAnchor.Truncate(time.Minute)
+			truncatedMeasureUsageFrom = opts.PhaseStart.Truncate(time.Minute)
 		}
 
 		scheduleInput.Metadata = tpl.Metadata
@@ -890,13 +915,13 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 		scheduleInput.IssueAfterReset = tpl.IssueAfterReset
 		scheduleInput.IssueAfterResetPriority = tpl.IssueAfterResetPriority
 		scheduleInput.PreserveOverageAtReset = tpl.PreserveOverageAtReset
-		rec, err := timeutil.RecurrenceFromISODuration(&tpl.UsagePeriod, truncatedStartTime)
+		rec, err := timeutil.RecurrenceFromISODuration(&tpl.UsagePeriod, truncatedAnchorTime)
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 		}
 		scheduleInput.UsagePeriod = lo.ToPtr(entitlement.UsagePeriod(rec))
 		mu := &entitlement.MeasureUsageFromInput{}
-		err = mu.FromTime(truncatedStartTime)
+		err = mu.FromTime(truncatedMeasureUsageFrom)
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get measure usage from time: %w", err)
 		}

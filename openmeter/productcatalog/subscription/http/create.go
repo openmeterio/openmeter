@@ -101,8 +101,9 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 								Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
 							},
 						},
-						Namespace:  ns,
-						CustomerID: customer.ID,
+						Namespace:     ns,
+						CustomerID:    customer.ID,
+						BillingAnchor: parsedBody.BillingAnchor,
 					},
 					PlanInput: plan,
 				}, nil
@@ -144,8 +145,9 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 								Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 							},
 						},
-						Namespace:  ns,
-						CustomerID: customer.ID,
+						Namespace:     ns,
+						CustomerID:    customer.ID,
+						BillingAnchor: parsedBody.BillingAnchor,
 					},
 					PlanInput:     plan,
 					StartingPhase: parsedBody.StartingPhase,

@@ -228,7 +228,7 @@ func TestEditingEntitlementOfUnalignedSub(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// 2nd, let's create the plan
+	// 2nd, let's create the plan\
 	p, err := tDeps.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
