@@ -14,6 +14,7 @@ import (
 
 const ErrCodePlanAddonIncompatibleStatus models.ErrorCode = "plan_addon_incompatible_status"
 
+// TODO: we need to add the Plan and Addon statuses to the validation issues (sent through HTTP response)
 var ErrPlanAddonIncompatibleStatus = models.NewValidationIssue(
 	ErrCodePlanAddonIncompatibleStatus,
 	"plan status is incompatible with the addon status",
@@ -25,9 +26,9 @@ const ErrCodePlanAddonMaxQuantityMustBeSet models.ErrorCode = "plan_addon_max_qu
 
 var ErrPlanAddonMaxQuantityMustBeSet = models.NewValidationIssue(
 	ErrCodePlanAddonMaxQuantityMustBeSet,
-	"maximum quantity must be set to positive number for add-on with multiple instance type",
+	"if a maximum quantity is set, it must be a positive number",
 	models.WithFieldString("maxQuantity"),
-	models.WithWarningSeverity(),
+	models.WithCriticalSeverity(),
 )
 
 const ErrCodePlanAddonMaxQuantityMustNotBeSet models.ErrorCode = "plan_addon_max_quantity_must_not_be_set"
@@ -36,7 +37,7 @@ var ErrPlanAddonMaxQuantityMustNotBeSet = models.NewValidationIssue(
 	ErrCodePlanAddonMaxQuantityMustNotBeSet,
 	"maximum quantity must not be set for add-on with single instance type",
 	models.WithFieldString("maxQuantity"),
-	models.WithWarningSeverity(),
+	models.WithCriticalSeverity(),
 )
 
 const ErrCodePlanAddonCurrencyMismatch models.ErrorCode = "plan_addon_currency_mismatch"
@@ -45,11 +46,12 @@ var ErrPlanAddonCurrencyMismatch = models.NewValidationIssue(
 	ErrCodePlanAddonCurrencyMismatch,
 	"currency of the plan and addon must match",
 	models.WithFieldString("currency"),
-	models.WithWarningSeverity(),
+	models.WithCriticalSeverity(),
 )
 
 const ErrCodePlanAddonUnknownPlanPhaseKey models.ErrorCode = "plan_addon_unknown_plan_phase_key"
 
+// TODO: show the invalid phase in the error message
 var ErrPlanAddonUnknownPlanPhaseKey = models.NewValidationIssue(
 	ErrCodePlanAddonUnknownPlanPhaseKey,
 	"add-on must define valid/existing plan phase key from which the add-on is available for purchase",
@@ -65,20 +67,21 @@ var ErrRateCardKeyMismatch = models.NewValidationIssue(
 	ErrCodeRateCardKeyMismatch,
 	"key must match",
 	models.WithFieldString("key"),
-	models.WithWarningSeverity(),
+	models.WithCriticalSeverity(),
 )
 
 const ErrCodeRateCardPriceTypeMismatch models.ErrorCode = "rate_card_price_type_mismatch"
 
 var ErrRateCardPriceTypeMismatch = models.NewValidationIssue(
 	ErrCodeRateCardPriceTypeMismatch,
-	"price type must match",
+	"price model type must match",
 	models.WithFieldString("price"),
 	models.WithWarningSeverity(),
 )
 
 const ErrCodeRateCardPricePaymentTermMismatch models.ErrorCode = "rate_card_price_payment_term_mismatch"
 
+// TODO: lets show the two payent terms (differentiate which is which in attributes)
 var ErrRateCardPricePaymentTermMismatch = models.NewValidationIssue(
 	ErrCodeRateCardPricePaymentTermMismatch,
 	"price payment term must match",
@@ -90,7 +93,7 @@ const ErrCodeRateCardOnlyFlatPriceAllowed models.ErrorCode = "rate_card_only_fla
 
 var ErrRateCardOnlyFlatPriceAllowed = models.NewValidationIssue(
 	ErrCodeRateCardOnlyFlatPriceAllowed,
-	"only flat price is allowed",
+	"only flat fee pricing model is allowed",
 	models.WithFieldString("price"),
 	models.WithWarningSeverity(),
 )
@@ -99,7 +102,7 @@ const ErrCodeRateCardFeatureIDMismatch models.ErrorCode = "rate_card_feature_id_
 
 var ErrRateCardFeatureIDMismatch = models.NewValidationIssue(
 	ErrCodeRateCardFeatureIDMismatch,
-	"feature identifiers id must match",
+	"feature id must match",
 	models.WithFieldString("featureId"),
 	models.WithWarningSeverity(),
 )
@@ -135,7 +138,7 @@ const ErrCodeRateCardStaticEntitlementTemplateNotAllowed models.ErrorCode = "rat
 
 var ErrRateCardStaticEntitlementTemplateNotAllowed = models.NewValidationIssue(
 	ErrCodeRateCardStaticEntitlementTemplateNotAllowed,
-	"static entitlement template is not allowed",
+	"static entitlement is not allowed",
 	models.WithFieldString("type"),
 	models.WithWarningSeverity(),
 )
@@ -153,25 +156,26 @@ const ErrCodeRateCardPercentageDiscountNotAllowed models.ErrorCode = "rate_card_
 
 var ErrRateCardPercentageDiscountNotAllowed = models.NewValidationIssue(
 	ErrCodeRateCardPercentageDiscountNotAllowed,
-	"percentage discount is not allowed",
+	"ratecards cannot both contain percentage discount",
 	models.WithFieldString("percentage"),
 	models.WithWarningSeverity(),
 )
 
 const ErrCodeRateCardDuplicatedKey models.ErrorCode = "rate_card_duplicated_key"
 
+// TODO: lets add
 var ErrRateCardDuplicatedKey = models.NewValidationIssue(
 	ErrCodeRateCardDuplicatedKey,
 	"duplicated key",
 	models.WithFieldString("key"),
-	models.WithWarningSeverity(),
+	models.WithCriticalSeverity(),
 )
 
 const ErrCodeRateCardEntitlementTemplateWithNoFeature models.ErrorCode = "entitlement_template_with_no_feature"
 
 var ErrRateCardEntitlementTemplateWithNoFeature = models.NewValidationIssue(
 	ErrCodeRateCardEntitlementTemplateWithNoFeature,
-	"entitlement template requires feature to be associated with",
+	"entitlement template requires feature",
 	models.WithFieldString("featureKey"),
 	models.WithWarningSeverity(),
 )
@@ -263,7 +267,7 @@ var ErrUsageDiscountNegativeQuantity = models.NewValidationIssue(
 	ErrCodeUsageDiscountNegativeQuantity,
 	"usage must be greater than 0",
 	models.WithFieldString("quantity"),
-	models.WithWarningSeverity(),
+	models.WithCriticalSeverity(),
 )
 
 const ErrCodeUsageDiscountWithFlatPrice models.ErrorCode = "usage_discount_with_flat_price"
@@ -332,6 +336,7 @@ var ErrAddonInvalidInstanceType = models.NewValidationIssue(
 
 const ErrCodeAddonInvalidStatus models.ErrorCode = "addon_invalid_status"
 
+// TODO: add what the allowed statuses are as this error is reused for multiple statuses
 var ErrAddonInvalidStatus = models.NewValidationIssue(
 	ErrCodeAddonInvalidStatus,
 	"invalid status",
@@ -446,6 +451,7 @@ var ErrPlanPhaseDurationLessThenAnHour = models.NewValidationIssue(
 
 const ErrCodePlanInvalidStatus models.ErrorCode = "plan_invalid_status"
 
+// TODO: lets show the status and the allowed values
 var ErrPlanInvalidStatus = models.NewValidationIssue(
 	ErrCodePlanInvalidStatus,
 	"invalid status",
@@ -489,11 +495,11 @@ var ErrPlanPhaseHasNoRateCards = models.NewValidationIssue(
 	models.WithWarningSeverity(),
 )
 
-const ErrCodePlanHasIncompatibleAddon models.ErrorCode = "plan_has_incompatible_addon"
+const ErrCodePlanCannotBePublishedWithAddonAssignmentErrors models.ErrorCode = "plan_cannot_be_published_with_addon_assignment_errors"
 
-var ErrPlanHasIncompatibleAddon = models.NewValidationIssue(
-	ErrCodePlanHasIncompatibleAddon,
-	"plan has incompatible add-on assignment",
+var ErrPlanCannotBePublishedWithAddonAssignmentErrors = models.NewValidationIssue(
+	ErrCodePlanCannotBePublishedWithAddonAssignmentErrors,
+	"plan cannot be published with incompatible add-ons",
 	models.WithWarningSeverity(),
 )
 
