@@ -252,7 +252,7 @@ func (h *handler) UninstallApp() UninstallAppHandler {
 
 			return nil, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[UninstallAppResponse](http.StatusOK),
+		commonhttp.EmptyResponseEncoder[UninstallAppResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("uninstallApp"),

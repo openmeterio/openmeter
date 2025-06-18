@@ -117,6 +117,25 @@ model MarketplaceOAuth2InstallAuthorizeRequest {
 }
 
 /**
+ * Marketplace install request payload.
+ */
+@friendlyName("MarketplaceInstallRequestPayload")
+model MarketplaceInstallRequestPayload {
+  /**
+   * Name of the application to install.
+   *
+   * If not set defaults to the marketplace item's description.
+   */
+  name?: string;
+
+  /**
+   * If true, a billing profile will be created for the app.
+   * The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.
+   */
+  createBillingProfile?: boolean = true;
+}
+
+/**
  * App API key install request.
  */
 @friendlyName("MarketplaceApiKeyInstallRequest")
@@ -127,18 +146,13 @@ model MarketplaceApiKeyInstallRequest {
   @path type: Type;
 
   @body _: {
+    ...MarketplaceInstallRequestPayload;
+
     /**
      * The API key for the provider.
      * For example, the Stripe API key.
      */
     apiKey: string;
-
-    /**
-     * Name of the application to install.
-     *
-     * If not set defaults to the marketplace item's description.
-     */
-    name?: string;
   };
 }
 
@@ -152,14 +166,7 @@ model MarketplaceInstallRequest {
    */
   @path type: Type;
 
-  @body _: {
-    /**
-     * Name of the application to install.
-     *
-     * If not set defaults to the marketplace item's description.
-     */
-    name?: string;
-  };
+  @body _: MarketplaceInstallRequestPayload;
 }
 
 /**

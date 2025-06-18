@@ -4931,14 +4931,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  description: |-
-                    Name of the application to install.
-
-                    If not set defaults to the marketplace item's description.
+              $ref: '#/components/schemas/MarketplaceInstallRequestPayload'
   /api/v1/marketplace/listings/{type}/install/apikey:
     post:
       operationId: marketplaceAppAPIKeyInstall
@@ -5004,17 +4997,23 @@ paths:
             schema:
               type: object
               properties:
-                apiKey:
-                  type: string
-                  description: |-
-                    The API key for the provider.
-                    For example, the Stripe API key.
                 name:
                   type: string
                   description: |-
                     Name of the application to install.
 
                     If not set defaults to the marketplace item's description.
+                createBillingProfile:
+                  type: boolean
+                  description: |-
+                    If true, a billing profile will be created for the app.
+                    The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.
+                  default: true
+                apiKey:
+                  type: string
+                  description: |-
+                    The API key for the provider.
+                    For example, the Stripe API key.
               required:
                 - apiKey
   /api/v1/marketplace/listings/{type}/install/oauth2:
@@ -17546,6 +17545,22 @@ components:
             $ref: '#/components/schemas/Feature'
         - $ref: '#/components/schemas/FeaturePaginatedResponse'
       description: List features result
+    MarketplaceInstallRequestPayload:
+      type: object
+      properties:
+        name:
+          type: string
+          description: |-
+            Name of the application to install.
+
+            If not set defaults to the marketplace item's description.
+        createBillingProfile:
+          type: boolean
+          description: |-
+            If true, a billing profile will be created for the app.
+            The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.
+          default: true
+      description: Marketplace install request payload.
     MarketplaceInstallResponse:
       type: object
       required:
