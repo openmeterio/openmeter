@@ -161,10 +161,6 @@ func (i ListAppInput) Validate() error {
 		return errors.New("namespace is required")
 	}
 
-	if err := i.Page.Validate(); err != nil {
-		return fmt.Errorf("error validating page: %w", err)
-	}
-
 	if i.CustomerID != nil {
 		if err := i.CustomerID.Validate(); err != nil {
 			return fmt.Errorf("error validating customer ID: %w", err)
