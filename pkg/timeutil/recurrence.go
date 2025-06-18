@@ -1,6 +1,7 @@
 package timeutil
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,6 +15,20 @@ type Recurrence struct {
 	// Anchor can be an arbitrary anchor time for the recurrence.
 	// It does not have to be the last or the next time.
 	Anchor time.Time `json:"anchor"`
+}
+
+func (r Recurrence) Validate() error {
+	var errs []error
+
+	if r.Interval.Period.Sign() == -1 {
+		errs = append(errs, fmt.Errorf("recurrence interval must be positive"))
+	}
+
+	if r.Anchor.IsZero() {
+		errs = append(errs, fmt.Errorf("recurrence anchor must be set"))
+	}
+
+	return errors.Join(errs...)
 }
 
 // Returns a period where p.Contains(t) is true

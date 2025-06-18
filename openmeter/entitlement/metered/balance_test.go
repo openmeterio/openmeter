@@ -51,14 +51,13 @@ func TestGetEntitlementBalance(t *testing.T) {
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
-			UsagePeriod: &entitlement.UsagePeriod{
-				Anchor: getAnchor(t),
-				// Yearly interval is used which helps adjust to the correct period
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Anchor:   getAnchor(t),
 				Interval: timeutil.RecurrencePeriodYear,
-			},
+			})),
 		}
 
-		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriodAt(time.Now())
+		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(time.Now())
 		assert.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input
@@ -233,7 +232,10 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &startTime
-				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily // we need a faster recurrence as we wont save snapshots in the current usage period
+				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodDaily, // we need a faster recurrence as we wont save snapshots in the current usage period
+					Anchor:   inp.UsagePeriod.GetValue().Anchor,
+				}))
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -340,7 +342,10 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &startTime
-				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodMonth
+				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodMonth,
+					Anchor:   inp.UsagePeriod.GetValue().Anchor,
+				}))
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -463,7 +468,10 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &startTime
-				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily // we need a faster recurrence as we wont save snapshots in the current usage period
+				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodDaily, // we need a faster recurrence as we wont save snapshots in the current usage period
+					Anchor:   inp.UsagePeriod.GetValue().Anchor,
+				}))
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -578,14 +586,13 @@ func TestGetEntitlementHistory(t *testing.T) {
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
-			UsagePeriod: &entitlement.UsagePeriod{
-				Anchor: getAnchor(t),
-				// TODO: properly test these anchors
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Anchor:   getAnchor(t),
 				Interval: timeutil.RecurrencePeriodYear,
-			},
+			})),
 		}
 
-		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriodAt(time.Now())
+		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(time.Now())
 		assert.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input

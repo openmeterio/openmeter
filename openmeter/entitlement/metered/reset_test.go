@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -43,14 +44,13 @@ func TestResetEntitlementUsage(t *testing.T) {
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
-			UsagePeriod: &entitlement.UsagePeriod{
-				Anchor: getAnchor(t),
-				// TODO: properly test these anchors
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Anchor:   getAnchor(t),
 				Interval: timeutil.RecurrencePeriodYear,
-			},
+			})),
 		}
 
-		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriodAt(time.Now()) // This should be calculated properly when testing batch resets
+		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(time.Now()) // This should be calculated properly when testing batch resets
 		assert.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input
@@ -146,7 +146,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				err = deps.usageResetRepo.Save(ctx, meteredentitlement.UsageResetTime{
 					NamespacedModel: models.NamespacedModel{Namespace: namespace},
 					ResetTime:       priorResetTime,
-					Anchor:          ent.UsagePeriod.Anchor,
+					Anchor:          ent.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Anchor,
 					EntitlementID:   ent.ID,
 				})
 				assert.NoError(t, err)
@@ -158,7 +158,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					meteredentitlement.ResetEntitlementUsageParams{
 						At: resetTime,
 					})
-				assert.ErrorContains(t, err, "before last reset at")
+				assert.ErrorContains(t, err, "is before current usage period start")
 			},
 		},
 		{
@@ -756,8 +756,10 @@ func TestResetEntitlementUsage(t *testing.T) {
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &startTime
 				anchor := startTime.Add(time.Hour)
-				inp.UsagePeriod.Anchor = anchor
-				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily
+				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+					Anchor:   anchor,
+					Interval: timeutil.RecurrencePeriodDaily,
+				}))
 				inp.CurrentUsagePeriod = &timeutil.ClosedPeriod{
 					To: anchor.AddDate(0, 0, 1),
 				}
@@ -778,7 +780,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.NoError(t, err)
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
 				assert.NoError(t, err)
-				assertUsagePeriodEquals(t, inp.UsagePeriod, ent.UsagePeriod)
+				assertUsagePeriodInputsEquals(t, inp.UsagePeriod, lo.ToPtr(ent.UsagePeriod.GetOriginalValueAsUsagePeriodInput()))
 			},
 		},
 		{
@@ -794,9 +796,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &startTime
-				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily
 				anchor := startTime.Add(time.Hour)
-				inp.UsagePeriod.Anchor = anchor
+				inp.UsagePeriod = lo.ToPtr(entitlement.NewStartingUsagePeriodInput(timeutil.Recurrence{
+					Anchor:   anchor,
+					Interval: timeutil.RecurrencePeriodDaily,
+				}, startTime))
 				inp.CurrentUsagePeriod = &timeutil.ClosedPeriod{
 					To: anchor.AddDate(0, 0, 1),
 				}
@@ -816,10 +820,14 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.NoError(t, err)
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
 				assert.NoError(t, err)
-				assertUsagePeriodEquals(t, &entitlement.UsagePeriod{
+
+				uInpNow, _, err := ent.UsagePeriod.GetUsagePeriodInputAt(clock.Now())
+				assert.NoError(t, err)
+
+				assertUsagePeriodInputsEquals(t, lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodDaily,
 					Anchor:   resetTime,
-				}, ent.UsagePeriod)
+				})), lo.ToPtr(uInpNow))
 			},
 		},
 		{
@@ -836,8 +844,10 @@ func TestResetEntitlementUsage(t *testing.T) {
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &startTime
 				anchor := startTime.Add(time.Hour)
-				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily
-				inp.UsagePeriod.Anchor = anchor
+				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+					Anchor:   anchor,
+					Interval: timeutil.RecurrencePeriodDaily,
+				}))
 				inp.CurrentUsagePeriod = &timeutil.ClosedPeriod{
 					To: anchor.AddDate(0, 0, 1),
 				}
@@ -857,10 +867,14 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.NoError(t, err)
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
 				assert.NoError(t, err)
-				assertUsagePeriodEquals(t, &entitlement.UsagePeriod{
+
+				uInpNow, _, err := ent.UsagePeriod.GetUsagePeriodInputAt(clock.Now())
+				assert.NoError(t, err)
+
+				assertUsagePeriodInputsEquals(t, lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodDaily,
 					Anchor:   resetTime.Truncate(time.Minute),
-				}, ent.UsagePeriod)
+				})), lo.ToPtr(uInpNow))
 			},
 		},
 		{
@@ -895,8 +909,10 @@ func TestResetEntitlementUsage(t *testing.T) {
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &entitlementTime
 				anchor := entitlementTime
-				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily // Daily recurrence
-				inp.UsagePeriod.Anchor = anchor
+				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+					Anchor:   anchor,
+					Interval: timeutil.RecurrencePeriodDaily,
+				}))
 
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
@@ -916,10 +932,13 @@ func TestResetEntitlementUsage(t *testing.T) {
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
 				assert.NoError(t, err)
 
-				assertUsagePeriodEquals(t, &entitlement.UsagePeriod{
+				uInpNow, _, err := ent.UsagePeriod.GetUsagePeriodInputAt(clock.Now())
+				assert.NoError(t, err)
+
+				assertUsagePeriodInputsEquals(t, lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodDaily,
 					Anchor:   resetTime,
-				}, ent.UsagePeriod)
+				})), lo.ToPtr(uInpNow))
 			},
 		},
 	}

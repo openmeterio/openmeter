@@ -6,6 +6,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/isodate"
@@ -57,19 +59,15 @@ func (m *MeasureUsageFromInput) FromTime(t time.Time) error {
 	return nil
 }
 
-func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, p UsagePeriod, t time.Time) error {
+func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, currPeriod timeutil.ClosedPeriod, now time.Time) error {
 	if err := e.Validate(); err != nil {
 		return err
 	}
 	switch e {
 	case MeasureUsageFromCurrentPeriodStart:
-		period, err := p.GetCurrentPeriodAt(clock.Now())
-		if err != nil {
-			return err
-		}
-		m.ts = period.From
+		m.ts = currPeriod.From
 	case MeasureUsageFromNow:
-		m.ts = t
+		m.ts = now
 	default:
 		return fmt.Errorf("unsupported enum value")
 	}
@@ -97,7 +95,7 @@ type CreateEntitlementInputs struct {
 	IssueAfterResetPriority *uint8                 `json:"issueAfterResetPriority,omitempty"`
 	IsSoftLimit             *bool                  `json:"isSoftLimit,omitempty"`
 	Config                  []byte                 `json:"config,omitempty"`
-	UsagePeriod             *UsagePeriod           `json:"usagePeriod,omitempty"`
+	UsagePeriod             *UsagePeriodInput      `json:"usagePeriod,omitempty"`
 	PreserveOverageAtReset  *bool                  `json:"preserveOverageAtReset,omitempty"`
 
 	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
@@ -210,7 +208,7 @@ func (c CreateEntitlementInputs) Validate() error {
 
 	// Let's validate the Usage Period
 	if c.UsagePeriod != nil {
-		if per, err := c.UsagePeriod.Interval.Period.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		if per, err := c.UsagePeriod.GetValue().Interval.Period.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 			return fmt.Errorf("UsagePeriod must be at least 1 hour")
 		}
 	}
@@ -254,7 +252,7 @@ func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {
 		IssueAfterResetPriority: e.IssueAfterResetPriority,
 		IsSoftLimit:             e.IsSoftLimit,
 		Config:                  e.Config,
-		UsagePeriod:             e.UsagePeriod,
+		UsagePeriod:             lo.ToPtr(e.UsagePeriod.GetOriginalValueAsUsagePeriodInput()),
 		PreserveOverageAtReset:  e.PreserveOverageAtReset,
 		Annotations:             e.Annotations,
 	}
@@ -289,46 +287,6 @@ func (e Entitlement) IsActive(at time.Time) bool {
 	}
 
 	return true
-}
-
-// TODO: get rid of this calculation once it's not needed anymore
-func (e Entitlement) CalculateCurrentUsagePeriodAt(anchor, at time.Time) (timeutil.ClosedPeriod, bool) {
-	if e.UsagePeriod == nil {
-		return timeutil.ClosedPeriod{}, false
-	}
-
-	if e.OriginalUsagePeriodAnchor == nil {
-		return timeutil.ClosedPeriod{}, false
-	}
-
-	usagePeriod := *e.UsagePeriod
-
-	if !anchor.IsZero() {
-		usagePeriod.Anchor = anchor
-	}
-
-	// If this is the first period, it needs to start with the start of measurement, otherwise we just use the period
-	// We use the original definition for this
-	originalUsagePeriod := UsagePeriod{
-		Anchor:   *e.OriginalUsagePeriodAnchor,
-		Interval: usagePeriod.Interval,
-	}
-
-	firstPeriod, err := originalUsagePeriod.GetCurrentPeriodAt(e.ActiveFromTime())
-	if err != nil {
-		return timeutil.ClosedPeriod{}, false
-	}
-
-	currentPeriod, err := usagePeriod.GetCurrentPeriodAt(at)
-	if err != nil {
-		return timeutil.ClosedPeriod{}, false
-	}
-
-	if firstPeriod.From.Equal(currentPeriod.From) {
-		return firstPeriod, true
-	}
-
-	return currentPeriod, true
 }
 
 func (e Entitlement) GetType() EntitlementType {

@@ -919,7 +919,9 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 		}
-		scheduleInput.UsagePeriod = lo.ToPtr(entitlement.UsagePeriod(rec))
+		scheduleInput.UsagePeriod = lo.ToPtr(timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+			return r.Anchor
+		})(rec))
 		mu := &entitlement.MeasureUsageFromInput{}
 		err = mu.FromTime(truncatedMeasureUsageFrom)
 		if err != nil {

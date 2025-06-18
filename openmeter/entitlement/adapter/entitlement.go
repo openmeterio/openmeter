@@ -54,7 +54,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) {
-			res, err := withLatestUsageReset(repo.db.Entitlement.Query(), []string{entitlementID.Namespace}).
+			res, err := withAllUsageResets(repo.db.Entitlement.Query(), []string{entitlementID.Namespace}).
 				Where(
 					db_entitlement.ID(entitlementID.ID),
 					db_entitlement.Namespace(entitlementID.Namespace),
@@ -78,7 +78,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) {
-			res, err := withLatestUsageReset(repo.db.Entitlement.Query(), []string{namespace}).
+			res, err := withAllUsageResets(repo.db.Entitlement.Query(), []string{namespace}).
 				Where(EntitlementActiveAt(at)...).
 				Where(
 					db_entitlement.Or(db_entitlement.DeletedAtGT(at), db_entitlement.DeletedAtIsNil()),
@@ -129,8 +129,10 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 			}
 
 			if ent.UsagePeriod != nil {
-				cmd.SetNillableUsagePeriodAnchor(&ent.UsagePeriod.Anchor).
-					SetNillableUsagePeriodInterval(ent.UsagePeriod.Interval.ISOStringPtrOrNil())
+				usagePeriod := ent.UsagePeriod.GetValue()
+
+				cmd.SetNillableUsagePeriodAnchor(&usagePeriod.Anchor).
+					SetNillableUsagePeriodInterval(usagePeriod.Interval.ISOStringPtrOrNil())
 			}
 
 			if ent.CurrentUsagePeriod != nil {
@@ -247,7 +249,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Contex
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]entitlement.Entitlement, error) {
-			res, err := withLatestUsageReset(repo.db.Entitlement.Query(), []string{namespace}).
+			res, err := withAllUsageResets(repo.db.Entitlement.Query(), []string{namespace}).
 				Where(EntitlementActiveAt(at)...).
 				Where(
 					db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
@@ -301,7 +303,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				query = query.Where(db_entitlement.NamespaceIn(params.Namespaces...))
 			}
 
-			query = withLatestUsageReset(query, params.Namespaces)
+			query = withAllUsageResets(query, params.Namespaces)
 
 			if len(params.SubjectKeys) > 0 {
 				query = query.Where(db_entitlement.SubjectKeyIn(params.SubjectKeys...))
@@ -450,20 +452,41 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	}
 
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
+		var inps []entitlement.UsagePeriodInput
+
 		parsed, _ := e.UsagePeriodInterval.Parse()
 
-		ent.UsagePeriod = &entitlement.UsagePeriod{
+		// Let's add the initial
+		inps = append(inps, timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+			if e.MeasureUsageFrom != nil {
+				return e.MeasureUsageFrom.In(time.UTC)
+			}
+
+			return e.UsagePeriodAnchor.In(time.UTC)
+		})(timeutil.Recurrence{
 			Anchor:   e.UsagePeriodAnchor.In(time.UTC),
 			Interval: timeutil.RecurrenceInterval{Period: parsed},
-		}
+		}))
 
 		ent.OriginalUsagePeriodAnchor = convert.SafeToUTC(e.UsagePeriodAnchor)
 
 		// We no longer override the anchor at each reset as we need to preserve the original
-		// This edge with the last reset should be populated for each query
-		if len(e.Edges.UsageReset) > 0 && e.Edges.UsageReset[0] != nil {
-			ent.UsagePeriod.Anchor = e.Edges.UsageReset[0].Anchor.In(time.UTC)
+		// We populate in reverse order (last = oldest first)
+		for i := len(e.Edges.UsageReset) - 1; i >= 0; i-- {
+			reset := e.Edges.UsageReset[i]
+			if reset == nil {
+				continue
+			}
+
+			inps = append(inps, timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+				return reset.ResetTime.In(time.UTC)
+			})(timeutil.Recurrence{
+				Anchor:   reset.Anchor.In(time.UTC),
+				Interval: timeutil.RecurrenceInterval{Period: parsed},
+			}))
 		}
+
+		ent.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriod(inps))
 	}
 
 	if e.CurrentUsagePeriodEnd != nil && e.CurrentUsagePeriodStart != nil {
@@ -475,8 +498,8 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 
 	// Let's update the current usage period
 	if ent.UsagePeriod != nil {
-		cp, ok := ent.CalculateCurrentUsagePeriodAt(lo.FromPtr(ent.LastReset), clock.Now())
-		if ok {
+		cp, err := ent.UsagePeriod.GetCurrentPeriodAt(clock.Now())
+		if err == nil {
 			ent.CurrentUsagePeriod = &cp
 		}
 	}
@@ -592,7 +615,7 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]entitlement.Entitlement, error) {
-			query := withLatestUsageReset(repo.db.Entitlement.Query(), params.Namespaces).
+			query := withAllUsageResets(repo.db.Entitlement.Query(), params.Namespaces).
 				Where(EntitlementActiveAt(params.Highwatermark)...).
 				Where(
 					db_entitlement.CurrentUsagePeriodEndNotNil(),
@@ -730,7 +753,7 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (*[]entitlement.Entitlement, error) {
 			query := repo.db.Entitlement.Query()
-			query = withLatestUsageReset(query, []string{namespace})
+			query = withAllUsageResets(query, []string{namespace})
 			res, err := query.
 				Where(
 					db_entitlement.Or(
@@ -793,11 +816,10 @@ func EntitlementActiveAt(at time.Time) []predicate.Entitlement {
 	}
 }
 
-func withLatestUsageReset(q *db.EntitlementQuery, namespaces []string) *db.EntitlementQuery {
+func withAllUsageResets(q *db.EntitlementQuery, namespaces []string) *db.EntitlementQuery {
 	return q.WithUsageReset(func(urq *db.UsageResetQuery) {
 		urq.
-			Order(db_usagereset.ByResetTime(sql.OrderDesc())).
-			Limit(1)
+			Order(db_usagereset.ByResetTime(sql.OrderDesc()))
 
 		if len(namespaces) > 0 {
 			urq.Where(db_usagereset.NamespaceIn(namespaces...))

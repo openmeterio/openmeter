@@ -14,10 +14,10 @@ func TestUsagePeriod(t *testing.T) {
 	t1 := time.Now().Truncate(time.Minute)
 
 	t.Run("Should be inclusive on period From and exclusive on period To", func(t *testing.T) {
-		up := entitlement.UsagePeriod{
+		up := entitlement.NewUsagePeriodFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   t1,
-		}
+		})
 
 		period, err := up.GetCurrentPeriodAt(t1)
 		assert.NoError(t, err)
@@ -38,13 +38,15 @@ func TestMeasureUsageFromInput(t *testing.T) {
 	t.Run("Should return time from CURRENT_PERIOD_START enum", func(t *testing.T) {
 		t0 := time.Now().Truncate(time.Minute)
 		t1 := t0.Add(-time.Hour)
-		up := entitlement.UsagePeriod{
+		up := entitlement.NewUsagePeriodFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   t1,
-		}
+		})
 
 		m := &entitlement.MeasureUsageFromInput{}
-		err := m.FromEnum(entitlement.MeasureUsageFromCurrentPeriodStart, up, t0)
+		currPer, err := up.GetCurrentPeriodAt(t0)
+		assert.NoError(t, err)
+		err = m.FromEnum(entitlement.MeasureUsageFromCurrentPeriodStart, currPer, t0)
 		assert.NoError(t, err)
 		assert.Equal(t, t1, m.Get())
 	})
@@ -52,13 +54,15 @@ func TestMeasureUsageFromInput(t *testing.T) {
 	t.Run("Should return time from CREATED_AT enum", func(t *testing.T) {
 		t0 := time.Now().Truncate(time.Minute)
 		t1 := t0.Add(-time.Hour)
-		up := entitlement.UsagePeriod{
+		up := entitlement.NewUsagePeriodFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   t1,
-		}
+		})
 
 		m := &entitlement.MeasureUsageFromInput{}
-		err := m.FromEnum(entitlement.MeasureUsageFromNow, up, t0)
+		currPer, err := up.GetCurrentPeriodAt(t0)
+		assert.NoError(t, err)
+		err = m.FromEnum(entitlement.MeasureUsageFromNow, currPer, t0)
 		assert.NoError(t, err)
 		assert.Equal(t, t0, m.Get())
 	})

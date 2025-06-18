@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace/noop"
 
@@ -77,14 +78,14 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Anchor: getAnchor(t),
 				// Yearly interval is used which helps adjust to the correct period
 				Interval: timeutil.RecurrencePeriodYear,
-			},
+			})),
 		}
 
-		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriodAt(time.Now())
+		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(time.Now())
 		assert.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input
@@ -221,7 +222,12 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		// create entitlement in db
 		inp := getEntitlement(t, feature)
 		inp.MeasureUsageFrom = &startTime
-		inp.UsagePeriod.Interval = timeutil.RecurrencePeriodMonth
+
+		inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+			Anchor:   inp.UsagePeriod.GetValue().Anchor,
+			Interval: timeutil.RecurrencePeriodMonth,
+		}))
+
 		entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 		assert.NoError(t, err)
 
