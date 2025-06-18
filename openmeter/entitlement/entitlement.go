@@ -1,7 +1,6 @@
 package entitlement
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -315,7 +314,7 @@ func (e Entitlement) CalculateCurrentUsagePeriodAt(anchor, at time.Time) (timeut
 		Interval: usagePeriod.Interval,
 	}
 
-	firstPeriod, err := originalUsagePeriod.GetCurrentPeriodAt(e.CreatedAt)
+	firstPeriod, err := originalUsagePeriod.GetCurrentPeriodAt(e.ActiveFromTime())
 	if err != nil {
 		return timeutil.ClosedPeriod{}, false
 	}
@@ -397,71 +396,4 @@ func (e GenericProperties) ActiveToTime() *time.Time {
 		return e.ActiveTo
 	}
 	return e.DeletedAt
-}
-
-type UsagePeriod timeutil.Recurrence
-
-func (u UsagePeriod) Validate() error {
-	hour := isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)
-	if diff, err := u.Interval.Period.Subtract(hour); err == nil && diff.Sign() == -1 {
-		return errors.New("UsagePeriod must be at least 1 hour")
-	}
-
-	return nil
-}
-
-func (u UsagePeriod) AsRecurrence() timeutil.Recurrence {
-	return timeutil.Recurrence{
-		Anchor:   u.Anchor,
-		Interval: u.Interval,
-	}
-}
-
-func (u UsagePeriod) Equal(other UsagePeriod) bool {
-	if u.Interval != other.Interval {
-		return false
-	}
-
-	if !u.Anchor.Equal(other.Anchor) {
-		return false
-	}
-
-	return true
-}
-
-// The returned period is exclusive at the end end inclusive in the start
-func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (timeutil.ClosedPeriod, error) {
-	rec := timeutil.Recurrence{
-		Anchor:   u.Anchor,
-		Interval: u.Interval,
-	}
-
-	nextAfter, err := rec.NextAfter(at)
-	if err != nil {
-		return timeutil.ClosedPeriod{}, err
-	}
-
-	// The edgecase behavior of recurrence.Period doesn't work for us here
-	// as for usage periods we want to have the period end exclusive
-	if nextAfter.Equal(at) {
-		from := nextAfter
-		to, err := rec.Next(from)
-		if err != nil {
-			return timeutil.ClosedPeriod{}, err
-		}
-		return timeutil.ClosedPeriod{
-			From: from,
-			To:   to,
-		}, nil
-	}
-
-	prevBefore, err := rec.PrevBefore(at)
-	if err != nil {
-		return timeutil.ClosedPeriod{}, err
-	}
-
-	return timeutil.ClosedPeriod{
-		From: prevBefore,
-		To:   nextAfter,
-	}, nil
 }
