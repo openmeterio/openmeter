@@ -507,7 +507,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 
 				if err = planAddon.Validate(); err != nil {
 					errs = append(errs, fmt.Errorf("incompatible add-on assignement [id=%s, key=%s, version=%d]: %w",
-						addon.ID, addon.Key, addon.Version, productcatalog.ErrPlanHasIncompatibleAddon),
+						addon.ID, addon.Key, addon.Version, productcatalog.ErrPlanCannotBePublishedWithAddonAssignmentErrors),
 					)
 				}
 			}
