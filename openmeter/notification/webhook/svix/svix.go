@@ -11,10 +11,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/samber/lo"
 	svix "github.com/svix/svix-webhooks/go"
 
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix/internal"
 )
 
 const (
@@ -26,6 +26,8 @@ const (
 	// prior knowing what type of messages are going to be routed to it.
 	NullChannel = "__null_channel"
 )
+
+type Error = internal.SvixError
 
 type SvixConfig struct {
 	// Svix server config
@@ -155,29 +157,6 @@ func NewHandler(config Config) (webhook.Handler, error) {
 	}, nil
 }
 
-func (h svixHandler) CreateApplication(ctx context.Context, id string) (*svix.ApplicationOut, error) {
-	input := svix.ApplicationIn{
-		Name: id,
-		Uid:  &id,
-	}
-
-	idempotencyKey, err := toIdempotencyKey(input, time.Now())
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate idempotency key: %w", err)
-	}
-
-	app, err := h.client.Application.GetOrCreate(ctx, input, &svix.ApplicationCreateOptions{
-		IdempotencyKey: &idempotencyKey,
-	})
-	if err != nil {
-		err = unwrapSvixError(err)
-
-		return nil, fmt.Errorf("failed to get or create Svix application: %w", err)
-	}
-
-	return app, nil
-}
-
 type idempotencyKeyTypes interface {
 	svix.ApplicationIn | svix.EndpointIn | svix.EndpointSecretRotateIn | svix.MessageIn
 }
@@ -198,44 +177,4 @@ func toIdempotencyKey[T idempotencyKeyTypes](v T, t time.Time) (string, error) {
 	h.Write([]byte(t.String()))
 
 	return hex.EncodeToString(h.Sum(nil)), nil
-}
-
-type svixErrorBody struct {
-	Detail []struct {
-		Message string `json:"msg"`
-	} `json:"detail"`
-}
-
-func unwrapSvixError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	svixErr, ok := lo.ErrorsAs[*svix.Error](err)
-	if !ok {
-		return err
-	}
-
-	body := svixErrorBody{}
-
-	// ignore error
-	_ = json.Unmarshal(svixErr.Body(), &body)
-
-	if len(body.Detail) > 0 {
-		var errs []error
-
-		for _, detail := range body.Detail {
-			errs = append(errs, errors.New(detail.Message))
-		}
-
-		err = errors.Join(errs...)
-	}
-
-	if svixErr.Status() >= 400 && svixErr.Status() < 500 {
-		err = webhook.ValidationError{
-			Err: err,
-		}
-	}
-
-	return err
 }
