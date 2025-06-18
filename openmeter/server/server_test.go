@@ -920,10 +920,6 @@ func (n NoopAppService) GetApp(ctx context.Context, input app.GetAppInput) (app.
 	return appstripeentityapp.App{}, nil
 }
 
-func (n NoopAppService) GetDefaultApp(ctx context.Context, input app.GetDefaultAppInput) (app.App, error) {
-	return appstripeentityapp.App{}, nil
-}
-
 func (n NoopAppService) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.App, error) {
 	return appstripeentityapp.App{}, nil
 }

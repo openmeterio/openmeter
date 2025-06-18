@@ -341,6 +341,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.appStripeHandler = appstripehttpdriver.New(
 		staticNamespaceDecoder,
 		config.AppStripe,
+		config.Billing,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
@@ -357,6 +358,7 @@ func NewRouter(config Config) (*Router, error) {
 		staticNamespaceDecoder,
 		config.BillingFeatureSwitches,
 		config.Billing,
+		config.App,
 		config.AppStripe,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)

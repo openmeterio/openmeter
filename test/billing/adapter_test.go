@@ -52,9 +52,9 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a profile
-	_ = s.InstallSandboxApp(s.T(), ns)
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
-	profile := s.ProvisionBillingProfile(ctx, ns)
+	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	// Given we have an invoice
 	invoice, err := s.BillingAdapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{

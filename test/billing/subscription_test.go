@@ -58,9 +58,11 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 	namespace := "ns-default-profile-change"
 	ctx := context.Background()
 
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+
 	// Given we have a default profile
 
-	defaultProfileSettings := minimalCreateProfileInputTemplate
+	defaultProfileSettings := minimalCreateProfileInputTemplate(sandboxApp.GetID())
 	defaultProfileSettings.Default = true
 	defaultProfileSettings.Namespace = namespace
 
@@ -88,16 +90,12 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 	s.NoError(err)
 	s.NotNil(otherApp)
 
-	otherAppReference := billing.AppReference{
-		ID: otherApp.ID,
-	}
-
-	otherProfileSettings := minimalCreateProfileInputTemplate
+	otherProfileSettings := minimalCreateProfileInputTemplate(otherApp.GetID())
 	otherProfileSettings.Namespace = namespace
 	otherProfileSettings.Apps = billing.CreateProfileAppsInput{
-		Tax:       otherAppReference,
-		Invoicing: otherAppReference,
-		Payment:   otherAppReference,
+		Tax:       otherApp.GetID(),
+		Invoicing: otherApp.GetID(),
+		Payment:   otherApp.GetID(),
 	}
 	otherProfileSettings.Default = false
 

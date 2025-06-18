@@ -78,24 +78,6 @@ func (i DeleteAppInstanceCustomerDataInput) Validate() error {
 // GetAppInput is the input for getting an installed app
 type GetAppInput = AppID
 
-// GetAppInput is the input for getting the default app for a type
-type GetDefaultAppInput struct {
-	Namespace string
-	Type      AppType
-}
-
-func (i GetDefaultAppInput) Validate() error {
-	if i.Namespace == "" {
-		return errors.New("namespace is required")
-	}
-
-	if i.Type == "" {
-		return errors.New("type is required")
-	}
-
-	return nil
-}
-
 type AppConfigUpdate interface {
 	models.Validator
 }

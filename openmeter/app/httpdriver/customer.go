@@ -13,6 +13,7 @@ import (
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -144,7 +145,7 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 		},
 		func(ctx context.Context, req UpsertCustomerDataRequest) (UpsertCustomerDataResponse, error) {
 			for _, apiCustomerData := range req.Data {
-				customerApp, customerData, err := h.getCustomerData(ctx, req.CustomerId.Namespace, apiCustomerData)
+				customerApp, customerData, err := h.getCustomerData(ctx, req.CustomerId, apiCustomerData)
 				if err != nil {
 					return nil, err
 				}
@@ -237,7 +238,7 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 }
 
 // getCustomerData converts an API CustomerAppData to a list of CustomerData
-func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp api.CustomerAppData) (app.App, app.CustomerData, error) {
+func (h *handler) getCustomerData(ctx context.Context, customerID customer.CustomerID, apiApp api.CustomerAppData) (app.App, app.CustomerData, error) {
 	// Get app type
 	appType, err := apiApp.Discriminator()
 	if err != nil {
@@ -250,18 +251,19 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 		// Parse as sandbox app
 		apiSandboxCustomerData, err := apiApp.AsSandboxCustomerAppData()
 		if err != nil {
-			return nil, nil, fmt.Errorf("error converting to sandbox app: %w", err)
+			return nil, nil, fmt.Errorf("error converting to stripe app: %w", err)
 		}
 
-		// Get app ID from API data or get default app
-		app, err := h.getApp(ctx, namespace, apiSandboxCustomerData.Id, app.AppTypeSandbox)
+		// Resolve app
+		resolvedApp, err := h.resolveCustomerApp(ctx, customerID, app.AppTypeSandbox, apiSandboxCustomerData.Id)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error getting sandbox app: %w", err)
+			return nil, nil, fmt.Errorf("error resolving sandbox app: %w", err)
 		}
 
+		// Create customer data
 		sandboxCustomerData := appsandbox.CustomerData{}
 
-		return app, sandboxCustomerData, nil
+		return resolvedApp, sandboxCustomerData, nil
 
 	// Stripe app
 	case string(app.AppTypeStripe):
@@ -271,18 +273,19 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 			return nil, nil, fmt.Errorf("error converting to stripe app: %w", err)
 		}
 
-		// Get app ID from API data or get default app
-		app, err := h.getApp(ctx, namespace, apiStripeCustomerData.Id, app.AppTypeStripe)
+		// Resolve app
+		resolvedApp, err := h.resolveCustomerApp(ctx, customerID, app.AppTypeStripe, apiStripeCustomerData.Id)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error getting stripe app: %w", err)
+			return nil, nil, fmt.Errorf("error resolving sandbox app: %w", err)
 		}
 
+		// Create customer data
 		stripeCustomerData := appstripeentity.CustomerData{
 			StripeCustomerID:             apiStripeCustomerData.StripeCustomerId,
 			StripeDefaultPaymentMethodID: apiStripeCustomerData.StripeDefaultPaymentMethodId,
 		}
 
-		return app, stripeCustomerData, nil
+		return resolvedApp, stripeCustomerData, nil
 	case string(app.AppTypeCustomInvoicing):
 		// Parse as custom invoicing app
 		apiCustomInvoicingCustomerData, err := apiApp.AsCustomInvoicingCustomerAppData()
@@ -290,44 +293,57 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 			return nil, nil, fmt.Errorf("error converting to custom invoicing app: %w", err)
 		}
 
-		// Get app ID from API data or get default app
-		app, err := h.getApp(ctx, namespace, apiCustomInvoicingCustomerData.Id, app.AppTypeCustomInvoicing)
+		// Resolve app
+		resolvedApp, err := h.resolveCustomerApp(ctx, customerID, app.AppTypeCustomInvoicing, apiCustomInvoicingCustomerData.Id)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error getting custom invoicing app: %w", err)
+			return nil, nil, fmt.Errorf("error resolving sandbox app: %w", err)
 		}
 
+		// Create customer data
 		customInvoicingCustomerData := appcustominvoicing.CustomerData{
 			Metadata: lo.FromPtrOr(apiCustomInvoicingCustomerData.Metadata, map[string]string{}),
 		}
 
-		return app, customInvoicingCustomerData, nil
+		return resolvedApp, customInvoicingCustomerData, nil
 	}
 
 	return nil, nil, fmt.Errorf("unsupported app type: %s", appType)
 }
 
-// getApp gets an app by ID or gets the default app by type
-func (h *handler) getApp(ctx context.Context, namespace string, appID *string, appType app.AppType) (app.App, error) {
+// resolveCustomerApp resolves a customer app based on the app type or app ID.
+func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.CustomerID, appType app.AppType, appID *string) (app.App, error) {
+	var resolvedApp app.App
+	var err error
+
+	// Get app ID from API data or get default app for billing profile
 	if appID != nil {
-		app, err := h.service.GetApp(ctx, app.AppID{
-			Namespace: namespace,
+		return h.service.GetApp(ctx, app.GetAppInput{
+			Namespace: customerID.Namespace,
 			ID:        *appID,
 		})
-		if err != nil {
-			return nil, fmt.Errorf("error getting app by id: %w", err)
-		}
-
-		return app, nil
 	}
-	app, err := h.service.GetDefaultApp(ctx, app.GetDefaultAppInput{
-		Namespace: namespace,
-		Type:      appType,
+
+	// Get the default profile for the customer
+	customerOverride, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: customerID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error getting default %s app: %w", appType, err)
+		return nil, fmt.Errorf("error getting default profile: %w", err)
 	}
 
-	return app, nil
+	mergedProfile := customerOverride.MergedProfile
+
+	if mergedProfile.Apps.Invoicing.GetType() == app.AppTypeSandbox {
+		resolvedApp = mergedProfile.Apps.Invoicing
+	} else if mergedProfile.Apps.Payment.GetType() == app.AppTypeSandbox {
+		resolvedApp = mergedProfile.Apps.Payment
+	} else if mergedProfile.Apps.Payment.GetType() == app.AppTypeSandbox {
+		resolvedApp = mergedProfile.Apps.Payment
+	} else {
+		return nil, fmt.Errorf("no %s app found in default profile", appType)
+	}
+
+	return resolvedApp, nil
 }
 
 // customerAppToAPI converts a CustomerApp to an API CustomerAppData

@@ -122,7 +122,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	clock.FreezeTime(periodStart)
 	defer clock.UnFreeze()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
@@ -284,7 +284,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	s.NotEmpty(customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
@@ -1055,21 +1055,9 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.NoError(err)
 
 	// Given we have a default profile for the namespace
-	s.ProvisionBillingProfile(ctx, namespace, billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+	s.ProvisionBillingProfile(ctx, namespace, app.GetID(), billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 		// manual advancement for testing the update invoice flow
 		profile.WorkflowConfig.Invoicing.AutoAdvance = false
-
-		profile.Apps = billing.CreateProfileAppsInput{
-			Tax: billing.AppReference{
-				ID: app.GetID().ID,
-			},
-			Invoicing: billing.AppReference{
-				ID: app.GetID().ID,
-			},
-			Payment: billing.AppReference{
-				ID: app.GetID().ID,
-			},
-		}
 	}))
 
 	// Setup the app with the customer

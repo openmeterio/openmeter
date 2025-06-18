@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -35,31 +37,34 @@ func AutoProvision(ctx context.Context, input AutoProvisionInput) (app.App, erro
 		return nil, models.NewGenericValidationError(err)
 	}
 
-	// Let's try to resolve the default app
-	defaultApp, err := input.AppService.GetDefaultApp(ctx, app.GetDefaultAppInput{
+	// Get the sandbox app list
+	sandboxAppList, err := input.AppService.ListApps(ctx, app.ListAppInput{
 		Namespace: input.Namespace,
-		Type:      app.AppTypeSandbox,
+		Type:      lo.ToPtr(app.AppTypeSandbox),
 	})
 	if err != nil {
-		if app.IsAppDefaultNotFoundError(err) {
-			// Let's provision the new app
-			_, err := input.AppService.CreateApp(ctx, app.CreateAppInput{
-				Namespace:   input.Namespace,
-				Name:        "Sandbox",
-				Description: "OpenMeter Sandbox App to be used for testing purposes.",
-				Type:        app.AppTypeSandbox,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("cannot create sandbox app: %w", err)
-			}
-
-			return input.AppService.GetDefaultApp(ctx, app.GetDefaultAppInput{
-				Namespace: input.Namespace,
-				Type:      app.AppTypeSandbox,
-			})
-		}
-		return nil, err
+		return nil, fmt.Errorf("cannot list apps: %w", err)
 	}
 
-	return defaultApp, nil
+	// If there is no sandbox app, we need to provision a new one
+	if sandboxAppList.TotalCount == 0 {
+		// Let's provision the new app
+		appBase, err := input.AppService.CreateApp(ctx, app.CreateAppInput{
+			Namespace:   input.Namespace,
+			Name:        "Sandbox",
+			Description: "OpenMeter Sandbox App to be used for testing purposes.",
+			Type:        app.AppTypeSandbox,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("cannot create sandbox app: %w", err)
+		}
+
+		return input.AppService.GetApp(ctx, app.GetAppInput{
+			Namespace: input.Namespace,
+			ID:        appBase.GetID().ID,
+		})
+	}
+
+	// If there is more than one sandbox app, we need to return the first one
+	return sandboxAppList.Items[0], nil
 }

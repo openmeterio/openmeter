@@ -27,18 +27,12 @@ func (App) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("type").GoType(appentitybase.AppType("")).Immutable(),
 		field.String("status").GoType(appentitybase.AppStatus("")),
-		field.Bool("is_default").Default(false),
 	}
 }
 
 func (App) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "type"),
-		index.Fields("namespace", "type", "is_default").
-			Annotations(
-				entsql.IndexWhere("is_default = true AND deleted_at IS NULL"),
-			).
-			Unique(),
 	}
 }
 

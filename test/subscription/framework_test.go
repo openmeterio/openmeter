@@ -36,6 +36,7 @@ type testDeps struct {
 	subscriptionWorkflowService subscriptionworkflow.Service
 	workerHandler               *billingworkersubscription.Handler
 	billingService              billing.Service
+	sandboxApp                  app.App
 	cleanup                     func(t *testing.T) // Cleanup function
 }
 
@@ -123,11 +124,21 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	require.NoError(t, err)
 
-	_, err = appService.GetDefaultApp(ctx, app.GetDefaultAppInput{
-		Namespace: "test-namespace",
-		Type:      app.AppTypeSandbox,
-	})
+	// Create sandbox app
+	sandboxAppBase, err := appService.CreateApp(ctx,
+		app.CreateAppInput{
+			Name:        "Sandbox",
+			Description: "Sandbox app",
+			Type:        app.AppTypeSandbox,
+			Namespace:   "test-namespace",
+		})
 
+	require.NoError(t, err)
+
+	sandboxApp, err := appService.GetApp(ctx, app.GetAppInput{
+		Namespace: "test-namespace",
+		ID:        sandboxAppBase.ID,
+	})
 	require.NoError(t, err)
 
 	return testDeps{
@@ -138,51 +149,48 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		cleanup:                     dbDeps.Cleanup,
 		workerHandler:               workerHandler,
 		billingService:              billingService,
+		sandboxApp:                  sandboxApp,
 	}
 }
 
-var minimalCreateProfileInputTemplate = billing.CreateProfileInput{
-	Name:      "Awesome Profile",
-	Default:   true,
-	Namespace: "test-namespace",
+func minimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInput {
+	return billing.CreateProfileInput{
+		Name:      "Awesome Profile",
+		Default:   true,
+		Namespace: "test-namespace",
 
-	WorkflowConfig: billing.WorkflowConfig{
-		Collection: billing.CollectionConfig{
-			Alignment: billing.AlignmentKindSubscription,
-			// We set the interval to 0 so that the invoice is collected immediately, testcases
-			// validating the collection logic can set a different interval
-			Interval: lo.Must(isodate.String("PT0S").Parse()),
+		WorkflowConfig: billing.WorkflowConfig{
+			Collection: billing.CollectionConfig{
+				Alignment: billing.AlignmentKindSubscription,
+				// We set the interval to 0 so that the invoice is collected immediately, testcases
+				// validating the collection logic can set a different interval
+				Interval: lo.Must(isodate.String("PT0S").Parse()),
+			},
+			Invoicing: billing.InvoicingConfig{
+				AutoAdvance: true,
+				DraftPeriod: lo.Must(isodate.String("P1D").Parse()),
+				DueAfter:    lo.Must(isodate.String("P1W").Parse()),
+			},
+			Payment: billing.PaymentConfig{
+				CollectionMethod: billing.CollectionMethodChargeAutomatically,
+			},
+			Tax: billing.WorkflowTaxConfig{
+				Enabled:  true,
+				Enforced: false,
+			},
 		},
-		Invoicing: billing.InvoicingConfig{
-			AutoAdvance: true,
-			DraftPeriod: lo.Must(isodate.String("P1D").Parse()),
-			DueAfter:    lo.Must(isodate.String("P1W").Parse()),
-		},
-		Payment: billing.PaymentConfig{
-			CollectionMethod: billing.CollectionMethodChargeAutomatically,
-		},
-		Tax: billing.WorkflowTaxConfig{
-			Enabled:  true,
-			Enforced: false,
-		},
-	},
 
-	Supplier: billing.SupplierContact{
-		Name: "Awesome Supplier",
-		Address: models.Address{
-			Country: lo.ToPtr(models.CountryCode("US")),
+		Supplier: billing.SupplierContact{
+			Name: "Awesome Supplier",
+			Address: models.Address{
+				Country: lo.ToPtr(models.CountryCode("US")),
+			},
 		},
-	},
 
-	Apps: billing.CreateProfileAppsInput{
-		Invoicing: billing.AppReference{
-			Type: app.AppTypeSandbox,
+		Apps: billing.CreateProfileAppsInput{
+			Invoicing: appID,
+			Payment:   appID,
+			Tax:       appID,
 		},
-		Payment: billing.AppReference{
-			Type: app.AppTypeSandbox,
-		},
-		Tax: billing.AppReference{
-			Type: app.AppTypeSandbox,
-		},
-	},
+	}
 }

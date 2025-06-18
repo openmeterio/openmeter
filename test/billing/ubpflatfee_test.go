@@ -31,10 +31,10 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 	clock.SetTime(clockBase)
 	defer clock.ResetTime()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	cust := s.CreateTestCustomer(namespace, "test")
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	// Given we have a customer
 	// When we create a pending fee line using the usage based flat fee line
@@ -141,10 +141,10 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	clock.SetTime(lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")))
 	defer clock.ResetTime()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	cust := s.CreateTestCustomer(namespace, "test")
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	// Given we have a customer
 	// When we create a pending fee line using the usage based flat fee line with a percentage discount
@@ -224,10 +224,10 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 	clock.SetTime(lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")))
 	defer clock.ResetTime()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	cust := s.CreateTestCustomer(namespace, "test")
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	period := billing.Period{
 		Start: clock.Now(),

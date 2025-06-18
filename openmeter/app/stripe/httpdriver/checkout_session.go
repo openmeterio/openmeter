@@ -8,10 +8,12 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -83,7 +85,49 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 			}
 
 			if body.AppId != nil {
-				req.AppID = &app.AppID{Namespace: namespace, ID: *body.AppId}
+				req.AppID = app.AppID{Namespace: namespace, ID: *body.AppId}
+			} else {
+				// Get the billing profiles
+				billingProfileList, err := h.billingService.ListProfiles(ctx, billing.ListProfilesInput{
+					Namespace: namespace,
+				})
+				if err != nil {
+					return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("failed to get billing profile: %w", err)
+				}
+
+				// Find the billing profile with the stripe payment app
+				// Prioritize the default profile
+				var stripeApps []app.App
+				var foundDefault bool
+
+				for _, profile := range billingProfileList.Items {
+					if foundDefault {
+						break
+					}
+
+					if profile.Apps.Payment.GetType() == app.AppTypeStripe {
+						req.AppID = profile.Apps.Payment.GetID()
+						stripeApps = append(stripeApps, profile.Apps.Payment)
+
+						if profile.Default {
+							foundDefault = true
+						}
+					}
+				}
+
+				// If no default profile is found, check if there is only one stripe app and use it
+				if !foundDefault {
+					// If there is no stripe app, return an error
+					if len(stripeApps) == 0 {
+						return CreateAppStripeCheckoutSessionRequest{}, models.NewGenericNotFoundError(
+							fmt.Errorf("no stripe billing profile found, please create a billing profile with a stripe app"),
+						)
+					} else {
+						return CreateAppStripeCheckoutSessionRequest{}, models.NewGenericNotFoundError(
+							fmt.Errorf("you have stripe billing profiles, but none is marked as default"),
+						)
+					}
+				}
 			}
 
 			return req, nil

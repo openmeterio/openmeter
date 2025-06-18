@@ -202,7 +202,7 @@ func (s *BaseSuite) SetupSuite() {
 
 func (s *BaseSuite) InstallSandboxApp(t *testing.T, ns string) app.App {
 	ctx := context.Background()
-	_, err := s.AppService.CreateApp(ctx,
+	appBase, err := s.AppService.CreateApp(ctx,
 		app.CreateAppInput{
 			Name:        "Sandbox",
 			Description: "Sandbox app",
@@ -212,13 +212,13 @@ func (s *BaseSuite) InstallSandboxApp(t *testing.T, ns string) app.App {
 
 	require.NoError(t, err)
 
-	defaultApp, err := s.AppService.GetDefaultApp(ctx, app.GetDefaultAppInput{
+	sandboxApp, err := s.AppService.GetApp(ctx, app.GetAppInput{
 		Namespace: ns,
-		Type:      app.AppTypeSandbox,
+		ID:        appBase.ID,
 	})
-
 	require.NoError(t, err)
-	return defaultApp
+
+	return sandboxApp
 }
 
 func (s *BaseSuite) CreateTestCustomer(ns string, subjectKey string) *customer.Customer {
@@ -489,14 +489,14 @@ func WithCollectionInterval(period isodate.Period) BillingProfileProvisionOption
 	})
 }
 
-func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, opts ...BillingProfileProvisionOption) *billing.Profile {
+func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appID app.AppID, opts ...BillingProfileProvisionOption) *billing.Profile {
 	provisionOpts := BillingProfileProvisionOptions{}
 
 	for _, opt := range opts {
 		opt(&provisionOpts)
 	}
 
-	clonedCreateProfileInput := minimalCreateProfileInputTemplate
+	clonedCreateProfileInput := minimalCreateProfileInputTemplate(appID)
 	clonedCreateProfileInput.Namespace = ns
 
 	if provisionOpts.editFn != nil {

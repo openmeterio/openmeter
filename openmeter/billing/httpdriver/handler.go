@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -52,6 +53,7 @@ type CustomerOverrideHandler interface {
 
 type handler struct {
 	service          billing.Service
+	appService       app.Service
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	featureSwitches  config.BillingFeatureSwitchesConfiguration
 	options          []httptransport.HandlerOption
@@ -71,11 +73,13 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	featureSwitches config.BillingFeatureSwitchesConfiguration,
 	service billing.Service,
+	appService app.Service,
 	stripeAppService appstripe.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
 		service:          service,
+		appService:       appService,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		featureSwitches:  featureSwitches,

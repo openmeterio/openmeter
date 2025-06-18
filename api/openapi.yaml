@@ -11538,7 +11538,6 @@ components:
         - updatedAt
         - listing
         - status
-        - default
       properties:
         id:
           type: string
@@ -11596,11 +11595,6 @@ components:
             - $ref: '#/components/schemas/AppStatus'
           description: Status of the app connection.
           readOnly: true
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
       description: |-
         Abstract base model for installed apps.
 
@@ -12070,31 +12064,22 @@ components:
         - payment
       properties:
         tax:
-          anyOf:
-            - type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: ULID (Universally Unique Lexicographically Sortable Identifier).
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-            - type: string
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The tax app used for this workflow
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           x-go-type: string
         invoicing:
-          anyOf:
-            - type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: ULID (Universally Unique Lexicographically Sortable Identifier).
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-            - type: string
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The invoicing app used for this workflow
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           x-go-type: string
         payment:
-          anyOf:
-            - type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: ULID (Universally Unique Lexicographically Sortable Identifier).
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-            - type: string
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The payment app used for this workflow
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           x-go-type: string
       description: BillingProfileAppsCreate represents the input for creating a billing profile's apps
     BillingProfileAppsOrReference:
@@ -13002,7 +12987,6 @@ components:
         - updatedAt
         - listing
         - status
-        - default
         - type
         - enableDraftSyncHook
         - enableIssuingSyncHook
@@ -13063,11 +13047,6 @@ components:
             - $ref: '#/components/schemas/AppStatus'
           description: Status of the app connection.
           readOnly: true
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -13094,7 +13073,6 @@ components:
       type: object
       required:
         - name
-        - default
         - type
         - enableDraftSyncHook
         - enableIssuingSyncHook
@@ -13117,11 +13095,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -20671,7 +20644,6 @@ components:
         - updatedAt
         - listing
         - status
-        - default
         - type
       properties:
         id:
@@ -20730,11 +20702,6 @@ components:
             - $ref: '#/components/schemas/AppStatus'
           description: Status of the app connection.
           readOnly: true
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -20749,7 +20716,6 @@ components:
       type: object
       required:
         - name
-        - default
         - type
       properties:
         name:
@@ -20770,11 +20736,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -20852,7 +20813,6 @@ components:
         - updatedAt
         - listing
         - status
-        - default
         - type
         - stripeAccountId
         - livemode
@@ -20914,11 +20874,6 @@ components:
             - $ref: '#/components/schemas/AppStatus'
           description: Status of the app connection.
           readOnly: true
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -20944,7 +20899,6 @@ components:
         type: stripe
         name: Stripe
         status: ready
-        default: true
         listing:
           type: stripe
           name: Stripe
@@ -20979,7 +20933,6 @@ components:
         - updatedAt
         - listing
         - status
-        - default
         - type
         - stripeAccountId
         - livemode
@@ -21041,11 +20994,6 @@ components:
             - $ref: '#/components/schemas/AppStatus'
           description: Status of the app connection.
           readOnly: true
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -21075,7 +21023,6 @@ components:
         type: stripe
         name: Stripe
         status: ready
-        default: true
         listing:
           type: stripe
           name: Stripe
@@ -21105,7 +21052,6 @@ components:
       type: object
       required:
         - name
-        - default
         - type
       properties:
         name:
@@ -21126,11 +21072,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:

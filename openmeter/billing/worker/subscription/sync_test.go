@@ -71,9 +71,9 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 
 	ctx := s.Context
 
-	_ = s.InstallSandboxApp(s.T(), s.Namespace)
+	appSandbox := s.InstallSandboxApp(s.T(), s.Namespace)
 
-	s.ProvisionBillingProfile(ctx, s.Namespace)
+	s.ProvisionBillingProfile(ctx, s.Namespace, appSandbox.GetID())
 
 	apiRequestsTotalMeterSlug := "api-requests-total"
 
@@ -476,12 +476,12 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 	namespace := "ns-uncollectable-collection"
 	ctx := context.Background()
 
-	s.InstallSandboxApp(s.T(), namespace)
+	appSandbox := s.InstallSandboxApp(s.T(), namespace)
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customer)
 
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
 
 	// Test no gathering invoice state
 	s.Run("no gathering invoice", func() {
@@ -547,9 +547,9 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 	defer clock.ResetTime()
 	s.enableProrating()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	appSandbox := s.InstallSandboxApp(s.T(), namespace)
 
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
 
 	customerEntity := s.CreateTestCustomer(namespace, "test")
 	require.NotNil(s.T(), customerEntity)

@@ -285,7 +285,7 @@ func (i UpdateAPIKeyAdapterInput) Validate() error {
 
 type CreateCheckoutSessionInput struct {
 	Namespace           string
-	AppID               *app.AppID
+	AppID               app.AppID
 	CreateCustomerInput *customer.CreateCustomerInput
 	CustomerID          *customer.CustomerID
 	CustomerKey         *string
@@ -298,10 +298,8 @@ func (i CreateCheckoutSessionInput) Validate() error {
 		return errors.New("namespace is required")
 	}
 
-	if i.AppID != nil {
-		if err := i.AppID.Validate(); err != nil {
-			return fmt.Errorf("error validating app id: %w", err)
-		}
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
 	}
 
 	// Least one of customer, customer id or customer key is required

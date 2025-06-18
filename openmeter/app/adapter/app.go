@@ -24,22 +24,11 @@ func (a *adapter) CreateApp(ctx context.Context, input app.CreateAppInput) (app.
 			ctx,
 			a,
 			func(ctx context.Context, repo *adapter) (app.AppBase, error) {
-				count, err := repo.db.App.Query().
-					Where(appdb.Namespace(input.Namespace)).
-					Where(appdb.Type(input.Type)).
-					Where(appdb.DeletedAtIsNil()).
-					Count(ctx)
-				if err != nil {
-					return app.AppBase{}, fmt.Errorf("failed to count apps from same type: %w", err)
-				}
-
 				appCreateQuery := repo.db.App.Create().
 					SetNamespace(input.Namespace).
 					SetName(input.Name).
 					SetDescription(input.Description).
 					SetType(input.Type).
-					// Set the app as default if it is the first app of its type
-					SetIsDefault(count == 0).
 					SetStatus(app.AppStatusReady)
 
 				// Set ID if provided by the input
@@ -178,44 +167,6 @@ func (a *adapter) GetApp(ctx context.Context, input app.GetAppInput) (app.App, e
 	)
 }
 
-// GetDefaultApp gets the default app for the app type
-func (a *adapter) GetDefaultApp(ctx context.Context, input app.GetDefaultAppInput) (app.App, error) {
-	return entutils.TransactingRepo(
-		ctx,
-		a,
-		func(ctx context.Context, repo *adapter) (app.App, error) {
-			dbApp, err := repo.db.App.Query().
-				Where(appdb.Namespace(input.Namespace)).
-				Where(appdb.Type(input.Type)).
-				Where(appdb.IsDefault(true)).
-				Where(appdb.DeletedAtIsNil()).
-				First(ctx)
-			if err != nil {
-				if db.IsNotFound(err) {
-					return nil, app.NewAppDefaultNotFoundError(input.Type, input.Namespace)
-				}
-
-				return nil, err
-			}
-
-			// Get registry item
-			registryItem, err := repo.GetMarketplaceListing(ctx, app.MarketplaceGetInput{
-				Type: dbApp.Type,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
-			}
-
-			// Map app from db
-			app, err := mapAppFromDB(ctx, dbApp, registryItem)
-			if err != nil {
-				return nil, fmt.Errorf("failed to map app from db: %w", err)
-			}
-
-			return app, nil
-		})
-}
-
 // UpdateApp updates an app
 func (a *adapter) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.App, error) {
 	return transaction.Run(ctx, a, func(ctx context.Context) (app.App, error) {
@@ -223,46 +174,16 @@ func (a *adapter) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.
 			ctx,
 			a,
 			func(ctx context.Context, repo *adapter) (app.App, error) {
-				// Get the app
-				dbApp, err := repo.db.App.Query().
-					Where(appdb.Namespace(input.AppID.Namespace)).
-					Where(appdb.ID(input.AppID.ID)).
-					Where(appdb.DeletedAtIsNil()).
-					First(ctx)
-				if err != nil {
-					if db.IsNotFound(err) {
-						return nil, app.NewAppNotFoundError(input.AppID)
-					}
-
-					return nil, fmt.Errorf("failed to get app: %s: %w", input.AppID.ID, err)
-				}
-
-				// Clear the default flag for the app type
-				if input.Default {
-					_, err = repo.db.App.Update().
-						Where(appdb.IDNEQ(dbApp.ID)).
-						Where(appdb.Namespace(input.AppID.Namespace)).
-						Where(appdb.Type(dbApp.Type)).
-						Where(appdb.IsDefault(true)).
-						SetIsDefault(false).
-						Save(ctx)
-					if err != nil {
-						return nil, fmt.Errorf("failed to clear default flag for app type %s with id %s: %w", dbApp.Type, dbApp.ID, err)
-					}
-				}
-
 				// Update the app
-				query := repo.db.App.Update().
+				_, err := repo.db.App.Update().
 					Where(appdb.Namespace(input.AppID.Namespace)).
 					Where(appdb.ID(input.AppID.ID)).
 					SetName(input.Name).
 					SetOrClearDescription(input.Description).
 					SetOrClearMetadata(input.Metadata).
-					SetIsDefault(input.Default)
-
-				_, err = query.Save(ctx)
+					Save(ctx)
 				if err != nil {
-					return nil, fmt.Errorf("failed to update the app with id %s: %w", dbApp.ID, err)
+					return nil, fmt.Errorf("failed to update the app with id %s: %w", input.AppID.ID, err)
 				}
 
 				// Get the updated app
@@ -333,7 +254,6 @@ func mapAppBaseFromDB(dbApp *db.App, registryItem app.RegistryItem) app.AppBase 
 		}),
 		Type:     dbApp.Type,
 		Status:   dbApp.Status,
-		Default:  dbApp.IsDefault,
 		Listing:  registryItem.Listing,
 		Metadata: dbApp.Metadata,
 	}

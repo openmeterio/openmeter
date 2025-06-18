@@ -33,11 +33,11 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 	namespace := "ns-tax-profile"
 	ctx := context.Background()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	cust := s.CreateTestCustomer(namespace, "test")
 
-	profile := s.ProvisionBillingProfile(ctx, namespace, WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 		profile.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
 			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 			Stripe: &productcatalog.StripeTaxConfig{
@@ -147,11 +147,11 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	clock.SetTime(now)
 	defer clock.ResetTime()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	customer := s.CreateTestCustomer(namespace, "test")
 
-	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
 
 	meterSlug := "flat-per-unit"
 

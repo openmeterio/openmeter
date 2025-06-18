@@ -153,7 +153,6 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 						Namespace: namespace,
 					},
 					Name:        payload.Name,
-					Default:     payload.Default,
 					Description: payload.Description,
 					Metadata:    payload.Metadata,
 					AppConfigUpdate: appstripeentityapp.Configuration{
@@ -173,7 +172,6 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 						Namespace: namespace,
 					},
 					Name:            payload.Name,
-					Default:         payload.Default,
 					Description:     payload.Description,
 					Metadata:        payload.Metadata,
 					AppConfigUpdate: appsandbox.Configuration{},
@@ -190,7 +188,6 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 						Namespace: namespace,
 					},
 					Name:        payload.Name,
-					Default:     payload.Default,
 					Description: payload.Description,
 					Metadata:    payload.Metadata,
 					AppConfigUpdate: appcustominvoicing.Configuration{

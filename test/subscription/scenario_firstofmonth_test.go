@@ -150,7 +150,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 	require.NoError(t, err)
 
 	// 3rd, let's create the billing profile
-	_, err = tDeps.billingService.CreateProfile(ctx, minimalCreateProfileInputTemplate)
+	_, err = tDeps.billingService.CreateProfile(ctx, minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()))
 	require.NoError(t, err)
 
 	// 3rd, let's create the customer

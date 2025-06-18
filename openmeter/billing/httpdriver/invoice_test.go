@@ -32,7 +32,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 	namespace := "ns-invoice-serialization"
 	ctx := s.T().Context()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	appSandbox := s.InstallSandboxApp(s.T(), namespace)
 
 	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
@@ -48,7 +48,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 	})
 	s.NoError(err)
 
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
 	now := clock.Now()
 
 	// Let's provision a gathering invoice with a single flat fee line

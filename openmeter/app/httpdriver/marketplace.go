@@ -257,10 +257,6 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, stripeApp app
 	}
 
 	// Create new default billing profile
-	appRef := billing.AppReference{
-		ID: appID.ID,
-	}
-
 	_, err = h.billingService.CreateProfile(ctx, billing.CreateProfileInput{
 		Namespace:      appID.Namespace,
 		Name:           "Stripe Billing Profile",
@@ -269,9 +265,9 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, stripeApp app
 		Supplier:       supplierContract,
 		WorkflowConfig: billing.DefaultWorkflowConfig,
 		Apps: billing.ProfileAppReferences{
-			Tax:       appRef,
-			Invoicing: appRef,
-			Payment:   appRef,
+			Tax:       appID,
+			Invoicing: appID,
+			Payment:   appID,
 		},
 	})
 	if err != nil {

@@ -113,20 +113,6 @@ func (_c *AppCreate) SetStatus(v app.AppStatus) *AppCreate {
 	return _c
 }
 
-// SetIsDefault sets the "is_default" field.
-func (_c *AppCreate) SetIsDefault(v bool) *AppCreate {
-	_c.mutation.SetIsDefault(v)
-	return _c
-}
-
-// SetNillableIsDefault sets the "is_default" field if the given value is not nil.
-func (_c *AppCreate) SetNillableIsDefault(v *bool) *AppCreate {
-	if v != nil {
-		_c.SetIsDefault(*v)
-	}
-	return _c
-}
-
 // SetID sets the "id" field.
 func (_c *AppCreate) SetID(v string) *AppCreate {
 	_c.mutation.SetID(v)
@@ -289,10 +275,6 @@ func (_c *AppCreate) defaults() {
 		v := dbapp.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := _c.mutation.IsDefault(); !ok {
-		v := dbapp.DefaultIsDefault
-		_c.mutation.SetIsDefault(v)
-	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := dbapp.DefaultID()
 		_c.mutation.SetID(v)
@@ -323,9 +305,6 @@ func (_c *AppCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "App.status"`)}
-	}
-	if _, ok := _c.mutation.IsDefault(); !ok {
-		return &ValidationError{Name: "is_default", err: errors.New(`db: missing required field "App.is_default"`)}
 	}
 	return nil
 }
@@ -398,10 +377,6 @@ func (_c *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
 		_node.Status = value
-	}
-	if value, ok := _c.mutation.IsDefault(); ok {
-		_spec.SetField(dbapp.FieldIsDefault, field.TypeBool, value)
-		_node.IsDefault = value
 	}
 	if nodes := _c.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -657,18 +632,6 @@ func (u *AppUpsert) UpdateStatus() *AppUpsert {
 	return u
 }
 
-// SetIsDefault sets the "is_default" field.
-func (u *AppUpsert) SetIsDefault(v bool) *AppUpsert {
-	u.Set(dbapp.FieldIsDefault, v)
-	return u
-}
-
-// UpdateIsDefault sets the "is_default" field to the value that was provided on create.
-func (u *AppUpsert) UpdateIsDefault() *AppUpsert {
-	u.SetExcluded(dbapp.FieldIsDefault)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -828,20 +791,6 @@ func (u *AppUpsertOne) SetStatus(v app.AppStatus) *AppUpsertOne {
 func (u *AppUpsertOne) UpdateStatus() *AppUpsertOne {
 	return u.Update(func(s *AppUpsert) {
 		s.UpdateStatus()
-	})
-}
-
-// SetIsDefault sets the "is_default" field.
-func (u *AppUpsertOne) SetIsDefault(v bool) *AppUpsertOne {
-	return u.Update(func(s *AppUpsert) {
-		s.SetIsDefault(v)
-	})
-}
-
-// UpdateIsDefault sets the "is_default" field to the value that was provided on create.
-func (u *AppUpsertOne) UpdateIsDefault() *AppUpsertOne {
-	return u.Update(func(s *AppUpsert) {
-		s.UpdateIsDefault()
 	})
 }
 
@@ -1171,20 +1120,6 @@ func (u *AppUpsertBulk) SetStatus(v app.AppStatus) *AppUpsertBulk {
 func (u *AppUpsertBulk) UpdateStatus() *AppUpsertBulk {
 	return u.Update(func(s *AppUpsert) {
 		s.UpdateStatus()
-	})
-}
-
-// SetIsDefault sets the "is_default" field.
-func (u *AppUpsertBulk) SetIsDefault(v bool) *AppUpsertBulk {
-	return u.Update(func(s *AppUpsert) {
-		s.SetIsDefault(v)
-	})
-}
-
-// UpdateIsDefault sets the "is_default" field to the value that was provided on create.
-func (u *AppUpsertBulk) UpdateIsDefault() *AppUpsertBulk {
-	return u.Update(func(s *AppUpsert) {
-		s.UpdateIsDefault()
 	})
 }
 

@@ -48,7 +48,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	periodStart := periodEnd.Add(-time.Hour * 24 * 30)
 	issueAt := now.Add(-time.Minute)
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	ctx := context.Background()
 
@@ -115,7 +115,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	// Given we have a default profile for the namespace
 
-	billingProfile := s.ProvisionBillingProfile(ctx, namespace)
+	billingProfile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	var items []*billing.Line
 	var HUFItem *billing.Line
@@ -416,7 +416,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	line1IssueAt := now.Add(-2 * time.Hour)
 	line2IssueAt := now.Add(-time.Hour)
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	ctx := context.Background()
 
@@ -439,7 +439,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
@@ -828,7 +828,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 		s.T().Run(tc.name, func(t *testing.T) {
 			namespace := fmt.Sprintf("ns-invoicing-flow-happy-path-%d", i)
 
-			_ = s.InstallSandboxApp(s.T(), namespace)
+			sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 			// Given we have a test customer
 			customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
@@ -848,7 +848,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			require.NotEmpty(s.T(), customerEntity.ID)
 
 			// Given we have a billing profile
-			s.ProvisionBillingProfile(ctx, namespace, WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+			s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 				profile.WorkflowConfig = tc.workflowConfig
 			}))
 
@@ -1179,7 +1179,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 		s.T().Run(tc.name, func(t *testing.T) {
 			namespace := fmt.Sprintf("ns-invoicing-flow-valid-%d", i)
 
-			_ = s.InstallSandboxApp(s.T(), namespace)
+			sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 			mockApp := s.SandboxApp.EnableMock(t)
 			defer s.SandboxApp.DisableMock()
@@ -1202,7 +1202,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 			require.NotEmpty(s.T(), customerEntity.ID)
 
 			// Given we have a billing profile
-			s.ProvisionBillingProfile(ctx, namespace, WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+			s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 				profile.WorkflowConfig = tc.workflowConfig
 			}))
 
@@ -1230,9 +1230,9 @@ func (s *InvoicingTestSuite) TestBillingProfileChange() {
 	namespace := "ns-billing-profile-default-change"
 	ctx := context.Background()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	oldCreateProfileInput := minimalCreateProfileInputTemplate
+	oldCreateProfileInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
 	oldCreateProfileInput.Namespace = namespace
 	oldCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
 
@@ -1240,7 +1240,7 @@ func (s *InvoicingTestSuite) TestBillingProfileChange() {
 	s.NoError(err)
 	s.NotNil(oldBillingProfile)
 
-	newCreateProfileInput := minimalCreateProfileInputTemplate
+	newCreateProfileInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
 	newCreateProfileInput.Namespace = namespace
 	newCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
 
@@ -1283,7 +1283,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
@@ -1382,7 +1382,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 	customerEntity := s.CreateTestCustomer(namespace, "test")
 
 	// Given we have a default profile for the namespace
-	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
 
 	lines := ubpPendingLines{}
 	s.Run("create pending invoice items", func() {
@@ -2251,7 +2251,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
@@ -2304,7 +2304,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
 
 	var pendingLine *billing.Line
 	s.Run("create pending invoice items", func() {
@@ -2484,7 +2484,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
@@ -2606,7 +2606,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	lines := ubpPendingLines{}
 	s.Run("create pending invoice items", func() {
@@ -3076,7 +3076,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 	clock.SetTime(periodStart)
 	defer clock.ResetTime()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	meterSlug := "flat-per-unit"
 
@@ -3141,7 +3141,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
@@ -3249,7 +3249,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	clock.SetTime(periodStart)
 	defer clock.ResetTime()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	meterSlug := "flat-per-unit"
 
@@ -3308,7 +3308,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.NotEmpty(customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	// Given we have pending invoice items without usage
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
@@ -3368,7 +3368,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	clock.SetTime(periodStart)
 	defer clock.ResetTime()
 
-	_ = s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	meterSlug := "flat-per-unit"
 
@@ -3427,7 +3427,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	s.NotEmpty(customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	// Given we have pending invoice items without usage
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
@@ -3494,9 +3494,9 @@ func (s *InvoicingTestSuite) TestNamespaceLockedGatheringInvoiceCreation() {
 		s.BillingService = billingSvcSaved
 	}()
 
-	s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 
@@ -3516,9 +3516,9 @@ func (s *InvoicingTestSuite) TestNamespaceLockedInvoiceProgression() {
 	namespace := "ns-namespace-locked-progress"
 	ctx := context.Background()
 
-	s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 
@@ -3566,9 +3566,9 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 	// Then
 	//  the invoice should be created with the correct period
 
-	s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
 
 	start := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
 
@@ -3660,9 +3660,9 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 	// Then
 	//  the invoice should be created with the correct period, and the non-billable line should not be included
 
-	s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
 
 	start := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
 
@@ -3772,9 +3772,9 @@ func (s *InvoicingTestSuite) TestSortLines() {
 	// Then
 	//  the lines should be sorted by index (and index should be present)
 
-	s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	start := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
 
@@ -3908,8 +3908,8 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	namespace := "ns-gathering-invoice-period-persisting"
 	ctx := context.Background()
 
-	s.InstallSandboxApp(s.T(), namespace)
-	s.ProvisionBillingProfile(ctx, namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
 	periodEnd := periodStart.Add(time.Hour * 24)

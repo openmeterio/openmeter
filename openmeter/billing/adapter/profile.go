@@ -416,9 +416,9 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.AdapterGetProfileR
 			WorkflowConfig: wfConfig,
 
 			AppReferences: &billing.ProfileAppReferences{
-				Tax:       billing.AppReference{ID: dbProfile.TaxAppID},
-				Invoicing: billing.AppReference{ID: dbProfile.InvoicingAppID},
-				Payment:   billing.AppReference{ID: dbProfile.PaymentAppID},
+				Tax:       app.AppID{Namespace: dbProfile.Namespace, ID: dbProfile.TaxAppID},
+				Invoicing: app.AppID{Namespace: dbProfile.Namespace, ID: dbProfile.InvoicingAppID},
+				Payment:   app.AppID{Namespace: dbProfile.Namespace, ID: dbProfile.PaymentAppID},
 			},
 		},
 		WorkflowConfigID: dbProfile.Edges.WorkflowConfig.ID,
