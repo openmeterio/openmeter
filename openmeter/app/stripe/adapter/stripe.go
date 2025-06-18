@@ -378,31 +378,6 @@ func (a *adapter) CreateCheckoutSession(ctx context.Context, input appstripeenti
 			}
 		}
 
-		// Find a customer by key
-		if input.CustomerKey != nil {
-			customers, err := repo.customerService.ListCustomers(ctx, customer.ListCustomersInput{
-				Namespace: input.Namespace,
-				Key:       input.CustomerKey,
-			})
-			if err != nil {
-				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to list customers: %w", err)
-			}
-
-			// Customer not found with key
-			if customers.TotalCount == 0 {
-				return appstripeentity.CreateCheckoutSessionOutput{}, models.NewGenericValidationError(
-					fmt.Errorf("customer not found with key: %s", *input.CustomerKey),
-				)
-			}
-
-			// Should not happen
-			if customers.TotalCount > 1 {
-				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("multiple customers found with key: %s", *input.CustomerKey)
-			}
-
-			targetCustomer = &customers.Items[0]
-		}
-
 		// Create a customer if create input is provided
 		if input.CreateCustomerInput != nil {
 			targetCustomer, err = repo.customerService.CreateCustomer(ctx, *input.CreateCustomerInput)

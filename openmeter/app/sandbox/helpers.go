@@ -65,6 +65,6 @@ func AutoProvision(ctx context.Context, input AutoProvisionInput) (app.App, erro
 		})
 	}
 
-	// If there is more than one sandbox app, we need to return the first one
+	// Otherwise, we return the first one
 	return sandboxAppList.Items[0], nil
 }

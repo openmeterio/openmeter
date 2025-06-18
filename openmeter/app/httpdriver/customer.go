@@ -333,12 +333,14 @@ func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.Cu
 
 	mergedProfile := customerOverride.MergedProfile
 
-	if mergedProfile.Apps.Invoicing.GetType() == app.AppTypeSandbox {
+	// If one of them uses the app type, anothers shouldn't use the same app type with different ID
+	// this is why we can return the first app found for the app type
+	if mergedProfile.Apps.Invoicing.GetType() == appType {
 		resolvedApp = mergedProfile.Apps.Invoicing
-	} else if mergedProfile.Apps.Payment.GetType() == app.AppTypeSandbox {
+	} else if mergedProfile.Apps.Payment.GetType() == appType {
 		resolvedApp = mergedProfile.Apps.Payment
-	} else if mergedProfile.Apps.Payment.GetType() == app.AppTypeSandbox {
-		resolvedApp = mergedProfile.Apps.Payment
+	} else if mergedProfile.Apps.Tax.GetType() == appType {
+		resolvedApp = mergedProfile.Apps.Tax
 	} else {
 		return nil, fmt.Errorf("no %s app found in default profile", appType)
 	}
