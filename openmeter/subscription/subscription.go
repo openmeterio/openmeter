@@ -46,6 +46,7 @@ func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
 		CustomerId:      s.CustomerId,
 		Currency:        s.Currency,
 		BillingCadence:  s.BillingCadence,
+		BillingAnchor:   s.BillingAnchor,
 		ProRatingConfig: s.ProRatingConfig,
 	}
 }
