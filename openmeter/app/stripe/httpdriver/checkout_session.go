@@ -180,6 +180,7 @@ func (h *handler) resolveAppIDFromBillingProfile(ctx context.Context, namespace 
 	// We list all billing profiles to be able to give a better error message
 	billingProfileList, err := h.billingService.ListProfiles(ctx, billing.ListProfilesInput{
 		Namespace: namespace,
+		Expand:    billing.ProfileExpand{Apps: true},
 	})
 	if err != nil {
 		return appID, fmt.Errorf("failed to get billing profile: %w", err)
@@ -193,6 +194,10 @@ func (h *handler) resolveAppIDFromBillingProfile(ctx context.Context, namespace 
 	for _, profile := range billingProfileList.Items {
 		if foundDefault {
 			break
+		}
+
+		if profile.Apps == nil {
+			return appID, fmt.Errorf("billing profile apps are not expanded")
 		}
 
 		if profile.Apps.Payment.GetType() == app.AppTypeStripe {

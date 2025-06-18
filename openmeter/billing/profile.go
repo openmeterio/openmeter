@@ -325,10 +325,6 @@ func (i ListProfilesInput) Validate() error {
 		return errors.New("namespace is required")
 	}
 
-	if err := i.Page.Validate(); err != nil {
-		return fmt.Errorf("error validating page: %w", err)
-	}
-
 	if err := i.Expand.Validate(); err != nil {
 		return fmt.Errorf("error validating expand: %w", err)
 	}
