@@ -276,7 +276,7 @@ func (h *handler) getCustomerData(ctx context.Context, customerID customer.Custo
 		// Resolve app
 		resolvedApp, err := h.resolveCustomerApp(ctx, customerID, app.AppTypeStripe, apiStripeCustomerData.Id)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error resolving sandbox app: %w", err)
+			return nil, nil, fmt.Errorf("error resolving stripe app: %w", err)
 		}
 
 		// Create customer data
@@ -296,7 +296,7 @@ func (h *handler) getCustomerData(ctx context.Context, customerID customer.Custo
 		// Resolve app
 		resolvedApp, err := h.resolveCustomerApp(ctx, customerID, app.AppTypeCustomInvoicing, apiCustomInvoicingCustomerData.Id)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error resolving sandbox app: %w", err)
+			return nil, nil, fmt.Errorf("error resolving custom invoicing app: %w", err)
 		}
 
 		// Create customer data
