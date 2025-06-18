@@ -55,6 +55,9 @@ func eventAsPayload(event *notification.Event) (map[string]interface{}, error) {
 
 func (h *Handler) dispatchWebhook(ctx context.Context, event *notification.Event) error {
 	payload, err := eventAsPayload(event)
+	if err != nil {
+		return err
+	}
 
 	sendIn := webhook.SendMessageInput{
 		Namespace: event.Namespace,

@@ -22,9 +22,9 @@ func (e SvixError) Error() string {
 	var out []byte
 	buf := bytes.NewBuffer(out)
 
-	buf.WriteString(fmt.Sprintf("%s", lo.FromPtrOr(e.Code, "unknown svix error")))
-	buf.WriteString(fmt.Sprintf("[%d]", e.HTTPStatus))
-	buf.WriteString(fmt.Sprintf(": %s", strings.Join(e.Details, ", ")))
+	buf.WriteString(lo.FromPtrOr(e.Code, "unknown svix error"))
+	buf.WriteString(":")
+	buf.WriteString(strings.Join(e.Details, ", "))
 
 	return buf.String()
 }

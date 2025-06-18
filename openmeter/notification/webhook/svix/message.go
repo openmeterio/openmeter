@@ -72,7 +72,6 @@ func (h svixHandler) getMessage(ctx context.Context, namespace, eventID string) 
 		WithContent: lo.ToPtr(true),
 	})
 	if err = internal.AsSvixError(err); err != nil {
-
 		var svixErr Error
 
 		ok := errors.As(err, &svixErr)
