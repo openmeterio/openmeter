@@ -82,12 +82,16 @@ func (u UsagePeriod) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (u UsagePeriod) GetOriginalValueAsUsagePeriodInput() UsagePeriodInput {
+func (u *UsagePeriod) GetOriginalValueAsUsagePeriodInput() *UsagePeriodInput {
+	if u == nil {
+		return nil
+	}
+
 	first := u.recs.GetAt(0)
 
-	return timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+	return lo.ToPtr(timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
 		return first.GetTime()
-	})(first.GetValue())
+	})(first.GetValue()))
 }
 
 func (u UsagePeriod) Equal(other UsagePeriod) bool {
@@ -170,7 +174,7 @@ func (u UsagePeriod) GetResetTimelineInclusive(inPeriod timeutil.ClosedPeriod) (
 		}
 
 		for i := 0; i < MAX_SAFE_ITERATIONS; i++ {
-			if i == MAX_SAFE_ITERATIONS {
+			if i == MAX_SAFE_ITERATIONS-1 {
 				return timeutil.SimpleTimeline{}, fmt.Errorf("max safe iterations reached: %d", MAX_SAFE_ITERATIONS)
 			}
 
@@ -199,7 +203,6 @@ func (u UsagePeriod) GetResetTimelineInclusive(inPeriod timeutil.ClosedPeriod) (
 	// We are gonna be lazy and simply dedupe the results so its not an issue if we added something twice (due to special case handling)
 	times = lo.Uniq(times)
 
-	// TODO: implement
 	return timeutil.NewSimpleTimeline(times), nil
 }
 

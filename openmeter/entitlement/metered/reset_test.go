@@ -780,7 +780,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.NoError(t, err)
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
 				assert.NoError(t, err)
-				assertUsagePeriodInputsEquals(t, inp.UsagePeriod, lo.ToPtr(ent.UsagePeriod.GetOriginalValueAsUsagePeriodInput()))
+				assertUsagePeriodInputsEquals(t, inp.UsagePeriod, ent.UsagePeriod.GetOriginalValueAsUsagePeriodInput())
 			},
 		},
 		{

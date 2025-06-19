@@ -196,6 +196,10 @@ func (s *SubscriptionItemView) Validate() error {
 			// We only validate for the first period / recurrence as otherwise resets would break the comparison
 			mEntUpInp := mEnt.UsagePeriod.GetOriginalValueAsUsagePeriodInput()
 
+			if mEntUpInp == nil {
+				return fmt.Errorf("entitlement %s usagePeriod is nil", s.Entitlement.Entitlement.ID)
+			}
+
 			upRec, err := timeutil.RecurrenceFromISODuration(&e.UsagePeriod, mEntUpInp.GetValue().Anchor)
 			if err != nil {
 				return fmt.Errorf("failed to convert Item %s EntitlementTemplate UsagePeriod ISO duration to Recurrence: %w", s.SubscriptionItem.Key, err)
@@ -205,7 +209,7 @@ func (s *SubscriptionItemView) Validate() error {
 				return mEntUpInp.GetTime()
 			})(upRec)
 
-			if !itemEntUpInp.Equal(mEntUpInp) {
+			if !itemEntUpInp.Equal(*mEntUpInp) {
 				return fmt.Errorf("entitlement %s usagePeriod does not match template usagePeriod", s.Entitlement.Entitlement.ID)
 			}
 

@@ -62,7 +62,7 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 
 		// lets fuzz this a bit
 		for i := 0; i < 100; i++ {
-			someTime := gofakeit.DateRange(now, now.AddDate(0, -1, 0))
+			someTime := gofakeit.DateRange(now.AddDate(0, -1, 0), now)
 			someTime2 := gofakeit.DateRange(now, now.AddDate(0, 1, 0))
 
 			rec := timeutil.Recurrence{

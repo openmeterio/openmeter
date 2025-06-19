@@ -6,8 +6,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/isodate"
@@ -252,7 +250,7 @@ func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {
 		IssueAfterResetPriority: e.IssueAfterResetPriority,
 		IsSoftLimit:             e.IsSoftLimit,
 		Config:                  e.Config,
-		UsagePeriod:             lo.ToPtr(e.UsagePeriod.GetOriginalValueAsUsagePeriodInput()),
+		UsagePeriod:             e.UsagePeriod.GetOriginalValueAsUsagePeriodInput(),
 		PreserveOverageAtReset:  e.PreserveOverageAtReset,
 		Annotations:             e.Annotations,
 	}

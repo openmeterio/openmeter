@@ -20,7 +20,7 @@ type Recurrence struct {
 func (r Recurrence) Validate() error {
 	var errs []error
 
-	if r.Interval.Period.Sign() == -1 {
+	if r.Interval.Period.Sign() != 1 {
 		errs = append(errs, fmt.Errorf("recurrence interval must be positive"))
 	}
 

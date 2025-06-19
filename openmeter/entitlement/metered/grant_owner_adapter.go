@@ -194,9 +194,9 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 		return fmt.Errorf("end current usage period must be called in a transaction: %w", err)
 	}
 
-	_, err = transaction.Run(ctx, e.featureRepo, func(txCtx context.Context) (*interface{}, error) {
+	_, err = transaction.Run(ctx, e.featureRepo, func(ctx context.Context) (*interface{}, error) {
 		// Check if time is after current start time. If so then we can end the period
-		currentStartAt, err := e.GetUsagePeriodStartAt(txCtx, owner, params.At)
+		currentStartAt, err := e.GetUsagePeriodStartAt(ctx, owner, params.At)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current usage period start time: %w", err)
 		}
@@ -205,7 +205,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 		}
 
 		// Now let's see what the anchor is after the update
-		entitlementEntity, err := e.entitlementRepo.GetEntitlement(txCtx, owner)
+		entitlementEntity, err := e.entitlementRepo.GetEntitlement(ctx, owner)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get entitlement: %w", err)
 		}
@@ -222,7 +222,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 		}
 
 		// Save usage reset
-		if err := e.usageResetRepo.Save(txCtx, UsageResetTime{
+		if err := e.usageResetRepo.Save(ctx, UsageResetTime{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: owner.Namespace,
 			},
@@ -235,7 +235,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 
 		// Now let's update the entitlement current usage period saved value
 		// we refetch to get the new reset value
-		entitlementEntity, err = e.entitlementRepo.GetEntitlement(txCtx, owner)
+		entitlementEntity, err = e.entitlementRepo.GetEntitlement(ctx, owner)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get entitlement: %w", err)
 		}
