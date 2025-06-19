@@ -758,17 +758,7 @@ var ValidateRateCardsHaveCompatibleBillingCadence = models.ValidatorFunc[RateCar
 	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
 		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
 
-	if rBillingCadence != nil {
-		if vBillingCadence == nil {
-			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardBillingCadenceMismatch))
-		}
-
-		if vBillingCadence != nil && !rBillingCadence.Equal(vBillingCadence) {
-			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardBillingCadenceMismatch))
-		}
-	}
-
-	if rBillingCadence == nil && vBillingCadence != nil {
+	if rBillingCadence != nil && vBillingCadence != nil && !rBillingCadence.Equal(vBillingCadence) {
 		errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardBillingCadenceMismatch))
 	}
 
