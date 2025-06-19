@@ -4932,14 +4932,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  description: |-
-                    Name of the application to install.
-
-                    If not set defaults to the marketplace item's description.
+              $ref: '#/components/schemas/MarketplaceInstallRequestPayload'
   /api/v1/marketplace/listings/{type}/install/apikey:
     post:
       operationId: marketplaceAppAPIKeyInstall
@@ -5005,17 +4998,23 @@ paths:
             schema:
               type: object
               properties:
-                apiKey:
-                  type: string
-                  description: |-
-                    The API key for the provider.
-                    For example, the Stripe API key.
                 name:
                   type: string
                   description: |-
                     Name of the application to install.
 
-                    If not set defaults to the marketplace item's description.
+                    If name is not provided defaults to the marketplace listing's name.
+                createBillingProfile:
+                  type: boolean
+                  description: |-
+                    If true, a billing profile will be created for the app.
+                    The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.
+                  default: true
+                apiKey:
+                  type: string
+                  description: |-
+                    The API key for the provider.
+                    For example, the Stripe API key.
               required:
                 - apiKey
   /api/v1/marketplace/listings/{type}/install/oauth2:
@@ -11958,31 +11957,22 @@ components:
         - payment
       properties:
         tax:
-          anyOf:
-            - type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: ULID (Universally Unique Lexicographically Sortable Identifier).
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-            - type: string
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The tax app used for this workflow
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           x-go-type: string
         invoicing:
-          anyOf:
-            - type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: ULID (Universally Unique Lexicographically Sortable Identifier).
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-            - type: string
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The invoicing app used for this workflow
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           x-go-type: string
         payment:
-          anyOf:
-            - type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: ULID (Universally Unique Lexicographically Sortable Identifier).
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-            - type: string
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The payment app used for this workflow
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           x-go-type: string
       description: BillingProfileAppsCreate represents the input for creating a billing profile's apps
     BillingProfileAppsOrReference:
@@ -12838,7 +12828,6 @@ components:
         - updatedAt
         - listing
         - status
-        - default
         - type
         - enableDraftSyncHook
         - enableIssuingSyncHook
@@ -12899,11 +12888,6 @@ components:
             - $ref: '#/components/schemas/AppStatus'
           description: Status of the app connection.
           readOnly: true
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -12930,7 +12914,6 @@ components:
       type: object
       required:
         - name
-        - default
         - type
         - enableDraftSyncHook
         - enableIssuingSyncHook
@@ -12953,11 +12936,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -16988,6 +16966,22 @@ components:
             $ref: '#/components/schemas/Feature'
         - $ref: '#/components/schemas/FeaturePaginatedResponse'
       description: List features result
+    MarketplaceInstallRequestPayload:
+      type: object
+      properties:
+        name:
+          type: string
+          description: |-
+            Name of the application to install.
+
+            If name is not provided defaults to the marketplace listing's name.
+        createBillingProfile:
+          type: boolean
+          description: |-
+            If true, a billing profile will be created for the app.
+            The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.
+          default: true
+      description: Marketplace install request payload.
     MarketplaceInstallResponse:
       type: object
       required:
@@ -19990,7 +19984,6 @@ components:
         - updatedAt
         - listing
         - status
-        - default
         - type
       properties:
         id:
@@ -20049,11 +20042,6 @@ components:
             - $ref: '#/components/schemas/AppStatus'
           description: Status of the app connection.
           readOnly: true
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -20068,7 +20056,6 @@ components:
       type: object
       required:
         - name
-        - default
         - type
       properties:
         name:
@@ -20089,11 +20076,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -20155,7 +20137,6 @@ components:
         - updatedAt
         - listing
         - status
-        - default
         - type
         - stripeAccountId
         - livemode
@@ -20217,11 +20198,6 @@ components:
             - $ref: '#/components/schemas/AppStatus'
           description: Status of the app connection.
           readOnly: true
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:
@@ -20247,7 +20223,6 @@ components:
         type: stripe
         name: Stripe
         status: ready
-        default: true
         listing:
           type: stripe
           name: Stripe
@@ -20277,7 +20252,6 @@ components:
       type: object
       required:
         - name
-        - default
         - type
       properties:
         name:
@@ -20298,11 +20272,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        default:
-          type: boolean
-          description: |-
-            Default for the app type
-            Only one app of each type can be default.
         type:
           type: string
           enum:

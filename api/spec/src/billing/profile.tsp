@@ -266,21 +266,21 @@ model BillingProfileAppsCreate {
    */
   @visibility(Lifecycle.Create)
   @extension("x-go-type", "string")
-  tax: ULID | string;
+  tax: ULID;
 
   /**
    * The invoicing app used for this workflow
    */
   @extension("x-go-type", "string")
   @visibility(Lifecycle.Create)
-  invoicing: ULID | string;
+  invoicing: ULID;
 
   /**
    * The payment app used for this workflow
    */
   @extension("x-go-type", "string")
   @visibility(Lifecycle.Create)
-  payment: ULID | string;
+  payment: ULID;
 }
 
 /**

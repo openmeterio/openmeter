@@ -34,14 +34,14 @@ type collectionNSResult struct {
 func (s *CollectionTestSuite) setupNS(ctx context.Context, namespace string) collectionNSResult {
 	s.T().Helper()
 
-	s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customer)
 
 	apiRequestsTotalFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 
-	s.ProvisionBillingProfile(ctx, namespace,
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(),
 		WithProgressiveBilling(),
 		WithCollectionInterval(isodate.MustParse(s.T(), "PT1H")),
 	)

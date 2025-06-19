@@ -23,9 +23,9 @@ func (s *InvoicingEventTestSuite) TestCreateInvoiceEvent() {
 	namespace := "ns-create-invoice-event"
 	ctx := context.Background()
 
-	s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	s.ProvisionBillingProfile(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
 		Namespace: namespace,

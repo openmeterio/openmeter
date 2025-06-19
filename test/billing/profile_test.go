@@ -30,9 +30,10 @@ func (s *ProfileTestSuite) createProfileFixture(isDefault bool) *billing.Profile
 	t := s.T()
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("test_billing_profile")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	// Create a profile input
-	input := minimalCreateProfileInputTemplate
+	input := minimalCreateProfileInputTemplate(sandboxApp.GetID())
 	input.Namespace = ns
 	input.Default = isDefault
 
@@ -101,7 +102,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		profile1 := s.createProfileFixture(true)
 
 		// Create a second default profile in the same namespace
-		input := minimalCreateProfileInputTemplate
+		input := minimalCreateProfileInputTemplate(profile1.AppReferences.Invoicing)
 		input.Namespace = profile1.Namespace
 		input.Default = true
 
@@ -285,15 +286,9 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 		},
 
 		Apps: billing.CreateProfileAppsInput{
-			Invoicing: billing.AppReference{
-				Type: app.AppTypeSandbox,
-			},
-			Payment: billing.AppReference{
-				Type: app.AppTypeSandbox,
-			},
-			Tax: billing.AppReference{
-				Type: app.AppTypeSandbox,
-			},
+			Invoicing: sandboxApp.GetID(),
+			Payment:   sandboxApp.GetID(),
+			Tax:       sandboxApp.GetID(),
 		},
 	}
 
@@ -349,7 +344,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 	ctx := context.Background()
 	ns := "test_profile_updates"
 
-	_ = s.InstallSandboxApp(s.T(), ns)
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	input := billing.CreateProfileInput{
 		Namespace: ns,
@@ -357,7 +352,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 		Name: "Awesome Default Profile",
 
-		Apps: minimalCreateProfileInputTemplate.Apps,
+		Apps: minimalCreateProfileInputTemplate(sandboxApp.GetID()).Apps,
 
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{

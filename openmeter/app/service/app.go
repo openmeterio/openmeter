@@ -40,14 +40,6 @@ func (s *Service) GetApp(ctx context.Context, input app.GetAppInput) (app.App, e
 	return s.adapter.GetApp(ctx, input)
 }
 
-func (s *Service) GetDefaultApp(ctx context.Context, input app.GetDefaultAppInput) (app.App, error) {
-	if err := input.Validate(); err != nil {
-		return nil, models.NewGenericValidationError(err)
-	}
-
-	return s.adapter.GetDefaultApp(ctx, input)
-}
-
 func (s *Service) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.App, error) {
 	// Validate the input
 	if err := input.Validate(); err != nil {

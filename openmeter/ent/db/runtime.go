@@ -162,10 +162,6 @@ func init() {
 	dbapp.DefaultUpdatedAt = dbappDescUpdatedAt.Default.(func() time.Time)
 	// dbapp.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	dbapp.UpdateDefaultUpdatedAt = dbappDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// dbappDescIsDefault is the schema descriptor for is_default field.
-	dbappDescIsDefault := dbappFields[2].Descriptor()
-	// dbapp.DefaultIsDefault holds the default value on creation for the is_default field.
-	dbapp.DefaultIsDefault = dbappDescIsDefault.Default.(bool)
 	// dbappDescID is the schema descriptor for id field.
 	dbappDescID := dbappMixinFields0[0].Descriptor()
 	// dbapp.DefaultID holds the default value on creation for the id field.

@@ -285,10 +285,9 @@ func (i UpdateAPIKeyAdapterInput) Validate() error {
 
 type CreateCheckoutSessionInput struct {
 	Namespace           string
-	AppID               *app.AppID
+	AppID               app.AppID
 	CreateCustomerInput *customer.CreateCustomerInput
 	CustomerID          *customer.CustomerID
-	CustomerKey         *string
 	StripeCustomerID    *string
 	Options             api.CreateStripeCheckoutSessionRequestOptions
 }
@@ -298,14 +297,16 @@ func (i CreateCheckoutSessionInput) Validate() error {
 		return errors.New("namespace is required")
 	}
 
-	if i.AppID != nil {
-		if err := i.AppID.Validate(); err != nil {
-			return fmt.Errorf("error validating app id: %w", err)
-		}
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if i.AppID.Namespace != i.Namespace {
+		return errors.New("app id and namespace must be in the same namespace")
 	}
 
 	// Least one of customer, customer id or customer key is required
-	if i.CreateCustomerInput == nil && i.CustomerID == nil && i.CustomerKey == nil {
+	if i.CreateCustomerInput == nil && i.CustomerID == nil {
 		return errors.New("create customer input or customer id or customer key is required")
 	}
 
@@ -318,10 +319,6 @@ func (i CreateCheckoutSessionInput) Validate() error {
 		if i.CustomerID != nil {
 			return errors.New("create customer input and customer id cannot be provided at the same time")
 		}
-
-		if i.CustomerKey != nil {
-			return errors.New("create customer input and customer key cannot be provided at the same time")
-		}
 	}
 
 	if i.CustomerID != nil {
@@ -333,26 +330,8 @@ func (i CreateCheckoutSessionInput) Validate() error {
 			return errors.New("app and customer must be in the same namespace")
 		}
 
-		if i.CustomerKey != nil {
-			return errors.New("customer id and customer key cannot be provided at the same time")
-		}
-
 		if i.CreateCustomerInput != nil {
 			return errors.New("customer id and create customer input cannot be provided at the same time")
-		}
-	}
-
-	if i.CustomerKey != nil {
-		if *i.CustomerKey == "" {
-			return errors.New("customer key cannot be empty if provided")
-		}
-
-		if i.CustomerID != nil {
-			return errors.New("customer id and customer key cannot be provided at the same time")
-		}
-
-		if i.CreateCustomerInput != nil {
-			return errors.New("create customer input and customer key cannot be provided at the same time")
 		}
 	}
 

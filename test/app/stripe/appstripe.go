@@ -121,160 +121,6 @@ func (s *AppHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	require.True(t, app.IsAppNotFoundError(err), "Get stripe app must return app not found error")
 }
 
-// TestGetDefault tests getting the default stripe app
-func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) {
-	s.setupNamespace(t)
-
-	s.Env.StripeClient().
-		On("GetAccount").
-		Return(stripeclient.StripeAccount{
-			StripeAccountID: getStripeAccountId(),
-		}, nil)
-
-	s.Env.StripeClient().
-		On("SetupWebhook", mock.Anything).
-		Return(stripeclient.StripeWebhookEndpoint{
-			EndpointID: "we_123",
-			Secret:     "whsec_123",
-		}, nil)
-
-	// TODO: do not share env between tests
-	defer s.Env.StripeClient().Restore()
-
-	// Create a stripe app first
-	createApp1, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		InstallAppInput: app.InstallAppInput{
-			MarketplaceListingID: app.MarketplaceListingID{
-				Type: app.AppTypeStripe,
-			},
-
-			Namespace: s.namespace,
-		},
-		APIKey: TestStripeAPIKey,
-	})
-
-	require.NoError(t, err, "Create stripe app must not return error")
-	require.NotNil(t, createApp1, "Create stripe app must return app")
-
-	// Install with different Stripe account ID
-	s.Env.StripeClient().Restore()
-
-	s.Env.StripeClient().
-		On("GetAccount").
-		Return(stripeclient.StripeAccount{
-			StripeAccountID: getStripeAccountId(),
-		}, nil)
-
-	s.Env.StripeClient().
-		On("SetupWebhook", mock.Anything).
-		Return(stripeclient.StripeWebhookEndpoint{
-			EndpointID: "we_123",
-			Secret:     "whsec_123",
-		}, nil)
-
-	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		InstallAppInput: app.InstallAppInput{
-			MarketplaceListingID: app.MarketplaceListingID{
-				Type: app.AppTypeStripe,
-			},
-
-			Namespace: s.namespace,
-		},
-		APIKey: TestStripeAPIKey,
-	})
-
-	require.NoError(t, err, "Create stripe app must not return error")
-	require.NotNil(t, createApp2, "Create stripe app must return app")
-
-	// Get the app
-	getApp, err := s.Env.App().GetDefaultApp(ctx, app.GetDefaultAppInput{
-		Namespace: s.namespace,
-		Type:      app.AppTypeStripe,
-	})
-
-	require.NoError(t, err, "Get default stripe app must not return error")
-	require.Equal(t, createApp1.GetID(), getApp.GetID(), "apps must be equal with first")
-}
-
-// TestGetDefaultAfterDelete tests getting the default stripe app after delete
-func (s *AppHandlerTestSuite) TestGetDefaultAfterDelete(ctx context.Context, t *testing.T) {
-	s.setupNamespace(t)
-
-	s.Env.StripeClient().
-		On("GetAccount").
-		Return(stripeclient.StripeAccount{
-			StripeAccountID: getStripeAccountId(),
-		}, nil)
-
-	s.Env.StripeClient().
-		On("SetupWebhook", mock.Anything).
-		Return(stripeclient.StripeWebhookEndpoint{
-			EndpointID: "we_123",
-			Secret:     "whsec_123",
-		}, nil)
-
-	// TODO: do not share env between tests
-	defer s.Env.StripeClient().Restore()
-
-	// Create a stripe app first
-	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		InstallAppInput: app.InstallAppInput{
-			MarketplaceListingID: app.MarketplaceListingID{
-				Type: app.AppTypeStripe,
-			},
-
-			Namespace: s.namespace,
-		},
-		APIKey: TestStripeAPIKey,
-	})
-
-	require.NoError(t, err, "Create stripe app must not return error")
-
-	// Delete the app to test the default app can be deleted
-	s.Env.StripeAppClient().
-		On("DeleteWebhook", stripeclient.DeleteWebhookInput{
-			AppID:           createApp.GetID(),
-			StripeWebhookID: "we_123",
-		}).
-		Return(nil)
-
-	err = s.Env.App().UninstallApp(ctx, createApp.GetID())
-	require.NoError(t, err, "Uninstall stripe app must not return error")
-
-	// Getting the deleted default app should return error
-	_, err = s.Env.App().GetDefaultApp(ctx, app.GetDefaultAppInput{
-		Namespace: s.namespace,
-		Type:      app.AppTypeStripe,
-	})
-
-	require.True(t, app.IsAppDefaultNotFoundError(err), "Get default stripe app must return app not found error")
-
-	// Create a new stripe app that should become the new default
-	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		InstallAppInput: app.InstallAppInput{
-			MarketplaceListingID: app.MarketplaceListingID{
-				Type: app.AppTypeStripe,
-			},
-
-			Namespace: s.namespace,
-		},
-		APIKey: TestStripeAPIKey,
-	})
-
-	require.NoError(t, err, "Create stripe app must not return error")
-	require.NotNil(t, createApp2, "Create stripe app must return app")
-	require.NotEqual(t, createApp.GetID(), createApp2.GetID(), "apps must not be equal")
-
-	// Get the default app
-	getApp, err := s.Env.App().GetDefaultApp(ctx, app.GetDefaultAppInput{
-		Namespace: s.namespace,
-		Type:      app.AppTypeStripe,
-	})
-
-	require.NoError(t, err, "Get default stripe app must not return error")
-	require.Equal(t, createApp2.GetID(), getApp.GetID(), "apps must be equal with second")
-}
-
 // TestUpdate tests updating an app
 func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
@@ -307,7 +153,6 @@ func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 
 	// Updated fields
 	require.Equal(t, "Updated Stripe App 2", updateApp.GetAppBase().Name, "Name must be updated")
-	require.Equal(t, false, updateApp.GetAppBase().Default, "Default must remain the same")
 
 	// Remains the same
 	require.Nil(t, nil, updateApp.GetAppBase().Description, "Description must be updated")
@@ -611,15 +456,9 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 		},
 
 		Apps: billing.CreateProfileAppsInput{
-			Invoicing: billing.AppReference{
-				ID: testApp.GetID().ID,
-			},
-			Payment: billing.AppReference{
-				ID: testApp.GetID().ID,
-			},
-			Tax: billing.AppReference{
-				ID: testApp.GetID().ID,
-			},
+			Invoicing: testApp.GetID(),
+			Payment:   testApp.GetID(),
+			Tax:       testApp.GetID(),
 		},
 	})
 	require.NoError(t, err, "Create billing profile must not return error")
@@ -821,7 +660,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 
 	checkoutSession, err := s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
 		Namespace:  s.namespace,
-		AppID:      &appID,
+		AppID:      appID,
 		CustomerID: &customerID,
 		Options:    api.CreateStripeCheckoutSessionRequestOptions{},
 	})
@@ -848,7 +687,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 
 	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
 		Namespace:  s.namespace,
-		AppID:      &appIdNotFound,
+		AppID:      appIdNotFound,
 		CustomerID: &customerID,
 		Options:    api.CreateStripeCheckoutSessionRequestOptions{},
 	})
@@ -863,7 +702,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 
 	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
 		Namespace:  s.namespace,
-		AppID:      &appID,
+		AppID:      appID,
 		CustomerID: &customerIdNotFound,
 		Options:    api.CreateStripeCheckoutSessionRequestOptions{},
 	})
@@ -904,7 +743,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 
 	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
 		Namespace:  s.namespace,
-		AppID:      &appID,
+		AppID:      appID,
 		CustomerID: &customerID,
 	})
 	require.NoError(t, err, "Create checkout session must not return error")

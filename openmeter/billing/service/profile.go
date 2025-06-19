@@ -38,19 +38,39 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			}
 		}
 
-		resolvedApps, err := s.resolveApps(ctx, input.Namespace, input.Apps)
-		if err != nil {
-			return nil, err
-		}
-
 		input.Apps = billing.ProfileAppReferences{
-			Tax:       resolvedApps.Tax.Reference,
-			Invoicing: resolvedApps.Invoicing.Reference,
-			Payment:   resolvedApps.Payment.Reference,
+			Tax:       input.Apps.Tax,
+			Invoicing: input.Apps.Invoicing,
+			Payment:   input.Apps.Payment,
 		}
 
-		if resolvedApps.Tax.App.GetType() != resolvedApps.Invoicing.App.GetType() ||
-			resolvedApps.Tax.App.GetType() != resolvedApps.Payment.App.GetType() {
+		// Resolve the apps
+		taxApp, err := s.appService.GetApp(ctx, app.GetAppInput{
+			Namespace: input.Namespace,
+			ID:        input.Apps.Tax.ID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("cannot resolve tax app: %w", err)
+		}
+
+		invoicingApp, err := s.appService.GetApp(ctx, app.GetAppInput{
+			Namespace: input.Namespace,
+			ID:        input.Apps.Invoicing.ID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("cannot resolve invoicing app: %w", err)
+		}
+
+		paymentApp, err := s.appService.GetApp(ctx, app.GetAppInput{
+			Namespace: input.Namespace,
+			ID:        input.Apps.Payment.ID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("cannot resolve payment app: %w", err)
+		}
+
+		if taxApp.GetType() != invoicingApp.GetType() ||
+			taxApp.GetType() != paymentApp.GetType() {
 			return nil, billing.ValidationError{
 				Err: fmt.Errorf("all apps must be of the same type"),
 			}
@@ -86,98 +106,9 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 }
 
 type resolvedApps struct {
-	Tax       *resolvedAppReference
-	Invoicing *resolvedAppReference
-	Payment   *resolvedAppReference
-}
-
-func (s *Service) resolveApps(ctx context.Context, ns string, apps billing.ProfileAppReferences) (*resolvedApps, error) {
-	taxApp, err := s.validateAppReference(ctx, ns, apps.Tax, app.CapabilityTypeCalculateTax)
-	if err != nil {
-		return nil, billing.ValidationError{
-			Err: fmt.Errorf("error resolving tax app: %w", err),
-		}
-	}
-
-	invocingApp, err := s.validateAppReference(ctx, ns, apps.Invoicing, app.CapabilityTypeInvoiceCustomers)
-	if err != nil {
-		return nil, billing.ValidationError{
-			Err: fmt.Errorf("error resolving invocing app: %w", err),
-		}
-	}
-
-	paymentsApp, err := s.validateAppReference(ctx, ns, apps.Payment, app.CapabilityTypeCollectPayments)
-	if err != nil {
-		return nil, billing.ValidationError{
-			Err: fmt.Errorf("error resolving payments app: %w", err),
-		}
-	}
-
-	return &resolvedApps{
-		Tax:       taxApp,
-		Invoicing: invocingApp,
-		Payment:   paymentsApp,
-	}, nil
-}
-
-func (s *Service) validateAppReference(ctx context.Context, ns string, ref billing.AppReference, capabilities ...app.CapabilityType) (*resolvedAppReference, error) {
-	if err := ref.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid app reference: %w", err)
-	}
-
-	resolved, err := s.resolveAppReference(ctx, ns, ref)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := resolved.App.ValidateCapabilities(capabilities...); err != nil {
-		return nil, err
-	}
-
-	return resolved, nil
-}
-
-type resolvedAppReference struct {
-	Reference billing.AppReference
-	App       app.App
-}
-
-func (s *Service) resolveAppReference(ctx context.Context, ns string, ref billing.AppReference) (*resolvedAppReference, error) {
-	if ref.ID != "" {
-		app, err := s.appService.GetApp(ctx, app.GetAppInput{
-			Namespace: ns,
-			ID:        ref.ID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("cannot find application[id=%s]: %w", ref.ID, err)
-		}
-
-		return &resolvedAppReference{
-			Reference: billing.AppReference{
-				ID: app.GetID().ID,
-			},
-			App: app,
-		}, nil
-	}
-
-	if ref.Type != "" {
-		app, err := s.appService.GetDefaultApp(ctx, app.GetDefaultAppInput{
-			Namespace: ns,
-			Type:      ref.Type,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("cannot find default application[type=%s]: %w", ref.Type, err)
-		}
-
-		return &resolvedAppReference{
-			Reference: billing.AppReference{
-				ID: app.GetID().ID,
-			},
-			App: app,
-		}, nil
-	}
-
-	return nil, fmt.Errorf("invalid app reference: %v", ref)
+	Tax       app.App
+	Invoicing app.App
+	Payment   app.App
 }
 
 func (s *Service) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billing.Profile, error) {
@@ -389,6 +320,22 @@ func (s *Service) ProvisionDefaultBillingProfile(ctx context.Context, namespace 
 		return nil
 	}
 
+	// Sandbox apps
+	sandboxAppList, err := s.appService.ListApps(ctx, app.ListAppInput{
+		Namespace: namespace,
+		Type:      lo.ToPtr(app.AppTypeSandbox),
+	})
+	if err != nil {
+		return fmt.Errorf("error fetching sandbox apps: %w", err)
+	}
+
+	if len(sandboxAppList.Items) == 0 {
+		return fmt.Errorf("no sandbox apps found")
+	}
+
+	sandboxApp := sandboxAppList.Items[0]
+
+	// Create the default profile
 	_, err = s.CreateProfile(ctx, billing.CreateProfileInput{
 		Namespace:   namespace,
 		Name:        "openmeter-sandbox",
@@ -402,9 +349,9 @@ func (s *Service) ProvisionDefaultBillingProfile(ctx context.Context, namespace 
 		WorkflowConfig: billing.DefaultWorkflowConfig,
 		Default:        true,
 		Apps: billing.ProfileAppReferences{
-			Tax:       billing.AppReference{Type: app.AppTypeSandbox},
-			Invoicing: billing.AppReference{Type: app.AppTypeSandbox},
-			Payment:   billing.AppReference{Type: app.AppTypeSandbox},
+			Tax:       sandboxApp.GetID(),
+			Invoicing: sandboxApp.GetID(),
+			Payment:   sandboxApp.GetID(),
 		},
 	})
 	if err != nil {

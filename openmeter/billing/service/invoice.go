@@ -54,15 +54,25 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 }
 
 func (s *Service) resolveWorkflowApps(ctx context.Context, invoice billing.Invoice) (billing.Invoice, error) {
-	resolvedApps, err := s.resolveApps(ctx, invoice.Namespace, invoice.Workflow.AppReferences)
+	taxApp, err := s.appService.GetApp(ctx, invoice.Workflow.AppReferences.Tax)
 	if err != nil {
-		return invoice, fmt.Errorf("error resolving apps for invoice [%s]: %w", invoice.ID, err)
+		return invoice, fmt.Errorf("error getting tax app for invoice [%s]: %w", invoice.ID, err)
+	}
+
+	invoicingApp, err := s.appService.GetApp(ctx, invoice.Workflow.AppReferences.Invoicing)
+	if err != nil {
+		return invoice, fmt.Errorf("error getting invoicing app for invoice [%s]: %w", invoice.ID, err)
+	}
+
+	paymentApp, err := s.appService.GetApp(ctx, invoice.Workflow.AppReferences.Payment)
+	if err != nil {
+		return invoice, fmt.Errorf("error getting payment app for invoice [%s]: %w", invoice.ID, err)
 	}
 
 	invoice.Workflow.Apps = &billing.ProfileApps{
-		Tax:       resolvedApps.Tax.App,
-		Invoicing: resolvedApps.Invoicing.App,
-		Payment:   resolvedApps.Payment.App,
+		Tax:       taxApp,
+		Invoicing: invoicingApp,
+		Payment:   paymentApp,
 	}
 
 	return invoice, nil

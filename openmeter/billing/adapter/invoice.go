@@ -723,14 +723,17 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 		SourceBillingProfileID: invoice.SourceBillingProfileID,
 
 		AppReferences: billing.ProfileAppReferences{
-			Tax: billing.AppReference{
-				ID: invoice.TaxAppID,
+			Tax: app.AppID{
+				Namespace: invoice.Namespace,
+				ID:        invoice.TaxAppID,
 			},
-			Invoicing: billing.AppReference{
-				ID: invoice.InvoicingAppID,
+			Invoicing: app.AppID{
+				Namespace: invoice.Namespace,
+				ID:        invoice.InvoicingAppID,
 			},
-			Payment: billing.AppReference{
-				ID: invoice.PaymentAppID,
+			Payment: app.AppID{
+				Namespace: invoice.Namespace,
+				ID:        invoice.PaymentAppID,
 			},
 		},
 	}

@@ -33,23 +33,6 @@ func (k AlignmentKind) Values() []string {
 	}
 }
 
-type AppReference struct {
-	ID   string      `json:"id"`
-	Type app.AppType `json:"type"`
-}
-
-func (a AppReference) Validate() error {
-	if a.ID == "" && a.Type == "" {
-		return errors.New("id or type is required")
-	}
-
-	if a.ID != "" && a.Type != "" {
-		return errors.New("only one of id or type is allowed")
-	}
-
-	return nil
-}
-
 // InvoiceConfig groups fields related to invoice settings.
 type InvoicingConfig struct {
 	AutoAdvance        bool                      `json:"autoAdvance,omitempty"`
@@ -254,9 +237,9 @@ func (p Profile) Merge(o *CustomerOverride) Profile {
 }
 
 type ProfileAppReferences struct {
-	Tax       AppReference `json:"tax"`
-	Invoicing AppReference `json:"invoicing"`
-	Payment   AppReference `json:"payment"`
+	Tax       app.AppID `json:"tax"`
+	Invoicing app.AppID `json:"invoicing"`
+	Payment   app.AppID `json:"payment"`
 }
 
 func (i ProfileAppReferences) Validate() error {
@@ -340,10 +323,6 @@ type ListProfilesInput struct {
 func (i ListProfilesInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
-	}
-
-	if err := i.Page.Validate(); err != nil {
-		return fmt.Errorf("error validating page: %w", err)
 	}
 
 	if err := i.Expand.Validate(); err != nil {

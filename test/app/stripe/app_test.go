@@ -38,14 +38,6 @@ func TestAppStripe(t *testing.T) {
 			testSuite.TestGet(ctx, t)
 		})
 
-		t.Run("GetDefault", func(t *testing.T) {
-			testSuite.TestGetDefault(ctx, t)
-		})
-
-		t.Run("GetDefaultAfterDelete", func(t *testing.T) {
-			testSuite.TestGetDefaultAfterDelete(ctx, t)
-		})
-
 		t.Run("Update", func(t *testing.T) {
 			testSuite.TestUpdate(ctx, t)
 		})

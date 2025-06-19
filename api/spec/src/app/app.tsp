@@ -140,13 +140,6 @@ model AppBase {
    */
   @visibility(Lifecycle.Read)
   status: AppStatus;
-
-  /**
-   * Default for the app type
-   * Only one app of each type can be default.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Update, Lifecycle.Create)
-  default: boolean;
 }
 
 /**

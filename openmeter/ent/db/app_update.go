@@ -118,20 +118,6 @@ func (_u *AppUpdate) SetNillableStatus(v *app.AppStatus) *AppUpdate {
 	return _u
 }
 
-// SetIsDefault sets the "is_default" field.
-func (_u *AppUpdate) SetIsDefault(v bool) *AppUpdate {
-	_u.mutation.SetIsDefault(v)
-	return _u
-}
-
-// SetNillableIsDefault sets the "is_default" field if the given value is not nil.
-func (_u *AppUpdate) SetNillableIsDefault(v *bool) *AppUpdate {
-	if v != nil {
-		_u.SetIsDefault(*v)
-	}
-	return _u
-}
-
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppCustomer entity by IDs.
 func (_u *AppUpdate) AddCustomerAppIDs(ids ...int) *AppUpdate {
 	_u.mutation.AddCustomerAppIDs(ids...)
@@ -460,9 +446,6 @@ func (_u *AppUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.IsDefault(); ok {
-		_spec.SetField(dbapp.FieldIsDefault, field.TypeBool, value)
 	}
 	if _u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -885,20 +868,6 @@ func (_u *AppUpdateOne) SetNillableStatus(v *app.AppStatus) *AppUpdateOne {
 	return _u
 }
 
-// SetIsDefault sets the "is_default" field.
-func (_u *AppUpdateOne) SetIsDefault(v bool) *AppUpdateOne {
-	_u.mutation.SetIsDefault(v)
-	return _u
-}
-
-// SetNillableIsDefault sets the "is_default" field if the given value is not nil.
-func (_u *AppUpdateOne) SetNillableIsDefault(v *bool) *AppUpdateOne {
-	if v != nil {
-		_u.SetIsDefault(*v)
-	}
-	return _u
-}
-
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppCustomer entity by IDs.
 func (_u *AppUpdateOne) AddCustomerAppIDs(ids ...int) *AppUpdateOne {
 	_u.mutation.AddCustomerAppIDs(ids...)
@@ -1257,9 +1226,6 @@ func (_u *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.IsDefault(); ok {
-		_spec.SetField(dbapp.FieldIsDefault, field.TypeBool, value)
 	}
 	if _u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{

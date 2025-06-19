@@ -40,7 +40,6 @@ type AppBase struct {
 
 	Type     AppType            `json:"type"`
 	Status   AppStatus          `json:"status"`
-	Default  bool               `json:"default"`
 	Listing  MarketplaceListing `json:"listing"`
 	Metadata map[string]string  `json:"metadata,omitempty"`
 }

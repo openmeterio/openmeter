@@ -37,8 +37,6 @@ type App struct {
 	Type app.AppType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
 	Status app.AppStatus `json:"status,omitempty"`
-	// IsDefault holds the value of the "is_default" field.
-	IsDefault bool `json:"is_default,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AppQuery when eager-loading is set.
 	Edges        AppEdges `json:"edges"`
@@ -136,8 +134,6 @@ func (*App) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case dbapp.FieldMetadata:
 			values[i] = new([]byte)
-		case dbapp.FieldIsDefault:
-			values[i] = new(sql.NullBool)
 		case dbapp.FieldID, dbapp.FieldNamespace, dbapp.FieldName, dbapp.FieldDescription, dbapp.FieldType, dbapp.FieldStatus:
 			values[i] = new(sql.NullString)
 		case dbapp.FieldCreatedAt, dbapp.FieldUpdatedAt, dbapp.FieldDeletedAt:
@@ -220,12 +216,6 @@ func (_m *App) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = app.AppStatus(value.String)
-			}
-		case dbapp.FieldIsDefault:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_default", values[i])
-			} else if value.Valid {
-				_m.IsDefault = value.Bool
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -328,9 +318,6 @@ func (_m *App) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
-	builder.WriteString(", ")
-	builder.WriteString("is_default=")
-	builder.WriteString(fmt.Sprintf("%v", _m.IsDefault))
 	builder.WriteByte(')')
 	return builder.String()
 }

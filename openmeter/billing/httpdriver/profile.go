@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -63,7 +62,20 @@ func (h *handler) CreateProfile() CreateProfileHandler {
 				Default: body.Default,
 
 				WorkflowConfig: workflow,
-				Apps:           fromAPIBillingProfileCreateAppsInput(body.Apps),
+				Apps: billing.CreateProfileAppsInput{
+					Tax: app.AppID{
+						Namespace: ns,
+						ID:        body.Apps.Tax,
+					},
+					Invoicing: app.AppID{
+						Namespace: ns,
+						ID:        body.Apps.Invoicing,
+					},
+					Payment: app.AppID{
+						Namespace: ns,
+						ID:        body.Apps.Payment,
+					},
+				},
 			}, nil
 		},
 		func(ctx context.Context, request CreateProfileRequest) (CreateProfileResponse, error) {
@@ -332,27 +344,6 @@ func apiBillingPartyToSupplierContact(c api.BillingParty) billing.SupplierContac
 	}
 
 	return out
-}
-
-func fromAPIBillingProfileCreateAppsInput(i api.BillingProfileAppsCreate) billing.CreateProfileAppsInput {
-	return billing.CreateProfileAppsInput{
-		Tax:       fromAPIBillingAppIdOrType(i.Tax),
-		Invoicing: fromAPIBillingAppIdOrType(i.Invoicing),
-		Payment:   fromAPIBillingAppIdOrType(i.Payment),
-	}
-}
-
-func fromAPIBillingAppIdOrType(i string) billing.AppReference {
-	_, err := ulid.Parse(i)
-	if err != nil {
-		return billing.AppReference{
-			Type: app.AppType(i),
-		}
-	}
-
-	return billing.AppReference{
-		ID: i,
-	}
 }
 
 func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, error) {

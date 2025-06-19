@@ -164,7 +164,6 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "type", Type: field.TypeString},
 		{Name: "status", Type: field.TypeString},
-		{Name: "is_default", Type: field.TypeBool, Default: false},
 	}
 	// AppsTable holds the schema information for the "apps" table.
 	AppsTable = &schema.Table{
@@ -191,14 +190,6 @@ var (
 				Name:    "app_namespace_type",
 				Unique:  false,
 				Columns: []*schema.Column{AppsColumns[1], AppsColumns[8]},
-			},
-			{
-				Name:    "app_namespace_type_is_default",
-				Unique:  true,
-				Columns: []*schema.Column{AppsColumns[1], AppsColumns[8], AppsColumns[10]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "is_default = true AND deleted_at IS NULL",
-				},
 			},
 		},
 	}

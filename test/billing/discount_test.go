@@ -32,9 +32,9 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	namespace := "ns-discounts-correlation-id"
 	ctx := context.Background()
 
-	s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	s.ProvisionBillingProfile(ctx, namespace, WithProgressiveBilling())
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
 
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customerEntity)
@@ -231,9 +231,9 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 	namespace := "ns-discounts-usage-progressive"
 	ctx := context.Background()
 
-	s.InstallSandboxApp(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	s.ProvisionBillingProfile(ctx, namespace, WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 		profile.WorkflowConfig.Invoicing.ProgressiveBilling = true
 	}))
 

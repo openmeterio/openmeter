@@ -2,7 +2,6 @@ package httpdriver
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -116,6 +115,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 					MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
 					Namespace:            namespace,
 					Name:                 lo.FromPtr(body.Name),
+					CreateBillingProfile: lo.FromPtrOr(body.CreateBillingProfile, true),
 				},
 
 				APIKey: body.ApiKey,
@@ -128,22 +128,17 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 				DefaultForCapabilityTypes: []api.AppCapabilityType{},
 			}
 
+			// Install app
 			installedApp, err := h.service.InstallMarketplaceListingWithAPIKey(ctx, request)
 			if err != nil {
 				return resp, err
 			}
 
-			// Make stripe the default billing app
-			if installedApp.GetType() == app.AppTypeStripe {
-				defaultForCapabilityTypes, err := h.makeStripeDefaultBillingApp(ctx, installedApp)
+			// Create billing profile if requested
+			if request.CreateBillingProfile {
+				defaultForCapabilityTypes, err := h.createBillingProfile(ctx, installedApp)
 				if err != nil {
-					if errors.As(err, &app.AppProviderPreConditionError{}) {
-						// Do not return error if it's a pre-condition error
-						// The app is installed successfully but won't be set as the default billing app.
-						// The user can set it manually later.
-					} else {
-						return resp, fmt.Errorf("make stripe app default billing profile: %w", err)
-					}
+					return resp, fmt.Errorf("create billing profile: %w", err)
 				}
 
 				resp.DefaultForCapabilityTypes = defaultForCapabilityTypes
@@ -173,11 +168,11 @@ type (
 	MarketplaceAppInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppInstallRequest, MarketplaceAppInstallResponse, api.AppType]
 )
 
-// MarketplaceAppInstall returns a handler for installing an app type with an API key
+// MarketplaceAppInstall returns a handler for installing an app type
 func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, appType api.AppType) (MarketplaceAppInstallRequest, error) {
-			body := api.MarketplaceAppInstallJSONBody{}
+			body := api.MarketplaceInstallRequestPayload{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return MarketplaceAppInstallRequest{}, fmt.Errorf("field to decode marketplace app install request: %w", err)
 			}
@@ -192,6 +187,7 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 				MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
 				Namespace:            namespace,
 				Name:                 lo.FromPtr(body.Name),
+				CreateBillingProfile: lo.FromPtrOr(body.CreateBillingProfile, true),
 			}
 
 			return req, nil
@@ -201,9 +197,20 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 				DefaultForCapabilityTypes: []api.AppCapabilityType{},
 			}
 
+			// Install app
 			installedApp, err := h.service.InstallMarketplaceListing(ctx, request)
 			if err != nil {
 				return resp, err
+			}
+
+			// Create billing profile if requested
+			if request.CreateBillingProfile {
+				defaultForCapabilityTypes, err := h.createBillingProfile(ctx, installedApp)
+				if err != nil {
+					return resp, fmt.Errorf("create billing profile: %w", err)
+				}
+
+				resp.DefaultForCapabilityTypes = defaultForCapabilityTypes
 			}
 
 			// Map app to API
@@ -222,6 +229,22 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 			httptransport.WithOperationName("marketplaceAppInstall"),
 		)...,
 	)
+}
+
+// Create a billing profile for the app if requested
+func (h *handler) createBillingProfile(ctx context.Context, installedApp app.App) ([]api.AppCapabilityType, error) {
+	switch installedApp.GetType() {
+	case app.AppTypeStripe:
+		return h.makeStripeDefaultBillingApp(ctx, installedApp)
+	case app.AppTypeSandbox:
+		// TODO: Implement sandbox billing profile creation
+		return nil, nil
+	case app.AppTypeCustomInvoicing:
+		// TODO: Implement custom invoicing billing profile creation
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("unknown app type: %s", installedApp.GetType())
+	}
 }
 
 // Make Stripe app the default billing app if current one is Sandbox app
@@ -243,10 +266,8 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, stripeApp app
 		return defaultForCapabilityTypes, fmt.Errorf("failed to get default billing profile: %w", err)
 	}
 
-	// Do nothing if the default is not the sandbox
-	if defaultBillingProfile != nil && defaultBillingProfile.Apps != nil && defaultBillingProfile.Apps.Invoicing.GetType() != app.AppTypeSandbox {
-		return defaultForCapabilityTypes, nil
-	}
+	// Set default billing profile if the current default is the sandbox
+	setDefaultBillingProfile := defaultBillingProfile != nil && defaultBillingProfile.Apps != nil && defaultBillingProfile.Apps.Invoicing.GetType() == app.AppTypeSandbox
 
 	// Get supplier contract from stripe app
 	supplierContract, err := h.stripeAppService.GetSupplierContact(ctx, appstripeentity.GetSupplierContactInput{
@@ -257,21 +278,17 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, stripeApp app
 	}
 
 	// Create new default billing profile
-	appRef := billing.AppReference{
-		ID: appID.ID,
-	}
-
 	_, err = h.billingService.CreateProfile(ctx, billing.CreateProfileInput{
 		Namespace:      appID.Namespace,
 		Name:           "Stripe Billing Profile",
 		Description:    lo.ToPtr("Stripe Billing Profile, created automatically"),
-		Default:        true,
+		Default:        setDefaultBillingProfile,
 		Supplier:       supplierContract,
 		WorkflowConfig: billing.DefaultWorkflowConfig,
 		Apps: billing.ProfileAppReferences{
-			Tax:       appRef,
-			Invoicing: appRef,
-			Payment:   appRef,
+			Tax:       appID,
+			Invoicing: appID,
+			Payment:   appID,
 		},
 	})
 	if err != nil {
@@ -287,6 +304,7 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, stripeApp app
 	return defaultForCapabilityTypes, nil
 }
 
+// Map marketplace listing to API
 func mapMarketplaceListing(listing app.MarketplaceListing) api.MarketplaceListing {
 	return api.MarketplaceListing{
 		Type:        api.AppType(listing.Type),
