@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -19,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type ResetEntitlementUsageParams struct {
@@ -157,15 +159,23 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 	model.IsSoftLimit = convert.ToPointer(defaultx.WithDefault(model.IsSoftLimit, false))
 	model.IssueAfterReset = convert.ToPointer(defaultx.WithDefault(model.IssueAfterReset, 0.0))
 
-	model.UsagePeriod.Anchor = model.UsagePeriod.Anchor.Truncate(c.granularity)
+	// Lets truncate the anchor
+	truncated := model.UsagePeriod.GetValue().Anchor.Truncate(c.granularity)
+	model.UsagePeriod = lo.ToPtr(timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+		return *measureUsageFrom
+		// return truncated
+	})(timeutil.Recurrence{
+		Interval: model.UsagePeriod.GetValue().Interval,
+		Anchor:   truncated,
+	}))
 
 	// Let's validate the usage period isn't less than 1h
-	if err := model.UsagePeriod.Validate(); err != nil {
+	if err := model.UsagePeriod.GetValue().Validate(); err != nil {
 		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: err.Error()}
 	}
 
 	// Calculating the very first period is different as it has to start from the start of measurement
-	currentPeriod, err := model.UsagePeriod.GetCurrentPeriodAt(*measureUsageFrom)
+	currentPeriod, err := model.UsagePeriod.GetValue().GetPeriodAt(*measureUsageFrom) // FIXME: this might be incorrect
 	if err != nil {
 		return nil, err
 	}

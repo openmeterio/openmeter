@@ -1,6 +1,7 @@
 package timeutil
 
 import (
+	"reflect"
 	"slices"
 	"time"
 )
@@ -37,6 +38,14 @@ func (t Timed[T]) GetTime() time.Time {
 
 func (t Timed[T]) GetValue() T {
 	return t.val
+}
+
+func (t Timed[T]) Equal(other Timed[T]) bool {
+	if !t.GetTime().Equal(other.GetTime()) {
+		return false
+	}
+
+	return reflect.DeepEqual(t.GetValue(), other.GetValue())
 }
 
 type Timeline[T any] struct {

@@ -233,7 +233,9 @@ func TestEditRunning(t *testing.T) {
 				subView, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, nil, immediate)
 				assert.Nil(t, err)
 
-				assert.Equal(t, deps.SubView, subView)
+				subscriptiontestutils.SpecsEqual(t, deps.SubView.Spec, subView.Spec)
+				// cannot be used as function identity always fails (in UsagePeriod.recs[*].GetTime())...
+				// assert.Equal(t, deps.SubView, subView)
 			},
 		},
 		{

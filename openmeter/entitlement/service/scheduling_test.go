@@ -382,10 +382,10 @@ func TestScheduling(t *testing.T) {
 							Annotations: models.Annotations{
 								"subscription.id": "sub_123",
 							},
-							UsagePeriod: &entitlement.UsagePeriod{
+							UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 								Interval: timeutil.RecurrencePeriodDaily,
 								Anchor:   time.Now(),
-							},
+							})),
 						},
 					)
 					assert.Nil(t, err)

@@ -172,9 +172,10 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	}
 }
 
-func assertUsagePeriodEquals(t *testing.T, expected, actual *entitlement.UsagePeriod) {
+func assertUsagePeriodInputsEquals(t *testing.T, expected, actual *entitlement.UsagePeriodInput) {
+	t.Helper()
 	assert.NotNil(t, expected, "expected is nil")
 	assert.NotNil(t, actual, "actual is nil")
-	assert.Equal(t, expected.Interval, actual.Interval, "periods do not match")
-	assert.Equal(t, expected.Anchor.Format(time.RFC3339), actual.Anchor.Format(time.RFC3339), "anchors do not match")
+	assert.Equal(t, expected.GetValue().Interval, actual.GetValue().Interval, "periods do not match")
+	assert.Equal(t, expected.GetValue().Anchor.Format(time.RFC3339), actual.GetValue().Anchor.Format(time.RFC3339), "anchors do not match")
 }

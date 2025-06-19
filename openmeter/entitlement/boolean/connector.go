@@ -38,17 +38,17 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Invalid inputs for type"}
 	}
 
-	var usagePeriod *entitlement.UsagePeriod
+	var usagePeriod *entitlement.UsagePeriodInput
 	var currentUsagePeriod *timeutil.ClosedPeriod
 
 	if model.UsagePeriod != nil {
 		usagePeriod = model.UsagePeriod
 
-		if err := usagePeriod.Validate(); err != nil {
+		if err := usagePeriod.GetValue().Validate(); err != nil {
 			return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: err.Error()}
 		}
 
-		calculatedPeriod, err := usagePeriod.GetCurrentPeriodAt(clock.Now())
+		calculatedPeriod, err := usagePeriod.GetValue().GetPeriodAt(clock.Now())
 		if err != nil {
 			return nil, err
 		}

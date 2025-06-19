@@ -84,10 +84,10 @@ func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 			SubjectKey:       "subject1",
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			MeasureUsageFrom: lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
+			})),
 			CurrentUsagePeriod: &timeutil.ClosedPeriod{
 				From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 				To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -103,10 +103,10 @@ func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 			SubjectKey:       "subject2",
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			MeasureUsageFrom: lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
+			})),
 			CurrentUsagePeriod: nil, // notice we don't have a current period set here
 		})
 		require.NoError(t, err)
@@ -119,10 +119,10 @@ func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 			SubjectKey:       "subject3",
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			MeasureUsageFrom: lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
+			})),
 			CurrentUsagePeriod: &timeutil.ClosedPeriod{
 				From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 				To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -187,7 +187,7 @@ func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 		require.Equal(t, ent1.SubjectKey, ent1Updated.SubjectKey)
 		require.Equal(t, ent1.EntitlementType, ent1Updated.EntitlementType)
 		require.Equal(t, ent1.MeasureUsageFrom.UTC(), ent1Updated.MeasureUsageFrom.UTC())
-		require.Equal(t, ent1.UsagePeriod, ent1Updated.UsagePeriod)
+		require.True(t, ent1.UsagePeriod.Equal(*ent1Updated.UsagePeriod), "usage period should be equal, got %+v and %+v", ent1.UsagePeriod, ent1Updated.UsagePeriod)
 
 		ent2Updated, ok := lo.Find(ents, func(e entitlement.Entitlement) bool {
 			return e.ID == ent2.ID
@@ -202,7 +202,7 @@ func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 		require.Equal(t, ent2.SubjectKey, ent2Updated.SubjectKey)
 		require.Equal(t, ent2.EntitlementType, ent2Updated.EntitlementType)
 		require.Equal(t, ent2.MeasureUsageFrom.UTC(), ent2Updated.MeasureUsageFrom.UTC())
-		require.Equal(t, ent2.UsagePeriod, ent2Updated.UsagePeriod)
+		require.True(t, ent2.UsagePeriod.Equal(*ent2Updated.UsagePeriod), "usage period should be equal, got %+v and %+v", ent2.UsagePeriod, ent2Updated.UsagePeriod)
 
 		// Let's check that the other one is not touched
 		ent3Updated, ok := lo.Find(entitlements.Items, func(e entitlement.Entitlement) bool {
@@ -217,7 +217,7 @@ func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 		require.Equal(t, ent3.SubjectKey, ent3Updated.SubjectKey)
 		require.Equal(t, ent3.EntitlementType, ent3Updated.EntitlementType)
 		require.Equal(t, ent3.MeasureUsageFrom.UTC(), ent3Updated.MeasureUsageFrom.UTC())
-		require.Equal(t, ent3.UsagePeriod, ent3Updated.UsagePeriod)
+		require.True(t, ent3.UsagePeriod.Equal(*ent3Updated.UsagePeriod), "usage period should be equal, got %+v and %+v", ent3.UsagePeriod, ent3Updated.UsagePeriod)
 	})
 }
 
@@ -251,10 +251,10 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 			SubjectKey:       "subject1",
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			MeasureUsageFrom: lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
+			})),
 			CurrentUsagePeriod: &timeutil.ClosedPeriod{
 				From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 				To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -270,10 +270,10 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 			SubjectKey:       "subject2",
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			MeasureUsageFrom: lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
+			})),
 			CurrentUsagePeriod: &timeutil.ClosedPeriod{
 				From: time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC),
 				To:   time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC),
@@ -324,10 +324,10 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 				SubjectKey:       fmt.Sprintf("subject%d", i),
 				EntitlementType:  entitlement.EntitlementTypeMetered,
 				MeasureUsageFrom: lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
-				UsagePeriod: &entitlement.UsagePeriod{
+				UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodMonth,
 					Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-				},
+				})),
 				CurrentUsagePeriod: &timeutil.ClosedPeriod{
 					From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -187,10 +188,13 @@ func mapUsagePeriod(u *entitlement.UsagePeriod) *api.RecurringPeriod {
 	if u == nil {
 		return nil
 	}
+
+	origi := u.GetOriginalValueAsUsagePeriodInput().GetValue()
+
 	return &api.RecurringPeriod{
-		Anchor:      u.Anchor,
-		Interval:    MapRecurrenceToAPI(u.Interval),
-		IntervalISO: u.Interval.ISOString().String(),
+		Anchor:      origi.Anchor,
+		Interval:    MapRecurrenceToAPI(origi.Interval),
+		IntervalISO: origi.Interval.ISOString().String(),
 	}
 }
 
@@ -231,10 +235,12 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 			IsSoftLimit:             v.IsSoftLimit,
 			IssueAfterReset:         v.IssueAfterReset,
 			IssueAfterResetPriority: v.IssueAfterResetPriority,
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+				return defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now())
+			})(timeutil.Recurrence{
 				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
 				Interval: iv,
-			},
+			})),
 			PreserveOverageAtReset: v.PreserveOverageAtReset,
 		}
 		if v.Metadata != nil {
@@ -259,7 +265,12 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 					return request, errors.New("usage period is required for enum measure usage from")
 				}
 
-				err = measureUsageFrom.FromEnum(entitlement.MeasureUsageFromEnum(apiEnum), *request.UsagePeriod, clock.Now())
+				cPer, err := request.UsagePeriod.GetValue().GetPeriodAt(clock.Now())
+				if err != nil {
+					return request, err
+				}
+
+				err = measureUsageFrom.FromEnum(entitlement.MeasureUsageFromEnum(apiEnum), cPer, clock.Now())
 				if err != nil {
 					return request, err
 				}
@@ -281,10 +292,12 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 				return request, fmt.Errorf("failed to map interval: %w", err)
 			}
 
-			request.UsagePeriod = &entitlement.UsagePeriod{
+			request.UsagePeriod = lo.ToPtr(timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+				return defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now())
+			})(timeutil.Recurrence{
 				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
 				Interval: iv,
-			}
+			}))
 		}
 		if v.Metadata != nil {
 			request.Metadata = *v.Metadata
@@ -303,10 +316,12 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 				return request, fmt.Errorf("failed to map interval: %w", err)
 			}
 
-			request.UsagePeriod = &entitlement.UsagePeriod{
+			request.UsagePeriod = lo.ToPtr(timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+				return defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now())
+			})(timeutil.Recurrence{
 				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
 				Interval: iv,
-			}
+			}))
 		}
 		if v.Metadata != nil {
 			request.Metadata = *v.Metadata

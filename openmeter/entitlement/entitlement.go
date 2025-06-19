@@ -1,7 +1,6 @@
 package entitlement
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -58,19 +57,15 @@ func (m *MeasureUsageFromInput) FromTime(t time.Time) error {
 	return nil
 }
 
-func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, p UsagePeriod, t time.Time) error {
+func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, currPeriod timeutil.ClosedPeriod, now time.Time) error {
 	if err := e.Validate(); err != nil {
 		return err
 	}
 	switch e {
 	case MeasureUsageFromCurrentPeriodStart:
-		period, err := p.GetCurrentPeriodAt(clock.Now())
-		if err != nil {
-			return err
-		}
-		m.ts = period.From
+		m.ts = currPeriod.From
 	case MeasureUsageFromNow:
-		m.ts = t
+		m.ts = now
 	default:
 		return fmt.Errorf("unsupported enum value")
 	}
@@ -98,7 +93,7 @@ type CreateEntitlementInputs struct {
 	IssueAfterResetPriority *uint8                 `json:"issueAfterResetPriority,omitempty"`
 	IsSoftLimit             *bool                  `json:"isSoftLimit,omitempty"`
 	Config                  []byte                 `json:"config,omitempty"`
-	UsagePeriod             *UsagePeriod           `json:"usagePeriod,omitempty"`
+	UsagePeriod             *UsagePeriodInput      `json:"usagePeriod,omitempty"`
 	PreserveOverageAtReset  *bool                  `json:"preserveOverageAtReset,omitempty"`
 
 	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
@@ -211,7 +206,7 @@ func (c CreateEntitlementInputs) Validate() error {
 
 	// Let's validate the Usage Period
 	if c.UsagePeriod != nil {
-		if per, err := c.UsagePeriod.Interval.Period.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		if per, err := c.UsagePeriod.GetValue().Interval.Period.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 			return fmt.Errorf("UsagePeriod must be at least 1 hour")
 		}
 	}
@@ -255,7 +250,7 @@ func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {
 		IssueAfterResetPriority: e.IssueAfterResetPriority,
 		IsSoftLimit:             e.IsSoftLimit,
 		Config:                  e.Config,
-		UsagePeriod:             e.UsagePeriod,
+		UsagePeriod:             e.UsagePeriod.GetOriginalValueAsUsagePeriodInput(),
 		PreserveOverageAtReset:  e.PreserveOverageAtReset,
 		Annotations:             e.Annotations,
 	}
@@ -290,46 +285,6 @@ func (e Entitlement) IsActive(at time.Time) bool {
 	}
 
 	return true
-}
-
-// TODO: get rid of this calculation once it's not needed anymore
-func (e Entitlement) CalculateCurrentUsagePeriodAt(anchor, at time.Time) (timeutil.ClosedPeriod, bool) {
-	if e.UsagePeriod == nil {
-		return timeutil.ClosedPeriod{}, false
-	}
-
-	if e.OriginalUsagePeriodAnchor == nil {
-		return timeutil.ClosedPeriod{}, false
-	}
-
-	usagePeriod := *e.UsagePeriod
-
-	if !anchor.IsZero() {
-		usagePeriod.Anchor = anchor
-	}
-
-	// If this is the first period, it needs to start with the start of measurement, otherwise we just use the period
-	// We use the original definition for this
-	originalUsagePeriod := UsagePeriod{
-		Anchor:   *e.OriginalUsagePeriodAnchor,
-		Interval: usagePeriod.Interval,
-	}
-
-	firstPeriod, err := originalUsagePeriod.GetCurrentPeriodAt(e.CreatedAt)
-	if err != nil {
-		return timeutil.ClosedPeriod{}, false
-	}
-
-	currentPeriod, err := usagePeriod.GetCurrentPeriodAt(at)
-	if err != nil {
-		return timeutil.ClosedPeriod{}, false
-	}
-
-	if firstPeriod.From.Equal(currentPeriod.From) {
-		return firstPeriod, true
-	}
-
-	return currentPeriod, true
 }
 
 func (e Entitlement) GetType() EntitlementType {
@@ -397,71 +352,4 @@ func (e GenericProperties) ActiveToTime() *time.Time {
 		return e.ActiveTo
 	}
 	return e.DeletedAt
-}
-
-type UsagePeriod timeutil.Recurrence
-
-func (u UsagePeriod) Validate() error {
-	hour := isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)
-	if diff, err := u.Interval.Period.Subtract(hour); err == nil && diff.Sign() == -1 {
-		return errors.New("UsagePeriod must be at least 1 hour")
-	}
-
-	return nil
-}
-
-func (u UsagePeriod) AsRecurrence() timeutil.Recurrence {
-	return timeutil.Recurrence{
-		Anchor:   u.Anchor,
-		Interval: u.Interval,
-	}
-}
-
-func (u UsagePeriod) Equal(other UsagePeriod) bool {
-	if u.Interval != other.Interval {
-		return false
-	}
-
-	if !u.Anchor.Equal(other.Anchor) {
-		return false
-	}
-
-	return true
-}
-
-// The returned period is exclusive at the end end inclusive in the start
-func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (timeutil.ClosedPeriod, error) {
-	rec := timeutil.Recurrence{
-		Anchor:   u.Anchor,
-		Interval: u.Interval,
-	}
-
-	nextAfter, err := rec.NextAfter(at)
-	if err != nil {
-		return timeutil.ClosedPeriod{}, err
-	}
-
-	// The edgecase behavior of recurrence.Period doesn't work for us here
-	// as for usage periods we want to have the period end exclusive
-	if nextAfter.Equal(at) {
-		from := nextAfter
-		to, err := rec.Next(from)
-		if err != nil {
-			return timeutil.ClosedPeriod{}, err
-		}
-		return timeutil.ClosedPeriod{
-			From: from,
-			To:   to,
-		}, nil
-	}
-
-	prevBefore, err := rec.PrevBefore(at)
-	if err != nil {
-		return timeutil.ClosedPeriod{}, err
-	}
-
-	return timeutil.ClosedPeriod{
-		From: prevBefore,
-		To:   nextAfter,
-	}, nil
 }

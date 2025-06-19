@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -191,14 +192,24 @@ func (s *SubscriptionItemView) Validate() error {
 				return fmt.Errorf("entitlement %s preserveOverageAtReset does not match template preserveOverageAtReset", s.Entitlement.Entitlement.ID)
 			}
 
-			upRec, err := timeutil.RecurrenceFromISODuration(&e.UsagePeriod, mEnt.UsagePeriod.Anchor)
+			// Let's validate that the usage periods are the same between item and entitlement
+			// We only validate for the first period / recurrence as otherwise resets would break the comparison
+			mEntUpInp := mEnt.UsagePeriod.GetOriginalValueAsUsagePeriodInput()
+
+			if mEntUpInp == nil {
+				return fmt.Errorf("entitlement %s usagePeriod is nil", s.Entitlement.Entitlement.ID)
+			}
+
+			upRec, err := timeutil.RecurrenceFromISODuration(&e.UsagePeriod, mEntUpInp.GetValue().Anchor)
 			if err != nil {
 				return fmt.Errorf("failed to convert Item %s EntitlementTemplate UsagePeriod ISO duration to Recurrence: %w", s.SubscriptionItem.Key, err)
 			}
 
-			up := entitlement.UsagePeriod(upRec)
+			itemEntUpInp := timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+				return mEntUpInp.GetTime()
+			})(upRec)
 
-			if !up.Equal(mEnt.UsagePeriod) {
+			if !itemEntUpInp.Equal(*mEntUpInp) {
 				return fmt.Errorf("entitlement %s usagePeriod does not match template usagePeriod", s.Entitlement.Entitlement.ID)
 			}
 

@@ -50,10 +50,10 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			FeatureKey:      f.Key,
 			SubjectKey:      "subject1",
 			EntitlementType: entitlement.EntitlementTypeMetered,
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
-			},
+			})),
 		})
 		require.NoError(t, err)
 
@@ -117,10 +117,10 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			FeatureKey:      f.Key,
 			SubjectKey:      "subject1",
 			EntitlementType: entitlement.EntitlementTypeMetered,
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
-			},
+			})),
 		})
 		require.NoError(t, err)
 
@@ -131,7 +131,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 				Namespace: namespace,
 			},
 			ResetTime:     resetTime,
-			Anchor:        ent.UsagePeriod.Anchor,
+			Anchor:        now,
 			EntitlementID: ent.ID,
 		})
 		require.NoError(t, err)
@@ -174,10 +174,10 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			FeatureKey:      f.Key,
 			SubjectKey:      "subject1",
 			EntitlementType: entitlement.EntitlementTypeMetered,
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
-			},
+			})),
 		})
 		require.NoError(t, err)
 
@@ -221,10 +221,10 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			FeatureKey:      f.Key,
 			SubjectKey:      "subject1",
 			EntitlementType: entitlement.EntitlementTypeMetered,
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
-			},
+			})),
 		})
 		require.NoError(t, err)
 
@@ -235,7 +235,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 				Namespace: namespace,
 			},
 			ResetTime:     resetTime1,
-			Anchor:        ent.UsagePeriod.Anchor,
+			Anchor:        now,
 			EntitlementID: ent.ID,
 		})
 		require.NoError(t, err)
@@ -246,7 +246,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 				Namespace: namespace,
 			},
 			ResetTime:     resetTime2,
-			Anchor:        ent.UsagePeriod.Anchor,
+			Anchor:        now,
 			EntitlementID: ent.ID,
 		})
 		require.NoError(t, err)
@@ -291,10 +291,10 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			FeatureKey:      f.Key,
 			SubjectKey:      "subject1",
 			EntitlementType: entitlement.EntitlementTypeMetered,
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
-			},
+			})),
 		})
 		require.NoError(t, err)
 
@@ -347,10 +347,10 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			FeatureKey:      f.Key,
 			SubjectKey:      "subject1",
 			EntitlementType: entitlement.EntitlementTypeMetered,
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
-			},
+			})),
 		})
 		require.NoError(t, err)
 
@@ -391,10 +391,10 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			FeatureKey:      f.Key,
 			SubjectKey:      "subject1",
 			EntitlementType: entitlement.EntitlementTypeMetered,
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
-			},
+			})),
 		})
 		require.NoError(t, err)
 
@@ -447,10 +447,10 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			FeatureKey:      f.Key,
 			SubjectKey:      "subject1",
 			EntitlementType: entitlement.EntitlementTypeMetered,
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
-			},
+			})),
 		})
 		require.NoError(t, err)
 

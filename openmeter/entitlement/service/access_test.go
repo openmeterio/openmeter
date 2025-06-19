@@ -190,10 +190,10 @@ func TestGetAccess(t *testing.T) {
 			FeatureKey:      lo.ToPtr("test-metered"),
 			FeatureID:       &feat.ID,
 			EntitlementType: entitlement.EntitlementTypeMetered,
-			UsagePeriod: &entitlement.UsagePeriod{
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
 				Anchor:   now,
-			},
+			})),
 			IssueAfterReset: lo.ToPtr(10.0),
 		})
 		require.NoError(t, err)

@@ -41,10 +41,10 @@ var (
 		From: time.Now().Add(-time.Hour),
 		To:   time.Now().Add(24 * time.Hour),
 	}
-	TestEntitlementUsagePeriod = entitlement.UsagePeriod{
+	TestEntitlementUsagePeriod = entitlement.NewUsagePeriodFromRecurrence(timeutil.Recurrence{
 		Interval: timeutil.RecurrencePeriodDaily,
 		Anchor:   TestEntitlementCurrentUsagePeriod.From,
-	}
+	})
 	TestEntitlementID = "test-entitlement-id"
 )
 
@@ -68,7 +68,7 @@ func NewBalanceSnapshotEvent(in BalanceSnapshotEventInput) snapshot.SnapshotEven
 				EntitlementType: entitlement.EntitlementTypeMetered,
 
 				UsagePeriod:               &TestEntitlementUsagePeriod,
-				OriginalUsagePeriodAnchor: &TestEntitlementUsagePeriod.Anchor,
+				OriginalUsagePeriodAnchor: lo.ToPtr(TestEntitlementUsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Anchor),
 				CurrentUsagePeriod:        &TestEntitlementCurrentUsagePeriod,
 			},
 			MeasureUsageFrom: &TestEntitlementCurrentUsagePeriod.From,

@@ -15,11 +15,12 @@ import (
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // Ensures the created view matches the input spec
 func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, found subscription.SubscriptionView) {
+	t.Helper()
+
 	// Let's validate the Subscription itself
 	assert.Equal(t, expected.Name, found.Subscription.Name)
 	assert.Equal(t, expected.Description, found.Subscription.Description)
@@ -109,13 +110,20 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 					// Entitlement UsagePeriod should be aligned to the subscription billing anchor, which means
 					truncatedBillingAnchor := found.Subscription.BillingAnchor.Truncate(time.Minute) // Due to minute precision
 					// - its duration should be identical
-					entPeriod := ent.Entitlement.UsagePeriod.Interval.Period
+					entPeriod := ent.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.Period
 					assert.True(t, entPeriod.Equal(period), "usage period interval mismatch, expected %s, got %s", period, entPeriod)
 					// - its anchor should be "aligned" with the subscription's billingAnchor
 					require.NotNil(t, ent.Entitlement.UsagePeriod)
-					entPerAtAnchor, err := timeutil.Recurrence(*ent.Entitlement.UsagePeriod).GetPeriodAt(truncatedBillingAnchor)
+
+					// billinganchor would be in the past compared to entitlement start, so usageperiod would normalize to a later iteration
+					// to avoid that, lets test with recurrence instead
+					recAtAnchor, _, err := ent.Entitlement.UsagePeriod.GetUsagePeriodInputAt(truncatedBillingAnchor)
 					require.NoError(t, err)
-					require.Equal(t, entPerAtAnchor.From, truncatedBillingAnchor, "entitlement usage period anchor should be aligned with the subscription billing anchor, subscription billing anchor: %s, entitlement usage period: %+v", truncatedBillingAnchor, *ent.Entitlement.UsagePeriod)
+
+					entPerAtAnchor, err := recAtAnchor.GetValue().GetPeriodAt(truncatedBillingAnchor)
+					require.NoError(t, err)
+
+					require.Equal(t, truncatedBillingAnchor, entPerAtAnchor.From, "entitlement usage period anchor should be aligned with the subscription billing anchor, subscription billing anchor: %s, entitlement usage period: %+v", truncatedBillingAnchor, *ent.Entitlement.UsagePeriod)
 
 					switch rcInp.RateCard.AsMeta().EntitlementTemplate.Type() {
 					case entitlement.EntitlementTypeMetered:
