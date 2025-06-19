@@ -210,7 +210,7 @@ func (h *handler) resolveAppIDFromBillingProfile(ctx context.Context, namespace 
 		}
 	}
 
-	// If no default profile is found, check if there is only one stripe app and use it
+	// If no default profile is found return an error
 	if !foundDefault {
 		// If there is no stripe app, return an error
 		if len(stripeApps) == 0 {

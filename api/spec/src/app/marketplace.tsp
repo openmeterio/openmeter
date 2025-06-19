@@ -124,7 +124,7 @@ model MarketplaceInstallRequestPayload {
   /**
    * Name of the application to install.
    *
-   * If not set defaults to the marketplace item's description.
+   * If name is not provided defaults to the marketplace listing's name.
    */
   name?: string;
 
