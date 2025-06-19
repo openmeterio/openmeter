@@ -2636,11 +2636,20 @@ export interface components {
     }
     /** @description BillingProfileAppsCreate represents the input for creating a billing profile's apps */
     BillingProfileAppsCreate: {
-      /** @description The tax app used for this workflow */
+      /**
+       * @description The tax app used for this workflow
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
       tax: string
-      /** @description The invoicing app used for this workflow */
+      /**
+       * @description The invoicing app used for this workflow
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
       invoicing: string
-      /** @description The payment app used for this workflow */
+      /**
+       * @description The payment app used for this workflow
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
       payment: string
     }
     /** @description ProfileAppsOrReference represents the union of ProfileApps and ProfileAppReferences
@@ -3312,9 +3321,6 @@ export interface components {
       readonly listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
       readonly status: components['schemas']['AppStatus']
-      /** @description Default for the app type
-       *     Only one app of each type can be default. */
-      default: boolean
       /**
        * @description The app's type is CustomInvoicing. (enum property replaced by openapi-typescript)
        * @enum {string}
@@ -3346,9 +3352,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /** @description Default for the app type
-       *     Only one app of each type can be default. */
-      default: boolean
       /**
        * @description The app's type is CustomInvoicing. (enum property replaced by openapi-typescript)
        * @enum {string}
@@ -6252,6 +6255,19 @@ export interface components {
     ListFeaturesResult:
       | components['schemas']['Feature'][]
       | components['schemas']['FeaturePaginatedResponse']
+    /** @description Marketplace install request payload. */
+    MarketplaceInstallRequestPayload: {
+      /** @description Name of the application to install.
+       *
+       *     If name is not provided defaults to the marketplace listing's name. */
+      name?: string
+      /**
+       * @description If true, a billing profile will be created for the app.
+       *     The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.
+       * @default true
+       */
+      createBillingProfile?: boolean
+    }
     /** @description Marketplace install response. */
     MarketplaceInstallResponse: {
       app: components['schemas']['App']
@@ -8601,9 +8617,6 @@ export interface components {
       readonly listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
       readonly status: components['schemas']['AppStatus']
-      /** @description Default for the app type
-       *     Only one app of each type can be default. */
-      default: boolean
       /**
        * @description The app's type is Sandbox. (enum property replaced by openapi-typescript)
        * @enum {string}
@@ -8627,9 +8640,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /** @description Default for the app type
-       *     Only one app of each type can be default. */
-      default: boolean
       /**
        * @description The app's type is Sandbox. (enum property replaced by openapi-typescript)
        * @enum {string}
@@ -8672,7 +8682,6 @@ export interface components {
      *       "type": "stripe",
      *       "name": "Stripe",
      *       "status": "ready",
-     *       "default": true,
      *       "listing": {
      *         "type": "stripe",
      *         "name": "Stripe",
@@ -8756,9 +8765,6 @@ export interface components {
       readonly listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
       readonly status: components['schemas']['AppStatus']
-      /** @description Default for the app type
-       *     Only one app of each type can be default. */
-      default: boolean
       /**
        * @description The app's type is Stripe. (enum property replaced by openapi-typescript)
        * @enum {string}
@@ -8789,9 +8795,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /** @description Default for the app type
-       *     Only one app of each type can be default. */
-      default: boolean
       /**
        * @description The app's type is Stripe. (enum property replaced by openapi-typescript)
        * @enum {string}
@@ -10590,6 +10593,8 @@ export type InvoiceWorkflowSettingsReplaceUpdate =
 export type ListEntitlementsResult =
   components['schemas']['ListEntitlementsResult']
 export type ListFeaturesResult = components['schemas']['ListFeaturesResult']
+export type MarketplaceInstallRequestPayload =
+  components['schemas']['MarketplaceInstallRequestPayload']
 export type MarketplaceInstallResponse =
   components['schemas']['MarketplaceInstallResponse']
 export type MarketplaceListing = components['schemas']['MarketplaceListing']
@@ -17147,12 +17152,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': {
-          /** @description Name of the application to install.
-           *
-           *     If not set defaults to the marketplace item's description. */
-          name?: string
-        }
+        'application/json': components['schemas']['MarketplaceInstallRequestPayload']
       }
     }
     responses: {
@@ -17243,13 +17243,19 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
+          /** @description Name of the application to install.
+           *
+           *     If name is not provided defaults to the marketplace listing's name. */
+          name?: string
+          /**
+           * @description If true, a billing profile will be created for the app.
+           *     The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.
+           * @default true
+           */
+          createBillingProfile?: boolean
           /** @description The API key for the provider.
            *     For example, the Stripe API key. */
           apiKey: string
-          /** @description Name of the application to install.
-           *
-           *     If not set defaults to the marketplace item's description. */
-          name?: string
         }
       }
     }
