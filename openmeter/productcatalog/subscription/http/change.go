@@ -87,6 +87,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						MetadataModel: models.MetadataModel{
 							Metadata: req.Metadata,
 						},
+						BillingAnchor: parsedBody.BillingAnchor,
 					},
 				}, nil
 			} else {
@@ -115,8 +116,9 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						MetadataModel: models.MetadataModel{
 							Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 						},
-						Name:        lo.FromPtr(parsedBody.Name),
-						Description: parsedBody.Description,
+						Name:          lo.FromPtr(parsedBody.Name),
+						Description:   parsedBody.Description,
+						BillingAnchor: parsedBody.BillingAnchor,
 					},
 					StartingPhase: parsedBody.StartingPhase,
 				}, nil

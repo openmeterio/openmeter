@@ -13360,6 +13360,11 @@ components:
           description: |-
             Timing configuration for the change, when the change should take effect.
             For changing a subscription, the accepted values depend on the subscription configuration.
+        billingAnchor:
+          type: string
+          format: date-time
+          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+          example: '2023-01-01T01:01:01.001Z'
         customPlan:
           allOf:
             - $ref: '#/components/schemas/CustomPlanInput'
@@ -13370,6 +13375,11 @@ components:
       required:
         - customPlan
       properties:
+        billingAnchor:
+          type: string
+          format: date-time
+          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+          example: '2023-01-01T01:01:01.001Z'
         customPlan:
           allOf:
             - $ref: '#/components/schemas/CustomPlanInput'
@@ -13391,11 +13401,6 @@ components:
           minLength: 1
           maxLength: 256
           description: The key of the customer. Provide either the key or ID.
-        billingAnchor:
-          type: string
-          format: date-time
-          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
-          example: '2023-01-01T01:01:01.001Z'
       description: Create a custom subscription.
     Customer:
       type: object
@@ -20039,6 +20044,11 @@ components:
         description:
           type: string
           description: Description for the Subscription.
+        billingAnchor:
+          type: string
+          format: date-time
+          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+          example: '2023-01-01T01:01:01.001Z'
       description: Change subscription based on plan.
     PlanSubscriptionCreate:
       type: object
@@ -20069,6 +20079,11 @@ components:
         description:
           type: string
           description: Description for the Subscription.
+        billingAnchor:
+          type: string
+          format: date-time
+          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+          example: '2023-01-01T01:01:01.001Z'
         timing:
           allOf:
             - $ref: '#/components/schemas/SubscriptionTiming'
@@ -20086,11 +20101,6 @@ components:
           minLength: 1
           maxLength: 256
           description: The key of the customer. Provide either the key or ID.
-        billingAnchor:
-          type: string
-          format: date-time
-          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
-          example: '2023-01-01T01:01:01.001Z'
       description: Create subscription based on plan.
     PortalToken:
       type: object
@@ -22040,7 +22050,7 @@ components:
 
             2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
 
-            We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”. In practice this should be derived from what's printed on the invoice line-item.
+            We say "referenced by the Price" regardless of how a price itself is referenced, it colloquially makes sense to say "paying the same price for the same thing". In practice this should be derived from what's printed on the invoice line-item.
         featureKey:
           type: string
           minLength: 1

@@ -231,7 +231,7 @@ model SubscriptionItem {
    *
    * 2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
    *
-   * We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”. In practice this should be derived from what's printed on the invoice line-item.
+   * We say "referenced by the Price" regardless of how a price itself is referenced, it colloquially makes sense to say "paying the same price for the same thing". In practice this should be derived from what's printed on the invoice line-item.
    */
   key: Key;
 
@@ -374,11 +374,6 @@ model CustomSubscriptionCreate {
    * The key of the customer. Provide either the key or ID.
    */
   customerKey?: ExternalKey;
-
-  /**
-   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
-   */
-  billingAnchor?: DateTime;
 }
 
 /**
@@ -391,6 +386,11 @@ model CustomSubscriptionChange {
    * For changing a subscription, the accepted values depend on the subscription configuration.
    */
   timing: SubscriptionTiming;
+
+  /**
+   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+   */
+  billingAnchor?: DateTime;
 
   /**
    * The custom plan description which defines the Subscription.
@@ -430,11 +430,6 @@ model PlanSubscriptionCreate {
    * The key of the customer. Provide either the key or ID.
    */
   customerKey?: ExternalKey;
-
-  /**
-   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
-   */
-  billingAnchor?: DateTime;
 }
 
 /**
@@ -479,6 +474,11 @@ model PlanSubscriptionChange {
    * Description for the Subscription.
    */
   description?: string;
+
+  /**
+   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+   */
+  billingAnchor?: DateTime;
 }
 
 /**
