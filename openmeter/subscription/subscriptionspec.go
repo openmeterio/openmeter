@@ -230,7 +230,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.Clo
 		}
 		phase = p
 	case at.Before(subCad.ActiveFrom):
-		return def, fmt.Errorf("at %s is before the subscription active from %s, cannot calculate billing period", at, subCad.ActiveFrom)
+		return def, NewBillingPeriodQueriedBeforeSubscriptionStartError(at, subCad.ActiveFrom)
 	default:
 		if subCad.ActiveTo == nil {
 			// impossible, but lets be defensive and not panic
