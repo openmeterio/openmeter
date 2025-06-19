@@ -123,41 +123,46 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 	})
 
 	t.Run("should find the correct recurrence to use when multiple are present", func(t *testing.T) {
-		now := clock.Now()
-		startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		// lets fuzz this a bit
 
-		t1 := now.AddDate(-2, 0, 0)
-		t2 := now.AddDate(-1, 0, 0)
-		t3 := now
+		for i := 0; i < 300; i++ {
+			now := time.Date(2025, 6, 18, 11, 23, 0, 0, time.UTC)
+			startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
-		rec2 := timeutil.Recurrence{
-			Interval: timeutil.RecurrencePeriodMonth,
-			Anchor:   startOfDay.Add(time.Hour * 2),
+			t1 := now.AddDate(-2, 0, 0)
+			t2 := now.AddDate(-1, 0, 0)
+			t3 := now
+
+			rec2 := timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodMonth,
+				Anchor:   startOfDay.Add(time.Hour * 2),
+			}
+
+			// We register 3 reset times along the past 3 years
+			// each with different anchor times (we'll use the hour part to assert the correct recurrence is used)
+			up := entitlement.NewUsagePeriod([]timeutil.Timed[timeutil.Recurrence]{
+				timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return t1 })(timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodMonth,
+					Anchor:   startOfDay.Add(time.Hour),
+				}),
+				timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return t2 })(rec2),
+				timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return t3 })(timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodMonth,
+					Anchor:   startOfDay.Add(time.Hour * 3),
+				}),
+			})
+
+			// Let's make sure we're not falling on a boundary period (as those would be truncated)
+			timeInMiddle := gofakeit.DateRange(now.AddDate(-1, 1, 1), now.AddDate(0, -1, -1))
+
+			period, err := up.GetCurrentPeriodAt(timeInMiddle)
+			require.NoError(t, err)
+
+			recPeriod, err := rec2.GetPeriodAt(timeInMiddle)
+			require.NoError(t, err)
+
+			require.Equal(t, recPeriod, period, "iteration %d, looked for ts %s", i, timeInMiddle)
 		}
-
-		// We register 3 reset times along the past 3 years
-		// each with different anchor times (we'll use the hour part to assert the correct recurrence is used)
-		up := entitlement.NewUsagePeriod([]timeutil.Timed[timeutil.Recurrence]{
-			timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return t1 })(timeutil.Recurrence{
-				Interval: timeutil.RecurrencePeriodMonth,
-				Anchor:   startOfDay.Add(time.Hour),
-			}),
-			timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return t2 })(rec2),
-			timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return t3 })(timeutil.Recurrence{
-				Interval: timeutil.RecurrencePeriodMonth,
-				Anchor:   startOfDay.Add(time.Hour * 3),
-			}),
-		})
-
-		timeInMiddle := gofakeit.DateRange(now.AddDate(-1, 0, 1), now.AddDate(0, 0, -1))
-
-		period, err := up.GetCurrentPeriodAt(timeInMiddle)
-		require.NoError(t, err)
-
-		recPeriod, err := rec2.GetPeriodAt(timeInMiddle)
-		require.NoError(t, err)
-
-		require.Equal(t, recPeriod, period, "looked for ts %s", timeInMiddle)
 	})
 
 	t.Run("should truncate the returned period according to the recurrence boundaries", func(t *testing.T) {
