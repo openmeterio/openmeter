@@ -1,6 +1,7 @@
 package entitlement
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -56,6 +57,44 @@ type UsagePeriod struct {
 	recs timeutil.Timeline[timeutil.Recurrence]
 }
 
+type usagePeriodSerde struct {
+	Recurrences []timedRecurrenceSerde `json:"recurrences"`
+}
+
+type timedRecurrenceSerde struct {
+	Value timeutil.Recurrence `json:"value"`
+	Time  time.Time           `json:"time"`
+}
+
+func (u UsagePeriod) MarshalJSON() ([]byte, error) {
+	timedRecurrences := make([]timedRecurrenceSerde, len(u.recs.GetTimes()))
+	for i := range u.recs.GetTimes() {
+		timed := u.recs.GetAt(i)
+		timedRecurrences[i] = timedRecurrenceSerde{
+			Value: timed.GetValue(),
+			Time:  timed.GetTime(),
+		}
+	}
+
+	return json.Marshal(usagePeriodSerde{Recurrences: timedRecurrences})
+}
+
+func (u *UsagePeriod) UnmarshalJSON(data []byte) error {
+	var v usagePeriodSerde
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+
+	timedRecurrences := make([]timeutil.Timed[timeutil.Recurrence], len(v.Recurrences))
+	for i, tr := range v.Recurrences {
+		timedRecurrences[i] = NewStartingUsagePeriodInput(tr.Value, tr.Time)
+	}
+
+	*u = NewUsagePeriod(timedRecurrences)
+
+	return nil
+}
+
 func (u UsagePeriod) Validate() error {
 	var errs []error
 
@@ -84,6 +123,10 @@ func (u UsagePeriod) Validate() error {
 
 func (u *UsagePeriod) GetOriginalValueAsUsagePeriodInput() *UsagePeriodInput {
 	if u == nil {
+		return nil
+	}
+
+	if len(u.recs.GetTimes()) == 0 {
 		return nil
 	}
 
@@ -218,8 +261,11 @@ func (u UsagePeriod) GetUsagePeriodInputAt(at time.Time) (UsagePeriodInput, int,
 		}
 	}
 	// if we don't find any we simply return the last (oldest)
-	oldest := u.recs.GetAt(0)
-	return timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
-		return oldest.GetTime()
-	})(oldest.GetValue()), 0, nil
+
+	origi := u.GetOriginalValueAsUsagePeriodInput()
+	if origi == nil {
+		return timeutil.Timed[timeutil.Recurrence]{}, 0, fmt.Errorf("usage period has no recurrences")
+	}
+
+	return *origi, 0, nil
 }

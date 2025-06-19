@@ -1,6 +1,7 @@
 package entitlement_test
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -327,4 +328,30 @@ func TestUsagePeriodGetResetTimelineInclusive(t *testing.T) {
 		require.Equal(t, now.AddDate(0, 0, 3), timeline.GetTimes()[4])
 		require.Equal(t, startOfDay.AddDate(0, 0, 4).Add(time.Hour*2), timeline.GetTimes()[5])
 	})
+}
+
+func TestUsagePeriodSerialization(t *testing.T) {
+	complexUsagePeriod := entitlement.NewUsagePeriod([]timeutil.Timed[timeutil.Recurrence]{
+		timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return r.Anchor })(timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodDaily, // For simplicity we'll use daily
+			Anchor:   time.Date(2025, 6, 18, 11, 23, 0, 0, time.UTC),
+		}),
+		timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return r.Anchor })(timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodDaily, // For simplicity we'll use daily
+			Anchor:   time.Date(2025, 8, 18, 10, 23, 0, 0, time.UTC),
+		}),
+		timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return r.Anchor })(timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodDaily, // For simplicity we'll use daily
+			Anchor:   time.Date(2025, 10, 18, 10, 23, 0, 0, time.UTC),
+		}),
+	})
+
+	serialized, err := json.Marshal(complexUsagePeriod)
+	require.NoError(t, err)
+
+	var deserialized entitlement.UsagePeriod
+	err = json.Unmarshal(serialized, &deserialized)
+	require.NoError(t, err)
+
+	require.True(t, deserialized.Equal(complexUsagePeriod), "\ndeserialized: %+v, \n\noriginal: %+v\n", deserialized, complexUsagePeriod)
 }
