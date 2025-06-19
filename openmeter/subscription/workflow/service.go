@@ -33,6 +33,8 @@ type ChangeSubscriptionWorkflowInput struct {
 	models.MetadataModel
 	Name        string
 	Description *string
+
+	BillingAnchor *time.Time `json:"billingAnchor,omitempty"`
 }
 
 type AddAddonWorkflowInput struct {

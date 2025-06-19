@@ -15454,6 +15454,12 @@ export const changeSubscriptionBody = zod
       .describe('Alignment configuration for a plan or subscription.')
       .optional()
       .describe('What alignment settings the subscription should have.'),
+    billingAnchor: zod
+      .date()
+      .optional()
+      .describe(
+        'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
+      ),
     description: zod
       .string()
       .optional()
@@ -15515,6 +15521,12 @@ export const changeSubscriptionBody = zod
   .or(
     zod
       .object({
+        billingAnchor: zod
+          .date()
+          .optional()
+          .describe(
+            'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
+          ),
         customPlan: zod
           .object({
             alignment: zod

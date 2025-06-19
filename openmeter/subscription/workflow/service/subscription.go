@@ -216,6 +216,7 @@ func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.Namesp
 			ChangeSubscriptionWorkflowInput: inp,
 			Namespace:                       curr.Namespace,
 			CustomerID:                      curr.CustomerId,
+			BillingAnchor:                   lo.ToPtr(lo.FromPtrOr(inp.BillingAnchor, curr.BillingAnchor)),
 		}, plan)
 		if err != nil {
 			return res{}, fmt.Errorf("failed to create new subscription: %w", err)
