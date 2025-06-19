@@ -2193,11 +2193,6 @@ export const updateAppBody = zod
   .discriminatedUnion('type', [
     zod
       .object({
-        default: zod
-          .boolean()
-          .describe(
-            'Default for the app type\nOnly one app of each type can be default.'
-          ),
         description: zod
           .string()
           .max(updateAppBodyDescriptionMax)
@@ -2225,11 +2220,6 @@ export const updateAppBody = zod
       .describe('Resource update operation model.'),
     zod
       .object({
-        default: zod
-          .boolean()
-          .describe(
-            'Default for the app type\nOnly one app of each type can be default.'
-          ),
         description: zod
           .string()
           .max(updateAppBodyDescriptionMaxOne)
@@ -2256,11 +2246,6 @@ export const updateAppBody = zod
       .describe('Resource update operation model.'),
     zod
       .object({
-        default: zod
-          .boolean()
-          .describe(
-            'Default for the app type\nOnly one app of each type can be default.'
-          ),
         description: zod
           .string()
           .max(updateAppBodyDescriptionMaxTwo)
@@ -5906,13 +5891,13 @@ export const createBillingProfileBodyWorkflowPaymentCollectionMethodDefault =
   'charge_automatically'
 export const createBillingProfileBodyWorkflowTaxEnabledDefault = true
 export const createBillingProfileBodyWorkflowTaxEnforcedDefault = false
-export const createBillingProfileBodyAppsTaxRegExpOne = new RegExp(
+export const createBillingProfileBodyAppsTaxRegExp = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
-export const createBillingProfileBodyAppsInvoicingRegExpOne = new RegExp(
+export const createBillingProfileBodyAppsInvoicingRegExp = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
-export const createBillingProfileBodyAppsPaymentRegExpOne = new RegExp(
+export const createBillingProfileBodyAppsPaymentRegExp = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
 
@@ -5922,27 +5907,15 @@ export const createBillingProfileBody = zod
       .object({
         invoicing: zod
           .string()
-          .regex(createBillingProfileBodyAppsInvoicingRegExpOne)
-          .describe(
-            'ULID (Universally Unique Lexicographically Sortable Identifier).'
-          )
-          .or(zod.string())
+          .regex(createBillingProfileBodyAppsInvoicingRegExp)
           .describe('The invoicing app used for this workflow'),
         payment: zod
           .string()
-          .regex(createBillingProfileBodyAppsPaymentRegExpOne)
-          .describe(
-            'ULID (Universally Unique Lexicographically Sortable Identifier).'
-          )
-          .or(zod.string())
+          .regex(createBillingProfileBodyAppsPaymentRegExp)
           .describe('The payment app used for this workflow'),
         tax: zod
           .string()
-          .regex(createBillingProfileBodyAppsTaxRegExpOne)
-          .describe(
-            'ULID (Universally Unique Lexicographically Sortable Identifier).'
-          )
-          .or(zod.string())
+          .regex(createBillingProfileBodyAppsTaxRegExp)
           .describe('The tax app used for this workflow'),
       })
       .describe(
@@ -7028,11 +7001,6 @@ export const upsertCustomerAppDataBodyItem = zod
             createdAt: zod
               .date()
               .describe('Timestamp of when the resource was created.'),
-            default: zod
-              .boolean()
-              .describe(
-                'Default for the app type\nOnly one app of each type can be default.'
-              ),
             deletedAt: zod
               .date()
               .optional()
@@ -7157,11 +7125,6 @@ export const upsertCustomerAppDataBodyItem = zod
             createdAt: zod
               .date()
               .describe('Timestamp of when the resource was created.'),
-            default: zod
-              .boolean()
-              .describe(
-                'Default for the app type\nOnly one app of each type can be default.'
-              ),
             deletedAt: zod
               .date()
               .optional()
@@ -7883,14 +7846,24 @@ export const marketplaceAppInstallParams = zod.object({
     .describe('The type of the app to install.'),
 })
 
-export const marketplaceAppInstallBody = zod.object({
-  name: zod
-    .string()
-    .optional()
-    .describe(
-      "Name of the application to install.\n\nIf not set defaults to the marketplace item's description."
-    ),
-})
+export const marketplaceAppInstallBodyCreateBillingProfileDefault = true
+
+export const marketplaceAppInstallBody = zod
+  .object({
+    createBillingProfile: zod
+      .boolean()
+      .default(marketplaceAppInstallBodyCreateBillingProfileDefault)
+      .describe(
+        'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.'
+      ),
+    name: zod
+      .string()
+      .optional()
+      .describe(
+        "Name of the application to install.\n\nIf name is not provided defaults to the marketplace listing's name."
+      ),
+  })
+  .describe('Marketplace install request payload.')
 
 /**
  * Install an marketplace app via API Key.
@@ -7902,17 +7875,25 @@ export const marketplaceAppAPIKeyInstallParams = zod.object({
     .describe('The type of the app to install.'),
 })
 
+export const marketplaceAppAPIKeyInstallBodyCreateBillingProfileDefault = true
+
 export const marketplaceAppAPIKeyInstallBody = zod.object({
   apiKey: zod
     .string()
     .describe(
       'The API key for the provider.\nFor example, the Stripe API key.'
     ),
+  createBillingProfile: zod
+    .boolean()
+    .default(marketplaceAppAPIKeyInstallBodyCreateBillingProfileDefault)
+    .describe(
+      'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.'
+    ),
   name: zod
     .string()
     .optional()
     .describe(
-      "Name of the application to install.\n\nIf not set defaults to the marketplace item's description."
+      "Name of the application to install.\n\nIf name is not provided defaults to the marketplace listing's name."
     ),
 })
 
