@@ -3,6 +3,7 @@ package subscription
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -114,6 +115,36 @@ func IsItemNotFoundError(err error) bool {
 	}
 
 	var e *ItemNotFoundError
+
+	return errors.As(err, &e)
+}
+
+type BillingPeriodQueriedBeforeSubscriptionStartError struct {
+	err error
+}
+
+func (e *BillingPeriodQueriedBeforeSubscriptionStartError) Error() string {
+	return e.err.Error()
+}
+
+func (e *BillingPeriodQueriedBeforeSubscriptionStartError) Unwrap() error {
+	return e.err
+}
+
+func NewBillingPeriodQueriedBeforeSubscriptionStartError(queriedAt, subscriptionStart time.Time) error {
+	return &BillingPeriodQueriedBeforeSubscriptionStartError{
+		err: models.NewGenericValidationError(
+			fmt.Errorf("billing period queried before subscription start: %s < %s", queriedAt, subscriptionStart),
+		),
+	}
+}
+
+func IsBillingPeriodQueriedBeforeSubscriptionStartError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *BillingPeriodQueriedBeforeSubscriptionStartError
 
 	return errors.As(err, &e)
 }

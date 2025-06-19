@@ -380,14 +380,22 @@ func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.Su
 			// For aligned subscrptions (all subscriptions currently)
 			if subs.Spec.Alignment.BillablesMustAlign {
 				// we need to generate exactly until the end of the current billing cycle
-				// FIXME(galexi, OM-1418): passing the current phase here would result in undefined behavior if reanchoring was used
 				currBillingPeriod, err := subs.Spec.GetAlignedBillingPeriodAt(asOf)
 				if err != nil {
-					return nil, fmt.Errorf("getting aligned billing period: %w", err)
+					// Due to logic constraints, we cannot generate these lines before the subscription actually starts
+					switch {
+					case subscription.IsBillingPeriodQueriedBeforeSubscriptionStartError(err):
+						h.logger.InfoContext(ctx, "asOf is before subscription start, advancing generation time to subscription start", "subscription_id", subs.Subscription.ID, "as_of", asOf, "subscription_start", subs.Spec.ActiveFrom)
+
+						// We advance until subscription start to generate the first set of lines (if later we cancel or stg else, sync will handle that)
+						generationLimit = subs.Subscription.ActiveFrom
+					default:
+						return nil, fmt.Errorf("getting aligned billing period: %w", err)
+					}
 				}
 
-				// As its intended to be used as a limit we'll take it as end inclusice start exclusive (instead of normal start exclusive end inclusive)
-				if !generationLimit.Equal(currBillingPeriod.From) {
+				// As its intended to be used as a limit we'll take it as end inclusice start exclusive (instead of normal start inclusive end exclusive)
+				if !currBillingPeriod.From.IsZero() && !generationLimit.Equal(currBillingPeriod.From) {
 					generationLimit = currBillingPeriod.To
 				}
 
