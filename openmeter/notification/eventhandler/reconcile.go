@@ -23,6 +23,29 @@ func (h *Handler) reconcileFailed(_ context.Context, _ *notification.Event) erro
 	return nil
 }
 
+func (h *Handler) reconcileEvent(ctx context.Context, event *notification.Event) error {
+	var errs []error
+
+	for _, state := range notification.DeliveryStatusStates(event.DeliveryStatus) {
+		switch state {
+		case notification.EventDeliveryStatusStatePending:
+			if err := h.reconcilePending(ctx, event); err != nil {
+				errs = append(errs, err)
+			}
+		case notification.EventDeliveryStatusStateSending:
+			if err := h.reconcileSending(ctx, event); err != nil {
+				errs = append(errs, err)
+			}
+		case notification.EventDeliveryStatusStateFailed:
+			if err := h.reconcileFailed(ctx, event); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
 func (h *Handler) Reconcile(ctx context.Context) error {
 	events, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
 		Page: pagination.Page{},
@@ -35,29 +58,16 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 		return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
 	}
 
-	for _, event := range events.Items {
-		var errs error
-		for _, state := range notification.DeliveryStatusStates(event.DeliveryStatus) {
-			switch state {
-			case notification.EventDeliveryStatusStatePending:
-				if err = h.reconcilePending(ctx, &event); err != nil {
-					errs = errors.Join(errs, err)
-				}
-			case notification.EventDeliveryStatusStateSending:
-				if err = h.reconcileSending(ctx, &event); err != nil {
-					errs = errors.Join(errs, err)
-				}
-			case notification.EventDeliveryStatusStateFailed:
-				if err = h.reconcileFailed(ctx, &event); err != nil {
-					errs = errors.Join(errs, err)
-				}
-			}
-		}
+	var errs []error
 
-		if errs != nil {
-			return fmt.Errorf("failed to reconcile notification event: %w", errs)
+	for _, event := range events.Items {
+		if err = h.reconcileEvent(ctx, &event); err != nil {
+			errs = append(errs,
+				fmt.Errorf("failed to reconcile notification event [namespace=%s event.id=%s]: %w",
+					event.Namespace, event.ID, err),
+			)
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }

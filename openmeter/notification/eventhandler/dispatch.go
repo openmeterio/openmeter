@@ -12,76 +12,73 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+func eventAsPayload(event *notification.Event) (map[string]interface{}, error) {
+	var (
+		payload any
+		err     error
+	)
+
+	switch event.Type {
+	case notification.EventTypeBalanceThreshold:
+		payload, err = httpdriver.FromEventAsBalanceThresholdPayload(*event)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast event payload: %w", err)
+		}
+	case notification.EventTypeEntitlementReset:
+		payload, err = httpdriver.FromEventAsEntitlementResetPayload(*event)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast event payload: %w", err)
+		}
+	case notification.EventTypeInvoiceCreated:
+		payload, err = httpdriver.FromEventAsInvoiceCreatedPayload(*event)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast event payload: %w", err)
+		}
+	case notification.EventTypeInvoiceUpdated:
+		payload, err = httpdriver.FromEventAsInvoiceUpdatedPayload(*event)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast event payload: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("unknown event type: %s", event.Type)
+	}
+
+	var m map[string]interface{}
+
+	m, err = notification.PayloadToMapInterface(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to cast event payload: %w", err)
+	}
+
+	return m, nil
+}
+
 func (h *Handler) dispatchWebhook(ctx context.Context, event *notification.Event) error {
+	payload, err := eventAsPayload(event)
+	if err != nil {
+		return err
+	}
+
 	sendIn := webhook.SendMessageInput{
 		Namespace: event.Namespace,
 		EventID:   event.ID,
 		EventType: string(event.Type),
 		Channels:  []string{event.Rule.ID},
-	}
-
-	switch event.Type {
-	case notification.EventTypeBalanceThreshold:
-		payload, err := httpdriver.FromEventAsBalanceThresholdPayload(*event)
-		if err != nil {
-			return fmt.Errorf("failed to cast event payload: %w", err)
-		}
-
-		payloadMap, err := notification.PayloadToMapInterface(payload)
-		if err != nil {
-			return fmt.Errorf("failed to cast event payload: %w", err)
-		}
-
-		sendIn.Payload = payloadMap
-	case notification.EventTypeEntitlementReset:
-		payload, err := httpdriver.FromEventAsEntitlementResetPayload(*event)
-		if err != nil {
-			return fmt.Errorf("failed to cast event payload: %w", err)
-		}
-
-		payloadMap, err := notification.PayloadToMapInterface(payload)
-		if err != nil {
-			return fmt.Errorf("failed to cast event payload: %w", err)
-		}
-
-		sendIn.Payload = payloadMap
-	case notification.EventTypeInvoiceCreated:
-		payload, err := httpdriver.FromEventAsInvoiceCreatedPayload(*event)
-		if err != nil {
-			return fmt.Errorf("failed to cast event payload: %w", err)
-		}
-
-		payloadMap, err := notification.PayloadToMapInterface(payload)
-		if err != nil {
-			return fmt.Errorf("failed to cast event payload: %w", err)
-		}
-
-		sendIn.Payload = payloadMap
-	case notification.EventTypeInvoiceUpdated:
-		payload, err := httpdriver.FromEventAsInvoiceUpdatedPayload(*event)
-		if err != nil {
-			return fmt.Errorf("failed to cast event payload: %w", err)
-		}
-
-		payloadMap, err := notification.PayloadToMapInterface(payload)
-		if err != nil {
-			return fmt.Errorf("failed to cast event payload: %w", err)
-		}
-
-		sendIn.Payload = payloadMap
-
-	default:
-		return fmt.Errorf("unknown event type: %s", event.Type)
+		Payload:   payload,
 	}
 
 	logger := h.logger.With("eventID", event.ID, "eventType", event.Type)
 
 	var stateReason string
+
 	state := notification.EventDeliveryStatusStateSuccess
-	_, err := h.webhook.SendMessage(ctx, sendIn)
+
+	_, err = h.webhook.SendMessage(ctx, sendIn)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to send webhook message: error returned by webhook service", "error", err)
+
 		stateReason = "failed to send webhook message: error returned by webhook service"
+
 		state = notification.EventDeliveryStatusStateFailed
 	}
 

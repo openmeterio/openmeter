@@ -7,6 +7,7 @@ import (
 	svix "github.com/svix/svix-webhooks/go"
 
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix/internal"
 )
 
 func (h svixHandler) RegisterEventTypes(ctx context.Context, params webhook.RegisterEventTypesInputs) error {
@@ -20,9 +21,7 @@ func (h svixHandler) RegisterEventTypes(ctx context.Context, params webhook.Regi
 		}
 
 		_, err := h.client.EventType.Update(ctx, eventType.Name, input)
-		if err != nil {
-			err = unwrapSvixError(err)
-
+		if err = internal.AsSvixError(err); err != nil {
 			return fmt.Errorf("failed to create event type: %w", err)
 		}
 	}

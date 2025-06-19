@@ -2,15 +2,9 @@ package webhook
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
-)
-
-const (
-	SigningSecretPrefix = "whsec_"
 )
 
 type Webhook struct {
@@ -44,11 +38,13 @@ type ListWebhooksInput struct {
 }
 
 func (i ListWebhooksInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var _ validator = (*CreateWebhookInput)(nil)
@@ -69,27 +65,23 @@ type CreateWebhookInput struct {
 }
 
 func (i CreateWebhookInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.URL == "" {
-		return ValidationError{
-			Err: errors.New("url is required"),
-		}
+		errs = append(errs, errors.New("url is required"))
 	}
 
 	if i.Secret != nil && *i.Secret != "" {
 		if err := ValidateSigningSecret(*i.Secret); err != nil {
-			return ValidationError{
-				Err: fmt.Errorf("invalid secret: %w", err),
-			}
+			errs = append(errs, fmt.Errorf("invalid secret: %w", err))
 		}
 	}
 
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var _ validator = (*UpdateWebhookInput)(nil)
@@ -110,38 +102,29 @@ type UpdateWebhookInput struct {
 }
 
 func (i UpdateWebhookInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.ID == "" {
-		return ValidationError{
-			Err: errors.New("id is required"),
-		}
+		errs = append(errs, errors.New("id is required"))
 	}
 
 	if i.URL == "" {
-		return ValidationError{
-			Err: errors.New("url is required"),
-		}
+		errs = append(errs, errors.New("url is required"))
 	}
 
 	if i.Secret == nil {
-		return ValidationError{
-			Err: errors.New("secret is required"),
-		}
+		errs = append(errs, errors.New("secret is required"))
 	} else {
-		secret, _ := strings.CutPrefix(*i.Secret, SigningSecretPrefix)
-		if _, err := base64.StdEncoding.DecodeString(secret); err != nil {
-			return ValidationError{
-				Err: errors.New("invalid secret: must be base64 encoded"),
-			}
+		if err := ValidateSigningSecret(*i.Secret); err != nil {
+			errs = append(errs, fmt.Errorf("invalid secret: %w", err))
 		}
 	}
 
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var _ validator = (*UpdateWebhookChannelsInput)(nil)
@@ -155,19 +138,17 @@ type UpdateWebhookChannelsInput struct {
 }
 
 func (i UpdateWebhookChannelsInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.ID == "" {
-		return ValidationError{
-			Err: errors.New("id is required"),
-		}
+		errs = append(errs, errors.New("id is required"))
 	}
 
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var _ validator = (*GetWebhookInput)(nil)
@@ -179,19 +160,17 @@ type GetWebhookInput struct {
 }
 
 func (i GetWebhookInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.ID == "" {
-		return ValidationError{
-			Err: errors.New("id is required"),
-		}
+		errs = append(errs, errors.New("id is required"))
 	}
 
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 type DeleteWebhookInput = GetWebhookInput
@@ -218,25 +197,21 @@ type SendMessageInput struct {
 }
 
 func (i SendMessageInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.EventType == "" {
-		return ValidationError{
-			Err: errors.New("event type is required"),
-		}
+		errs = append(errs, errors.New("event type is required"))
 	}
 
 	if len(i.Payload) == 0 {
-		return ValidationError{
-			Err: errors.New("payload must not be empty"),
-		}
+		errs = append(errs, errors.New("payload must not be empty"))
 	}
 
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 type RegisterEventTypesInputs struct {
@@ -284,16 +259,3 @@ type Handler interface {
 const (
 	DefaultRegistrationTimeout = 30 * time.Second
 )
-
-func ValidateSigningSecret(secret string) error {
-	s, _ := strings.CutPrefix(secret, SigningSecretPrefix)
-	if len(s) < 32 || len(s) > 100 {
-		return errors.New("secret length must be between 32 to 100 chars without the optional prefix")
-	}
-
-	if _, err := base64.StdEncoding.DecodeString(s); err != nil {
-		return errors.New("invalid base64 string")
-	}
-
-	return nil
-}
