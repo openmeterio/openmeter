@@ -2,7 +2,7 @@ package main
 
 const (
 	kafkaVersion      = "3.6"
-	clickhouseVersion = "24.5.5.78"
+	clickhouseVersion = "24.10"
 	redisVersion      = "7.0.12"
 	postgresVersion   = "14.9"
 	svixVersion       = "v1.44"
