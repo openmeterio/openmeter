@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -24,8 +23,7 @@ var _ streaming.Connector = (*Connector)(nil)
 
 // Connector implements `ingest.Connector" and `namespace.Handler interfaces.
 type Connector struct {
-	config            Config
-	namespaceTemplate *regexp.Regexp
+	config Config
 }
 
 type Config struct {
@@ -38,13 +36,6 @@ type Config struct {
 	InsertQuerySettings map[string]string
 	ProgressManager     progressmanager.Service
 	SkipCreateTables    bool
-	QueryCacheEnabled   bool
-	// Minimum query period that can be cached
-	QueryCacheMinimumCacheableQueryPeriod time.Duration
-	// Minimum age after usage data is cachable
-	QueryCacheMinimumCacheableUsageAge time.Duration
-	// Regexp to match namespaces that should be cached
-	QueryCacheNamespaceTemplate string
 }
 
 func (c Config) Validate() error {
@@ -68,16 +59,6 @@ func (c Config) Validate() error {
 		return fmt.Errorf("progress manager is required")
 	}
 
-	if c.QueryCacheEnabled {
-		if c.QueryCacheMinimumCacheableQueryPeriod <= 0 {
-			return fmt.Errorf("minimum cacheable query period is required")
-		}
-
-		if c.QueryCacheMinimumCacheableUsageAge <= 0 {
-			return fmt.Errorf("minimum cacheable usage age is required")
-		}
-	}
-
 	return nil
 }
 
@@ -87,21 +68,9 @@ func New(ctx context.Context, config Config) (*Connector, error) {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
-	// Compile the namespace template
-	var namespaceTemplate *regexp.Regexp
-	var err error
-
-	if config.QueryCacheNamespaceTemplate != "" {
-		namespaceTemplate, err = regexp.Compile(config.QueryCacheNamespaceTemplate)
-		if err != nil {
-			return nil, fmt.Errorf("namespace template invalid regex: %w", err)
-		}
-	}
-
 	// Create the connector
 	connector := &Connector{
-		config:            config,
-		namespaceTemplate: namespaceTemplate,
+		config: config,
 	}
 
 	if !config.SkipCreateTables {
@@ -119,11 +88,6 @@ func (c *Connector) createTable(ctx context.Context) error {
 	err := c.createEventsTable(ctx)
 	if err != nil {
 		return fmt.Errorf("create events table in clickhouse: %w", err)
-	}
-
-	// Create the meter query cache table
-	if err := c.createMeterQueryCacheTable(ctx); err != nil {
-		return fmt.Errorf("create meter query cache in clickhouse: %w", err)
 	}
 
 	return nil
@@ -211,30 +175,16 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	var err error
 	var values []meterpkg.MeterQueryRow
 
-	useCache := c.canQueryBeCached(namespace, meter, params)
-
-	// If the query is cached, we load the cached rows
-	if useCache {
-		hash := fmt.Sprintf("%x", QueryParamsHash(params))
-
-		resultRows, err := c.executeQueryWithCaching(ctx, hash, query)
+	// If the client ID is set, we track track the progress of the query
+	if params.ClientID != nil {
+		values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
 		if err != nil {
-			return values, fmt.Errorf("query cached rows: %w", err)
+			return values, fmt.Errorf("query meter with progress: %w", err)
 		}
-
-		values = mergeMeterQueryRows(meter, params, resultRows)
 	} else {
-		// If the client ID is set, we track track the progress of the query
-		if params.ClientID != nil {
-			values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
-			if err != nil {
-				return values, fmt.Errorf("query meter with progress: %w", err)
-			}
-		} else {
-			values, err = c.queryMeter(ctx, query)
-			if err != nil {
-				return values, fmt.Errorf("query meter: %w", err)
-			}
+		values, err = c.queryMeter(ctx, query)
+		if err != nil {
+			return values, fmt.Errorf("query meter: %w", err)
 		}
 	}
 
@@ -330,20 +280,6 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 
 	if err != nil {
 		return fmt.Errorf("failed to batch insert raw events: %w", err)
-	}
-
-	// If query cache is enabled, we invalidate the cache if any events are inserted
-	if c.config.QueryCacheEnabled {
-		// Check if any events requires cache invalidation
-		namespacesToInvalidateCache := c.findNamespacesToInvalidateCache(rawEvents)
-
-		if len(namespacesToInvalidateCache) > 0 {
-			if err := c.invalidateCache(ctx, namespacesToInvalidateCache); err != nil {
-				return fmt.Errorf("invalidate query cache: %w", err)
-			}
-
-			c.config.Logger.Info("invalidated query cache for namespaces", "namespaces", namespacesToInvalidateCache)
-		}
 	}
 
 	return nil

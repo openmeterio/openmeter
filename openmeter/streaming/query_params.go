@@ -9,7 +9,6 @@ import (
 )
 
 type QueryParams struct {
-	Cachable       bool
 	ClientID       *string
 	From           *time.Time
 	To             *time.Time
