@@ -910,8 +910,7 @@ func TestEngine(t *testing.T) {
 				return rows[0].Value, nil
 			}
 			tc.run(t, engine.NewEngine(engine.EngineConfig{
-				QueryUsage:  queryFeatureUsage,
-				Granularity: meterpkg.WindowSizeMinute,
+				QueryUsage: queryFeatureUsage,
 			}), func(usage float64, at time.Time) {
 				streamingConnector.AddSimpleEvent(meterSlug, usage, at)
 			})

@@ -122,6 +122,7 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 
 	var def engine.RunResult
 
+	// FIXME: remove truncation
 	// To include the current last minute lets round it trunc to the next minute
 	if trunc := at.Truncate(time.Minute); trunc.Before(at) {
 		at = trunc.Add(time.Minute)
@@ -144,6 +145,7 @@ func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.Name
 
 	var def engine.RunResult
 
+	// FIXME: remove truncation
 	// To include the current last minute lets round it trunc to the next minute
 	if trunc := period.To.Truncate(time.Minute); trunc.Before(period.To) {
 		period.To = trunc.Add(time.Minute)
@@ -215,7 +217,8 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		return nil, fmt.Errorf("failed to describe owner %s: %w", ownerID.ID, err)
 	}
 
-	at := params.At.Truncate(owner.Meter.WindowSize.Duration())
+	// FIXME: remove truncation
+	at := params.At.Truncate(time.Minute)
 
 	// check if reset is possible (not before current period)
 	periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())

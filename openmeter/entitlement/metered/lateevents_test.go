@@ -110,7 +110,6 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 				},
 			},
 			Aggregation: meter.MeterAggregationSum,
-			WindowSize:  meter.WindowSizeMinute,
 			// These will be ignored in tests
 			EventType:     "test",
 			ValueProperty: convert.ToPointer("$.value"),

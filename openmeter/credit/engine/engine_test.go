@@ -100,16 +100,13 @@ func Test_Fuzzing(t *testing.T) {
 				}
 
 				engine1 := engine.NewEngine(engine.EngineConfig{
-					QueryUsage:  queryFn,
-					Granularity: meterpkg.WindowSizeMinute,
+					QueryUsage: queryFn,
 				}) // runs for first part
 				engine2 := engine.NewEngine(engine.EngineConfig{
-					QueryUsage:  queryFn,
-					Granularity: meterpkg.WindowSizeMinute,
+					QueryUsage: queryFn,
 				}) // runs for second part
 				engine3 := engine.NewEngine(engine.EngineConfig{
-					QueryUsage:  queryFn,
-					Granularity: meterpkg.WindowSizeMinute,
+					QueryUsage: queryFn,
 				}) // runs for both parts
 
 				res, err := engine1.Run(
@@ -204,8 +201,7 @@ func Test_Fuzzing(t *testing.T) {
 				results := make([]balance.Map, numOfRuns)
 				for i := 0; i < numOfRuns; i++ {
 					eng := engine.NewEngine(engine.EngineConfig{
-						QueryUsage:  queryFn,
-						Granularity: meterpkg.WindowSizeMinute,
+						QueryUsage: queryFn,
 					})
 					gCp := make([]grant.Grant, len(grants))
 					copy(gCp, grants)
@@ -291,8 +287,7 @@ func Test_Fuzzing(t *testing.T) {
 
 				// run calculation on single engine
 				singleEngine := engine.NewEngine(engine.EngineConfig{
-					QueryUsage:  queryFn,
-					Granularity: meterpkg.WindowSizeMinute,
+					QueryUsage: queryFn,
 				})
 				gCp := make([]grant.Grant, len(grants))
 				copy(gCp, grants)
@@ -329,8 +324,7 @@ func Test_Fuzzing(t *testing.T) {
 					}
 
 					eng := engine.NewEngine(engine.EngineConfig{
-						QueryUsage:  queryFn,
-						Granularity: meterpkg.WindowSizeMinute,
+						QueryUsage: queryFn,
 					})
 					gCp := make([]grant.Grant, len(grants))
 					copy(gCp, grants)

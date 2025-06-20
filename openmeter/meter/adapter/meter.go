@@ -131,6 +131,5 @@ func MapFromEntityFactory(entity *db.Meter) (meter.Meter, error) {
 		EventFrom:     entity.EventFrom,
 		ValueProperty: entity.ValueProperty,
 		GroupBy:       entity.GroupBy,
-		WindowSize:    meter.WindowSizeMinute,
 	}, nil
 }

@@ -49,7 +49,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 		if err != nil {
 			return nil, err
 		}
-		granularity := owner.Meter.WindowSize.Duration()
+		granularity := time.Minute
 		input.EffectiveAt = input.EffectiveAt.Truncate(granularity)
 		if input.Recurrence != nil {
 			input.Recurrence.Anchor = input.Recurrence.Anchor.Truncate(granularity)

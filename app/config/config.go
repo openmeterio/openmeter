@@ -102,9 +102,6 @@ func (c Configuration) Validate() error {
 			Description: m.Description,
 		}
 
-		// Window size is deprecated, always set to MINUTE
-		c.Meters[idx].WindowSize = meter.WindowSizeMinute
-
 		if err := c.Meters[idx].Validate(); err != nil {
 			errs = append(errs, err)
 		}

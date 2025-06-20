@@ -135,14 +135,15 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to describe owner: %w", err)
 	}
 
+	// FIXME: remove truncation
 	fullPeriodTruncated := timeutil.ClosedPeriod{
-		From: params.From.Truncate(owner.Meter.WindowSize.Duration()),
-		To:   params.To.Truncate(owner.Meter.WindowSize.Duration()),
+		From: params.From.Truncate(time.Minute),
+		To:   params.To.Truncate(time.Minute),
 	}
 
 	// If `to` time is not truncated to minute we assume to query until the next minute so fresh usage data shows up
 	if !params.To.Truncate(time.Minute).Equal(*params.To) {
-		fullPeriodTruncated.To = fullPeriodTruncated.To.Add(owner.Meter.WindowSize.Duration())
+		fullPeriodTruncated.To = fullPeriodTruncated.To.Add(time.Minute)
 	}
 
 	// 1. Let's query the windowed usage data

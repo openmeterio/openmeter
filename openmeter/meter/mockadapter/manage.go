@@ -40,7 +40,6 @@ func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMet
 		EventFrom:     input.EventFrom,
 		ValueProperty: input.ValueProperty,
 		GroupBy:       input.GroupBy,
-		WindowSize:    meterpkg.WindowSizeMinute,
 	}
 
 	a.adapter.meters = append(a.adapter.meters, meter)
@@ -76,7 +75,6 @@ func (a manageAdapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMet
 		Aggregation:   currentMeter.Aggregation,
 		EventType:     currentMeter.EventType,
 		ValueProperty: currentMeter.ValueProperty,
-		WindowSize:    currentMeter.WindowSize,
 		// Mutable fields
 		EventFrom: currentMeter.EventFrom,
 		GroupBy:   input.GroupBy,

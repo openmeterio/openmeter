@@ -124,7 +124,6 @@ func (m *connector) buildEngineForOwner(ctx context.Context, params buildEngineF
 	})
 
 	eng := engine.NewEngine(engine.EngineConfig{
-		Granularity: params.owner.Meter.WindowSize,
 		QueryUsage: func(ctx context.Context, from, to time.Time) (float64, error) {
 			ctx, span := m.Tracer.Start(
 				ctx,
