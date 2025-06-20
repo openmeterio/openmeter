@@ -109,10 +109,10 @@ func TestValidations(t *testing.T) {
 
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(&productcatalog.UsageBasedRateCard{
-				RateCardMeta: meta,
+				RateCardMeta:   meta,
+				BillingCadence: testutils.GetISODuration(t, "P1M"),
 			}, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
-			require.Error(t, err)
-			require.ErrorContains(t, err, "billing cadence must match")
+			require.NoError(t, err)
 		})
 	})
 

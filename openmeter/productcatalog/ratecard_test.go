@@ -54,6 +54,18 @@ func TestFlatFeeRateCard(t *testing.T) {
 				ExpectedError: false,
 			},
 			{
+				Name: "valid, nil billing cadence",
+				RateCard: FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Key:         "feat-1",
+						Name:        "Flat 1",
+						Description: lo.ToPtr("Flat 1"),
+					},
+					BillingCadence: nil,
+				},
+				ExpectedError: false,
+			},
+			{
 				Name: "invalid",
 				RateCard: FlatFeeRateCard{
 					RateCardMeta: RateCardMeta{
