@@ -134,6 +134,13 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 				fmt.Sprintf("tumbleEnd(%s, toIntervalDay(1), '%s') AS windowend", timeColumn, tz),
 			)
 
+		case meterpkg.WindowSizeMonth:
+			selectColumns = append(
+				selectColumns,
+				fmt.Sprintf("tumbleStart(%s, toIntervalMonth(1), '%s') AS windowstart", timeColumn, tz),
+				fmt.Sprintf("tumbleEnd(%s, toIntervalMonth(1), '%s') AS windowend", timeColumn, tz),
+			)
+
 		default:
 			return "", nil, fmt.Errorf("invalid window size type: %s", *d.WindowSize)
 		}

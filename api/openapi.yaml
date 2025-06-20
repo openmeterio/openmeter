@@ -22826,11 +22826,13 @@ components:
         - MINUTE
         - HOUR
         - DAY
+        - MONTH
       description: Aggregation window size.
       x-enum-varnames:
         - Minute
         - Hour
         - Day
+        - Month
     WindowedBalanceHistory:
       type: object
       required:

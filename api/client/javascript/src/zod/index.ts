@@ -8207,7 +8207,7 @@ export const queryMeterQueryParams = zod.object({
       'End date-time in RFC 3339 format.\n\nInclusive.\n\nFor example: ?to=2025-02-01T00%3A00%3A00.000Z'
     ),
   windowSize: zod
-    .enum(['MINUTE', 'HOUR', 'DAY'])
+    .enum(['MINUTE', 'HOUR', 'DAY', 'MONTH'])
     .optional()
     .describe(
       'If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.\n\nFor example: ?windowSize=DAY'
@@ -8275,7 +8275,7 @@ export const queryMeterPostBody = zod
       .optional()
       .describe('End date-time in RFC 3339 format.\n\nInclusive.'),
     windowSize: zod
-      .enum(['MINUTE', 'HOUR', 'DAY'])
+      .enum(['MINUTE', 'HOUR', 'DAY', 'MONTH'])
       .describe('Aggregation window size.')
       .optional()
       .describe(
@@ -11513,7 +11513,7 @@ export const queryPortalMeterQueryParams = zod.object({
       'End date-time in RFC 3339 format.\n\nInclusive.\n\nFor example: ?to=2025-02-01T00%3A00%3A00.000Z'
     ),
   windowSize: zod
-    .enum(['MINUTE', 'HOUR', 'DAY'])
+    .enum(['MINUTE', 'HOUR', 'DAY', 'MONTH'])
     .optional()
     .describe(
       'If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.\n\nFor example: ?windowSize=DAY'
@@ -12728,7 +12728,9 @@ export const getEntitlementHistoryQueryParams = zod.object({
     .describe(
       'End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.\nIf not now then gets truncated to the granularity of the underlying meter.'
     ),
-  windowSize: zod.enum(['MINUTE', 'HOUR', 'DAY']).describe('Windowsize'),
+  windowSize: zod
+    .enum(['MINUTE', 'HOUR', 'DAY', 'MONTH'])
+    .describe('Windowsize'),
   windowTimeZone: zod
     .string()
     .default(getEntitlementHistoryQueryWindowTimeZoneDefault)
