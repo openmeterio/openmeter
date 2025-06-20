@@ -6,7 +6,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -43,8 +42,7 @@ type Engine interface {
 type QueryUsageFn func(ctx context.Context, from, to time.Time) (float64, error)
 
 type EngineConfig struct {
-	Granularity meter.WindowSize
-	QueryUsage  QueryUsageFn
+	QueryUsage QueryUsageFn
 }
 
 func NewEngine(conf EngineConfig) Engine {

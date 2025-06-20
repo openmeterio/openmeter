@@ -58,8 +58,7 @@ func TestReset(t *testing.T) {
 		}
 
 		return engine.NewEngine(engine.EngineConfig{
-				QueryUsage:  queryFeatureUsage,
-				Granularity: meterpkg.WindowSizeMinute,
+				QueryUsage: queryFeatureUsage,
 			}), func(usage float64, at time.Time) {
 				streamingConnector.AddSimpleEvent(meterSlug, usage, at)
 			}

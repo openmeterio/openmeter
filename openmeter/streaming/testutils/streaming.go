@@ -121,6 +121,19 @@ func (m *MockStreamingConnector) ValidateJSONPath(ctx context.Context, jsonPath 
 	return strings.HasPrefix(jsonPath, "$."), nil
 }
 
+func (m *MockStreamingConnector) windowSizeDuration(windowSize meter.WindowSize) time.Duration {
+	switch windowSize {
+	case meter.WindowSizeMinute:
+		return time.Minute
+	case meter.WindowSizeHour:
+		return time.Hour
+	case meter.WindowSizeDay:
+		return 24 * time.Hour
+	default:
+		return 0
+	}
+}
+
 // We approximate the actual logic by a simple filter + aggregation for most cases
 func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
 	events, ok := m.events[meterSlug]
@@ -140,13 +153,13 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params stream
 	if params.WindowSize != nil && params.WindowTimeZone != nil {
 		// TODO: windowtimezone will be ignored
 
-		windowingStart := from.Truncate(params.WindowSize.Duration()) // The first truncated time that from query falls into
-		windowingEnd := to.Truncate(params.WindowSize.Duration())     // The last truncated time that to query falls into
+		windowingStart, _ := params.WindowSize.Truncate(from) // The first truncated time that from query falls into
+		windowingEnd, _ := params.WindowSize.Truncate(to)     // The last truncated time that to query falls into
 		if !to.Equal(windowingEnd) {
-			windowingEnd = windowingEnd.Add(params.WindowSize.Duration())
+			windowingEnd, _ = params.WindowSize.AddTo(windowingEnd)
 		}
 
-		numOfWindows := int(windowingEnd.Sub(windowingStart).Seconds()) / int(params.WindowSize.Duration().Seconds())
+		numOfWindows := int(windowingEnd.Sub(windowingStart).Seconds()) / int(m.windowSizeDuration(*params.WindowSize).Seconds())
 
 		if numOfWindows == 0 {
 			return nil, fmt.Errorf("couldnt calculate windows")
@@ -155,8 +168,8 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params stream
 		for i := 0; i < numOfWindows; i++ {
 			rows = append(rows, meter.MeterQueryRow{
 				Value:       0,
-				WindowStart: windowingStart.Add(params.WindowSize.Duration() * time.Duration(i)),
-				WindowEnd:   windowingStart.Add(params.WindowSize.Duration() * time.Duration(i+1)),
+				WindowStart: windowingStart.Add(m.windowSizeDuration(*params.WindowSize) * time.Duration(i)),
+				WindowEnd:   windowingStart.Add(m.windowSizeDuration(*params.WindowSize) * time.Duration(i+1)),
 				GroupBy:     map[string]*string{},
 			})
 		}

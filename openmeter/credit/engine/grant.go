@@ -39,7 +39,7 @@ func (e *engine) getGrantActivityChanges(grants []grant.Grant, period timeutil.C
 
 	// FIXME: we should truncate on input but that's hard for voidedAt and deletedAt
 	for i, t := range activityChanges {
-		activityChanges[i] = t.Truncate(e.Granularity.Duration()).In(time.UTC)
+		activityChanges[i] = t.Truncate(time.Minute).In(time.UTC)
 	}
 
 	sort.Slice(activityChanges, func(i, j int) bool {

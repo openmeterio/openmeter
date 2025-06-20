@@ -283,7 +283,6 @@ func TestComplete(t *testing.T) {
 					"method": "$.method",
 					"path":   "$.path",
 				},
-				WindowSize: meter.WindowSizeMinute,
 			},
 		},
 		Events: EventsConfiguration{

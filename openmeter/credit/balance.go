@@ -215,7 +215,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		return nil, fmt.Errorf("failed to describe owner %s: %w", ownerID.ID, err)
 	}
 
-	at := params.At.Truncate(owner.Meter.WindowSize.Duration())
+	at := params.At.Truncate(time.Minute)
 
 	// check if reset is possible (not before current period)
 	periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())

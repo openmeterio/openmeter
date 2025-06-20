@@ -100,35 +100,6 @@ func (w WindowSize) Truncate(t time.Time) (time.Time, error) {
 	}
 }
 
-// Duration returns the duration of the window size
-// BEWARE: a day is NOT 24 hours
-func (w WindowSize) Duration() time.Duration {
-	var windowDuration time.Duration
-	switch w {
-	case WindowSizeMinute:
-		windowDuration = time.Minute
-	case WindowSizeHour:
-		windowDuration = time.Hour
-	case WindowSizeDay:
-		windowDuration = 24 * time.Hour
-	}
-
-	return windowDuration
-}
-
-func WindowSizeFromDuration(duration time.Duration) (WindowSize, error) {
-	switch duration.Minutes() {
-	case time.Minute.Minutes():
-		return WindowSizeMinute, nil
-	case time.Hour.Minutes():
-		return WindowSizeHour, nil
-	case 24 * time.Hour.Minutes():
-		return WindowSizeDay, nil
-	default:
-		return "", fmt.Errorf("invalid window size duration: %s", duration)
-	}
-}
-
 // OrderBy is the order by clause for features
 type OrderBy string
 
@@ -160,27 +131,6 @@ type Meter struct {
 	EventFrom     *time.Time
 	ValueProperty *string
 	GroupBy       map[string]string
-
-	// Deprecated, always set to MINUTE
-	WindowSize WindowSize
-}
-
-func (m *Meter) SupportsWindowSize(w *WindowSize) error {
-	// Ensure `from` and `to` aligns with query param window size if any
-	if w != nil {
-		// Ensure query param window size is not smaller than meter window size
-		switch m.WindowSize {
-		case WindowSizeHour:
-			if w != nil && *w == WindowSizeMinute {
-				return fmt.Errorf("cannot query meter with window size %s on window size %s", m.WindowSize, *w)
-			}
-		case WindowSizeDay:
-			if w != nil && (*w == WindowSizeMinute || *w == WindowSizeHour) {
-				return fmt.Errorf("cannot query meter with window size %s on window size %s", m.WindowSize, *w)
-			}
-		}
-	}
-	return nil
 }
 
 func (m1 Meter) Equal(m2 Meter) error {
