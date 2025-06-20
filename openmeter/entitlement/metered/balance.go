@@ -135,6 +135,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to describe owner: %w", err)
 	}
 
+	// FIXME: remove truncation
 	fullPeriodTruncated := timeutil.ClosedPeriod{
 		From: params.From.Truncate(time.Minute),
 		To:   params.To.Truncate(time.Minute),

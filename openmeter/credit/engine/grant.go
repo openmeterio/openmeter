@@ -38,6 +38,7 @@ func (e *engine) getGrantActivityChanges(grants []grant.Grant, period timeutil.C
 	}
 
 	// FIXME: we should truncate on input but that's hard for voidedAt and deletedAt
+	// FIXME: remove truncation
 	for i, t := range activityChanges {
 		activityChanges[i] = t.Truncate(time.Minute).In(time.UTC)
 	}
