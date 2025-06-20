@@ -20,30 +20,17 @@ import (
 // MockConnectorOption is a function that configures the Connector
 type MockConnectorOption func(Config) Config
 
-// WithQueryCacheNamespaceTemplate sets the QueryCacheNamespaceTemplate property
-func WithQueryCacheNamespaceTemplate(template string) MockConnectorOption {
-	return func(c Config) Config {
-		n := c
-		n.QueryCacheNamespaceTemplate = template
-
-		return n
-	}
-}
-
 // GetMockConnector returns a new Connector with a mock ClickHouse
 func GetMockConnector(t *testing.T, opts ...MockConnectorOption) (*Connector, *MockClickHouse) {
 	mockClickhouse := NewMockClickHouse()
 
 	config := Config{
-		Logger:                                slog.Default(),
-		ClickHouse:                            mockClickhouse,
-		Database:                              "testdb",
-		EventsTableName:                       "events",
-		ProgressManager:                       progressmanager.NewMockProgressManager(),
-		QueryCacheEnabled:                     true,
-		QueryCacheMinimumCacheableQueryPeriod: 3 * 24 * time.Hour,
-		QueryCacheMinimumCacheableUsageAge:    24 * time.Hour,
-		SkipCreateTables:                      true,
+		Logger:           slog.Default(),
+		ClickHouse:       mockClickhouse,
+		Database:         "testdb",
+		EventsTableName:  "events",
+		ProgressManager:  progressmanager.NewMockProgressManager(),
+		SkipCreateTables: true,
 	}
 
 	// Apply options
@@ -183,7 +170,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	mockRows4.AssertExpectations(t)
 }
 
-func TestBatchInsertWithCacheInvalidation(t *testing.T) {
+func TestBatchInsert(t *testing.T) {
 	connector, mockCH := GetMockConnector(t)
 
 	ctx := context.Background()
@@ -194,56 +181,14 @@ func TestBatchInsertWithCacheInvalidation(t *testing.T) {
 		{
 			Namespace: "test-namespace-1",
 			ID:        "1",
-			Time:      now.Add(-48 * time.Hour), // This event is older than the minimum cacheable age
-		},
-		{
-			Namespace: "test-namespace-2",
-			ID:        "2",
-			Time:      now.Add(-48 * time.Hour), // This event is older than the minimum cacheable age
-		},
-		{
-			Namespace: "test-namespace-3",
-			ID:        "3",
-			Time:      now, // This event is newer than the minimum cacheable age, shouldn't trigger cache invalidation
+			Time:      now.Add(-48 * time.Hour),
 		},
 	}
 
 	// Mock the batch insert
 	mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
-
-	// Mock the cache invalidation (only for test-namespace-1 and test-namespace-2)
-	mockCH.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)",
-		[]interface{}{[]string{"test-namespace-1", "test-namespace-2"}}).Return(nil).Once()
 
 	// Execute the method
-	err := connector.BatchInsert(ctx, events)
-	require.NoError(t, err)
-
-	// Verify mocks were called
-	mockCH.AssertExpectations(t)
-}
-
-func TestBatchInsertWithCacheDisabled(t *testing.T) {
-	connector, mockCH := GetMockConnector(t)
-	connector.config.QueryCacheEnabled = false
-	connector.config.QueryCacheMinimumCacheableUsageAge = 24 * time.Hour
-
-	ctx := context.Background()
-	now := time.Now().UTC()
-
-	// Set up test events
-	events := []streaming.RawEvent{
-		{
-			Namespace: "test-namespace-1",
-			ID:        "1",
-			Time:      now.Add(-48 * time.Hour), // This event is older than the minimum cacheable age
-		},
-	}
-
-	// Mock the batch insert
-	mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
-
-	// Execute the method (should not call cache invalidation since cache is disabled)
 	err := connector.BatchInsert(ctx, events)
 	require.NoError(t, err)
 

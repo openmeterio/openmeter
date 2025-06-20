@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -29,9 +28,6 @@ type AggregationConfiguration struct {
 	// For example, you can set the `max_insert_threads` setting to control the number of threads
 	// or the `parallel_view_processing` setting to enable pushing to attached views concurrently.
 	InsertQuerySettings map[string]string
-
-	// QueryCache is the cache configuration
-	QueryCache AggregationQueryCacheConfiguration
 }
 
 // Validate validates the configuration.
@@ -48,49 +44,7 @@ func (c AggregationConfiguration) Validate() error {
 		return errors.New("async insert wait is set but async insert is not")
 	}
 
-	if err := c.QueryCache.Validate(); err != nil {
-		return fmt.Errorf("query cache: %w", err)
-	}
-
 	return nil
-}
-
-// AggregationQueryCacheConfiguration is the cache configuration for the aggregation engine
-type AggregationQueryCacheConfiguration struct {
-	// Enabled for matching namespaces
-	Enabled bool
-	// Enabled for matching namespaces
-	NamespaceTemplate string
-	// Minimum query period that can be cached
-	MinimumCacheableQueryPeriod time.Duration
-	// Minimum age after usage data is cachable
-	MinimumCacheableUsageAge time.Duration
-}
-
-// Validate validates the configuration.
-func (c AggregationQueryCacheConfiguration) Validate() error {
-	var errs []error
-
-	if !c.Enabled {
-		return nil
-	}
-
-	if c.NamespaceTemplate != "" {
-		_, err := regexp.Compile(c.NamespaceTemplate)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("namespace template invalid regex: %w", err))
-		}
-	}
-
-	if c.MinimumCacheableQueryPeriod <= 0 {
-		errs = append(errs, errors.New("minimum cacheable query period is required"))
-	}
-
-	if c.MinimumCacheableUsageAge <= 0 {
-		errs = append(errs, errors.New("minimum cacheable usage age is required"))
-	}
-
-	return errors.Join(errs...)
 }
 
 // ClickHouseAggregationConfiguration is the configuration for the ClickHouse aggregation engine
@@ -171,11 +125,6 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.eventsTableName", "om_events")
 	v.SetDefault("aggregation.asyncInsert", false)
 	v.SetDefault("aggregation.asyncInsertWait", false)
-
-	// Cache configuration
-	v.SetDefault("aggregation.queryCache.enabled", false)
-	v.SetDefault("aggregation.queryCache.minimumCacheableQueryPeriod", "72h")
-	v.SetDefault("aggregation.queryCache.minimumCacheableUsageAge", "24h")
 
 	v.SetDefault("aggregation.clickhouse.address", "127.0.0.1:9000")
 	v.SetDefault("aggregation.clickhouse.tls", false)
