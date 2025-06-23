@@ -302,11 +302,12 @@ enum MeterAggregation {
  * Aggregation window size.
  */
 @friendlyName("WindowSize")
-@extension("x-enum-varnames", #["Minute", "Hour", "Day"])
+@extension("x-enum-varnames", #["Minute", "Hour", "Day", "Month"])
 enum WindowSize {
   MINUTE,
   HOUR,
   DAY,
+  MONTH,
 }
 
 /**

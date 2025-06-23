@@ -60,6 +60,7 @@ const (
 	WindowSizeMinute WindowSize = "MINUTE"
 	WindowSizeHour   WindowSize = "HOUR"
 	WindowSizeDay    WindowSize = "DAY"
+	WindowSizeMonth  WindowSize = "MONTH"
 )
 
 // Values provides list valid values for Enum
@@ -68,6 +69,7 @@ func (WindowSize) Values() (kinds []string) {
 		WindowSizeMinute,
 		WindowSizeHour,
 		WindowSizeDay,
+		WindowSizeMonth,
 	} {
 		kinds = append(kinds, string(s))
 	}
@@ -82,6 +84,8 @@ func (w WindowSize) AddTo(t time.Time) (time.Time, error) {
 		return t.Add(time.Hour), nil
 	case WindowSizeDay:
 		return t.AddDate(0, 0, 1), nil
+	case WindowSizeMonth:
+		return t.AddDate(0, 1, 0), nil
 	default:
 		return time.Time{}, fmt.Errorf("invalid window size: %s", w)
 	}
@@ -95,6 +99,8 @@ func (w WindowSize) Truncate(t time.Time) (time.Time, error) {
 		return t.Truncate(time.Hour), nil
 	case WindowSizeDay:
 		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location()), nil
+	case WindowSizeMonth:
+		return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location()), nil
 	default:
 		return time.Time{}, fmt.Errorf("invalid window size: %s", w)
 	}

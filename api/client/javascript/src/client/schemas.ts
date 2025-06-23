@@ -10042,7 +10042,7 @@ export interface components {
      * @description Aggregation window size.
      * @enum {string}
      */
-    WindowSize: 'MINUTE' | 'HOUR' | 'DAY'
+    WindowSize: 'MINUTE' | 'HOUR' | 'DAY' | 'MONTH'
     /** @description The windowed balance history. */
     WindowedBalanceHistory: {
       /** @description The windowed balance history.
