@@ -2,6 +2,7 @@ package plansubscription
 
 import (
 	"context"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -25,6 +26,7 @@ type MigrateSubscriptionRequest struct {
 	TargetVersion *int
 	StartingPhase *string
 	Timing        *subscription.Timing
+	BillingAnchor *time.Time
 }
 
 type ChangeSubscriptionRequest struct {

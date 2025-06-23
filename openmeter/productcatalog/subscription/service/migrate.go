@@ -100,6 +100,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		MetadataModel: sub.MetadataModel,
 		Name:          sub.Name,
 		Description:   sub.Description,
+		BillingAnchor: request.BillingAnchor,
 	}
 	curr, new, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, workflowInput, pp)
 	if err != nil {

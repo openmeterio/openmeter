@@ -3537,6 +3537,12 @@ export interface components {
       /** @description Timing configuration for the change, when the change should take effect.
        *     For changing a subscription, the accepted values depend on the subscription configuration. */
       timing: components['schemas']['SubscriptionTiming']
+      /**
+       * Format: date-time
+       * @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      billingAnchor?: Date
       /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
     }
@@ -8128,6 +8134,12 @@ export interface components {
       name?: string
       /** @description Description for the Subscription. */
       description?: string
+      /**
+       * Format: date-time
+       * @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      billingAnchor?: Date
     }
     /** @description Create subscription based on plan. */
     PlanSubscriptionCreate: {
@@ -9572,7 +9584,7 @@ export interface components {
        *
        *     2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
        *
-       *     We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”. In practice this should be derived from what's printed on the invoice line-item. */
+       *     We say "referenced by the Price" regardless of how a price itself is referenced, it colloquially makes sense to say "paying the same price for the same thing". In practice this should be derived from what's printed on the invoice line-item. */
       key: string
       /** @description The feature's key (if present). */
       featureKey?: string
@@ -23672,6 +23684,12 @@ export interface operations {
           /** @description The key of the phase to start the subscription in.
            *     If not provided, the subscription will start in the first phase of the plan. */
           startingPhase?: string
+          /**
+           * Format: date-time
+           * @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
+           * @example 2023-01-01T01:01:01.001Z
+           */
+          billingAnchor?: Date
         }
       }
     }

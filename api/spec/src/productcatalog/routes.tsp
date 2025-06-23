@@ -493,6 +493,11 @@ interface Subscriptions {
        */
       @minLength(1)
       startingPhase?: string;
+
+      /**
+       * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
+       */
+      billingAnchor?: DateTime;
     },
   ):
     | SubscriptionChangeResponseBody

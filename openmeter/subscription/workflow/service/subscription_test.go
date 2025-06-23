@@ -858,6 +858,7 @@ func TestEditingWithTiming(t *testing.T) {
 func TestChangeToPlan(t *testing.T) {
 	// Let's define two plans. One is the example plan, and the second is a slightly modified version of that
 	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+	examplePlanInput1.Plan.Alignment.BillablesMustAlign = true
 
 	rc1 := productcatalog.UsageBasedRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
@@ -1016,11 +1017,9 @@ func TestChangeToPlan(t *testing.T) {
 			}, deps.Plan1)
 			require.Nil(t, err)
 
-			someTimeLater := deps.CurrentTime.AddDate(0, 0, 10)
-
 			changeInput := subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{
-					Custom: &someTimeLater,
+					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 				},
 				Name: "New Subscription",
 			}
@@ -1031,7 +1030,6 @@ func TestChangeToPlan(t *testing.T) {
 			// Let's do some simple validations
 			require.Equal(t, sub.Subscription.NamespacedID, curr.NamespacedID)
 			require.NotNil(t, curr.ActiveTo)
-			require.Equal(t, someTimeLater, *curr.ActiveTo)
 
 			require.NotNil(t, new.Subscription.PlanRef)
 			require.Equal(t, examplePlanInput2.Key, new.Subscription.PlanRef.Key)
@@ -1043,8 +1041,8 @@ func TestChangeToPlan(t *testing.T) {
 				MetadataModel: changeInput.MetadataModel,
 				CustomerId:    curr.CustomerId,
 				Currency:      deps.Plan2.Currency(),
-				ActiveFrom:    *changeInput.Custom,
-				BillingAnchor: *changeInput.Custom,
+				ActiveFrom:    testutils.GetRFC3339Time(t, "2021-02-01T00:00:00Z"),
+				BillingAnchor: sub.Subscription.BillingAnchor.AddDate(0, 1, 0), // shift 1 month due to normalization
 				ActiveTo:      nil,
 			})
 			require.Nil(t, err)
