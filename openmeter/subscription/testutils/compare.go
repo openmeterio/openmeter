@@ -30,6 +30,7 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 	assert.Equal(t, expected.ActiveFrom, found.Subscription.ActiveFrom)
 	assert.Equal(t, expected.ActiveTo, found.Subscription.ActiveTo)
 	assert.Equal(t, expected.Metadata, found.Subscription.Metadata)
+	assert.Equal(t, expected.BillingAnchor, found.Subscription.BillingAnchor)
 
 	// Let's validate the phases
 
@@ -148,6 +149,8 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 }
 
 func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
+	t.Helper()
+
 	// Let's validate the Subscription itself
 	assert.Equal(t, s1.Name, s2.Name)
 	assert.Equal(t, s1.Description, s2.Description)
@@ -285,6 +288,8 @@ func equalNilableTime(t *testing.T, t1, t2 *time.Time, msgAndArgs ...interface{}
 }
 
 func SubscriptionAddonsEqual(t *testing.T, a1, a2 subscriptionaddon.SubscriptionAddon) {
+	t.Helper()
+
 	assert.Equal(t, a1.Addon.ID, a2.Addon.ID) // TODO: check all fields?
 	assert.Equal(t, a1.SubscriptionID, a2.SubscriptionID)
 	assert.Equal(t, a1.Metadata, a2.Metadata)

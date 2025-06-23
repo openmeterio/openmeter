@@ -10121,6 +10121,11 @@ paths:
                   description: |-
                     The key of the phase to start the subscription in.
                     If not provided, the subscription will start in the first phase of the plan.
+                billingAnchor:
+                  type: string
+                  format: date-time
+                  description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
+                  example: '2023-01-01T01:01:01.001Z'
   /api/v1/subscriptions/{subscriptionId}/restore:
     post:
       operationId: restoreSubscription
@@ -13363,7 +13368,7 @@ components:
         billingAnchor:
           type: string
           format: date-time
-          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
           example: '2023-01-01T01:01:01.001Z'
         customPlan:
           allOf:
@@ -13375,11 +13380,6 @@ components:
       required:
         - customPlan
       properties:
-        billingAnchor:
-          type: string
-          format: date-time
-          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
-          example: '2023-01-01T01:01:01.001Z'
         customPlan:
           allOf:
             - $ref: '#/components/schemas/CustomPlanInput'
@@ -13401,6 +13401,11 @@ components:
           minLength: 1
           maxLength: 256
           description: The key of the customer. Provide either the key or ID.
+        billingAnchor:
+          type: string
+          format: date-time
+          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+          example: '2023-01-01T01:01:01.001Z'
       description: Create a custom subscription.
     Customer:
       type: object
@@ -20047,7 +20052,7 @@ components:
         billingAnchor:
           type: string
           format: date-time
-          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
           example: '2023-01-01T01:01:01.001Z'
       description: Change subscription based on plan.
     PlanSubscriptionCreate:
@@ -20079,11 +20084,6 @@ components:
         description:
           type: string
           description: Description for the Subscription.
-        billingAnchor:
-          type: string
-          format: date-time
-          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
-          example: '2023-01-01T01:01:01.001Z'
         timing:
           allOf:
             - $ref: '#/components/schemas/SubscriptionTiming'
@@ -20101,6 +20101,11 @@ components:
           minLength: 1
           maxLength: 256
           description: The key of the customer. Provide either the key or ID.
+        billingAnchor:
+          type: string
+          format: date-time
+          description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+          example: '2023-01-01T01:01:01.001Z'
       description: Create subscription based on plan.
     PortalToken:
       type: object

@@ -357,7 +357,7 @@ union SubscriptionChange {
  */
 @friendlyName("CustomSubscriptionCreate")
 model CustomSubscriptionCreate {
-  ...OmitProperties<CustomSubscriptionChange, "timing">;
+  ...OmitProperties<CustomSubscriptionChange, "timing" | "billingAnchor">;
 
   /**
    * Timing configuration for the change, when the change should take effect.
@@ -374,6 +374,11 @@ model CustomSubscriptionCreate {
    * The key of the customer. Provide either the key or ID.
    */
   customerKey?: ExternalKey;
+
+  /**
+   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+   */
+  billingAnchor?: DateTime;
 }
 
 /**
@@ -388,7 +393,7 @@ model CustomSubscriptionChange {
   timing: SubscriptionTiming;
 
   /**
-   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
    */
   billingAnchor?: DateTime;
 
@@ -413,7 +418,7 @@ model CustomPlanInput
  */
 @friendlyName("PlanSubscriptionCreate")
 model PlanSubscriptionCreate {
-  ...OmitProperties<PlanSubscriptionChange, "timing">;
+  ...OmitProperties<PlanSubscriptionChange, "timing" | "billingAnchor">;
 
   /**
    * Timing configuration for the change, when the change should take effect.
@@ -430,6 +435,11 @@ model PlanSubscriptionCreate {
    * The key of the customer. Provide either the key or ID.
    */
   customerKey?: ExternalKey;
+
+  /**
+   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+   */
+  billingAnchor?: DateTime;
 }
 
 /**
@@ -476,7 +486,7 @@ model PlanSubscriptionChange {
   description?: string;
 
   /**
-   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
+   * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
    */
   billingAnchor?: DateTime;
 }

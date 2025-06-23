@@ -54,6 +54,7 @@ func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 				TargetVersion: body.TargetVersion,
 				StartingPhase: body.StartingPhase,
 				Timing:        timing,
+				BillingAnchor: body.BillingAnchor,
 			}, nil
 		},
 		func(ctx context.Context, request MigrateSubscriptionRequest) (MigrateSubscriptionResponse, error) {

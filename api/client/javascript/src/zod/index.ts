@@ -15441,7 +15441,7 @@ export const changeSubscriptionBody = zod
       .date()
       .optional()
       .describe(
-        'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
+        'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.'
       ),
     description: zod
       .string()
@@ -15508,7 +15508,7 @@ export const changeSubscriptionBody = zod
           .date()
           .optional()
           .describe(
-            'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
+            'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.'
           ),
         customPlan: zod
           .object({
@@ -16511,6 +16511,12 @@ export const migrateSubscriptionParams = zod.object({
 export const migrateSubscriptionBodyTimingDefault = 'immediate'
 
 export const migrateSubscriptionBody = zod.object({
+  billingAnchor: zod
+    .date()
+    .optional()
+    .describe(
+      'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.'
+    ),
   startingPhase: zod
     .string()
     .min(1)
