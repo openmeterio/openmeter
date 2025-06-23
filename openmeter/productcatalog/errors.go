@@ -362,7 +362,7 @@ const ErrCodeAddonHasNoRateCards models.ErrorCode = "addon_has_no_rate_cards"
 var ErrAddonHasNoRateCards = models.NewValidationIssue(
 	ErrCodeAddonHasNoRateCards,
 	"add-on must have at least one rate card",
-	models.WithFieldString("ratecards"),
+	models.WithFieldString("rateCards"),
 	models.WithWarningSeverity(),
 )
 
@@ -485,7 +485,7 @@ const ErrCodePlanPhaseHasNoRateCards models.ErrorCode = "plan_phase_has_no_rate_
 var ErrPlanPhaseHasNoRateCards = models.NewValidationIssue(
 	ErrCodePlanPhaseHasNoRateCards,
 	"plan phase must have at least one rate card",
-	models.WithFieldString("ratecards"),
+	models.WithFieldString("rateCards"),
 	models.WithWarningSeverity(),
 )
 
