@@ -266,6 +266,9 @@ func TestPlan(t *testing.T) {
 			Mode:    "prorate_prices",
 			Enabled: true,
 		},
+		Alignment: &api.Alignment{
+			BillablesMustAlign: lo.ToPtr(true),
+		},
 	}
 
 	t.Run("Should create a plan on happy path", func(t *testing.T) {
@@ -798,6 +801,7 @@ func TestPlan(t *testing.T) {
 
 		require.Equal(t, customSubscriptionId, apiRes.JSON200.Current.Id)
 		require.NotEqual(t, customSubscriptionId, apiRes.JSON200.Next.Id)
+		require.Equal(t, apiRes.JSON200.Next.BillingAnchor, apiRes.JSON200.Current.BillingAnchor)
 
 		require.Equal(t, 2, len(planCreate.Phases))
 	})
