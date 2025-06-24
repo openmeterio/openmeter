@@ -10,9 +10,10 @@ import (
 )
 
 type BillingConfiguration struct {
-	AdvancementStrategy billing.AdvancementStrategy
-	Worker              BillingWorkerConfiguration
-	FeatureSwitches     BillingFeatureSwitchesConfiguration
+	AdvancementStrategy          billing.AdvancementStrategy
+	MaxParallelQuantitySnapshots int
+	Worker                       BillingWorkerConfiguration
+	FeatureSwitches              BillingFeatureSwitchesConfiguration
 }
 
 func (c BillingConfiguration) Validate() error {
@@ -49,4 +50,5 @@ func ConfigureBilling(v *viper.Viper, flags *pflag.FlagSet) {
 	flags.String("billing-advancement-strategy", "foreground", "Advancement strategy for billing")
 	_ = v.BindPFlag("billing.advancementStrategy", flags.Lookup("billing-advancement-strategy"))
 	v.SetDefault("billing.advancementStrategy", billing.ForegroundAdvancementStrategy)
+	v.SetDefault("billing.maxParallelQuantitySnapshots", 4)
 }

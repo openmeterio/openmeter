@@ -28,7 +28,7 @@ func (l feeLine) CanBeInvoicedAsOf(_ context.Context, in CanBeInvoicedAsOfInput)
 	return nil, nil
 }
 
-func (l feeLine) SnapshotQuantity(context.Context, *billing.Invoice) error {
+func (l feeLine) SnapshotQuantity(context.Context, []string) error {
 	return nil
 }
 

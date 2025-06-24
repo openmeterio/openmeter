@@ -141,7 +141,8 @@ func TestComplete(t *testing.T) {
 			GracePeriod: isodate.String("P1D"),
 		},
 		Billing: BillingConfiguration{
-			AdvancementStrategy: billing.ForegroundAdvancementStrategy,
+			AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
+			MaxParallelQuantitySnapshots: 4,
 			Worker: BillingWorkerConfiguration{
 				ConsumerConfiguration: ConsumerConfiguration{
 					ProcessingTimeout: 30 * time.Second,

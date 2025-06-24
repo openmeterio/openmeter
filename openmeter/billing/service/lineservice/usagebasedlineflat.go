@@ -88,7 +88,7 @@ func (l ubpFlatFeeLine) CanBeInvoicedAsOf(_ context.Context, in CanBeInvoicedAsO
 	return nil, nil
 }
 
-func (l ubpFlatFeeLine) SnapshotQuantity(context.Context, *billing.Invoice) error {
+func (l ubpFlatFeeLine) SnapshotQuantity(context.Context, []string) error {
 	l.line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
 	l.line.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
 	l.line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
