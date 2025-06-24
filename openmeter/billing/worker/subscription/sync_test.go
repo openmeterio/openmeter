@@ -774,7 +774,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
 			Periods:   s.generatePeriods("2024-01-01T00:00:40Z", "2024-01-02T00:00:40Z", "P1D", 6),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-01T00:00:40Z", 6),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-01T00:00:40Z", 6),
 		},
 	})
 }
@@ -876,7 +876,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 					End:   s.mustParseTime("2024-01-01T00:00:40Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-01T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -890,7 +890,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
 			Periods:   s.generatePeriods("2024-01-01T00:00:40Z", "2024-01-02T00:00:40Z", "P1D", 6),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-01T00:00:40Z", 6),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-01T00:00:40Z", 6),
 		},
 	})
 }
@@ -993,7 +993,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 				},
 			},
 			// We'll wait till the end of the billing cadence of the item
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-02T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1007,7 +1007,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
 			Periods:   s.generatePeriods("2024-01-01T00:00:40Z", "2024-01-02T00:00:40Z", "P1D", 5),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-02T00:00:40Z", 5),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-02T00:00:40Z", 5),
 		},
 	})
 }
@@ -1090,7 +1090,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 					End:   s.mustParseTime("2024-01-01T12:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-01T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1104,7 +1104,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
 			Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 5),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-01T12:00:00Z", 5),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-01T12:00:00Z", 5),
 		},
 	})
 }
@@ -1173,7 +1173,6 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
 		},
 	})
 
@@ -1214,7 +1213,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
 			Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 5),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-01T12:00:00Z", 5),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-01T12:00:00Z", 5),
 		},
 	})
 
@@ -1243,7 +1242,6 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 					End:   s.mustParseTime("2024-01-01T12:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
 		},
 	})
 }
@@ -1316,7 +1314,6 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
 		},
 	})
 
@@ -1357,7 +1354,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 			Qty:       mo.Some[float64](1),
 			UnitPrice: mo.Some[float64](10),
 			Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 5),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-01T12:00:00Z", 5),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-01T12:00:00Z", 5),
 		},
 	})
 
@@ -1386,7 +1383,6 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
 		},
 	})
 	s.Len(approvedInvoice.ValidationIssues, 1)
@@ -1621,7 +1617,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-01T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1670,17 +1666,17 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				},
 			},
 			// in-advance items are invoiced immediately when change happens
-			InvoiceAt: []time.Time{
+			InvoiceAt: s.generateInvoiceAtTimestamps(
 				// In Advance Items are invoicable at the start of the Billing Period (even if thats before the start of their creation / service period)
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-			},
+				"2024-01-01T00:00:00Z",
+				"2024-01-01T00:00:00Z",
+				"2024-01-01T00:00:00Z",
+				"2024-01-01T00:00:00Z",
+				"2024-01-29T00:00:00Z",
+				"2024-01-29T00:00:00Z",
+				"2024-01-29T00:00:00Z",
+				"2024-01-29T00:00:00Z",
+			),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1699,7 +1695,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-29T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-29T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1730,12 +1726,12 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 					End:   s.mustParseTime("2024-01-29T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-			},
+			InvoiceAt: s.generateInvoiceAtTimestamps(
+				"2024-01-29T00:00:00Z",
+				"2024-01-29T00:00:00Z",
+				"2024-01-29T00:00:00Z",
+				"2024-01-29T00:00:00Z",
+			),
 		},
 	})
 }
@@ -1852,10 +1848,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 					End:   startTime.AddDate(0, 3, 0),
 				},
 			},
-			InvoiceAt: []time.Time{
+			InvoiceAt: mo.Some([]time.Time{
 				startTime.AddDate(0, 2, 0),
 				startTime.AddDate(0, 3, 0),
-			},
+			}),
 		},
 	})
 
@@ -1988,9 +1984,9 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 					End:   startTime.AddDate(0, 1, 0),
 				},
 			},
-			InvoiceAt: []time.Time{
+			InvoiceAt: mo.Some([]time.Time{
 				startTime.AddDate(0, 1, 0),
-			},
+			}),
 		},
 	})
 
@@ -2027,9 +2023,9 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 					End:   startTime.AddDate(0, 0, 1),
 				},
 			},
-			InvoiceAt: []time.Time{
+			InvoiceAt: mo.Some([]time.Time{
 				startTime.AddDate(0, 0, 1),
-			},
+			}),
 		},
 	})
 
@@ -2051,9 +2047,9 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 					End:   startTime.AddDate(0, 1, 0),
 				},
 			},
-			InvoiceAt: []time.Time{
+			InvoiceAt: mo.Some([]time.Time{
 				startTime.AddDate(0, 1, 0),
-			},
+			}),
 		},
 	})
 
@@ -2129,7 +2125,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 					End:   s.mustParseTime("2024-01-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-01T00:00:00Z"),
 		},
 	})
 }
@@ -2203,7 +2199,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
 					End:   s.mustParseTime("2024-01-04T12:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-04T12:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-04T12:00:00Z"),
 		},
 	})
 }
@@ -2256,7 +2252,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
 			Periods:   s.generatePeriods("2024-01-01T00:00:00Z", "2024-01-02T00:00:00Z", "P1D", 5),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-02T00:00:00Z", 5),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-02T00:00:00Z", 5),
 		},
 	})
 
@@ -2313,7 +2309,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 					End:   s.mustParseTime("2024-01-02T12:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z"), s.mustParseTime("2024-01-02T12:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-02T00:00:00Z", "2024-01-02T12:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -2328,7 +2324,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 				Amount: alpacadecimal.NewFromFloat(5),
 			})),
 			Periods:   s.generatePeriods("2024-01-02T12:00:00Z", "2024-01-03T12:00:00Z", "P1D", 3),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-03T12:00:00Z", 3),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-03T12:00:00Z", 3),
 		},
 	})
 }
@@ -2401,7 +2397,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
 		},
 	})
 
@@ -2421,7 +2416,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 				Amount: alpacadecimal.NewFromFloat(10),
 			})),
 			Periods:   s.generatePeriods("2024-01-02T00:00:00Z", "2024-01-03T00:00:00Z", "P1D", 4),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-03T00:00:00Z", 4),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-03T00:00:00Z", 4),
 		},
 	})
 
@@ -2473,7 +2468,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 				Amount: alpacadecimal.NewFromFloat(5),
 			})),
 			Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 4),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-02T12:00:00Z", 4),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-02T12:00:00Z", 4),
 		},
 	})
 
@@ -2501,7 +2496,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 					End:   s.mustParseTime("2024-01-01T12:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T12:00:00Z")},
 		},
 	})
 }
@@ -2584,7 +2578,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
 		},
 	})
 
@@ -2647,7 +2640,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
 		},
 	})
 
@@ -2738,7 +2730,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 					End:   s.mustParseTime("2024-01-01T10:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T10:00:00Z")},
 		},
 	})
 
@@ -2771,7 +2762,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 					End:   s.mustParseTime("2024-01-01T13:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T13:00:00Z")},
 		},
 	})
 
@@ -2801,7 +2791,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 				},
 				s.generatePeriods("2024-01-02T00:00:00Z", "2024-01-03T00:00:00Z", "P1D", 4)...,
 			),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-02T00:00:00Z", 5),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-02T00:00:00Z", 5),
 		},
 	})
 	clock.FreezeTime(s.mustParseTime("2024-01-01T05:00:00Z"))
@@ -2855,7 +2845,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 				Amount: alpacadecimal.NewFromFloat(5),
 			})),
 			Periods:   s.generatePeriods("2024-01-01T06:00:00Z", "2024-01-02T06:00:00Z", "P1D", 5),
-			InvoiceAt: s.generateDailyTimestamps("2024-01-02T06:00:00Z", 5),
+			InvoiceAt: s.generateDailygenerateInvoiceAtTimestamps("2024-01-02T06:00:00Z", 5),
 		},
 	})
 
@@ -2885,7 +2875,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 					End:   s.mustParseTime("2024-01-01T10:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T10:00:00Z")},
 		},
 	})
 
@@ -3421,7 +3410,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-02T00:00:00Z"),
 		},
 	})
 
@@ -3440,7 +3429,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-01T00:00:00Z"),
 		},
 	})
 }
@@ -3517,7 +3506,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 					End:   s.mustParseTime("2024-02-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-02-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-02-01T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3533,7 +3522,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 					End:   s.mustParseTime("2024-02-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-02-02T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-02-02T00:00:00Z"),
 		},
 	})
 }
@@ -3628,7 +3617,7 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-02-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-02-01T00:00:00Z"),
 		},
 		// And next Billing Period's in advance line
 		{
@@ -3647,9 +3636,7 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{
-				s.mustParseTime("2024-02-01T00:00:00Z"),
-			},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-02-01T00:00:00Z"),
 		},
 	})
 
@@ -3668,9 +3655,7 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-			},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-01T00:00:00Z"),
 		},
 	})
 
@@ -3887,7 +3872,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-01T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3902,7 +3887,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-15T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3916,7 +3901,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-15T00:00:00Z"),
 		},
 		// We align billing to the 1st of month, so we'll prorate the first iteration
 		// January is 31 days, 31 - 14 = 17 days, 5 * 17/31 = 2.741... which we round to 2.74
@@ -3936,7 +3921,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-01-15T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-01-15T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3953,7 +3938,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-02-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-02-01T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3970,7 +3955,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-02-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-02-01T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3987,7 +3972,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-03-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-03-01T00:00:00Z"),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -4008,7 +3993,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: []time.Time{s.mustParseTime("2024-02-01T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")},
+			InvoiceAt: s.generateInvoiceAtTimestamps("2024-02-01T00:00:00Z", "2024-03-01T00:00:00Z"),
 		},
 	})
 }
@@ -4019,7 +4004,7 @@ type expectedLine struct {
 	UnitPrice mo.Option[float64]
 	Price     mo.Option[*productcatalog.Price]
 	Periods   []billing.Period
-	InvoiceAt []time.Time
+	InvoiceAt mo.Option[[]time.Time]
 }
 
 func (s *SubscriptionHandlerTestSuite) expectLines(invoice billing.Invoice, subscriptionID string, expectedLines []expectedLine) {
@@ -4077,7 +4062,9 @@ func (s *SubscriptionHandlerTestSuite) expectLines(invoice billing.Invoice, subs
 			s.Equal(expectedLine.Periods[idx].Start, line.Period.Start, "%s: period start", childID)
 			s.Equal(expectedLine.Periods[idx].End, line.Period.End, "%s: period end", childID)
 
-			s.Equal(expectedLine.InvoiceAt[idx], line.InvoiceAt, "%s: invoice at", childID)
+			if expectedLine.InvoiceAt.IsPresent() {
+				s.Equal(expectedLine.InvoiceAt.OrEmpty()[idx], line.InvoiceAt, "%s: invoice at", childID)
+			}
 		}
 	}
 }
@@ -4234,7 +4221,7 @@ func (s *SubscriptionHandlerTestSuite) generateSameNTimes(ts string, n int) []ti
 	return out
 }
 
-func (s *SubscriptionHandlerTestSuite) generateDailyTimestamps(startStr string, n int) []time.Time {
+func (s *SubscriptionHandlerTestSuite) generateDailygenerateInvoiceAtTimestamps(startStr string, n int) mo.Option[[]time.Time] {
 	start := s.mustParseTime(startStr)
 	cadence := isodate.MustParse(s.T(), "P1D")
 
@@ -4247,7 +4234,14 @@ func (s *SubscriptionHandlerTestSuite) generateDailyTimestamps(startStr string, 
 
 		n--
 	}
-	return out
+
+	return mo.Some(out)
+}
+
+func (s *SubscriptionHandlerTestSuite) generateInvoiceAtTimestamps(ts ...string) mo.Option[[]time.Time] {
+	return mo.Some(lo.Map(ts, func(t string, _ int) time.Time {
+		return s.mustParseTime(t)
+	}))
 }
 
 // populateChildIDsFromParents copies over the child ID from the parent line, if it's not already set
