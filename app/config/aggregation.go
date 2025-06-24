@@ -28,6 +28,10 @@ type AggregationConfiguration struct {
 	// For example, you can set the `max_insert_threads` setting to control the number of threads
 	// or the `parallel_view_processing` setting to enable pushing to attached views concurrently.
 	InsertQuerySettings map[string]string
+
+	// MeterQuerySettings is the settings for the meter query
+	// For example, you can set the `enable_parallel_replicas` and `max_parallel_replicas` settings.
+	MeterQuerySettings map[string]string
 }
 
 // Validate validates the configuration.

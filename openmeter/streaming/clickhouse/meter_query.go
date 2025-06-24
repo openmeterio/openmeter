@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -26,6 +27,7 @@ type queryMeter struct {
 	GroupBy         []string
 	WindowSize      *meterpkg.WindowSize
 	WindowTimeZone  *time.Location
+	QuerySettings   map[string]string
 }
 
 // from returns the from time for the query.
@@ -150,7 +152,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		// TODO: remove this when we don't round to the nearest minute anymore
 		// We round them to the nearest minute to ensure the result is the same as with
 		// streaming connector using materialized views with per minute windows
-		selectColumn := fmt.Sprintf("tumbleStart(min(%s), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(%s), toIntervalMinute(1)) AS windowend", timeColumn, timeColumn)
+		selectColumn := fmt.Sprintf("toStartOfMinute(min(%s)) AS windowstart, toStartOfMinute(max(%s)) + INTERVAL 1 MINUTE AS windowend", timeColumn, timeColumn)
 		selectColumns = append(selectColumns, selectColumn)
 	}
 
@@ -207,6 +209,9 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select(selectColumns...)
 	query.From(tableName)
+
+	// Prewhere clauses
+
 	query.Where(query.Equal(getColumn("namespace"), d.Namespace))
 	query.Where(query.Equal(getColumn("type"), d.Meter.EventType))
 
@@ -216,40 +221,6 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		}
 
 		query.Where(query.Or(slicesx.Map(d.Subject, mapFunc)...))
-	}
-
-	if len(d.FilterGroupBy) > 0 {
-		// We sort the group by s to ensure the query is deterministic
-		groupByKeys := make([]string, 0, len(d.FilterGroupBy))
-		for k := range d.FilterGroupBy {
-			groupByKeys = append(groupByKeys, k)
-		}
-		sort.Strings(groupByKeys)
-
-		for _, groupByKey := range groupByKeys {
-			if _, ok := d.Meter.GroupBy[groupByKey]; !ok {
-				return "", nil, fmt.Errorf("meter does not have group by: %s", groupByKey)
-			}
-
-			groupByJSONPath := sqlbuilder.Escape(d.Meter.GroupBy[groupByKey])
-
-			values := d.FilterGroupBy[groupByKey]
-			if len(values) == 0 {
-				return "", nil, fmt.Errorf("empty filter for group by: %s", groupByKey)
-			}
-			mapFunc := func(value string) string {
-				column := fmt.Sprintf("JSON_VALUE(%s, '%s')", getColumn("data"), groupByJSONPath)
-
-				// Subject is a special case
-				if groupByKey == "subject" {
-					column = "subject"
-				}
-
-				return fmt.Sprintf("%s = '%s'", column, sqlbuilder.Escape((value)))
-			}
-
-			query.Where(query.Or(slicesx.Map(values, mapFunc)...))
-		}
 	}
 
 	// Apply the time where clause
@@ -263,6 +234,40 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		query.Where(query.LessThan(timeColumn, d.To.Unix()))
 	}
 
+	var sqlPreWhere string
+
+	if len(d.FilterGroupBy) > 0 {
+		sqlPreWhere, _ = query.Build()
+		dataColumn := getColumn("data")
+
+		// We sort the group bys to ensure the query is deterministic
+		filterGroupByKeys := make([]string, 0, len(d.FilterGroupBy))
+		for k := range d.FilterGroupBy {
+			filterGroupByKeys = append(filterGroupByKeys, k)
+		}
+		sort.Strings(filterGroupByKeys)
+
+		// Where clauses
+		for _, groupByKey := range filterGroupByKeys {
+			if _, ok := d.Meter.GroupBy[groupByKey]; !ok {
+				return "", nil, fmt.Errorf("meter does not have group by: %s", groupByKey)
+			}
+
+			groupByJSONPath := sqlbuilder.Escape(d.Meter.GroupBy[groupByKey])
+
+			values := d.FilterGroupBy[groupByKey]
+			if len(values) == 0 {
+				return "", nil, fmt.Errorf("empty filter for group by: %s", groupByKey)
+			}
+			mapFunc := func(value string) string {
+				return fmt.Sprintf("JSON_VALUE(%s, '%s') = '%s'", dataColumn, groupByJSONPath, sqlbuilder.Escape((value)))
+			}
+
+			query.Where(query.Or(slicesx.Map(values, mapFunc)...))
+		}
+	}
+
+	// Group by
 	query.GroupBy(groupByColumns...)
 
 	if groupByWindowSize {
@@ -270,6 +275,31 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	}
 
 	sql, args := query.Build()
+
+	// Only add prewhere if there are filters on JSON data
+	if sqlPreWhere != "" {
+		sqlParts := strings.Split(sql, sqlPreWhere)
+		sqlAfter := sqlParts[1]
+
+		if strings.HasPrefix(sqlAfter, " AND") {
+			sqlAfter = strings.Replace(sqlAfter, "AND", "WHERE", 1)
+		}
+
+		sqlPreWhere = strings.Replace(sqlPreWhere, "WHERE", "PREWHERE", 1)
+		sql = fmt.Sprintf("%s%s", sqlPreWhere, sqlAfter)
+	}
+
+	// Add settings
+	settings := []string{
+		"optimize_move_to_prewhere = 1",
+		"allow_reorder_prewhere_conditions = 1",
+	}
+	for key, value := range d.QuerySettings {
+		settings = append(settings, fmt.Sprintf("%s = %s", key, value))
+	}
+
+	sql = sql + fmt.Sprintf(" SETTINGS %s", strings.Join(settings, ", "))
+
 	return sql, args, nil
 }
 
