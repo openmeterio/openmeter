@@ -35,9 +35,9 @@ spec:
           imagePullPolicy: {{ .Values.svix.image.pullPolicy }}
           env:
             - name: SVIX_REDIS_DSN
-              value: "redis://{{ include "openmeter.fullname" . }}-redis-master:6379"
+              value: {{ if .Values.svix.redis.dsn }}{{ .Values.svix.redis.dsn | quote }}{{ else }}"redis://{{ include "openmeter.fullname" . }}-redis-master:6379"{{ end }}
             - name: SVIX_DB_DSN
-              value: "postgres://svix:svix@{{ include "openmeter.fullname" . }}-postgres:5432/svix"
+              value: {{ if .Values.svix.database.dsn }}{{ .Values.svix.database.dsn | quote }}{{ else }}"postgres://svix:svix@{{ include "openmeter.fullname" . }}-postgres:5432/svix"{{ end }}
             - name: SVIX_CACHE_TYPE
               value: "redis"
             - name: SVIX_JWT_SECRET

@@ -1,8 +1,8 @@
 apiVersion: v2
 type: application
 name: openmeter
-version: 1.0.0-beta.186
-appVersion: "v1.0.0-beta.186"
+version: 1.0.0-beta.213
+appVersion: "v1.0.0-beta.213"
 description: "Usage Metering for AI, DevOps, and Billing. Built for engineers to collect and aggregate millions of events in real-time."
 icon: https://openmeter.io/favicon.svg
 keywords:
