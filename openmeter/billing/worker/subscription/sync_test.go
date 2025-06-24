@@ -1408,13 +1408,10 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
 				BillingCadence: isodate.MustParse(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -1484,13 +1481,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
 				BillingCadence: isodate.MustParse(s.T(), "P4W"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
@@ -1756,13 +1750,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
 				BillingCadence: isodate.MustParse(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -1925,13 +1916,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
 				BillingCadence: isodate.MustParse(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -3818,13 +3806,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Name:     "Test Plan",
-				Key:      "test-plan",
-				Version:  1,
-				Currency: currency.USD,
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
 				BillingCadence: isodate.MustParse(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,

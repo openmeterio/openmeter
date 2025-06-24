@@ -32,8 +32,6 @@ const (
 	FieldDescription = "description"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
-	// FieldBillablesMustAlign holds the string denoting the billables_must_align field in the database.
-	FieldBillablesMustAlign = "billables_must_align"
 	// FieldVersion holds the string denoting the version field in the database.
 	FieldVersion = "version"
 	// FieldCurrency holds the string denoting the currency field in the database.
@@ -88,7 +86,6 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldKey,
-	FieldBillablesMustAlign,
 	FieldVersion,
 	FieldCurrency,
 	FieldBillingCadence,
@@ -118,8 +115,6 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
-	// DefaultBillablesMustAlign holds the default value on creation for the "billables_must_align" field.
-	DefaultBillablesMustAlign bool
 	// VersionValidator is a validator for the "version" field. It is called by the builders before save.
 	VersionValidator func(int) error
 	// DefaultCurrency holds the default value on creation for the "currency" field.
@@ -177,11 +172,6 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByKey orders the results by the key field.
 func ByKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKey, opts...).ToFunc()
-}
-
-// ByBillablesMustAlign orders the results by the billables_must_align field.
-func ByBillablesMustAlign(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldBillablesMustAlign, opts...).ToFunc()
 }
 
 // ByVersion orders the results by the version field.

@@ -18,23 +18,20 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
 
 	resp := api.Plan{
-		CreatedAt:       p.CreatedAt,
-		Currency:        p.Currency.String(),
-		DeletedAt:       p.DeletedAt,
-		Description:     p.Description,
-		EffectiveFrom:   p.EffectiveFrom,
-		EffectiveTo:     p.EffectiveTo,
-		Id:              p.ID,
-		Key:             p.Key,
-		Metadata:        lo.EmptyableToPtr(api.Metadata(p.Metadata)),
-		Name:            p.Name,
-		UpdatedAt:       p.UpdatedAt,
-		Version:         p.Version,
-		BillingCadence:  p.BillingCadence.String(),
-		ProRatingConfig: fromProRatingConfig(p.ProRatingConfig),
-		Alignment: &api.Alignment{
-			BillablesMustAlign: lo.ToPtr(p.Alignment.BillablesMustAlign),
-		},
+		CreatedAt:        p.CreatedAt,
+		Currency:         p.Currency.String(),
+		DeletedAt:        p.DeletedAt,
+		Description:      p.Description,
+		EffectiveFrom:    p.EffectiveFrom,
+		EffectiveTo:      p.EffectiveTo,
+		Id:               p.ID,
+		Key:              p.Key,
+		Metadata:         lo.EmptyableToPtr(api.Metadata(p.Metadata)),
+		Name:             p.Name,
+		UpdatedAt:        p.UpdatedAt,
+		Version:          p.Version,
+		BillingCadence:   p.BillingCadence.String(),
+		ProRatingConfig:  fromProRatingConfig(p.ProRatingConfig),
 		ValidationErrors: http.FromValidationErrors(validationIssues),
 	}
 
@@ -103,16 +100,6 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 				Description:     a.Description,
 				Metadata:        lo.FromPtr(a.Metadata),
 				ProRatingConfig: asProRatingConfig(a.ProRatingConfig),
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: func() bool {
-						if a.Alignment != nil {
-							if a.Alignment.BillablesMustAlign != nil {
-								return *a.Alignment.BillablesMustAlign
-							}
-						}
-						return true
-					}(),
-				},
 			},
 			Phases: nil,
 		},
@@ -203,12 +190,6 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 		Description:     a.Description,
 		Metadata:        (*models.Metadata)(a.Metadata),
 		ProRatingConfig: lo.ToPtr(asProRatingConfig(a.ProRatingConfig)),
-	}
-
-	if a.Alignment != nil {
-		if a.Alignment.BillablesMustAlign != nil {
-			req.AlignmentUpdate.BillablesMustAlign = a.Alignment.BillablesMustAlign
-		}
 	}
 
 	if a.BillingCadence != "" {

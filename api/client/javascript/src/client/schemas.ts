@@ -2352,10 +2352,16 @@ export interface components {
       /** @description Phone number. */
       phoneNumber?: string
     }
-    /** @description Alignment configuration for a plan or subscription. */
+    /**
+     * @deprecated
+     * @description Alignment configuration for a plan or subscription.
+     */
     Alignment: {
-      /** @description Whether all Billable items and RateCards must align.
-       *     Alignment means the Price's BillingCadence must align for both duration and anchor time. */
+      /**
+       * @deprecated
+       * @description Whether all Billable items and RateCards must align.
+       *     Alignment means the Price's BillingCadence must align for both duration and anchor time.
+       */
       billablesMustAlign?: boolean
     }
     /**
@@ -9374,8 +9380,11 @@ export interface components {
     }
     /** @description Alignment details enriched with the current billing period. */
     SubscriptionAlignment: {
-      /** @description Whether all Billable items and RateCards must align.
-       *     Alignment means the Price's BillingCadence must align for both duration and anchor time. */
+      /**
+       * @deprecated
+       * @description Whether all Billable items and RateCards must align.
+       *     Alignment means the Price's BillingCadence must align for both duration and anchor time.
+       */
       billablesMustAlign?: boolean
       /** @description The current billing period. Only has value if the subscription is aligned and active. */
       currentAlignedBillingPeriod?: components['schemas']['Period']

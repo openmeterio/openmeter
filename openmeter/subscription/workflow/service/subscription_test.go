@@ -624,7 +624,7 @@ func TestEditingWithTiming(t *testing.T) {
 		Handler   func(t *testing.T, deps testCaseDeps)
 	}{
 		{
-			Name: "Should error when trying to time to custom in an aligned Subscription",
+			Name: "Should work with next_billing_cycle in an aligned Subscription",
 			Handler: func(t *testing.T, deps testCaseDeps) {
 				second_phase_key := "test_phase_2"
 				item_key := "rate-card-2"
@@ -657,10 +657,7 @@ func TestEditingWithTiming(t *testing.T) {
 				}, subscription.Timing{
 					Custom: lo.ToPtr(clock.Now().Add(time.Hour)),
 				})
-				require.Error(t, err, "expected error to be returned")
-
-				require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}), "expected error to be of type models.GenericUserError")
-				require.ErrorContains(t, err, "cannot edit running subscription with custom timing", "expected error to be about custom timing, while it was: %v", err)
+				require.NoError(t, err)
 			},
 		},
 		{
@@ -820,10 +817,6 @@ func TestEditingWithTiming(t *testing.T) {
 			deps.FeatureConnector.CreateExampleFeatures(t)
 			planInput := subscriptiontestutils.GetExamplePlanInput(t)
 
-			if tc.IsAligned {
-				planInput.Plan.Alignment.BillablesMustAlign = true
-			}
-
 			plan := deps.PlanHelper.CreatePlan(t, planInput)
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
@@ -858,7 +851,6 @@ func TestEditingWithTiming(t *testing.T) {
 func TestChangeToPlan(t *testing.T) {
 	// Let's define two plans. One is the example plan, and the second is a slightly modified version of that
 	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-	examplePlanInput1.Plan.Alignment.BillablesMustAlign = true
 
 	rc1 := productcatalog.UsageBasedRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
@@ -1294,7 +1286,8 @@ func TestEditCombinations(t *testing.T) {
 			})
 			require.Nil(t, err)
 
-			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(clock.Now().AddDate(0, 1, 0)))
+			require.Equal(t, subscription.SubscriptionStatusCanceled, s.GetStatusAt(clock.Now()))
+			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(deps.CurrentTime.AddDate(0, 1, 0)))
 		})
 	})
 

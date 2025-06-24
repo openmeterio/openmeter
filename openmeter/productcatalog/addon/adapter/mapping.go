@@ -201,9 +201,6 @@ func FromPlanRow(p entdb.Plan) (*productcatalog.Plan, error) {
 				EffectiveFrom: p.EffectiveFrom,
 				EffectiveTo:   p.EffectiveTo,
 			},
-			Alignment: productcatalog.Alignment{
-				BillablesMustAlign: p.BillablesMustAlign,
-			},
 			BillingCadence:  billingCadence,
 			ProRatingConfig: p.ProRatingConfig,
 		},

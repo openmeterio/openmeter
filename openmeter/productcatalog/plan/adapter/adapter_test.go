@@ -19,7 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var MonthPeriod = isodate.FromDuration(30 * 24 * time.Hour)
+var MonthPeriod = isodate.NewPeriod(0, 1, 0, 0, 0, 0, 0)
 
 var planPhases = []productcatalog.Phase{
 	{

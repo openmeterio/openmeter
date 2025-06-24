@@ -159,7 +159,9 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 
 		if subView.Subscription.Alignment.BillablesMustAlign {
 			if c.Custom != nil {
-				return models.NewGenericValidationError(fmt.Errorf("cannot cancel aligned subscription with custom timing"))
+				if !c.isDateAlignedWithBillingCadence(subView.Spec, *c.Custom) {
+					return models.NewGenericValidationError(fmt.Errorf("cannot cancel aligned subscription with custom misaligned timing"))
+				}
 			}
 
 			// We allow IMMEDIATE cancels (result in no prorating)
@@ -185,6 +187,22 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 	}
 
 	return nil
+}
+
+func (c Timing) isDateAlignedWithBillingCadence(spec SubscriptionSpec, date time.Time) bool {
+	period, err := spec.GetAlignedBillingPeriodAt(date)
+	if err != nil {
+		return false
+	}
+
+	switch {
+	case period.From.Equal(date):
+		return true
+	case period.To.Equal(date):
+		return true
+	default:
+		return false
+	}
 }
 
 type TimingEnum string
