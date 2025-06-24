@@ -108,20 +108,6 @@ func (_c *PlanCreate) SetKey(v string) *PlanCreate {
 	return _c
 }
 
-// SetBillablesMustAlign sets the "billables_must_align" field.
-func (_c *PlanCreate) SetBillablesMustAlign(v bool) *PlanCreate {
-	_c.mutation.SetBillablesMustAlign(v)
-	return _c
-}
-
-// SetNillableBillablesMustAlign sets the "billables_must_align" field if the given value is not nil.
-func (_c *PlanCreate) SetNillableBillablesMustAlign(v *bool) *PlanCreate {
-	if v != nil {
-		_c.SetBillablesMustAlign(*v)
-	}
-	return _c
-}
-
 // SetVersion sets the "version" field.
 func (_c *PlanCreate) SetVersion(v int) *PlanCreate {
 	_c.mutation.SetVersion(v)
@@ -292,10 +278,6 @@ func (_c *PlanCreate) defaults() {
 		v := plan.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := _c.mutation.BillablesMustAlign(); !ok {
-		v := plan.DefaultBillablesMustAlign
-		_c.mutation.SetBillablesMustAlign(v)
-	}
 	if _, ok := _c.mutation.Currency(); !ok {
 		v := plan.DefaultCurrency
 		_c.mutation.SetCurrency(v)
@@ -336,9 +318,6 @@ func (_c *PlanCreate) check() error {
 		if err := plan.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "Plan.key": %w`, err)}
 		}
-	}
-	if _, ok := _c.mutation.BillablesMustAlign(); !ok {
-		return &ValidationError{Name: "billables_must_align", err: errors.New(`db: missing required field "Plan.billables_must_align"`)}
 	}
 	if _, ok := _c.mutation.Version(); !ok {
 		return &ValidationError{Name: "version", err: errors.New(`db: missing required field "Plan.version"`)}
@@ -437,10 +416,6 @@ func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec, error) {
 	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(plan.FieldKey, field.TypeString, value)
 		_node.Key = value
-	}
-	if value, ok := _c.mutation.BillablesMustAlign(); ok {
-		_spec.SetField(plan.FieldBillablesMustAlign, field.TypeBool, value)
-		_node.BillablesMustAlign = value
 	}
 	if value, ok := _c.mutation.Version(); ok {
 		_spec.SetField(plan.FieldVersion, field.TypeInt, value)
@@ -645,18 +620,6 @@ func (u *PlanUpsert) UpdateDescription() *PlanUpsert {
 // ClearDescription clears the value of the "description" field.
 func (u *PlanUpsert) ClearDescription() *PlanUpsert {
 	u.SetNull(plan.FieldDescription)
-	return u
-}
-
-// SetBillablesMustAlign sets the "billables_must_align" field.
-func (u *PlanUpsert) SetBillablesMustAlign(v bool) *PlanUpsert {
-	u.Set(plan.FieldBillablesMustAlign, v)
-	return u
-}
-
-// UpdateBillablesMustAlign sets the "billables_must_align" field to the value that was provided on create.
-func (u *PlanUpsert) UpdateBillablesMustAlign() *PlanUpsert {
-	u.SetExcluded(plan.FieldBillablesMustAlign)
 	return u
 }
 
@@ -886,20 +849,6 @@ func (u *PlanUpsertOne) UpdateDescription() *PlanUpsertOne {
 func (u *PlanUpsertOne) ClearDescription() *PlanUpsertOne {
 	return u.Update(func(s *PlanUpsert) {
 		s.ClearDescription()
-	})
-}
-
-// SetBillablesMustAlign sets the "billables_must_align" field.
-func (u *PlanUpsertOne) SetBillablesMustAlign(v bool) *PlanUpsertOne {
-	return u.Update(func(s *PlanUpsert) {
-		s.SetBillablesMustAlign(v)
-	})
-}
-
-// UpdateBillablesMustAlign sets the "billables_must_align" field to the value that was provided on create.
-func (u *PlanUpsertOne) UpdateBillablesMustAlign() *PlanUpsertOne {
-	return u.Update(func(s *PlanUpsert) {
-		s.UpdateBillablesMustAlign()
 	})
 }
 
@@ -1312,20 +1261,6 @@ func (u *PlanUpsertBulk) UpdateDescription() *PlanUpsertBulk {
 func (u *PlanUpsertBulk) ClearDescription() *PlanUpsertBulk {
 	return u.Update(func(s *PlanUpsert) {
 		s.ClearDescription()
-	})
-}
-
-// SetBillablesMustAlign sets the "billables_must_align" field.
-func (u *PlanUpsertBulk) SetBillablesMustAlign(v bool) *PlanUpsertBulk {
-	return u.Update(func(s *PlanUpsert) {
-		s.SetBillablesMustAlign(v)
-	})
-}
-
-// UpdateBillablesMustAlign sets the "billables_must_align" field to the value that was provided on create.
-func (u *PlanUpsertBulk) UpdateBillablesMustAlign() *PlanUpsertBulk {
-	return u.Update(func(s *PlanUpsert) {
-		s.UpdateBillablesMustAlign()
 	})
 }
 

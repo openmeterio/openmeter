@@ -757,7 +757,6 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 					Description:     sourcePlan.Description,
 					Metadata:        sourcePlan.Metadata,
 					Currency:        sourcePlan.Currency,
-					Alignment:       sourcePlan.Alignment,
 					BillingCadence:  sourcePlan.BillingCadence,
 					ProRatingConfig: sourcePlan.ProRatingConfig,
 				},

@@ -11506,7 +11506,9 @@ components:
           description: |-
             Whether all Billable items and RateCards must align.
             Alignment means the Price's BillingCadence must align for both duration and anchor time.
+          deprecated: true
       description: Alignment configuration for a plan or subscription.
+      deprecated: true
     Annotations:
       type: object
       additionalProperties: {}
@@ -21759,6 +21761,7 @@ components:
           description: |-
             Whether all Billable items and RateCards must align.
             Alignment means the Price's BillingCadence must align for both duration and anchor time.
+          deprecated: true
         currentAlignedBillingPeriod:
           allOf:
             - $ref: '#/components/schemas/Period'

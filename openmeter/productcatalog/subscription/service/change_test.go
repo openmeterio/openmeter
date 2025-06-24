@@ -137,7 +137,7 @@ func TestChange(t *testing.T) {
 				ID: sub.NamespacedID,
 				WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
-						Custom: lo.ToPtr(clock.Now()),
+						Enum: lo.ToPtr(subscription.TimingImmediate),
 					},
 					Name: sub.Name,
 				},
@@ -257,7 +257,7 @@ func TestChange(t *testing.T) {
 				ID: sub.NamespacedID,
 				WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
-						Custom: lo.ToPtr(clock.Now()),
+						Enum: lo.ToPtr(subscription.TimingImmediate),
 					},
 					Name: sub.Name,
 				},

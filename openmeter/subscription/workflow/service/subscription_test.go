@@ -624,7 +624,7 @@ func TestEditingWithTiming(t *testing.T) {
 		Handler   func(t *testing.T, deps testCaseDeps)
 	}{
 		{
-			Name: "Should error when trying to time to next_billing_cycle in a non-aligned Subscription",
+			Name: "Should work with next_billing_cycle in an aligned Subscription",
 			Handler: func(t *testing.T, deps testCaseDeps) {
 				second_phase_key := "test_phase_2"
 				item_key := "rate-card-2"
@@ -657,10 +657,7 @@ func TestEditingWithTiming(t *testing.T) {
 				}, subscription.Timing{
 					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 				})
-				require.Error(t, err)
-
-				require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}), "expected error to be of type models.GenericUserError")
-				require.ErrorContains(t, err, "next_billing_cycle is not supported for non-aligned subscriptions", "expected error to be about non-aligned subscriptions, while it was: %v", err)
+				require.NoError(t, err)
 			},
 		},
 		{
@@ -819,10 +816,6 @@ func TestEditingWithTiming(t *testing.T) {
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeatures(t)
 			planInput := subscriptiontestutils.GetExamplePlanInput(t)
-
-			if tc.IsAligned {
-				planInput.Plan.Alignment.BillablesMustAlign = true
-			}
 
 			plan := deps.PlanHelper.CreatePlan(t, planInput)
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
@@ -1016,7 +1009,7 @@ func TestChangeToPlan(t *testing.T) {
 			}, deps.Plan1)
 			require.Nil(t, err)
 
-			someTimeLater := deps.CurrentTime.AddDate(0, 0, 10)
+			someTimeLater := deps.CurrentTime.AddDate(0, 1, 0)
 
 			changeInput := subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{
@@ -1292,11 +1285,12 @@ func TestEditCombinations(t *testing.T) {
 
 			// Now let's cancel the subscription
 			s, err := deps.Service.Cancel(ctx, sub.Subscription.NamespacedID, subscription.Timing{
-				Custom: lo.ToPtr(clock.Now().Add(-time.Minute)),
+				Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 			})
 			require.Nil(t, err)
 
-			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(clock.Now()))
+			require.Equal(t, subscription.SubscriptionStatusCanceled, s.GetStatusAt(clock.Now()))
+			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(deps.CurrentTime.AddDate(0, 1, 0)))
 		})
 	})
 
@@ -1491,7 +1485,7 @@ func TestRestore(t *testing.T) {
 			clock.SetTime(clock.Now().Add(time.Hour))
 
 			// Let's cancel the subscription
-			cancelBy := clock.Now().AddDate(0, 0, 1)
+			cancelBy := deps.CurrentTime.AddDate(0, 1, 0)
 			s, err := deps.Service.Cancel(ctx, sub.Subscription.NamespacedID, subscription.Timing{
 				Custom: &cancelBy,
 			})
@@ -1534,7 +1528,7 @@ func TestRestore(t *testing.T) {
 			clock.SetTime(clock.Now().Add(time.Hour))
 
 			// Let's change to another plan (same plan, but still a change)
-			changeBy := clock.Now().AddDate(0, 0, 1)
+			changeBy := deps.CurrentTime.AddDate(0, 1, 0)
 			old, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub.Subscription.NamespacedID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{
 					Custom: &changeBy,

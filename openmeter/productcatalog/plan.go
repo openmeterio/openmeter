@@ -117,12 +117,6 @@ func ValidatePlanHasAlignedBillingCadences() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		var errs []error
 
-		// TODO: remove this once we remove alignment setting
-		// We skip this validation if the alignment is not enabled
-		if !p.BillablesMustAlign {
-			return nil
-		}
-
 		for _, phase := range p.Phases {
 			for _, rateCard := range phase.RateCards.Billables() {
 				rateCardFieldSelector := models.NewFieldSelectors(
@@ -186,7 +180,6 @@ var (
 
 type PlanMeta struct {
 	EffectivePeriod
-	Alignment
 
 	// Key is the unique key for Plan.
 	Key string `json:"key"`

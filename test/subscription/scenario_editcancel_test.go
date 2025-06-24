@@ -224,7 +224,7 @@ func TestEditingAndCanceling(t *testing.T) {
 
 	// Sixth, let's cancel the subscription
 	_, err = tDeps.subscriptionService.Cancel(ctx, s.NamespacedID, subscription.Timing{
-		Custom: &currentTime,
+		Enum: lo.ToPtr(subscription.TimingImmediate),
 	})
 	require.NoError(t, err)
 }

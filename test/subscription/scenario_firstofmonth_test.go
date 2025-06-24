@@ -59,9 +59,6 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
 			},
 			Phases: []productcatalog.Phase{
 				{

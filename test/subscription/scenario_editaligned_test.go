@@ -62,9 +62,6 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
 			},
 			Phases: []productcatalog.Phase{
 				{
@@ -206,6 +203,8 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 }
 
 func TestEditingEntitlementOfUnalignedSub(t *testing.T) {
+	t.Skip("Unaligned subscriptions are no longer supported")
+
 	// Let's declare our variables
 	// note: this namespace is hardcoded in the test framework
 	namespace := "test-namespace"
@@ -242,9 +241,6 @@ func TestEditingEntitlementOfUnalignedSub(t *testing.T) {
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
-				},
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: false,
 				},
 			},
 			Phases: []productcatalog.Phase{

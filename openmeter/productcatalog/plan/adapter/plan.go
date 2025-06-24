@@ -179,7 +179,6 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			SetName(params.Name).
 			SetNillableDescription(params.Description).
 			SetCurrency(params.Currency.String()).
-			SetBillablesMustAlign(params.BillablesMustAlign).
 			SetBillingCadence(params.BillingCadence.ISOString()).
 			SetProRatingConfig(params.ProRatingConfig).
 			SetMetadata(params.Metadata).
@@ -425,7 +424,6 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 				SetNillableDescription(params.Description).
 				SetNillableEffectiveFrom(params.EffectiveFrom).
 				SetNillableEffectiveTo(params.EffectiveTo).
-				SetNillableBillablesMustAlign(params.BillablesMustAlign).
 				SetNillableBillingCadence(params.BillingCadence.ISOStringPtrOrNil()).
 				SetNillableProRatingConfig(params.ProRatingConfig)
 

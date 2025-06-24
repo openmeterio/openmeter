@@ -561,13 +561,10 @@ func TestChangeAddonQuantity(t *testing.T) {
 			deps.deps,
 			subscriptiontestutils.BuildTestPlan(t).
 				SetMeta(productcatalog.PlanMeta{
-					Name:     "Test Plan",
-					Key:      "test_plan",
-					Version:  1,
-					Currency: currency.USD,
-					Alignment: productcatalog.Alignment{
-						BillablesMustAlign: true,
-					},
+					Name:           "Test Plan",
+					Key:            "test_plan",
+					Version:        1,
+					Currency:       currency.USD,
 					BillingCadence: isodate.MustParse(t, "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
 						Enabled: true,

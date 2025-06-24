@@ -191,12 +191,9 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Name:            "Plan 1",
 				Key:             "plan-1",
 				EffectivePeriod: productcatalog.EffectivePeriod{},
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
-				Version:        1,
-				Currency:       "USD",
-				BillingCadence: isodate.MustParse(t, "P1M"),
+				Version:         1,
+				Currency:        "USD",
+				BillingCadence:  isodate.MustParse(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -240,18 +237,15 @@ func TestAlignmentEnforcement(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("Should allow plan with misaligned RateCards if not enforced", func(t *testing.T) {
+	t.Run("Should never allow plan with misaligned RateCards", func(t *testing.T) {
 		p := productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
 				Name:            "Plan 1",
 				Key:             "plan-1",
 				EffectivePeriod: productcatalog.EffectivePeriod{},
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: false,
-				},
-				Version:        1,
-				Currency:       "USD",
-				BillingCadence: isodate.MustParse(t, "P1M"),
+				Version:         1,
+				Currency:        "USD",
+				BillingCadence:  isodate.MustParse(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -292,7 +286,8 @@ func TestAlignmentEnforcement(t *testing.T) {
 		}
 
 		err := p.Validate()
-		assert.NoError(t, err)
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "ratecards with prices must have compatible billing cadence")
 	})
 
 	t.Run("Should NOT allow plan with misaligned RateCards if enforced", func(t *testing.T) {
@@ -301,12 +296,9 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Name:            "Plan 1",
 				Key:             "plan-1",
 				EffectivePeriod: productcatalog.EffectivePeriod{},
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
-				Version:        1,
-				Currency:       "USD",
-				BillingCadence: isodate.MustParse(t, "P1M"),
+				Version:         1,
+				Currency:        "USD",
+				BillingCadence:  isodate.MustParse(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,

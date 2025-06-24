@@ -21,7 +21,6 @@ type Plan struct {
 func (Plan) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.UniqueResourceMixin{},
-		AlignmentMixin{},
 	}
 }
 

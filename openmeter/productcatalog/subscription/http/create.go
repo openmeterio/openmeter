@@ -69,9 +69,6 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 				}
 
-				// Let's force alignment in http handler
-				req.Alignment.BillablesMustAlign = true
-
 				plan := plansubscription.PlanInput{}
 				plan.FromInput(&req)
 

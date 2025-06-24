@@ -40,9 +40,6 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						EffectivePeriod: EffectivePeriod{
 							EffectiveFrom: lo.ToPtr(clock.Now().Add(-24 * time.Hour)),
 						},
-						Alignment: Alignment{
-							BillablesMustAlign: true,
-						},
 						Key:            "pro",
 						Version:        1,
 						Name:           "Pro",
@@ -207,9 +204,6 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						EffectivePeriod: EffectivePeriod{
 							EffectiveFrom: lo.ToPtr(clock.Now().Add(-24 * time.Hour)),
 							EffectiveTo:   lo.ToPtr(clock.Now().Add(-2 * time.Hour)),
-						},
-						Alignment: Alignment{
-							BillablesMustAlign: true,
 						},
 						Key:            "pro",
 						Version:        2,
@@ -402,9 +396,6 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 					PlanMeta: PlanMeta{
 						EffectivePeriod: EffectivePeriod{
 							EffectiveFrom: lo.ToPtr(clock.Now().Add(-24 * time.Hour)),
-						},
-						Alignment: Alignment{
-							BillablesMustAlign: true,
 						},
 						Key:            "pro",
 						Version:        2,

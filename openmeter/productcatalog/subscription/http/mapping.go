@@ -191,7 +191,7 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		UpdatedAt:   sub.UpdatedAt,
 		DeletedAt:   sub.DeletedAt,
 		Alignment: &api.Alignment{
-			BillablesMustAlign: &sub.BillablesMustAlign,
+			BillablesMustAlign: lo.ToPtr(true), // TODO(OM-1249): this field is deprecated on API, we'll get rid of it eventually
 		},
 		BillingCadence: sub.BillingCadence.String(),
 		BillingAnchor:  sub.BillingAnchor,
@@ -390,24 +390,22 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.SubscriptionExpanded, error) {
 	apiSub := MapSubscriptionToAPI(view.Subscription)
 	alg := api.SubscriptionAlignment{
-		BillablesMustAlign: apiSub.Alignment.BillablesMustAlign,
+		BillablesMustAlign: lo.ToPtr(true), // this field is deprecated on API, we'll get rid of it eventually
 	}
 
-	if view.Subscription.BillablesMustAlign {
-		if currPhase, ok := view.Spec.GetCurrentPhaseAt(clock.Now()); ok && currPhase.HasBillables() {
-			period, err := view.Spec.GetAlignedBillingPeriodAt(clock.Now())
-			if err != nil {
-				// GetAlignedBillingPeriodAt cannot be calculated for all aligned subscriptions.
-				if _, ok := lo.ErrorsAs[subscription.NoBillingPeriodError](err); !ok {
-					return api.SubscriptionExpanded{}, err
-				}
+	if currPhase, ok := view.Spec.GetCurrentPhaseAt(clock.Now()); ok && currPhase.HasBillables() {
+		period, err := view.Spec.GetAlignedBillingPeriodAt(clock.Now())
+		if err != nil {
+			// GetAlignedBillingPeriodAt cannot be calculated for all aligned subscriptions.
+			if _, ok := lo.ErrorsAs[subscription.NoBillingPeriodError](err); !ok {
+				return api.SubscriptionExpanded{}, err
 			}
+		}
 
-			if err == nil {
-				alg.CurrentAlignedBillingPeriod = &api.Period{
-					From: period.From,
-					To:   period.To,
-				}
+		if err == nil {
+			alg.CurrentAlignedBillingPeriod = &api.Period{
+				From: period.From,
+				To:   period.To,
 			}
 		}
 	}
@@ -464,12 +462,6 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 			},
 			Phases: nil,
 		},
-	}
-
-	if a.Alignment != nil && a.Alignment.BillablesMustAlign != nil {
-		req.Plan.PlanMeta.Alignment = productcatalog.Alignment{
-			BillablesMustAlign: *a.Alignment.BillablesMustAlign,
-		}
 	}
 
 	req.Currency = currency.Code(a.Currency)
