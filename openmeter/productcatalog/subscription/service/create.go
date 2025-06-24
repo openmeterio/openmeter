@@ -59,6 +59,10 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 		return def, fmt.Errorf("plan or plan reference must be provided, should have validated already")
 	}
 
+	if !plan.ToCreateSubscriptionPlanInput().BillablesMustAlign {
+		return def, models.NewGenericValidationError(fmt.Errorf("unaligned subscriptions are being deprecated"))
+	}
+
 	// Then let's create the subscription form the plan
 	subView, err := s.WorkflowService.CreateFromPlan(ctx, request.WorkflowInput, plan)
 	if err != nil {

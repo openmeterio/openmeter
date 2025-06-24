@@ -238,6 +238,9 @@ func TestPlan(t *testing.T) {
 		Description:    lo.ToPtr("Test Plan Description"),
 		Key:            PlanKey,
 		BillingCadence: "P1M",
+		Alignment: &api.Alignment{
+			BillablesMustAlign: lo.ToPtr(true),
+		},
 		Phases: []api.PlanPhase{
 			{
 				Name:        "Test Plan Phase 1",
