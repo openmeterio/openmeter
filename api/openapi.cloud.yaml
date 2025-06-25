@@ -1227,6 +1227,7 @@ paths:
         if they have customer orverrides or not.
       parameters:
         - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.billingProfile'
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.customersWithoutPinnedProfile'
         - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.includeAllCustomers'
         - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.customerId'
         - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.customerName'
@@ -10462,6 +10463,14 @@ components:
       schema:
         type: string
       explode: false
+      style: form
+    BillingProfileListCustomerOverridesParams.customersWithoutPinnedProfile:
+      name: customersWithoutPinnedProfile
+      in: query
+      required: false
+      description: Only return customers without pinned billing profiles. This implicitly sets includeAllCustomers to true.
+      schema:
+        type: boolean
       style: form
     BillingProfileListCustomerOverridesParams.expand:
       name: expand

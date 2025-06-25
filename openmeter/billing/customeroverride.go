@@ -234,9 +234,10 @@ type ListCustomerOverridesInput struct {
 	// Warning: We only support a single namespace for now as the default profile handling
 	// complicates things. If we need multiple namespace support, I would recommend a different
 	// endpoint that doesn't take default namespace into account.
-	Namespace       string                 `json:"namespace"`
-	BillingProfiles []string               `json:"billingProfile,omitempty"`
-	Expand          CustomerOverrideExpand `json:"expand,omitempty"`
+	Namespace                     string                 `json:"namespace"`
+	BillingProfiles               []string               `json:"billingProfile,omitempty"`
+	CustomersWithoutPinnedProfile bool                   `json:"customersWithoutPinnedProfile,omitempty"`
+	Expand                        CustomerOverrideExpand `json:"expand,omitempty"`
 
 	IncludeAllCustomers  bool     `json:"includeAllCustomers,omitempty"`
 	CustomerIDs          []string `json:"customerID,omitempty"`
@@ -251,6 +252,12 @@ type ListCustomerOverridesInput struct {
 func (l ListCustomerOverridesInput) Validate() error {
 	if l.Namespace == "" {
 		return fmt.Errorf("namespace is required")
+	}
+
+	if l.CustomersWithoutPinnedProfile {
+		if len(l.BillingProfiles) > 0 {
+			return fmt.Errorf("customersWithoutPinnedProfile cannot be used with billingProfiles")
+		}
 	}
 
 	return nil

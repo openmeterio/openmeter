@@ -39,13 +39,14 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 			}
 
 			return ListCustomerOverridesRequest{
-				Namespace:            ns,
-				BillingProfiles:      lo.FromPtr(input.BillingProfile),
-				IncludeAllCustomers:  lo.FromPtr(input.IncludeAllCustomers),
-				CustomerIDs:          lo.FromPtr(input.CustomerId),
-				CustomerName:         lo.FromPtr(input.CustomerName),
-				CustomerKey:          lo.FromPtr(input.CustomerKey),
-				CustomerPrimaryEmail: lo.FromPtr(input.CustomerPrimaryEmail),
+				Namespace:                     ns,
+				BillingProfiles:               lo.FromPtr(input.BillingProfile),
+				IncludeAllCustomers:           lo.FromPtr(input.IncludeAllCustomers),
+				CustomersWithoutPinnedProfile: lo.FromPtr(input.CustomersWithoutPinnedProfile),
+				CustomerIDs:                   lo.FromPtr(input.CustomerId),
+				CustomerName:                  lo.FromPtr(input.CustomerName),
+				CustomerKey:                   lo.FromPtr(input.CustomerKey),
+				CustomerPrimaryEmail:          lo.FromPtr(input.CustomerPrimaryEmail),
 
 				Expand:  expand,
 				OrderBy: billing.CustomerOverrideOrderBy(lo.FromPtrOr(input.OrderBy, api.BillingProfileCustomerOverrideOrderByOrderingOrderBy(billing.DefaultCustomerOverrideOrderBy))),
