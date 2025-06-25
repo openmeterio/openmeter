@@ -2,6 +2,7 @@ package billingservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -285,16 +286,65 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billing.I
 	}
 
 	// Let's create the sub lines as per the meters (we are not setting the QuantitySnapshotedAt field just now, to signal that this is not the final snapshot)
-	for _, line := range invoiceLines {
-		if err := line.SnapshotQuantity(ctx, &invoice); err != nil {
-			return invoice, fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
-		}
+	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer.UsageAttribution.SubjectKeys, invoiceLines); err != nil {
+		return invoice, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
 	// Let's active the invoice state machine so that calculations can be done
 	return s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, ism *InvoiceStateMachine) error {
 		return ism.StateMachine.ActivateCtx(ctx)
 	})
+}
+
+func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, subjectKeys []string, lines lineservice.Lines) error {
+	linesCh := make(chan lineservice.Line, len(lines))
+	errCh := make(chan error, len(lines))
+	doneCh := make(chan struct{})
+
+	// Feed the channel
+	for _, line := range lines {
+		linesCh <- line
+	}
+	close(linesCh)
+
+	// Start workers
+	for range s.maxParallelQuantitySnapshots {
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					errCh <- fmt.Errorf("snapshotting line quantity: %v", r)
+				}
+				doneCh <- struct{}{}
+			}()
+
+			for line := range linesCh {
+				if ctx.Err() != nil {
+					errCh <- ctx.Err()
+					return
+				}
+				if err := line.SnapshotQuantity(ctx, subjectKeys); err != nil {
+					errCh <- fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
+				}
+			}
+		}()
+	}
+
+	// Wait for all workers to finish
+	for range s.maxParallelQuantitySnapshots {
+		<-doneCh
+	}
+
+	close(errCh)
+
+	// Collect snapshot errors
+	errs := []error{}
+	for err := range errCh {
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 func (s *Service) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
@@ -321,7 +371,7 @@ func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.Snapsh
 		return nil, fmt.Errorf("creating line service: %w", err)
 	}
 
-	err = lineSvc.SnapshotQuantity(ctx, input.Invoice)
+	err = lineSvc.SnapshotQuantity(ctx, input.Invoice.Customer.UsageAttribution.SubjectKeys)
 	if err != nil {
 		return nil, fmt.Errorf("snapshotting line quantity: %w", err)
 	}

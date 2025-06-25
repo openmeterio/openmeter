@@ -81,15 +81,16 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	require.NoError(t, err)
 
 	billingService, err := billingservice.New(billingservice.Config{
-		Adapter:             billingAdapter,
-		CustomerService:     deps.CustomerService,
-		AppService:          appService,
-		Logger:              slog.Default(),
-		FeatureService:      deps.FeatureConnector,
-		MeterService:        deps.MeterService,
-		StreamingConnector:  deps.MockStreamingConnector,
-		Publisher:           publisher,
-		AdvancementStrategy: billing.ForegroundAdvancementStrategy,
+		Adapter:                      billingAdapter,
+		CustomerService:              deps.CustomerService,
+		AppService:                   appService,
+		Logger:                       slog.Default(),
+		FeatureService:               deps.FeatureConnector,
+		MeterService:                 deps.MeterService,
+		StreamingConnector:           deps.MockStreamingConnector,
+		Publisher:                    publisher,
+		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
+		MaxParallelQuantitySnapshots: 2,
 	})
 	require.NoError(t, err)
 

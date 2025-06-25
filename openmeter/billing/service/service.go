@@ -33,21 +33,23 @@ type Service struct {
 	lineService *lineservice.Service
 	publisher   eventbus.Publisher
 
-	advancementStrategy billing.AdvancementStrategy
-	fsNamespaceLockdown []string
+	advancementStrategy          billing.AdvancementStrategy
+	fsNamespaceLockdown          []string
+	maxParallelQuantitySnapshots int
 }
 
 type Config struct {
-	Adapter             billing.Adapter
-	CustomerService     customer.Service
-	AppService          app.Service
-	Logger              *slog.Logger
-	FeatureService      feature.FeatureConnector
-	MeterService        meter.Service
-	StreamingConnector  streaming.Connector
-	Publisher           eventbus.Publisher
-	AdvancementStrategy billing.AdvancementStrategy
-	FSNamespaceLockdown []string
+	Adapter                      billing.Adapter
+	CustomerService              customer.Service
+	AppService                   app.Service
+	Logger                       *slog.Logger
+	FeatureService               feature.FeatureConnector
+	MeterService                 meter.Service
+	StreamingConnector           streaming.Connector
+	Publisher                    eventbus.Publisher
+	AdvancementStrategy          billing.AdvancementStrategy
+	FSNamespaceLockdown          []string
+	MaxParallelQuantitySnapshots int
 }
 
 func (c Config) Validate() error {
@@ -87,6 +89,10 @@ func (c Config) Validate() error {
 		return fmt.Errorf("validating advancement strategy: %w", err)
 	}
 
+	if c.MaxParallelQuantitySnapshots < 1 {
+		return errors.New("max parallel snapshots must be greater than 0")
+	}
+
 	return nil
 }
 
@@ -96,16 +102,17 @@ func New(config Config) (*Service, error) {
 	}
 
 	svc := &Service{
-		adapter:             config.Adapter,
-		customerService:     config.CustomerService,
-		appService:          config.AppService,
-		logger:              config.Logger,
-		featureService:      config.FeatureService,
-		meterService:        config.MeterService,
-		streamingConnector:  config.StreamingConnector,
-		publisher:           config.Publisher,
-		advancementStrategy: config.AdvancementStrategy,
-		fsNamespaceLockdown: config.FSNamespaceLockdown,
+		adapter:                      config.Adapter,
+		customerService:              config.CustomerService,
+		appService:                   config.AppService,
+		logger:                       config.Logger,
+		featureService:               config.FeatureService,
+		meterService:                 config.MeterService,
+		streamingConnector:           config.StreamingConnector,
+		publisher:                    config.Publisher,
+		advancementStrategy:          config.AdvancementStrategy,
+		fsNamespaceLockdown:          config.FSNamespaceLockdown,
+		maxParallelQuantitySnapshots: config.MaxParallelQuantitySnapshots,
 	}
 
 	lineSvc, err := lineservice.New(lineservice.Config{

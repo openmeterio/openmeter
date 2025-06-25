@@ -140,6 +140,9 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 
 	customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: invoice.CustomerID(),
+		Expand: billing.CustomerOverrideExpand{
+			Customer: true,
+		},
 	})
 	if err != nil {
 		return invoice, fmt.Errorf("fetching profile: %w", err)
@@ -154,11 +157,11 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		return invoice, fmt.Errorf("creating line services: %w", err)
 	}
 
-	for _, lineSvc := range inScopeLineSvcs {
-		if err := lineSvc.SnapshotQuantity(ctx, &invoice); err != nil {
-			return invoice, fmt.Errorf("snapshotting quantity: %w", err)
-		}
+	if err := s.snapshotLineQuantitiesInParallel(ctx, customerProfile.Customer.UsageAttribution.SubjectKeys, inScopeLineSvcs); err != nil {
+		return invoice, fmt.Errorf("snapshotting lines: %w", err)
+	}
 
+	for _, lineSvc := range inScopeLineSvcs {
 		period, err := lineSvc.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
 			AsOf:               now,
 			ProgressiveBilling: customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling,
@@ -1216,23 +1219,6 @@ func (s *Service) UpsertValidationIssues(ctx context.Context, input billing.Upse
 
 		return nil
 	})
-}
-
-func (s *Service) snapshotQuantity(ctx context.Context, invoice *billing.Invoice) error {
-	lineSvcs, err := s.lineService.FromEntities(invoice.Lines.OrEmpty())
-	if err != nil {
-		return fmt.Errorf("creating line services: %w", err)
-	}
-
-	for _, lineSvc := range lineSvcs {
-		if err := lineSvc.SnapshotQuantity(ctx, invoice); err != nil {
-			return fmt.Errorf("snapshotting quantity: %w", err)
-		}
-	}
-
-	invoice.QuantitySnapshotedAt = lo.ToPtr(clock.Now().UTC())
-
-	return nil
 }
 
 func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billing.RecalculateGatheringInvoicesInput) error {

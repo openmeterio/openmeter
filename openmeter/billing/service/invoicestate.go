@@ -722,7 +722,19 @@ func (m *InvoiceStateMachine) snapshotQuantityAsNeeded(ctx context.Context) erro
 		return nil
 	}
 
-	return m.Service.snapshotQuantity(ctx, &m.Invoice)
+	lineSvcs, err := m.Service.lineService.FromEntities(m.Invoice.Lines.OrEmpty())
+	if err != nil {
+		return fmt.Errorf("creating line services: %w", err)
+	}
+
+	err = m.Service.snapshotLineQuantitiesInParallel(ctx, m.Invoice.Customer.UsageAttribution.SubjectKeys, lineSvcs)
+	if err != nil {
+		return fmt.Errorf("snapshotting lines: %w", err)
+	}
+
+	m.Invoice.QuantitySnapshotedAt = lo.ToPtr(clock.Now().UTC())
+
+	return nil
 }
 
 func (m *InvoiceStateMachine) canDraftSyncAdvance() bool {

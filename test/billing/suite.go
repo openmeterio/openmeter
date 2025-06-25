@@ -174,15 +174,16 @@ func (s *BaseSuite) SetupSuite() {
 	s.BillingAdapter = billingAdapter
 
 	billingService, err := billingservice.New(billingservice.Config{
-		Adapter:             billingAdapter,
-		CustomerService:     s.CustomerService,
-		AppService:          s.AppService,
-		Logger:              slog.Default(),
-		FeatureService:      s.FeatureService,
-		MeterService:        s.MeterAdapter,
-		StreamingConnector:  s.MockStreamingConnector,
-		Publisher:           publisher,
-		AdvancementStrategy: billing.ForegroundAdvancementStrategy,
+		Adapter:                      billingAdapter,
+		CustomerService:              s.CustomerService,
+		AppService:                   s.AppService,
+		Logger:                       slog.Default(),
+		FeatureService:               s.FeatureService,
+		MeterService:                 s.MeterAdapter,
+		StreamingConnector:           s.MockStreamingConnector,
+		Publisher:                    publisher,
+		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
+		MaxParallelQuantitySnapshots: 2,
 	})
 	require.NoError(t, err)
 
