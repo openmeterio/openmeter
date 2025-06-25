@@ -2,12 +2,12 @@ package balanceworker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/filters"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -72,8 +72,13 @@ func NewEntitlementFilters(cfg EntitlementFiltersConfig) (*EntitlementFilters, e
 		return nil, err
 	}
 
+	highWatermarkCache, err := filters.NewHighWatermarkCacheInMemory(defaultLRUCacheSize)
+	if err != nil {
+		return nil, err
+	}
+
 	return EntitlementFilters{
-		filters: []filters.NamedFilter{notificationFilter},
+		filters: []filters.NamedFilter{notificationFilter, highWatermarkCache},
 	}.WithMetrics(cfg.MetricMeter)
 }
 
@@ -115,20 +120,20 @@ func (f EntitlementFilters) IsNamespaceInScope(ctx context.Context, namespace st
 	}, FilterScopeNamespace)
 }
 
-func (f EntitlementFilters) IsEntitlementInScope(ctx context.Context, entitlement entitlement.Entitlement) (bool, error) {
+func (f EntitlementFilters) IsEntitlementInScope(ctx context.Context, req filters.EntitlementFilterRequest) (bool, error) {
 	f.meterEntitlementsFilterRequestsTotal.Add(ctx, 1,
 		metric.WithAttributes(
 			attribute.String(metricLabelScope, string(FilterScopeEntitlement)),
-			attribute.String(metricLabelNamespace, entitlement.Namespace),
+			attribute.String(metricLabelNamespace, req.Entitlement.Namespace),
 		),
 	)
 
 	return f.executeFilters(ctx,
 		func(ctx context.Context, filter filters.Filter) (bool, error) {
-			return filter.IsEntitlementInScope(ctx, entitlement)
+			return filter.IsEntitlementInScope(ctx, req)
 		},
 		FilterScopeEntitlement,
-		attribute.String(metricLabelNamespace, entitlement.Namespace),
+		attribute.String(metricLabelNamespace, req.Entitlement.Namespace),
 	)
 }
 
@@ -141,15 +146,15 @@ func (f EntitlementFilters) executeFilters(ctx context.Context, check func(ctx c
 
 		attributes = append(attributes, additionalAttributes...)
 
-		nsInScope, err := check(ctx, filter)
+		isInScope, err := check(ctx, filter)
 		if err != nil {
 			f.meterEntitlementsFilterErrorsTotal.Add(ctx, 1, metric.WithAttributes(attributes...))
 			return false, err
 		}
 
-		if nsInScope {
-			f.meterEntitlementsFilterMatchesTotal.Add(ctx, 1, metric.WithAttributes(attributes...))
-			return true, nil
+		if !isInScope {
+			f.meterEntitlementsFilterFilteredTotal.Add(ctx, 1, metric.WithAttributes(attributes...))
+			return false, nil
 		}
 	}
 
@@ -158,7 +163,21 @@ func (f EntitlementFilters) executeFilters(ctx context.Context, check func(ctx c
 	}
 	attributes = append(attributes, additionalAttributes...)
 
-	f.meterEntitlementsFilterFilteredTotal.Add(ctx, 1, metric.WithAttributes(attributes...))
+	f.meterEntitlementsFilterMatchesTotal.Add(ctx, 1, metric.WithAttributes(attributes...))
 
-	return false, nil
+	return true, nil
+}
+
+func (f EntitlementFilters) RecordLastCalculation(ctx context.Context, req filters.RecordLastCalculationRequest) error {
+	errs := []error{}
+
+	for _, filter := range f.filters {
+		if recorder, ok := filter.(filters.CalculationTimeRecorder); ok {
+			if err := recorder.RecordLastCalculation(ctx, req); err != nil {
+				errs = append(errs, fmt.Errorf("recording last calculation for filter %s: %w", filter.Name(), err))
+			}
+		}
+	}
+
+	return errors.Join(errs...)
 }

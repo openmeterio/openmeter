@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/filters"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
@@ -144,7 +145,7 @@ func (r *Recalculator) GetEntitlementFilters() *EntitlementFilters {
 	return r.entitlementFilters
 }
 
-func (r *Recalculator) Recalculate(ctx context.Context, ns string) error {
+func (r *Recalculator) Recalculate(ctx context.Context, ns string, recalculationStartedAt time.Time) error {
 	if ns == "" {
 		return errors.New("namespace is required")
 	}
@@ -193,15 +194,19 @@ func (r *Recalculator) Recalculate(ctx context.Context, ns string) error {
 		page++
 	}
 
-	return r.processEntitlements(ctx, affectedEntitlements)
+	return r.processEntitlements(ctx, affectedEntitlements, recalculationStartedAt)
 }
 
-func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []entitlement.Entitlement) error {
+func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []entitlement.Entitlement, recalculationStartedAt time.Time) error {
 	var errs error
 	for _, ent := range entitlements {
 		start := time.Now()
 
-		inScope, err := r.entitlementFilters.IsEntitlementInScope(ctx, ent)
+		inScope, err := r.entitlementFilters.IsEntitlementInScope(ctx, filters.EntitlementFilterRequest{
+			Entitlement: ent,
+			EventAt:     recalculationStartedAt,
+			Operation:   snapshot.ValueOperationUpdate,
+		})
 		if err != nil {
 			return fmt.Errorf("failed to check if entitlement is in scope: %w", err)
 		}
@@ -209,8 +214,10 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 			continue
 		}
 
-		if err := r.sendEntitlementEvent(ctx, ent); err != nil {
+		res, err := r.sendEntitlementEvent(ctx, ent)
+		if err != nil {
 			errs = errors.Join(errs, fmt.Errorf("error sending event for entitlement [id=%s]: %w", ent.ID, err))
+			continue
 		}
 
 		r.metricRecalculationJobRecalculationTime.Record(ctx,
@@ -218,12 +225,25 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 			metric.WithAttributes(
 				attribute.String(metricAttributeKeyEntitltementType, string(ent.EntitlementType)),
 			))
+
+		err = r.entitlementFilters.RecordLastCalculation(ctx, filters.RecordLastCalculationRequest{
+			Entitlement:  ent,
+			CalculatedAt: res.CalculatedAt,
+		})
+		if err != nil {
+			errs = errors.Join(errs, fmt.Errorf("failed to record last calculation for entitlement [id=%s]: %w", ent.ID, err))
+			continue
+		}
 	}
 
 	return errs
 }
 
-func (r *Recalculator) sendEntitlementEvent(ctx context.Context, ent entitlement.Entitlement) error {
+type sendEntitlementEventResult struct {
+	CalculatedAt time.Time
+}
+
+func (r *Recalculator) sendEntitlementEvent(ctx context.Context, ent entitlement.Entitlement) (sendEntitlementEventResult, error) {
 	if ent.DeletedAt != nil || (ent.ActiveTo != nil && time.Now().After(*ent.ActiveTo)) {
 		return r.sendEntitlementDeletedEvent(ctx, ent)
 	}
@@ -231,13 +251,15 @@ func (r *Recalculator) sendEntitlementEvent(ctx context.Context, ent entitlement
 	return r.sendEntitlementUpdatedEvent(ctx, ent)
 }
 
-func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent entitlement.Entitlement) error {
+func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent entitlement.Entitlement) (sendEntitlementEventResult, error) {
+	empty := sendEntitlementEventResult{}
+
 	subject, err := r.subjectCache.Get(ctx, pkgmodels.NamespacedKey{
 		Namespace: ent.Namespace,
 		Key:       ent.SubjectKey,
 	})
 	if err != nil {
-		return err
+		return empty, err
 	}
 
 	feature, err := r.featureCache.Get(ctx, pkgmodels.NamespacedID{
@@ -245,8 +267,10 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 		ID:        ent.FeatureID,
 	})
 	if err != nil {
-		return err
+		return empty, err
 	}
+
+	calculatedAt := time.Now()
 
 	event := marshaler.WithSource(
 		metadata.ComposeResourcePath(ent.Namespace, metadata.EntityEntitlement, ent.ID),
@@ -259,22 +283,26 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 			Feature:   feature,
 			Operation: snapshot.ValueOperationDelete,
 
-			CalculatedAt: convert.ToPointer(time.Now().Add(-defaultClockDrift)),
+			CalculatedAt: convert.ToPointer(calculatedAt),
 
 			CurrentUsagePeriod: ent.CurrentUsagePeriod,
 		},
 	)
 
-	return r.opts.EventBus.Publish(ctx, event)
+	return sendEntitlementEventResult{
+		CalculatedAt: calculatedAt,
+	}, r.opts.EventBus.Publish(ctx, event)
 }
 
-func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent entitlement.Entitlement) error {
+func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent entitlement.Entitlement) (sendEntitlementEventResult, error) {
+	empty := sendEntitlementEventResult{}
+
 	subject, err := r.subjectCache.Get(ctx, pkgmodels.NamespacedKey{
 		Namespace: ent.Namespace,
 		Key:       ent.SubjectKey,
 	})
 	if err != nil {
-		return err
+		return empty, err
 	}
 
 	feature, err := r.featureCache.Get(ctx, pkgmodels.NamespacedID{
@@ -282,14 +310,14 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 		ID:        ent.FeatureID,
 	})
 	if err != nil {
-		return err
+		return empty, err
 	}
 
 	calculatedAt := time.Now()
 
 	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, ent.Namespace, ent.SubjectKey, ent.ID, calculatedAt)
 	if err != nil {
-		return fmt.Errorf("failed to get entitlement value: %w", err)
+		return empty, fmt.Errorf("failed to get entitlement value: %w", err)
 	}
 
 	r.metricRecalculationTime.Record(ctx,
@@ -300,7 +328,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 
 	mappedValues, err := entitlementdriver.MapEntitlementValueToAPI(value)
 	if err != nil {
-		return fmt.Errorf("failed to map entitlement value: %w", err)
+		return empty, fmt.Errorf("failed to map entitlement value: %w", err)
 	}
 
 	event := marshaler.WithSource(
@@ -321,7 +349,9 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 		},
 	)
 
-	return r.opts.EventBus.Publish(ctx, event)
+	return sendEntitlementEventResult{
+		CalculatedAt: calculatedAt,
+	}, r.opts.EventBus.Publish(ctx, event)
 }
 
 func (r *Recalculator) getSubjectByKey(ctx context.Context, namespacedKey pkgmodels.NamespacedKey) (subject.Subject, error) {

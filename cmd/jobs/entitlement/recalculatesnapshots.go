@@ -1,6 +1,8 @@
 package entitlement
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 
 	"github.com/openmeterio/openmeter/cmd/jobs/internal"
@@ -22,7 +24,7 @@ func NewRecalculateBalanceSnapshotsCommand() *cobra.Command {
 				return err
 			}
 
-			return recalculator.Recalculate(cmd.Context(), "default")
+			return recalculator.Recalculate(cmd.Context(), "default", time.Now())
 		},
 	}
 }

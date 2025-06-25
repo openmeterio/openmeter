@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/metric"
 
@@ -29,13 +28,7 @@ import (
 
 const (
 	defaultHighWatermarkCacheSize = 100_000
-
-	// defaultClockDrift specifies how much clock drift is allowed when calculating the current time between the worker nodes.
-	// with AWS, Google Cloud 1ms is guaranteed, this should work well for any NTP based setup.
-	defaultClockDrift = time.Millisecond
 )
-
-type NamespacedID = pkgmodels.NamespacedID
 
 type BatchedIngestEventHandler = func(ctx context.Context, event ingestevents.EventBatchedIngest) error
 
@@ -94,11 +87,6 @@ func (o *WorkerOptions) Validate() error {
 	return nil
 }
 
-type highWatermarkCacheEntry struct {
-	HighWatermark time.Time
-	IsDeleted     bool
-}
-
 type Worker struct {
 	opts        WorkerOptions
 	entitlement *registry.Entitlement
@@ -107,10 +95,7 @@ type Worker struct {
 
 	filters *EntitlementFilters
 
-	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
-
-	metricRecalculationTime       metric.Int64Histogram
-	metricHighWatermarkCacheStats metric.Int64Counter
+	metricRecalculationTime metric.Int64Histogram
 
 	// Handlers
 	nonPublishingHandler *grouphandler.NoPublishingHandler
@@ -127,26 +112,12 @@ func (w *Worker) initMetrics() error {
 		return fmt.Errorf("failed to create recalculation time histogram: %w", err)
 	}
 
-	w.metricHighWatermarkCacheStats, err = w.opts.MetricMeter.Int64Counter(
-		metricNameHighWatermarkCacheStats,
-		metric.WithDescription("High watermark cache stats"),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create high watermark cache stats counter: %w", err)
-	}
-
 	return nil
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate worker options: %w", err)
-	}
-
-	// TODO[later]: move to filters
-	highWatermarkCache, err := lru.New[string, highWatermarkCacheEntry](defaultHighWatermarkCacheSize)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)
 	}
 
 	filters, err := NewEntitlementFilters(EntitlementFiltersConfig{
@@ -158,11 +129,10 @@ func New(opts WorkerOptions) (*Worker, error) {
 	}
 
 	worker := &Worker{
-		opts:               opts,
-		entitlement:        opts.Entitlement,
-		repo:               opts.Repo,
-		highWatermarkCache: highWatermarkCache,
-		filters:            filters,
+		opts:        opts,
+		entitlement: opts.Entitlement,
+		repo:        opts.Repo,
+		filters:     filters,
 	}
 
 	if err := worker.initMetrics(); err != nil {
@@ -218,7 +188,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
 					WithEventAt(event.CreatedAt),
 				))
@@ -229,7 +199,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 			return w.opts.EventBus.
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
 					WithEventAt(lo.FromPtrOr(event.DeletedAt, time.Now())),
 				))
@@ -241,7 +211,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
 					WithEventAt(event.CreatedAt),
 				))
@@ -253,7 +223,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
 					WithEventAt(event.UpdatedAt),
 				))
@@ -265,7 +235,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID)),
 					WithEventAt(event.ResetAt),
 					WithSourceOperation(snapshot.ValueOperationReset),

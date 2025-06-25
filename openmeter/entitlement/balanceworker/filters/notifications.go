@@ -7,7 +7,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/lrux"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -77,8 +76,12 @@ func (f *NotificationsFilter) IsNamespaceInScope(ctx context.Context, namespace 
 	return len(rules) > 0, nil
 }
 
-func (f *NotificationsFilter) IsEntitlementInScope(ctx context.Context, ent entitlement.Entitlement) (bool, error) {
-	rules, err := f.ruleCache.Get(ctx, ent.Namespace)
+func (f *NotificationsFilter) IsEntitlementInScope(ctx context.Context, req EntitlementFilterRequest) (bool, error) {
+	if err := req.Validate(); err != nil {
+		return false, err
+	}
+
+	rules, err := f.ruleCache.Get(ctx, req.Entitlement.Namespace)
 	if err != nil {
 		return false, err
 	}
@@ -93,11 +96,11 @@ func (f *NotificationsFilter) IsEntitlementInScope(ctx context.Context, ent enti
 			return true, nil
 		}
 
-		if lo.Contains(rule.Config.BalanceThreshold.Features, ent.FeatureKey) {
+		if lo.Contains(rule.Config.BalanceThreshold.Features, req.Entitlement.FeatureKey) {
 			return true, nil
 		}
 
-		if lo.Contains(rule.Config.BalanceThreshold.Features, ent.FeatureID) {
+		if lo.Contains(rule.Config.BalanceThreshold.Features, req.Entitlement.FeatureID) {
 			return true, nil
 		}
 	}
