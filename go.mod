@@ -62,7 +62,7 @@ require (
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/samber/lo v1.51.0
 	github.com/samber/mo v1.14.0
-	github.com/samber/slog-multi v1.4.0
+	github.com/samber/slog-multi v1.4.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	github.com/spf13/viper v1.20.1
@@ -147,6 +147,7 @@ require (
 	github.com/qdrant/go-client v1.12.0 // indirect
 	github.com/questdb/go-questdb-client/v3 v3.2.0 // indirect
 	github.com/redpanda-data/connect/v4 v4.49.1 // indirect
+	github.com/samber/slog-common v0.19.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/timeplus-io/proton-go-driver/v2 v2.0.17 // indirect
 	github.com/twmb/franz-go/pkg/kadm v1.13.0 // indirect
