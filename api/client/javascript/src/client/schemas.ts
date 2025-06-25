@@ -10086,6 +10086,8 @@ export interface components {
     'BillingProfileListCustomerOverridesParams.customerName': string
     /** @description Filter by customer primary email */
     'BillingProfileListCustomerOverridesParams.customerPrimaryEmail': string
+    /** @description Only return customers without pinned billing profiles. This implicitly sets includeAllCustomers to true. */
+    'BillingProfileListCustomerOverridesParams.customersWithoutPinnedProfile': boolean
     /** @description Expand the response with additional details. */
     'BillingProfileListCustomerOverridesParams.expand': components['schemas']['BillingProfileCustomerOverrideExpand'][]
     /** @description Include customers without customer overrides.
@@ -10870,6 +10872,8 @@ export type ParameterBillingProfileListCustomerOverridesParamsCustomerName =
   components['parameters']['BillingProfileListCustomerOverridesParams.customerName']
 export type ParameterBillingProfileListCustomerOverridesParamsCustomerPrimaryEmail =
   components['parameters']['BillingProfileListCustomerOverridesParams.customerPrimaryEmail']
+export type ParameterBillingProfileListCustomerOverridesParamsCustomersWithoutPinnedProfile =
+  components['parameters']['BillingProfileListCustomerOverridesParams.customersWithoutPinnedProfile']
 export type ParameterBillingProfileListCustomerOverridesParamsExpand =
   components['parameters']['BillingProfileListCustomerOverridesParams.expand']
 export type ParameterBillingProfileListCustomerOverridesParamsIncludeAllCustomers =
@@ -12517,6 +12521,8 @@ export interface operations {
       query?: {
         /** @description Filter by billing profile. */
         billingProfile?: components['parameters']['BillingProfileListCustomerOverridesParams.billingProfile']
+        /** @description Only return customers without pinned billing profiles. This implicitly sets includeAllCustomers to true. */
+        customersWithoutPinnedProfile?: components['parameters']['BillingProfileListCustomerOverridesParams.customersWithoutPinnedProfile']
         /** @description Include customers without customer overrides.
          *
          *     If set to false only the customers specifically associated with a billing profile will be returned.

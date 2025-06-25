@@ -570,6 +570,16 @@ func (s *CustomerOverrideTestSuite) TestListCustomerOverrides() {
 				custNoOverride,
 			},
 		},
+		{
+			// When we filter by explicit pinnings we only get customers that don't have an explicit override
+			name: "filter by explicit pinnings",
+			listInput: billing.ListCustomerOverridesInput{
+				CustomersWithoutPinnedProfile: true,
+			},
+			expectedCustomers: []*customer.Customer{
+				custNoOverride,
+			},
+		},
 	}
 
 	for _, tc := range tcs {

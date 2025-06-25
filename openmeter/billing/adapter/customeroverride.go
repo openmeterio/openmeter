@@ -209,8 +209,15 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 			customerOverrideFilters = append(customerOverrideFilters, billingcustomeroverride.BillingProfileIDIn(input.BillingProfiles...))
 		}
 
+		// If we are filtering by customers without pinned profiles, we need to include all customers
+		if input.CustomersWithoutPinnedProfile {
+			input.IncludeAllCustomers = true
+		}
+
 		if !input.IncludeAllCustomers {
 			query = query.Where(dbcustomer.HasBillingCustomerOverrideWith(customerOverrideFilters...))
+		} else if input.CustomersWithoutPinnedProfile {
+			query = query.Where(dbcustomer.Not(dbcustomer.HasBillingCustomerOverrideWith(customerOverrideFilters...)))
 		} else {
 			// We need to understand if the default profile is being queried for or not
 

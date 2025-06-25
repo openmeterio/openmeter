@@ -200,6 +200,12 @@ model ListCustomerOverridesParams {
   billingProfile?: ULID[];
 
   /**
+   * Only return customers without pinned billing profiles. This implicitly sets includeAllCustomers to true.
+   */
+  @query(#{ explode: true })
+  customersWithoutPinnedProfile?: boolean;
+
+  /**
    * Include customers without customer overrides.
    *
    * If set to false only the customers specifically associated with a billing profile will be returned.

@@ -2391,6 +2391,12 @@ export const listBillingProfileCustomerOverridesQueryParams = zod.object({
     .string()
     .optional()
     .describe('Filter by customer primary email'),
+  customersWithoutPinnedProfile: zod
+    .boolean()
+    .optional()
+    .describe(
+      'Only return customers without pinned billing profiles. This implicitly sets includeAllCustomers to true.'
+    ),
   expand: zod
     .array(
       zod
