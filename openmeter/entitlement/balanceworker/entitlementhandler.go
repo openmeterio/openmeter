@@ -157,11 +157,16 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 			return nil, fmt.Errorf("failed to create entitlement delete snapshot event: %w", err)
 		}
 
-		_ = w.filters.RecordLastCalculation(ctx, filters.RecordLastCalculationRequest{
+		err = w.filters.RecordLastCalculation(ctx, filters.RecordLastCalculationRequest{
 			Entitlement:  *entitlementEntity,
 			CalculatedAt: calculatedAt,
 			IsDeleted:    true,
 		})
+		if err != nil {
+			// This is not critical, as worst case we are going to unnecessarily recalculate the entitlement
+			// for the next event
+			w.opts.Logger.WarnContext(ctx, "failed to record last calculation for deleted entitlement", "error", err, "entitlement", entitlementEntity.ID)
+		}
 
 		return snapshot, nil
 	}
@@ -186,10 +191,15 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)
 	}
 
-	_ = w.filters.RecordLastCalculation(ctx, filters.RecordLastCalculationRequest{
+	err = w.filters.RecordLastCalculation(ctx, filters.RecordLastCalculationRequest{
 		Entitlement:  *entitlementEntity,
 		CalculatedAt: calculatedAt,
 	})
+	if err != nil {
+		// This is not critical, as worst case we are going to unnecessarily recalculate the entitlement
+		// for the next event
+		w.opts.Logger.WarnContext(ctx, "failed to record last calculation for entitlement", "error", err, "entitlement", entitlementEntity.ID)
+	}
 
 	return snapshot, nil
 }
