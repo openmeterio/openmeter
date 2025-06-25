@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/samber/lo"
 )
 
 type Pod struct {
@@ -95,12 +93,10 @@ func (s *Service) ListPods(ctx context.Context, params ListPodsParams) (*ListPod
 		return nil, fmt.Errorf("failed to list pods, status code: %d", resp.StatusCode())
 	}
 
-	result := resp.Result().(*ListPodsResponse)
-
-	// Filter out pods where phase is not "Running"
-	result.Pods = lo.Filter(result.Pods, func(p Pod, _ int) bool {
-		return p.K8sPhase == "Running"
-	})
+	result, ok := resp.Result().(*ListPodsResponse)
+	if !ok {
+		return nil, fmt.Errorf("failed to parse list pods response")
+	}
 
 	j, err := json.Marshal(result)
 	if err == nil {

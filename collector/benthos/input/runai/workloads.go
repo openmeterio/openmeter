@@ -118,7 +118,10 @@ func (s *Service) ListWorkloads(ctx context.Context, params ListWorkloadParams) 
 		return nil, fmt.Errorf("failed to list workloads, status code: %d", resp.StatusCode())
 	}
 
-	result := resp.Result().(*ListWorkloadsResponse)
+	result, ok := resp.Result().(*ListWorkloadsResponse)
+	if !ok {
+		return nil, fmt.Errorf("failed to parse list workloads response")
+	}
 
 	// Filter out workloads where running pod count is 0
 	result.Workloads = lo.Filter(result.Workloads, func(w Workload, _ int) bool {
