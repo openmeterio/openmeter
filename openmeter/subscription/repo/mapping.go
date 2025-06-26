@@ -50,9 +50,6 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		MetadataModel: models.MetadataModel{
 			Metadata: sub.Metadata,
 		},
-		Alignment: productcatalog.Alignment{
-			BillablesMustAlign: sub.BillablesMustAlign,
-		},
 		PlanRef:         ref,
 		Name:            sub.Name,
 		Description:     sub.Description,

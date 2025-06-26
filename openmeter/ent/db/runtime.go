@@ -1348,8 +1348,6 @@ func init() {
 	_ = subscriptionMixinFields1
 	subscriptionMixinFields2 := subscriptionMixin[2].Fields()
 	_ = subscriptionMixinFields2
-	subscriptionMixinFields5 := subscriptionMixin[5].Fields()
-	_ = subscriptionMixinFields5
 	subscriptionFields := schema.Subscription{}.Fields()
 	_ = subscriptionFields
 	// subscriptionDescNamespace is the schema descriptor for namespace field.
@@ -1366,10 +1364,6 @@ func init() {
 	subscription.DefaultUpdatedAt = subscriptionDescUpdatedAt.Default.(func() time.Time)
 	// subscription.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	subscription.UpdateDefaultUpdatedAt = subscriptionDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// subscriptionDescBillablesMustAlign is the schema descriptor for billables_must_align field.
-	subscriptionDescBillablesMustAlign := subscriptionMixinFields5[0].Descriptor()
-	// subscription.DefaultBillablesMustAlign holds the default value on creation for the billables_must_align field.
-	subscription.DefaultBillablesMustAlign = subscriptionDescBillablesMustAlign.Default.(bool)
 	// subscriptionDescName is the schema descriptor for name field.
 	subscriptionDescName := subscriptionFields[0].Descriptor()
 	// subscription.DefaultName holds the default value on creation for the name field.

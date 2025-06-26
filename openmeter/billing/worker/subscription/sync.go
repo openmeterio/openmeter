@@ -403,7 +403,8 @@ func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.Su
 			generationLimit := asOf
 
 			// For aligned subscrptions (all subscriptions currently)
-			if subs.Spec.Alignment.BillablesMustAlign {
+			// TODO: cleanup
+			if true {
 				// we need to generate exactly until the end of the current billing cycle
 				currBillingPeriod, err := subs.Spec.GetAlignedBillingPeriodAt(asOf)
 				if err != nil {

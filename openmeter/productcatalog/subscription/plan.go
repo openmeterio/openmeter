@@ -71,10 +71,7 @@ func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPl
 	}
 
 	return subscription.CreateSubscriptionPlanInput{
-		Plan: ref,
-		Alignment: productcatalog.Alignment{
-			BillablesMustAlign: true,
-		},
+		Plan:            ref,
 		BillingCadence:  p.BillingCadence,
 		ProRatingConfig: p.ProRatingConfig,
 	}
