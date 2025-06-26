@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) error {
@@ -29,7 +30,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 	for _, entitlement := range affectedEntitlements {
 		event, err := w.handleEntitlementEvent(
 			ctx,
-			NamespacedID{Namespace: entitlement.Namespace, ID: entitlement.EntitlementID},
+			pkgmodels.NamespacedID{Namespace: entitlement.Namespace, ID: entitlement.EntitlementID},
 			WithSource(metadata.ComposeResourcePath(entitlement.Namespace, metadata.EntityEvent)),
 			WithEventAt(event.StoredAt),
 			WithRawIngestedEvents(event.RawEvents),
@@ -52,7 +53,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 	return handlingError
 }
 
-func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, namespace string, meterSlugs []string, subject string) ([]NamespacedID, error) {
+func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, namespace string, meterSlugs []string, subject string) ([]pkgmodels.NamespacedID, error) {
 	featuresByMeter, err := w.entitlement.Feature.ListFeatures(ctx, feature.ListFeaturesParams{
 		Namespace:  namespace,
 		MeterSlugs: meterSlugs,
@@ -75,9 +76,9 @@ func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, name
 		return nil, err
 	}
 
-	entitlementIDs := make([]NamespacedID, 0, len(entitlements.Items))
+	entitlementIDs := make([]pkgmodels.NamespacedID, 0, len(entitlements.Items))
 	for _, entitlement := range entitlements.Items {
-		entitlementIDs = append(entitlementIDs, NamespacedID{
+		entitlementIDs = append(entitlementIDs, pkgmodels.NamespacedID{
 			ID:        entitlement.ID,
 			Namespace: entitlement.Namespace,
 		})

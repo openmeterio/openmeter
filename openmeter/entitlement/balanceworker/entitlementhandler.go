@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/filters"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
@@ -33,6 +34,14 @@ type handleEntitlementEventOptions struct {
 	sourceOperation *snapshot.ValueOperationType
 
 	rawIngestedEvents []serializer.CloudEventsKafkaPayload
+}
+
+func (o *handleEntitlementEventOptions) Validate() error {
+	if o.eventAt.IsZero() {
+		return errors.New("eventAt is required")
+	}
+
+	return nil
 }
 
 type handleOption func(*handleEntitlementEventOptions)
@@ -71,48 +80,13 @@ func getOptions(opts ...handleOption) handleEntitlementEventOptions {
 	return options
 }
 
-type highWatermarkCacheAction string
-
-const (
-	recalculateAction highWatermarkCacheAction = "recalculate"
-	skipEventAction   highWatermarkCacheAction = "skipEvent"
-)
-
-func (w *Worker) checkHighWatermarkCache(ctx context.Context, entitlementID NamespacedID, opts handleEntitlementEventOptions) highWatermarkCacheAction {
-	// Always emit reset events
-	// TODO[later]: Only calculate if there's need for the explicit reset event
-	if lo.FromPtr(opts.sourceOperation) == snapshot.ValueOperationReset {
-		return recalculateAction
-	}
-
-	if entry, ok := w.highWatermarkCache.Get(entitlementID.ID); ok {
-		if entry.HighWatermark.After(opts.eventAt) || entry.IsDeleted {
-			if entry.IsDeleted {
-				w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheHitDeleted))
-			} else {
-				w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheHit))
-			}
-
-			return skipEventAction
-		}
-
-		w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheStale))
-	} else {
-		w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheMiss))
-	}
-
-	return recalculateAction
-}
-
-func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID NamespacedID, options ...handleOption) (marshaler.Event, error) {
+func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID pkgmodels.NamespacedID, options ...handleOption) (marshaler.Event, error) {
 	calculatedAt := time.Now()
 
 	opts := getOptions(options...)
 
-	if opts.eventAt.IsZero() {
-		// TODO: set to error when the queue has been flushed
-		w.opts.Logger.Warn("eventAt is zero, ignoring event", "entitlementID", entitlementID, "source", opts.source)
-		return nil, nil
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("handling entitlement event: %w", err)
 	}
 
 	inScope, err := w.filters.IsNamespaceInScope(ctx, entitlementID.Namespace)
@@ -120,12 +94,6 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID Names
 		return nil, fmt.Errorf("failed to check if entitlement is in scope: %w", err)
 	}
 	if !inScope {
-		return nil, nil
-	}
-
-	action := w.checkHighWatermarkCache(ctx, entitlementID, opts)
-
-	if action == skipEventAction {
 		return nil, nil
 	}
 
@@ -148,7 +116,11 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID Names
 
 	entitlementEntity := entitlements.Items[0]
 
-	inScope, err = w.filters.IsEntitlementInScope(ctx, entitlementEntity)
+	inScope, err = w.filters.IsEntitlementInScope(ctx, filters.EntitlementFilterRequest{
+		Entitlement: entitlementEntity,
+		EventAt:     opts.eventAt,
+		Operation:   lo.FromPtrOr(opts.sourceOperation, snapshot.ValueOperationUpdate),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to check if entitlement is in scope: %w", err)
 	}
@@ -185,10 +157,16 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 			return nil, fmt.Errorf("failed to create entitlement delete snapshot event: %w", err)
 		}
 
-		_ = w.highWatermarkCache.Add(entitlementEntity.ID, highWatermarkCacheEntry{
-			HighWatermark: calculatedAt.Add(-defaultClockDrift),
-			IsDeleted:     true,
+		err = w.filters.RecordLastCalculation(ctx, filters.RecordLastCalculationRequest{
+			Entitlement:  *entitlementEntity,
+			CalculatedAt: calculatedAt,
+			IsDeleted:    true,
 		})
+		if err != nil {
+			// This is not critical, as worst case we are going to unnecessarily recalculate the entitlement
+			// for the next event
+			w.opts.Logger.WarnContext(ctx, "failed to record last calculation for deleted entitlement", "error", err, "entitlement", entitlementEntity.ID)
+		}
 
 		return snapshot, nil
 	}
@@ -213,9 +191,15 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)
 	}
 
-	_ = w.highWatermarkCache.Add(entitlementEntity.ID, highWatermarkCacheEntry{
-		HighWatermark: calculatedAt.Add(-defaultClockDrift),
+	err = w.filters.RecordLastCalculation(ctx, filters.RecordLastCalculationRequest{
+		Entitlement:  *entitlementEntity,
+		CalculatedAt: calculatedAt,
 	})
+	if err != nil {
+		// This is not critical, as worst case we are going to unnecessarily recalculate the entitlement
+		// for the next event
+		w.opts.Logger.WarnContext(ctx, "failed to record last calculation for entitlement", "error", err, "entitlement", entitlementEntity.ID)
+	}
 
 	return snapshot, nil
 }
