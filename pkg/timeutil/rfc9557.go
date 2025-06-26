@@ -1,6 +1,7 @@
 package timeutil
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"time"
@@ -74,6 +75,20 @@ func ParseRFC9557(s string) (RFC9557Time, error) {
 	return RFC9557Time{res}, nil
 }
 
+func RFC9557FromTimeLocationStr(t time.Time, locationStr string) (RFC9557Time, error) {
+	if locationStr == time.UTC.String() {
+		return RFC9557Time{t.In(time.UTC)}, nil
+	}
+
+	// Let's validate the location (that it's not a fixed zone)
+	loc, err := time.LoadLocation(locationStr)
+	if err != nil {
+		return RFC9557Time{}, err
+	}
+
+	return RFC9557Time{t.In(loc)}, nil
+}
+
 func (t RFC9557Time) String() string {
 	if t.t.Location() == time.UTC {
 		return t.t.Format(time.RFC3339Nano)
@@ -82,10 +97,41 @@ func (t RFC9557Time) String() string {
 	return fmt.Sprintf("%s[%s]", t.t.Format(rfc3339NanoWithoutTZ), t.t.Location().String())
 }
 
-func (t RFC9557Time) Time() time.Time {
+func (t RFC9557Time) AsTime() time.Time {
 	return t.t
 }
 
 func (t RFC9557Time) Location() *time.Location {
 	return t.t.Location()
+}
+
+func (t RFC9557Time) IsZero() bool {
+	return t.t.IsZero()
+}
+
+func (t RFC9557Time) Compare(t2 RFC9557Time) int {
+	return t.t.Compare(t2.t)
+}
+
+func (t RFC9557Time) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.String())
+}
+
+func (t *RFC9557Time) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+
+	parsed, err := ParseRFC9557(s)
+	if err != nil {
+		return err
+	}
+
+	*t = parsed
+	return nil
+}
+
+func (t RFC9557Time) Truncate(d time.Duration) RFC9557Time {
+	return RFC9557Time{t.t.Truncate(d)}
 }

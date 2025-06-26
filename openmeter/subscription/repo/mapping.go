@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) {
@@ -31,6 +32,11 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 	billingCadence, err := sub.BillingCadence.Parse()
 	if err != nil {
 		return subscription.Subscription{}, fmt.Errorf("failed to parse billing cadence: %w", err)
+	}
+
+	billingAnchor, err := timeutil.RFC9557FromTimeLocationStr(sub.BillingAnchor.UTC(), sub.BillingAnchorLocation)
+	if err != nil {
+		return subscription.Subscription{}, fmt.Errorf("failed to parse billing anchor: %w", err)
 	}
 
 	return subscription.Subscription{
@@ -60,7 +66,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		Currency:        sub.Currency,
 		BillingCadence:  billingCadence,
 		ProRatingConfig: sub.ProRatingConfig,
-		BillingAnchor:   sub.BillingAnchor.UTC(),
+		BillingAnchor:   billingAnchor,
 	}, nil
 }
 

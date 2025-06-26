@@ -3537,12 +3537,8 @@ export interface components {
       /** @description Timing configuration for the change, when the change should take effect.
        *     For changing a subscription, the accepted values depend on the subscription configuration. */
       timing: components['schemas']['SubscriptionTiming']
-      /**
-       * Format: date-time
-       * @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      billingAnchor?: Date
+      /** @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used. */
+      billingAnchor?: string
       /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
     }
@@ -3563,12 +3559,8 @@ export interface components {
       customerId?: string
       /** @description The key of the customer. Provide either the key or ID. */
       customerKey?: string
-      /**
-       * Format: date-time
-       * @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      billingAnchor?: Date
+      /** @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used. */
+      billingAnchor?: string
     }
     /**
      * @description A customer object.
@@ -8134,12 +8126,8 @@ export interface components {
       name?: string
       /** @description Description for the Subscription. */
       description?: string
-      /**
-       * Format: date-time
-       * @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      billingAnchor?: Date
+      /** @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used. */
+      billingAnchor?: string
     }
     /** @description Create subscription based on plan. */
     PlanSubscriptionCreate: {
@@ -8169,12 +8157,8 @@ export interface components {
       customerId?: string
       /** @description The key of the customer. Provide either the key or ID. */
       customerKey?: string
-      /**
-       * Format: date-time
-       * @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      billingAnchor?: Date
+      /** @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used. */
+      billingAnchor?: string
     }
     /** @description A consumer portal token.
      *
@@ -9133,11 +9117,9 @@ export interface components {
       readonly proRatingConfig?: components['schemas']['ProRatingConfig']
       /**
        * Billing anchor
-       * Format: date-time
        * @description The normalizedbilling anchor of the subscription.
-       * @example 2023-01-01T01:01:01.001Z
        */
-      readonly billingAnchor: Date
+      readonly billingAnchor: string
     }
     /** @description A subscription add-on, represents concrete instances of an add-on for a given subscription. */
     SubscriptionAddon: {
@@ -9509,11 +9491,9 @@ export interface components {
       readonly proRatingConfig?: components['schemas']['ProRatingConfig']
       /**
        * Billing anchor
-       * Format: date-time
        * @description The normalizedbilling anchor of the subscription.
-       * @example 2023-01-01T01:01:01.001Z
        */
-      readonly billingAnchor: Date
+      readonly billingAnchor: string
       /** @description Alignment details enriched with the current billing period. */
       alignment?: components['schemas']['SubscriptionAlignment']
       /** @description The phases of the subscription. */

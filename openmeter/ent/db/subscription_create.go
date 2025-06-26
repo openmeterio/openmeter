@@ -180,6 +180,20 @@ func (_c *SubscriptionCreate) SetBillingAnchor(v time.Time) *SubscriptionCreate 
 	return _c
 }
 
+// SetBillingAnchorLocation sets the "billing_anchor_location" field.
+func (_c *SubscriptionCreate) SetBillingAnchorLocation(v string) *SubscriptionCreate {
+	_c.mutation.SetBillingAnchorLocation(v)
+	return _c
+}
+
+// SetNillableBillingAnchorLocation sets the "billing_anchor_location" field if the given value is not nil.
+func (_c *SubscriptionCreate) SetNillableBillingAnchorLocation(v *string) *SubscriptionCreate {
+	if v != nil {
+		_c.SetBillingAnchorLocation(*v)
+	}
+	return _c
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_c *SubscriptionCreate) SetBillingCadence(v isodate.String) *SubscriptionCreate {
 	_c.mutation.SetBillingCadence(v)
@@ -335,6 +349,10 @@ func (_c *SubscriptionCreate) defaults() {
 		v := subscription.DefaultName
 		_c.mutation.SetName(v)
 	}
+	if _, ok := _c.mutation.BillingAnchorLocation(); !ok {
+		v := subscription.DefaultBillingAnchorLocation
+		_c.mutation.SetBillingAnchorLocation(v)
+	}
 	if _, ok := _c.mutation.ProRatingConfig(); !ok {
 		v := subscription.DefaultProRatingConfig()
 		_c.mutation.SetProRatingConfig(v)
@@ -393,6 +411,9 @@ func (_c *SubscriptionCreate) check() error {
 	}
 	if _, ok := _c.mutation.BillingAnchor(); !ok {
 		return &ValidationError{Name: "billing_anchor", err: errors.New(`db: missing required field "Subscription.billing_anchor"`)}
+	}
+	if _, ok := _c.mutation.BillingAnchorLocation(); !ok {
+		return &ValidationError{Name: "billing_anchor_location", err: errors.New(`db: missing required field "Subscription.billing_anchor_location"`)}
 	}
 	if _, ok := _c.mutation.BillingCadence(); !ok {
 		return &ValidationError{Name: "billing_cadence", err: errors.New(`db: missing required field "Subscription.billing_cadence"`)}
@@ -494,6 +515,10 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec,
 	if value, ok := _c.mutation.BillingAnchor(); ok {
 		_spec.SetField(subscription.FieldBillingAnchor, field.TypeTime, value)
 		_node.BillingAnchor = value
+	}
+	if value, ok := _c.mutation.BillingAnchorLocation(); ok {
+		_spec.SetField(subscription.FieldBillingAnchorLocation, field.TypeString, value)
+		_node.BillingAnchorLocation = value
 	}
 	if value, ok := _c.mutation.BillingCadence(); ok {
 		_spec.SetField(subscription.FieldBillingCadence, field.TypeString, value)
@@ -795,6 +820,18 @@ func (u *SubscriptionUpsert) UpdateBillingAnchor() *SubscriptionUpsert {
 	return u
 }
 
+// SetBillingAnchorLocation sets the "billing_anchor_location" field.
+func (u *SubscriptionUpsert) SetBillingAnchorLocation(v string) *SubscriptionUpsert {
+	u.Set(subscription.FieldBillingAnchorLocation, v)
+	return u
+}
+
+// UpdateBillingAnchorLocation sets the "billing_anchor_location" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateBillingAnchorLocation() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldBillingAnchorLocation)
+	return u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (u *SubscriptionUpsert) SetBillingCadence(v isodate.String) *SubscriptionUpsert {
 	u.Set(subscription.FieldBillingCadence, v)
@@ -1040,6 +1077,20 @@ func (u *SubscriptionUpsertOne) SetBillingAnchor(v time.Time) *SubscriptionUpser
 func (u *SubscriptionUpsertOne) UpdateBillingAnchor() *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.UpdateBillingAnchor()
+	})
+}
+
+// SetBillingAnchorLocation sets the "billing_anchor_location" field.
+func (u *SubscriptionUpsertOne) SetBillingAnchorLocation(v string) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetBillingAnchorLocation(v)
+	})
+}
+
+// UpdateBillingAnchorLocation sets the "billing_anchor_location" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateBillingAnchorLocation() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateBillingAnchorLocation()
 	})
 }
 
@@ -1462,6 +1513,20 @@ func (u *SubscriptionUpsertBulk) SetBillingAnchor(v time.Time) *SubscriptionUpse
 func (u *SubscriptionUpsertBulk) UpdateBillingAnchor() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.UpdateBillingAnchor()
+	})
+}
+
+// SetBillingAnchorLocation sets the "billing_anchor_location" field.
+func (u *SubscriptionUpsertBulk) SetBillingAnchorLocation(v string) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetBillingAnchorLocation(v)
+	})
+}
+
+// UpdateBillingAnchorLocation sets the "billing_anchor_location" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateBillingAnchorLocation() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateBillingAnchorLocation()
 	})
 }
 

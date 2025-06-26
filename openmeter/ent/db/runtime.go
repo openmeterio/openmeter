@@ -1405,8 +1405,12 @@ func init() {
 			return nil
 		}
 	}()
+	// subscriptionDescBillingAnchorLocation is the schema descriptor for billing_anchor_location field.
+	subscriptionDescBillingAnchorLocation := subscriptionFields[6].Descriptor()
+	// subscription.DefaultBillingAnchorLocation holds the default value on creation for the billing_anchor_location field.
+	subscription.DefaultBillingAnchorLocation = subscriptionDescBillingAnchorLocation.Default.(string)
 	// subscriptionDescProRatingConfig is the schema descriptor for pro_rating_config field.
-	subscriptionDescProRatingConfig := subscriptionFields[7].Descriptor()
+	subscriptionDescProRatingConfig := subscriptionFields[8].Descriptor()
 	// subscription.DefaultProRatingConfig holds the default value on creation for the pro_rating_config field.
 	subscription.DefaultProRatingConfig = subscriptionDescProRatingConfig.Default.(func() productcatalog.ProRatingConfig)
 	subscription.ValueScanner.ProRatingConfig = subscriptionDescProRatingConfig.ValueScanner.(field.TypeValueScanner[productcatalog.ProRatingConfig])

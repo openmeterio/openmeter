@@ -18,7 +18,7 @@ import (
 )
 
 type ResetUsageForOwnerParams struct {
-	At              time.Time
+	At              timeutil.RFC9557Time
 	RetainAnchor    bool
 	PreserveOverage bool
 }
@@ -208,7 +208,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 	defer span.End()
 
 	// Cannot reset for the future
-	if params.At.After(clock.Now()) {
+	if params.At.AsTime().After(clock.Now()) {
 		return nil, models.NewGenericValidationError(fmt.Errorf("cannot reset at %s in the future", params.At))
 	}
 
@@ -228,28 +228,28 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		}
 		return nil, fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", ownerID.ID, at, err)
 	}
-	if at.Before(periodStart) {
+	if at.AsTime().Before(periodStart) {
 		return nil, models.NewGenericValidationError(fmt.Errorf("reset at %s is before current usage period start %s", at, periodStart))
 	}
 
-	resetsSinceTime, err := m.OwnerConnector.GetResetTimelineInclusive(ctx, ownerID, timeutil.ClosedPeriod{From: at, To: clock.Now()})
+	resetsSinceTime, err := m.OwnerConnector.GetResetTimelineInclusive(ctx, ownerID, timeutil.ClosedPeriod{From: at.AsTime(), To: clock.Now()})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reset times since %s for owner %s: %w", at, ownerID.ID, err)
 	}
 
-	if rts := resetsSinceTime.After(at).GetTimes(); len(rts) > 0 {
+	if rts := resetsSinceTime.After(at.AsTime()).GetTimes(); len(rts) > 0 {
 		lastReset := rts[len(rts)-1]
 		return nil, models.NewGenericValidationError(fmt.Errorf("reset at %s is before last reset at %s", at, lastReset))
 	}
 
-	bal, err := m.GetLastValidSnapshotAt(ctx, ownerID, at)
+	bal, err := m.GetLastValidSnapshotAt(ctx, ownerID, at.AsTime())
 	if err != nil {
 		return nil, err
 	}
 
 	period := timeutil.ClosedPeriod{
 		From: bal.At,
-		To:   at,
+		To:   at.AsTime(),
 	}
 
 	// get all usage resets between queryied period
@@ -259,14 +259,14 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 	}
 
 	// Let's also add the at time to the resets
-	resetTimes := append(resetTimesInclusive.GetTimes(), at)
+	resetTimes := append(resetTimesInclusive.GetTimes(), at.AsTime())
 	resetTimeline := timeutil.NewSimpleTimeline(resetTimes)
 
 	// This gets overwritten by the inputs
 	resetBehavior := owner.ResetBehavior
 	resetBehavior.PreserveOverage = params.PreserveOverage
 
-	grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, ownerID, bal.At, at)
+	grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, ownerID, bal.At, at.AsTime())
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, ownerID.ID, err)
 	}

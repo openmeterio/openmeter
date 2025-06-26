@@ -26,6 +26,6 @@ func (e UsageResetNotFoundError) Error() string {
 type UsageResetTime struct {
 	models.NamespacedModel
 	ResetTime     time.Time
-	Anchor        time.Time
+	Anchor        timeutil.RFC9557Time
 	EntitlementID string
 }

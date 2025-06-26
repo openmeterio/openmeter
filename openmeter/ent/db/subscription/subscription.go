@@ -44,6 +44,8 @@ const (
 	FieldCurrency = "currency"
 	// FieldBillingAnchor holds the string denoting the billing_anchor field in the database.
 	FieldBillingAnchor = "billing_anchor"
+	// FieldBillingAnchorLocation holds the string denoting the billing_anchor_location field in the database.
+	FieldBillingAnchorLocation = "billing_anchor_location"
 	// FieldBillingCadence holds the string denoting the billing_cadence field in the database.
 	FieldBillingCadence = "billing_cadence"
 	// FieldProRatingConfig holds the string denoting the pro_rating_config field in the database.
@@ -123,6 +125,7 @@ var Columns = []string{
 	FieldCustomerID,
 	FieldCurrency,
 	FieldBillingAnchor,
+	FieldBillingAnchorLocation,
 	FieldBillingCadence,
 	FieldProRatingConfig,
 }
@@ -156,6 +159,8 @@ var (
 	CustomerIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// DefaultBillingAnchorLocation holds the default value on creation for the "billing_anchor_location" field.
+	DefaultBillingAnchorLocation string
 	// DefaultProRatingConfig holds the default value on creation for the "pro_rating_config" field.
 	DefaultProRatingConfig func() productcatalog.ProRatingConfig
 	// DefaultID holds the default value on creation for the "id" field.
@@ -237,6 +242,11 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 // ByBillingAnchor orders the results by the billing_anchor field.
 func ByBillingAnchor(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingAnchor, opts...).ToFunc()
+}
+
+// ByBillingAnchorLocation orders the results by the billing_anchor_location field.
+func ByBillingAnchorLocation(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBillingAnchorLocation, opts...).ToFunc()
 }
 
 // ByBillingCadence orders the results by the billing_cadence field.

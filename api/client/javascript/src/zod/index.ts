@@ -12918,7 +12918,7 @@ export const createSubscriptionBody = zod
       .optional()
       .describe('What alignment settings the subscription should have.'),
     billingAnchor: zod
-      .date()
+      .string()
       .optional()
       .describe(
         'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
@@ -12999,7 +12999,7 @@ export const createSubscriptionBody = zod
     zod
       .object({
         billingAnchor: zod
-          .date()
+          .string()
           .optional()
           .describe(
             'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
@@ -15444,7 +15444,7 @@ export const changeSubscriptionBody = zod
       .optional()
       .describe('What alignment settings the subscription should have.'),
     billingAnchor: zod
-      .date()
+      .string()
       .optional()
       .describe(
         'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.'
@@ -15511,7 +15511,7 @@ export const changeSubscriptionBody = zod
     zod
       .object({
         billingAnchor: zod
-          .date()
+          .string()
           .optional()
           .describe(
             'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.'

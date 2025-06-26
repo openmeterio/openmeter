@@ -46271,6 +46271,7 @@ type SubscriptionMutation struct {
 	description                      *string
 	currency                         *currencyx.Code
 	billing_anchor                   *time.Time
+	billing_anchor_location          *string
 	billing_cadence                  *isodate.String
 	pro_rating_config                *productcatalog.ProRatingConfig
 	clearedFields                    map[string]struct{}
@@ -46968,6 +46969,42 @@ func (m *SubscriptionMutation) ResetBillingAnchor() {
 	m.billing_anchor = nil
 }
 
+// SetBillingAnchorLocation sets the "billing_anchor_location" field.
+func (m *SubscriptionMutation) SetBillingAnchorLocation(s string) {
+	m.billing_anchor_location = &s
+}
+
+// BillingAnchorLocation returns the value of the "billing_anchor_location" field in the mutation.
+func (m *SubscriptionMutation) BillingAnchorLocation() (r string, exists bool) {
+	v := m.billing_anchor_location
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillingAnchorLocation returns the old "billing_anchor_location" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldBillingAnchorLocation(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillingAnchorLocation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillingAnchorLocation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingAnchorLocation: %w", err)
+	}
+	return oldValue.BillingAnchorLocation, nil
+}
+
+// ResetBillingAnchorLocation resets all changes to the "billing_anchor_location" field.
+func (m *SubscriptionMutation) ResetBillingAnchorLocation() {
+	m.billing_anchor_location = nil
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (m *SubscriptionMutation) SetBillingCadence(i isodate.String) {
 	m.billing_cadence = &i
@@ -47344,7 +47381,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -47386,6 +47423,9 @@ func (m *SubscriptionMutation) Fields() []string {
 	}
 	if m.billing_anchor != nil {
 		fields = append(fields, subscription.FieldBillingAnchor)
+	}
+	if m.billing_anchor_location != nil {
+		fields = append(fields, subscription.FieldBillingAnchorLocation)
 	}
 	if m.billing_cadence != nil {
 		fields = append(fields, subscription.FieldBillingCadence)
@@ -47429,6 +47469,8 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.Currency()
 	case subscription.FieldBillingAnchor:
 		return m.BillingAnchor()
+	case subscription.FieldBillingAnchorLocation:
+		return m.BillingAnchorLocation()
 	case subscription.FieldBillingCadence:
 		return m.BillingCadence()
 	case subscription.FieldProRatingConfig:
@@ -47470,6 +47512,8 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldCurrency(ctx)
 	case subscription.FieldBillingAnchor:
 		return m.OldBillingAnchor(ctx)
+	case subscription.FieldBillingAnchorLocation:
+		return m.OldBillingAnchorLocation(ctx)
 	case subscription.FieldBillingCadence:
 		return m.OldBillingCadence(ctx)
 	case subscription.FieldProRatingConfig:
@@ -47580,6 +47624,13 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetBillingAnchor(v)
+		return nil
+	case subscription.FieldBillingAnchorLocation:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillingAnchorLocation(v)
 		return nil
 	case subscription.FieldBillingCadence:
 		v, ok := value.(isodate.String)
@@ -47718,6 +47769,9 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldBillingAnchor:
 		m.ResetBillingAnchor()
+		return nil
+	case subscription.FieldBillingAnchorLocation:
+		m.ResetBillingAnchorLocation()
 		return nil
 	case subscription.FieldBillingCadence:
 		m.ResetBillingCadence()

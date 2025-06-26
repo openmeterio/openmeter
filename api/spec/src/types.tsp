@@ -60,6 +60,16 @@ model Metadata {
 scalar DateTime extends utcDateTime;
 
 /**
+ * [RFC9557](https://tools.ietf.org/html/rfc9557) formatted date-time string.
+ */
+@extension("x-go-type", "timeutil.RFC9557Time")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/pkg/models" }
+)
+scalar DateTimeRFC9557 extends string;
+
+/**
  * Represents a resource with a key.
  */
 @friendlyName("KeyedResource")

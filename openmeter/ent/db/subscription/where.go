@@ -133,6 +133,11 @@ func BillingAnchor(v time.Time) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldBillingAnchor, v))
 }
 
+// BillingAnchorLocation applies equality check predicate on the "billing_anchor_location" field. It's identical to BillingAnchorLocationEQ.
+func BillingAnchorLocation(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldBillingAnchorLocation, v))
+}
+
 // BillingCadence applies equality check predicate on the "billing_cadence" field. It's identical to BillingCadenceEQ.
 func BillingCadence(v isodate.String) predicate.Subscription {
 	vc := string(v)
@@ -846,6 +851,71 @@ func BillingAnchorLT(v time.Time) predicate.Subscription {
 // BillingAnchorLTE applies the LTE predicate on the "billing_anchor" field.
 func BillingAnchorLTE(v time.Time) predicate.Subscription {
 	return predicate.Subscription(sql.FieldLTE(FieldBillingAnchor, v))
+}
+
+// BillingAnchorLocationEQ applies the EQ predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationEQ(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldBillingAnchorLocation, v))
+}
+
+// BillingAnchorLocationNEQ applies the NEQ predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationNEQ(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNEQ(FieldBillingAnchorLocation, v))
+}
+
+// BillingAnchorLocationIn applies the In predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationIn(vs ...string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldIn(FieldBillingAnchorLocation, vs...))
+}
+
+// BillingAnchorLocationNotIn applies the NotIn predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationNotIn(vs ...string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNotIn(FieldBillingAnchorLocation, vs...))
+}
+
+// BillingAnchorLocationGT applies the GT predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationGT(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldGT(FieldBillingAnchorLocation, v))
+}
+
+// BillingAnchorLocationGTE applies the GTE predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationGTE(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldGTE(FieldBillingAnchorLocation, v))
+}
+
+// BillingAnchorLocationLT applies the LT predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationLT(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldLT(FieldBillingAnchorLocation, v))
+}
+
+// BillingAnchorLocationLTE applies the LTE predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationLTE(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldLTE(FieldBillingAnchorLocation, v))
+}
+
+// BillingAnchorLocationContains applies the Contains predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationContains(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldContains(FieldBillingAnchorLocation, v))
+}
+
+// BillingAnchorLocationHasPrefix applies the HasPrefix predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationHasPrefix(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldHasPrefix(FieldBillingAnchorLocation, v))
+}
+
+// BillingAnchorLocationHasSuffix applies the HasSuffix predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationHasSuffix(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldHasSuffix(FieldBillingAnchorLocation, v))
+}
+
+// BillingAnchorLocationEqualFold applies the EqualFold predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationEqualFold(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEqualFold(FieldBillingAnchorLocation, v))
+}
+
+// BillingAnchorLocationContainsFold applies the ContainsFold predicate on the "billing_anchor_location" field.
+func BillingAnchorLocationContainsFold(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldContainsFold(FieldBillingAnchorLocation, v))
 }
 
 // BillingCadenceEQ applies the EQ predicate on the "billing_cadence" field.

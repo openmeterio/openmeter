@@ -29,7 +29,7 @@ func (o Owner) GetSubjectKey() (string, error) {
 }
 
 type EndCurrentUsagePeriodParams struct {
-	At           time.Time
+	At           timeutil.RFC9557Time
 	RetainAnchor bool
 }
 

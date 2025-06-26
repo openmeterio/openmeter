@@ -14,7 +14,7 @@ type Recurrence struct {
 	Interval RecurrenceInterval `json:"period"`
 	// Anchor can be an arbitrary anchor time for the recurrence.
 	// It does not have to be the last or the next time.
-	Anchor time.Time `json:"anchor"`
+	Anchor RFC9557Time `json:"anchor"`
 }
 
 func (r Recurrence) Validate() error {
@@ -63,7 +63,7 @@ func (r Recurrence) GetPeriodAt(t time.Time) (ClosedPeriod, error) {
 // NextAfter returns the next time after t that the recurrence should occur.
 // If at t the recurrence should occur, it will return t.
 func (r Recurrence) NextAfter(t time.Time) (time.Time, error) {
-	i := r.Anchor
+	i := r.Anchor.AsTime()
 
 	// If the anchor is in the future, we call .Prev() repeatedly. If the new value is Before t, we break
 	if i.After(t) {
@@ -108,7 +108,7 @@ func (r Recurrence) NextAfter(t time.Time) (time.Time, error) {
 
 // PrevBefore returns the previous time before t that the recurrence should occur.
 func (r Recurrence) PrevBefore(t time.Time) (time.Time, error) {
-	i := r.Anchor
+	i := r.Anchor.AsTime()
 
 	// If the anchor is in the future, we call .Prev() repeatedly. If the new value is Before t, we break
 	if !i.Before(t) {
@@ -179,7 +179,7 @@ var (
 	RecurrencePeriodYear  RecurrenceInterval = RecurrenceInterval{isodate.NewPeriod(1, 0, 0, 0, 0, 0, 0)}
 )
 
-func RecurrenceFromISODuration(p *isodate.Period, anchor time.Time) (Recurrence, error) {
+func RecurrenceFromISODuration(p *isodate.Period, anchor RFC9557Time) (Recurrence, error) {
 	if p == nil {
 		return Recurrence{}, fmt.Errorf("period cannot be nil")
 	}

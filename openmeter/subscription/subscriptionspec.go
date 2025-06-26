@@ -42,13 +42,13 @@ type CreateSubscriptionPlanInput struct {
 
 type CreateSubscriptionCustomerInput struct {
 	models.MetadataModel `json:",inline"`
-	Name                 string         `json:"name"`
-	Description          *string        `json:"description,omitempty"`
-	CustomerId           string         `json:"customerId"`
-	Currency             currencyx.Code `json:"currency"`
-	ActiveFrom           time.Time      `json:"activeFrom,omitempty"`
-	ActiveTo             *time.Time     `json:"activeTo,omitempty"`
-	BillingAnchor        time.Time      `json:"billingAnchor,omitempty"`
+	Name                 string               `json:"name"`
+	Description          *string              `json:"description,omitempty"`
+	CustomerId           string               `json:"customerId"`
+	Currency             currencyx.Code       `json:"currency"`
+	ActiveFrom           time.Time            `json:"activeFrom,omitempty"`
+	ActiveTo             *time.Time           `json:"activeTo,omitempty"`
+	BillingAnchor        timeutil.RFC9557Time `json:"billingAnchor,omitempty"`
 }
 
 type SubscriptionSpec struct {
@@ -259,7 +259,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.Clo
 	// TODO(galexi, OM-1418): implement reanchoring
 
 	// We will use the subscription billing anchor as the cadence anchor
-	billingRecurrence, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(s.BillingCadence), s.BillingAnchor)
+	billingRecurrence, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(s.BillingCadence), s.BillingAnchor.AsTime())
 	if err != nil {
 		return def, fmt.Errorf("failed to get billing recurrence for phase %s: %w", phase.PhaseKey, err)
 	}
@@ -308,11 +308,11 @@ func (s *SubscriptionSpec) Validate() error {
 	}
 
 	// - is normalized to the closest iteration before subscriptiion start
-	if s.BillingAnchor.After(s.ActiveFrom) {
+	if s.BillingAnchor.AsTime().After(s.ActiveFrom) {
 		errs = append(errs, fmt.Errorf("billing anchor is after subscription start"))
 	}
 
-	if next, _ := s.BillingCadence.AddTo(s.BillingAnchor); next.Before(s.ActiveFrom) {
+	if next, _ := s.BillingCadence.AddTo(s.BillingAnchor.AsTime()); next.Before(s.ActiveFrom) {
 		errs = append(errs, fmt.Errorf("billing anchor is not normalized to the closest iteration before subscription start"))
 	}
 
@@ -844,7 +844,7 @@ type ToScheduleSubscriptionEntitlementInputOptions struct {
 	Customer             customer.Customer
 	Cadence              models.CadencedModel
 	PhaseStart           time.Time
-	AlignedBillingAnchor time.Time
+	AlignedBillingAnchor timeutil.RFC9557Time
 	IsAligned            bool
 }
 
@@ -906,7 +906,7 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 				return def, true, fmt.Errorf("aligned billing anchor shouldn't be zero")
 			}
 
-			truncatedAnchorTime = opts.AlignedBillingAnchor.Truncate(time.Minute)
+			truncatedAnchorTime = opts.AlignedBillingAnchor.AsTime().Truncate(time.Minute)
 			truncatedMeasureUsageFrom = opts.PhaseStart.Truncate(time.Minute)
 		}
 

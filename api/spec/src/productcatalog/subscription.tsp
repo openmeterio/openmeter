@@ -118,7 +118,7 @@ model Subscription {
    */
   @visibility(Lifecycle.Read)
   @summary("Billing anchor")
-  billingAnchor: DateTime;
+  billingAnchor: DateTimeRFC9557;
 }
 
 /**
@@ -378,7 +378,7 @@ model CustomSubscriptionCreate {
   /**
    * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
    */
-  billingAnchor?: DateTime;
+  billingAnchor?: DateTimeRFC9557;
 }
 
 /**
@@ -395,7 +395,7 @@ model CustomSubscriptionChange {
   /**
    * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
    */
-  billingAnchor?: DateTime;
+  billingAnchor?: DateTimeRFC9557;
 
   /**
    * The custom plan description which defines the Subscription.
@@ -439,7 +439,7 @@ model PlanSubscriptionCreate {
   /**
    * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
    */
-  billingAnchor?: DateTime;
+  billingAnchor?: DateTimeRFC9557;
 }
 
 /**
@@ -488,7 +488,7 @@ model PlanSubscriptionChange {
   /**
    * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
    */
-  billingAnchor?: DateTime;
+  billingAnchor?: DateTimeRFC9557;
 }
 
 /**

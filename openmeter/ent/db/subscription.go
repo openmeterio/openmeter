@@ -51,6 +51,8 @@ type Subscription struct {
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// BillingAnchor holds the value of the "billing_anchor" field.
 	BillingAnchor time.Time `json:"billing_anchor,omitempty"`
+	// BillingAnchorLocation holds the value of the "billing_anchor_location" field.
+	BillingAnchorLocation string `json:"billing_anchor_location,omitempty"`
 	// The default billing cadence for subscriptions.
 	BillingCadence isodate.String `json:"billing_cadence,omitempty"`
 	// Default pro-rating configuration for subscriptions.
@@ -147,7 +149,7 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case subscription.FieldBillablesMustAlign:
 			values[i] = new(sql.NullBool)
-		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency, subscription.FieldBillingCadence:
+		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency, subscription.FieldBillingAnchorLocation, subscription.FieldBillingCadence:
 			values[i] = new(sql.NullString)
 		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo, subscription.FieldBillingAnchor:
 			values[i] = new(sql.NullTime)
@@ -263,6 +265,12 @@ func (_m *Subscription) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field billing_anchor", values[i])
 			} else if value.Valid {
 				_m.BillingAnchor = value.Time
+			}
+		case subscription.FieldBillingAnchorLocation:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field billing_anchor_location", values[i])
+			} else if value.Valid {
+				_m.BillingAnchorLocation = value.String
 			}
 		case subscription.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -391,6 +399,9 @@ func (_m *Subscription) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("billing_anchor=")
 	builder.WriteString(_m.BillingAnchor.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("billing_anchor_location=")
+	builder.WriteString(_m.BillingAnchorLocation)
 	builder.WriteString(", ")
 	builder.WriteString("billing_cadence=")
 	builder.WriteString(fmt.Sprintf("%v", _m.BillingCadence))

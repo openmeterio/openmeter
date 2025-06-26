@@ -13218,9 +13218,10 @@ components:
             For changing a subscription, the accepted values depend on the subscription configuration.
         billingAnchor:
           type: string
-          format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
-          example: '2023-01-01T01:01:01.001Z'
+          x-go-type-import:
+            path: github.com/openmeterio/openmeter/pkg/models
+          x-go-type: timeutil.RFC9557Time
         customPlan:
           allOf:
             - $ref: '#/components/schemas/CustomPlanInput'
@@ -13254,9 +13255,10 @@ components:
           description: The key of the customer. Provide either the key or ID.
         billingAnchor:
           type: string
-          format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
-          example: '2023-01-01T01:01:01.001Z'
+          x-go-type-import:
+            path: github.com/openmeterio/openmeter/pkg/models
+          x-go-type: timeutil.RFC9557Time
       description: Create a custom subscription.
     Customer:
       type: object
@@ -19419,9 +19421,10 @@ components:
           description: Description for the Subscription.
         billingAnchor:
           type: string
-          format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
-          example: '2023-01-01T01:01:01.001Z'
+          x-go-type-import:
+            path: github.com/openmeterio/openmeter/pkg/models
+          x-go-type: timeutil.RFC9557Time
       description: Change subscription based on plan.
     PlanSubscriptionCreate:
       type: object
@@ -19471,9 +19474,10 @@ components:
           description: The key of the customer. Provide either the key or ID.
         billingAnchor:
           type: string
-          format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
-          example: '2023-01-01T01:01:01.001Z'
+          x-go-type-import:
+            path: github.com/openmeterio/openmeter/pkg/models
+          x-go-type: timeutil.RFC9557Time
       description: Create subscription based on plan.
     PortalToken:
       type: object
@@ -20671,9 +20675,10 @@ components:
           readOnly: true
         billingAnchor:
           type: string
-          format: date-time
           description: The normalizedbilling anchor of the subscription.
-          example: '2023-01-01T01:01:01.001Z'
+          x-go-type-import:
+            path: github.com/openmeterio/openmeter/pkg/models
+          x-go-type: timeutil.RFC9557Time
           title: Billing anchor
           readOnly: true
       description: Subscription is an exact subscription instance.
@@ -21151,9 +21156,10 @@ components:
           readOnly: true
         billingAnchor:
           type: string
-          format: date-time
           description: The normalizedbilling anchor of the subscription.
-          example: '2023-01-01T01:01:01.001Z'
+          x-go-type-import:
+            path: github.com/openmeterio/openmeter/pkg/models
+          x-go-type: timeutil.RFC9557Time
           title: Billing anchor
           readOnly: true
         alignment:

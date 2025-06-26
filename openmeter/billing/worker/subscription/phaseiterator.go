@@ -355,7 +355,7 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 			it.phaseCadence,
 			item.SubscriptionItem.CadencedModel,
 			at,
-			lo.ToPtr(it.sub.Spec.BillingAnchor),
+			lo.ToPtr(it.sub.Spec.BillingAnchor.AsTime()),
 		)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to get full service period", slog.Any("error", err))

@@ -175,6 +175,20 @@ func (_u *SubscriptionUpdate) SetNillableBillingAnchor(v *time.Time) *Subscripti
 	return _u
 }
 
+// SetBillingAnchorLocation sets the "billing_anchor_location" field.
+func (_u *SubscriptionUpdate) SetBillingAnchorLocation(v string) *SubscriptionUpdate {
+	_u.mutation.SetBillingAnchorLocation(v)
+	return _u
+}
+
+// SetNillableBillingAnchorLocation sets the "billing_anchor_location" field if the given value is not nil.
+func (_u *SubscriptionUpdate) SetNillableBillingAnchorLocation(v *string) *SubscriptionUpdate {
+	if v != nil {
+		_u.SetBillingAnchorLocation(*v)
+	}
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *SubscriptionUpdate) SetBillingCadence(v isodate.String) *SubscriptionUpdate {
 	_u.mutation.SetBillingCadence(v)
@@ -464,6 +478,9 @@ func (_u *SubscriptionUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.BillingAnchor(); ok {
 		_spec.SetField(subscription.FieldBillingAnchor, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.BillingAnchorLocation(); ok {
+		_spec.SetField(subscription.FieldBillingAnchorLocation, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(subscription.FieldBillingCadence, field.TypeString, value)
@@ -844,6 +861,20 @@ func (_u *SubscriptionUpdateOne) SetNillableBillingAnchor(v *time.Time) *Subscri
 	return _u
 }
 
+// SetBillingAnchorLocation sets the "billing_anchor_location" field.
+func (_u *SubscriptionUpdateOne) SetBillingAnchorLocation(v string) *SubscriptionUpdateOne {
+	_u.mutation.SetBillingAnchorLocation(v)
+	return _u
+}
+
+// SetNillableBillingAnchorLocation sets the "billing_anchor_location" field if the given value is not nil.
+func (_u *SubscriptionUpdateOne) SetNillableBillingAnchorLocation(v *string) *SubscriptionUpdateOne {
+	if v != nil {
+		_u.SetBillingAnchorLocation(*v)
+	}
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *SubscriptionUpdateOne) SetBillingCadence(v isodate.String) *SubscriptionUpdateOne {
 	_u.mutation.SetBillingCadence(v)
@@ -1163,6 +1194,9 @@ func (_u *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscripti
 	}
 	if value, ok := _u.mutation.BillingAnchor(); ok {
 		_spec.SetField(subscription.FieldBillingAnchor, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.BillingAnchorLocation(); ok {
+		_spec.SetField(subscription.FieldBillingAnchorLocation, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(subscription.FieldBillingCadence, field.TypeString, value)

@@ -18,7 +18,7 @@ var MAX_SAFE_ITERATIONS = 1000000
 func NewUsagePeriodFromRecurrence(rec timeutil.Recurrence) UsagePeriod {
 	return NewUsagePeriod([]timeutil.Timed[timeutil.Recurrence]{
 		timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
-			return r.Anchor
+			return r.Anchor.AsTime()
 		})(rec),
 	})
 }
@@ -33,7 +33,7 @@ func NewUsagePeriod(recs []timeutil.Timed[timeutil.Recurrence]) UsagePeriod {
 // Intended for testing mainly
 func NewUsagePeriodInputFromRecurrence(rec timeutil.Recurrence) UsagePeriodInput {
 	return timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
-		return r.Anchor
+		return r.Anchor.AsTime()
 	})(rec)
 }
 

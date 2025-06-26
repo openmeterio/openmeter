@@ -38,6 +38,7 @@ func (Subscription) Fields() []ent.Field {
 		field.String("customer_id").NotEmpty().Immutable(),
 		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).NotEmpty().Immutable(),
 		field.Time("billing_anchor"),
+		field.String("billing_anchor_location").Default("UTC"),
 		field.String("billing_cadence").
 			GoType(isodate.String("")).
 			Comment("The default billing cadence for subscriptions."),
