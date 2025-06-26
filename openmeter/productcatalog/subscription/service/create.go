@@ -60,7 +60,7 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 	}
 
 	if !plan.ToCreateSubscriptionPlanInput().BillablesMustAlign {
-		return def, models.NewGenericValidationError(fmt.Errorf("unaligned subscriptions are being deprecated"))
+		return def, productcatalog.ErrDeprecatedUnalignedSubscription
 	}
 
 	// Then let's create the subscription form the plan

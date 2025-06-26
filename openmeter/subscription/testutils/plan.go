@@ -65,6 +65,9 @@ func BuildTestPlan(t *testing.T) *testPlanbuilder {
 						Enabled: true,
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
+					Alignment: productcatalog.Alignment{
+						BillablesMustAlign: true,
+					},
 				},
 				Phases: []productcatalog.Phase{},
 			},
