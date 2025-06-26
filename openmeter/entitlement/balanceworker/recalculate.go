@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -57,26 +58,38 @@ type RecalculatorOptions struct {
 	MetricMeter metric.Meter
 
 	NotificationService notification.Service
+	FilterStateStorage  FilterStateStorage
+	Logger              *slog.Logger
 }
 
 func (o RecalculatorOptions) Validate() error {
+	var errs []error
+
 	if o.Entitlement == nil {
-		return errors.New("missing entitlement registry")
+		errs = append(errs, errors.New("missing entitlement registry"))
 	}
 
 	if o.EventBus == nil {
-		return errors.New("missing event bus")
+		errs = append(errs, errors.New("missing event bus"))
 	}
 
 	if o.MetricMeter == nil {
-		return errors.New("missing metric meter")
+		errs = append(errs, errors.New("missing metric meter"))
 	}
 
 	if o.NotificationService == nil {
-		return errors.New("missing notification service")
+		errs = append(errs, errors.New("missing notification service"))
 	}
 
-	return nil
+	if err := o.FilterStateStorage.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("filter state storage: %w", err))
+	}
+
+	if o.Logger == nil {
+		errs = append(errs, errors.New("missing logger"))
+	}
+
+	return errors.Join(errs...)
 }
 
 type Recalculator struct {
@@ -115,6 +128,8 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 	entitlementFilters, err := NewEntitlementFilters(EntitlementFiltersConfig{
 		NotificationService: opts.NotificationService,
 		MetricMeter:         opts.MetricMeter,
+		StateStorage:        opts.FilterStateStorage,
+		Logger:              opts.Logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entitlement filters: %w", err)

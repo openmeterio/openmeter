@@ -49,6 +49,8 @@ type WorkerOptions struct {
 	MetricMeter metric.Meter
 
 	Logger *slog.Logger
+
+	FilterStateStorage FilterStateStorage
 }
 
 func (o *WorkerOptions) Validate() error {
@@ -82,6 +84,10 @@ func (o *WorkerOptions) Validate() error {
 
 	if o.NotificationService == nil {
 		return errors.New("notification service is required")
+	}
+
+	if err := o.FilterStateStorage.Validate(); err != nil {
+		return fmt.Errorf("filter state storage: %w", err)
 	}
 
 	return nil
@@ -123,6 +129,8 @@ func New(opts WorkerOptions) (*Worker, error) {
 	filters, err := NewEntitlementFilters(EntitlementFiltersConfig{
 		NotificationService: opts.NotificationService,
 		MetricMeter:         opts.MetricMeter,
+		StateStorage:        opts.FilterStateStorage,
+		Logger:              opts.Logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entitlement filters: %w", err)

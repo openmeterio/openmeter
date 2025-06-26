@@ -118,6 +118,13 @@ dedupe:
     tls:
       enabled: true
 
+balanceWorker:
+  stateStorage:
+    driver: redis
+    config:
+      expiration: 23h
+      address: 127.0.0.1:6379
+
 meters:
   - slug: m1
     eventType: api-calls

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -37,18 +38,30 @@ var _ models.Validator = (*EntitlementFiltersConfig)(nil)
 type EntitlementFiltersConfig struct {
 	NotificationService notification.Service
 	MetricMeter         metric.Meter
+	StateStorage        FilterStateStorage
+	Logger              *slog.Logger
 }
 
 func (c EntitlementFiltersConfig) Validate() error {
+	var errs []error
+
 	if c.NotificationService == nil {
-		return fmt.Errorf("notification service is required")
+		errs = append(errs, fmt.Errorf("notification service is required"))
 	}
 
 	if c.MetricMeter == nil {
-		return fmt.Errorf("metric meter is required")
+		errs = append(errs, fmt.Errorf("metric meter is required"))
 	}
 
-	return nil
+	if err := c.StateStorage.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("state storage: %w", err))
+	}
+
+	if c.Logger == nil {
+		errs = append(errs, fmt.Errorf("logger is required"))
+	}
+
+	return errors.Join(errs...)
 }
 
 var _ filters.Filter = (*EntitlementFilters)(nil)
@@ -72,7 +85,33 @@ func NewEntitlementFilters(cfg EntitlementFiltersConfig) (*EntitlementFilters, e
 		return nil, err
 	}
 
-	highWatermarkCache, err := filters.NewHighWatermarkCacheInMemory(defaultLRUCacheSize)
+	var highWatermarkCacheBackend filters.HighWatermarkBackend
+
+	switch cfg.StateStorage.Driver() {
+	case FilterStateStorageDriverRedis:
+		redis, err := cfg.StateStorage.Redis()
+		if err != nil {
+			return nil, err
+		}
+
+		highWatermarkCacheBackend, err = filters.NewHighWatermarkRedisBackend(filters.HighWatermarkRedisBackendConfig{
+			Redis:      redis.Client,
+			Logger:     cfg.Logger,
+			Expiration: redis.Expiration,
+		})
+		if err != nil {
+			return nil, err
+		}
+	case FilterStateStorageDriverInMemory:
+		highWatermarkCacheBackend, err = filters.NewHighWatermarkInMemoryBackend(defaultLRUCacheSize)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unsupported state storage driver: %s", cfg.StateStorage.Driver())
+	}
+
+	highWatermarkCache, err := filters.NewHighWatermarkCache(highWatermarkCacheBackend)
 	if err != nil {
 		return nil, err
 	}

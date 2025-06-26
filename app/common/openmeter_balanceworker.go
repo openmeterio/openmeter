@@ -31,6 +31,7 @@ var BalanceWorker = wire.NewSet(
 	NewBalanceWorkerOptions,
 	NewBalanceWorker,
 	BalanceWorkerGroup,
+	NewBalanceWorkerFilterStateStorage,
 )
 
 var BalanceWorkerAdapter = wire.NewSet(
@@ -84,6 +85,7 @@ func NewBalanceWorkerOptions(
 	notificationService notification.Service,
 	subjectService subject.Service,
 	logger *slog.Logger,
+	filterStateStorage balanceworker.FilterStateStorage,
 ) balanceworker.WorkerOptions {
 	return balanceworker.WorkerOptions{
 		SystemEventsTopic: eventConfig.SystemEvents.Topic,
@@ -97,6 +99,7 @@ func NewBalanceWorkerOptions(
 		Logger:              logger,
 		MetricMeter:         routerOptions.MetricMeter,
 		NotificationService: notificationService,
+		FilterStateStorage:  filterStateStorage,
 	}
 }
 
@@ -107,6 +110,30 @@ func NewBalanceWorker(workerOptions balanceworker.WorkerOptions) (*balanceworker
 	}
 
 	return worker, nil
+}
+
+func NewBalanceWorkerFilterStateStorage(conf config.BalanceWorkerConfiguration) (balanceworker.FilterStateStorage, error) {
+	switch conf.StateStorage.Driver {
+	case config.BalanceWorkerStateStorageDriverRedis:
+		redis, err := conf.StateStorage.GetRedisBackendConfiguration()
+		if err != nil {
+			return balanceworker.FilterStateStorage{}, fmt.Errorf("failed to get redis backend configuration: %w", err)
+		}
+
+		client, err := redis.NewClient()
+		if err != nil {
+			return balanceworker.FilterStateStorage{}, fmt.Errorf("failed to create redis client: %w", err)
+		}
+
+		return balanceworker.NewFilterStateStorage(balanceworker.FilterStateStorageRedis{
+			Client:     client,
+			Expiration: redis.Expiration,
+		})
+	case config.BalanceWorkerStateStorageDriverInMemory:
+		return balanceworker.NewFilterStateStorage(balanceworker.FilterStateStorageInMemory{})
+	default:
+		return balanceworker.FilterStateStorage{}, fmt.Errorf("unsupported state storage driver: %s", conf.StateStorage.Driver)
+	}
 }
 
 func BalanceWorkerGroup(

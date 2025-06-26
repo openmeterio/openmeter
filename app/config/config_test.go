@@ -324,6 +324,15 @@ func TestComplete(t *testing.T) {
 				},
 				ConsumerGroupName: "om_balance_worker",
 			},
+			StateStorage: BalanceWorkerStateStorageConfiguration{
+				Driver: BalanceWorkerStateStorageDriverRedis,
+				BalanceWorkerStateStorageBackendConfiguration: BalanceWorkerStateStorageRedisBackendConfiguration{
+					Expiration: 23 * time.Hour,
+					Config: redis.Config{
+						Address: "127.0.0.1:6379",
+					},
+				},
+			},
 		},
 		Notification: NotificationConfiguration{
 			Consumer: ConsumerConfiguration{
