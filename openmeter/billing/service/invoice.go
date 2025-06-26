@@ -127,6 +127,9 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		lines, err := s.adapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
 			Namespace:  invoice.Namespace,
 			InvoiceIDs: []string{invoice.ID},
+			Statuses: []billing.InvoiceLineStatus{
+				billing.InvoiceLineStatusValid,
+			},
 		})
 		if err != nil {
 			return invoice, fmt.Errorf("loading lines: %w", err)
