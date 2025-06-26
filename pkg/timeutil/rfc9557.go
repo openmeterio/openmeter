@@ -18,6 +18,11 @@ const (
 	rfc3339NanoWithoutTZ = "2006-01-02T15:04:05.999999999"
 )
 
+// ParseRFC9557 parses a RFC9557 timestamp string into a RFC9557Time object.
+// Limitations/behavior:
+// - If the timestamp is a valid RFC3339 timestamp it is normalized to UTC and location is UTC
+// - If the timestamp is a valid RFC9557 timestamp with location it is parsed as is, the location is validated
+// - We are not supporting RFC9557 timestamps `[!x=y]` formatted attributes
 func ParseRFC9557(s string) (RFC9557Time, error) {
 	// Let's try to parse as RFC3339 first
 	res, err := time.Parse(time.RFC3339, s)
@@ -26,7 +31,11 @@ func ParseRFC9557(s string) (RFC9557Time, error) {
 			return RFC9557Time{res}, nil
 		}
 
-		return RFC9557Time{}, fmt.Errorf("invalid RFC 9557 timestamp location: %s", res.Location())
+		// Location is not in UTC, but RFC3339 only supports tz offsets which is not acceptable for us
+		// so let's normalize the time to UTC and assume the intent of UTC location
+		return RFC9557Time{
+			t: res.In(time.UTC),
+		}, nil
 	}
 
 	matches := rfc9557LayoutRegex.FindStringSubmatch(s)

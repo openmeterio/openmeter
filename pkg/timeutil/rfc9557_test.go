@@ -27,19 +27,37 @@ func TestParsingFormating(t *testing.T) {
 	require.Equal("2025-03-29T00:00:00[Europe/Budapest]", parsed.String())
 }
 
-func TestUTCParsing(t *testing.T) {
+func TestRFC3339Parsing(t *testing.T) {
 	require := require.New(t)
 
 	parsed, err := ParseRFC9557("2025-03-29T00:00:00Z")
 	require.NoError(err)
 	require.Equal(time.Date(2025, 3, 29, 0, 0, 0, 0, time.UTC), parsed.Time())
 	require.Equal("2025-03-29T00:00:00Z", parsed.String())
+
+	// Given an RFC3339 timestamp is added with a timezone offset, we should normalize it to UTC, location is UTC
+	parsed, err = ParseRFC9557("2025-03-29T00:00:00.123456789+01:00")
+	require.NoError(err)
+	require.Equal(time.Date(2025, 3, 28, 23, 0, 0, 123456789, time.UTC), parsed.Time())
+	require.Equal("2025-03-28T23:00:00.123456789Z", parsed.String())
+
+	// Given an RFC3339 timestamp is added with a timezone offset, we should normalize it to UTC, location is UTC
+	parsed, err = ParseRFC9557("2025-03-29T00:00:00+01:00")
+	require.NoError(err)
+	require.Equal(time.Date(2025, 3, 28, 23, 0, 0, 0, time.UTC), parsed.Time())
+	require.Equal("2025-03-28T23:00:00Z", parsed.String())
 }
 
-func TestFixedZoneParsing(t *testing.T) {
+func TestInvalidRFC9557Parsing(t *testing.T) {
 	require := require.New(t)
 
-	_, err := ParseRFC9557("2025-03-29T00:00:00+01:00")
+	_, err := ParseRFC9557("2025-03-29T00:00:00.123456789+01:00[Europe/Budapest]")
+	require.Error(err)
+
+	_, err = ParseRFC9557("2025-03-29T00:")
+	require.Error(err)
+
+	_, err = ParseRFC9557("2025-14-33T33:33:33.123456789[Europe/Budapest]")
 	require.Error(err)
 }
 
