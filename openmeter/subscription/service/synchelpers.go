@@ -86,7 +86,6 @@ func (s *service) createItem(
 				Cadence:              itemCadence,
 				PhaseStart:           opts.phaseCadence.ActiveFrom,
 				AlignedBillingAnchor: opts.sub.BillingAnchor,
-				IsAligned:            opts.sub.BillablesMustAlign,
 			},
 		)
 		if err != nil {

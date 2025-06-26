@@ -30,8 +30,6 @@ const (
 	FieldActiveFrom = "active_from"
 	// FieldActiveTo holds the string denoting the active_to field in the database.
 	FieldActiveTo = "active_to"
-	// FieldBillablesMustAlign holds the string denoting the billables_must_align field in the database.
-	FieldBillablesMustAlign = "billables_must_align"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
@@ -116,7 +114,6 @@ var Columns = []string{
 	FieldMetadata,
 	FieldActiveFrom,
 	FieldActiveTo,
-	FieldBillablesMustAlign,
 	FieldName,
 	FieldDescription,
 	FieldPlanID,
@@ -146,8 +143,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// DefaultBillablesMustAlign holds the default value on creation for the "billables_must_align" field.
-	DefaultBillablesMustAlign bool
 	// DefaultName holds the default value on creation for the "name" field.
 	DefaultName string
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
@@ -202,11 +197,6 @@ func ByActiveFrom(opts ...sql.OrderTermOption) OrderOption {
 // ByActiveTo orders the results by the active_to field.
 func ByActiveTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldActiveTo, opts...).ToFunc()
-}
-
-// ByBillablesMustAlign orders the results by the billables_must_align field.
-func ByBillablesMustAlign(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldBillablesMustAlign, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.

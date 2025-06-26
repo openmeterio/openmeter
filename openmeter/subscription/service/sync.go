@@ -39,9 +39,6 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 		if !view.Subscription.ActiveFrom.Equal(newSpec.ActiveFrom) {
 			return def, fmt.Errorf("cannot change subscription start")
 		}
-		if view.Subscription.Alignment != newSpec.Alignment {
-			return def, fmt.Errorf("cannot change alignment")
-		}
 
 		dirty := make(touched)
 

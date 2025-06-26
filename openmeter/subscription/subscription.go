@@ -16,8 +16,6 @@ type Subscription struct {
 	models.CadencedModel
 	models.MetadataModel
 
-	productcatalog.Alignment
-
 	Name        string  `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 
@@ -38,7 +36,6 @@ func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
 		NamespacedModel: models.NamespacedModel{
 			Namespace: s.Namespace,
 		},
-		Alignment:       s.Alignment,
 		MetadataModel:   s.MetadataModel,
 		Plan:            s.PlanRef,
 		Name:            s.Name,

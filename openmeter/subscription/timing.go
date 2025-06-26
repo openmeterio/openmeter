@@ -71,10 +71,6 @@ func (c Timing) ResolveForSpec(spec SubscriptionSpec) (time.Time, error) {
 		case TimingImmediate:
 			return clock.Now(), nil
 		case TimingNextBillingCycle:
-			if !spec.Alignment.BillablesMustAlign {
-				return def, models.NewGenericValidationError(fmt.Errorf("next_billing_cycle is not supported for non-aligned subscriptions"))
-			}
-
 			currentPhase, exists := spec.GetCurrentPhaseAt(clock.Now())
 			if !exists {
 				// If there isn't a current phase, the subscription hasn't started or has already ended
@@ -157,20 +153,10 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 			return fmt.Errorf("missing subscription view")
 		}
 
-		if subView.Subscription.Alignment.BillablesMustAlign {
-			if c.Custom != nil {
-				if !c.isDateAlignedWithBillingCadence(subView.Spec, *c.Custom) {
-					return models.NewGenericValidationError(fmt.Errorf("cannot cancel aligned subscription with custom misaligned timing"))
-				}
+		if c.Custom != nil {
+			if !c.isDateAlignedWithBillingCadence(subView.Spec, *c.Custom) {
+				return models.NewGenericValidationError(fmt.Errorf("cannot cancel aligned subscription with custom misaligned timing"))
 			}
-
-			// We allow IMMEDIATE cancels (result in no prorating)
-			// as well as NEXT_BILLING_CYCLE cancels (where prorating isn't needed)
-		}
-
-		// We don't allow to cancel misaligned subscriptions with next_billing_cycle timing as it makes no sense
-		if !subView.Subscription.Alignment.BillablesMustAlign && c.Enum != nil && *c.Enum == TimingNextBillingCycle {
-			return models.NewGenericValidationError(fmt.Errorf("cannot cancel misaligned subscription with next_billing_cycle timing"))
 		}
 
 	case SubscriptionActionChangeAddons:
