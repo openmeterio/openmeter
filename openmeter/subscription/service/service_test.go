@@ -217,18 +217,18 @@ func TestCancellation(t *testing.T) {
 		require.Nil(t, err)
 
 		// Second, let's cancel the subscription
-		cancelTime := testutils.GetRFC3339Time(t, "2021-04-01T00:00:00Z")
+		expectedCancelTime := testutils.GetRFC3339Time(t, "2021-02-01T00:00:00Z")
 		cancelledSub, err := service.Cancel(ctx, sub.NamespacedID, subscription.Timing{
-			Custom: &cancelTime,
+			Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 		})
 
-		assert.Nil(t, err)
+		assert.Nil(t, err, "error canceling subscription: %v", err)
 		assert.Equal(t, sub.ID, cancelledSub.ID)
 		assert.Equal(t, sub.PlanRef, cancelledSub.PlanRef)
 		assert.Equal(t, sub.Namespace, cancelledSub.Namespace)
 		assert.Equal(t, sub.CustomerId, cancelledSub.CustomerId)
 		assert.Equal(t, sub.Currency, cancelledSub.Currency)
-		assert.Equal(t, cancelTime, *cancelledSub.ActiveTo)
+		assert.Equal(t, expectedCancelTime, *cancelledSub.ActiveTo)
 		assert.Equal(t, subscription.SubscriptionStatusCanceled, cancelledSub.GetStatusAt(clock.Now()))
 
 		// Third, let's fetch the full view of the subscription and validate that all contents are canceled
@@ -255,14 +255,14 @@ func TestCancellation(t *testing.T) {
 					foundItemCadence := foundItem.SubscriptionItem.GetCadence(phaseCadence)
 
 					// All items must have either
-					if !foundItemCadence.ActiveFrom.After(cancelTime) {
+					if !foundItemCadence.ActiveFrom.After(expectedCancelTime) {
 						// - left in tact if their phase ends before the cancel time
-						if phaseCadence.ActiveTo != nil && !phaseCadence.ActiveTo.After(cancelTime) {
+						if phaseCadence.ActiveTo != nil && !phaseCadence.ActiveTo.After(expectedCancelTime) {
 							if foundItemCadence.ActiveTo != nil && foundItemCadence.ActiveTo.Equal(*phaseCadence.ActiveTo) {
 								satisfies = true
 							}
 							// - their ActiveTo time set to the cancel time (if they started before the cancel time)
-						} else if foundItemCadence.ActiveTo != nil && foundItemCadence.ActiveTo.Equal(cancelTime) {
+						} else if foundItemCadence.ActiveTo != nil && foundItemCadence.ActiveTo.Equal(expectedCancelTime) {
 							satisfies = true
 						}
 					} else {
@@ -279,12 +279,12 @@ func TestCancellation(t *testing.T) {
 						satisfies := false
 
 						ent := foundItem.Entitlement
-						if !ent.Cadence.ActiveFrom.After(cancelTime) {
-							if phaseCadence.ActiveTo != nil && !phaseCadence.ActiveTo.After(cancelTime) {
+						if !ent.Cadence.ActiveFrom.After(expectedCancelTime) {
+							if phaseCadence.ActiveTo != nil && !phaseCadence.ActiveTo.After(expectedCancelTime) {
 								if ent.Cadence.ActiveTo != nil && ent.Cadence.ActiveTo.Equal(*phaseCadence.ActiveTo) {
 									satisfies = true
 								}
-							} else if ent.Cadence.ActiveTo != nil && ent.Cadence.ActiveTo.Equal(cancelTime) {
+							} else if ent.Cadence.ActiveTo != nil && ent.Cadence.ActiveTo.Equal(expectedCancelTime) {
 								satisfies = true
 							}
 						} else {
@@ -334,9 +334,8 @@ func TestContinuing(t *testing.T) {
 		require.Nil(t, err)
 
 		// Second, let's cancel the subscription
-		cancelTime := testutils.GetRFC3339Time(t, "2021-04-01T00:00:00Z")
 		_, err = service.Cancel(ctx, sub.NamespacedID, subscription.Timing{
-			Custom: &cancelTime,
+			Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 		})
 
 		require.Nil(t, err)
@@ -422,9 +421,9 @@ func TestContinuing(t *testing.T) {
 		require.Nil(t, err)
 
 		// Second, let's cancel the subscription
-		cancelTime := testutils.GetRFC3339Time(t, "2021-04-01T00:00:00Z")
+		expectedCancelTime := testutils.GetRFC3339Time(t, "2021-02-01T00:00:00Z")
 		_, err = service.Cancel(ctx, sub1.NamespacedID, subscription.Timing{
-			Custom: &cancelTime,
+			Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 		})
 
 		require.Nil(t, err)
@@ -433,8 +432,8 @@ func TestContinuing(t *testing.T) {
 		spec2, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId:    cust.ID,
 			Currency:      "USD",
-			ActiveFrom:    cancelTime.AddDate(0, 0, 1),
-			BillingAnchor: cancelTime.AddDate(0, 0, 1),
+			ActiveFrom:    expectedCancelTime.AddDate(0, 0, 1),
+			BillingAnchor: expectedCancelTime.AddDate(0, 0, 1),
 			Name:          "Test Subscription",
 		})
 		require.Nil(t, err)

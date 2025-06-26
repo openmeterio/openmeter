@@ -1,4 +1,4 @@
-# Data Migrations in OpenMeter
+# Database Migrations in OpenMeter
 
 OpenMeter uses [ent](https://entgo.io) for its data storage and schema management. Database state is synced from the ent schema definitions under `internal/ent/schema` via either `ent` schema upsertions or migrations.
 

@@ -89,7 +89,7 @@ func TestChange(t *testing.T) {
 					CustomerID: cust.ID,
 				},
 			})
-			require.Nil(t, err)
+			require.Nil(t, err, "error creating subscription: %v", err)
 
 			p2Input := examplePlanInput1
 			p2Input.Plan.PlanMeta.Name = "New Plan"
@@ -137,7 +137,7 @@ func TestChange(t *testing.T) {
 				ID: sub.NamespacedID,
 				WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
-						Custom: lo.ToPtr(clock.Now()),
+						Enum: lo.ToPtr(subscription.TimingImmediate),
 					},
 					Name: sub.Name,
 				},
@@ -193,7 +193,7 @@ func TestChange(t *testing.T) {
 					CustomerID: cust.ID,
 				},
 			})
-			require.Nil(t, err)
+			require.Nil(t, err, "error creating subscription: %v", err)
 
 			p2Input := examplePlanInput1
 			p2Input.Plan.PlanMeta.Name = "New Plan"
@@ -214,7 +214,7 @@ func TestChange(t *testing.T) {
 
 			// Let's create a second plan
 			plan2, err := deps.subDeps.PlanService.CreatePlan(ctx, p2Input)
-			require.Nil(t, err)
+			require.Nil(t, err, "error creating plan: %v", err)
 
 			eFrom := clock.Now().Add(5 * time.Second)
 
@@ -225,7 +225,7 @@ func TestChange(t *testing.T) {
 					EffectiveFrom: &eFrom,
 				},
 			})
-			require.Nil(t, err)
+			require.Nil(t, err, "error publishing plan: %v", err)
 			require.NotNil(t, plan2)
 
 			clock.SetTime(eFrom.Add(time.Second))
@@ -257,7 +257,7 @@ func TestChange(t *testing.T) {
 				ID: sub.NamespacedID,
 				WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
-						Custom: lo.ToPtr(clock.Now()),
+						Enum: lo.ToPtr(subscription.TimingImmediate),
 					},
 					Name: sub.Name,
 				},
@@ -319,7 +319,7 @@ func TestChange(t *testing.T) {
 					CustomerID: cust.ID,
 				},
 			})
-			require.Nil(t, err)
+			require.Nil(t, err, "error creating subscription: %v", err)
 
 			p2Input := examplePlanInput1
 			p2Input.Plan.PlanMeta.Name = "New Plan"
