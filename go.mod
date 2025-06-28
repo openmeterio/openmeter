@@ -62,6 +62,7 @@ require (
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/samber/lo v1.51.0
 	github.com/samber/mo v1.14.0
+	github.com/samber/oops v1.19.0
 	github.com/samber/slog-multi v1.4.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
