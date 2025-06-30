@@ -635,18 +635,6 @@ func (c *MockStreamingConnector) ListEventsV2(ctx context.Context, params metere
 	return events, nil
 }
 
-func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) UpdateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
 func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
 	value := mockQueryValue
 

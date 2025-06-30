@@ -7,7 +7,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -16,25 +15,22 @@ var _ meter.ManageService = (*ManageService)(nil)
 
 type ManageService struct {
 	meter.Service
-	preUpdateHooks     []meter.PreUpdateMeterHook
-	adapter            *adapter.Adapter
-	publisher          eventbus.Publisher
-	namespaceManager   *namespace.Manager
-	streamingConnector streaming.Connector
+	preUpdateHooks   []meter.PreUpdateMeterHook
+	adapter          *adapter.Adapter
+	publisher        eventbus.Publisher
+	namespaceManager *namespace.Manager
 }
 
 func NewManage(
 	adapter *adapter.Adapter,
 	publisher eventbus.Publisher,
 	namespaceManager *namespace.Manager,
-	streamingConnector streaming.Connector,
 ) *ManageService {
 	return &ManageService{
-		Service:            New(adapter),
-		adapter:            adapter,
-		publisher:          publisher,
-		namespaceManager:   namespaceManager,
-		streamingConnector: streamingConnector,
+		Service:          New(adapter),
+		adapter:          adapter,
+		publisher:        publisher,
+		namespaceManager: namespaceManager,
 	}
 }
 
@@ -56,12 +52,6 @@ func (s *ManageService) CreateMeter(ctx context.Context, input meter.CreateMeter
 	err = s.namespaceManager.CreateNamespace(ctx, input.Namespace)
 	if err != nil {
 		return createdMeter, fmt.Errorf("failed to create namespace: %w", err)
-	}
-
-	// Create the meter in the streaming connector
-	err = s.streamingConnector.CreateMeter(ctx, input.Namespace, createdMeter)
-	if err != nil {
-		return createdMeter, fmt.Errorf("failed to create meter in streaming connector: %w", err)
 	}
 
 	// Publish the meter created event
@@ -122,12 +112,6 @@ func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeter
 	deletedMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput(input))
 	if err != nil {
 		return err
-	}
-
-	// Delete the meter in the streaming connector
-	err = s.streamingConnector.DeleteMeter(ctx, input.Namespace, deletedMeter)
-	if err != nil {
-		return fmt.Errorf("failed to delete meter in streaming connector: %w", err)
 	}
 
 	// Publish the meter deleted event
@@ -196,12 +180,6 @@ func (s *ManageService) UpdateMeter(ctx context.Context, input meter.UpdateMeter
 	updatedMeter, err := s.adapter.UpdateMeter(ctx, input)
 	if err != nil {
 		return meter.Meter{}, err
-	}
-
-	// Update the meter in the streaming connector
-	err = s.streamingConnector.UpdateMeter(ctx, input.ID.Namespace, updatedMeter)
-	if err != nil {
-		return updatedMeter, fmt.Errorf("failed to update meter in streaming connector: %w", err)
 	}
 
 	// Publish the meter updated event

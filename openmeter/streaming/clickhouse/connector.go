@@ -127,21 +127,6 @@ func (c *Connector) ListEventsV2(ctx context.Context, params meterevent.ListEven
 	return events, nil
 }
 
-func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
-	// Do nothing
-	return nil
-}
-
-func (c *Connector) UpdateMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
-	// Do nothing
-	return nil
-}
-
-func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
-	// Do nothing
-	return nil
-}
-
 func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
 	// Validate params
 	if namespace == "" {
