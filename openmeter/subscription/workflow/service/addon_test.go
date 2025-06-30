@@ -105,7 +105,7 @@ func TestAddAddon(t *testing.T) {
 
 		// Let's cancel the subscription
 		_, err := deps.deps.SubscriptionService.Cancel(context.Background(), subView.Subscription.NamespacedID, subscription.Timing{
-			Custom: lo.ToPtr(now.AddDate(0, 1, 0)),
+			Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 		})
 		require.NoError(t, err)
 
@@ -481,7 +481,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 
 		// Let's cancel the subscription
 		_, err = deps.deps.SubscriptionService.Cancel(context.Background(), subView.Subscription.NamespacedID, subscription.Timing{
-			Custom: lo.ToPtr(now.AddDate(0, 1, 0)),
+			Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 		})
 		require.NoError(t, err)
 

@@ -624,7 +624,7 @@ func TestEditingWithTiming(t *testing.T) {
 		Handler   func(t *testing.T, deps testCaseDeps)
 	}{
 		{
-			Name: "Should error when trying to time to next_billing_cycle in a non-aligned Subscription",
+			Name: "Should error when trying to time to custom in an aligned Subscription",
 			Handler: func(t *testing.T, deps testCaseDeps) {
 				second_phase_key := "test_phase_2"
 				item_key := "rate-card-2"
@@ -655,12 +655,12 @@ func TestEditingWithTiming(t *testing.T) {
 						ItemKey:  item_key,
 					},
 				}, subscription.Timing{
-					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+					Custom: lo.ToPtr(clock.Now().Add(time.Hour)),
 				})
-				require.Error(t, err)
+				require.Error(t, err, "expected error to be returned")
 
 				require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}), "expected error to be of type models.GenericUserError")
-				require.ErrorContains(t, err, "next_billing_cycle is not supported for non-aligned subscriptions", "expected error to be about non-aligned subscriptions, while it was: %v", err)
+				require.ErrorContains(t, err, "cannot edit running subscription with custom timing", "expected error to be about custom timing, while it was: %v", err)
 			},
 		},
 		{
@@ -1290,11 +1290,11 @@ func TestEditCombinations(t *testing.T) {
 
 			// Now let's cancel the subscription
 			s, err := deps.Service.Cancel(ctx, sub.Subscription.NamespacedID, subscription.Timing{
-				Custom: lo.ToPtr(clock.Now().Add(-time.Minute)),
+				Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 			})
 			require.Nil(t, err)
 
-			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(clock.Now()))
+			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(clock.Now().AddDate(0, 1, 0)))
 		})
 	})
 
@@ -1489,9 +1489,8 @@ func TestRestore(t *testing.T) {
 			clock.SetTime(clock.Now().Add(time.Hour))
 
 			// Let's cancel the subscription
-			cancelBy := clock.Now().AddDate(0, 0, 1)
 			s, err := deps.Service.Cancel(ctx, sub.Subscription.NamespacedID, subscription.Timing{
-				Custom: &cancelBy,
+				Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 			})
 			require.Nil(t, err)
 
@@ -1499,7 +1498,7 @@ func TestRestore(t *testing.T) {
 			require.Equal(t, subscription.SubscriptionStatusCanceled, s.GetStatusAt(clock.Now()))
 
 			// Let's pass some more time
-			clock.SetTime(clock.Now().Add(time.Hour))
+			clock.SetTime(deps.CurrentTime.AddDate(0, 0, 1))
 
 			// Let's restore the subscription
 			restored, err := deps.WorkflowService.Restore(ctx, sub.Subscription.NamespacedID)
@@ -1532,10 +1531,10 @@ func TestRestore(t *testing.T) {
 			clock.SetTime(clock.Now().Add(time.Hour))
 
 			// Let's change to another plan (same plan, but still a change)
-			changeBy := clock.Now().AddDate(0, 0, 1)
+			expectedChangeBy := deps.CurrentTime.AddDate(0, 1, 0)
 			old, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub.Subscription.NamespacedID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{
-					Custom: &changeBy,
+					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 				},
 				Name: "Example Subscription 2",
 			}, deps.Plan1)
@@ -1545,8 +1544,8 @@ func TestRestore(t *testing.T) {
 			require.Equal(t, subscription.SubscriptionStatusCanceled, old.GetStatusAt(clock.Now()))
 			require.Equal(t, subscription.SubscriptionStatusScheduled, new.Subscription.GetStatusAt(clock.Now()))
 
-			require.Equal(t, subscription.SubscriptionStatusInactive, old.GetStatusAt(changeBy))
-			require.Equal(t, subscription.SubscriptionStatusActive, new.Subscription.GetStatusAt(changeBy))
+			require.Equal(t, subscription.SubscriptionStatusInactive, old.GetStatusAt(expectedChangeBy))
+			require.Equal(t, subscription.SubscriptionStatusActive, new.Subscription.GetStatusAt(expectedChangeBy))
 
 			// Let's pass some more time
 			clock.SetTime(clock.Now().Add(time.Hour))
@@ -1557,7 +1556,7 @@ func TestRestore(t *testing.T) {
 
 			// Let's validate the restored subscription
 			require.Equal(t, subscription.SubscriptionStatusActive, restored.GetStatusAt(clock.Now()))
-			require.Equal(t, subscription.SubscriptionStatusActive, restored.GetStatusAt(changeBy))
+			require.Equal(t, subscription.SubscriptionStatusActive, restored.GetStatusAt(expectedChangeBy))
 
 			// Let's make sure the new sub was deleted
 			_, err = deps.Service.GetView(ctx, new.Subscription.NamespacedID)

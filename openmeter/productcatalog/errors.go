@@ -404,6 +404,16 @@ var ErrIDEmpty = models.NewValidationIssue(
 	models.WithCriticalSeverity(),
 )
 
+// Alignment errors
+
+const ErrCodeDeprecatedUnalignedSubscription models.ErrorCode = "deprecated_unaligned_subscription"
+
+var ErrDeprecatedUnalignedSubscription = models.NewValidationIssue(
+	ErrCodeDeprecatedUnalignedSubscription,
+	"unaligned subscriptions are being deprecated",
+	models.WithWarningSeverity(),
+)
+
 // Plan errors
 
 var ErrPlanBillingCadenceAllowedValues = []isodate.String{
