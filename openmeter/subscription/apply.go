@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // The spec is the core object of Subscriptions being manipulated.
@@ -21,18 +23,10 @@ type AppliesToSpec interface {
 	ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error
 }
 
-// Some errors are allowed during applying individual things to the spec, but still mean the Spec as a whole is invalid
-type AllowedDuringApplyingToSpecError struct {
-	Inner error
-}
-
-func (e *AllowedDuringApplyingToSpecError) Error() string {
-	return fmt.Sprintf("allowed during incremental validation failed: %s", e.Inner)
-}
-
-func (e *AllowedDuringApplyingToSpecError) Unwrap() error {
-	return e.Inner
-}
+const (
+	// Some errors are allowed during applying individual things to the spec, but still mean the Spec as a whole is invalid
+	subscriptionPatchErrAttrNameAllowedDuringApplyingToSpecError = "allowed_during_applying_to_spec_error"
+)
 
 func NewAppliesToSpec(fn func(spec *SubscriptionSpec, actx ApplyContext) error) AppliesToSpec {
 	return &someAppliesToSpec{
@@ -55,22 +49,23 @@ func NewAggregateAppliesToSpec(applieses []AppliesToSpec) AppliesToSpec {
 	return NewAppliesToSpec(func(spec *SubscriptionSpec, actx ApplyContext) error {
 		for i, applies := range applieses {
 			if err := spec.Apply(applies, actx); err != nil {
-				if uw, ok := err.(interface{ Unwrap() []error }); ok {
-					// If all returned errors are allowed during applying patches, we can continue
-					if lo.EveryBy(uw.Unwrap(), func(e error) bool {
-						_, ok := lo.ErrorsAs[*AllowedDuringApplyingToSpecError](e)
-						return ok
-					}) {
-						continue
-					}
-				} else if uw, ok := err.(interface{ Unwrap() error }); ok {
-					if _, ok := lo.ErrorsAs[*AllowedDuringApplyingToSpecError](uw.Unwrap()); ok {
-						continue
-					}
+				wrapError := func(err error) error {
+					return models.ErrorWithComponent(models.ComponentName(fmt.Sprintf("patch at idx %d", i)), err)
+				}
+
+				issues, err := models.AsValidationIssues(err)
+				if err != nil {
+					return wrapError(err)
+				}
+
+				if lo.EveryBy(issues, func(issue models.ValidationIssue) bool {
+					return IsValidationIssueWithBoolAttr(issue, subscriptionPatchErrAttrNameAllowedDuringApplyingToSpecError)
+				}) {
+					continue
 				}
 
 				// Otherwise we return with the error
-				return fmt.Errorf("appliesToSpec %d failed during validation: %w", i, err)
+				return wrapError(err)
 			}
 		}
 

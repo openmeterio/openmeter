@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type PatchAddItem struct {
@@ -35,7 +36,12 @@ func (a PatchAddItem) Validate() error {
 	}
 
 	if err := a.CreateInput.Validate(); err != nil {
-		return err
+		return models.ErrorWithFieldPrefix(models.NewFieldSelectors(
+			models.NewFieldSelector("phases"),
+			models.NewFieldSelector(a.PhaseKey),
+			models.NewFieldSelector("items"),
+			models.NewFieldSelector(a.ItemKey),
+		), err)
 	}
 
 	return nil

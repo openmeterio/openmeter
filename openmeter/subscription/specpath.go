@@ -137,6 +137,8 @@ func (p SpecPath) ItemVersion() int {
 	return idx
 }
 
+// TODO: add SpecPath to FieldSelector conversion method
+
 func NewPhasePath(phaseKey string) SpecPath {
 	return SpecPath(fmt.Sprintf("/%s/%s", phasePathPrefix, phaseKey))
 }

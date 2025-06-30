@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -443,7 +444,7 @@ func NewSubscriptionView(
 	}
 
 	if err := spec.Validate(); err != nil {
-		return nil, fmt.Errorf("spec is invalid: %w", err)
+		return nil, models.ErrorWithComponent("subscriptionspec", err)
 	}
 
 	// Let's add spec to view

@@ -224,7 +224,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.Clo
 		}
 		phase = p
 	case at.Before(subCad.ActiveFrom):
-		return def, NewBillingPeriodQueriedBeforeSubscriptionStartError(at, subCad.ActiveFrom)
+		return def, NewErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart(at, subCad.ActiveFrom)
 	default:
 		if subCad.ActiveTo == nil {
 			// impossible, but lets be defensive and not panic
@@ -298,16 +298,16 @@ func (s *SubscriptionSpec) Validate() error {
 	// Let's validate the billing anchor
 	// - is present
 	if s.BillingAnchor.IsZero() {
-		errs = append(errs, fmt.Errorf("billing anchor is required"))
+		errs = append(errs, ErrSubscriptionBillingAnchorIsRequired)
 	}
 
 	// - is normalized to the closest iteration before subscriptiion start
 	if s.BillingAnchor.After(s.ActiveFrom) {
-		errs = append(errs, fmt.Errorf("billing anchor is after subscription start"))
+		errs = append(errs, ErrSubscriptionBillingAnchorIsInvalid)
 	}
 
 	if next, _ := s.BillingCadence.AddTo(s.BillingAnchor); next.Before(s.ActiveFrom) {
-		errs = append(errs, fmt.Errorf("billing anchor is not normalized to the closest iteration before subscription start"))
+		errs = append(errs, ErrSubscriptionBillingAnchorIsInvalid)
 	}
 
 	sortedPhases := s.GetSortedPhases()
@@ -329,11 +329,11 @@ func (s *SubscriptionSpec) Validate() error {
 		}
 
 		if err := phase.Validate(cadence); err != nil {
-			errs = append(errs, fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err))
+			errs = append(errs, err)
 		}
 	}
 
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return errors.Join(errs...)
 }
 
 func (s *SubscriptionSpec) ValidateAlignment() error {
@@ -341,18 +341,26 @@ func (s *SubscriptionSpec) ValidateAlignment() error {
 
 	for _, phase := range s.GetSortedPhases() {
 		for _, itemsByKey := range phase.GetBillableItemsByKey() {
-			for _, item := range itemsByKey {
+			for idx, item := range itemsByKey {
+				fieldSelector := models.NewFieldSelectors(
+					models.NewFieldSelector("phases"),
+					models.NewFieldSelector(phase.PhaseKey),
+					models.NewFieldSelector("itemsByKey"),
+					models.NewFieldSelector(item.ItemKey).
+						WithExpression(models.NewFieldArrIndex(idx)),
+				)
+
 				rateCard := item.RateCard
 				if rateCard.GetBillingCadence() != nil {
 					if err := productcatalog.ValidateBillingCadencesAlign(s.BillingCadence, lo.FromPtr(rateCard.GetBillingCadence())); err != nil {
-						errs = append(errs, err)
+						errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, err))
 					}
 				}
 			}
 		}
 	}
 
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return errors.Join(errs...)
 }
 
 type CreateSubscriptionPhasePlanInput struct {
@@ -487,67 +495,61 @@ func (s SubscriptionPhaseSpec) Validate(
 ) error {
 	var errs []error
 
+	phaseSelector := models.NewFieldSelectors(
+		models.NewFieldSelector("phases"),
+		models.NewFieldSelector(s.PhaseKey),
+	)
+
 	// Phase StartAfter really should not be negative
 	if s.StartAfter.IsNegative() {
-		errs = append(errs, fmt.Errorf("phase start after cannot be negative"))
+		errs = append(errs, models.ErrorWithFieldPrefix(
+			phaseSelector,
+			ErrSubscriptionPhaseStartAfterIsNegative,
+		))
 	}
 
 	// Let's validate that the phase is not empty
 	flat := lo.Flatten(lo.Values(s.ItemsByKey))
 	if len(flat) == 0 {
-		errs = append(errs, &AllowedDuringApplyingToSpecError{
-			Inner: &SpecValidationError{
-				AffectedKeys: [][]string{
-					{
-						"phaseKey",
-						s.PhaseKey,
-					},
-				},
-				Msg: "Phase must have at least one item",
-			},
-		})
+		errs = append(errs, models.ErrorWithFieldPrefix(
+			phaseSelector,
+			ErrSubscriptionPhaseHasNoItems.WithAttr(
+				subscriptionPatchErrAttrNameAllowedDuringApplyingToSpecError,
+				true,
+			),
+		))
 	}
 
 	for key, items := range s.ItemsByKey {
-		for _, item := range items {
+		for idx, item := range items {
+			itemSelector := models.NewFieldSelectors(
+				models.NewFieldSelector("itemsByKey"),
+				models.NewFieldSelector(key).
+					WithExpression(models.NewFieldArrIndex(idx)),
+			).WithPrefix(phaseSelector)
+
 			// Let's validate key is correct
 			if item.ItemKey != key {
-				errs = append(errs, &SpecValidationError{
-					AffectedKeys: [][]string{
-						{
-							"phaseKey",
-							s.PhaseKey,
-							"itemKey",
-							key,
-						},
-					},
-					Msg: "Items must be grouped correctly by key",
-				})
+				errs = append(errs, models.ErrorWithFieldPrefix(
+					itemSelector,
+					ErrSubscriptionPhaseItemHistoryKeyMismatch,
+				))
 			}
 
 			// Let's validate the phase linking is correct
 			if item.PhaseKey != s.PhaseKey {
-				errs = append(errs, &SpecValidationError{
-					AffectedKeys: [][]string{
-						{
-							"phaseKey",
-							s.PhaseKey,
-						},
-						{
-							"phaseKey",
-							s.PhaseKey,
-							"itemKey",
-							item.ItemKey,
-							"PhaseKey",
-						},
-					},
-					Msg: "PhaseKey in Item must match Key in Phase",
-				})
+				errs = append(errs, models.ErrorWithFieldPrefix(
+					itemSelector,
+					ErrSubscriptionPhaseItemKeyMismatchWithPhaseKey,
+				))
 			}
 
 			// Let's validate the item contents
 			if err := item.Validate(); err != nil {
-				errs = append(errs, fmt.Errorf("item %s validation failed: %w", item.ItemKey, err))
+				errs = append(errs, models.ErrorWithFieldPrefix(
+					itemSelector,
+					err,
+				))
 			}
 		}
 
@@ -560,6 +562,7 @@ func (s SubscriptionPhaseSpec) Validate(
 
 		timeline := models.CadenceList[models.CadencedModel](cadences)
 
+		// We guarantee here that the sorting of items is the same as the sorting of the timeline, which is also a correct sorting
 		if !timeline.IsSorted() {
 			errs = append(errs, fmt.Errorf("items for key %s are not sorted", key))
 		}
@@ -568,16 +571,35 @@ func (s SubscriptionPhaseSpec) Validate(
 			for _, overlap := range overlaps {
 				itemSpec1 := items[overlap.Index1]
 				itemSpec2 := items[overlap.Index2]
-				errs = append(errs, fmt.Errorf(
-					"items for key %s are overlapping (indexes %d and %d): reason: %s. Item 1 Spec: %+v, Cadence: %+v. Item 2 Spec: %+v, Cadence: %+v",
-					key,
-					overlap.Index1,
-					overlap.Index2,
-					overlap.Reason,
-					itemSpec1,
-					overlap.Item1,
-					itemSpec2,
-					overlap.Item2,
+
+				// error for first item
+				errs = append(errs, models.ErrorWithFieldPrefix(
+					phaseSelector,
+					ErrSubscriptionItemHistoryOverlap.WithField(
+						models.NewFieldSelector("itemsByKey"),
+						models.NewFieldSelector(key).
+							WithExpression(models.NewFieldArrIndex(overlap.Index1)),
+					).WithAttrs(models.Attributes{
+						"overlaps_with_idx": overlap.Index2,
+						"reason":            overlap.Reason,
+						"cadence":           overlap.Item1,
+						"spec":              itemSpec1,
+					}),
+				))
+
+				// error for second item
+				errs = append(errs, models.ErrorWithFieldPrefix(
+					phaseSelector,
+					ErrSubscriptionItemHistoryOverlap.WithField(
+						models.NewFieldSelector("itemsByKey"),
+						models.NewFieldSelector(key).
+							WithExpression(models.NewFieldArrIndex(overlap.Index2)),
+					).WithAttrs(models.Attributes{
+						"overlaps_with_idx": overlap.Index1,
+						"reason":            overlap.Reason,
+						"cadence":           overlap.Item2,
+						"spec":              itemSpec2,
+					}),
 				))
 			}
 		}
@@ -952,41 +974,23 @@ func (s *SubscriptionItemSpec) Validate() error {
 		return fmt.Errorf("rate card is required")
 	}
 
-	// Let's validate the key
-	if s.RateCard.AsMeta().FeatureKey != nil {
-		if s.ItemKey != *s.RateCard.AsMeta().FeatureKey {
-			return fmt.Errorf("feature key must match item key when a feature is defined, to avoid duplicate feature assignment")
-		}
-	}
-
 	// Let's validate nested models
 	if err := s.RateCard.Validate(); err != nil {
-		errs = append(errs, &SpecValidationError{
-			AffectedKeys: [][]string{
-				{
-					"phaseKey",
-					s.PhaseKey,
-					"itemKey",
-					s.ItemKey,
-					"RateCard",
-				},
-			},
-			Msg: fmt.Sprintf("RateCard validation failed: %s", err),
-		})
+		errs = append(errs, models.ErrorWithComponent("rateCard", err))
 	}
 
 	// Billing behavior should only be present for billable items
-	if s.BillingBehaviorOverride.RestartBillingPeriod != nil && s.RateCard.AsMeta().Price == nil {
-		errs = append(errs, fmt.Errorf("billing behavior override is only allowed for billable items"))
+	if s.BillingBehaviorOverride.RestartBillingPeriod != nil && !s.RateCard.IsBillable() {
+		errs = append(errs, ErrSubscriptionItemBillingOverrideIsOnlyAllowedForBillableItems)
 	}
 
 	// The relative cadence should make sense
 	if s.ActiveFromOverrideRelativeToPhaseStart != nil && s.ActiveFromOverrideRelativeToPhaseStart.IsNegative() {
-		errs = append(errs, fmt.Errorf("active from override relative to phase start cannot be negative"))
+		errs = append(errs, ErrSubscriptionItemActiveFromOverrideRelativeToPhaseStartIsNegative)
 	}
 
 	if s.ActiveToOverrideRelativeToPhaseStart != nil && s.ActiveToOverrideRelativeToPhaseStart.IsNegative() {
-		errs = append(errs, fmt.Errorf("active to override relative to phase start cannot be negative"))
+		errs = append(errs, ErrSubscriptionItemActiveToOverrideRelativeToPhaseStartIsNegative)
 	}
 
 	return errors.Join(errs...)

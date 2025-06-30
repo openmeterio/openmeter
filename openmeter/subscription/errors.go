@@ -8,6 +8,145 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+//
+// Business Errors
+// (TODO(galexi): probably should not use ValidationIssue for these)
+//
+
+const ErrCodeSubscriptionBillingPeriodQueriedBeforeSubscriptionStart models.ErrorCode = "subscription_billing_period_queried_before_subscription_start"
+
+var ErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart = models.NewValidationIssue(
+	ErrCodeSubscriptionBillingPeriodQueriedBeforeSubscriptionStart,
+	"billing period queried before subscription start",
+)
+
+func NewErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart(queriedAt, subscriptionStart time.Time) error {
+	return ErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart.WithAttr("queried_at", queriedAt).WithAttr("subscription_start", subscriptionStart)
+}
+
+// TODO(galexi): "ValidationIssue" is not the right concept here. We should have a different kind of error with all this capability. It's used here as a hack to localize things for the time being.
+
+func IsValidationIssueWithCode(err error, code models.ErrorCode) bool {
+	issues, err := models.AsValidationIssues(err)
+	if err != nil {
+		return false
+	}
+
+	if len(issues) != 1 {
+		return false
+	}
+
+	return issues[0].Code() == code
+}
+
+func IsValidationIssueWithBoolAttr(err error, attrName string) bool {
+	issues, err := models.AsValidationIssues(err)
+	if err != nil {
+		return false
+	}
+
+	if len(issues) != 1 {
+		return false
+	}
+
+	return issues[0].Attributes()[attrName] == true
+}
+
+//
+// Validation Issues
+//
+
+// Subscription
+
+const ErrCodeSubscriptionBillingAnchorIsRequired models.ErrorCode = "subscription_billing_anchor_is_required"
+
+var ErrSubscriptionBillingAnchorIsRequired = models.NewValidationIssue(
+	ErrCodeSubscriptionBillingAnchorIsRequired,
+	"billing anchor is required",
+	models.WithFieldString("billingAnchor"),
+)
+
+const ErrCodeSubscriptionBillingAnchorIsInvalid models.ErrorCode = "subscription_billing_anchor_is_invalid"
+
+var ErrSubscriptionBillingAnchorIsInvalid = models.NewValidationIssue(
+	ErrCodeSubscriptionBillingAnchorIsInvalid,
+	"billing anchor must be before subscription start and normalized to the closest iteration before subscription start",
+	models.WithFieldString("billingAnchor"),
+)
+
+// Phase
+
+const ErrCodeSubscriptionPhaseStartAfterIsNegative models.ErrorCode = "subscription_phase_start_after_is_negative"
+
+var ErrSubscriptionPhaseStartAfterIsNegative = models.NewValidationIssue(
+	ErrCodeSubscriptionPhaseStartAfterIsNegative,
+	"subscription phase start after cannot be negative",
+	models.WithFieldString("startAfter"),
+)
+
+const ErrCodeSubscriptionPhaseHasNoItems models.ErrorCode = "subscription_phase_has_no_items"
+
+var ErrSubscriptionPhaseHasNoItems = models.NewValidationIssue(
+	ErrCodeSubscriptionPhaseHasNoItems,
+	"subscription phase must have at least one item",
+	models.WithFieldString("items"),
+)
+
+const ErrCodeSubscriptionPhaseItemHistoryKeyMismatch models.ErrorCode = "subscription_phase_item_history_key_mismatch"
+
+var ErrSubscriptionPhaseItemHistoryKeyMismatch = models.NewValidationIssue(
+	ErrCodeSubscriptionPhaseItemHistoryKeyMismatch,
+	"subscription phase item history key mismatch",
+	models.WithFieldString("itemsByKey"),
+)
+
+var ErrCodeSubscriptionPhaseItemKeyMismatchWithPhaseKey models.ErrorCode = "subscription_phase_item_key_mismatch_with_phase_key"
+
+var ErrSubscriptionPhaseItemKeyMismatchWithPhaseKey = models.NewValidationIssue(
+	ErrCodeSubscriptionPhaseItemKeyMismatchWithPhaseKey,
+	"subscription phase item key mismatch with phase key",
+	models.WithFieldString("itemKey"),
+	models.WithFieldString("phaseKey"),
+)
+
+// Item
+
+const ErrCodeSubscriptionItemBillingOverrideIsOnlyAllowedForBillableItems models.ErrorCode = "subscription_item_billing_override_is_only_allowed_for_billable_items"
+
+var ErrSubscriptionItemBillingOverrideIsOnlyAllowedForBillableItems = models.NewValidationIssue(
+	ErrCodeSubscriptionItemBillingOverrideIsOnlyAllowedForBillableItems,
+	"billing override is only allowed for billable items",
+	models.WithFieldString("billingBehaviorOverride"),
+)
+
+const ErrCodeSubscriptionItemActiveFromOverrideRelativeToPhaseStartIsNegative models.ErrorCode = "subscription_item_active_from_override_relative_to_phase_start_is_negative"
+
+var ErrSubscriptionItemActiveFromOverrideRelativeToPhaseStartIsNegative = models.NewValidationIssue(
+	ErrCodeSubscriptionItemActiveFromOverrideRelativeToPhaseStartIsNegative,
+	"active from override relative to phase start cannot be negative",
+	models.WithFieldString("activeFromOverrideRelativeToPhaseStart"),
+)
+
+const ErrCodeSubscriptionItemActiveToOverrideRelativeToPhaseStartIsNegative models.ErrorCode = "subscription_item_active_to_override_relative_to_phase_start_is_negative"
+
+var ErrSubscriptionItemActiveToOverrideRelativeToPhaseStartIsNegative = models.NewValidationIssue(
+	ErrCodeSubscriptionItemActiveToOverrideRelativeToPhaseStartIsNegative,
+	"active to override relative to phase start cannot be negative",
+	models.WithFieldString("activeToOverrideRelativeToPhaseStart"),
+)
+
+const ErrCodeSubscriptionItemHistoryOverlap models.ErrorCode = "subscription_item_history_overlap"
+
+var ErrSubscriptionItemHistoryOverlap = models.NewValidationIssue(
+	ErrCodeSubscriptionItemHistoryOverlap,
+	"subscription item history overlap",
+	models.WithFieldString("itemsByKey"),
+)
+
+//
+// NotFound errors
+//
+
 // NewSubscriptionNotFoundError returns a new SubscriptionNotFoundError.
 func NewSubscriptionNotFoundError(id string) error {
 	return &SubscriptionNotFoundError{
@@ -115,36 +254,6 @@ func IsItemNotFoundError(err error) bool {
 	}
 
 	var e *ItemNotFoundError
-
-	return errors.As(err, &e)
-}
-
-type BillingPeriodQueriedBeforeSubscriptionStartError struct {
-	err error
-}
-
-func (e *BillingPeriodQueriedBeforeSubscriptionStartError) Error() string {
-	return e.err.Error()
-}
-
-func (e *BillingPeriodQueriedBeforeSubscriptionStartError) Unwrap() error {
-	return e.err
-}
-
-func NewBillingPeriodQueriedBeforeSubscriptionStartError(queriedAt, subscriptionStart time.Time) error {
-	return &BillingPeriodQueriedBeforeSubscriptionStartError{
-		err: models.NewGenericValidationError(
-			fmt.Errorf("billing period queried before subscription start: %s < %s", queriedAt, subscriptionStart),
-		),
-	}
-}
-
-func IsBillingPeriodQueriedBeforeSubscriptionStartError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	var e *BillingPeriodQueriedBeforeSubscriptionStartError
 
 	return errors.As(err, &e)
 }
