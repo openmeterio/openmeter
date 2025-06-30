@@ -404,7 +404,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v3 := conf.Meters
-	manageService := common.NewMeterManageService(ctx, adapter, entitlement, manager, connector, eventbusPublisher)
+	manageService := common.NewMeterManageService(ctx, adapter, manager, connector, eventbusPublisher)
 	v4 := common.NewMeterConfigInitializer(logger, v3, manageService, manager)
 	metereventService := common.NewMeterEventService(connector, service)
 	repository, err := common.NewNotificationAdapter(logger, client)

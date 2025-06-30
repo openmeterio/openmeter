@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,31 +16,25 @@ var _ meter.ManageService = (*ManageService)(nil)
 
 type ManageService struct {
 	meter.Service
-	preUpdateHooks        []meter.PreUpdateMeterHook
-	adapter               *adapter.Adapter
-	publisher             eventbus.Publisher
-	entitlementRepository entitlement.EntitlementRepo
-	featureRepository     feature.FeatureRepo
-	namespaceManager      *namespace.Manager
-	streamingConnector    streaming.Connector
+	preUpdateHooks     []meter.PreUpdateMeterHook
+	adapter            *adapter.Adapter
+	publisher          eventbus.Publisher
+	namespaceManager   *namespace.Manager
+	streamingConnector streaming.Connector
 }
 
 func NewManage(
 	adapter *adapter.Adapter,
 	publisher eventbus.Publisher,
-	entitlementRepository entitlement.EntitlementRepo,
-	featureRepository feature.FeatureRepo,
 	namespaceManager *namespace.Manager,
 	streamingConnector streaming.Connector,
 ) *ManageService {
 	return &ManageService{
-		Service:               New(adapter),
-		adapter:               adapter,
-		publisher:             publisher,
-		entitlementRepository: entitlementRepository,
-		featureRepository:     featureRepository,
-		namespaceManager:      namespaceManager,
-		streamingConnector:    streamingConnector,
+		Service:            New(adapter),
+		adapter:            adapter,
+		publisher:          publisher,
+		namespaceManager:   namespaceManager,
+		streamingConnector: streamingConnector,
 	}
 }
 
@@ -95,9 +87,10 @@ func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeter
 	}
 
 	// Check if the meter has active features
-	hasFeatures, err := s.featureRepository.HasActiveFeatureForMeter(ctx, input.Namespace, getMeter.Key)
+	hasFeatures, err := s.adapter.HasActiveFeatureForMeter(ctx, input.Namespace, getMeter.Key)
 	if err != nil {
-		return fmt.Errorf("failed to check if meter has features: %w", err)
+		return fmt.Errorf("failed to check if meter has features [namespace=%s, key=%s]: %w",
+			input.Namespace, getMeter.Key, err)
 	}
 
 	if hasFeatures {
@@ -107,9 +100,10 @@ func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeter
 	}
 
 	// Check if the meter has active entitlements
-	hasEntitlements, err := s.entitlementRepository.HasEntitlementForMeter(ctx, getMeter.Namespace, getMeter.Key)
+	hasEntitlements, err := s.adapter.HasEntitlementForMeter(ctx, getMeter.Namespace, getMeter.Key)
 	if err != nil {
-		return fmt.Errorf("failed to check if meter has entitlements: %w", err)
+		return fmt.Errorf("failed to check if meter has entitlements [namespace=%s, key=%s]: %w",
+			input.Namespace, getMeter.Key, err)
 	}
 
 	if hasEntitlements {
@@ -174,16 +168,13 @@ func (s *ManageService) UpdateMeter(ctx context.Context, input meter.UpdateMeter
 	// We only need to check deleted group bys because only those can be incompatible
 	if len(groupByToDelete) > 0 {
 		// List features depending on the meter
-		features, err := s.featureRepository.ListFeatures(ctx, feature.ListFeaturesParams{
-			Namespace:  input.ID.Namespace,
-			MeterSlugs: []string{currentMeter.Key},
-		})
+		features, err := s.adapter.ListFeaturesForMeter(ctx, input.ID.Namespace, currentMeter.Key)
 		if err != nil {
 			return meter.Meter{}, fmt.Errorf("failed to list features for meter: %w", err)
 		}
 
 		// Check if the features are compatible with the new group by values
-		for _, feature := range features.Items {
+		for _, feature := range features {
 			for _, groupBy := range groupByToDelete {
 				if _, ok := feature.MeterGroupByFilters[groupBy]; ok {
 					return meter.Meter{}, models.NewGenericConflictError(
