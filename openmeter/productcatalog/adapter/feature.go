@@ -55,7 +55,7 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 		return feature.Feature{}, err
 	}
 
-	return mapFeatureEntity(entity), nil
+	return MapFeatureEntity(entity), nil
 }
 
 func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*feature.Feature, error) {
@@ -79,7 +79,7 @@ func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, i
 		return nil, &feature.FeatureNotFoundError{ID: idOrKey}
 	}
 
-	res := mapFeatureEntity(entities[0])
+	res := MapFeatureEntity(entities[0])
 
 	return &res, nil
 }
@@ -215,7 +215,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 
 		mapped := make([]feature.Feature, 0, len(entities))
 		for _, entity := range entities {
-			mapped = append(mapped, mapFeatureEntity(entity))
+			mapped = append(mapped, MapFeatureEntity(entity))
 		}
 
 		response.Items = mapped
@@ -229,8 +229,8 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 
 	list := make([]feature.Feature, 0, len(paged.Items))
 	for _, entity := range paged.Items {
-		feature := mapFeatureEntity(entity)
-		list = append(list, feature)
+		f := MapFeatureEntity(entity)
+		list = append(list, f)
 	}
 
 	response.Items = list
@@ -240,8 +240,8 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 }
 
 // mapFeatureEntity maps a database feature entity to a feature model.
-func mapFeatureEntity(entity *db.Feature) feature.Feature {
-	feature := feature.Feature{
+func MapFeatureEntity(entity *db.Feature) feature.Feature {
+	f := feature.Feature{
 		ID:         entity.ID,
 		Namespace:  entity.Namespace,
 		Name:       entity.Name,
@@ -254,8 +254,8 @@ func mapFeatureEntity(entity *db.Feature) feature.Feature {
 	}
 
 	if len(entity.MeterGroupByFilters) > 0 {
-		feature.MeterGroupByFilters = entity.MeterGroupByFilters
+		f.MeterGroupByFilters = entity.MeterGroupByFilters
 	}
 
-	return feature
+	return f
 }
