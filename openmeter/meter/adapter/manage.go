@@ -6,8 +6,13 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	entitlementdb "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	featuredb "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
+	featureadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -109,6 +114,77 @@ func (a *Adapter) DeleteMeter(ctx context.Context, meter meterpkg.Meter) error {
 				}
 
 				return nil
+			})
+	})
+}
+
+func (a *Adapter) HasActiveFeatureForMeter(ctx context.Context, namespace, key string) (bool, error) {
+	return transaction.Run(ctx, a, func(ctx context.Context) (bool, error) {
+		return entutils.TransactingRepo(
+			ctx,
+			a,
+			func(ctx context.Context, repo *Adapter) (bool, error) {
+				exists, err := a.db.Feature.Query().
+					Where(featuredb.Namespace(namespace)).
+					Where(featuredb.MeterSlug(key)).
+					Where(featuredb.Or(featuredb.ArchivedAtIsNil(), featuredb.ArchivedAtGT(clock.Now()))).
+					Exist(ctx)
+				if err != nil {
+					return false, err
+				}
+
+				return exists, nil
+			})
+	})
+}
+
+func (a *Adapter) HasEntitlementForMeter(ctx context.Context, namespace, key string) (bool, error) {
+	return transaction.Run(ctx, a, func(ctx context.Context) (bool, error) {
+		return entutils.TransactingRepo(
+			ctx,
+			a,
+			func(ctx context.Context, repo *Adapter) (bool, error) {
+				exists, err := repo.db.Entitlement.Query().
+					Where(
+						entitlementdb.Or(entitlementdb.DeletedAtGT(clock.Now()), entitlementdb.DeletedAtIsNil()),
+						entitlementdb.Namespace(namespace),
+						entitlementdb.HasFeatureWith(featuredb.MeterSlugEQ(key)),
+					).
+					Exist(ctx)
+				if err != nil {
+					return false, err
+				}
+
+				return exists, nil
+			})
+	})
+}
+
+func (a *Adapter) ListFeaturesForMeter(ctx context.Context, namespace, key string) ([]feature.Feature, error) {
+	return transaction.Run(ctx, a, func(ctx context.Context) ([]feature.Feature, error) {
+		return entutils.TransactingRepo(
+			ctx,
+			a,
+			func(ctx context.Context, repo *Adapter) ([]feature.Feature, error) {
+				featureRows, err := a.db.Feature.Query().
+					Where(featuredb.Namespace(namespace)).
+					Where(featuredb.MeterSlug(key)).
+					Where(featuredb.And(
+						featuredb.Or(featuredb.DeletedAtIsNil(), featuredb.DeletedAtGT(clock.Now())),
+						featuredb.Or(featuredb.ArchivedAtIsNil(), featuredb.ArchivedAtGT(clock.Now())),
+					)).
+					All(ctx)
+				if err != nil {
+					return nil, err
+				}
+
+				var features []feature.Feature
+
+				for _, row := range featureRows {
+					features = append(features, featureadapter.MapFeatureEntity(row))
+				}
+
+				return features, nil
 			})
 	})
 }

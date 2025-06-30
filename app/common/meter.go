@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	"github.com/openmeterio/openmeter/openmeter/meter/service"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
@@ -48,7 +47,6 @@ func NewMeterService(
 func NewMeterManageService(
 	ctx context.Context,
 	meterAdapter *adapter.Adapter,
-	entitlementRegistry *registry.Entitlement,
 	namespaceManager *namespace.Manager,
 	streamingConnector streaming.Connector,
 	publisher eventbus.Publisher,
@@ -56,8 +54,6 @@ func NewMeterManageService(
 	return service.NewManage(
 		meterAdapter,
 		publisher,
-		entitlementRegistry.EntitlementRepo,
-		entitlementRegistry.FeatureRepo,
 		namespaceManager,
 		streamingConnector,
 	)
