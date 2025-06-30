@@ -326,6 +326,9 @@ func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.Cu
 	// Get the default profile for the customer
 	customerOverride, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: customerID,
+		Expand: billing.CustomerOverrideExpand{
+			Apps: true,
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error getting default profile: %w", err)
