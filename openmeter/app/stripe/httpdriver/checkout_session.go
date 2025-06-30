@@ -162,9 +162,16 @@ func (h *handler) resolveAppIDFromBillingProfile(ctx context.Context, namespace 
 	if customerId != nil {
 		billingProfile, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 			Customer: *customerId,
+			Expand: billing.CustomerOverrideExpand{
+				Apps: true,
+			},
 		})
 		if err != nil {
 			return appID, fmt.Errorf("failed to get billing profile: %w", err)
+		}
+
+		if billingProfile.MergedProfile.Apps == nil {
+			return appID, fmt.Errorf("apps are not expanded in merged billing profile")
 		}
 
 		if billingProfile.MergedProfile.Apps.Payment.GetType() != app.AppTypeStripe {
