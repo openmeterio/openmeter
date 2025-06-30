@@ -203,15 +203,6 @@ func main() {
 		})
 	})
 
-	for _, meter := range conf.Meters {
-		err := app.StreamingConnector.CreateMeter(ctx, app.NamespaceManager.GetDefaultNamespace(), *meter)
-		if err != nil {
-			logger.Warn("failed to initialize meter", "error", err)
-			os.Exit(1)
-		}
-	}
-	logger.Info("meters successfully created", "count", len(conf.Meters))
-
 	var group run.Group
 
 	// Set up telemetry server

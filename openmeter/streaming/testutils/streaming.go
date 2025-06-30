@@ -78,18 +78,6 @@ func (m *MockStreamingConnector) ListEventsV2(ctx context.Context, params metere
 	return []streaming.RawEvent{}, nil
 }
 
-func (m *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
-func (m *MockStreamingConnector) UpdateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
-func (m *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
 // Returns the result query set for the given params. If the query set is not found,
 // it will try to approximate the result by aggregating the simple events
 func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, mm meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
