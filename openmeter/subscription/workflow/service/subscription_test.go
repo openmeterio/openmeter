@@ -655,7 +655,7 @@ func TestEditingWithTiming(t *testing.T) {
 						ItemKey:  item_key,
 					},
 				}, subscription.Timing{
-					Custom: lo.ToPtr(clock.Now().Add(time.Hour)),
+					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 				})
 				require.NoError(t, err)
 			},

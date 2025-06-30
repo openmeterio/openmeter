@@ -2713,7 +2713,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 					End:   s.mustParseTime("2024-01-31T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-31T00:00:00Z")}),
 		},
 	})
 }
