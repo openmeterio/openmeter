@@ -251,7 +251,6 @@ func NewSubscriptionView(
 	spec := SubscriptionSpec{
 		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{
 			Plan:            sub.PlanRef,
-			Alignment:       sub.Alignment,
 			BillingCadence:  sub.BillingCadence,
 			ProRatingConfig: sub.ProRatingConfig,
 		},

@@ -575,27 +575,6 @@ func TestPlanService(t *testing.T) {
 				assert.Equalf(t, productcatalog.PlanStatusDraft, planV2.Status(),
 					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, planV2.Status())
 
-				// Let's update the plan to enforce alignment
-				t.Run("Update to enforce alignment", func(t *testing.T) {
-					updateInput := plan.UpdatePlanInput{
-						AlignmentUpdate: productcatalog.AlignmentUpdate{
-							BillablesMustAlign: lo.ToPtr(true),
-						},
-						NamespacedID: planV2.NamespacedID,
-					}
-
-					_, err = env.Plan.UpdatePlan(ctx, updateInput)
-					require.NoError(t, err)
-
-					// Get the updated plan
-					updatedPlanV2, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
-						NamespacedID: planV2.NamespacedID,
-					})
-					require.NoError(t, err)
-
-					assert.Equal(t, true, updatedPlanV2.Alignment.BillablesMustAlign)
-				})
-
 				t.Run("Should not allow publishing draft plan with alignment issues", func(t *testing.T) {
 					// Let's update the plan to have a misaligned phase
 					oldPhases := lo.Map(planV2.Phases, func(p plan.Phase, idx int) productcatalog.Phase {

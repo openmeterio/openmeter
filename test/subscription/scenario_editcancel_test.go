@@ -59,9 +59,6 @@ func TestEditingAndCanceling(t *testing.T) {
 				Key:            "test_plan",
 				Currency:       "USD",
 				BillingCadence: isodate.MustParse(t, "P1M"),
-				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: true,
-				},
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,

@@ -31,7 +31,6 @@ import (
 
 type CreateSubscriptionPlanInput struct {
 	Plan *PlanRef `json:"plan"`
-	productcatalog.Alignment
 
 	// BillingCadence is the default billing cadence for subscriptions.
 	BillingCadence isodate.Period `json:"billing_cadence"`
@@ -64,7 +63,6 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		NamespacedModel: models.NamespacedModel{
 			Namespace: ns,
 		},
-		Alignment:       s.Alignment,
 		Plan:            s.Plan,
 		CustomerId:      s.CustomerId,
 		Currency:        s.Currency,
@@ -204,10 +202,6 @@ func (s *SubscriptionSpec) HasMeteredBillables() bool {
 func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.ClosedPeriod, error) {
 	var def timeutil.ClosedPeriod
 
-	if !s.Alignment.BillablesMustAlign {
-		return def, AlignmentError{Inner: fmt.Errorf("non-aligned subscription doesn't have recurring billing cadence")}
-	}
-
 	// Let's be defensive just in case
 	if s.BillingCadence.IsZero() {
 		return def, fmt.Errorf("subscription has no billing cadence")
@@ -334,7 +328,7 @@ func (s *SubscriptionSpec) Validate() error {
 			continue
 		}
 
-		if err := phase.Validate(cadence, s.Alignment); err != nil {
+		if err := phase.Validate(cadence); err != nil {
 			errs = append(errs, fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err))
 		}
 	}
@@ -343,10 +337,6 @@ func (s *SubscriptionSpec) Validate() error {
 }
 
 func (s *SubscriptionSpec) ValidateAlignment() error {
-	if !s.Alignment.BillablesMustAlign {
-		return nil
-	}
-
 	var errs []error
 
 	for _, phase := range s.GetSortedPhases() {
@@ -494,7 +484,6 @@ func (s SubscriptionPhaseSpec) SyncAnnotations() error {
 
 func (s SubscriptionPhaseSpec) Validate(
 	phaseCadence models.CadencedModel,
-	alignment productcatalog.Alignment,
 ) error {
 	var errs []error
 
@@ -845,7 +834,6 @@ type ToScheduleSubscriptionEntitlementInputOptions struct {
 	Cadence              models.CadencedModel
 	PhaseStart           time.Time
 	AlignedBillingAnchor time.Time
-	IsAligned            bool
 }
 
 func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
@@ -898,17 +886,12 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 			return def, true, fmt.Errorf("failed to get metered entitlement template: %w", err)
 		}
 
-		truncatedAnchorTime := opts.Cadence.ActiveFrom.Truncate(time.Minute)
-		truncatedMeasureUsageFrom := truncatedAnchorTime
-
-		if opts.IsAligned {
-			if opts.AlignedBillingAnchor.IsZero() {
-				return def, true, fmt.Errorf("aligned billing anchor shouldn't be zero")
-			}
-
-			truncatedAnchorTime = opts.AlignedBillingAnchor.Truncate(time.Minute)
-			truncatedMeasureUsageFrom = opts.PhaseStart.Truncate(time.Minute)
+		if opts.AlignedBillingAnchor.IsZero() {
+			return def, true, fmt.Errorf("aligned billing anchor shouldn't be zero")
 		}
+
+		truncatedAnchorTime := opts.AlignedBillingAnchor.Truncate(time.Minute)
+		truncatedMeasureUsageFrom := opts.PhaseStart.Truncate(time.Minute)
 
 		scheduleInput.Metadata = tpl.Metadata
 		scheduleInput.IsSoftLimit = &tpl.IsSoftLimit

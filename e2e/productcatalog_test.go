@@ -416,14 +416,13 @@ func TestPlan(t *testing.T) {
 
 		assert.Equal(t, 400, apiRes.StatusCode(), "should return 400, received the following body: %s", apiRes.Body)
 
-		// Now let's update the plan to remove the alignment requirement
+		// Now let's update the plan to fix the alignment issue
+		misalignedCreate.Phases[0].RateCards = []api.RateCard{maP1RC2}
+
 		updateRes, err := client.UpdatePlanWithResponse(ctx, plan.Id, api.UpdatePlanJSONRequestBody{
 			Name:           plan.Name,
 			BillingCadence: "P1M",
-			Alignment: &api.Alignment{
-				BillablesMustAlign: lo.ToPtr(false),
-			},
-			Phases: plan.Phases,
+			Phases:         misalignedCreate.Phases,
 		})
 		require.Nil(t, err)
 

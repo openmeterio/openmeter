@@ -1795,7 +1795,6 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "key", Type: field.TypeString},
-		{Name: "billables_must_align", Type: field.TypeBool, Default: false},
 		{Name: "version", Type: field.TypeInt},
 		{Name: "currency", Type: field.TypeString, Default: "USD"},
 		{Name: "billing_cadence", Type: field.TypeString},
@@ -1832,7 +1831,7 @@ var (
 			{
 				Name:    "plan_namespace_key_version",
 				Unique:  true,
-				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[10]},
+				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[9]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -2103,7 +2102,6 @@ var (
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "active_from", Type: field.TypeTime},
 		{Name: "active_to", Type: field.TypeTime, Nullable: true},
-		{Name: "billables_must_align", Type: field.TypeBool, Default: false},
 		{Name: "name", Type: field.TypeString, Default: "Subscription"},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, Size: 3},
@@ -2121,13 +2119,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscriptions_customers_subscription",
-				Columns:    []*schema.Column{SubscriptionsColumns[15]},
+				Columns:    []*schema.Column{SubscriptionsColumns[14]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "subscriptions_plans_subscriptions",
-				Columns:    []*schema.Column{SubscriptionsColumns[16]},
+				Columns:    []*schema.Column{SubscriptionsColumns[15]},
 				RefColumns: []*schema.Column{PlansColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -2151,7 +2149,7 @@ var (
 			{
 				Name:    "subscription_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[15]},
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[14]},
 			},
 		},
 	}

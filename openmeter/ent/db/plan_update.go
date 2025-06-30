@@ -105,20 +105,6 @@ func (_u *PlanUpdate) ClearDescription() *PlanUpdate {
 	return _u
 }
 
-// SetBillablesMustAlign sets the "billables_must_align" field.
-func (_u *PlanUpdate) SetBillablesMustAlign(v bool) *PlanUpdate {
-	_u.mutation.SetBillablesMustAlign(v)
-	return _u
-}
-
-// SetNillableBillablesMustAlign sets the "billables_must_align" field if the given value is not nil.
-func (_u *PlanUpdate) SetNillableBillablesMustAlign(v *bool) *PlanUpdate {
-	if v != nil {
-		_u.SetBillablesMustAlign(*v)
-	}
-	return _u
-}
-
 // SetVersion sets the "version" field.
 func (_u *PlanUpdate) SetVersion(v int) *PlanUpdate {
 	_u.mutation.ResetVersion()
@@ -408,9 +394,6 @@ func (_u *PlanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(plan.FieldDescription, field.TypeString)
 	}
-	if value, ok := _u.mutation.BillablesMustAlign(); ok {
-		_spec.SetField(plan.FieldBillablesMustAlign, field.TypeBool, value)
-	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(plan.FieldVersion, field.TypeInt, value)
 	}
@@ -663,20 +646,6 @@ func (_u *PlanUpdateOne) SetNillableDescription(v *string) *PlanUpdateOne {
 // ClearDescription clears the value of the "description" field.
 func (_u *PlanUpdateOne) ClearDescription() *PlanUpdateOne {
 	_u.mutation.ClearDescription()
-	return _u
-}
-
-// SetBillablesMustAlign sets the "billables_must_align" field.
-func (_u *PlanUpdateOne) SetBillablesMustAlign(v bool) *PlanUpdateOne {
-	_u.mutation.SetBillablesMustAlign(v)
-	return _u
-}
-
-// SetNillableBillablesMustAlign sets the "billables_must_align" field if the given value is not nil.
-func (_u *PlanUpdateOne) SetNillableBillablesMustAlign(v *bool) *PlanUpdateOne {
-	if v != nil {
-		_u.SetBillablesMustAlign(*v)
-	}
 	return _u
 }
 
@@ -998,9 +967,6 @@ func (_u *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) {
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(plan.FieldDescription, field.TypeString)
-	}
-	if value, ok := _u.mutation.BillablesMustAlign(); ok {
-		_spec.SetField(plan.FieldBillablesMustAlign, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(plan.FieldVersion, field.TypeInt, value)

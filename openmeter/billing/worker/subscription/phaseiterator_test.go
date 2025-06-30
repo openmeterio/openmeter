@@ -82,9 +82,6 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			end:                   s.mustParseTime("2021-01-01T00:00:00Z"),
 			expected:              []expectedIterations{},
 		},
-		//
-		// Non-Aligned Subscription Tests
-		//
 		{
 			name: "sanity",
 			items: []subscriptionItemViewMock{
@@ -93,7 +90,8 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Cadence: "P1D",
 				},
 			},
-			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedBillingCadence: isodate.MustParse(s.T(), "P1D"),
 			expected: []expectedIterations{
 				{
 					ServicePeriod: billing.Period{
@@ -139,7 +137,8 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Type: NoPriceType,
 				},
 			},
-			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedBillingCadence: isodate.MustParse(s.T(), "P1D"),
 			expected: []expectedIterations{
 				{
 					ServicePeriod: billing.Period{
@@ -181,7 +180,8 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Cadence: "P1D",
 				},
 			},
-			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedBillingCadence: isodate.MustParse(s.T(), "P1D"),
 			expected: []expectedIterations{
 				{
 					ServicePeriod: billing.Period{
@@ -228,7 +228,8 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Cadence: "P2D",
 				},
 			},
-			end: s.mustParseTime("2021-01-04T00:00:00Z"),
+			end:                   s.mustParseTime("2021-01-04T00:00:00Z"),
+			alignedBillingCadence: isodate.MustParse(s.T(), "P1D"),
 			expected: []expectedIterations{
 				// 1d cadence
 				{
@@ -288,24 +289,9 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					},
 					BillingPeriod: billing.Period{
 						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key-2d/v[0]/period[0]",
-				},
-				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-05T00:00:00Z"),
-					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-05T00:00:00Z"),
-					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-05T00:00:00Z"),
-					},
-					Key: "subID/phase-test/item-key-2d/v[0]/period[1]",
 				},
 			},
 		},
@@ -324,7 +310,8 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 				},
 			},
-			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedBillingCadence: isodate.MustParse(s.T(), "P1D"),
+			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
 					ServicePeriod: billing.Period{
@@ -372,7 +359,8 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
 				},
 			},
-			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedBillingCadence: isodate.MustParse(s.T(), "P1D"),
+			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
 					ServicePeriod: billing.Period{
@@ -407,15 +395,15 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					ServicePeriod: billing.Period{
 						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T20:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T20:00:00Z"),
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T20:00:00Z"),
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[1]/period[0]",
 				},
@@ -451,7 +439,8 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Type:       productcatalog.UnitPriceType,
 				},
 			},
-			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedBillingCadence: isodate.MustParse(s.T(), "P1D"),
+			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
 					ServicePeriod: billing.Period{
@@ -488,16 +477,15 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					ServicePeriod: billing.Period{
 						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T20:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
-					// We only truncate the service period to the meter resolution
 					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:04Z"),
-						End:   s.mustParseTime("2021-01-03T20:00:04Z"),
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:04Z"),
-						End:   s.mustParseTime("2021-01-03T20:00:04Z"),
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					Key: "subID/phase-test/item-key/v[3]/period[0]",
 				},
@@ -512,7 +500,8 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Type:    productcatalog.FlatPriceType,
 				},
 			},
-			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedBillingCadence: isodate.MustParse(s.T(), "P1D"),
+			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
 					ServicePeriod: billing.Period{
@@ -570,8 +559,9 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Type: productcatalog.FlatPriceType,
 				},
 			},
-			end: s.mustParseTime("2021-01-03T00:00:00Z"),
-			// If PhaseEnd is defined, we that should be the end of the periods for the one-time item
+			alignedBillingCadence: isodate.MustParse(s.T(), "P1M"),
+			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
+			// If PhaseEnd is defined, and before the otherwise end of the billing cadence, that should be the end of the periods for the one-time item
 			phaseEnd: lo.ToPtr(s.mustParseTime("2021-01-05T00:00:00Z")),
 			expected: []expectedIterations{
 				{
@@ -591,89 +581,6 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 		},
-		{
-			name: "flat-fee recurring, edited",
-			items: []subscriptionItemViewMock{
-				{
-					Key:      "item-key",
-					Type:     productcatalog.FlatPriceType,
-					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
-				},
-				{
-					Key:        "item-key",
-					Type:       productcatalog.FlatPriceType,
-					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
-				},
-			},
-			end: s.mustParseTime("2021-01-03T00:00:00Z"),
-			expected: []expectedIterations{
-				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
-					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
-					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-01T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T00:00:00Z"),
-					},
-					Key: "subID/phase-test/item-key/v[0]/period[0]",
-				},
-				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T20:00:00Z"),
-					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
-					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
-					},
-					Key: "subID/phase-test/item-key/v[0]/period[1]",
-				},
-				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T20:00:00Z"),
-					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T20:00:00Z"),
-					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-03T20:00:00Z"),
-					},
-					Key: "subID/phase-test/item-key/v[1]/period[0]",
-				},
-				{
-					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T20:00:00Z"),
-					},
-					FullServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T20:00:00Z"),
-					},
-					BillingPeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-03T20:00:00Z"),
-						End:   s.mustParseTime("2021-01-04T20:00:00Z"),
-					},
-					Key: "subID/phase-test/item-key/v[1]/period[1]",
-				},
-			},
-		},
-		//
-		// Aligned Subscription Tests
-		//
 		{
 			name: "aligned in-advance and in-arrears recurring when billing cadence is same as service cadence",
 			items: []subscriptionItemViewMock{
@@ -1301,8 +1208,6 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			}
 
 			if !tc.alignedBillingCadence.IsZero() {
-				subs.Subscription.BillablesMustAlign = true
-				subs.Spec.BillablesMustAlign = true
 				subs.Spec.BillingCadence = tc.alignedBillingCadence
 				subs.Subscription.BillingCadence = tc.alignedBillingCadence
 				anchorTime, ok := tc.billingAnchorRelativeToSubscriptionStart.AddTo(subscriptionStart)

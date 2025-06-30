@@ -7,7 +7,6 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
-	"entgo.io/ent/schema/mixin"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -21,7 +20,6 @@ type Plan struct {
 func (Plan) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.UniqueResourceMixin{},
-		AlignmentMixin{},
 	}
 }
 
@@ -199,14 +197,3 @@ var (
 	DiscountsValueScanner           = entutils.JSONStringValueScanner[*productcatalog.Discounts]()
 	ProRatingConfigValueScanner     = entutils.JSONStringValueScanner[productcatalog.ProRatingConfig]()
 )
-
-// AlignmentMixin for Alignment config
-type AlignmentMixin struct {
-	mixin.Schema
-}
-
-func (AlignmentMixin) Fields() []ent.Field {
-	return []ent.Field{
-		field.Bool("billables_must_align").Default(false),
-	}
-}

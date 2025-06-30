@@ -4,16 +4,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
-type Alignment struct {
-	// BillablesMustAlign indicates whether all billable items in a given phase must share the same BillingPeriodDuration.
-	BillablesMustAlign bool `json:"billablesMustAlign"`
-}
-
-// AlignmentUpdate is used for the nil-ish comparison of the plan service only
-type AlignmentUpdate struct {
-	BillablesMustAlign *bool `json:"billablesMustAlign,omitempty"`
-}
-
 // Alignment means that either
 // - the two cadences are identical
 // - if a RateCard's cadence is "longer" than the Plan's cadence, the plan cadence must "divide" without remainder the ratecard's cadence
