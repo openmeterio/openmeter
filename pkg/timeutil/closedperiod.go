@@ -1,6 +1,7 @@
 package timeutil
 
 import (
+	"errors"
 	"time"
 )
 
@@ -88,4 +89,35 @@ func (p ClosedPeriod) Open() OpenPeriod {
 		From: &p.From,
 		To:   &p.To,
 	}
+}
+
+func (p ClosedPeriod) Validate() error {
+	if p.From.IsZero() {
+		return errors.New("from is required")
+	}
+
+	if p.To.IsZero() {
+		return errors.New("to is required")
+	}
+
+	if p.From.After(p.To) {
+		return errors.New("from must be before to")
+	}
+
+	return nil
+}
+
+func (p ClosedPeriod) Truncate(resolution time.Duration) ClosedPeriod {
+	return ClosedPeriod{
+		From: p.From.Truncate(resolution),
+		To:   p.To.Truncate(resolution),
+	}
+}
+
+func (p ClosedPeriod) Equal(other ClosedPeriod) bool {
+	return p.From.Equal(other.From) && p.To.Equal(other.To)
+}
+
+func (p ClosedPeriod) IsEmpty() bool {
+	return p.From.Equal(p.To)
 }

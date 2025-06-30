@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type SplitLineGroupMutableFields struct {
@@ -18,7 +19,7 @@ type SplitLineGroupMutableFields struct {
 	Description *string         `json:"description,omitempty"`
 	Metadata    models.Metadata `json:"metadata,omitempty"`
 
-	ServicePeriod Period `json:"period"`
+	ServicePeriod timeutil.ClosedPeriod `json:"period"`
 
 	RatecardDiscounts Discounts                 `json:"ratecardDiscounts"`
 	TaxConfig         *productcatalog.TaxConfig `json:"taxConfig,omitempty"`
@@ -239,7 +240,7 @@ type ForEachChildInput struct {
 func (h *SplitLineHierarchy) ForEachChild(in ForEachChildInput) error {
 	for _, child := range h.Lines {
 		// The line is not in scope
-		if !in.PeriodEndLTE.IsZero() && child.Line.Period.End.After(in.PeriodEndLTE) {
+		if !in.PeriodEndLTE.IsZero() && child.Line.Period.To.After(in.PeriodEndLTE) {
 			continue
 		}
 
