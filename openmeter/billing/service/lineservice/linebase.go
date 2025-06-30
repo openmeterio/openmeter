@@ -106,15 +106,18 @@ func (l lineBase) Validate(ctx context.Context, invoice *billing.Invoice) error 
 		}
 	}
 
+	// Expanding the split lines are mandatory for the lineservice to work properly.
+	if l.line.SplitLineGroupID != nil && l.line.SplitLineHierarchy == nil {
+		return billing.ValidationError{
+			Err: fmt.Errorf("split line group[%s] has no hierarchy expanded hierarchy", *l.line.SplitLineGroupID),
+		}
+	}
+
 	return nil
 }
 
 func (l lineBase) IsLastInPeriod() bool {
 	if l.line.SplitLineGroupID == nil {
-		return true
-	}
-
-	if l.line.SplitLineHierarchy == nil {
 		return true
 	}
 
@@ -127,10 +130,6 @@ func (l lineBase) IsLastInPeriod() bool {
 
 func (l lineBase) IsFirstInPeriod() bool {
 	if l.line.SplitLineGroupID == nil {
-		return true
-	}
-
-	if l.line.SplitLineHierarchy == nil {
 		return true
 	}
 
