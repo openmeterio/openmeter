@@ -49,7 +49,7 @@ func (m Migrator) Migrate(ctx context.Context) error {
 			return fmt.Errorf("failed to migrate db: %w", err)
 		}
 	case config.AutoMigrateMigration:
-		if err := migrate.Up(m.Config.URL); err != nil {
+		if err := migrate.Up(m.Config.AsURL()); err != nil {
 			return fmt.Errorf("failed to migrate db: %w", err)
 		}
 	}
@@ -69,7 +69,7 @@ func NewPostgresDriver(
 ) (*pgdriver.Driver, func(), error) {
 	driver, err := pgdriver.NewPostgresDriver(
 		ctx,
-		conf.URL,
+		conf.AsURL(),
 		pgdriver.WithMetricMeter(meter),
 		pgdriver.WithTracerProvider(tracerProvider),
 		pgdriver.WithMeterProvider(meterProvider),
