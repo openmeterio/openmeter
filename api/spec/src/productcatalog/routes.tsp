@@ -421,7 +421,7 @@ interface Subscriptions {
   create(@body body: SubscriptionCreate): {
     @statusCode _: 201;
     @body body: Subscription;
-  } | OpenMeter.ConflictError | OpenMeter.CommonErrors;
+  } | OpenMeter.ConflictError | CommonErrors;
 
   /**
    * Batch processing commands for manipulating running subscriptions.
@@ -441,7 +441,7 @@ interface Subscriptions {
     | Subscription
     | OpenMeter.ConflictError
     | OpenMeter.NotFoundError
-    | OpenMeter.CommonErrors;
+    | CommonErrors;
 
   /**
    * Closes a running subscription and starts a new one according to the specification.
@@ -460,7 +460,7 @@ interface Subscriptions {
     | SubscriptionChangeResponseBody
     | OpenMeter.ConflictError
     | OpenMeter.NotFoundError
-    | OpenMeter.CommonErrors;
+    | CommonErrors;
 
   /**
    * Migrates the subscripiton to the provided version of the current plan.
@@ -503,7 +503,7 @@ interface Subscriptions {
     | SubscriptionChangeResponseBody
     | OpenMeter.ConflictError
     | OpenMeter.NotFoundError
-    | OpenMeter.CommonErrors;
+    | CommonErrors;
 
   /**
    * Restores a canceled subscription.
@@ -537,7 +537,7 @@ interface Subscriptions {
     | Subscription
     | OpenMeter.ConflictError
     | OpenMeter.NotFoundError
-    | OpenMeter.CommonErrors;
+    | CommonErrors;
 
   /**
    * Cancels the scheduled cancelation.
@@ -550,7 +550,7 @@ interface Subscriptions {
     | Subscription
     | OpenMeter.ConflictError
     | OpenMeter.NotFoundError
-    | OpenMeter.CommonErrors;
+    | CommonErrors;
 
   /**
    * Deletes a subscription. Only scheduled subscriptions can be deleted.
@@ -561,7 +561,7 @@ interface Subscriptions {
   @route("/{subscriptionId}")
   delete(@path subscriptionId: ULID): {
     @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  } | OpenMeter.NotFoundError | CommonErrors;
 }
 
 @route("/api/v1/subscriptions/{subscriptionId}/addons")

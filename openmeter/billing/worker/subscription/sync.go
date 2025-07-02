@@ -408,7 +408,7 @@ func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.Su
 			if err != nil {
 				// Due to logic constraints, we cannot generate these lines before the subscription actually starts
 				switch {
-				case subscription.IsBillingPeriodQueriedBeforeSubscriptionStartError(err):
+				case subscription.IsValidationIssueWithCode(err, subscription.ErrCodeSubscriptionBillingPeriodQueriedBeforeSubscriptionStart):
 					h.logger.InfoContext(ctx, "asOf is before subscription start, advancing generation time to subscription start", "subscription_id", subs.Subscription.ID, "as_of", asOf, "subscription_start", subs.Spec.ActiveFrom)
 
 					// We advance until subscription start to generate the first set of lines (if later we cancel or stg else, sync will handle that)

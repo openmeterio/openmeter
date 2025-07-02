@@ -653,6 +653,110 @@ func TestPlan(t *testing.T) {
 
 		// TODO: test all patches
 
+		t.Run("Should return nice validation error for alignment issue", func(t *testing.T) {
+			o1 := api.SubscriptionEditOperation{}
+			err := o1.FromEditSubscriptionAddPhase(api.EditSubscriptionAddPhase{
+				Op: "add_phase",
+				Phase: api.SubscriptionPhaseCreate{
+					Key:        "test_plan_phase_3",
+					Name:       "Test Plan Phase 3",
+					StartAfter: lo.ToPtr("P5M"),
+				},
+			})
+			require.Nil(t, err)
+
+			rc := api.RateCard{}
+			err = rc.FromRateCardFlatFee(api.RateCardFlatFee{
+				Key:            "test_plan_phase_3_rate_card_1",
+				Name:           "Test Plan Phase 3 Rate Card 1",
+				BillingCadence: lo.ToPtr("P1W"),
+				Price: &api.FlatPriceWithPaymentTerm{
+					Amount:      "1000",
+					PaymentTerm: lo.ToPtr(api.PricePaymentTerm("in_advance")),
+					Type:        api.FlatPriceWithPaymentTermType("flat"),
+				},
+			})
+			require.Nil(t, err)
+
+			o2 := api.SubscriptionEditOperation{}
+			err = o2.FromEditSubscriptionAddItem(api.EditSubscriptionAddItem{
+				Op:       "add_item",
+				PhaseKey: "test_plan_phase_3",
+				RateCard: rc,
+			})
+			require.Nil(t, err)
+
+			apiRes, err := client.EditSubscriptionWithResponse(ctx, subscriptionId, api.EditSubscriptionJSONRequestBody{
+				Customizations: []api.SubscriptionEditOperation{o1, o2},
+			})
+			require.Nil(t, err)
+
+			require.Equal(t, 400, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors)
+			require.Len(t, *apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors, 1, "received the following body: %s", apiRes.Body)
+
+			valErr := (*apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors)[0]
+			require.NotNil(t, valErr)
+			require.Equal(t, "rate_card_billing_cadence_unaligned", valErr.Code, "received the following body: %s", apiRes.Body)
+		})
+
+		t.Run("Should return nice validation error for RateCard issue", func(t *testing.T) {
+			o1 := api.SubscriptionEditOperation{}
+			err := o1.FromEditSubscriptionAddPhase(api.EditSubscriptionAddPhase{
+				Op: "add_phase",
+				Phase: api.SubscriptionPhaseCreate{
+					Key:        "test_plan_phase_3",
+					Name:       "Test Plan Phase 3",
+					StartAfter: lo.ToPtr("P5M"),
+				},
+			})
+			require.Nil(t, err)
+
+			rc := api.RateCard{}
+			err = rc.FromRateCardFlatFee(api.RateCardFlatFee{
+				Key:            PlanFeatureKey,
+				Name:           "Test Plan Phase 3 Rate Card 1",
+				BillingCadence: lo.ToPtr("P1M"),
+				FeatureKey:     lo.ToPtr(PlanFeatureKey),
+				Price: &api.FlatPriceWithPaymentTerm{
+					Amount:      "1000",
+					PaymentTerm: lo.ToPtr(api.PricePaymentTerm("in_advance")),
+					Type:        api.FlatPriceWithPaymentTermType("flat"),
+				},
+				EntitlementTemplate: func() *api.RateCardEntitlement {
+					et := api.RateCardEntitlement{}
+					require.NoError(t, et.FromRateCardMeteredEntitlement(api.RateCardMeteredEntitlement{
+						IssueAfterResetPriority: lo.ToPtr(uint8(10)),
+					}))
+					return &et
+				}(),
+			})
+			require.Nil(t, err)
+
+			o2 := api.SubscriptionEditOperation{}
+			err = o2.FromEditSubscriptionAddItem(api.EditSubscriptionAddItem{
+				Op:       "add_item",
+				PhaseKey: "test_plan_phase_3",
+				RateCard: rc,
+			})
+			require.Nil(t, err)
+
+			apiRes, err := client.EditSubscriptionWithResponse(ctx, subscriptionId, api.EditSubscriptionJSONRequestBody{
+				Customizations: []api.SubscriptionEditOperation{o1, o2},
+			})
+			require.Nil(t, err)
+
+			require.Equal(t, 400, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions, "received the following body: %s", apiRes.Body)
+			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors, "received the following body: %s", apiRes.Body)
+			require.Len(t, *apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors, 1, "received the following body: %s", apiRes.Body)
+
+			valErr := (*apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors)[0]
+			require.NotNil(t, valErr)
+			require.Equal(t, "entitlement_template_invalid_issue_after_reset_with_priority", valErr.Code, "received the following body: %s", apiRes.Body)
+			require.Equal(t, "$.phases[?(@.key=='test_plan_phase_3')].items.plan_feature_1.entitlementTemplate.issueAfterReset", valErr.Field, "received the following body: %s", apiRes.Body)
+		})
+
 		apiRes, err := client.EditSubscriptionWithResponse(ctx, subscriptionId, api.EditSubscriptionJSONRequestBody{
 			Customizations: []api.SubscriptionEditOperation{o1, o2},
 		})

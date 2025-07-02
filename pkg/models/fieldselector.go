@@ -13,12 +13,12 @@ type FieldExpression interface {
 	IsCondition() bool
 }
 
-var _ FieldExpression = (*FieldAttrValue)(nil)
-
 type FieldAttrValue struct {
 	field string
 	value any
 }
+
+var _ FieldExpression = (*FieldAttrValue)(nil)
 
 func (f FieldAttrValue) IsCondition() bool {
 	return true
@@ -60,7 +60,27 @@ func NewFieldAttrValue(field string, value any) FieldAttrValue {
 	return FieldAttrValue{field: field, value: value}
 }
 
-var _ FieldExpression = (*FieldAttrValue)(nil)
+type FieldArrIndex struct {
+	index int
+}
+
+var _ FieldExpression = (*FieldArrIndex)(nil)
+
+func (f FieldArrIndex) IsCondition() bool {
+	return false
+}
+
+func (f FieldArrIndex) String() string {
+	return fmt.Sprintf("%d", f.index)
+}
+
+func (f FieldArrIndex) JSONPathExpression() string {
+	return fmt.Sprintf("%d", f.index)
+}
+
+func NewFieldArrIndex(index int) FieldArrIndex {
+	return FieldArrIndex{index: index}
+}
 
 type MultiFieldAttrValue struct {
 	values []FieldAttrValue

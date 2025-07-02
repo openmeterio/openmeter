@@ -88,7 +88,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 		}
 
 		if err := spec.ValidateAlignment(); err != nil {
-			return def, models.NewGenericValidationError(fmt.Errorf("billing cadences are not aligned: %w", err))
+			return def, err
 		}
 
 		// Finally, let's create the subscription
@@ -152,7 +152,7 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 		// Let's validate the patches
 		for i, p := range customizations {
 			if err := p.Validate(); err != nil {
-				return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("invalid patch at index %d: %s", i, err.Error()))
+				return subscription.SubscriptionView{}, models.ErrorWithComponent(models.ComponentName(fmt.Sprintf("patch[%d]", i)), err)
 			}
 		}
 
@@ -177,7 +177,7 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 		}
 
 		if err := spec.ValidateAlignment(); err != nil {
-			return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("billing cadences are not aligned: %w", err))
+			return subscription.SubscriptionView{}, err
 		}
 
 		sub, err := s.Service.Update(ctx, subscriptionID, spec)

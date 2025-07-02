@@ -2,7 +2,10 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"net/http"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -10,11 +13,35 @@ import (
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/entitlement"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func errorEncoder() encoder.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
+		issues, err := models.AsValidationIssues(err)
+		if err == nil && len(issues) > 0 {
+			// Let's map the FieldSelectors to the public schema
+			mappedIssues, err := slicesx.MapWithErr(issues, func(issue models.ValidationIssue) (models.ValidationIssue, error) {
+				return subscription.MapSubscriptionSpecValidationIssueFieldSelectors(issue)
+			})
+			if err != nil {
+				return false // Server dies if mapping fails
+			}
+
+			// And let's respond with an error
+			problem := models.NewStatusProblem(ctx, errors.New("validation error"), http.StatusBadRequest)
+			problem.Extensions = map[string]interface{}{
+				"validationErrors": lo.Map(mappedIssues, func(issue models.ValidationIssue, _ int) map[string]interface{} {
+					return issue.AsErrorExtension()
+				}),
+			}
+
+			problem.Respond(w)
+			return true
+		}
+
 		// Generic errors
 		return commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w) ||
 			// Subscription errors

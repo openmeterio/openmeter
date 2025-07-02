@@ -38,6 +38,15 @@ func TestFieldSelector(t *testing.T) {
 			expectedJSONPath: `test[?(@.key=='value')]`,
 		},
 		{
+			name: "with array index",
+			selector: NewFieldSelector("test").
+				WithExpression(
+					NewFieldArrIndex(1),
+				),
+			expectedString:   `test[1]`,
+			expectedJSONPath: `test[1]`,
+		},
+		{
 			name: "with multiple attributes",
 			selector: NewFieldSelector("test").
 				WithExpression(NewMultiFieldAttrValue(
@@ -92,10 +101,12 @@ func TestFieldSelectors(t *testing.T) {
 							NewFieldAttrValue("key2", "value2"),
 						),
 					),
-				NewFieldSelector("test4"),
+				NewFieldSelector("test4").WithExpression(
+					NewFieldArrIndex(0),
+				),
 			),
-			expectedString:   `test1.test2[key=value].test3[key=value, key2=value2].test4`,
-			expectedJSONPath: `$.test1[*].test2[?(@.key=='value')].test3[?(@.key=='value' && @.key2=='value2')].test4`,
+			expectedString:   `test1.test2[key=value].test3[key=value, key2=value2].test4[0]`,
+			expectedJSONPath: `$.test1[*].test2[?(@.key=='value')].test3[?(@.key=='value' && @.key2=='value2')].test4[0]`,
 		},
 		{
 			name: "prefix",
