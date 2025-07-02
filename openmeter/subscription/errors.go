@@ -100,7 +100,7 @@ var ErrSubscriptionPhaseItemHistoryKeyMismatch = models.NewValidationIssue(
 	models.WithFieldString("itemsByKey"),
 )
 
-var ErrCodeSubscriptionPhaseItemKeyMismatchWithPhaseKey models.ErrorCode = "subscription_phase_item_key_mismatch_with_phase_key"
+const ErrCodeSubscriptionPhaseItemKeyMismatchWithPhaseKey models.ErrorCode = "subscription_phase_item_key_mismatch_with_phase_key"
 
 var ErrSubscriptionPhaseItemKeyMismatchWithPhaseKey = models.NewValidationIssue(
 	ErrCodeSubscriptionPhaseItemKeyMismatchWithPhaseKey,
