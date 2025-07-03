@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 
@@ -24,6 +25,15 @@ import (
 
 func TestComplete(t *testing.T) {
 	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
+
+	// Messes with vscode defaults
+	val, set := os.LookupEnv("POSTGRES_HOST")
+	os.Unsetenv("POSTGRES_HOST")
+	defer func() {
+		if set {
+			os.Setenv("POSTGRES_HOST", val)
+		}
+	}()
 
 	SetViperDefaults(v, flags)
 

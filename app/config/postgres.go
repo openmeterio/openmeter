@@ -55,7 +55,7 @@ func ConfigurePostgres(v *viper.Viper) {
 	v.SetDefault("postgres.autoMigrate", "ent")
 
 	v.SetDefault("postgres.options.poolMaxConns", 0)
-	v.SetDefault("postgres.options.applicationName", "openmeter")
+	v.SetDefault("postgres.options.applicationName", "")
 	v.SetDefault("postgres.host", "")
 	v.SetDefault("postgres.port", 0)
 	v.SetDefault("postgres.database", "")
