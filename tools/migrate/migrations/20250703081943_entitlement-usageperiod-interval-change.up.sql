@@ -8,4 +8,5 @@ FROM entitlements e
 WHERE usage_resets.entitlement_id = e.id;
 
 -- Now make the column NOT NULL
+-- atlas:nolint MF104
 ALTER TABLE "usage_resets" ALTER COLUMN "usage_period_interval" SET NOT NULL;
