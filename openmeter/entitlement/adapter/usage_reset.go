@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"context"
-	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -28,11 +27,15 @@ func NewPostgresUsageResetRepo(db *db.Client) *usageResetDBAdapter {
 	}
 }
 
-func (a *usageResetDBAdapter) Save(ctx context.Context, usageResetTime meteredentitlement.UsageResetTime) error {
+func (a *usageResetDBAdapter) Save(ctx context.Context, usageResetTime meteredentitlement.UsageResetUpdate) error {
 	_, err := entutils.TransactingRepo[interface{}, *usageResetDBAdapter](
 		ctx,
 		a,
 		func(ctx context.Context, repo *usageResetDBAdapter) (interface{}, error) {
+			if err := usageResetTime.Validate(); err != nil {
+				return nil, err
+			}
+
 			_, err := repo.db.UsageReset.Create().
 				SetEntitlementID(usageResetTime.EntitlementID).
 				SetNamespace(usageResetTime.Namespace).
@@ -44,17 +47,4 @@ func (a *usageResetDBAdapter) Save(ctx context.Context, usageResetTime metereden
 		},
 	)
 	return err
-}
-
-func mapUsageResetTime(res *db.UsageReset) (meteredentitlement.UsageResetTime, error) {
-	if res == nil {
-		return meteredentitlement.UsageResetTime{}, errors.New("usage reset is nil")
-	}
-
-	return meteredentitlement.UsageResetTime{
-		EntitlementID:       res.EntitlementID,
-		ResetTime:           res.ResetTime,
-		Anchor:              res.Anchor,
-		UsagePeriodInterval: res.UsagePeriodInterval,
-	}, nil
 }
