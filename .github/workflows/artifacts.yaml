@@ -26,8 +26,8 @@ permissions:
   contents: read
 
 jobs:
-  container-image:
-    name: Container image
+  openmeter-container-image:
+    name: Openmeter Container image
     runs-on: ubuntu-latest
 
     permissions:
@@ -88,6 +88,14 @@ jobs:
           push: ${{ inputs.publish }}
           save: true
           project: ${{ vars.DEPOT_PROJECT }}
+          sbom: true
+          sbom-dir: ./sbom-output
+
+      - name: Upload SBOM directory as artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: "[${{ github.job }}] SBOM"
+          path: ./sbom-output
 
       - name: Set image ref
         id: image-ref
@@ -186,6 +194,14 @@ jobs:
           push: ${{ inputs.publish }}
           save: true
           project: ${{ vars.DEPOT_PROJECT }}
+          sbom: true
+          sbom-dir: ./sbom-output
+
+      - name: Upload SBOM directory as artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: "[${{ github.job }}] SBOM"
+          path: ./sbom-output
 
       - name: Set image ref
         id: image-ref
