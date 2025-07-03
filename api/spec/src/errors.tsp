@@ -55,7 +55,7 @@ model Error {
   /**
    * Additional properties specific to the problem type may be present.
    */
-  ...Record<string | integer>;
+  ...Record<unknown>;
 }
 
 alias CommonErrors =
