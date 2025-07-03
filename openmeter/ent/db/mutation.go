@@ -52787,21 +52787,22 @@ func (m *SubscriptionPhaseMutation) ResetEdge(name string) error {
 // UsageResetMutation represents an operation that mutates the UsageReset nodes in the graph.
 type UsageResetMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *string
-	namespace          *string
-	created_at         *time.Time
-	updated_at         *time.Time
-	deleted_at         *time.Time
-	reset_time         *time.Time
-	anchor             *time.Time
-	clearedFields      map[string]struct{}
-	entitlement        *string
-	clearedentitlement bool
-	done               bool
-	oldValue           func(context.Context) (*UsageReset, error)
-	predicates         []predicate.UsageReset
+	op                    Op
+	typ                   string
+	id                    *string
+	namespace             *string
+	created_at            *time.Time
+	updated_at            *time.Time
+	deleted_at            *time.Time
+	reset_time            *time.Time
+	anchor                *time.Time
+	usage_period_interval *isodate.String
+	clearedFields         map[string]struct{}
+	entitlement           *string
+	clearedentitlement    bool
+	done                  bool
+	oldValue              func(context.Context) (*UsageReset, error)
+	predicates            []predicate.UsageReset
 }
 
 var _ ent.Mutation = (*UsageResetMutation)(nil)
@@ -53173,6 +53174,42 @@ func (m *UsageResetMutation) ResetAnchor() {
 	m.anchor = nil
 }
 
+// SetUsagePeriodInterval sets the "usage_period_interval" field.
+func (m *UsageResetMutation) SetUsagePeriodInterval(i isodate.String) {
+	m.usage_period_interval = &i
+}
+
+// UsagePeriodInterval returns the value of the "usage_period_interval" field in the mutation.
+func (m *UsageResetMutation) UsagePeriodInterval() (r isodate.String, exists bool) {
+	v := m.usage_period_interval
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUsagePeriodInterval returns the old "usage_period_interval" field's value of the UsageReset entity.
+// If the UsageReset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UsageResetMutation) OldUsagePeriodInterval(ctx context.Context) (v isodate.String, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUsagePeriodInterval is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUsagePeriodInterval requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUsagePeriodInterval: %w", err)
+	}
+	return oldValue.UsagePeriodInterval, nil
+}
+
+// ResetUsagePeriodInterval resets all changes to the "usage_period_interval" field.
+func (m *UsageResetMutation) ResetUsagePeriodInterval() {
+	m.usage_period_interval = nil
+}
+
 // ClearEntitlement clears the "entitlement" edge to the Entitlement entity.
 func (m *UsageResetMutation) ClearEntitlement() {
 	m.clearedentitlement = true
@@ -53234,7 +53271,7 @@ func (m *UsageResetMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UsageResetMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, usagereset.FieldNamespace)
 	}
@@ -53255,6 +53292,9 @@ func (m *UsageResetMutation) Fields() []string {
 	}
 	if m.anchor != nil {
 		fields = append(fields, usagereset.FieldAnchor)
+	}
+	if m.usage_period_interval != nil {
+		fields = append(fields, usagereset.FieldUsagePeriodInterval)
 	}
 	return fields
 }
@@ -53278,6 +53318,8 @@ func (m *UsageResetMutation) Field(name string) (ent.Value, bool) {
 		return m.ResetTime()
 	case usagereset.FieldAnchor:
 		return m.Anchor()
+	case usagereset.FieldUsagePeriodInterval:
+		return m.UsagePeriodInterval()
 	}
 	return nil, false
 }
@@ -53301,6 +53343,8 @@ func (m *UsageResetMutation) OldField(ctx context.Context, name string) (ent.Val
 		return m.OldResetTime(ctx)
 	case usagereset.FieldAnchor:
 		return m.OldAnchor(ctx)
+	case usagereset.FieldUsagePeriodInterval:
+		return m.OldUsagePeriodInterval(ctx)
 	}
 	return nil, fmt.Errorf("unknown UsageReset field %s", name)
 }
@@ -53358,6 +53402,13 @@ func (m *UsageResetMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAnchor(v)
+		return nil
+	case usagereset.FieldUsagePeriodInterval:
+		v, ok := value.(isodate.String)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUsagePeriodInterval(v)
 		return nil
 	}
 	return fmt.Errorf("unknown UsageReset field %s", name)
@@ -53437,6 +53488,9 @@ func (m *UsageResetMutation) ResetField(name string) error {
 		return nil
 	case usagereset.FieldAnchor:
 		m.ResetAnchor()
+		return nil
+	case usagereset.FieldUsagePeriodInterval:
+		m.ResetUsagePeriodInterval()
 		return nil
 	}
 	return fmt.Errorf("unknown UsageReset field %s", name)

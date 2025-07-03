@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // UsageReset is the model entity for the UsageReset schema.
@@ -32,6 +33,8 @@ type UsageReset struct {
 	ResetTime time.Time `json:"reset_time,omitempty"`
 	// Anchor holds the value of the "anchor" field.
 	Anchor time.Time `json:"anchor,omitempty"`
+	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
+	UsagePeriodInterval isodate.String `json:"usage_period_interval,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UsageResetQuery when eager-loading is set.
 	Edges        UsageResetEdges `json:"edges"`
@@ -63,7 +66,7 @@ func (*UsageReset) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case usagereset.FieldID, usagereset.FieldNamespace, usagereset.FieldEntitlementID:
+		case usagereset.FieldID, usagereset.FieldNamespace, usagereset.FieldEntitlementID, usagereset.FieldUsagePeriodInterval:
 			values[i] = new(sql.NullString)
 		case usagereset.FieldCreatedAt, usagereset.FieldUpdatedAt, usagereset.FieldDeletedAt, usagereset.FieldResetTime, usagereset.FieldAnchor:
 			values[i] = new(sql.NullTime)
@@ -131,6 +134,12 @@ func (_m *UsageReset) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Anchor = value.Time
 			}
+		case usagereset.FieldUsagePeriodInterval:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field usage_period_interval", values[i])
+			} else if value.Valid {
+				_m.UsagePeriodInterval = isodate.String(value.String)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -194,6 +203,9 @@ func (_m *UsageReset) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("anchor=")
 	builder.WriteString(_m.Anchor.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("usage_period_interval=")
+	builder.WriteString(fmt.Sprintf("%v", _m.UsagePeriodInterval))
 	builder.WriteByte(')')
 	return builder.String()
 }

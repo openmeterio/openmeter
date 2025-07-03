@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 type UsageReset struct {
@@ -29,6 +30,7 @@ func (UsageReset) Fields() []ent.Field {
 		}),
 		field.Time("reset_time").Immutable(),
 		field.Time("anchor").Immutable(),
+		field.String("usage_period_interval").GoType(isodate.String("")).Immutable(),
 	}
 }
 

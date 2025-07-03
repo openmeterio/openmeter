@@ -28,6 +28,8 @@ const (
 	FieldResetTime = "reset_time"
 	// FieldAnchor holds the string denoting the anchor field in the database.
 	FieldAnchor = "anchor"
+	// FieldUsagePeriodInterval holds the string denoting the usage_period_interval field in the database.
+	FieldUsagePeriodInterval = "usage_period_interval"
 	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
 	EdgeEntitlement = "entitlement"
 	// Table holds the table name of the usagereset in the database.
@@ -51,6 +53,7 @@ var Columns = []string{
 	FieldEntitlementID,
 	FieldResetTime,
 	FieldAnchor,
+	FieldUsagePeriodInterval,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -117,6 +120,11 @@ func ByResetTime(opts ...sql.OrderTermOption) OrderOption {
 // ByAnchor orders the results by the anchor field.
 func ByAnchor(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAnchor, opts...).ToFunc()
+}
+
+// ByUsagePeriodInterval orders the results by the usage_period_interval field.
+func ByUsagePeriodInterval(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUsagePeriodInterval, opts...).ToFunc()
 }
 
 // ByEntitlementField orders the results by entitlement field.
