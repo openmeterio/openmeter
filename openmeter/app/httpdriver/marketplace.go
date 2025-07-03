@@ -90,10 +90,14 @@ func (h *handler) GetMarketplaceListing() GetMarketplaceListingHandler {
 }
 
 type (
-	MarketplaceAppAPIKeyInstallRequest  = app.InstallAppWithAPIKeyInput
 	MarketplaceAppAPIKeyInstallResponse = api.MarketplaceInstallResponse
 	MarketplaceAppAPIKeyInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppAPIKeyInstallRequest, MarketplaceAppAPIKeyInstallResponse, api.AppType]
 )
+
+type MarketplaceAppAPIKeyInstallRequest struct {
+	app.InstallAppWithAPIKeyInput
+	CreateBillingProfile bool
+}
 
 // MarketplaceAppAPIKeyInstall returns a handler for installing an app type with an API key
 func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandler {
@@ -111,14 +115,16 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			}
 
 			req := MarketplaceAppAPIKeyInstallRequest{
-				InstallAppInput: app.InstallAppInput{
-					MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
-					Namespace:            namespace,
-					Name:                 lo.FromPtr(body.Name),
-					CreateBillingProfile: lo.FromPtrOr(body.CreateBillingProfile, true),
-				},
+				InstallAppWithAPIKeyInput: app.InstallAppWithAPIKeyInput{
+					InstallAppInput: app.InstallAppInput{
+						MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
+						Namespace:            namespace,
+						Name:                 lo.FromPtr(body.Name),
+					},
 
-				APIKey: body.ApiKey,
+					APIKey: body.ApiKey,
+				},
+				CreateBillingProfile: lo.FromPtrOr(body.CreateBillingProfile, true),
 			}
 
 			return req, nil
@@ -129,7 +135,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			}
 
 			// Install app
-			installedApp, err := h.service.InstallMarketplaceListingWithAPIKey(ctx, request)
+			installedApp, err := h.service.InstallMarketplaceListingWithAPIKey(ctx, request.InstallAppWithAPIKeyInput)
 			if err != nil {
 				return resp, err
 			}
@@ -163,10 +169,14 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 }
 
 type (
-	MarketplaceAppInstallRequest  = app.InstallAppInput
 	MarketplaceAppInstallResponse = api.MarketplaceInstallResponse
 	MarketplaceAppInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppInstallRequest, MarketplaceAppInstallResponse, api.AppType]
 )
+
+type MarketplaceAppInstallRequest struct {
+	app.InstallAppInput
+	CreateBillingProfile bool
+}
 
 // MarketplaceAppInstall returns a handler for installing an app type
 func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
@@ -184,9 +194,11 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 			}
 
 			req := MarketplaceAppInstallRequest{
-				MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
-				Namespace:            namespace,
-				Name:                 lo.FromPtr(body.Name),
+				InstallAppInput: app.InstallAppInput{
+					MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
+					Namespace:            namespace,
+					Name:                 lo.FromPtr(body.Name),
+				},
 				CreateBillingProfile: lo.FromPtrOr(body.CreateBillingProfile, true),
 			}
 
@@ -198,7 +210,7 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 			}
 
 			// Install app
-			installedApp, err := h.service.InstallMarketplaceListing(ctx, request)
+			installedApp, err := h.service.InstallMarketplaceListing(ctx, request.InstallAppInput)
 			if err != nil {
 				return resp, err
 			}
