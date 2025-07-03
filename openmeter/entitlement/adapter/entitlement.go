@@ -478,6 +478,8 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 				continue
 			}
 
+			parsed, _ := reset.UsagePeriodInterval.Parse()
+
 			inps = append(inps, timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
 				return reset.ResetTime.In(time.UTC)
 			})(timeutil.Recurrence{

@@ -13,8 +13,8 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
-	flatfeetoubpflatfeedb "github.com/openmeterio/openmeter/tools/migrate/testdata/billing/flatfeetoubpflatfee/db"
-	removesplitlinesdb "github.com/openmeterio/openmeter/tools/migrate/testdata/billing/removesplitlines/db"
+	v20250605102416 "github.com/openmeterio/openmeter/tools/migrate/testdata/sqlcgen/20250605102416/db"
+	v20250609172811 "github.com/openmeterio/openmeter/tools/migrate/testdata/sqlcgen/20250609172811/db"
 )
 
 func TestMigrateFlatFeesToUBPFlatFees(t *testing.T) {
@@ -23,7 +23,7 @@ func TestMigrateFlatFeesToUBPFlatFees(t *testing.T) {
 			version:   20250605102416,
 			direction: directionUp,
 			action: func(t *testing.T, db *sql.DB) {
-				loadFixture(t, db, "testdata/billing/flatfeetoubpflatfee/fixture.sql")
+				loadFixture(t, db, "testdata/sqlcgen/20250605102416/fixture.sql")
 			},
 		},
 		{
@@ -36,7 +36,7 @@ func TestMigrateFlatFeesToUBPFlatFees(t *testing.T) {
 					deletedFlatFeeLineID                      = "01JWB2ND43KPCHMXHKCW3PFW6W"
 				)
 
-				q := flatfeetoubpflatfeedb.New(db)
+				q := v20250605102416.New(db)
 				t.Run("valid flat fee line", func(t *testing.T) {
 					// Case 1: Valid flat fee line
 
@@ -144,9 +144,9 @@ func TestMigrateSplitLinesToSplitLineGroups(t *testing.T) {
 			version:   20250609172811,
 			direction: directionUp,
 			action: func(t *testing.T, db *sql.DB) {
-				loadFixture(t, db, "testdata/billing/removesplitlines/fixture.sql")
+				loadFixture(t, db, "testdata/sqlcgen/20250609172811/fixture.sql")
 
-				q := removesplitlinesdb.New(db)
+				q := v20250609172811.New(db)
 				lineCounts, err := q.CountLinesByStatusType(t.Context())
 				require.NoError(t, err)
 
@@ -163,7 +163,7 @@ func TestMigrateSplitLinesToSplitLineGroups(t *testing.T) {
 				const (
 					SplitLineGroupID = "01JXA7Y5CRJF0NJ5ADKNZVDTGH"
 				)
-				q := removesplitlinesdb.New(db)
+				q := v20250609172811.New(db)
 
 				t.Run("split line group exists", func(t *testing.T) {
 					splitLineGroup, err := q.GetSplitLineGroup(t.Context(), SplitLineGroupID)

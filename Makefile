@@ -28,6 +28,12 @@ migrate-check: ## Validate migrations
 	$(call print-target)
 	dagger call migrate check
 
+.PHONY: generate-sqlc-testdata
+generate-sqlc-testdata: ## Generate SQLC testdata for a specific version (make generate-sqlc-testdata VERSION=20240826120919)
+	$(call print-target)
+	@if [ -z "$(VERSION)" ]; then echo "Usage: make generate-sqlc-testdata VERSION=<migration_version>"; exit 1; fi
+	dagger call migrate generate-sqlc-testdata --version=$(VERSION) export --path=tools/migrate/testdata/sqlcgen/$(VERSION)
+
 .PHONY: generate
 generate: ## Generate code
 	$(call print-target)
