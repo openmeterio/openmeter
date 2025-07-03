@@ -143,11 +143,12 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// save a reset time
 				priorResetTime := startTime.Add(time.Hour)
-				err = deps.usageResetRepo.Save(ctx, meteredentitlement.UsageResetTime{
-					NamespacedModel: models.NamespacedModel{Namespace: namespace},
-					ResetTime:       priorResetTime,
-					Anchor:          ent.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Anchor,
-					EntitlementID:   ent.ID,
+				err = deps.usageResetRepo.Save(ctx, meteredentitlement.UsageResetUpdate{
+					NamespacedModel:     models.NamespacedModel{Namespace: namespace},
+					ResetTime:           priorResetTime,
+					Anchor:              ent.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Anchor,
+					EntitlementID:       ent.ID,
+					UsagePeriodInterval: ent.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.ISOString(),
 				})
 				assert.NoError(t, err)
 

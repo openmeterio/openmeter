@@ -104,7 +104,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	m.Lock()
 	defer m.Unlock()
-	// migrate db via ent schema upsert
+	// migrate db
 	if err := dbClient.Schema.Create(context.Background()); err != nil {
 		t.Fatalf("failed to create schema: %v", err)
 	}
