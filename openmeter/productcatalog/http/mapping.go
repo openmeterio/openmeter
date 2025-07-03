@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -406,7 +406,7 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 	}
 
 	if flat.BillingCadence != nil {
-		isoString := isodate.String(*flat.BillingCadence)
+		isoString := datetime.ISODurationString(*flat.BillingCadence)
 		rc.BillingCadence, err = isoString.ParsePtrOrNil()
 		if err != nil {
 			return rc, fmt.Errorf("failed to cast BillingCadence: %w", err)
@@ -478,7 +478,7 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 		},
 	}
 
-	isoString := isodate.String(usage.BillingCadence)
+	isoString := datetime.ISODurationString(usage.BillingCadence)
 	rc.BillingCadence, err = isoString.Parse()
 	if err != nil {
 		return rc, fmt.Errorf("failed to cast BillingCadence: %w", err)
@@ -798,7 +798,7 @@ func AsPriceTier(t api.PriceTier) (productcatalog.PriceTier, error) {
 	return tier, nil
 }
 
-func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *isodate.Period) (*productcatalog.EntitlementTemplate, error) {
+func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datetime.ISODuration) (*productcatalog.EntitlementTemplate, error) {
 	tmpl := &productcatalog.EntitlementTemplate{}
 
 	eType, err := e.Discriminator()
@@ -813,10 +813,10 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *isodate.Pe
 			return nil, fmt.Errorf("failed to cast Metered EntitlementTemplate: %w", err)
 		}
 
-		var usagePeriod isodate.Period
+		var usagePeriod datetime.ISODuration
 
 		if metered.UsagePeriod != nil {
-			usagePeriodISO := isodate.String(lo.FromPtr(metered.UsagePeriod))
+			usagePeriodISO := datetime.ISODurationString(lo.FromPtr(metered.UsagePeriod))
 
 			if usagePeriod, err = usagePeriodISO.Parse(); err != nil {
 				return nil, fmt.Errorf("failed to cast UsagePeriod for Metered EntitlementTemplate: %w", err)

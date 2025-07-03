@@ -17,12 +17,12 @@ import (
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var MonthPeriod = isodate.FromDuration(30 * 24 * time.Hour)
+var MonthPeriod = datetime.FromDuration(30 * 24 * time.Hour)
 
 func TestPostgresAdapter(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())

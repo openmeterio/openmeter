@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // AddonRateCardCreate is the builder for creating a AddonRateCard entity.
@@ -140,13 +140,13 @@ func (_c *AddonRateCardCreate) SetTaxConfig(v *productcatalog.TaxConfig) *AddonR
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_c *AddonRateCardCreate) SetBillingCadence(v isodate.String) *AddonRateCardCreate {
+func (_c *AddonRateCardCreate) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardCreate {
 	_c.mutation.SetBillingCadence(v)
 	return _c
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (_c *AddonRateCardCreate) SetNillableBillingCadence(v *isodate.String) *AddonRateCardCreate {
+func (_c *AddonRateCardCreate) SetNillableBillingCadence(v *datetime.ISODurationString) *AddonRateCardCreate {
 	if v != nil {
 		_c.SetBillingCadence(*v)
 	}
@@ -672,7 +672,7 @@ func (u *AddonRateCardUpsert) ClearTaxConfig() *AddonRateCardUpsert {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *AddonRateCardUpsert) SetBillingCadence(v isodate.String) *AddonRateCardUpsert {
+func (u *AddonRateCardUpsert) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpsert {
 	u.Set(addonratecard.FieldBillingCadence, v)
 	return u
 }
@@ -970,7 +970,7 @@ func (u *AddonRateCardUpsertOne) ClearTaxConfig() *AddonRateCardUpsertOne {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *AddonRateCardUpsertOne) SetBillingCadence(v isodate.String) *AddonRateCardUpsertOne {
+func (u *AddonRateCardUpsertOne) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.SetBillingCadence(v)
 	})
@@ -1452,7 +1452,7 @@ func (u *AddonRateCardUpsertBulk) ClearTaxConfig() *AddonRateCardUpsertBulk {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *AddonRateCardUpsertBulk) SetBillingCadence(v isodate.String) *AddonRateCardUpsertBulk {
+func (u *AddonRateCardUpsertBulk) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.SetBillingCadence(v)
 	})

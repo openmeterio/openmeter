@@ -19,7 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // SubscriptionUpdate is the builder for updating Subscription entities.
@@ -162,13 +162,13 @@ func (_u *SubscriptionUpdate) SetNillableBillingAnchor(v *time.Time) *Subscripti
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_u *SubscriptionUpdate) SetBillingCadence(v isodate.String) *SubscriptionUpdate {
+func (_u *SubscriptionUpdate) SetBillingCadence(v datetime.ISODurationString) *SubscriptionUpdate {
 	_u.mutation.SetBillingCadence(v)
 	return _u
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (_u *SubscriptionUpdate) SetNillableBillingCadence(v *isodate.String) *SubscriptionUpdate {
+func (_u *SubscriptionUpdate) SetNillableBillingCadence(v *datetime.ISODurationString) *SubscriptionUpdate {
 	if v != nil {
 		_u.SetBillingCadence(*v)
 	}
@@ -814,13 +814,13 @@ func (_u *SubscriptionUpdateOne) SetNillableBillingAnchor(v *time.Time) *Subscri
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_u *SubscriptionUpdateOne) SetBillingCadence(v isodate.String) *SubscriptionUpdateOne {
+func (_u *SubscriptionUpdateOne) SetBillingCadence(v datetime.ISODurationString) *SubscriptionUpdateOne {
 	_u.mutation.SetBillingCadence(v)
 	return _u
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (_u *SubscriptionUpdateOne) SetNillableBillingCadence(v *isodate.String) *SubscriptionUpdateOne {
+func (_u *SubscriptionUpdateOne) SetNillableBillingCadence(v *datetime.ISODurationString) *SubscriptionUpdateOne {
 	if v != nil {
 		_u.SetBillingCadence(*v)
 	}

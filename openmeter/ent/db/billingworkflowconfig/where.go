@@ -9,7 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // ID filters vertices based on their ID field.
@@ -88,7 +88,7 @@ func DeletedAt(v time.Time) predicate.BillingWorkflowConfig {
 }
 
 // LineCollectionPeriod applies equality check predicate on the "line_collection_period" field. It's identical to LineCollectionPeriodEQ.
-func LineCollectionPeriod(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriod(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldLineCollectionPeriod, vc))
 }
@@ -99,13 +99,13 @@ func InvoiceAutoAdvance(v bool) predicate.BillingWorkflowConfig {
 }
 
 // InvoiceDraftPeriod applies equality check predicate on the "invoice_draft_period" field. It's identical to InvoiceDraftPeriodEQ.
-func InvoiceDraftPeriod(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriod(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDueAfter applies equality check predicate on the "invoice_due_after" field. It's identical to InvoiceDueAfterEQ.
-func InvoiceDueAfter(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfter(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDueAfter, vc))
 }
@@ -351,19 +351,19 @@ func CollectionAlignmentNotIn(vs ...billing.AlignmentKind) predicate.BillingWork
 }
 
 // LineCollectionPeriodEQ applies the EQ predicate on the "line_collection_period" field.
-func LineCollectionPeriodEQ(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodEQ(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldLineCollectionPeriod, vc))
 }
 
 // LineCollectionPeriodNEQ applies the NEQ predicate on the "line_collection_period" field.
-func LineCollectionPeriodNEQ(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodNEQ(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldLineCollectionPeriod, vc))
 }
 
 // LineCollectionPeriodIn applies the In predicate on the "line_collection_period" field.
-func LineCollectionPeriodIn(vs ...isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodIn(vs ...datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -372,7 +372,7 @@ func LineCollectionPeriodIn(vs ...isodate.String) predicate.BillingWorkflowConfi
 }
 
 // LineCollectionPeriodNotIn applies the NotIn predicate on the "line_collection_period" field.
-func LineCollectionPeriodNotIn(vs ...isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodNotIn(vs ...datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -381,55 +381,55 @@ func LineCollectionPeriodNotIn(vs ...isodate.String) predicate.BillingWorkflowCo
 }
 
 // LineCollectionPeriodGT applies the GT predicate on the "line_collection_period" field.
-func LineCollectionPeriodGT(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodGT(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldGT(FieldLineCollectionPeriod, vc))
 }
 
 // LineCollectionPeriodGTE applies the GTE predicate on the "line_collection_period" field.
-func LineCollectionPeriodGTE(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodGTE(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldGTE(FieldLineCollectionPeriod, vc))
 }
 
 // LineCollectionPeriodLT applies the LT predicate on the "line_collection_period" field.
-func LineCollectionPeriodLT(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodLT(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldLT(FieldLineCollectionPeriod, vc))
 }
 
 // LineCollectionPeriodLTE applies the LTE predicate on the "line_collection_period" field.
-func LineCollectionPeriodLTE(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodLTE(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldLineCollectionPeriod, vc))
 }
 
 // LineCollectionPeriodContains applies the Contains predicate on the "line_collection_period" field.
-func LineCollectionPeriodContains(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodContains(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldContains(FieldLineCollectionPeriod, vc))
 }
 
 // LineCollectionPeriodHasPrefix applies the HasPrefix predicate on the "line_collection_period" field.
-func LineCollectionPeriodHasPrefix(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodHasPrefix(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldHasPrefix(FieldLineCollectionPeriod, vc))
 }
 
 // LineCollectionPeriodHasSuffix applies the HasSuffix predicate on the "line_collection_period" field.
-func LineCollectionPeriodHasSuffix(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodHasSuffix(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldHasSuffix(FieldLineCollectionPeriod, vc))
 }
 
 // LineCollectionPeriodEqualFold applies the EqualFold predicate on the "line_collection_period" field.
-func LineCollectionPeriodEqualFold(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodEqualFold(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldEqualFold(FieldLineCollectionPeriod, vc))
 }
 
 // LineCollectionPeriodContainsFold applies the ContainsFold predicate on the "line_collection_period" field.
-func LineCollectionPeriodContainsFold(v isodate.String) predicate.BillingWorkflowConfig {
+func LineCollectionPeriodContainsFold(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldContainsFold(FieldLineCollectionPeriod, vc))
 }
@@ -445,19 +445,19 @@ func InvoiceAutoAdvanceNEQ(v bool) predicate.BillingWorkflowConfig {
 }
 
 // InvoiceDraftPeriodEQ applies the EQ predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodEQ(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodEQ(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDraftPeriodNEQ applies the NEQ predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodNEQ(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodNEQ(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDraftPeriodIn applies the In predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodIn(vs ...isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodIn(vs ...datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -466,7 +466,7 @@ func InvoiceDraftPeriodIn(vs ...isodate.String) predicate.BillingWorkflowConfig 
 }
 
 // InvoiceDraftPeriodNotIn applies the NotIn predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodNotIn(vs ...isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodNotIn(vs ...datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -475,73 +475,73 @@ func InvoiceDraftPeriodNotIn(vs ...isodate.String) predicate.BillingWorkflowConf
 }
 
 // InvoiceDraftPeriodGT applies the GT predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodGT(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodGT(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldGT(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDraftPeriodGTE applies the GTE predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodGTE(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodGTE(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldGTE(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDraftPeriodLT applies the LT predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodLT(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodLT(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldLT(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDraftPeriodLTE applies the LTE predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodLTE(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodLTE(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDraftPeriodContains applies the Contains predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodContains(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodContains(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldContains(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDraftPeriodHasPrefix applies the HasPrefix predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodHasPrefix(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodHasPrefix(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldHasPrefix(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDraftPeriodHasSuffix applies the HasSuffix predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodHasSuffix(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodHasSuffix(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldHasSuffix(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDraftPeriodEqualFold applies the EqualFold predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodEqualFold(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodEqualFold(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldEqualFold(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDraftPeriodContainsFold applies the ContainsFold predicate on the "invoice_draft_period" field.
-func InvoiceDraftPeriodContainsFold(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDraftPeriodContainsFold(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldContainsFold(FieldInvoiceDraftPeriod, vc))
 }
 
 // InvoiceDueAfterEQ applies the EQ predicate on the "invoice_due_after" field.
-func InvoiceDueAfterEQ(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterEQ(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDueAfter, vc))
 }
 
 // InvoiceDueAfterNEQ applies the NEQ predicate on the "invoice_due_after" field.
-func InvoiceDueAfterNEQ(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterNEQ(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceDueAfter, vc))
 }
 
 // InvoiceDueAfterIn applies the In predicate on the "invoice_due_after" field.
-func InvoiceDueAfterIn(vs ...isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterIn(vs ...datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -550,7 +550,7 @@ func InvoiceDueAfterIn(vs ...isodate.String) predicate.BillingWorkflowConfig {
 }
 
 // InvoiceDueAfterNotIn applies the NotIn predicate on the "invoice_due_after" field.
-func InvoiceDueAfterNotIn(vs ...isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterNotIn(vs ...datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -559,55 +559,55 @@ func InvoiceDueAfterNotIn(vs ...isodate.String) predicate.BillingWorkflowConfig 
 }
 
 // InvoiceDueAfterGT applies the GT predicate on the "invoice_due_after" field.
-func InvoiceDueAfterGT(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterGT(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldGT(FieldInvoiceDueAfter, vc))
 }
 
 // InvoiceDueAfterGTE applies the GTE predicate on the "invoice_due_after" field.
-func InvoiceDueAfterGTE(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterGTE(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldGTE(FieldInvoiceDueAfter, vc))
 }
 
 // InvoiceDueAfterLT applies the LT predicate on the "invoice_due_after" field.
-func InvoiceDueAfterLT(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterLT(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldLT(FieldInvoiceDueAfter, vc))
 }
 
 // InvoiceDueAfterLTE applies the LTE predicate on the "invoice_due_after" field.
-func InvoiceDueAfterLTE(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterLTE(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldInvoiceDueAfter, vc))
 }
 
 // InvoiceDueAfterContains applies the Contains predicate on the "invoice_due_after" field.
-func InvoiceDueAfterContains(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterContains(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldContains(FieldInvoiceDueAfter, vc))
 }
 
 // InvoiceDueAfterHasPrefix applies the HasPrefix predicate on the "invoice_due_after" field.
-func InvoiceDueAfterHasPrefix(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterHasPrefix(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldHasPrefix(FieldInvoiceDueAfter, vc))
 }
 
 // InvoiceDueAfterHasSuffix applies the HasSuffix predicate on the "invoice_due_after" field.
-func InvoiceDueAfterHasSuffix(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterHasSuffix(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldHasSuffix(FieldInvoiceDueAfter, vc))
 }
 
 // InvoiceDueAfterEqualFold applies the EqualFold predicate on the "invoice_due_after" field.
-func InvoiceDueAfterEqualFold(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterEqualFold(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldEqualFold(FieldInvoiceDueAfter, vc))
 }
 
 // InvoiceDueAfterContainsFold applies the ContainsFold predicate on the "invoice_due_after" field.
-func InvoiceDueAfterContainsFold(v isodate.String) predicate.BillingWorkflowConfig {
+func InvoiceDueAfterContainsFold(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)
 	return predicate.BillingWorkflowConfig(sql.FieldContainsFold(FieldInvoiceDueAfter, vc))
 }

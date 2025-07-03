@@ -21,10 +21,10 @@ import (
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -131,7 +131,7 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: isodate.String("P1D"),
+			GracePeriod: datetime.ISODurationString("P1D"),
 		},
 		Locker: locker,
 	})

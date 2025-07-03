@@ -12,7 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -260,12 +260,12 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
 				Alignment: billing.AlignmentKindSubscription,
-				Interval:  isodate.MustParse(t, "PT30M"),
+				Interval:  datetime.MustParse(t, "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
-				DraftPeriod: isodate.MustParse(t, "PT1H"),
-				DueAfter:    isodate.MustParse(t, "PT24H"),
+				DraftPeriod: datetime.MustParse(t, "PT1H"),
+				DueAfter:    datetime.MustParse(t, "PT24H"),
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodSendInvoice,
@@ -357,12 +357,12 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
 				Alignment: billing.AlignmentKindSubscription,
-				Interval:  isodate.MustParse(s.T(), "PT30M"),
+				Interval:  datetime.MustParse(s.T(), "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
-				DraftPeriod: isodate.MustParse(s.T(), "PT1H"),
-				DueAfter:    isodate.MustParse(s.T(), "PT24H"),
+				DraftPeriod: datetime.MustParse(s.T(), "PT1H"),
+				DueAfter:    datetime.MustParse(s.T(), "PT24H"),
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodSendInvoice,
@@ -412,12 +412,12 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 			WorkflowConfig: billing.WorkflowConfig{
 				Collection: billing.CollectionConfig{
 					Alignment: billing.AlignmentKindSubscription,
-					Interval:  isodate.MustParse(s.T(), "PT30M"),
+					Interval:  datetime.MustParse(s.T(), "PT30M"),
 				},
 				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
-					DraftPeriod: isodate.MustParse(s.T(), "PT2H"),
-					DueAfter:    isodate.MustParse(s.T(), "PT48H"),
+					DraftPeriod: datetime.MustParse(s.T(), "PT2H"),
+					DueAfter:    datetime.MustParse(s.T(), "PT48H"),
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,

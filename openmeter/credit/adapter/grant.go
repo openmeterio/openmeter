@@ -235,7 +235,7 @@ func mapGrantEntity(entity *db.Grant) grant.Grant {
 		parsed, _ := entity.RecurrencePeriod.Parse()
 
 		g.Recurrence = &timeutil.Recurrence{
-			Interval: timeutil.RecurrenceInterval{Period: parsed},
+			Interval: timeutil.RecurrenceInterval{ISODuration: parsed},
 			Anchor:   entity.RecurrenceAnchor.In(time.UTC),
 		}
 	}

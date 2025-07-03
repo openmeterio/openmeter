@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // AddonRateCardUpdate is the builder for updating AddonRateCard entities.
@@ -149,13 +149,13 @@ func (_u *AddonRateCardUpdate) ClearTaxConfig() *AddonRateCardUpdate {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_u *AddonRateCardUpdate) SetBillingCadence(v isodate.String) *AddonRateCardUpdate {
+func (_u *AddonRateCardUpdate) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpdate {
 	_u.mutation.SetBillingCadence(v)
 	return _u
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (_u *AddonRateCardUpdate) SetNillableBillingCadence(v *isodate.String) *AddonRateCardUpdate {
+func (_u *AddonRateCardUpdate) SetNillableBillingCadence(v *datetime.ISODurationString) *AddonRateCardUpdate {
 	if v != nil {
 		_u.SetBillingCadence(*v)
 	}
@@ -619,13 +619,13 @@ func (_u *AddonRateCardUpdateOne) ClearTaxConfig() *AddonRateCardUpdateOne {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_u *AddonRateCardUpdateOne) SetBillingCadence(v isodate.String) *AddonRateCardUpdateOne {
+func (_u *AddonRateCardUpdateOne) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpdateOne {
 	_u.mutation.SetBillingCadence(v)
 	return _u
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (_u *AddonRateCardUpdateOne) SetNillableBillingCadence(v *isodate.String) *AddonRateCardUpdateOne {
+func (_u *AddonRateCardUpdateOne) SetNillableBillingCadence(v *datetime.ISODurationString) *AddonRateCardUpdateOne {
 	if v != nil {
 		_u.SetBillingCadence(*v)
 	}

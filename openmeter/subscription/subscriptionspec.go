@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -33,7 +33,7 @@ type CreateSubscriptionPlanInput struct {
 	Plan *PlanRef `json:"plan"`
 
 	// BillingCadence is the default billing cadence for subscriptions.
-	BillingCadence isodate.Period `json:"billing_cadence"`
+	BillingCadence datetime.ISODuration `json:"billing_cadence"`
 
 	// ProRatingConfig is the default pro-rating configuration for subscriptions.
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
@@ -364,11 +364,11 @@ func (s *SubscriptionSpec) ValidateAlignment() error {
 }
 
 type CreateSubscriptionPhasePlanInput struct {
-	PhaseKey    string         `json:"key"`
-	StartAfter  isodate.Period `json:"startAfter"`
-	Name        string         `json:"name"`
-	Description *string        `json:"description,omitempty"`
-	SortHint    *uint8         `json:"sortHint,omitempty"`
+	PhaseKey    string               `json:"key"`
+	StartAfter  datetime.ISODuration `json:"startAfter"`
+	Name        string               `json:"name"`
+	Description *string              `json:"description,omitempty"`
+	SortHint    *uint8               `json:"sortHint,omitempty"`
 }
 
 func (i CreateSubscriptionPhasePlanInput) Validate() error {
@@ -405,7 +405,7 @@ type RemoveSubscriptionPhaseInput struct {
 
 type CreateSubscriptionPhaseInput struct {
 	// Duration is required exactly in cases where the phase wouldn't be the last phase.
-	Duration *isodate.Period `json:"duration"`
+	Duration *datetime.ISODuration `json:"duration"`
 	CreateSubscriptionPhasePlanInput
 	CreateSubscriptionPhaseCustomerInput
 }
@@ -658,8 +658,8 @@ func (i *CreateSubscriptionItemPlanInput) UnmarshalJSON(b []byte) error {
 }
 
 type CreateSubscriptionItemCustomerInput struct {
-	ActiveFromOverrideRelativeToPhaseStart *isodate.Period `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
-	ActiveToOverrideRelativeToPhaseStart   *isodate.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
+	ActiveFromOverrideRelativeToPhaseStart *datetime.ISODuration `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
+	ActiveToOverrideRelativeToPhaseStart   *datetime.ISODuration `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
 	BillingBehaviorOverride
 }
 
@@ -679,7 +679,7 @@ func (i *CreateSubscriptionItemCustomerInput) UnmarshalJSON(b []byte) error {
 	def.BillingBehaviorOverride = serde.BillingBehaviorOverride
 
 	if serde.ActiveFromOverrideRelativeToPhaseStart != nil {
-		activeFrom, err := isodate.String(*serde.ActiveFromOverrideRelativeToPhaseStart).Parse()
+		activeFrom, err := datetime.ISODurationString(*serde.ActiveFromOverrideRelativeToPhaseStart).Parse()
 		if err != nil {
 			return fmt.Errorf("failed to parse active from override relative to phase start: %w", err)
 		}
@@ -687,7 +687,7 @@ func (i *CreateSubscriptionItemCustomerInput) UnmarshalJSON(b []byte) error {
 	}
 
 	if serde.ActiveToOverrideRelativeToPhaseStart != nil {
-		activeTo, err := isodate.String(*serde.ActiveToOverrideRelativeToPhaseStart).Parse()
+		activeTo, err := datetime.ISODurationString(*serde.ActiveToOverrideRelativeToPhaseStart).Parse()
 		if err != nil {
 			return fmt.Errorf("failed to parse active to override relative to phase start: %w", err)
 		}

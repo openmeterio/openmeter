@@ -22,7 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -114,7 +114,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 				Key:            "paid-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParse(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -138,7 +138,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 									PaymentTerm: productcatalog.InArrearsPaymentTerm,
 								}),
 							},
-							BillingCadence: isodate.MustParse(s.T(), "P1D"),
+							BillingCadence: datetime.MustParse(s.T(), "P1D"),
 						},
 					},
 				},
@@ -165,7 +165,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 				Key:            "free-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: isodate.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParse(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -185,7 +185,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 								Key:  "in-arrears",
 								Name: "in-arrears",
 							},
-							BillingCadence: isodate.MustParse(s.T(), "P1D"),
+							BillingCadence: datetime.MustParse(s.T(), "P1D"),
 						},
 					},
 				},

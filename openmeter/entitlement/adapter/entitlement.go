@@ -465,7 +465,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			return e.UsagePeriodAnchor.In(time.UTC)
 		})(timeutil.Recurrence{
 			Anchor:   e.UsagePeriodAnchor.In(time.UTC),
-			Interval: timeutil.RecurrenceInterval{Period: parsed},
+			Interval: timeutil.RecurrenceInterval{ISODuration: parsed},
 		}))
 
 		ent.OriginalUsagePeriodAnchor = convert.SafeToUTC(e.UsagePeriodAnchor)
@@ -482,7 +482,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 				return reset.ResetTime.In(time.UTC)
 			})(timeutil.Recurrence{
 				Anchor:   reset.Anchor.In(time.UTC),
-				Interval: timeutil.RecurrenceInterval{Period: parsed},
+				Interval: timeutil.RecurrenceInterval{ISODuration: parsed},
 			}))
 		}
 

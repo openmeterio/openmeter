@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // PlanPhase is the model entity for the PlanPhase schema.
@@ -41,7 +41,7 @@ type PlanPhase struct {
 	// The index of the phase in the plan.
 	Index uint8 `json:"index,omitempty"`
 	// The duration of the phase.
-	Duration *isodate.String `json:"duration,omitempty"`
+	Duration *datetime.ISODurationString `json:"duration,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanPhaseQuery when eager-loading is set.
 	Edges        PlanPhaseEdges `json:"edges"`
@@ -181,8 +181,8 @@ func (_m *PlanPhase) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field duration", values[i])
 			} else if value.Valid {
-				_m.Duration = new(isodate.String)
-				*_m.Duration = isodate.String(value.String)
+				_m.Duration = new(datetime.ISODurationString)
+				*_m.Duration = datetime.ISODurationString(value.String)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])

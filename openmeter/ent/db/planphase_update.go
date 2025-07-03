@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // PlanPhaseUpdate is the builder for updating PlanPhase entities.
@@ -139,13 +139,13 @@ func (_u *PlanPhaseUpdate) AddIndex(v int8) *PlanPhaseUpdate {
 }
 
 // SetDuration sets the "duration" field.
-func (_u *PlanPhaseUpdate) SetDuration(v isodate.String) *PlanPhaseUpdate {
+func (_u *PlanPhaseUpdate) SetDuration(v datetime.ISODurationString) *PlanPhaseUpdate {
 	_u.mutation.SetDuration(v)
 	return _u
 }
 
 // SetNillableDuration sets the "duration" field if the given value is not nil.
-func (_u *PlanPhaseUpdate) SetNillableDuration(v *isodate.String) *PlanPhaseUpdate {
+func (_u *PlanPhaseUpdate) SetNillableDuration(v *datetime.ISODurationString) *PlanPhaseUpdate {
 	if v != nil {
 		_u.SetDuration(*v)
 	}
@@ -509,13 +509,13 @@ func (_u *PlanPhaseUpdateOne) AddIndex(v int8) *PlanPhaseUpdateOne {
 }
 
 // SetDuration sets the "duration" field.
-func (_u *PlanPhaseUpdateOne) SetDuration(v isodate.String) *PlanPhaseUpdateOne {
+func (_u *PlanPhaseUpdateOne) SetDuration(v datetime.ISODurationString) *PlanPhaseUpdateOne {
 	_u.mutation.SetDuration(v)
 	return _u
 }
 
 // SetNillableDuration sets the "duration" field if the given value is not nil.
-func (_u *PlanPhaseUpdateOne) SetNillableDuration(v *isodate.String) *PlanPhaseUpdateOne {
+func (_u *PlanPhaseUpdateOne) SetNillableDuration(v *datetime.ISODurationString) *PlanPhaseUpdateOne {
 	if v != nil {
 		_u.SetDuration(*v)
 	}

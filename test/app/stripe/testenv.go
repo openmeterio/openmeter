@@ -27,8 +27,8 @@ import (
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	apptest "github.com/openmeterio/openmeter/test/app"
 )
 
@@ -137,7 +137,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		MeterService:       meterAdapter,
 		Publisher:          publisher,
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: isodate.String("P1D"),
+			GracePeriod: datetime.ISODurationString("P1D"),
 		},
 		Locker: locker,
 	})

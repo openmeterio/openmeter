@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -206,7 +206,7 @@ func (c CreateEntitlementInputs) Validate() error {
 
 	// Let's validate the Usage Period
 	if c.UsagePeriod != nil {
-		if per, err := c.UsagePeriod.GetValue().Interval.Period.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		if per, err := c.UsagePeriod.GetValue().Interval.ISODuration.Subtract(datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 			return fmt.Errorf("UsagePeriod must be at least 1 hour")
 		}
 	}

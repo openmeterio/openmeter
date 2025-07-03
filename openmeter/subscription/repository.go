@@ -8,8 +8,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -26,7 +26,7 @@ type CreateSubscriptionEntityInput struct {
 	Currency   currencyx.Code
 
 	// BillingCadence is the default billing cadence for subscriptions.
-	BillingCadence isodate.Period `json:"billing_cadence"`
+	BillingCadence datetime.ISODuration `json:"billing_cadence"`
 
 	// ProRatingConfig is the default pro-rating configuration for subscriptions.
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
@@ -76,7 +76,7 @@ type CreateSubscriptionPhaseEntityInput struct {
 	Description *string `json:"description,omitempty"`
 
 	// StartAfter
-	StartAfter isodate.Period `json:"interval"`
+	StartAfter datetime.ISODuration `json:"interval"`
 
 	// SortHint
 	SortHint *uint8 `json:"sortHint,omitempty"`
@@ -103,8 +103,8 @@ type CreateSubscriptionItemEntityInput struct {
 
 	Annotations models.Annotations `json:"annotations"`
 
-	ActiveFromOverrideRelativeToPhaseStart *isodate.Period
-	ActiveToOverrideRelativeToPhaseStart   *isodate.Period
+	ActiveFromOverrideRelativeToPhaseStart *datetime.ISODuration
+	ActiveToOverrideRelativeToPhaseStart   *datetime.ISODuration
 
 	models.CadencedModel
 

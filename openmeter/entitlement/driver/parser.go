@@ -15,8 +15,8 @@ import (
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -353,9 +353,9 @@ func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) (tim
 	case string(api.RecurringPeriodIntervalEnumYEAR):
 		return timeutil.RecurrencePeriodYear, nil
 	default:
-		p, err := isodate.String(s).Parse()
+		p, err := datetime.ISODurationString(s).Parse()
 
-		return timeutil.RecurrenceInterval{Period: p}, err
+		return timeutil.RecurrenceInterval{ISODuration: p}, err
 	}
 }
 
@@ -370,13 +370,13 @@ func MapRecurrenceToAPI(r timeutil.RecurrenceInterval) api.RecurringPeriodInterv
 
 	apiInt := &api.RecurringPeriodInterval{}
 
-	if d, err := normalised.Subtract(timeutil.RecurrencePeriodDaily.Period); err == nil && d.IsZero() {
+	if d, err := normalised.Subtract(timeutil.RecurrencePeriodDaily.ISODuration); err == nil && d.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumDAY)
-	} else if w, err := normalised.Subtract(timeutil.RecurrencePeriodWeek.Period); err == nil && w.IsZero() {
+	} else if w, err := normalised.Subtract(timeutil.RecurrencePeriodWeek.ISODuration); err == nil && w.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumWEEK)
-	} else if m, err := normalised.Subtract(timeutil.RecurrencePeriodMonth.Period); err == nil && m.IsZero() {
+	} else if m, err := normalised.Subtract(timeutil.RecurrencePeriodMonth.ISODuration); err == nil && m.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
-	} else if y, err := normalised.Subtract(timeutil.RecurrencePeriodYear.Period); err == nil && y.IsZero() {
+	} else if y, err := normalised.Subtract(timeutil.RecurrencePeriodYear.ISODuration); err == nil && y.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumYEAR)
 	} else {
 		_ = apiInt.FromRecurringPeriodInterval0(r.ISOString().String())

@@ -6,7 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -25,7 +25,7 @@ type Subscription struct {
 	CustomerId string         `json:"customerId,omitempty"`
 	Currency   currencyx.Code `json:"currency,omitempty"`
 
-	BillingCadence  isodate.Period                 `json:"billing_cadence"`
+	BillingCadence  datetime.ISODuration           `json:"billing_cadence"`
 	BillingAnchor   time.Time                      `json:"billingAnchor"`
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
 }

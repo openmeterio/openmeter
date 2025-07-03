@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // Subscription is the model entity for the Subscription schema.
@@ -50,7 +50,7 @@ type Subscription struct {
 	// BillingAnchor holds the value of the "billing_anchor" field.
 	BillingAnchor time.Time `json:"billing_anchor,omitempty"`
 	// The default billing cadence for subscriptions.
-	BillingCadence isodate.String `json:"billing_cadence,omitempty"`
+	BillingCadence datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Default pro-rating configuration for subscriptions.
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -258,7 +258,7 @@ func (_m *Subscription) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
 			} else if value.Valid {
-				_m.BillingCadence = isodate.String(value.String)
+				_m.BillingCadence = datetime.ISODurationString(value.String)
 			}
 		case subscription.FieldProRatingConfig:
 			if value, err := subscription.ValueScanner.ProRatingConfig.FromValue(values[i]); err != nil {

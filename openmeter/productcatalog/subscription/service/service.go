@@ -12,7 +12,7 @@ import (
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -47,7 +47,7 @@ func (s *service) zeroPhasesBeforeStartingPhase(p *plan.Plan, startingPhase stri
 
 		if !reachedStartingPhase {
 			// Instead of deleting the earlier phases, we set their length to 0
-			phase.Duration = lo.ToPtr(isodate.FromDuration(time.Duration(0)))
+			phase.Duration = lo.ToPtr(datetime.FromDuration(time.Duration(0)))
 		}
 
 		if idx == len(p.Phases)-1 && !reachedStartingPhase {

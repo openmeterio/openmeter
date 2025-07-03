@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -79,7 +79,7 @@ func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPl
 
 func (p *Plan) GetPhases() []subscription.PlanPhase {
 	ps := make([]subscription.PlanPhase, 0, len(p.Phases))
-	startAfter := isodate.Period{}
+	startAfter := datetime.ISODuration{}
 	for idx, ph := range p.Phases {
 		ps = append(ps, &Phase{
 			Phase:      ph,
@@ -99,7 +99,7 @@ func (p *Plan) Currency() currencyx.Code {
 
 type Phase struct {
 	productcatalog.Phase
-	StartAfter isodate.Period
+	StartAfter datetime.ISODuration
 	Index      int
 }
 

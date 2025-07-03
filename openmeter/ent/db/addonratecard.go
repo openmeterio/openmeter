@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // AddonRateCard is the model entity for the AddonRateCard schema.
@@ -47,7 +47,7 @@ type AddonRateCard struct {
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig *productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// BillingCadence holds the value of the "billing_cadence" field.
-	BillingCadence *isodate.String `json:"billing_cadence,omitempty"`
+	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// Discounts holds the value of the "discounts" field.
@@ -216,8 +216,8 @@ func (_m *AddonRateCard) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
 			} else if value.Valid {
-				_m.BillingCadence = new(isodate.String)
-				*_m.BillingCadence = isodate.String(value.String)
+				_m.BillingCadence = new(datetime.ISODurationString)
+				*_m.BillingCadence = datetime.ISODurationString(value.String)
 			}
 		case addonratecard.FieldPrice:
 			if value, err := addonratecard.ValueScanner.Price.FromValue(values[i]); err != nil {

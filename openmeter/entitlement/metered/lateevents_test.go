@@ -27,7 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -167,7 +167,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 				Tracer:                 tracer,
 				Granularity:            time.Minute,
 				Publisher:              mockPublisher,
-				SnapshotGracePeriod:    isodate.MustParse(t, "P1W"),
+				SnapshotGracePeriod:    datetime.MustParse(t, "P1W"),
 				TransactionManager:     transactionManager,
 			},
 		)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 type (
@@ -189,7 +189,7 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 			case productcatalog.FlatFeeRateCardType:
 				frc := &productcatalog.FlatFeeRateCard{RateCardMeta: meta}
 				if rcData.BillingCadence != nil {
-					period, err := isodate.String(*rcData.BillingCadence).Parse()
+					period, err := datetime.ISODurationString(*rcData.BillingCadence).Parse()
 					if err != nil {
 						return fmt.Errorf("invalid billing cadence for rate card %q: %w", rcData.Key, err)
 					}
@@ -200,7 +200,7 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 			case productcatalog.UsageBasedRateCardType:
 				urc := &productcatalog.UsageBasedRateCard{RateCardMeta: meta}
 				if rcData.BillingCadence != nil {
-					period, err := isodate.String(*rcData.BillingCadence).Parse()
+					period, err := datetime.ISODurationString(*rcData.BillingCadence).Parse()
 					if err != nil {
 						return fmt.Errorf("invalid billing cadence for rate card %q: %w", rcData.Key, err)
 					}

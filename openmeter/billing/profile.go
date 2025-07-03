@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -36,8 +36,8 @@ func (k AlignmentKind) Values() []string {
 // InvoiceConfig groups fields related to invoice settings.
 type InvoicingConfig struct {
 	AutoAdvance        bool                      `json:"autoAdvance,omitempty"`
-	DraftPeriod        isodate.Period            `json:"draftPeriod,omitempty"`
-	DueAfter           isodate.Period            `json:"dueAfter,omitempty"`
+	DraftPeriod        datetime.ISODuration      `json:"draftPeriod,omitempty"`
+	DueAfter           datetime.ISODuration      `json:"dueAfter,omitempty"`
 	ProgressiveBilling bool                      `json:"progressiveBilling,omitempty"`
 	DefaultTaxConfig   *productcatalog.TaxConfig `json:"defaultTaxConfig,omitempty"`
 }
