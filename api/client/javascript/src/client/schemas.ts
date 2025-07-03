@@ -9872,7 +9872,7 @@ export interface components {
        */
       instance: string
     } & {
-      [key: string]: string | number
+      [key: string]: unknown
     }
     /** @description Unit price. */
     UnitPrice: {
