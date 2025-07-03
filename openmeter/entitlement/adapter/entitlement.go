@@ -68,7 +68,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 				return nil, err
 			}
 
-			return mapEntitlementEntity(res), nil
+			return mapEntitlementEntity(res)
 		},
 	)
 }
@@ -99,7 +99,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 				return nil, err
 			}
 
-			return mapEntitlementEntity(res), nil
+			return mapEntitlementEntity(res)
 		},
 	)
 }
@@ -149,7 +149,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				return nil, err
 			}
 
-			return mapEntitlementEntity(res), nil
+			return mapEntitlementEntity(res)
 		},
 	)
 }
@@ -263,7 +263,11 @@ func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Contex
 
 			result := make([]entitlement.Entitlement, 0, len(res))
 			for _, e := range res {
-				result = append(result, *mapEntitlementEntity(e))
+				mapped, err := mapEntitlementEntity(e)
+				if err != nil {
+					return nil, err
+				}
+				result = append(result, *mapped)
 			}
 
 			return result, nil
@@ -385,7 +389,11 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 				mapped := make([]entitlement.Entitlement, 0, len(entities))
 				for _, entity := range entities {
-					mapped = append(mapped, *mapEntitlementEntity(entity))
+					mappedEnt, err := mapEntitlementEntity(entity)
+					if err != nil {
+						return response, err
+					}
+					mapped = append(mapped, *mappedEnt)
 				}
 
 				response.Items = mapped
@@ -399,7 +407,11 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 			result := make([]entitlement.Entitlement, 0, len(paged.Items))
 			for _, e := range paged.Items {
-				result = append(result, *mapEntitlementEntity(e))
+				mapped, err := mapEntitlementEntity(e)
+				if err != nil {
+					return response, err
+				}
+				result = append(result, *mapped)
 			}
 
 			response.TotalCount = paged.TotalCount
@@ -410,7 +422,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 	)
 }
 
-func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
+func mapEntitlementEntity(e *db.Entitlement) (*entitlement.Entitlement, error) {
 	ent := &entitlement.Entitlement{
 		GenericProperties: entitlement.GenericProperties{
 			NamespacedModel: models.NamespacedModel{
@@ -454,7 +466,10 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
 		var inps []entitlement.UsagePeriodInput
 
-		parsed, _ := e.UsagePeriodInterval.Parse()
+		parsed, err := e.UsagePeriodInterval.Parse()
+		if err != nil {
+			return nil, err
+		}
 
 		// Let's add the initial
 		inps = append(inps, timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
@@ -478,7 +493,10 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 				continue
 			}
 
-			parsed, _ := reset.UsagePeriodInterval.Parse()
+			parsed, err := reset.UsagePeriodInterval.Parse()
+			if err != nil {
+				return nil, err
+			}
 
 			inps = append(inps, timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
 				return reset.ResetTime.In(time.UTC)
@@ -506,7 +524,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 		}
 	}
 
-	return ent
+	return ent, nil
 }
 
 func (a *entitlementDBAdapter) UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, params entitlement.UpdateEntitlementUsagePeriodParams) error {
@@ -670,7 +688,10 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 
 			result := make([]entitlement.Entitlement, 0, len(res))
 			for _, e := range res {
-				mapped := mapEntitlementEntity(e)
+				mapped, err := mapEntitlementEntity(e)
+				if err != nil {
+					return nil, err
+				}
 
 				// Let's set back the original current usage period
 				if e.CurrentUsagePeriodStart != nil && e.CurrentUsagePeriodEnd != nil {
@@ -781,7 +802,11 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 
 			result := make([]entitlement.Entitlement, 0, len(res))
 			for _, e := range res {
-				result = append(result, *mapEntitlementEntity(e))
+				mapped, err := mapEntitlementEntity(e)
+				if err != nil {
+					return nil, err
+				}
+				result = append(result, *mapped)
 			}
 
 			return &result, nil
