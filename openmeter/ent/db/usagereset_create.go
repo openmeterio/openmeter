@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // UsageResetCreate is the builder for creating a UsageReset entity.
@@ -87,6 +88,12 @@ func (_c *UsageResetCreate) SetResetTime(v time.Time) *UsageResetCreate {
 // SetAnchor sets the "anchor" field.
 func (_c *UsageResetCreate) SetAnchor(v time.Time) *UsageResetCreate {
 	_c.mutation.SetAnchor(v)
+	return _c
+}
+
+// SetUsagePeriodInterval sets the "usage_period_interval" field.
+func (_c *UsageResetCreate) SetUsagePeriodInterval(v isodate.String) *UsageResetCreate {
+	_c.mutation.SetUsagePeriodInterval(v)
 	return _c
 }
 
@@ -183,6 +190,9 @@ func (_c *UsageResetCreate) check() error {
 	if _, ok := _c.mutation.Anchor(); !ok {
 		return &ValidationError{Name: "anchor", err: errors.New(`db: missing required field "UsageReset.anchor"`)}
 	}
+	if _, ok := _c.mutation.UsagePeriodInterval(); !ok {
+		return &ValidationError{Name: "usage_period_interval", err: errors.New(`db: missing required field "UsageReset.usage_period_interval"`)}
+	}
 	if len(_c.mutation.EntitlementIDs()) == 0 {
 		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "UsageReset.entitlement"`)}
 	}
@@ -245,6 +255,10 @@ func (_c *UsageResetCreate) createSpec() (*UsageReset, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Anchor(); ok {
 		_spec.SetField(usagereset.FieldAnchor, field.TypeTime, value)
 		_node.Anchor = value
+	}
+	if value, ok := _c.mutation.UsagePeriodInterval(); ok {
+		_spec.SetField(usagereset.FieldUsagePeriodInterval, field.TypeString, value)
+		_node.UsagePeriodInterval = value
 	}
 	if nodes := _c.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -376,6 +390,9 @@ func (u *UsageResetUpsertOne) UpdateNewValues() *UsageResetUpsertOne {
 		}
 		if _, exists := u.create.mutation.Anchor(); exists {
 			s.SetIgnore(usagereset.FieldAnchor)
+		}
+		if _, exists := u.create.mutation.UsagePeriodInterval(); exists {
+			s.SetIgnore(usagereset.FieldUsagePeriodInterval)
 		}
 	}))
 	return u
@@ -640,6 +657,9 @@ func (u *UsageResetUpsertBulk) UpdateNewValues() *UsageResetUpsertBulk {
 			}
 			if _, exists := b.mutation.Anchor(); exists {
 				s.SetIgnore(usagereset.FieldAnchor)
+			}
+			if _, exists := b.mutation.UsagePeriodInterval(); exists {
+				s.SetIgnore(usagereset.FieldUsagePeriodInterval)
 			}
 		}
 	}))

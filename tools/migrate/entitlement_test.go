@@ -1,6 +1,7 @@
 package migrate_test
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"testing"
@@ -10,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	v20250624115812 "github.com/openmeterio/openmeter/tools/migrate/testdata/sqlcgen/20250624115812/db"
+	v20250703081943 "github.com/openmeterio/openmeter/tools/migrate/testdata/sqlcgen/20250703081943/db"
 )
 
 func TestUsageResetAnchorTimesMigration(t *testing.T) {
@@ -898,6 +901,160 @@ func TestBooleanEntitlementCountAnnotationMigration(t *testing.T) {
 					existingValue, ok := annotationsMap["existing.annotation"]
 					require.True(t, ok, "existing annotation should be preserved")
 					require.Equal(t, "value", existingValue)
+				},
+			},
+		},
+	}.Test(t)
+}
+
+func TestUsageResetUsagePeriodIntervalMigration(t *testing.T) {
+	entId1 := ulid.Make()
+	entId2 := ulid.Make()
+	featId1 := ulid.Make()
+	featId2 := ulid.Make()
+	ur1Id := ulid.Make()
+	ur2Id := ulid.Make()
+	ur3Id := ulid.Make()
+
+	runner{
+		stops: stops{
+			{
+				// before: 20250703081943_entitlement-usageperiod-interval-change.up.sql
+				version:   20250624115812, // Using the actual version before our migration
+				direction: directionUp,
+				action: func(t *testing.T, db *sql.DB) {
+					// Use SQLC-generated queries for type-safe database operations
+					q := v20250624115812.New(db)
+					ctx := context.Background()
+					now := time.Now()
+
+					// 1. Set up features
+					err := q.CreateFeature(ctx, v20250624115812.CreateFeatureParams{
+						Namespace: "default",
+						ID:        featId1.String(),
+						Key:       "feat_1",
+						Name:      "Feature 1",
+						CreatedAt: now,
+						UpdatedAt: now,
+					})
+					require.NoError(t, err)
+
+					err = q.CreateFeature(ctx, v20250624115812.CreateFeatureParams{
+						Namespace: "default",
+						ID:        featId2.String(),
+						Key:       "feat_2",
+						Name:      "Feature 2",
+						CreatedAt: now,
+						UpdatedAt: now,
+					})
+					require.NoError(t, err)
+
+					// 2. Set up entitlements with different usage_period_intervals
+					err = q.CreateEntitlement(ctx, v20250624115812.CreateEntitlementParams{
+						Namespace:           "default",
+						ID:                  entId1.String(),
+						CreatedAt:           now,
+						UpdatedAt:           now,
+						EntitlementType:     "METERED",
+						FeatureKey:          "feat_1",
+						FeatureID:           featId1.String(),
+						SubjectKey:          "subject_1",
+						UsagePeriodInterval: sql.NullString{String: "P1W", Valid: true},
+						UsagePeriodAnchor:   sql.NullTime{Time: now, Valid: true},
+					})
+					require.NoError(t, err)
+
+					// Second entitlement with different interval
+					err = q.CreateEntitlement(ctx, v20250624115812.CreateEntitlementParams{
+						Namespace:           "default",
+						ID:                  entId2.String(),
+						CreatedAt:           now,
+						UpdatedAt:           now,
+						EntitlementType:     "METERED",
+						FeatureKey:          "feat_2",
+						FeatureID:           featId2.String(),
+						SubjectKey:          "subject_2",
+						UsagePeriodInterval: sql.NullString{String: "P1Y", Valid: true},
+						UsagePeriodAnchor:   sql.NullTime{Time: now, Valid: true},
+					})
+					require.NoError(t, err)
+
+					// 3. Set up usage resets
+					err = q.CreateUsageReset(ctx, v20250624115812.CreateUsageResetParams{
+						Namespace:     "default",
+						ID:            ur1Id.String(),
+						CreatedAt:     now,
+						UpdatedAt:     now,
+						EntitlementID: entId1.String(),
+						ResetTime:     now,
+						Anchor:        now,
+					})
+					require.NoError(t, err)
+
+					err = q.CreateUsageReset(ctx, v20250624115812.CreateUsageResetParams{
+						Namespace:     "default",
+						ID:            ur2Id.String(),
+						CreatedAt:     now,
+						UpdatedAt:     now,
+						EntitlementID: entId1.String(),
+						ResetTime:     now,
+						Anchor:        now,
+					})
+					require.NoError(t, err)
+
+					err = q.CreateUsageReset(ctx, v20250624115812.CreateUsageResetParams{
+						Namespace:     "default",
+						ID:            ur3Id.String(),
+						CreatedAt:     now,
+						UpdatedAt:     now,
+						EntitlementID: entId2.String(),
+						ResetTime:     now,
+						Anchor:        now,
+					})
+					require.NoError(t, err)
+
+					// Verify that usage_period_interval column doesn't exist in usage_resets yet
+					_, err = db.Exec(`SELECT usage_period_interval FROM usage_resets LIMIT 1`)
+					require.Error(t, err, "usage_period_interval column should not exist before migration")
+				},
+			},
+			{
+				// After our migration
+				version:   20250703081943,
+				direction: directionUp,
+				action: func(t *testing.T, db *sql.DB) {
+					// Use SQLC-generated queries for the post-migration schema
+					q := v20250703081943.New(db)
+					ctx := context.Background()
+
+					// Verify the column was added and populated correctly
+					interval1, err := q.GetUsageResetInterval(ctx, ur1Id.String())
+					require.NoError(t, err)
+					require.Equal(t, "P1W", interval1, "usage_period_interval should match entitlement's interval")
+
+					interval2, err := q.GetUsageResetInterval(ctx, ur2Id.String())
+					require.NoError(t, err)
+					require.Equal(t, "P1W", interval2, "usage_period_interval should match entitlement's interval")
+
+					interval3, err := q.GetUsageResetInterval(ctx, ur3Id.String())
+					require.NoError(t, err)
+					require.Equal(t, "P1Y", interval3, "usage_period_interval should match entitlement's interval")
+
+					// Verify the column is NOT NULL - try to insert with an empty string (which should be invalid)
+					// Note: Since SQLC expects a string type, we can't actually pass NULL through it,
+					// but we can test with raw SQL to verify the NOT NULL constraint
+					_, err = db.Exec(`INSERT INTO usage_resets (namespace, id, created_at, updated_at, entitlement_id, reset_time, anchor, usage_period_interval) VALUES ('default', $1, NOW(), NOW(), $2, NOW(), NOW(), NULL)`, ulid.Make().String(), entId1.String())
+					require.Error(t, err, "should not allow NULL values in usage_period_interval column")
+				},
+			},
+			{
+				// Test down migration
+				version:   20250624115812,
+				direction: directionDown,
+				action: func(t *testing.T, db *sql.DB) {
+					// Verify the column was dropped
+					_, err := db.Exec(`SELECT usage_period_interval FROM usage_resets LIMIT 1`)
+					require.Error(t, err, "usage_period_interval column should not exist after down migration")
 				},
 			},
 		},

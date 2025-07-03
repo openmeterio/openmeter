@@ -222,13 +222,14 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 		}
 
 		// Save usage reset
-		if err := e.usageResetRepo.Save(ctx, UsageResetTime{
+		if err := e.usageResetRepo.Save(ctx, UsageResetUpdate{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: owner.Namespace,
 			},
-			EntitlementID: owner.ID,
-			ResetTime:     params.At,
-			Anchor:        anchor,
+			EntitlementID:       owner.ID,
+			ResetTime:           params.At,
+			Anchor:              anchor,
+			UsagePeriodInterval: inpt.GetValue().Interval.ISOString(),
 		}); err != nil {
 			return nil, fmt.Errorf("failed to save usage reset: %w", err)
 		}
