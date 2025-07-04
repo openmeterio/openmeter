@@ -141,9 +141,8 @@ func (i InstallAppWithAPIKeyInput) Validate() error {
 type InstallAppInput struct {
 	MarketplaceListingID
 
-	Namespace            string
-	Name                 string
-	CreateBillingProfile bool
+	Namespace string
+	Name      string
 }
 
 func (i InstallAppInput) Validate() error {
