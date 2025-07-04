@@ -11,9 +11,11 @@ type EntitlementValue interface {
 	HasAccess() bool
 }
 
+var _ EntitlementValue = (*NoAccessValue)(nil)
+
 type NoAccessValue struct{}
 
-func (NoAccessValue) HasAccess() bool {
+func (*NoAccessValue) HasAccess() bool {
 	return false
 }
 
