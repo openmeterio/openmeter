@@ -19,15 +19,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func TestPlanService(t *testing.T) {
-	MonthPeriod := isodate.MustParse(t, "P1M")
-	TwoMonthPeriod := isodate.MustParse(t, "P2M")
-	SixMonthPeriod := isodate.MustParse(t, "P6M")
+	MonthPeriod := datetime.MustParse(t, "P1M")
+	TwoMonthPeriod := datetime.MustParse(t, "P2M")
+	SixMonthPeriod := datetime.MustParse(t, "P6M")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

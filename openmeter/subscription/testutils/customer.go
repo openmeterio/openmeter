@@ -20,8 +20,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -79,7 +79,7 @@ func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: isodate.String("P1D"),
+			GracePeriod: datetime.ISODurationString("P1D"),
 		},
 		Locker: locker,
 	})

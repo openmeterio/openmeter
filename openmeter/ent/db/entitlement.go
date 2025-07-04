@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // Entitlement is the model entity for the Entitlement schema.
@@ -55,7 +55,7 @@ type Entitlement struct {
 	// Config holds the value of the "config" field.
 	Config []uint8 `json:"config,omitempty"`
 	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
-	UsagePeriodInterval *isodate.String `json:"usage_period_interval,omitempty"`
+	UsagePeriodInterval *datetime.ISODurationString `json:"usage_period_interval,omitempty"`
 	// Historically this field had been overwritten with each anchor reset, now we keep the original anchor time and the value is populated from the last reset which is queried dynamically
 	UsagePeriodAnchor *time.Time `json:"usage_period_anchor,omitempty"`
 	// CurrentUsagePeriodStart holds the value of the "current_usage_period_start" field.
@@ -292,8 +292,8 @@ func (_m *Entitlement) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field usage_period_interval", values[i])
 			} else if value.Valid {
-				_m.UsagePeriodInterval = new(isodate.String)
-				*_m.UsagePeriodInterval = isodate.String(value.String)
+				_m.UsagePeriodInterval = new(datetime.ISODurationString)
+				*_m.UsagePeriodInterval = datetime.ISODurationString(value.String)
 			}
 		case entitlement.FieldUsagePeriodAnchor:
 			if value, ok := values[i].(*sql.NullTime); !ok {

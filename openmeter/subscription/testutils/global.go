@@ -1,7 +1,7 @@
 package subscriptiontestutils
 
-import "github.com/openmeterio/openmeter/pkg/isodate"
+import "github.com/openmeterio/openmeter/pkg/datetime"
 
 var ExampleNamespace = "test-namespace"
 
-var ISOMonth, _ = isodate.String("P1M").Parse()
+var ISOMonth, _ = datetime.ISODurationString("P1M").Parse()

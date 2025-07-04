@@ -10,8 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 type CreditConnector interface {
@@ -35,7 +35,7 @@ type CreditConnectorConfig struct {
 	TransactionManager     transaction.Creator
 	// configuration
 	Granularity         time.Duration
-	SnapshotGracePeriod isodate.Period
+	SnapshotGracePeriod datetime.ISODuration
 }
 
 func NewCreditConnector(

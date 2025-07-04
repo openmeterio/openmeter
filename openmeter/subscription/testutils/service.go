@@ -34,8 +34,8 @@ import (
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -99,7 +99,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		MeterService:       meterAdapter,
 		Publisher:          publisher,
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: isodate.String("P1D"),
+			GracePeriod: datetime.ISODurationString("P1D"),
 		},
 		Locker: lockr,
 	})

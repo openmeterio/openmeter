@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 func GetRFC3339Time(t *testing.T, timeString string) time.Time {
@@ -16,9 +16,9 @@ func GetRFC3339Time(t *testing.T, timeString string) time.Time {
 	return t1
 }
 
-func GetISODuration(t *testing.T, durationString string) isodate.Period {
+func GetISODuration(t *testing.T, durationString string) datetime.ISODuration {
 	t.Helper()
-	d, err := isodate.String(durationString).Parse()
+	d, err := datetime.ISODurationString(durationString).Parse()
 	if err != nil {
 		t.Fatalf("Failed to parse duration: %v", err)
 	}

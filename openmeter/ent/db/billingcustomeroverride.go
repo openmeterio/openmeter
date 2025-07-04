@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // BillingCustomerOverride is the model entity for the BillingCustomerOverride schema.
@@ -38,13 +38,13 @@ type BillingCustomerOverride struct {
 	// CollectionAlignment holds the value of the "collection_alignment" field.
 	CollectionAlignment *billing.AlignmentKind `json:"collection_alignment,omitempty"`
 	// LineCollectionPeriod holds the value of the "line_collection_period" field.
-	LineCollectionPeriod *isodate.String `json:"line_collection_period,omitempty"`
+	LineCollectionPeriod *datetime.ISODurationString `json:"line_collection_period,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
 	InvoiceAutoAdvance *bool `json:"invoice_auto_advance,omitempty"`
 	// InvoiceDraftPeriod holds the value of the "invoice_draft_period" field.
-	InvoiceDraftPeriod *isodate.String `json:"invoice_draft_period,omitempty"`
+	InvoiceDraftPeriod *datetime.ISODurationString `json:"invoice_draft_period,omitempty"`
 	// InvoiceDueAfter holds the value of the "invoice_due_after" field.
-	InvoiceDueAfter *isodate.String `json:"invoice_due_after,omitempty"`
+	InvoiceDueAfter *datetime.ISODurationString `json:"invoice_due_after,omitempty"`
 	// InvoiceCollectionMethod holds the value of the "invoice_collection_method" field.
 	InvoiceCollectionMethod *billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
 	// InvoiceProgressiveBilling holds the value of the "invoice_progressive_billing" field.
@@ -173,8 +173,8 @@ func (_m *BillingCustomerOverride) assignValues(columns []string, values []any) 
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field line_collection_period", values[i])
 			} else if value.Valid {
-				_m.LineCollectionPeriod = new(isodate.String)
-				*_m.LineCollectionPeriod = isodate.String(value.String)
+				_m.LineCollectionPeriod = new(datetime.ISODurationString)
+				*_m.LineCollectionPeriod = datetime.ISODurationString(value.String)
 			}
 		case billingcustomeroverride.FieldInvoiceAutoAdvance:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -187,15 +187,15 @@ func (_m *BillingCustomerOverride) assignValues(columns []string, values []any) 
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_draft_period", values[i])
 			} else if value.Valid {
-				_m.InvoiceDraftPeriod = new(isodate.String)
-				*_m.InvoiceDraftPeriod = isodate.String(value.String)
+				_m.InvoiceDraftPeriod = new(datetime.ISODurationString)
+				*_m.InvoiceDraftPeriod = datetime.ISODurationString(value.String)
 			}
 		case billingcustomeroverride.FieldInvoiceDueAfter:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_due_after", values[i])
 			} else if value.Valid {
-				_m.InvoiceDueAfter = new(isodate.String)
-				*_m.InvoiceDueAfter = isodate.String(value.String)
+				_m.InvoiceDueAfter = new(datetime.ISODurationString)
+				*_m.InvoiceDueAfter = datetime.ISODurationString(value.String)
 			}
 		case billingcustomeroverride.FieldInvoiceCollectionMethod:
 			if value, ok := values[i].(*sql.NullString); !ok {

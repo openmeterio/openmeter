@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // PlanCreate is the builder for creating a Plan entity.
@@ -129,7 +129,7 @@ func (_c *PlanCreate) SetNillableCurrency(v *string) *PlanCreate {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_c *PlanCreate) SetBillingCadence(v isodate.String) *PlanCreate {
+func (_c *PlanCreate) SetBillingCadence(v datetime.ISODurationString) *PlanCreate {
 	_c.mutation.SetBillingCadence(v)
 	return _c
 }
@@ -642,7 +642,7 @@ func (u *PlanUpsert) AddVersion(v int) *PlanUpsert {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *PlanUpsert) SetBillingCadence(v isodate.String) *PlanUpsert {
+func (u *PlanUpsert) SetBillingCadence(v datetime.ISODurationString) *PlanUpsert {
 	u.Set(plan.FieldBillingCadence, v)
 	return u
 }
@@ -874,7 +874,7 @@ func (u *PlanUpsertOne) UpdateVersion() *PlanUpsertOne {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *PlanUpsertOne) SetBillingCadence(v isodate.String) *PlanUpsertOne {
+func (u *PlanUpsertOne) SetBillingCadence(v datetime.ISODurationString) *PlanUpsertOne {
 	return u.Update(func(s *PlanUpsert) {
 		s.SetBillingCadence(v)
 	})
@@ -1286,7 +1286,7 @@ func (u *PlanUpsertBulk) UpdateVersion() *PlanUpsertBulk {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *PlanUpsertBulk) SetBillingCadence(v isodate.String) *PlanUpsertBulk {
+func (u *PlanUpsertBulk) SetBillingCadence(v datetime.ISODurationString) *PlanUpsertBulk {
 	return u.Update(func(s *PlanUpsert) {
 		s.SetBillingCadence(v)
 	})

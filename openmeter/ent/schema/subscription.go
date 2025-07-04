@@ -10,8 +10,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -38,7 +38,7 @@ func (Subscription) Fields() []ent.Field {
 		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).NotEmpty().Immutable(),
 		field.Time("billing_anchor"),
 		field.String("billing_cadence").
-			GoType(isodate.String("")).
+			GoType(datetime.ISODurationString("")).
 			Comment("The default billing cadence for subscriptions."),
 		field.String("pro_rating_config").
 			GoType(productcatalog.ProRatingConfig{}).
@@ -154,9 +154,9 @@ func (SubscriptionItem) Fields() []ent.Field {
 		// Items can have different intended cadence compared to the phase due to edits.
 		// To preserve this across cancels and other complex scenarios, we store the intended cadence relative to the phase start.
 		field.String("active_from_override_relative_to_phase_start").
-			GoType(isodate.String("")).Nillable().Optional(),
+			GoType(datetime.ISODurationString("")).Nillable().Optional(),
 		field.String("active_to_override_relative_to_phase_start").
-			GoType(isodate.String("")).Nillable().Optional(),
+			GoType(datetime.ISODurationString("")).Nillable().Optional(),
 		// RateCard Fields
 		field.String("name").NotEmpty(),
 		field.String("description").Optional().Nillable(),
@@ -178,7 +178,7 @@ func (SubscriptionItem) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.String("billing_cadence").
-			GoType(isodate.String("")).
+			GoType(datetime.ISODurationString("")).
 			Optional().
 			Nillable(),
 		field.String("price").

@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 type CollectionTestSuite struct {
@@ -43,7 +43,7 @@ func (s *CollectionTestSuite) setupNS(ctx context.Context, namespace string) col
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(),
 		WithProgressiveBilling(),
-		WithCollectionInterval(isodate.MustParse(s.T(), "PT1H")),
+		WithCollectionInterval(datetime.MustParse(s.T(), "PT1H")),
 	)
 
 	return collectionNSResult{

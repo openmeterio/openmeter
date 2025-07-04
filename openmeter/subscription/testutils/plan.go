@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -23,7 +23,7 @@ type testPlanbuilder struct {
 	p plan.CreatePlanInput
 }
 
-func (b *testPlanbuilder) AddPhase(dur *isodate.Period, rcs ...productcatalog.RateCard) *testPlanbuilder {
+func (b *testPlanbuilder) AddPhase(dur *datetime.ISODuration, rcs ...productcatalog.RateCard) *testPlanbuilder {
 	idx := len(b.p.Plan.Phases) + 1
 
 	b.p.Plan.Phases = append(b.p.Plan.Phases, productcatalog.Phase{
@@ -60,7 +60,7 @@ func BuildTestPlan(t *testing.T) *testPlanbuilder {
 					Key:            "test_plan",
 					Version:        1,
 					Currency:       currency.USD,
-					BillingCadence: isodate.MustParse(t, "P1M"),
+					BillingCadence: datetime.MustParse(t, "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
 						Enabled: true,
 						Mode:    productcatalog.ProRatingModeProratePrices,

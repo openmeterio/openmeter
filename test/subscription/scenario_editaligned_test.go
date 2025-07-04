@@ -20,7 +20,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -57,7 +57,7 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 				Name:           "Test Plan",
 				Key:            "test_plan",
 				Currency:       "USD",
-				BillingCadence: isodate.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParse(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,

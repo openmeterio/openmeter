@@ -18,7 +18,7 @@ import (
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -657,7 +657,7 @@ func TestApply(t *testing.T) {
 							RateCard: subscriptiontestutils.ExampleRateCard3ForAddons.Clone(),
 						},
 						CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
-							ActiveToOverrideRelativeToPhaseStart: lo.ToPtr(isodate.Between(t0, t2)),
+							ActiveToOverrideRelativeToPhaseStart: lo.ToPtr(datetime.Between(t0, t2)),
 						},
 						Annotations: ogItem.Annotations,
 					},
@@ -671,7 +671,7 @@ func TestApply(t *testing.T) {
 							RateCard: subscriptiontestutils.ExampleRateCard3ForAddons.Clone(),
 						},
 						CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
-							ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(isodate.Between(t0, t3)),
+							ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(datetime.Between(t0, t3)),
 						},
 						Annotations: ogItem.Annotations,
 					},

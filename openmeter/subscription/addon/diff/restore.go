@@ -8,7 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -125,7 +125,7 @@ func (d *diffable) restore() subscription.AppliesToSpec {
 						combinedPer := targetCadence.AsPeriod().Union(testCadence.AsPeriod())
 
 						if combinedPer.From != nil && !combinedPer.From.Equal(pCad.ActiveFrom) {
-							targetItem.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(isodate.Between(pCad.ActiveFrom, *combinedPer.From))
+							targetItem.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.Between(pCad.ActiveFrom, *combinedPer.From))
 						}
 
 						if combinedPer.To == nil {
@@ -133,7 +133,7 @@ func (d *diffable) restore() subscription.AppliesToSpec {
 						}
 
 						if combinedPer.To != nil && !combinedPer.To.Equal(pCad.ActiveFrom) {
-							targetItem.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(isodate.Between(pCad.ActiveFrom, *combinedPer.To))
+							targetItem.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.Between(pCad.ActiveFrom, *combinedPer.To))
 						}
 					} else {
 						mergedItems = append(mergedItems, targetItem)

@@ -15,7 +15,7 @@ import (
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -905,7 +905,7 @@ func (n nonPointerRateCard) Validate() error {
 	return nil
 }
 
-func (n nonPointerRateCard) GetBillingCadence() *isodate.Period {
+func (n nonPointerRateCard) GetBillingCadence() *datetime.ISODuration {
 	return nil
 }
 

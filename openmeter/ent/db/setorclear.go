@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -181,14 +181,14 @@ func (u *AddonRateCardUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxC
 	return u.SetTaxConfig(*value)
 }
 
-func (u *AddonRateCardUpdate) SetOrClearBillingCadence(value *isodate.String) *AddonRateCardUpdate {
+func (u *AddonRateCardUpdate) SetOrClearBillingCadence(value *datetime.ISODurationString) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearBillingCadence()
 	}
 	return u.SetBillingCadence(*value)
 }
 
-func (u *AddonRateCardUpdateOne) SetOrClearBillingCadence(value *isodate.String) *AddonRateCardUpdateOne {
+func (u *AddonRateCardUpdateOne) SetOrClearBillingCadence(value *datetime.ISODurationString) *AddonRateCardUpdateOne {
 	if value == nil {
 		return u.ClearBillingCadence()
 	}
@@ -433,14 +433,14 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearCollectionAlignment(value *
 	return u.SetCollectionAlignment(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearLineCollectionPeriod(value *isodate.String) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearLineCollectionPeriod(value *datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearLineCollectionPeriod()
 	}
 	return u.SetLineCollectionPeriod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearLineCollectionPeriod(value *isodate.String) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearLineCollectionPeriod(value *datetime.ISODurationString) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
 		return u.ClearLineCollectionPeriod()
 	}
@@ -461,28 +461,28 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceAutoAdvance(value *b
 	return u.SetInvoiceAutoAdvance(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDraftPeriod(value *isodate.String) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDraftPeriod(value *datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearInvoiceDraftPeriod()
 	}
 	return u.SetInvoiceDraftPeriod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDraftPeriod(value *isodate.String) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDraftPeriod(value *datetime.ISODurationString) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
 		return u.ClearInvoiceDraftPeriod()
 	}
 	return u.SetInvoiceDraftPeriod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDueAfter(value *isodate.String) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDueAfter(value *datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearInvoiceDueAfter()
 	}
 	return u.SetInvoiceDueAfter(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDueAfter(value *isodate.String) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDueAfter(value *datetime.ISODurationString) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
 		return u.ClearInvoiceDueAfter()
 	}
@@ -2463,14 +2463,14 @@ func (u *PlanPhaseUpdateOne) SetOrClearDescription(value *string) *PlanPhaseUpda
 	return u.SetDescription(*value)
 }
 
-func (u *PlanPhaseUpdate) SetOrClearDuration(value *isodate.String) *PlanPhaseUpdate {
+func (u *PlanPhaseUpdate) SetOrClearDuration(value *datetime.ISODurationString) *PlanPhaseUpdate {
 	if value == nil {
 		return u.ClearDuration()
 	}
 	return u.SetDuration(*value)
 }
 
-func (u *PlanPhaseUpdateOne) SetOrClearDuration(value *isodate.String) *PlanPhaseUpdateOne {
+func (u *PlanPhaseUpdateOne) SetOrClearDuration(value *datetime.ISODurationString) *PlanPhaseUpdateOne {
 	if value == nil {
 		return u.ClearDuration()
 	}
@@ -2561,14 +2561,14 @@ func (u *PlanRateCardUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxCo
 	return u.SetTaxConfig(*value)
 }
 
-func (u *PlanRateCardUpdate) SetOrClearBillingCadence(value *isodate.String) *PlanRateCardUpdate {
+func (u *PlanRateCardUpdate) SetOrClearBillingCadence(value *datetime.ISODurationString) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearBillingCadence()
 	}
 	return u.SetBillingCadence(*value)
 }
 
-func (u *PlanRateCardUpdateOne) SetOrClearBillingCadence(value *isodate.String) *PlanRateCardUpdateOne {
+func (u *PlanRateCardUpdateOne) SetOrClearBillingCadence(value *datetime.ISODurationString) *PlanRateCardUpdateOne {
 	if value == nil {
 		return u.ClearBillingCadence()
 	}
@@ -2855,28 +2855,28 @@ func (u *SubscriptionItemUpdateOne) SetOrClearRestartsBillingPeriod(value *bool)
 	return u.SetRestartsBillingPeriod(*value)
 }
 
-func (u *SubscriptionItemUpdate) SetOrClearActiveFromOverrideRelativeToPhaseStart(value *isodate.String) *SubscriptionItemUpdate {
+func (u *SubscriptionItemUpdate) SetOrClearActiveFromOverrideRelativeToPhaseStart(value *datetime.ISODurationString) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearActiveFromOverrideRelativeToPhaseStart()
 	}
 	return u.SetActiveFromOverrideRelativeToPhaseStart(*value)
 }
 
-func (u *SubscriptionItemUpdateOne) SetOrClearActiveFromOverrideRelativeToPhaseStart(value *isodate.String) *SubscriptionItemUpdateOne {
+func (u *SubscriptionItemUpdateOne) SetOrClearActiveFromOverrideRelativeToPhaseStart(value *datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	if value == nil {
 		return u.ClearActiveFromOverrideRelativeToPhaseStart()
 	}
 	return u.SetActiveFromOverrideRelativeToPhaseStart(*value)
 }
 
-func (u *SubscriptionItemUpdate) SetOrClearActiveToOverrideRelativeToPhaseStart(value *isodate.String) *SubscriptionItemUpdate {
+func (u *SubscriptionItemUpdate) SetOrClearActiveToOverrideRelativeToPhaseStart(value *datetime.ISODurationString) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearActiveToOverrideRelativeToPhaseStart()
 	}
 	return u.SetActiveToOverrideRelativeToPhaseStart(*value)
 }
 
-func (u *SubscriptionItemUpdateOne) SetOrClearActiveToOverrideRelativeToPhaseStart(value *isodate.String) *SubscriptionItemUpdateOne {
+func (u *SubscriptionItemUpdateOne) SetOrClearActiveToOverrideRelativeToPhaseStart(value *datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	if value == nil {
 		return u.ClearActiveToOverrideRelativeToPhaseStart()
 	}
@@ -2939,14 +2939,14 @@ func (u *SubscriptionItemUpdateOne) SetOrClearTaxConfig(value **productcatalog.T
 	return u.SetTaxConfig(*value)
 }
 
-func (u *SubscriptionItemUpdate) SetOrClearBillingCadence(value *isodate.String) *SubscriptionItemUpdate {
+func (u *SubscriptionItemUpdate) SetOrClearBillingCadence(value *datetime.ISODurationString) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearBillingCadence()
 	}
 	return u.SetBillingCadence(*value)
 }
 
-func (u *SubscriptionItemUpdateOne) SetOrClearBillingCadence(value *isodate.String) *SubscriptionItemUpdateOne {
+func (u *SubscriptionItemUpdateOne) SetOrClearBillingCadence(value *datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	if value == nil {
 		return u.ClearBillingCadence()
 	}

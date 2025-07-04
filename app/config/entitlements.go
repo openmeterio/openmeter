@@ -7,11 +7,11 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 type EntitlementsConfiguration struct {
-	GracePeriod isodate.String
+	GracePeriod datetime.ISODurationString
 }
 
 // Validate validates the configuration.
@@ -29,11 +29,11 @@ func (c EntitlementsConfiguration) Validate() error {
 	return nil
 }
 
-func (c *EntitlementsConfiguration) GetGracePeriod() isodate.Period {
+func (c *EntitlementsConfiguration) GetGracePeriod() datetime.ISODuration {
 	gracePeriod, err := c.GracePeriod.Parse()
 	if err != nil {
 		slog.Error("failed to parse grace period, using default of 1 day", "error", err)
-		return isodate.NewPeriod(0, 0, 0, 1, 0, 0, 0)
+		return datetime.NewPeriod(0, 0, 0, 1, 0, 0, 0)
 	}
 	return gracePeriod
 }

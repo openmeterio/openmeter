@@ -9,8 +9,8 @@ import (
 	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 type Plan struct {
@@ -32,7 +32,7 @@ func (Plan) Fields() []ent.Field {
 			NotEmpty().
 			Immutable(),
 		field.String("billing_cadence").
-			GoType(isodate.String("")).
+			GoType(datetime.ISODurationString("")).
 			Comment("The default billing cadence for subscriptions using this plan."),
 		field.String("pro_rating_config").
 			GoType(productcatalog.ProRatingConfig{}).
@@ -98,7 +98,7 @@ func (PlanPhase) Fields() []ent.Field {
 		field.Uint8("index").
 			Comment("The index of the phase in the plan."),
 		field.String("duration").
-			GoType(isodate.String("")).
+			GoType(datetime.ISODurationString("")).
 			Optional().
 			Nillable().
 			Comment("The duration of the phase."),

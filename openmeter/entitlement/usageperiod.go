@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -103,7 +103,7 @@ func (u UsagePeriod) Validate() error {
 		errs = append(errs, errors.New("UsagePeriod must have at least one recurrence"))
 	}
 
-	hour := isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)
+	hour := datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)
 	for i := range u.recs.GetTimes() {
 		rec := u.recs.GetAt(i).GetValue()
 
@@ -113,7 +113,7 @@ func (u UsagePeriod) Validate() error {
 		}
 
 		// Let's validate that the recurrences are all at least 1 hour long
-		if diff, err := rec.Interval.Period.Subtract(hour); err == nil && diff.Sign() == -1 {
+		if diff, err := rec.Interval.ISODuration.Subtract(hour); err == nil && diff.Sign() == -1 {
 			errs = append(errs, errors.New("UsagePeriod must be at least 1 hour"))
 		}
 	}

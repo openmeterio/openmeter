@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -110,7 +110,7 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
 
-	req.PlanMeta.BillingCadence, err = isodate.String(a.BillingCadence).Parse()
+	req.PlanMeta.BillingCadence, err = datetime.ISODurationString(a.BillingCadence).Parse()
 	if err != nil {
 		return req, fmt.Errorf("invalid BillingCadence: %w", err)
 	}
@@ -167,7 +167,7 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 		},
 	}
 
-	phase.Duration, err = (*isodate.String)(a.Duration).ParsePtrOrNil()
+	phase.Duration, err = (*datetime.ISODurationString)(a.Duration).ParsePtrOrNil()
 	if err != nil {
 		return phase, fmt.Errorf("failed to cast duration to period: %w", err)
 	}
@@ -193,7 +193,7 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 	}
 
 	if a.BillingCadence != "" {
-		billingCadence, err := isodate.String(a.BillingCadence).Parse()
+		billingCadence, err := datetime.ISODurationString(a.BillingCadence).Parse()
 		if err != nil {
 			return req, fmt.Errorf("invalid BillingCadence: %w", err)
 		}

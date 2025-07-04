@@ -9,7 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -197,7 +197,7 @@ type PlanMeta struct {
 	Currency currency.Code `json:"currency"`
 
 	// BillingCadence is the default billing cadence for subscriptions using this plan.
-	BillingCadence isodate.Period `json:"billing_cadence"`
+	BillingCadence datetime.ISODuration `json:"billing_cadence"`
 
 	// ProRatingConfig is the default pro-rating configuration for subscriptions using this plan.
 	ProRatingConfig ProRatingConfig `json:"pro_rating_config"`

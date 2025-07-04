@@ -8,7 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -126,7 +126,7 @@ var (
 	}
 )
 
-func GetEntitlementTemplateUsagePeriod(t *testing.T, et productcatalog.EntitlementTemplate) *isodate.Period {
+func GetEntitlementTemplateUsagePeriod(t *testing.T, et productcatalog.EntitlementTemplate) *datetime.ISODuration {
 	t.Helper()
 
 	switch et.Type() {

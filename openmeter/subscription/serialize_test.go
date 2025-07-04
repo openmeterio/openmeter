@@ -12,7 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -79,8 +79,8 @@ func TestSubscriptionItemSerialize(t *testing.T) {
 				"key2": "value2",
 			},
 		},
-		ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(isodate.NewPeriod(0, 0, 0, 1, 0, 0, 0)),
-		ActiveToOverrideRelativeToPhaseStart:   lo.ToPtr(isodate.NewPeriod(0, 0, 0, 2, 0, 0, 0)),
+		ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(datetime.NewPeriod(0, 0, 0, 1, 0, 0, 0)),
+		ActiveToOverrideRelativeToPhaseStart:   lo.ToPtr(datetime.NewPeriod(0, 0, 0, 2, 0, 0, 0)),
 		CadencedModel: models.CadencedModel{
 			ActiveFrom: fixedTime,
 			ActiveTo:   lo.ToPtr(fixedTime.Add(24 * time.Hour)),
@@ -105,7 +105,7 @@ func TestSubscriptionItemSerialize(t *testing.T) {
 					Amount: alpacadecimal.NewFromInt(100),
 				}),
 			},
-			BillingCadence: isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0),
+			BillingCadence: datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0),
 		},
 		EntitlementID: lo.ToPtr("entitlement-id"),
 		Name:          "item-name",

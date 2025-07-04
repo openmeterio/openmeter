@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // BillingCustomerOverrideUpdate is the builder for updating BillingCustomerOverride entities.
@@ -99,13 +99,13 @@ func (_u *BillingCustomerOverrideUpdate) ClearCollectionAlignment() *BillingCust
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (_u *BillingCustomerOverrideUpdate) SetLineCollectionPeriod(v isodate.String) *BillingCustomerOverrideUpdate {
+func (_u *BillingCustomerOverrideUpdate) SetLineCollectionPeriod(v datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	_u.mutation.SetLineCollectionPeriod(v)
 	return _u
 }
 
 // SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
-func (_u *BillingCustomerOverrideUpdate) SetNillableLineCollectionPeriod(v *isodate.String) *BillingCustomerOverrideUpdate {
+func (_u *BillingCustomerOverrideUpdate) SetNillableLineCollectionPeriod(v *datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	if v != nil {
 		_u.SetLineCollectionPeriod(*v)
 	}
@@ -139,13 +139,13 @@ func (_u *BillingCustomerOverrideUpdate) ClearInvoiceAutoAdvance() *BillingCusto
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (_u *BillingCustomerOverrideUpdate) SetInvoiceDraftPeriod(v isodate.String) *BillingCustomerOverrideUpdate {
+func (_u *BillingCustomerOverrideUpdate) SetInvoiceDraftPeriod(v datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	_u.mutation.SetInvoiceDraftPeriod(v)
 	return _u
 }
 
 // SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
-func (_u *BillingCustomerOverrideUpdate) SetNillableInvoiceDraftPeriod(v *isodate.String) *BillingCustomerOverrideUpdate {
+func (_u *BillingCustomerOverrideUpdate) SetNillableInvoiceDraftPeriod(v *datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	if v != nil {
 		_u.SetInvoiceDraftPeriod(*v)
 	}
@@ -159,13 +159,13 @@ func (_u *BillingCustomerOverrideUpdate) ClearInvoiceDraftPeriod() *BillingCusto
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (_u *BillingCustomerOverrideUpdate) SetInvoiceDueAfter(v isodate.String) *BillingCustomerOverrideUpdate {
+func (_u *BillingCustomerOverrideUpdate) SetInvoiceDueAfter(v datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	_u.mutation.SetInvoiceDueAfter(v)
 	return _u
 }
 
 // SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
-func (_u *BillingCustomerOverrideUpdate) SetNillableInvoiceDueAfter(v *isodate.String) *BillingCustomerOverrideUpdate {
+func (_u *BillingCustomerOverrideUpdate) SetNillableInvoiceDueAfter(v *datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	if v != nil {
 		_u.SetInvoiceDueAfter(*v)
 	}
@@ -498,13 +498,13 @@ func (_u *BillingCustomerOverrideUpdateOne) ClearCollectionAlignment() *BillingC
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (_u *BillingCustomerOverrideUpdateOne) SetLineCollectionPeriod(v isodate.String) *BillingCustomerOverrideUpdateOne {
+func (_u *BillingCustomerOverrideUpdateOne) SetLineCollectionPeriod(v datetime.ISODurationString) *BillingCustomerOverrideUpdateOne {
 	_u.mutation.SetLineCollectionPeriod(v)
 	return _u
 }
 
 // SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
-func (_u *BillingCustomerOverrideUpdateOne) SetNillableLineCollectionPeriod(v *isodate.String) *BillingCustomerOverrideUpdateOne {
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableLineCollectionPeriod(v *datetime.ISODurationString) *BillingCustomerOverrideUpdateOne {
 	if v != nil {
 		_u.SetLineCollectionPeriod(*v)
 	}
@@ -538,13 +538,13 @@ func (_u *BillingCustomerOverrideUpdateOne) ClearInvoiceAutoAdvance() *BillingCu
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (_u *BillingCustomerOverrideUpdateOne) SetInvoiceDraftPeriod(v isodate.String) *BillingCustomerOverrideUpdateOne {
+func (_u *BillingCustomerOverrideUpdateOne) SetInvoiceDraftPeriod(v datetime.ISODurationString) *BillingCustomerOverrideUpdateOne {
 	_u.mutation.SetInvoiceDraftPeriod(v)
 	return _u
 }
 
 // SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
-func (_u *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDraftPeriod(v *isodate.String) *BillingCustomerOverrideUpdateOne {
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDraftPeriod(v *datetime.ISODurationString) *BillingCustomerOverrideUpdateOne {
 	if v != nil {
 		_u.SetInvoiceDraftPeriod(*v)
 	}
@@ -558,13 +558,13 @@ func (_u *BillingCustomerOverrideUpdateOne) ClearInvoiceDraftPeriod() *BillingCu
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (_u *BillingCustomerOverrideUpdateOne) SetInvoiceDueAfter(v isodate.String) *BillingCustomerOverrideUpdateOne {
+func (_u *BillingCustomerOverrideUpdateOne) SetInvoiceDueAfter(v datetime.ISODurationString) *BillingCustomerOverrideUpdateOne {
 	_u.mutation.SetInvoiceDueAfter(v)
 	return _u
 }
 
 // SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
-func (_u *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDueAfter(v *isodate.String) *BillingCustomerOverrideUpdateOne {
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDueAfter(v *datetime.ISODurationString) *BillingCustomerOverrideUpdateOne {
 	if v != nil {
 		_u.SetInvoiceDueAfter(*v)
 	}

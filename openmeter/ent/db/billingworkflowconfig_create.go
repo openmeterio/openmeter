@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // BillingWorkflowConfigCreate is the builder for creating a BillingWorkflowConfig entity.
@@ -83,7 +83,7 @@ func (_c *BillingWorkflowConfigCreate) SetCollectionAlignment(v billing.Alignmen
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (_c *BillingWorkflowConfigCreate) SetLineCollectionPeriod(v isodate.String) *BillingWorkflowConfigCreate {
+func (_c *BillingWorkflowConfigCreate) SetLineCollectionPeriod(v datetime.ISODurationString) *BillingWorkflowConfigCreate {
 	_c.mutation.SetLineCollectionPeriod(v)
 	return _c
 }
@@ -95,13 +95,13 @@ func (_c *BillingWorkflowConfigCreate) SetInvoiceAutoAdvance(v bool) *BillingWor
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (_c *BillingWorkflowConfigCreate) SetInvoiceDraftPeriod(v isodate.String) *BillingWorkflowConfigCreate {
+func (_c *BillingWorkflowConfigCreate) SetInvoiceDraftPeriod(v datetime.ISODurationString) *BillingWorkflowConfigCreate {
 	_c.mutation.SetInvoiceDraftPeriod(v)
 	return _c
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (_c *BillingWorkflowConfigCreate) SetInvoiceDueAfter(v isodate.String) *BillingWorkflowConfigCreate {
+func (_c *BillingWorkflowConfigCreate) SetInvoiceDueAfter(v datetime.ISODurationString) *BillingWorkflowConfigCreate {
 	_c.mutation.SetInvoiceDueAfter(v)
 	return _c
 }
@@ -546,7 +546,7 @@ func (u *BillingWorkflowConfigUpsert) UpdateCollectionAlignment() *BillingWorkfl
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (u *BillingWorkflowConfigUpsert) SetLineCollectionPeriod(v isodate.String) *BillingWorkflowConfigUpsert {
+func (u *BillingWorkflowConfigUpsert) SetLineCollectionPeriod(v datetime.ISODurationString) *BillingWorkflowConfigUpsert {
 	u.Set(billingworkflowconfig.FieldLineCollectionPeriod, v)
 	return u
 }
@@ -570,7 +570,7 @@ func (u *BillingWorkflowConfigUpsert) UpdateInvoiceAutoAdvance() *BillingWorkflo
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (u *BillingWorkflowConfigUpsert) SetInvoiceDraftPeriod(v isodate.String) *BillingWorkflowConfigUpsert {
+func (u *BillingWorkflowConfigUpsert) SetInvoiceDraftPeriod(v datetime.ISODurationString) *BillingWorkflowConfigUpsert {
 	u.Set(billingworkflowconfig.FieldInvoiceDraftPeriod, v)
 	return u
 }
@@ -582,7 +582,7 @@ func (u *BillingWorkflowConfigUpsert) UpdateInvoiceDraftPeriod() *BillingWorkflo
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (u *BillingWorkflowConfigUpsert) SetInvoiceDueAfter(v isodate.String) *BillingWorkflowConfigUpsert {
+func (u *BillingWorkflowConfigUpsert) SetInvoiceDueAfter(v datetime.ISODurationString) *BillingWorkflowConfigUpsert {
 	u.Set(billingworkflowconfig.FieldInvoiceDueAfter, v)
 	return u
 }
@@ -763,7 +763,7 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateCollectionAlignment() *BillingWor
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (u *BillingWorkflowConfigUpsertOne) SetLineCollectionPeriod(v isodate.String) *BillingWorkflowConfigUpsertOne {
+func (u *BillingWorkflowConfigUpsertOne) SetLineCollectionPeriod(v datetime.ISODurationString) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.SetLineCollectionPeriod(v)
 	})
@@ -791,7 +791,7 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceAutoAdvance() *BillingWork
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (u *BillingWorkflowConfigUpsertOne) SetInvoiceDraftPeriod(v isodate.String) *BillingWorkflowConfigUpsertOne {
+func (u *BillingWorkflowConfigUpsertOne) SetInvoiceDraftPeriod(v datetime.ISODurationString) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.SetInvoiceDraftPeriod(v)
 	})
@@ -805,7 +805,7 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDraftPeriod() *BillingWork
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (u *BillingWorkflowConfigUpsertOne) SetInvoiceDueAfter(v isodate.String) *BillingWorkflowConfigUpsertOne {
+func (u *BillingWorkflowConfigUpsertOne) SetInvoiceDueAfter(v datetime.ISODurationString) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.SetInvoiceDueAfter(v)
 	})
@@ -1166,7 +1166,7 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateCollectionAlignment() *BillingWo
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetLineCollectionPeriod(v isodate.String) *BillingWorkflowConfigUpsertBulk {
+func (u *BillingWorkflowConfigUpsertBulk) SetLineCollectionPeriod(v datetime.ISODurationString) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.SetLineCollectionPeriod(v)
 	})
@@ -1194,7 +1194,7 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceAutoAdvance() *BillingWor
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceDraftPeriod(v isodate.String) *BillingWorkflowConfigUpsertBulk {
+func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceDraftPeriod(v datetime.ISODurationString) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.SetInvoiceDraftPeriod(v)
 	})
@@ -1208,7 +1208,7 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDraftPeriod() *BillingWor
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceDueAfter(v isodate.String) *BillingWorkflowConfigUpsertBulk {
+func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceDueAfter(v datetime.ISODurationString) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.SetInvoiceDueAfter(v)
 	})

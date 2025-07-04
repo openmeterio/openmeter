@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 type PatchRemovePhase struct {
@@ -62,7 +62,7 @@ func (r PatchRemovePhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subs
 
 		// We have to calculate what to shift by. Note that phase.Duration is misleading, as though it's part of the creation input, it cannot be trusted as it's only present for customizations and edits.
 		deletedPhaseStart, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
-		var nextPhaseStartAfter isodate.Period
+		var nextPhaseStartAfter datetime.ISODuration
 		for _, p := range spec.GetSortedPhases() {
 			if v, _ := p.StartAfter.AddTo(spec.ActiveFrom); v.After(deletedPhaseStart) {
 				nextPhaseStartAfter = p.StartAfter

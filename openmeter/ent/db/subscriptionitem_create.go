@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // SubscriptionItemCreate is the builder for creating a SubscriptionItem entity.
@@ -150,13 +150,13 @@ func (_c *SubscriptionItemCreate) SetNillableRestartsBillingPeriod(v *bool) *Sub
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (_c *SubscriptionItemCreate) SetActiveFromOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemCreate {
+func (_c *SubscriptionItemCreate) SetActiveFromOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemCreate {
 	_c.mutation.SetActiveFromOverrideRelativeToPhaseStart(v)
 	return _c
 }
 
 // SetNillableActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field if the given value is not nil.
-func (_c *SubscriptionItemCreate) SetNillableActiveFromOverrideRelativeToPhaseStart(v *isodate.String) *SubscriptionItemCreate {
+func (_c *SubscriptionItemCreate) SetNillableActiveFromOverrideRelativeToPhaseStart(v *datetime.ISODurationString) *SubscriptionItemCreate {
 	if v != nil {
 		_c.SetActiveFromOverrideRelativeToPhaseStart(*v)
 	}
@@ -164,13 +164,13 @@ func (_c *SubscriptionItemCreate) SetNillableActiveFromOverrideRelativeToPhaseSt
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (_c *SubscriptionItemCreate) SetActiveToOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemCreate {
+func (_c *SubscriptionItemCreate) SetActiveToOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemCreate {
 	_c.mutation.SetActiveToOverrideRelativeToPhaseStart(v)
 	return _c
 }
 
 // SetNillableActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field if the given value is not nil.
-func (_c *SubscriptionItemCreate) SetNillableActiveToOverrideRelativeToPhaseStart(v *isodate.String) *SubscriptionItemCreate {
+func (_c *SubscriptionItemCreate) SetNillableActiveToOverrideRelativeToPhaseStart(v *datetime.ISODurationString) *SubscriptionItemCreate {
 	if v != nil {
 		_c.SetActiveToOverrideRelativeToPhaseStart(*v)
 	}
@@ -224,13 +224,13 @@ func (_c *SubscriptionItemCreate) SetTaxConfig(v *productcatalog.TaxConfig) *Sub
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_c *SubscriptionItemCreate) SetBillingCadence(v isodate.String) *SubscriptionItemCreate {
+func (_c *SubscriptionItemCreate) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemCreate {
 	_c.mutation.SetBillingCadence(v)
 	return _c
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (_c *SubscriptionItemCreate) SetNillableBillingCadence(v *isodate.String) *SubscriptionItemCreate {
+func (_c *SubscriptionItemCreate) SetNillableBillingCadence(v *datetime.ISODurationString) *SubscriptionItemCreate {
 	if v != nil {
 		_c.SetBillingCadence(*v)
 	}
@@ -808,7 +808,7 @@ func (u *SubscriptionItemUpsert) ClearRestartsBillingPeriod() *SubscriptionItemU
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsert) SetActiveFromOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsert {
+func (u *SubscriptionItemUpsert) SetActiveFromOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemUpsert {
 	u.Set(subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, v)
 	return u
 }
@@ -826,7 +826,7 @@ func (u *SubscriptionItemUpsert) ClearActiveFromOverrideRelativeToPhaseStart() *
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsert) SetActiveToOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsert {
+func (u *SubscriptionItemUpsert) SetActiveToOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemUpsert {
 	u.Set(subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, v)
 	return u
 }
@@ -928,7 +928,7 @@ func (u *SubscriptionItemUpsert) ClearTaxConfig() *SubscriptionItemUpsert {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *SubscriptionItemUpsert) SetBillingCadence(v isodate.String) *SubscriptionItemUpsert {
+func (u *SubscriptionItemUpsert) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemUpsert {
 	u.Set(subscriptionitem.FieldBillingCadence, v)
 	return u
 }
@@ -1196,7 +1196,7 @@ func (u *SubscriptionItemUpsertOne) ClearRestartsBillingPeriod() *SubscriptionIt
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsertOne) SetActiveFromOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsertOne {
+func (u *SubscriptionItemUpsertOne) SetActiveFromOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetActiveFromOverrideRelativeToPhaseStart(v)
 	})
@@ -1217,7 +1217,7 @@ func (u *SubscriptionItemUpsertOne) ClearActiveFromOverrideRelativeToPhaseStart(
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsertOne) SetActiveToOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsertOne {
+func (u *SubscriptionItemUpsertOne) SetActiveToOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetActiveToOverrideRelativeToPhaseStart(v)
 	})
@@ -1336,7 +1336,7 @@ func (u *SubscriptionItemUpsertOne) ClearTaxConfig() *SubscriptionItemUpsertOne 
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *SubscriptionItemUpsertOne) SetBillingCadence(v isodate.String) *SubscriptionItemUpsertOne {
+func (u *SubscriptionItemUpsertOne) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetBillingCadence(v)
 	})
@@ -1783,7 +1783,7 @@ func (u *SubscriptionItemUpsertBulk) ClearRestartsBillingPeriod() *SubscriptionI
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsertBulk) SetActiveFromOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsertBulk {
+func (u *SubscriptionItemUpsertBulk) SetActiveFromOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetActiveFromOverrideRelativeToPhaseStart(v)
 	})
@@ -1804,7 +1804,7 @@ func (u *SubscriptionItemUpsertBulk) ClearActiveFromOverrideRelativeToPhaseStart
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsertBulk) SetActiveToOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsertBulk {
+func (u *SubscriptionItemUpsertBulk) SetActiveToOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetActiveToOverrideRelativeToPhaseStart(v)
 	})
@@ -1923,7 +1923,7 @@ func (u *SubscriptionItemUpsertBulk) ClearTaxConfig() *SubscriptionItemUpsertBul
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *SubscriptionItemUpsertBulk) SetBillingCadence(v isodate.String) *SubscriptionItemUpsertBulk {
+func (u *SubscriptionItemUpsertBulk) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetBillingCadence(v)
 	})

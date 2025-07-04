@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // PlanRateCardCreate is the builder for creating a PlanRateCard entity.
@@ -140,13 +140,13 @@ func (_c *PlanRateCardCreate) SetTaxConfig(v *productcatalog.TaxConfig) *PlanRat
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_c *PlanRateCardCreate) SetBillingCadence(v isodate.String) *PlanRateCardCreate {
+func (_c *PlanRateCardCreate) SetBillingCadence(v datetime.ISODurationString) *PlanRateCardCreate {
 	_c.mutation.SetBillingCadence(v)
 	return _c
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (_c *PlanRateCardCreate) SetNillableBillingCadence(v *isodate.String) *PlanRateCardCreate {
+func (_c *PlanRateCardCreate) SetNillableBillingCadence(v *datetime.ISODurationString) *PlanRateCardCreate {
 	if v != nil {
 		_c.SetBillingCadence(*v)
 	}
@@ -672,7 +672,7 @@ func (u *PlanRateCardUpsert) ClearTaxConfig() *PlanRateCardUpsert {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *PlanRateCardUpsert) SetBillingCadence(v isodate.String) *PlanRateCardUpsert {
+func (u *PlanRateCardUpsert) SetBillingCadence(v datetime.ISODurationString) *PlanRateCardUpsert {
 	u.Set(planratecard.FieldBillingCadence, v)
 	return u
 }
@@ -970,7 +970,7 @@ func (u *PlanRateCardUpsertOne) ClearTaxConfig() *PlanRateCardUpsertOne {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *PlanRateCardUpsertOne) SetBillingCadence(v isodate.String) *PlanRateCardUpsertOne {
+func (u *PlanRateCardUpsertOne) SetBillingCadence(v datetime.ISODurationString) *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetBillingCadence(v)
 	})
@@ -1452,7 +1452,7 @@ func (u *PlanRateCardUpsertBulk) ClearTaxConfig() *PlanRateCardUpsertBulk {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *PlanRateCardUpsertBulk) SetBillingCadence(v isodate.String) *PlanRateCardUpsertBulk {
+func (u *PlanRateCardUpsertBulk) SetBillingCadence(v datetime.ISODurationString) *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetBillingCadence(v)
 	})

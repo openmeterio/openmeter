@@ -21,7 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // SubscriptionCreate is the builder for creating a Subscription entity.
@@ -167,7 +167,7 @@ func (_c *SubscriptionCreate) SetBillingAnchor(v time.Time) *SubscriptionCreate 
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_c *SubscriptionCreate) SetBillingCadence(v isodate.String) *SubscriptionCreate {
+func (_c *SubscriptionCreate) SetBillingCadence(v datetime.ISODurationString) *SubscriptionCreate {
 	_c.mutation.SetBillingCadence(v)
 	return _c
 }
@@ -759,7 +759,7 @@ func (u *SubscriptionUpsert) UpdateBillingAnchor() *SubscriptionUpsert {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *SubscriptionUpsert) SetBillingCadence(v isodate.String) *SubscriptionUpsert {
+func (u *SubscriptionUpsert) SetBillingCadence(v datetime.ISODurationString) *SubscriptionUpsert {
 	u.Set(subscription.FieldBillingCadence, v)
 	return u
 }
@@ -993,7 +993,7 @@ func (u *SubscriptionUpsertOne) UpdateBillingAnchor() *SubscriptionUpsertOne {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *SubscriptionUpsertOne) SetBillingCadence(v isodate.String) *SubscriptionUpsertOne {
+func (u *SubscriptionUpsertOne) SetBillingCadence(v datetime.ISODurationString) *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.SetBillingCadence(v)
 	})
@@ -1401,7 +1401,7 @@ func (u *SubscriptionUpsertBulk) UpdateBillingAnchor() *SubscriptionUpsertBulk {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *SubscriptionUpsertBulk) SetBillingCadence(v isodate.String) *SubscriptionUpsertBulk {
+func (u *SubscriptionUpsertBulk) SetBillingCadence(v datetime.ISODurationString) *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.SetBillingCadence(v)
 	})

@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -20,7 +20,7 @@ func TestUsagePeriodValidation(t *testing.T) {
 	t.Run("should be valid", func(t *testing.T) {
 		up := entitlement.NewUsagePeriod([]timeutil.Timed[timeutil.Recurrence]{
 			timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return startTime })(timeutil.Recurrence{
-				Interval: timeutil.RecurrenceInterval{Period: isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)},
+				Interval: timeutil.RecurrenceInterval{ISODuration: datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)},
 				Anchor:   startTime,
 			}),
 		})
@@ -37,7 +37,7 @@ func TestUsagePeriodValidation(t *testing.T) {
 	t.Run("should be invalid if recurrence interval is negative", func(t *testing.T) {
 		up := entitlement.NewUsagePeriod([]timeutil.Timed[timeutil.Recurrence]{
 			timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return startTime })(timeutil.Recurrence{
-				Interval: timeutil.RecurrenceInterval{Period: isodate.NewPeriod(0, 0, 0, 0, -1, 0, 0)},
+				Interval: timeutil.RecurrenceInterval{ISODuration: datetime.NewPeriod(0, 0, 0, 0, -1, 0, 0)},
 				Anchor:   startTime,
 			}),
 		})
@@ -48,7 +48,7 @@ func TestUsagePeriodValidation(t *testing.T) {
 	t.Run("should be invalid if recurrence anchor is zero", func(t *testing.T) {
 		up := entitlement.NewUsagePeriod([]timeutil.Timed[timeutil.Recurrence]{
 			timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return startTime })(timeutil.Recurrence{
-				Interval: timeutil.RecurrenceInterval{Period: isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)},
+				Interval: timeutil.RecurrenceInterval{ISODuration: datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)},
 				Anchor:   time.Time{},
 			}),
 		})
@@ -67,7 +67,7 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 			someTime2 := gofakeit.DateRange(now, now.AddDate(0, 1, 0))
 
 			rec := timeutil.Recurrence{
-				Interval: timeutil.RecurrenceInterval{Period: isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)},
+				Interval: timeutil.RecurrenceInterval{ISODuration: datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)},
 				Anchor:   someTime,
 			}
 

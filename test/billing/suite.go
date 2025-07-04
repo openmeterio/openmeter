@@ -40,8 +40,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
@@ -126,7 +126,7 @@ func (s *BaseSuite) SetupSuite() {
 		MeterService:       s.MeterAdapter,
 		Publisher:          publisher,
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: isodate.String("P1D"),
+			GracePeriod: datetime.ISODurationString("P1D"),
 		},
 		Locker: locker,
 	})
@@ -484,7 +484,7 @@ func WithProgressiveBilling() BillingProfileProvisionOption {
 	})
 }
 
-func WithCollectionInterval(period isodate.Period) BillingProfileProvisionOption {
+func WithCollectionInterval(period datetime.ISODuration) BillingProfileProvisionOption {
 	return WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
 		p.WorkflowConfig.Collection.Interval = period
 	})

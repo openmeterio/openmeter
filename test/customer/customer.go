@@ -19,7 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -233,7 +233,7 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 			PlanMeta: productcatalog.PlanMeta{
 				Name:           "Empty Plan",
 				Currency:       currency.Code("USD"),
-				BillingCadence: isodate.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParse(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -571,7 +571,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 			PlanMeta: productcatalog.PlanMeta{
 				Name:           "Empty Plan",
 				Currency:       currency.Code("USD"),
-				BillingCadence: isodate.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParse(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,

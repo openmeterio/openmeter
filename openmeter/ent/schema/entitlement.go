@@ -12,8 +12,8 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -53,7 +53,7 @@ func (Entitlement) Fields() []ent.Field {
 		field.JSON("config", []byte{}).SchemaType(map[string]string{
 			dialect.Postgres: "jsonb",
 		}).Optional(),
-		field.String("usage_period_interval").GoType(isodate.String("")).Optional().Nillable().Immutable(),
+		field.String("usage_period_interval").GoType(datetime.ISODurationString("")).Optional().Nillable().Immutable(),
 		field.Time("usage_period_anchor").Optional().Nillable().Comment("Historically this field had been overwritten with each anchor reset, now we keep the original anchor time and the value is populated from the last reset which is queried dynamically"),
 		// TODO: get rid of current_usage_period in the db and make it calculated
 		field.Time("current_usage_period_start").Optional().Nillable(),

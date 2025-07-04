@@ -27,9 +27,9 @@ import (
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -139,7 +139,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 			Tracer:                 tracer,
 			Granularity:            time.Minute,
 			Publisher:              mockPublisher,
-			SnapshotGracePeriod:    isodate.MustParse(t, "P1W"),
+			SnapshotGracePeriod:    datetime.MustParse(t, "P1W"),
 			TransactionManager:     transactionManager,
 		},
 	)

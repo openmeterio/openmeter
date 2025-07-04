@@ -22,7 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -87,7 +87,7 @@ func (s *CustomInvoicingTestSuite) setupDefaultBillingProfile(ctx context.Contex
 
 	// Create billing profile
 	s.ProvisionBillingProfile(ctx, namespace, customInvoicingApp.GetID(), billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
-		profile.WorkflowConfig.Invoicing.DraftPeriod = lo.Must(isodate.String("P0D").Parse())
+		profile.WorkflowConfig.Invoicing.DraftPeriod = lo.Must(datetime.ISODurationString("P0D").Parse())
 	}))
 }
 

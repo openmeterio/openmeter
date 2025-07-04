@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -18,8 +18,8 @@ type SubscriptionItem struct {
 
 	// SubscriptionItem doesn't have a separate Cadence, only one relative to the phase, denoting if it's intentionally different from the phase's cadence.
 	// The durations are relative to phase start.
-	ActiveFromOverrideRelativeToPhaseStart *isodate.Period `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
-	ActiveToOverrideRelativeToPhaseStart   *isodate.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
+	ActiveFromOverrideRelativeToPhaseStart *datetime.ISODuration `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
+	ActiveToOverrideRelativeToPhaseStart   *datetime.ISODuration `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
 
 	// The defacto cadence of the item is calculated and persisted after each change.
 	models.CadencedModel `json:",inline"`
@@ -59,8 +59,8 @@ func (i *SubscriptionItem) UnmarshalJSON(b []byte) error {
 		models.ManagedModel  `json:",inline"`
 		models.MetadataModel `json:",inline"`
 
-		ActiveFromOverrideRelativeToPhaseStart *isodate.Period `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
-		ActiveToOverrideRelativeToPhaseStart   *isodate.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
+		ActiveFromOverrideRelativeToPhaseStart *datetime.ISODuration `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
+		ActiveToOverrideRelativeToPhaseStart   *datetime.ISODuration `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
 
 		models.CadencedModel `json:",inline"`
 

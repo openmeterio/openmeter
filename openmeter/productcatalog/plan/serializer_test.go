@@ -11,13 +11,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestPlanSerialization(t *testing.T) {
 	now := time.Now().UTC()
-	duration := isodate.NewPeriod(0, 1, 0, 0, 0, 0, 0) // P1M
+	duration := datetime.NewPeriod(0, 1, 0, 0, 0, 0, 0) // P1M
 
 	plan := Plan{
 		NamespacedID: models.NamespacedID{
@@ -34,7 +34,7 @@ func TestPlanSerialization(t *testing.T) {
 			Metadata: models.Metadata{
 				"key1": "value1",
 			},
-			BillingCadence: isodate.MustParse(t, "P1M"),
+			BillingCadence: datetime.MustParse(t, "P1M"),
 			ProRatingConfig: productcatalog.ProRatingConfig{
 				Enabled: true,
 				Mode:    productcatalog.ProRatingModeProratePrices,

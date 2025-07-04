@@ -6,7 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -202,7 +202,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 // setItemRelativeCadence sets the cadence of an item to match target
 func (d *diffable) setItemRelativeCadence(item *subscription.SubscriptionItemSpec, phaseCadence models.CadencedModel, target timeutil.OpenPeriod) {
 	if target.From != nil {
-		diff := isodate.Between(phaseCadence.ActiveFrom, *target.From)
+		diff := datetime.Between(phaseCadence.ActiveFrom, *target.From)
 
 		if !diff.IsZero() {
 			item.ActiveFromOverrideRelativeToPhaseStart = &diff
@@ -210,7 +210,7 @@ func (d *diffable) setItemRelativeCadence(item *subscription.SubscriptionItemSpe
 	}
 
 	if target.To != nil {
-		diff := isodate.Between(phaseCadence.ActiveFrom, *target.To)
+		diff := datetime.Between(phaseCadence.ActiveFrom, *target.To)
 
 		if phaseCadence.ActiveTo == nil || !target.To.Equal(*phaseCadence.ActiveTo) {
 			item.ActiveToOverrideRelativeToPhaseStart = &diff

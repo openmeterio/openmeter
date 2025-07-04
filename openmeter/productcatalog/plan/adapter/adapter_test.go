@@ -15,11 +15,11 @@ import (
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var MonthPeriod = isodate.NewPeriod(0, 1, 0, 0, 0, 0, 0)
+var MonthPeriod = datetime.NewPeriod(0, 1, 0, 0, 0, 0, 0)
 
 var planPhases = []productcatalog.Phase{
 	{

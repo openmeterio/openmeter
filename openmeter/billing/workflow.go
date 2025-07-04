@@ -3,7 +3,7 @@ package billing
 import (
 	"fmt"
 
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 type WorkflowConfig struct {
@@ -35,8 +35,8 @@ func (c WorkflowConfig) Validate() error {
 
 // CollectionConfig groups fields related to item collection.
 type CollectionConfig struct {
-	Alignment AlignmentKind  `json:"alignment"`
-	Interval  isodate.Period `json:"period,omitempty"`
+	Alignment AlignmentKind        `json:"alignment"`
+	Interval  datetime.ISODuration `json:"period,omitempty"`
 }
 
 func (c *CollectionConfig) Validate() error {
