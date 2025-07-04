@@ -123,7 +123,7 @@ func (s *Service) GetEntitlementValue(ctx context.Context, input customer.GetEnt
 	val, err := s.entitlementConnector.GetEntitlementValue(ctx, input.CustomerID.Namespace, subjectKey, input.FeatureKey, clock.Now())
 	if err != nil {
 		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
-			return entitlement.NoAccessValue{}, nil
+			return &entitlement.NoAccessValue{}, nil
 		}
 
 		return nil, err
