@@ -179,7 +179,7 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 					dbsubscription.ActiveFromLTE(*in.ActiveAt),
 					dbsubscription.Or(
 						dbsubscription.ActiveToIsNil(),
-						dbsubscription.ActiveToGTE(*in.ActiveAt),
+						dbsubscription.ActiveToGT(*in.ActiveAt),
 					),
 				),
 			)
@@ -191,7 +191,7 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 					dbsubscription.ActiveFromLTE(in.ActiveInPeriod.To),
 					dbsubscription.Or(
 						dbsubscription.ActiveToIsNil(),
-						dbsubscription.ActiveToGTE(in.ActiveInPeriod.From),
+						dbsubscription.ActiveToGT(in.ActiveInPeriod.From),
 					),
 				),
 			)

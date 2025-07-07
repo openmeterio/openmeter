@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -26,7 +27,7 @@ func (i ListSubscriptionsInput) Validate() error {
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type SubscriptionList = pagination.PagedResponse[Subscription]
