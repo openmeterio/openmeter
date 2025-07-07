@@ -6,7 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -416,7 +416,7 @@ var ErrDeprecatedUnalignedSubscription = models.NewValidationIssue(
 
 // Plan errors
 
-var ErrPlanBillingCadenceAllowedValues = []isodate.String{
+var ErrPlanBillingCadenceAllowedValues = []datetime.ISODurationString{
 	"P1W",
 	"P2W",
 	"P4W",
@@ -431,7 +431,7 @@ const ErrCodePlanBillingCadenceInvalid models.ErrorCode = "plan_billing_cadence_
 
 var ErrPlanBillingCadenceInvalid = models.NewValidationIssue(
 	ErrCodePlanBillingCadenceInvalid,
-	fmt.Sprintf("billing cadence must be one of the following: %s", strings.Join(lo.Map(ErrPlanBillingCadenceAllowedValues, func(v isodate.String, _ int) string { return v.String() }), ", ")),
+	fmt.Sprintf("billing cadence must be one of the following: %s", strings.Join(lo.Map(ErrPlanBillingCadenceAllowedValues, func(v datetime.ISODurationString, _ int) string { return v.String() }), ", ")),
 	models.WithFieldString("billingCadence"),
 	models.WithCriticalSeverity(),
 )

@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -78,19 +78,19 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 			return nil, fmt.Errorf("failed to cast to EditSubscriptionAddPhase: %w", err)
 		}
 
-		var sa isodate.Period
+		var sa datetime.ISODuration
 		if apiP.Phase.StartAfter != nil {
-			saStr := isodate.String(*apiP.Phase.StartAfter)
+			saStr := datetime.ISODurationString(*apiP.Phase.StartAfter)
 			sa, err = saStr.Parse()
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse start after: %w", err)
 			}
 		}
 
-		var dur *isodate.Period
+		var dur *datetime.ISODuration
 
 		if apiP.Phase.Duration != nil {
-			dS := isodate.String(*apiP.Phase.Duration)
+			dS := datetime.ISODurationString(*apiP.Phase.Duration)
 			d, err := dS.Parse()
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse duration: %w", err)
@@ -145,7 +145,7 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 			return nil, fmt.Errorf("failed to cast to EditSubscriptionStretchPhase: %w", err)
 		}
 
-		durStr := isodate.String(apiP.ExtendBy)
+		durStr := datetime.ISODurationString(apiP.ExtendBy)
 		d, err := durStr.Parse()
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse duration: %w", err)
@@ -469,7 +469,7 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
 
-	req.PlanMeta.BillingCadence, err = isodate.String(a.BillingCadence).Parse()
+	req.PlanMeta.BillingCadence, err = datetime.ISODurationString(a.BillingCadence).Parse()
 	if err != nil {
 		return req, fmt.Errorf("invalid BillingCadence: %w", err)
 	}

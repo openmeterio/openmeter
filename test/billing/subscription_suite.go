@@ -42,8 +42,8 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 type SubscriptionMixin struct {
@@ -240,7 +240,7 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 			Granularity:            time.Minute,
 			Publisher:              mockPublisher,
 			TransactionManager:     transactionManager,
-			SnapshotGracePeriod:    isodate.MustParse(t, "P1W"),
+			SnapshotGracePeriod:    datetime.MustParse(t, "P1W"),
 		},
 	)
 

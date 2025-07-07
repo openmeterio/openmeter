@@ -17,12 +17,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var MonthPeriod = isodate.NewPeriod(0, 1, 0, 0, 0, 0, 0)
+var MonthPeriod = datetime.NewPeriod(0, 1, 0, 0, 0, 0, 0)
 
 func TestPostgresAdapter(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())

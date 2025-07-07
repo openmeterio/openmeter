@@ -7,7 +7,7 @@ import (
 	"entgo.io/ent/schema/mixin"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 type RateCard struct {
@@ -43,7 +43,7 @@ func (RateCard) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.String("billing_cadence").
-			GoType(isodate.String("")).
+			GoType(datetime.ISODurationString("")).
 			Optional().
 			Nillable(),
 		field.String("price").

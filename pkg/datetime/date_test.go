@@ -1,4 +1,4 @@
-package isodate_test
+package datetime_test
 
 import (
 	"testing"
@@ -6,14 +6,14 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 func TestISOOperations(t *testing.T) {
 	t.Run("Parse", func(t *testing.T) {
 		isoDuration := "P1Y2M3DT4H5M6S"
 
-		period, err := isodate.String(isoDuration).Parse()
+		period, err := datetime.ISODurationString(isoDuration).Parse()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -29,14 +29,14 @@ func TestISOOperations(t *testing.T) {
 	t.Run("ParseError", func(t *testing.T) {
 		isoDuration := "P1Y2M3DT4H5M6SX"
 
-		_, err := isodate.String(isoDuration).Parse()
+		_, err := datetime.ISODurationString(isoDuration).Parse()
 		assert.NotNil(t, err)
 	})
 
 	t.Run("Works with 0 duration", func(t *testing.T) {
 		isoDuration := "PT0S"
 
-		period, err := isodate.String(isoDuration).Parse()
+		period, err := datetime.ISODurationString(isoDuration).Parse()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -53,18 +53,18 @@ func TestISOOperations(t *testing.T) {
 		isoDuration1 := "PT5M"
 		isoDuration2 := "PT1M1S"
 
-		period1, err := isodate.String(isoDuration1).Parse()
+		period1, err := datetime.ISODurationString(isoDuration1).Parse()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		period2, err := isodate.String(isoDuration2).Parse()
+		period2, err := datetime.ISODurationString(isoDuration2).Parse()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		expectedS := "PT6M1S"
-		expected, err := isodate.String(expectedS).Parse()
+		expected, err := datetime.ISODurationString(expectedS).Parse()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -503,10 +503,10 @@ func TestDivisibleBy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			larger, err := isodate.String(tt.larger).Parse()
+			larger, err := datetime.ISODurationString(tt.larger).Parse()
 			assert.NoError(t, err)
 
-			smaller, err := isodate.String(tt.smaller).Parse()
+			smaller, err := datetime.ISODurationString(tt.smaller).Parse()
 			assert.NoError(t, err)
 
 			result, err := larger.DivisibleBy(smaller)

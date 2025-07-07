@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // SubscriptionItemUpdate is the builder for updating SubscriptionItem entities.
@@ -158,13 +158,13 @@ func (_u *SubscriptionItemUpdate) ClearRestartsBillingPeriod() *SubscriptionItem
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (_u *SubscriptionItemUpdate) SetActiveFromOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpdate {
+func (_u *SubscriptionItemUpdate) SetActiveFromOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemUpdate {
 	_u.mutation.SetActiveFromOverrideRelativeToPhaseStart(v)
 	return _u
 }
 
 // SetNillableActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field if the given value is not nil.
-func (_u *SubscriptionItemUpdate) SetNillableActiveFromOverrideRelativeToPhaseStart(v *isodate.String) *SubscriptionItemUpdate {
+func (_u *SubscriptionItemUpdate) SetNillableActiveFromOverrideRelativeToPhaseStart(v *datetime.ISODurationString) *SubscriptionItemUpdate {
 	if v != nil {
 		_u.SetActiveFromOverrideRelativeToPhaseStart(*v)
 	}
@@ -178,13 +178,13 @@ func (_u *SubscriptionItemUpdate) ClearActiveFromOverrideRelativeToPhaseStart() 
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (_u *SubscriptionItemUpdate) SetActiveToOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpdate {
+func (_u *SubscriptionItemUpdate) SetActiveToOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemUpdate {
 	_u.mutation.SetActiveToOverrideRelativeToPhaseStart(v)
 	return _u
 }
 
 // SetNillableActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field if the given value is not nil.
-func (_u *SubscriptionItemUpdate) SetNillableActiveToOverrideRelativeToPhaseStart(v *isodate.String) *SubscriptionItemUpdate {
+func (_u *SubscriptionItemUpdate) SetNillableActiveToOverrideRelativeToPhaseStart(v *datetime.ISODurationString) *SubscriptionItemUpdate {
 	if v != nil {
 		_u.SetActiveToOverrideRelativeToPhaseStart(*v)
 	}
@@ -276,13 +276,13 @@ func (_u *SubscriptionItemUpdate) ClearTaxConfig() *SubscriptionItemUpdate {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_u *SubscriptionItemUpdate) SetBillingCadence(v isodate.String) *SubscriptionItemUpdate {
+func (_u *SubscriptionItemUpdate) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemUpdate {
 	_u.mutation.SetBillingCadence(v)
 	return _u
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (_u *SubscriptionItemUpdate) SetNillableBillingCadence(v *isodate.String) *SubscriptionItemUpdate {
+func (_u *SubscriptionItemUpdate) SetNillableBillingCadence(v *datetime.ISODurationString) *SubscriptionItemUpdate {
 	if v != nil {
 		_u.SetBillingCadence(*v)
 	}
@@ -865,13 +865,13 @@ func (_u *SubscriptionItemUpdateOne) ClearRestartsBillingPeriod() *SubscriptionI
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (_u *SubscriptionItemUpdateOne) SetActiveFromOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpdateOne {
+func (_u *SubscriptionItemUpdateOne) SetActiveFromOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	_u.mutation.SetActiveFromOverrideRelativeToPhaseStart(v)
 	return _u
 }
 
 // SetNillableActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field if the given value is not nil.
-func (_u *SubscriptionItemUpdateOne) SetNillableActiveFromOverrideRelativeToPhaseStart(v *isodate.String) *SubscriptionItemUpdateOne {
+func (_u *SubscriptionItemUpdateOne) SetNillableActiveFromOverrideRelativeToPhaseStart(v *datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	if v != nil {
 		_u.SetActiveFromOverrideRelativeToPhaseStart(*v)
 	}
@@ -885,13 +885,13 @@ func (_u *SubscriptionItemUpdateOne) ClearActiveFromOverrideRelativeToPhaseStart
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (_u *SubscriptionItemUpdateOne) SetActiveToOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpdateOne {
+func (_u *SubscriptionItemUpdateOne) SetActiveToOverrideRelativeToPhaseStart(v datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	_u.mutation.SetActiveToOverrideRelativeToPhaseStart(v)
 	return _u
 }
 
 // SetNillableActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field if the given value is not nil.
-func (_u *SubscriptionItemUpdateOne) SetNillableActiveToOverrideRelativeToPhaseStart(v *isodate.String) *SubscriptionItemUpdateOne {
+func (_u *SubscriptionItemUpdateOne) SetNillableActiveToOverrideRelativeToPhaseStart(v *datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	if v != nil {
 		_u.SetActiveToOverrideRelativeToPhaseStart(*v)
 	}
@@ -983,13 +983,13 @@ func (_u *SubscriptionItemUpdateOne) ClearTaxConfig() *SubscriptionItemUpdateOne
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (_u *SubscriptionItemUpdateOne) SetBillingCadence(v isodate.String) *SubscriptionItemUpdateOne {
+func (_u *SubscriptionItemUpdateOne) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	_u.mutation.SetBillingCadence(v)
 	return _u
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (_u *SubscriptionItemUpdateOne) SetNillableBillingCadence(v *isodate.String) *SubscriptionItemUpdateOne {
+func (_u *SubscriptionItemUpdateOne) SetNillableBillingCadence(v *datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	if v != nil {
 		_u.SetBillingCadence(*v)
 	}

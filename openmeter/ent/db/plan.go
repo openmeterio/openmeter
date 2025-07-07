@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // Plan is the model entity for the Plan schema.
@@ -41,7 +41,7 @@ type Plan struct {
 	// Currency holds the value of the "currency" field.
 	Currency string `json:"currency,omitempty"`
 	// The default billing cadence for subscriptions using this plan.
-	BillingCadence isodate.String `json:"billing_cadence,omitempty"`
+	BillingCadence datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Default pro-rating configuration for subscriptions using this plan.
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config,omitempty"`
 	// EffectiveFrom holds the value of the "effective_from" field.
@@ -198,7 +198,7 @@ func (_m *Plan) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
 			} else if value.Valid {
-				_m.BillingCadence = isodate.String(value.String)
+				_m.BillingCadence = datetime.ISODurationString(value.String)
 			}
 		case plan.FieldProRatingConfig:
 			if value, err := plan.ValueScanner.ProRatingConfig.FromValue(values[i]); err != nil {

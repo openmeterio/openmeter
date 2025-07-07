@@ -19,7 +19,7 @@ import (
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -426,12 +426,12 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
 				Alignment: billing.AlignmentKindSubscription,
-				Interval:  isodate.MustParse(t, "PT30M"),
+				Interval:  datetime.MustParse(t, "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
-				DraftPeriod: isodate.MustParse(t, "PT1H"),
-				DueAfter:    isodate.MustParse(t, "PT24H"),
+				DraftPeriod: datetime.MustParse(t, "PT1H"),
+				DueAfter:    datetime.MustParse(t, "PT24H"),
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodChargeAutomatically,

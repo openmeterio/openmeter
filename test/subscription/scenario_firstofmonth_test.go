@@ -20,7 +20,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -54,7 +54,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 				Name:           "Test Plan",
 				Key:            "test_plan",
 				Currency:       "USD",
-				BillingCadence: isodate.MustParse(t, "P1M"), // Let's do monthly billing
+				BillingCadence: datetime.MustParse(t, "P1M"), // Let's do monthly billing
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -197,13 +197,13 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 	t.Run("entitlements", func(t *testing.T) {
 		// Let's check the UsagePeriods are aligned
 		ent1 := view.Phases[0].ItemsByKey[feats[0].Key][0].Entitlement
-		require.Equal(t, testutils.GetISODuration(t, "P1M"), ent1.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.Period)
+		require.Equal(t, testutils.GetISODuration(t, "P1M"), ent1.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.ISODuration)
 
 		require.Equal(t, firstOfMonth, ent1.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Anchor)
 		require.Equal(t, startOfSub, ent1.Entitlement.MeasureUsageFrom.UTC())
 
 		ent2 := view.Phases[0].ItemsByKey[feats[2].Key][0].Entitlement
-		require.Equal(t, testutils.GetISODuration(t, "P1D"), ent2.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.Period)
+		require.Equal(t, testutils.GetISODuration(t, "P1D"), ent2.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.ISODuration)
 
 		require.Equal(t, firstOfMonth, ent2.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Anchor)
 		require.Equal(t, startOfSub, ent2.Entitlement.MeasureUsageFrom.UTC())

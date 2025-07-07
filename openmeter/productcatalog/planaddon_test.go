@@ -10,15 +10,15 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestPlanAddon_ValidationErrors(t *testing.T) {
 	var (
-		trialPeriod      = isodate.MustParse(t, "P14D")
-		oneMonthPeriod   = isodate.MustParse(t, "P1M")
-		threeMonthPeriod = isodate.MustParse(t, "P3M")
+		trialPeriod      = datetime.MustParse(t, "P14D")
+		oneMonthPeriod   = datetime.MustParse(t, "P1M")
+		threeMonthPeriod = datetime.MustParse(t, "P3M")
 	)
 
 	tests := []struct {
@@ -44,7 +44,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Version:        1,
 						Name:           "Pro",
 						Currency:       currency.USD,
-						BillingCadence: isodate.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParse(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
 							Mode:    ProRatingModeProratePrices,
@@ -209,7 +209,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Version:        2,
 						Name:           "Pro",
 						Currency:       currency.USD,
-						BillingCadence: isodate.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParse(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
 							Mode:    ProRatingModeProratePrices,
@@ -401,7 +401,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Version:        2,
 						Name:           "Pro",
 						Currency:       currency.USD,
-						BillingCadence: isodate.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParse(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
 							Mode:    ProRatingModeProratePrices,

@@ -14,8 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 var (
@@ -123,13 +123,13 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 		field.Enum("collection_alignment").
 			GoType(billing.AlignmentKind("")),
 
-		field.String("line_collection_period").GoType(isodate.String("")),
+		field.String("line_collection_period").GoType(datetime.ISODurationString("")),
 
 		field.Bool("invoice_auto_advance"),
 
-		field.String("invoice_draft_period").GoType(isodate.String("")),
+		field.String("invoice_draft_period").GoType(datetime.ISODurationString("")),
 
-		field.String("invoice_due_after").GoType(isodate.String("")),
+		field.String("invoice_due_after").GoType(datetime.ISODurationString("")),
 
 		field.Enum("invoice_collection_method").
 			GoType(billing.CollectionMethod("")),
@@ -201,7 +201,7 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			Nillable(),
 
 		field.String("line_collection_period").
-			GoType(isodate.String("")).
+			GoType(datetime.ISODurationString("")).
 			Optional().
 			Nillable(),
 
@@ -210,12 +210,12 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			Nillable(),
 
 		field.String("invoice_draft_period").
-			GoType(isodate.String("")).
+			GoType(datetime.ISODurationString("")).
 			Optional().
 			Nillable(),
 
 		field.String("invoice_due_after").
-			GoType(isodate.String("")).
+			GoType(datetime.ISODurationString("")).
 			Optional().
 			Nillable(),
 

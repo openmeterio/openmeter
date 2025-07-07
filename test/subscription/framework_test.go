@@ -25,7 +25,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -165,12 +165,12 @@ func minimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInp
 				Alignment: billing.AlignmentKindSubscription,
 				// We set the interval to 0 so that the invoice is collected immediately, testcases
 				// validating the collection logic can set a different interval
-				Interval: lo.Must(isodate.String("PT0S").Parse()),
+				Interval: lo.Must(datetime.ISODurationString("PT0S").Parse()),
 			},
 			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
-				DraftPeriod: lo.Must(isodate.String("P1D").Parse()),
-				DueAfter:    lo.Must(isodate.String("P1W").Parse()),
+				DraftPeriod: lo.Must(datetime.ISODurationString("P1D").Parse()),
+				DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodChargeAutomatically,

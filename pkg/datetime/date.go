@@ -1,6 +1,4 @@
-// Package datex is a wrapper around github.com/rickb777/date/v2 and github.com/rickb777/period
-// so we don't depend on it directly.
-package isodate
+package datetime
 
 import (
 	"fmt"
@@ -15,21 +13,21 @@ import (
 
 const MAX_SAFE_ITERATION_COUNT = 1_000_000
 
-type String period.ISOString
+type ISODurationString period.ISOString
 
-func (i String) Parse() (Period, error) {
+func (i ISODurationString) Parse() (ISODuration, error) {
 	res, err := period.Parse(string(i))
-	return Period{res}, err
+	return ISODuration{res}, err
 }
 
-func NewPeriod(years, months, weeks, days, hours, minutes, seconds int) Period {
-	return Period{
+func NewPeriod(years, months, weeks, days, hours, minutes, seconds int) ISODuration {
+	return ISODuration{
 		period.New(years, months, weeks, days, hours, minutes, seconds),
 	}
 }
 
 // ParsePtrOrNil parses the ISO8601 string representation of the period or if ISOString is nil, returns nil
-func (i *String) ParsePtrOrNil() (*Period, error) {
+func (i *ISODurationString) ParsePtrOrNil() (*ISODuration, error) {
 	if i == nil {
 		return nil, nil
 	}
@@ -42,26 +40,27 @@ func (i *String) ParsePtrOrNil() (*Period, error) {
 	return lo.ToPtr(d), nil
 }
 
-func (i String) String() string {
+func (i ISODurationString) String() string {
 	return string(i)
 }
 
-type Period struct {
+// ISODuration is a wrapper around github.com/rickb777/period so we don't depend on it directly.
+type ISODuration struct {
 	period.Period
 }
 
 // FIXME: clean up add and subtract
 
-func (p Period) Normalise(exact bool) Period {
-	return Period{p.Period.Normalise(exact)}
+func (p ISODuration) Normalise(exact bool) ISODuration {
+	return ISODuration{p.Period.Normalise(exact)}
 }
 
-func (p Period) Simplify(exact bool) Period {
-	return Period{p.Period.Simplify(exact)}
+func (p ISODuration) Simplify(exact bool) ISODuration {
+	return ISODuration{p.Period.Simplify(exact)}
 }
 
 // InHours returns the value of the period in hours
-func (p Period) InHours(daysInMonth int) (alpacadecimal.Decimal, error) {
+func (p ISODuration) InHours(daysInMonth int) (alpacadecimal.Decimal, error) {
 	zero := alpacadecimal.NewFromInt(0)
 
 	// You might be thinking, a year is supposed to be 365 or 366 days, not 372 or 360 or 348 or 336
@@ -114,28 +113,28 @@ func (p Period) InHours(daysInMonth int) (alpacadecimal.Decimal, error) {
 	return alpacadecimal.NewFromInt(whole), nil
 }
 
-func (p Period) Add(p2 Period) (Period, error) {
+func (p ISODuration) Add(p2 ISODuration) (ISODuration, error) {
 	s2 := period.ISOString(p2.String())
 	per2, err := period.Parse(string(s2))
 	if err != nil {
-		return Period{}, err
+		return ISODuration{}, err
 	}
 	p3, err := p.Period.Add(per2)
-	return Period{p3}, err
+	return ISODuration{p3}, err
 }
 
-func (p Period) Subtract(p2 Period) (Period, error) {
+func (p ISODuration) Subtract(p2 ISODuration) (ISODuration, error) {
 	s2 := period.ISOString(p2.String())
 	per2, err := period.Parse(string(s2))
 	if err != nil {
-		return Period{}, err
+		return ISODuration{}, err
 	}
 	p3, err := p.Period.Subtract(per2)
-	return Period{p3}, err
+	return ISODuration{p3}, err
 }
 
 // DivisibleBy returns true if the period is divisible by the smaller period (in hours).
-func (p Period) DivisibleBy(smaller Period) (bool, error) {
+func (p ISODuration) DivisibleBy(smaller ISODuration) (bool, error) {
 	l := p.Simplify(true)
 	s := smaller.Simplify(true)
 
@@ -167,23 +166,23 @@ func (p Period) DivisibleBy(smaller Period) (bool, error) {
 	return true, nil
 }
 
-func Between(start time.Time, end time.Time) Period {
+func Between(start time.Time, end time.Time) ISODuration {
 	per := period.Between(start, end)
-	return Period{per}
+	return ISODuration{per}
 }
 
 // FromDuration creates an IMPRECISE Period from a time.Duration
-func FromDuration(d time.Duration) Period {
-	return Period{period.NewOf(d).Normalise(false).Simplify(false)}
+func FromDuration(d time.Duration) ISODuration {
+	return ISODuration{period.NewOf(d).Normalise(false).Simplify(false)}
 }
 
 // ISOString() returns the ISO8601 string representation of the period
-func (p Period) ISOString() String {
-	return String(p.Period.String())
+func (p ISODuration) ISOString() ISODurationString {
+	return ISODurationString(p.Period.String())
 }
 
 // ISOStringPtrOrNil() returns the ISO8601 string representation of the period or if Period is nil, returns nil
-func (d *Period) ISOStringPtrOrNil() *String {
+func (d *ISODuration) ISOStringPtrOrNil() *ISODurationString {
 	if d == nil {
 		return nil
 	}
@@ -192,7 +191,7 @@ func (d *Period) ISOStringPtrOrNil() *String {
 }
 
 // Equal returns true if the two periods are equal
-func (p *Period) Equal(v *Period) bool {
+func (p *ISODuration) Equal(v *ISODuration) bool {
 	if p == nil && v == nil {
 		return true
 	}
@@ -204,11 +203,11 @@ func (p *Period) Equal(v *Period) bool {
 	return p.String() == v.String()
 }
 
-func MustParse(t *testing.T, s string) Period {
+func MustParse(t *testing.T, s string) ISODuration {
 	res, err := period.Parse(s)
 	if err != nil {
 		t.Fatalf("failed to parse period: %v", err)
 	}
 
-	return Period{res}
+	return ISODuration{res}
 }

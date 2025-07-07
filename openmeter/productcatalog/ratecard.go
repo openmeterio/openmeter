@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -37,7 +37,7 @@ type RateCard interface {
 	ChangeMeta(func(m RateCardMeta) (RateCardMeta, error)) error
 	Clone() RateCard
 	Compatible(RateCard) error
-	GetBillingCadence() *isodate.Period
+	GetBillingCadence() *datetime.ISODuration
 	IsBillable() bool
 }
 
@@ -239,7 +239,7 @@ type FlatFeeRateCard struct {
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// When nil (null) it means it is a one time fee.
 	// Example: "P1D12H"
-	BillingCadence *isodate.Period `json:"billingCadence"`
+	BillingCadence *datetime.ISODuration `json:"billingCadence"`
 }
 
 func (r *FlatFeeRateCard) Compatible(v RateCard) error {
@@ -249,7 +249,7 @@ func (r *FlatFeeRateCard) Compatible(v RateCard) error {
 	}.Validate()
 }
 
-func (r *FlatFeeRateCard) GetBillingCadence() *isodate.Period {
+func (r *FlatFeeRateCard) GetBillingCadence() *datetime.ISODuration {
 	return r.BillingCadence
 }
 
@@ -329,7 +329,7 @@ func (r *FlatFeeRateCard) Validate() error {
 		}
 
 		// Billing Cadence has to be at least 1 hour
-		if per, err := r.BillingCadence.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		if per, err := r.BillingCadence.Subtract(datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 			errs = append(errs, ErrBillingCadenceInvalidValue)
 		}
 	}
@@ -362,7 +362,7 @@ func (r *FlatFeeRateCard) MarshalJSON() ([]byte, error) {
 	serde := struct {
 		RateCardSerde
 		RateCardMeta
-		BillingCadence *isodate.Period `json:"billingCadence"`
+		BillingCadence *datetime.ISODuration `json:"billingCadence"`
 	}{
 		RateCardMeta:   r.RateCardMeta,
 		BillingCadence: r.BillingCadence,
@@ -384,7 +384,7 @@ type UsageBasedRateCard struct {
 
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// Example: "P1D12H"
-	BillingCadence isodate.Period `json:"billingCadence"`
+	BillingCadence datetime.ISODuration `json:"billingCadence"`
 }
 
 func (r *UsageBasedRateCard) Compatible(v RateCard) error {
@@ -394,7 +394,7 @@ func (r *UsageBasedRateCard) Compatible(v RateCard) error {
 	}.Validate()
 }
 
-func (r *UsageBasedRateCard) GetBillingCadence() *isodate.Period {
+func (r *UsageBasedRateCard) GetBillingCadence() *datetime.ISODuration {
 	return &r.BillingCadence
 }
 
@@ -482,7 +482,7 @@ func (r *UsageBasedRateCard) Validate() error {
 	}
 
 	// Billing Cadence has to be at least 1 hour
-	if per, err := r.BillingCadence.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+	if per, err := r.BillingCadence.Subtract(datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 		errs = append(errs, ErrBillingCadenceInvalidValue)
 	}
 
@@ -497,7 +497,7 @@ func (r *UsageBasedRateCard) MarshalJSON() ([]byte, error) {
 	serde := struct {
 		RateCardSerde
 		RateCardMeta
-		BillingCadence isodate.Period `json:"billingCadence"`
+		BillingCadence datetime.ISODuration `json:"billingCadence"`
 	}{
 		RateCardMeta:   r.RateCardMeta,
 		BillingCadence: r.BillingCadence,
@@ -542,7 +542,7 @@ func (c RateCards) Billables() RateCards {
 
 // SingleBillingCadence returns true if all ratecards in the collection has the same billing cadence.
 func (c RateCards) SingleBillingCadence() bool {
-	m := make(map[isodate.String]struct{})
+	m := make(map[datetime.ISODurationString]struct{})
 
 	for _, rc := range c {
 		// An effective price of 0 is still counted as a billable item

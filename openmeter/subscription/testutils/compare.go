@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -111,7 +111,7 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 					// Entitlement UsagePeriod should be aligned to the subscription billing anchor, which means
 					truncatedBillingAnchor := found.Subscription.BillingAnchor.Truncate(time.Minute) // Due to minute precision
 					// - its duration should be identical
-					entPeriod := ent.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.Period
+					entPeriod := ent.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.ISODuration
 					assert.True(t, entPeriod.Equal(period), "usage period interval mismatch, expected %s, got %s", period, entPeriod)
 					// - its anchor should be "aligned" with the subscription's billingAnchor
 					require.NotNil(t, ent.Entitlement.UsagePeriod)
@@ -254,7 +254,7 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 	}
 }
 
-func tsPlusNillableISO(ts time.Time, iso *isodate.Period) *time.Time {
+func tsPlusNillableISO(ts time.Time, iso *datetime.ISODuration) *time.Time {
 	if iso == nil {
 		return nil
 	}

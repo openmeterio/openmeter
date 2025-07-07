@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 type PatchAddPhase struct {
@@ -72,7 +72,7 @@ func (a PatchAddPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subscri
 	// To achieve this, we determine the difference between the next already scheduled phase's start and the duration, then add that difference to all later phases. Note that this difference is signed.
 
 	sortedPhases := spec.GetSortedPhases()
-	var diff isodate.Period
+	var diff datetime.ISODuration
 
 	for i := range sortedPhases {
 		p := sortedPhases[i]

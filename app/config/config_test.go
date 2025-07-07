@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/redis"
@@ -148,7 +148,7 @@ func TestComplete(t *testing.T) {
 			AsyncInsertWait: false,
 		},
 		Entitlements: EntitlementsConfiguration{
-			GracePeriod: isodate.String("P1D"),
+			GracePeriod: datetime.ISODurationString("P1D"),
 		},
 		Billing: BillingConfiguration{
 			AdvancementStrategy:          billing.ForegroundAdvancementStrategy,

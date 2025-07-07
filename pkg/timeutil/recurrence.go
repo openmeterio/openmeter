@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 const MAX_SAFE_ITERATIONS = 10000
@@ -20,7 +20,7 @@ type Recurrence struct {
 func (r Recurrence) Validate() error {
 	var errs []error
 
-	if r.Interval.Period.Sign() != 1 {
+	if r.Interval.ISODuration.Sign() != 1 {
 		errs = append(errs, fmt.Errorf("recurrence interval must be positive"))
 	}
 
@@ -169,17 +169,17 @@ func (r Recurrence) Prev(t time.Time) (time.Time, error) {
 }
 
 type RecurrenceInterval struct {
-	isodate.Period
+	datetime.ISODuration
 }
 
 var (
-	RecurrencePeriodDaily RecurrenceInterval = RecurrenceInterval{isodate.NewPeriod(0, 0, 0, 1, 0, 0, 0)}
-	RecurrencePeriodWeek  RecurrenceInterval = RecurrenceInterval{isodate.NewPeriod(0, 0, 1, 0, 0, 0, 0)}
-	RecurrencePeriodMonth RecurrenceInterval = RecurrenceInterval{isodate.NewPeriod(0, 1, 0, 0, 0, 0, 0)}
-	RecurrencePeriodYear  RecurrenceInterval = RecurrenceInterval{isodate.NewPeriod(1, 0, 0, 0, 0, 0, 0)}
+	RecurrencePeriodDaily RecurrenceInterval = RecurrenceInterval{datetime.NewPeriod(0, 0, 0, 1, 0, 0, 0)}
+	RecurrencePeriodWeek  RecurrenceInterval = RecurrenceInterval{datetime.NewPeriod(0, 0, 1, 0, 0, 0, 0)}
+	RecurrencePeriodMonth RecurrenceInterval = RecurrenceInterval{datetime.NewPeriod(0, 1, 0, 0, 0, 0, 0)}
+	RecurrencePeriodYear  RecurrenceInterval = RecurrenceInterval{datetime.NewPeriod(1, 0, 0, 0, 0, 0, 0)}
 )
 
-func RecurrenceFromISODuration(p *isodate.Period, anchor time.Time) (Recurrence, error) {
+func RecurrenceFromISODuration(p *datetime.ISODuration, anchor time.Time) (Recurrence, error) {
 	if p == nil {
 		return Recurrence{}, fmt.Errorf("period cannot be nil")
 	}

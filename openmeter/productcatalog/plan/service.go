@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -153,7 +153,7 @@ type UpdatePlanInput struct {
 	Metadata *models.Metadata `json:"metadata,omitempty"`
 
 	// BillingCadence is the default billing cadence for subscriptions using this plan
-	BillingCadence *isodate.Period `json:"billingCadence,omitempty"`
+	BillingCadence *datetime.ISODuration `json:"billingCadence,omitempty"`
 
 	// ProRatingConfig is the default pro-rating configuration for subscriptions using this plan
 	ProRatingConfig *productcatalog.ProRatingConfig `json:"proRatingConfig,omitempty"`
