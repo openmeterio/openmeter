@@ -505,35 +505,35 @@ func init() {
 	// billinginvoiceflatfeelineconfig.DefaultID holds the default value on creation for the id field.
 	billinginvoiceflatfeelineconfig.DefaultID = billinginvoiceflatfeelineconfigDescID.Default.(func() string)
 	billinginvoicelineMixin := schema.BillingInvoiceLine{}.Mixin()
-	billinginvoicelineMixinFields0 := billinginvoicelineMixin[0].Fields()
-	_ = billinginvoicelineMixinFields0
 	billinginvoicelineMixinFields1 := billinginvoicelineMixin[1].Fields()
 	_ = billinginvoicelineMixinFields1
+	billinginvoicelineMixinFields2 := billinginvoicelineMixin[2].Fields()
+	_ = billinginvoicelineMixinFields2
 	billinginvoicelineFields := schema.BillingInvoiceLine{}.Fields()
 	_ = billinginvoicelineFields
 	// billinginvoicelineDescNamespace is the schema descriptor for namespace field.
-	billinginvoicelineDescNamespace := billinginvoicelineMixinFields0[1].Descriptor()
+	billinginvoicelineDescNamespace := billinginvoicelineMixinFields1[1].Descriptor()
 	// billinginvoiceline.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billinginvoiceline.NamespaceValidator = billinginvoicelineDescNamespace.Validators[0].(func(string) error)
 	// billinginvoicelineDescCreatedAt is the schema descriptor for created_at field.
-	billinginvoicelineDescCreatedAt := billinginvoicelineMixinFields0[3].Descriptor()
+	billinginvoicelineDescCreatedAt := billinginvoicelineMixinFields1[3].Descriptor()
 	// billinginvoiceline.DefaultCreatedAt holds the default value on creation for the created_at field.
 	billinginvoiceline.DefaultCreatedAt = billinginvoicelineDescCreatedAt.Default.(func() time.Time)
 	// billinginvoicelineDescUpdatedAt is the schema descriptor for updated_at field.
-	billinginvoicelineDescUpdatedAt := billinginvoicelineMixinFields0[4].Descriptor()
+	billinginvoicelineDescUpdatedAt := billinginvoicelineMixinFields1[4].Descriptor()
 	// billinginvoiceline.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	billinginvoiceline.DefaultUpdatedAt = billinginvoicelineDescUpdatedAt.Default.(func() time.Time)
 	// billinginvoiceline.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billinginvoiceline.UpdateDefaultUpdatedAt = billinginvoicelineDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// billinginvoicelineDescCurrency is the schema descriptor for currency field.
-	billinginvoicelineDescCurrency := billinginvoicelineMixinFields1[0].Descriptor()
+	billinginvoicelineDescCurrency := billinginvoicelineMixinFields2[0].Descriptor()
 	// billinginvoiceline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoiceline.CurrencyValidator = billinginvoicelineDescCurrency.Validators[0].(func(string) error)
 	// billinginvoicelineDescRatecardDiscounts is the schema descriptor for ratecard_discounts field.
 	billinginvoicelineDescRatecardDiscounts := billinginvoicelineFields[9].Descriptor()
 	billinginvoiceline.ValueScanner.RatecardDiscounts = billinginvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// billinginvoicelineDescID is the schema descriptor for id field.
-	billinginvoicelineDescID := billinginvoicelineMixinFields0[0].Descriptor()
+	billinginvoicelineDescID := billinginvoicelineMixinFields1[0].Descriptor()
 	// billinginvoiceline.DefaultID holds the default value on creation for the id field.
 	billinginvoiceline.DefaultID = billinginvoicelineDescID.Default.(func() string)
 	billinginvoicelinediscountMixin := schema.BillingInvoiceLineDiscount{}.Mixin()

@@ -660,12 +660,12 @@ func (_q *BillingInvoiceLineQuery) WithSubscriptionItem(opts ...func(*Subscripti
 // Example:
 //
 //	var v []struct {
-//		Namespace string `json:"namespace,omitempty"`
+//		Annotations map[string]interface {} `json:"annotations,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.BillingInvoiceLine.Query().
-//		GroupBy(billinginvoiceline.FieldNamespace).
+//		GroupBy(billinginvoiceline.FieldAnnotations).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (_q *BillingInvoiceLineQuery) GroupBy(field string, fields ...string) *BillingInvoiceLineGroupBy {
@@ -683,11 +683,11 @@ func (_q *BillingInvoiceLineQuery) GroupBy(field string, fields ...string) *Bill
 // Example:
 //
 //	var v []struct {
-//		Namespace string `json:"namespace,omitempty"`
+//		Annotations map[string]interface {} `json:"annotations,omitempty"`
 //	}
 //
 //	client.BillingInvoiceLine.Query().
-//		Select(billinginvoiceline.FieldNamespace).
+//		Select(billinginvoiceline.FieldAnnotations).
 //		Scan(ctx, &v)
 func (_q *BillingInvoiceLineQuery) Select(fields ...string) *BillingInvoiceLineSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

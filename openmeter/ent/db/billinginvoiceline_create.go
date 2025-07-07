@@ -36,6 +36,12 @@ type BillingInvoiceLineCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_c *BillingInvoiceLineCreate) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
 // SetNamespace sets the "namespace" field.
 func (_c *BillingInvoiceLineCreate) SetNamespace(v string) *BillingInvoiceLineCreate {
 	_c.mutation.SetNamespace(v)
@@ -659,6 +665,10 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(billinginvoiceline.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(billinginvoiceline.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
@@ -962,7 +972,7 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 // of the `INSERT` statement. For example:
 //
 //	client.BillingInvoiceLine.Create().
-//		SetNamespace(v).
+//		SetAnnotations(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -971,7 +981,7 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.BillingInvoiceLineUpsert) {
-//			SetNamespace(v+v).
+//			SetAnnotations(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *BillingInvoiceLineCreate) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceLineUpsertOne {
@@ -1006,6 +1016,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetAnnotations sets the "annotations" field.
+func (u *BillingInvoiceLineUpsert) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateAnnotations() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *BillingInvoiceLineUpsert) ClearAnnotations() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldAnnotations)
+	return u
+}
 
 // SetMetadata sets the "metadata" field.
 func (u *BillingInvoiceLineUpsert) SetMetadata(v map[string]string) *BillingInvoiceLineUpsert {
@@ -1497,6 +1525,27 @@ func (u *BillingInvoiceLineUpsertOne) Update(set func(*BillingInvoiceLineUpsert)
 		set(&BillingInvoiceLineUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *BillingInvoiceLineUpsertOne) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateAnnotations() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *BillingInvoiceLineUpsertOne) ClearAnnotations() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearAnnotations()
+	})
 }
 
 // SetMetadata sets the "metadata" field.
@@ -2142,7 +2191,7 @@ func (_c *BillingInvoiceLineCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.BillingInvoiceLineUpsert) {
-//			SetNamespace(v+v).
+//			SetAnnotations(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *BillingInvoiceLineCreateBulk) OnConflict(opts ...sql.ConflictOption) *BillingInvoiceLineUpsertBulk {
@@ -2231,6 +2280,27 @@ func (u *BillingInvoiceLineUpsertBulk) Update(set func(*BillingInvoiceLineUpsert
 		set(&BillingInvoiceLineUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *BillingInvoiceLineUpsertBulk) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateAnnotations() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearAnnotations() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearAnnotations()
+	})
 }
 
 // SetMetadata sets the "metadata" field.

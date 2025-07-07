@@ -979,6 +979,20 @@ func (u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetOrClearIndex(value *int) *
 	return u.SetIndex(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearAnnotations(value *map[string]interface{}) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearMetadata()

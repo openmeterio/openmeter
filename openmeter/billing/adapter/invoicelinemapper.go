@@ -137,10 +137,11 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			UpdatedAt: dbLine.UpdatedAt.In(time.UTC),
 			DeletedAt: convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
 
-			Metadata:  dbLine.Metadata,
-			InvoiceID: dbLine.InvoiceID,
-			Status:    dbLine.Status,
-			ManagedBy: dbLine.ManagedBy,
+			Metadata:    dbLine.Metadata,
+			Annotations: dbLine.Annotations,
+			InvoiceID:   dbLine.InvoiceID,
+			Status:      dbLine.Status,
+			ManagedBy:   dbLine.ManagedBy,
 
 			Period: billing.Period{
 				Start: dbLine.PeriodStart.In(time.UTC),
