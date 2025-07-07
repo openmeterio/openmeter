@@ -50,7 +50,7 @@
               };
             };
 
-            pre-commit.hooks = {
+            git-hooks.hooks = {
               nixpkgs-fmt.enable = true;
               commitizen.enable = true;
 
