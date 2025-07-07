@@ -1,6 +1,7 @@
 package timeutil
 
 import (
+	"errors"
 	"time"
 )
 
@@ -88,4 +89,12 @@ func (p ClosedPeriod) Open() OpenPeriod {
 		From: &p.From,
 		To:   &p.To,
 	}
+}
+
+func (p ClosedPeriod) Validate() error {
+	if p.From.After(p.To) {
+		return errors.New("from must be before to")
+	}
+
+	return nil
 }
