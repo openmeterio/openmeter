@@ -292,7 +292,7 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 				Line:    targetState,
 			})
 			if err != nil {
-				return fmt.Errorf("recalculating line[%s]: %w", targetStateWithUpdatedQty.ID, err)
+				return fmt.Errorf("recalculating line[%s]: %w", targetState.ID, err)
 			}
 
 			if !targetStateWithUpdatedQty.UsageBased.Quantity.Equal(lo.FromPtr(existingLine.UsageBased.Quantity)) {
