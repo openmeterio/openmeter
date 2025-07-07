@@ -28,7 +28,7 @@ export const listAddonsQueryPageSizeMax = 1000
 export const listAddonsQueryParams = zod.object({
   currency: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .min(listAddonsQueryCurrencyItemMin)
         .max(listAddonsQueryCurrencyItemMax)
@@ -41,7 +41,7 @@ export const listAddonsQueryParams = zod.object({
     .describe('Filter by addon.currency attribute'),
   id: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .regex(listAddonsQueryIdItemRegExp)
         .describe(
@@ -50,7 +50,7 @@ export const listAddonsQueryParams = zod.object({
     )
     .optional()
     .describe('Filter by addon.id attribute'),
-  includeDeleted: zod
+  includeDeleted: zod.coerce
     .boolean()
     .optional()
     .describe(
@@ -58,7 +58,7 @@ export const listAddonsQueryParams = zod.object({
     ),
   key: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .min(1)
         .max(listAddonsQueryKeyItemMax)
@@ -70,7 +70,7 @@ export const listAddonsQueryParams = zod.object({
     .optional()
     .describe('Filter by addon.key attribute'),
   keyVersion: zod
-    .record(zod.string(), zod.array(zod.number()))
+    .record(zod.string(), zod.array(zod.coerce.number()))
     .optional()
     .describe('Filter by addon.key and addon.version attributes'),
   order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
@@ -78,12 +78,12 @@ export const listAddonsQueryParams = zod.object({
     .enum(['id', 'key', 'version', 'created_at', 'updated_at'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listAddonsQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listAddonsQueryPageSizeMax)
@@ -211,7 +211,7 @@ export const createAddonBodyRateCardsItemDiscountsUsageQuantityRegExpThree =
 
 export const createAddonBody = zod
   .object({
-    currency: zod
+    currency: zod.coerce
       .string()
       .min(createAddonBodyCurrencyMinOne)
       .max(createAddonBodyCurrencyMaxOne)
@@ -220,7 +220,7 @@ export const createAddonBody = zod
         'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.\nCustom three-letter currency codes are also supported for convenience.'
       )
       .describe('The currency code of the add-on.'),
-    description: zod
+    description: zod.coerce
       .string()
       .max(createAddonBodyDescriptionMax)
       .optional()
@@ -235,20 +235,20 @@ export const createAddonBody = zod
       .describe(
         'The instanceType of the add-ons. Can be \"single\" or \"multiple\".'
       ),
-    key: zod
+    key: zod.coerce
       .string()
       .min(1)
       .max(createAddonBodyKeyMax)
       .regex(createAddonBodyKeyRegExp)
       .describe('A semi-unique identifier for the resource.'),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(createAddonBodyNameMax)
@@ -261,13 +261,13 @@ export const createAddonBody = zod
           .discriminatedUnion('type', [
             zod
               .object({
-                billingCadence: zod
+                billingCadence: zod.coerce
                   .string()
                   .nullable()
                   .describe(
                     'The billing cadence of the rate card.\nWhen null it means it is a one time fee.'
                   ),
-                description: zod
+                description: zod.coerce
                   .string()
                   .max(createAddonBodyRateCardsItemDescriptionMax)
                   .optional()
@@ -278,7 +278,7 @@ export const createAddonBody = zod
                   .object({
                     percentage: zod
                       .object({
-                        percentage: zod
+                        percentage: zod.coerce
                           .number()
                           .describe(
                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -290,7 +290,7 @@ export const createAddonBody = zod
                       .describe('The percentage discount.'),
                     usage: zod
                       .object({
-                        quantity: zod
+                        quantity: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemDiscountsUsageQuantityRegExpOne
@@ -317,13 +317,13 @@ export const createAddonBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        isSoftLimit: zod
+                        isSoftLimit: zod.coerce
                           .boolean()
                           .optional()
                           .describe(
                             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                           ),
-                        issueAfterReset: zod
+                        issueAfterReset: zod.coerce
                           .number()
                           .min(
                             createAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetMin
@@ -332,7 +332,7 @@ export const createAddonBody = zod
                           .describe(
                             'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                           ),
-                        issueAfterResetPriority: zod
+                        issueAfterResetPriority: zod.coerce
                           .number()
                           .min(1)
                           .max(
@@ -345,20 +345,20 @@ export const createAddonBody = zod
                             'Defines the grant priority for the default grant.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
                           .optional()
                           .describe('Additional metadata for the feature.'),
-                        preserveOverageAtReset: zod
+                        preserveOverageAtReset: zod.coerce
                           .boolean()
                           .optional()
                           .describe(
                             'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                           ),
                         type: zod.enum(['metered']),
-                        usagePeriod: zod
+                        usagePeriod: zod.coerce
                           .string()
                           .optional()
                           .describe(
@@ -370,13 +370,13 @@ export const createAddonBody = zod
                       ),
                     zod
                       .object({
-                        config: zod
+                        config: zod.coerce
                           .string()
                           .describe(
                             'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
@@ -390,7 +390,7 @@ export const createAddonBody = zod
                     zod
                       .object({
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
@@ -409,27 +409,27 @@ export const createAddonBody = zod
                   .describe(
                     'The entitlement of the rate card.\nOnly available when featureKey is set.'
                   ),
-                featureKey: zod
+                featureKey: zod.coerce
                   .string()
                   .min(1)
                   .max(createAddonBodyRateCardsItemFeatureKeyMax)
                   .regex(createAddonBodyRateCardsItemFeatureKeyRegExp)
                   .optional()
                   .describe('The feature the customer is entitled to use.'),
-                key: zod
+                key: zod.coerce
                   .string()
                   .min(1)
                   .max(createAddonBodyRateCardsItemKeyMax)
                   .regex(createAddonBodyRateCardsItemKeyRegExp)
                   .describe('A semi-unique identifier for the resource.'),
                 metadata: zod
-                  .record(zod.string(), zod.string())
+                  .record(zod.string(), zod.coerce.string())
                   .describe(
                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                   )
                   .nullish()
                   .describe('Additional metadata for the resource.'),
-                name: zod
+                name: zod.coerce
                   .string()
                   .min(1)
                   .max(createAddonBodyRateCardsItemNameMax)
@@ -438,7 +438,7 @@ export const createAddonBody = zod
                   ),
                 price: zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(createAddonBodyRateCardsItemPriceAmountRegExpOne)
                       .describe(
@@ -476,7 +476,7 @@ export const createAddonBody = zod
                       ),
                     customInvoicing: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .describe(
                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -487,7 +487,7 @@ export const createAddonBody = zod
                       .describe('Custom invoicing tax config.'),
                     stripe: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemTaxConfigStripeCodeRegExp
@@ -512,10 +512,10 @@ export const createAddonBody = zod
               ),
             zod
               .object({
-                billingCadence: zod
+                billingCadence: zod.coerce
                   .string()
                   .describe('The billing cadence of the rate card.'),
-                description: zod
+                description: zod.coerce
                   .string()
                   .max(createAddonBodyRateCardsItemDescriptionMaxOne)
                   .optional()
@@ -526,7 +526,7 @@ export const createAddonBody = zod
                   .object({
                     percentage: zod
                       .object({
-                        percentage: zod
+                        percentage: zod.coerce
                           .number()
                           .describe(
                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -538,7 +538,7 @@ export const createAddonBody = zod
                       .describe('The percentage discount.'),
                     usage: zod
                       .object({
-                        quantity: zod
+                        quantity: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemDiscountsUsageQuantityRegExpThree
@@ -565,13 +565,13 @@ export const createAddonBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        isSoftLimit: zod
+                        isSoftLimit: zod.coerce
                           .boolean()
                           .optional()
                           .describe(
                             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                           ),
-                        issueAfterReset: zod
+                        issueAfterReset: zod.coerce
                           .number()
                           .min(
                             createAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetMinOne
@@ -580,7 +580,7 @@ export const createAddonBody = zod
                           .describe(
                             'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                           ),
-                        issueAfterResetPriority: zod
+                        issueAfterResetPriority: zod.coerce
                           .number()
                           .min(1)
                           .max(
@@ -593,20 +593,20 @@ export const createAddonBody = zod
                             'Defines the grant priority for the default grant.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
                           .optional()
                           .describe('Additional metadata for the feature.'),
-                        preserveOverageAtReset: zod
+                        preserveOverageAtReset: zod.coerce
                           .boolean()
                           .optional()
                           .describe(
                             'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                           ),
                         type: zod.enum(['metered']),
-                        usagePeriod: zod
+                        usagePeriod: zod.coerce
                           .string()
                           .optional()
                           .describe(
@@ -618,13 +618,13 @@ export const createAddonBody = zod
                       ),
                     zod
                       .object({
-                        config: zod
+                        config: zod.coerce
                           .string()
                           .describe(
                             'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
@@ -638,7 +638,7 @@ export const createAddonBody = zod
                     zod
                       .object({
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
@@ -657,27 +657,27 @@ export const createAddonBody = zod
                   .describe(
                     'The entitlement of the rate card.\nOnly available when featureKey is set.'
                   ),
-                featureKey: zod
+                featureKey: zod.coerce
                   .string()
                   .min(1)
                   .max(createAddonBodyRateCardsItemFeatureKeyMaxOne)
                   .regex(createAddonBodyRateCardsItemFeatureKeyRegExpOne)
                   .optional()
                   .describe('The feature the customer is entitled to use.'),
-                key: zod
+                key: zod.coerce
                   .string()
                   .min(1)
                   .max(createAddonBodyRateCardsItemKeyMaxOne)
                   .regex(createAddonBodyRateCardsItemKeyRegExpOne)
                   .describe('A semi-unique identifier for the resource.'),
                 metadata: zod
-                  .record(zod.string(), zod.string())
+                  .record(zod.string(), zod.coerce.string())
                   .describe(
                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                   )
                   .nullish()
                   .describe('Additional metadata for the resource.'),
-                name: zod
+                name: zod.coerce
                   .string()
                   .min(1)
                   .max(createAddonBodyRateCardsItemNameMaxOne)
@@ -688,7 +688,7 @@ export const createAddonBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceAmountRegExpThree
@@ -713,7 +713,7 @@ export const createAddonBody = zod
                       .describe('Flat price with payment term.'),
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceAmountRegExpFive
@@ -722,7 +722,7 @@ export const createAddonBody = zod
                             'Numeric represents an arbitrary precision number.'
                           )
                           .describe('The amount of the unit price.'),
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceMaximumAmountRegExpOne
@@ -734,7 +734,7 @@ export const createAddonBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceMinimumAmountRegExpOne
@@ -751,7 +751,7 @@ export const createAddonBody = zod
                       .describe('Unit price with spend commitments.'),
                     zod
                       .object({
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceMaximumAmountRegExpThree
@@ -763,7 +763,7 @@ export const createAddonBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceMinimumAmountRegExpThree
@@ -787,7 +787,7 @@ export const createAddonBody = zod
                               .object({
                                 flatPrice: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         createAddonBodyRateCardsItemPriceTiersItemFlatPriceAmountRegExpOne
@@ -809,7 +809,7 @@ export const createAddonBody = zod
                                   ),
                                 unitPrice: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         createAddonBodyRateCardsItemPriceTiersItemUnitPriceAmountRegExpOne
@@ -829,7 +829,7 @@ export const createAddonBody = zod
                                   .describe(
                                     'The unit price component of the tier.'
                                   ),
-                                upToAmount: zod
+                                upToAmount: zod.coerce
                                   .string()
                                   .regex(
                                     createAddonBodyRateCardsItemPriceTiersItemUpToAmountRegExpOne
@@ -855,7 +855,7 @@ export const createAddonBody = zod
                       .describe('Tiered price with spend commitments.'),
                     zod
                       .object({
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceMaximumAmountRegExpFive
@@ -867,7 +867,7 @@ export const createAddonBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceMinimumAmountRegExpFive
@@ -879,7 +879,7 @@ export const createAddonBody = zod
                           .describe(
                             'The customer is committed to spend at least the amount.'
                           ),
-                        multiplier: zod
+                        multiplier: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceMultiplierRegExpOne
@@ -898,7 +898,7 @@ export const createAddonBody = zod
                       .describe('Dynamic price with spend commitments.'),
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceAmountRegExpSeven
@@ -907,7 +907,7 @@ export const createAddonBody = zod
                             'Numeric represents an arbitrary precision number.'
                           )
                           .describe('The price of one package.'),
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceMaximumAmountRegExpSeven
@@ -919,7 +919,7 @@ export const createAddonBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceMinimumAmountRegExpSeven
@@ -931,7 +931,7 @@ export const createAddonBody = zod
                           .describe(
                             'The customer is committed to spend at least the amount.'
                           ),
-                        quantityPerPackage: zod
+                        quantityPerPackage: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemPriceQuantityPerPackageRegExpOne
@@ -962,7 +962,7 @@ export const createAddonBody = zod
                       ),
                     customInvoicing: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .describe(
                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -973,7 +973,7 @@ export const createAddonBody = zod
                       .describe('Custom invoicing tax config.'),
                     stripe: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .regex(
                             createAddonBodyRateCardsItemTaxConfigStripeCodeRegExpOne
@@ -1014,7 +1014,7 @@ export const updateAddonPathAddonIdRegExp = new RegExp(
 )
 
 export const updateAddonParams = zod.object({
-  addonId: zod.string().regex(updateAddonPathAddonIdRegExp),
+  addonId: zod.coerce.string().regex(updateAddonPathAddonIdRegExp),
 })
 
 export const updateAddonBodyNameMax = 256
@@ -1112,7 +1112,7 @@ export const updateAddonBodyRateCardsItemDiscountsUsageQuantityRegExpThree =
 
 export const updateAddonBody = zod
   .object({
-    description: zod
+    description: zod.coerce
       .string()
       .max(updateAddonBodyDescriptionMax)
       .optional()
@@ -1128,13 +1128,13 @@ export const updateAddonBody = zod
         'The instanceType of the add-ons. Can be \"single\" or \"multiple\".'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(updateAddonBodyNameMax)
@@ -1147,13 +1147,13 @@ export const updateAddonBody = zod
           .discriminatedUnion('type', [
             zod
               .object({
-                billingCadence: zod
+                billingCadence: zod.coerce
                   .string()
                   .nullable()
                   .describe(
                     'The billing cadence of the rate card.\nWhen null it means it is a one time fee.'
                   ),
-                description: zod
+                description: zod.coerce
                   .string()
                   .max(updateAddonBodyRateCardsItemDescriptionMax)
                   .optional()
@@ -1164,7 +1164,7 @@ export const updateAddonBody = zod
                   .object({
                     percentage: zod
                       .object({
-                        percentage: zod
+                        percentage: zod.coerce
                           .number()
                           .describe(
                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -1176,7 +1176,7 @@ export const updateAddonBody = zod
                       .describe('The percentage discount.'),
                     usage: zod
                       .object({
-                        quantity: zod
+                        quantity: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemDiscountsUsageQuantityRegExpOne
@@ -1203,13 +1203,13 @@ export const updateAddonBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        isSoftLimit: zod
+                        isSoftLimit: zod.coerce
                           .boolean()
                           .optional()
                           .describe(
                             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                           ),
-                        issueAfterReset: zod
+                        issueAfterReset: zod.coerce
                           .number()
                           .min(
                             updateAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetMin
@@ -1218,7 +1218,7 @@ export const updateAddonBody = zod
                           .describe(
                             'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                           ),
-                        issueAfterResetPriority: zod
+                        issueAfterResetPriority: zod.coerce
                           .number()
                           .min(1)
                           .max(
@@ -1231,20 +1231,20 @@ export const updateAddonBody = zod
                             'Defines the grant priority for the default grant.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
                           .optional()
                           .describe('Additional metadata for the feature.'),
-                        preserveOverageAtReset: zod
+                        preserveOverageAtReset: zod.coerce
                           .boolean()
                           .optional()
                           .describe(
                             'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                           ),
                         type: zod.enum(['metered']),
-                        usagePeriod: zod
+                        usagePeriod: zod.coerce
                           .string()
                           .optional()
                           .describe(
@@ -1256,13 +1256,13 @@ export const updateAddonBody = zod
                       ),
                     zod
                       .object({
-                        config: zod
+                        config: zod.coerce
                           .string()
                           .describe(
                             'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
@@ -1276,7 +1276,7 @@ export const updateAddonBody = zod
                     zod
                       .object({
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
@@ -1295,27 +1295,27 @@ export const updateAddonBody = zod
                   .describe(
                     'The entitlement of the rate card.\nOnly available when featureKey is set.'
                   ),
-                featureKey: zod
+                featureKey: zod.coerce
                   .string()
                   .min(1)
                   .max(updateAddonBodyRateCardsItemFeatureKeyMax)
                   .regex(updateAddonBodyRateCardsItemFeatureKeyRegExp)
                   .optional()
                   .describe('The feature the customer is entitled to use.'),
-                key: zod
+                key: zod.coerce
                   .string()
                   .min(1)
                   .max(updateAddonBodyRateCardsItemKeyMax)
                   .regex(updateAddonBodyRateCardsItemKeyRegExp)
                   .describe('A semi-unique identifier for the resource.'),
                 metadata: zod
-                  .record(zod.string(), zod.string())
+                  .record(zod.string(), zod.coerce.string())
                   .describe(
                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                   )
                   .nullish()
                   .describe('Additional metadata for the resource.'),
-                name: zod
+                name: zod.coerce
                   .string()
                   .min(1)
                   .max(updateAddonBodyRateCardsItemNameMax)
@@ -1324,7 +1324,7 @@ export const updateAddonBody = zod
                   ),
                 price: zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(updateAddonBodyRateCardsItemPriceAmountRegExpOne)
                       .describe(
@@ -1362,7 +1362,7 @@ export const updateAddonBody = zod
                       ),
                     customInvoicing: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .describe(
                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -1373,7 +1373,7 @@ export const updateAddonBody = zod
                       .describe('Custom invoicing tax config.'),
                     stripe: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemTaxConfigStripeCodeRegExp
@@ -1398,10 +1398,10 @@ export const updateAddonBody = zod
               ),
             zod
               .object({
-                billingCadence: zod
+                billingCadence: zod.coerce
                   .string()
                   .describe('The billing cadence of the rate card.'),
-                description: zod
+                description: zod.coerce
                   .string()
                   .max(updateAddonBodyRateCardsItemDescriptionMaxOne)
                   .optional()
@@ -1412,7 +1412,7 @@ export const updateAddonBody = zod
                   .object({
                     percentage: zod
                       .object({
-                        percentage: zod
+                        percentage: zod.coerce
                           .number()
                           .describe(
                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -1424,7 +1424,7 @@ export const updateAddonBody = zod
                       .describe('The percentage discount.'),
                     usage: zod
                       .object({
-                        quantity: zod
+                        quantity: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemDiscountsUsageQuantityRegExpThree
@@ -1451,13 +1451,13 @@ export const updateAddonBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        isSoftLimit: zod
+                        isSoftLimit: zod.coerce
                           .boolean()
                           .optional()
                           .describe(
                             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                           ),
-                        issueAfterReset: zod
+                        issueAfterReset: zod.coerce
                           .number()
                           .min(
                             updateAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetMinOne
@@ -1466,7 +1466,7 @@ export const updateAddonBody = zod
                           .describe(
                             'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                           ),
-                        issueAfterResetPriority: zod
+                        issueAfterResetPriority: zod.coerce
                           .number()
                           .min(1)
                           .max(
@@ -1479,20 +1479,20 @@ export const updateAddonBody = zod
                             'Defines the grant priority for the default grant.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
                           .optional()
                           .describe('Additional metadata for the feature.'),
-                        preserveOverageAtReset: zod
+                        preserveOverageAtReset: zod.coerce
                           .boolean()
                           .optional()
                           .describe(
                             'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                           ),
                         type: zod.enum(['metered']),
-                        usagePeriod: zod
+                        usagePeriod: zod.coerce
                           .string()
                           .optional()
                           .describe(
@@ -1504,13 +1504,13 @@ export const updateAddonBody = zod
                       ),
                     zod
                       .object({
-                        config: zod
+                        config: zod.coerce
                           .string()
                           .describe(
                             'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
@@ -1524,7 +1524,7 @@ export const updateAddonBody = zod
                     zod
                       .object({
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
@@ -1543,27 +1543,27 @@ export const updateAddonBody = zod
                   .describe(
                     'The entitlement of the rate card.\nOnly available when featureKey is set.'
                   ),
-                featureKey: zod
+                featureKey: zod.coerce
                   .string()
                   .min(1)
                   .max(updateAddonBodyRateCardsItemFeatureKeyMaxOne)
                   .regex(updateAddonBodyRateCardsItemFeatureKeyRegExpOne)
                   .optional()
                   .describe('The feature the customer is entitled to use.'),
-                key: zod
+                key: zod.coerce
                   .string()
                   .min(1)
                   .max(updateAddonBodyRateCardsItemKeyMaxOne)
                   .regex(updateAddonBodyRateCardsItemKeyRegExpOne)
                   .describe('A semi-unique identifier for the resource.'),
                 metadata: zod
-                  .record(zod.string(), zod.string())
+                  .record(zod.string(), zod.coerce.string())
                   .describe(
                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                   )
                   .nullish()
                   .describe('Additional metadata for the resource.'),
-                name: zod
+                name: zod.coerce
                   .string()
                   .min(1)
                   .max(updateAddonBodyRateCardsItemNameMaxOne)
@@ -1574,7 +1574,7 @@ export const updateAddonBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceAmountRegExpThree
@@ -1599,7 +1599,7 @@ export const updateAddonBody = zod
                       .describe('Flat price with payment term.'),
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceAmountRegExpFive
@@ -1608,7 +1608,7 @@ export const updateAddonBody = zod
                             'Numeric represents an arbitrary precision number.'
                           )
                           .describe('The amount of the unit price.'),
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceMaximumAmountRegExpOne
@@ -1620,7 +1620,7 @@ export const updateAddonBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceMinimumAmountRegExpOne
@@ -1637,7 +1637,7 @@ export const updateAddonBody = zod
                       .describe('Unit price with spend commitments.'),
                     zod
                       .object({
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceMaximumAmountRegExpThree
@@ -1649,7 +1649,7 @@ export const updateAddonBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceMinimumAmountRegExpThree
@@ -1673,7 +1673,7 @@ export const updateAddonBody = zod
                               .object({
                                 flatPrice: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         updateAddonBodyRateCardsItemPriceTiersItemFlatPriceAmountRegExpOne
@@ -1695,7 +1695,7 @@ export const updateAddonBody = zod
                                   ),
                                 unitPrice: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         updateAddonBodyRateCardsItemPriceTiersItemUnitPriceAmountRegExpOne
@@ -1715,7 +1715,7 @@ export const updateAddonBody = zod
                                   .describe(
                                     'The unit price component of the tier.'
                                   ),
-                                upToAmount: zod
+                                upToAmount: zod.coerce
                                   .string()
                                   .regex(
                                     updateAddonBodyRateCardsItemPriceTiersItemUpToAmountRegExpOne
@@ -1741,7 +1741,7 @@ export const updateAddonBody = zod
                       .describe('Tiered price with spend commitments.'),
                     zod
                       .object({
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceMaximumAmountRegExpFive
@@ -1753,7 +1753,7 @@ export const updateAddonBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceMinimumAmountRegExpFive
@@ -1765,7 +1765,7 @@ export const updateAddonBody = zod
                           .describe(
                             'The customer is committed to spend at least the amount.'
                           ),
-                        multiplier: zod
+                        multiplier: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceMultiplierRegExpOne
@@ -1784,7 +1784,7 @@ export const updateAddonBody = zod
                       .describe('Dynamic price with spend commitments.'),
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceAmountRegExpSeven
@@ -1793,7 +1793,7 @@ export const updateAddonBody = zod
                             'Numeric represents an arbitrary precision number.'
                           )
                           .describe('The price of one package.'),
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceMaximumAmountRegExpSeven
@@ -1805,7 +1805,7 @@ export const updateAddonBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceMinimumAmountRegExpSeven
@@ -1817,7 +1817,7 @@ export const updateAddonBody = zod
                           .describe(
                             'The customer is committed to spend at least the amount.'
                           ),
-                        quantityPerPackage: zod
+                        quantityPerPackage: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemPriceQuantityPerPackageRegExpOne
@@ -1848,7 +1848,7 @@ export const updateAddonBody = zod
                       ),
                     customInvoicing: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .describe(
                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -1859,7 +1859,7 @@ export const updateAddonBody = zod
                       .describe('Custom invoicing tax config.'),
                     stripe: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .regex(
                             updateAddonBodyRateCardsItemTaxConfigStripeCodeRegExpOne
@@ -1902,7 +1902,7 @@ export const getAddonPathAddonIdRegExp = new RegExp(
 )
 
 export const getAddonParams = zod.object({
-  addonId: zod
+  addonId: zod.coerce
     .string()
     .min(1)
     .max(getAddonPathAddonIdMax)
@@ -1912,7 +1912,7 @@ export const getAddonParams = zod.object({
 export const getAddonQueryIncludeLatestDefault = false
 
 export const getAddonQueryParams = zod.object({
-  includeLatest: zod
+  includeLatest: zod.coerce
     .boolean()
     .optional()
     .describe(
@@ -1931,7 +1931,7 @@ export const deleteAddonPathAddonIdRegExp = new RegExp(
 )
 
 export const deleteAddonParams = zod.object({
-  addonId: zod.string().regex(deleteAddonPathAddonIdRegExp),
+  addonId: zod.coerce.string().regex(deleteAddonPathAddonIdRegExp),
 })
 
 /**
@@ -1943,7 +1943,7 @@ export const archiveAddonPathAddonIdRegExp = new RegExp(
 )
 
 export const archiveAddonParams = zod.object({
-  addonId: zod.string().regex(archiveAddonPathAddonIdRegExp),
+  addonId: zod.coerce.string().regex(archiveAddonPathAddonIdRegExp),
 })
 
 /**
@@ -1955,7 +1955,7 @@ export const publishAddonPathAddonIdRegExp = new RegExp(
 )
 
 export const publishAddonParams = zod.object({
-  addonId: zod.string().regex(publishAddonPathAddonIdRegExp),
+  addonId: zod.coerce.string().regex(publishAddonPathAddonIdRegExp),
 })
 
 /**
@@ -1967,12 +1967,12 @@ export const listAppsQueryPageSizeDefault = 100
 export const listAppsQueryPageSizeMax = 1000
 
 export const listAppsQueryParams = zod.object({
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listAppsQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listAppsQueryPageSizeMax)
@@ -1987,7 +1987,7 @@ export const appCustomInvoicingDraftSynchronizedPathInvoiceIdRegExp =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 
 export const appCustomInvoicingDraftSynchronizedParams = zod.object({
-  invoiceId: zod
+  invoiceId: zod.coerce
     .string()
     .regex(appCustomInvoicingDraftSynchronizedPathInvoiceIdRegExp),
 })
@@ -2002,13 +2002,13 @@ export const appCustomInvoicingDraftSynchronizedBody = zod
   .object({
     invoicing: zod
       .object({
-        externalId: zod
+        externalId: zod.coerce
           .string()
           .optional()
           .describe(
             "If set the invoice's invoicing external ID will be set to this value."
           ),
-        invoiceNumber: zod
+        invoiceNumber: zod.coerce
           .string()
           .min(1)
           .max(
@@ -2023,12 +2023,12 @@ export const appCustomInvoicingDraftSynchronizedBody = zod
           .array(
             zod
               .object({
-                externalId: zod
+                externalId: zod.coerce
                   .string()
                   .describe(
                     "The external ID (e.g. custom invoicing system's ID)."
                   ),
-                lineDiscountId: zod
+                lineDiscountId: zod.coerce
                   .string()
                   .regex(
                     appCustomInvoicingDraftSynchronizedBodyInvoicingLineDiscountExternalIdsItemLineDiscountIdRegExp
@@ -2045,12 +2045,12 @@ export const appCustomInvoicingDraftSynchronizedBody = zod
           .array(
             zod
               .object({
-                externalId: zod
+                externalId: zod.coerce
                   .string()
                   .describe(
                     "The external ID (e.g. custom invoicing system's ID)."
                   ),
-                lineId: zod
+                lineId: zod.coerce
                   .string()
                   .regex(
                     appCustomInvoicingDraftSynchronizedBodyInvoicingLineExternalIdsItemLineIdRegExp
@@ -2079,7 +2079,7 @@ export const appCustomInvoicingIssuingSynchronizedPathInvoiceIdRegExp =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 
 export const appCustomInvoicingIssuingSynchronizedParams = zod.object({
-  invoiceId: zod
+  invoiceId: zod.coerce
     .string()
     .regex(appCustomInvoicingIssuingSynchronizedPathInvoiceIdRegExp),
 })
@@ -2090,7 +2090,7 @@ export const appCustomInvoicingIssuingSynchronizedBody = zod
   .object({
     invoicing: zod
       .object({
-        invoiceNumber: zod
+        invoiceNumber: zod.coerce
           .string()
           .min(1)
           .max(
@@ -2101,7 +2101,7 @@ export const appCustomInvoicingIssuingSynchronizedBody = zod
           )
           .optional()
           .describe("If set the invoice's number will be set to this value."),
-        sentToCustomerAt: zod
+        sentToCustomerAt: zod.coerce
           .date()
           .optional()
           .describe(
@@ -2113,7 +2113,7 @@ export const appCustomInvoicingIssuingSynchronizedBody = zod
       .describe('The result of the synchronization.'),
     payment: zod
       .object({
-        externalId: zod
+        externalId: zod.coerce
           .string()
           .optional()
           .describe(
@@ -2135,7 +2135,7 @@ export const appCustomInvoicingUpdatePaymentStatusPathInvoiceIdRegExp =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 
 export const appCustomInvoicingUpdatePaymentStatusParams = zod.object({
-  invoiceId: zod
+  invoiceId: zod.coerce
     .string()
     .regex(appCustomInvoicingUpdatePaymentStatusPathInvoiceIdRegExp),
 })
@@ -2167,7 +2167,7 @@ export const getAppPathIdRegExp = new RegExp(
 )
 
 export const getAppParams = zod.object({
-  id: zod.string().regex(getAppPathIdRegExp),
+  id: zod.coerce.string().regex(getAppPathIdRegExp),
 })
 
 /**
@@ -2179,7 +2179,7 @@ export const updateAppPathIdRegExp = new RegExp(
 )
 
 export const updateAppParams = zod.object({
-  id: zod.string().regex(updateAppPathIdRegExp),
+  id: zod.coerce.string().regex(updateAppPathIdRegExp),
 })
 
 export const updateAppBodyNameMax = 256
@@ -2193,7 +2193,7 @@ export const updateAppBody = zod
   .discriminatedUnion('type', [
     zod
       .object({
-        description: zod
+        description: zod.coerce
           .string()
           .max(updateAppBodyDescriptionMax)
           .optional()
@@ -2201,26 +2201,29 @@ export const updateAppBody = zod
             'Optional description of the resource. Maximum 1024 characters.'
           ),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .describe(
             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
           .nullish()
           .describe('Additional metadata for the resource.'),
-        name: zod
+        name: zod.coerce
           .string()
           .min(1)
           .max(updateAppBodyNameMax)
           .describe(
             'Human-readable name for the resource. Between 1 and 256 characters.'
           ),
-        secretAPIKey: zod.string().optional().describe('The Stripe API key.'),
+        secretAPIKey: zod.coerce
+          .string()
+          .optional()
+          .describe('The Stripe API key.'),
         type: zod.enum(['stripe']),
       })
       .describe('Resource update operation model.'),
     zod
       .object({
-        description: zod
+        description: zod.coerce
           .string()
           .max(updateAppBodyDescriptionMaxOne)
           .optional()
@@ -2228,13 +2231,13 @@ export const updateAppBody = zod
             'Optional description of the resource. Maximum 1024 characters.'
           ),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .describe(
             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
           .nullish()
           .describe('Additional metadata for the resource.'),
-        name: zod
+        name: zod.coerce
           .string()
           .min(1)
           .max(updateAppBodyNameMaxOne)
@@ -2246,31 +2249,31 @@ export const updateAppBody = zod
       .describe('Resource update operation model.'),
     zod
       .object({
-        description: zod
+        description: zod.coerce
           .string()
           .max(updateAppBodyDescriptionMaxTwo)
           .optional()
           .describe(
             'Optional description of the resource. Maximum 1024 characters.'
           ),
-        enableDraftSyncHook: zod
+        enableDraftSyncHook: zod.coerce
           .boolean()
           .describe(
             'Enable draft.sync hook.\n\nIf the hook is not enabled, the invoice will be progressed to the next state automatically.'
           ),
-        enableIssuingSyncHook: zod
+        enableIssuingSyncHook: zod.coerce
           .boolean()
           .describe(
             'Enable issuing.sync hook.\n\nIf the hook is not enabled, the invoice will be progressed to the next state automatically.'
           ),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .describe(
             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
           .nullish()
           .describe('Additional metadata for the resource.'),
-        name: zod
+        name: zod.coerce
           .string()
           .min(1)
           .max(updateAppBodyNameMaxTwo)
@@ -2292,7 +2295,7 @@ export const uninstallAppPathIdRegExp = new RegExp(
 )
 
 export const uninstallAppParams = zod.object({
-  id: zod.string().regex(uninstallAppPathIdRegExp),
+  id: zod.coerce.string().regex(uninstallAppPathIdRegExp),
 })
 
 /**
@@ -2305,12 +2308,12 @@ export const updateStripeAPIKeyPathIdRegExp = new RegExp(
 )
 
 export const updateStripeAPIKeyParams = zod.object({
-  id: zod.string().regex(updateStripeAPIKeyPathIdRegExp),
+  id: zod.coerce.string().regex(updateStripeAPIKeyPathIdRegExp),
 })
 
 export const updateStripeAPIKeyBody = zod
   .object({
-    secretAPIKey: zod.string(),
+    secretAPIKey: zod.coerce.string(),
   })
   .describe(
     'The Stripe API key input.\nUsed to authenticate with the Stripe API.'
@@ -2325,20 +2328,20 @@ export const appStripeWebhookPathIdRegExp = new RegExp(
 )
 
 export const appStripeWebhookParams = zod.object({
-  id: zod.string().regex(appStripeWebhookPathIdRegExp),
+  id: zod.coerce.string().regex(appStripeWebhookPathIdRegExp),
 })
 
 export const appStripeWebhookBody = zod
   .object({
-    created: zod.number().describe('The event created timestamp.'),
+    created: zod.coerce.number().describe('The event created timestamp.'),
     data: zod
       .object({
         object: zod.any(),
       })
       .describe('The event data.'),
-    id: zod.string().describe('The event ID.'),
-    livemode: zod.boolean().describe('Live mode.'),
-    type: zod.string().describe('The event type.'),
+    id: zod.coerce.string().describe('The event ID.'),
+    livemode: zod.coerce.boolean().describe('Live mode.'),
+    type: zod.coerce.string().describe('The event type.'),
   })
   .describe('Stripe webhook event.')
 
@@ -2365,7 +2368,7 @@ export const listBillingProfileCustomerOverridesQueryPageSizeMax = 1000
 export const listBillingProfileCustomerOverridesQueryParams = zod.object({
   billingProfile: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .regex(listBillingProfileCustomerOverridesQueryBillingProfileItemRegExp)
         .describe(
@@ -2376,7 +2379,7 @@ export const listBillingProfileCustomerOverridesQueryParams = zod.object({
     .describe('Filter by billing profile.'),
   customerId: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .regex(listBillingProfileCustomerOverridesQueryCustomerIdItemRegExp)
         .describe(
@@ -2385,13 +2388,19 @@ export const listBillingProfileCustomerOverridesQueryParams = zod.object({
     )
     .optional()
     .describe('Filter by customer id.'),
-  customerKey: zod.string().optional().describe('Filter by customer key'),
-  customerName: zod.string().optional().describe('Filter by customer name.'),
-  customerPrimaryEmail: zod
+  customerKey: zod.coerce
+    .string()
+    .optional()
+    .describe('Filter by customer key'),
+  customerName: zod.coerce
+    .string()
+    .optional()
+    .describe('Filter by customer name.'),
+  customerPrimaryEmail: zod.coerce
     .string()
     .optional()
     .describe('Filter by customer primary email'),
-  customersWithoutPinnedProfile: zod
+  customersWithoutPinnedProfile: zod.coerce
     .boolean()
     .optional()
     .describe(
@@ -2407,7 +2416,7 @@ export const listBillingProfileCustomerOverridesQueryParams = zod.object({
     )
     .optional()
     .describe('Expand the response with additional details.'),
-  includeAllCustomers: zod
+  includeAllCustomers: zod.coerce
     .boolean()
     .default(listBillingProfileCustomerOverridesQueryIncludeAllCustomersDefault)
     .describe(
@@ -2424,12 +2433,12 @@ export const listBillingProfileCustomerOverridesQueryParams = zod.object({
     ])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listBillingProfileCustomerOverridesQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listBillingProfileCustomerOverridesQueryPageSizeMax)
@@ -2449,7 +2458,7 @@ export const upsertBillingProfileCustomerOverridePathCustomerIdRegExp =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 
 export const upsertBillingProfileCustomerOverrideParams = zod.object({
-  customerId: zod
+  customerId: zod.coerce
     .string()
     .regex(upsertBillingProfileCustomerOverridePathCustomerIdRegExp),
 })
@@ -2459,7 +2468,7 @@ export const upsertBillingProfileCustomerOverrideBodyBillingProfileIdRegExp =
 
 export const upsertBillingProfileCustomerOverrideBody = zod
   .object({
-    billingProfileId: zod
+    billingProfileId: zod.coerce
       .string()
       .regex(upsertBillingProfileCustomerOverrideBodyBillingProfileIdRegExp)
       .optional()
@@ -2485,7 +2494,7 @@ export const getBillingProfileCustomerOverridePathCustomerIdRegExp = new RegExp(
 )
 
 export const getBillingProfileCustomerOverrideParams = zod.object({
-  customerId: zod
+  customerId: zod.coerce
     .string()
     .regex(getBillingProfileCustomerOverridePathCustomerIdRegExp),
 })
@@ -2513,7 +2522,7 @@ export const deleteBillingProfileCustomerOverridePathCustomerIdRegExp =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 
 export const deleteBillingProfileCustomerOverrideParams = zod.object({
-  customerId: zod
+  customerId: zod.coerce
     .string()
     .regex(deleteBillingProfileCustomerOverridePathCustomerIdRegExp),
 })
@@ -2534,7 +2543,9 @@ export const createPendingInvoiceLinePathCustomerIdRegExp = new RegExp(
 )
 
 export const createPendingInvoiceLineParams = zod.object({
-  customerId: zod.string().regex(createPendingInvoiceLinePathCustomerIdRegExp),
+  customerId: zod.coerce
+    .string()
+    .regex(createPendingInvoiceLinePathCustomerIdRegExp),
 })
 
 export const createPendingInvoiceLineBodyCurrencyMinOne = 3
@@ -2639,7 +2650,7 @@ export const createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageCorrelat
 
 export const createPendingInvoiceLineBody = zod
   .object({
-    currency: zod
+    currency: zod.coerce
       .string()
       .min(createPendingInvoiceLineBodyCurrencyMinOne)
       .max(createPendingInvoiceLineBodyCurrencyMaxOne)
@@ -2652,31 +2663,31 @@ export const createPendingInvoiceLineBody = zod
       .array(
         zod
           .object({
-            description: zod
+            description: zod.coerce
               .string()
               .max(createPendingInvoiceLineBodyLinesItemDescriptionMax)
               .optional()
               .describe(
                 'Optional description of the resource. Maximum 1024 characters.'
               ),
-            featureKey: zod
+            featureKey: zod.coerce
               .string()
               .min(1)
               .max(createPendingInvoiceLineBodyLinesItemFeatureKeyMax)
               .regex(createPendingInvoiceLineBodyLinesItemFeatureKeyRegExp)
               .optional()
               .describe('The feature that the usage is based on.'),
-            invoiceAt: zod
+            invoiceAt: zod.coerce
               .date()
               .describe('The time this line item should be invoiced.'),
             metadata: zod
-              .record(zod.string(), zod.string())
+              .record(zod.string(), zod.coerce.string())
               .describe(
                 'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
               )
               .nullish()
               .describe('Additional metadata for the resource.'),
-            name: zod
+            name: zod.coerce
               .string()
               .min(1)
               .max(createPendingInvoiceLineBodyLinesItemNameMax)
@@ -2685,8 +2696,8 @@ export const createPendingInvoiceLineBody = zod
               ),
             period: zod
               .object({
-                from: zod.date().describe('Period start time.'),
-                to: zod.date().describe('Period end time.'),
+                from: zod.coerce.date().describe('Period start time.'),
+                to: zod.coerce.date().describe('Period end time.'),
               })
               .describe('A period with a start and end time.')
               .describe(
@@ -2696,7 +2707,7 @@ export const createPendingInvoiceLineBody = zod
               .discriminatedUnion('type', [
                 zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceAmountRegExpOne
@@ -2721,7 +2732,7 @@ export const createPendingInvoiceLineBody = zod
                   .describe('Flat price with payment term.'),
                 zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceAmountRegExpThree
@@ -2730,7 +2741,7 @@ export const createPendingInvoiceLineBody = zod
                         'Numeric represents an arbitrary precision number.'
                       )
                       .describe('The amount of the unit price.'),
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpOne
@@ -2742,7 +2753,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpOne
@@ -2759,7 +2770,7 @@ export const createPendingInvoiceLineBody = zod
                   .describe('Unit price with spend commitments.'),
                 zod
                   .object({
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpThree
@@ -2771,7 +2782,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpThree
@@ -2795,7 +2806,7 @@ export const createPendingInvoiceLineBody = zod
                           .object({
                             flatPrice: zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     createPendingInvoiceLineBodyLinesItemPriceTiersItemFlatPriceAmountRegExpOne
@@ -2815,7 +2826,7 @@ export const createPendingInvoiceLineBody = zod
                               ),
                             unitPrice: zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     createPendingInvoiceLineBodyLinesItemPriceTiersItemUnitPriceAmountRegExpOne
@@ -2833,7 +2844,7 @@ export const createPendingInvoiceLineBody = zod
                               .describe(
                                 'The unit price component of the tier.'
                               ),
-                            upToAmount: zod
+                            upToAmount: zod.coerce
                               .string()
                               .regex(
                                 createPendingInvoiceLineBodyLinesItemPriceTiersItemUpToAmountRegExpOne
@@ -2859,7 +2870,7 @@ export const createPendingInvoiceLineBody = zod
                   .describe('Tiered price with spend commitments.'),
                 zod
                   .object({
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpFive
@@ -2871,7 +2882,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpFive
@@ -2883,7 +2894,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe(
                         'The customer is committed to spend at least the amount.'
                       ),
-                    multiplier: zod
+                    multiplier: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceMultiplierRegExpOne
@@ -2902,7 +2913,7 @@ export const createPendingInvoiceLineBody = zod
                   .describe('Dynamic price with spend commitments.'),
                 zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceAmountRegExpFive
@@ -2911,7 +2922,7 @@ export const createPendingInvoiceLineBody = zod
                         'Numeric represents an arbitrary precision number.'
                       )
                       .describe('The price of one package.'),
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceMaximumAmountRegExpSeven
@@ -2923,7 +2934,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceMinimumAmountRegExpSeven
@@ -2935,7 +2946,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe(
                         'The customer is committed to spend at least the amount.'
                       ),
-                    quantityPerPackage: zod
+                    quantityPerPackage: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemPriceQuantityPerPackageRegExpOne
@@ -2957,7 +2968,7 @@ export const createPendingInvoiceLineBody = zod
                   .object({
                     percentage: zod
                       .object({
-                        correlationId: zod
+                        correlationId: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardDiscountsPercentageCorrelationIdRegExp
@@ -2966,7 +2977,7 @@ export const createPendingInvoiceLineBody = zod
                           .describe(
                             'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
                           ),
-                        percentage: zod
+                        percentage: zod.coerce
                           .number()
                           .describe(
                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -2978,7 +2989,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe('The percentage discount.'),
                     usage: zod
                       .object({
-                        correlationId: zod
+                        correlationId: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageCorrelationIdRegExp
@@ -2987,7 +2998,7 @@ export const createPendingInvoiceLineBody = zod
                           .describe(
                             'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
                           ),
-                        quantity: zod
+                        quantity: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardDiscountsUsageQuantityRegExpOne
@@ -3006,7 +3017,7 @@ export const createPendingInvoiceLineBody = zod
                   .describe('A discount by type.')
                   .optional()
                   .describe('The discounts that are applied to the line.'),
-                featureKey: zod
+                featureKey: zod.coerce
                   .string()
                   .min(1)
                   .max(
@@ -3021,7 +3032,7 @@ export const createPendingInvoiceLineBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpOne
@@ -3046,7 +3057,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe('Flat price with payment term.'),
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpThree
@@ -3055,7 +3066,7 @@ export const createPendingInvoiceLineBody = zod
                             'Numeric represents an arbitrary precision number.'
                           )
                           .describe('The amount of the unit price.'),
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpOne
@@ -3067,7 +3078,7 @@ export const createPendingInvoiceLineBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpOne
@@ -3084,7 +3095,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe('Unit price with spend commitments.'),
                     zod
                       .object({
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpThree
@@ -3096,7 +3107,7 @@ export const createPendingInvoiceLineBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpThree
@@ -3120,7 +3131,7 @@ export const createPendingInvoiceLineBody = zod
                               .object({
                                 flatPrice: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         createPendingInvoiceLineBodyLinesItemRateCardPriceTiersItemFlatPriceAmountRegExpOne
@@ -3142,7 +3153,7 @@ export const createPendingInvoiceLineBody = zod
                                   ),
                                 unitPrice: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         createPendingInvoiceLineBodyLinesItemRateCardPriceTiersItemUnitPriceAmountRegExpOne
@@ -3162,7 +3173,7 @@ export const createPendingInvoiceLineBody = zod
                                   .describe(
                                     'The unit price component of the tier.'
                                   ),
-                                upToAmount: zod
+                                upToAmount: zod.coerce
                                   .string()
                                   .regex(
                                     createPendingInvoiceLineBodyLinesItemRateCardPriceTiersItemUpToAmountRegExpOne
@@ -3188,7 +3199,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe('Tiered price with spend commitments.'),
                     zod
                       .object({
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpFive
@@ -3200,7 +3211,7 @@ export const createPendingInvoiceLineBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpFive
@@ -3212,7 +3223,7 @@ export const createPendingInvoiceLineBody = zod
                           .describe(
                             'The customer is committed to spend at least the amount.'
                           ),
-                        multiplier: zod
+                        multiplier: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceMultiplierRegExpOne
@@ -3231,7 +3242,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe('Dynamic price with spend commitments.'),
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceAmountRegExpFive
@@ -3240,7 +3251,7 @@ export const createPendingInvoiceLineBody = zod
                             'Numeric represents an arbitrary precision number.'
                           )
                           .describe('The price of one package.'),
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceMaximumAmountRegExpSeven
@@ -3252,7 +3263,7 @@ export const createPendingInvoiceLineBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceMinimumAmountRegExpSeven
@@ -3264,7 +3275,7 @@ export const createPendingInvoiceLineBody = zod
                           .describe(
                             'The customer is committed to spend at least the amount.'
                           ),
-                        quantityPerPackage: zod
+                        quantityPerPackage: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardPriceQuantityPerPackageRegExpOne
@@ -3295,7 +3306,7 @@ export const createPendingInvoiceLineBody = zod
                       ),
                     customInvoicing: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .describe(
                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -3306,7 +3317,7 @@ export const createPendingInvoiceLineBody = zod
                       .describe('Custom invoicing tax config.'),
                     stripe: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .regex(
                             createPendingInvoiceLineBodyLinesItemRateCardTaxConfigStripeCodeRegExp
@@ -3345,7 +3356,7 @@ export const createPendingInvoiceLineBody = zod
                   ),
                 customInvoicing: zod
                   .object({
-                    code: zod
+                    code: zod.coerce
                       .string()
                       .describe(
                         'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -3356,7 +3367,7 @@ export const createPendingInvoiceLineBody = zod
                   .describe('Custom invoicing tax config.'),
                 stripe: zod
                   .object({
-                    code: zod
+                    code: zod.coerce
                       .string()
                       .regex(
                         createPendingInvoiceLineBodyLinesItemTaxConfigStripeCodeRegExp
@@ -3399,7 +3410,7 @@ export const simulateInvoicePathCustomerIdRegExp = new RegExp(
 )
 
 export const simulateInvoiceParams = zod.object({
-  customerId: zod.string().regex(simulateInvoicePathCustomerIdRegExp),
+  customerId: zod.coerce.string().regex(simulateInvoicePathCustomerIdRegExp),
 })
 
 export const simulateInvoiceBodyNumberMaxOne = 256
@@ -3515,7 +3526,7 @@ export const simulateInvoiceBodyLinesItemIdRegExp = new RegExp(
 
 export const simulateInvoiceBody = zod
   .object({
-    currency: zod
+    currency: zod.coerce
       .string()
       .min(simulateInvoiceBodyCurrencyMinOne)
       .max(simulateInvoiceBodyCurrencyMaxOne)
@@ -3530,38 +3541,38 @@ export const simulateInvoiceBody = zod
       .array(
         zod
           .object({
-            description: zod
+            description: zod.coerce
               .string()
               .max(simulateInvoiceBodyLinesItemDescriptionMax)
               .optional()
               .describe(
                 'Optional description of the resource. Maximum 1024 characters.'
               ),
-            featureKey: zod
+            featureKey: zod.coerce
               .string()
               .min(1)
               .max(simulateInvoiceBodyLinesItemFeatureKeyMax)
               .regex(simulateInvoiceBodyLinesItemFeatureKeyRegExp)
               .optional()
               .describe('The feature that the usage is based on.'),
-            id: zod
+            id: zod.coerce
               .string()
               .regex(simulateInvoiceBodyLinesItemIdRegExp)
               .optional()
               .describe(
                 'ID of the line. If not specified it will be auto-generated.\n\nWhen discounts are specified, this must be provided, so that the discount can reference it.'
               ),
-            invoiceAt: zod
+            invoiceAt: zod.coerce
               .date()
               .describe('The time this line item should be invoiced.'),
             metadata: zod
-              .record(zod.string(), zod.string())
+              .record(zod.string(), zod.coerce.string())
               .describe(
                 'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
               )
               .nullish()
               .describe('Additional metadata for the resource.'),
-            name: zod
+            name: zod.coerce
               .string()
               .min(1)
               .max(simulateInvoiceBodyLinesItemNameMax)
@@ -3570,14 +3581,14 @@ export const simulateInvoiceBody = zod
               ),
             period: zod
               .object({
-                from: zod.date().describe('Period start time.'),
-                to: zod.date().describe('Period end time.'),
+                from: zod.coerce.date().describe('Period start time.'),
+                to: zod.coerce.date().describe('Period end time.'),
               })
               .describe('A period with a start and end time.')
               .describe(
                 'Period of the line item applies to for revenue recognition pruposes.\n\nBilling always treats periods as start being inclusive and end being exclusive.'
               ),
-            preLinePeriodQuantity: zod
+            preLinePeriodQuantity: zod.coerce
               .string()
               .regex(simulateInvoiceBodyLinesItemPreLinePeriodQuantityRegExpOne)
               .describe('Numeric represents an arbitrary precision number.')
@@ -3589,7 +3600,7 @@ export const simulateInvoiceBody = zod
               .discriminatedUnion('type', [
                 zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(simulateInvoiceBodyLinesItemPriceAmountRegExpOne)
                       .describe(
@@ -3612,14 +3623,14 @@ export const simulateInvoiceBody = zod
                   .describe('Flat price with payment term.'),
                 zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(simulateInvoiceBodyLinesItemPriceAmountRegExpThree)
                       .describe(
                         'Numeric represents an arbitrary precision number.'
                       )
                       .describe('The amount of the unit price.'),
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemPriceMaximumAmountRegExpOne
@@ -3631,7 +3642,7 @@ export const simulateInvoiceBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemPriceMinimumAmountRegExpOne
@@ -3648,7 +3659,7 @@ export const simulateInvoiceBody = zod
                   .describe('Unit price with spend commitments.'),
                 zod
                   .object({
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemPriceMaximumAmountRegExpThree
@@ -3660,7 +3671,7 @@ export const simulateInvoiceBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemPriceMinimumAmountRegExpThree
@@ -3684,7 +3695,7 @@ export const simulateInvoiceBody = zod
                           .object({
                             flatPrice: zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     simulateInvoiceBodyLinesItemPriceTiersItemFlatPriceAmountRegExpOne
@@ -3704,7 +3715,7 @@ export const simulateInvoiceBody = zod
                               ),
                             unitPrice: zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     simulateInvoiceBodyLinesItemPriceTiersItemUnitPriceAmountRegExpOne
@@ -3722,7 +3733,7 @@ export const simulateInvoiceBody = zod
                               .describe(
                                 'The unit price component of the tier.'
                               ),
-                            upToAmount: zod
+                            upToAmount: zod.coerce
                               .string()
                               .regex(
                                 simulateInvoiceBodyLinesItemPriceTiersItemUpToAmountRegExpOne
@@ -3748,7 +3759,7 @@ export const simulateInvoiceBody = zod
                   .describe('Tiered price with spend commitments.'),
                 zod
                   .object({
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemPriceMaximumAmountRegExpFive
@@ -3760,7 +3771,7 @@ export const simulateInvoiceBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemPriceMinimumAmountRegExpFive
@@ -3772,7 +3783,7 @@ export const simulateInvoiceBody = zod
                       .describe(
                         'The customer is committed to spend at least the amount.'
                       ),
-                    multiplier: zod
+                    multiplier: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemPriceMultiplierRegExpOne
@@ -3791,14 +3802,14 @@ export const simulateInvoiceBody = zod
                   .describe('Dynamic price with spend commitments.'),
                 zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(simulateInvoiceBodyLinesItemPriceAmountRegExpFive)
                       .describe(
                         'Numeric represents an arbitrary precision number.'
                       )
                       .describe('The price of one package.'),
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemPriceMaximumAmountRegExpSeven
@@ -3810,7 +3821,7 @@ export const simulateInvoiceBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemPriceMinimumAmountRegExpSeven
@@ -3822,7 +3833,7 @@ export const simulateInvoiceBody = zod
                       .describe(
                         'The customer is committed to spend at least the amount.'
                       ),
-                    quantityPerPackage: zod
+                    quantityPerPackage: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemPriceQuantityPerPackageRegExpOne
@@ -3838,7 +3849,7 @@ export const simulateInvoiceBody = zod
               .describe('The price of the usage based rate card.')
               .optional()
               .describe('Price of the usage-based item being sold.'),
-            quantity: zod
+            quantity: zod.coerce
               .string()
               .regex(simulateInvoiceBodyLinesItemQuantityRegExpOne)
               .describe('Numeric represents an arbitrary precision number.')
@@ -3849,7 +3860,7 @@ export const simulateInvoiceBody = zod
                   .object({
                     percentage: zod
                       .object({
-                        correlationId: zod
+                        correlationId: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardDiscountsPercentageCorrelationIdRegExp
@@ -3858,7 +3869,7 @@ export const simulateInvoiceBody = zod
                           .describe(
                             'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
                           ),
-                        percentage: zod
+                        percentage: zod.coerce
                           .number()
                           .describe(
                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -3870,7 +3881,7 @@ export const simulateInvoiceBody = zod
                       .describe('The percentage discount.'),
                     usage: zod
                       .object({
-                        correlationId: zod
+                        correlationId: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardDiscountsUsageCorrelationIdRegExp
@@ -3879,7 +3890,7 @@ export const simulateInvoiceBody = zod
                           .describe(
                             'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
                           ),
-                        quantity: zod
+                        quantity: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardDiscountsUsageQuantityRegExpOne
@@ -3898,7 +3909,7 @@ export const simulateInvoiceBody = zod
                   .describe('A discount by type.')
                   .optional()
                   .describe('The discounts that are applied to the line.'),
-                featureKey: zod
+                featureKey: zod.coerce
                   .string()
                   .min(1)
                   .max(simulateInvoiceBodyLinesItemRateCardFeatureKeyMax)
@@ -3909,7 +3920,7 @@ export const simulateInvoiceBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceAmountRegExpOne
@@ -3934,7 +3945,7 @@ export const simulateInvoiceBody = zod
                       .describe('Flat price with payment term.'),
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceAmountRegExpThree
@@ -3943,7 +3954,7 @@ export const simulateInvoiceBody = zod
                             'Numeric represents an arbitrary precision number.'
                           )
                           .describe('The amount of the unit price.'),
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceMaximumAmountRegExpOne
@@ -3955,7 +3966,7 @@ export const simulateInvoiceBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceMinimumAmountRegExpOne
@@ -3972,7 +3983,7 @@ export const simulateInvoiceBody = zod
                       .describe('Unit price with spend commitments.'),
                     zod
                       .object({
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceMaximumAmountRegExpThree
@@ -3984,7 +3995,7 @@ export const simulateInvoiceBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceMinimumAmountRegExpThree
@@ -4008,7 +4019,7 @@ export const simulateInvoiceBody = zod
                               .object({
                                 flatPrice: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         simulateInvoiceBodyLinesItemRateCardPriceTiersItemFlatPriceAmountRegExpOne
@@ -4030,7 +4041,7 @@ export const simulateInvoiceBody = zod
                                   ),
                                 unitPrice: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         simulateInvoiceBodyLinesItemRateCardPriceTiersItemUnitPriceAmountRegExpOne
@@ -4050,7 +4061,7 @@ export const simulateInvoiceBody = zod
                                   .describe(
                                     'The unit price component of the tier.'
                                   ),
-                                upToAmount: zod
+                                upToAmount: zod.coerce
                                   .string()
                                   .regex(
                                     simulateInvoiceBodyLinesItemRateCardPriceTiersItemUpToAmountRegExpOne
@@ -4076,7 +4087,7 @@ export const simulateInvoiceBody = zod
                       .describe('Tiered price with spend commitments.'),
                     zod
                       .object({
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceMaximumAmountRegExpFive
@@ -4088,7 +4099,7 @@ export const simulateInvoiceBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceMinimumAmountRegExpFive
@@ -4100,7 +4111,7 @@ export const simulateInvoiceBody = zod
                           .describe(
                             'The customer is committed to spend at least the amount.'
                           ),
-                        multiplier: zod
+                        multiplier: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceMultiplierRegExpOne
@@ -4119,7 +4130,7 @@ export const simulateInvoiceBody = zod
                       .describe('Dynamic price with spend commitments.'),
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceAmountRegExpFive
@@ -4128,7 +4139,7 @@ export const simulateInvoiceBody = zod
                             'Numeric represents an arbitrary precision number.'
                           )
                           .describe('The price of one package.'),
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceMaximumAmountRegExpSeven
@@ -4140,7 +4151,7 @@ export const simulateInvoiceBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceMinimumAmountRegExpSeven
@@ -4152,7 +4163,7 @@ export const simulateInvoiceBody = zod
                           .describe(
                             'The customer is committed to spend at least the amount.'
                           ),
-                        quantityPerPackage: zod
+                        quantityPerPackage: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardPriceQuantityPerPackageRegExpOne
@@ -4183,7 +4194,7 @@ export const simulateInvoiceBody = zod
                       ),
                     customInvoicing: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .describe(
                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -4194,7 +4205,7 @@ export const simulateInvoiceBody = zod
                       .describe('Custom invoicing tax config.'),
                     stripe: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .regex(
                             simulateInvoiceBodyLinesItemRateCardTaxConfigStripeCodeRegExp
@@ -4233,7 +4244,7 @@ export const simulateInvoiceBody = zod
                   ),
                 customInvoicing: zod
                   .object({
-                    code: zod
+                    code: zod.coerce
                       .string()
                       .describe(
                         'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -4244,7 +4255,7 @@ export const simulateInvoiceBody = zod
                   .describe('Custom invoicing tax config.'),
                 stripe: zod
                   .object({
-                    code: zod
+                    code: zod.coerce
                       .string()
                       .regex(
                         simulateInvoiceBodyLinesItemTaxConfigStripeCodeRegExp
@@ -4268,7 +4279,7 @@ export const simulateInvoiceBody = zod
           )
       )
       .describe('Lines to be included in the generated invoice.'),
-    number: zod
+    number: zod.coerce
       .string()
       .min(1)
       .max(simulateInvoiceBodyNumberMaxOne)
@@ -4297,17 +4308,17 @@ export const listInvoicesQueryPageSizeDefault = 100
 export const listInvoicesQueryPageSizeMax = 1000
 
 export const listInvoicesQueryParams = zod.object({
-  createdAfter: zod
+  createdAfter: zod.coerce
     .date()
     .optional()
     .describe('Filter by invoice created time.\nInclusive.'),
-  createdBefore: zod
+  createdBefore: zod.coerce
     .date()
     .optional()
     .describe('Filter by invoice created time.\nInclusive.'),
   customers: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .regex(listInvoicesQueryCustomersItemRegExp)
         .describe(
@@ -4327,15 +4338,18 @@ export const listInvoicesQueryParams = zod.object({
     .optional()
     .describe('What parts of the list output to expand in listings'),
   extendedStatuses: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe('Filter by invoice extended statuses'),
-  includeDeleted: zod.boolean().optional().describe('Include deleted invoices'),
-  issuedAfter: zod
+  includeDeleted: zod.coerce
+    .boolean()
+    .optional()
+    .describe('Include deleted invoices'),
+  issuedAfter: zod.coerce
     .date()
     .optional()
     .describe('Filter by invoice issued time.\nInclusive.'),
-  issuedBefore: zod
+  issuedBefore: zod.coerce
     .date()
     .optional()
     .describe('Filter by invoice issued time.\nInclusive.'),
@@ -4351,22 +4365,22 @@ export const listInvoicesQueryParams = zod.object({
     ])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listInvoicesQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listInvoicesQueryPageSizeMax)
     .default(listInvoicesQueryPageSizeDefault)
     .describe('The maximum number of items per page.\n\nDefault is 100.'),
-  periodStartAfter: zod
+  periodStartAfter: zod.coerce
     .date()
     .optional()
     .describe('Filter by period start time.\nInclusive.'),
-  periodStartBefore: zod
+  periodStartBefore: zod.coerce
     .date()
     .optional()
     .describe('Filter by period start time.\nInclusive.'),
@@ -4411,13 +4425,13 @@ export const invoicePendingLinesActionBodyCustomerIdRegExp = new RegExp(
 
 export const invoicePendingLinesActionBody = zod
   .object({
-    asOf: zod
+    asOf: zod.coerce
       .date()
       .optional()
       .describe(
         'The time as of which the invoice is created.\n\nIf not provided, the current time is used.'
       ),
-    customerId: zod
+    customerId: zod.coerce
       .string()
       .regex(invoicePendingLinesActionBodyCustomerIdRegExp)
       .describe('The customer ID for which to create the invoice.'),
@@ -4425,7 +4439,7 @@ export const invoicePendingLinesActionBody = zod
       .object({
         lineIds: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .regex(invoicePendingLinesActionBodyFiltersLineIdsItemRegExp)
               .describe(
@@ -4442,7 +4456,7 @@ export const invoicePendingLinesActionBody = zod
       )
       .optional()
       .describe('Filters to apply when creating the invoice.'),
-    progressiveBillingOverride: zod
+    progressiveBillingOverride: zod.coerce
       .boolean()
       .optional()
       .describe(
@@ -4464,7 +4478,7 @@ export const getInvoicePathInvoiceIdRegExp = new RegExp(
 )
 
 export const getInvoiceParams = zod.object({
-  invoiceId: zod.string().regex(getInvoicePathInvoiceIdRegExp),
+  invoiceId: zod.coerce.string().regex(getInvoicePathInvoiceIdRegExp),
 })
 
 export const getInvoiceQueryExpandDefault = ['lines']
@@ -4480,7 +4494,7 @@ export const getInvoiceQueryParams = zod.object({
         )
     )
     .default(getInvoiceQueryExpandDefault),
-  includeDeletedLines: zod.boolean().optional(),
+  includeDeletedLines: zod.coerce.boolean().optional(),
 })
 
 /**
@@ -4496,7 +4510,7 @@ export const deleteInvoicePathInvoiceIdRegExp = new RegExp(
 )
 
 export const deleteInvoiceParams = zod.object({
-  invoiceId: zod.string().regex(deleteInvoicePathInvoiceIdRegExp),
+  invoiceId: zod.coerce.string().regex(deleteInvoicePathInvoiceIdRegExp),
 })
 
 /**
@@ -4510,7 +4524,7 @@ export const updateInvoicePathInvoiceIdRegExp = new RegExp(
 )
 
 export const updateInvoiceParams = zod.object({
-  invoiceId: zod.string().regex(updateInvoicePathInvoiceIdRegExp),
+  invoiceId: zod.coerce.string().regex(updateInvoicePathInvoiceIdRegExp),
 })
 
 export const updateInvoiceBodyDescriptionMax = 1024
@@ -4648,8 +4662,8 @@ export const updateInvoiceBody = zod
           .array(
             zod
               .object({
-                city: zod.string().optional().describe('City.'),
-                country: zod
+                city: zod.coerce.string().optional().describe('City.'),
+                country: zod.coerce
                   .string()
                   .min(updateInvoiceBodyCustomerAddressesItemCountryMinOne)
                   .max(updateInvoiceBodyCustomerAddressesItemCountryMaxOne)
@@ -4661,17 +4675,26 @@ export const updateInvoiceBody = zod
                   .describe(
                     'Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.'
                   ),
-                line1: zod
+                line1: zod.coerce
                   .string()
                   .optional()
                   .describe('First line of the address.'),
-                line2: zod
+                line2: zod.coerce
                   .string()
                   .optional()
                   .describe('Second line of the address.'),
-                phoneNumber: zod.string().optional().describe('Phone number.'),
-                postalCode: zod.string().optional().describe('Postal code.'),
-                state: zod.string().optional().describe('State or province.'),
+                phoneNumber: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('Phone number.'),
+                postalCode: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('Postal code.'),
+                state: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('State or province.'),
               })
               .describe('Address')
           )
@@ -4680,13 +4703,13 @@ export const updateInvoiceBody = zod
           .describe(
             'Regular post addresses for where information should be sent if needed.'
           ),
-        name: zod
+        name: zod.coerce
           .string()
           .optional()
           .describe('Legal name or representation of the organization.'),
         taxId: zod
           .object({
-            code: zod
+            code: zod.coerce
               .string()
               .min(1)
               .max(updateInvoiceBodyCustomerTaxIdCodeMaxOne)
@@ -4708,7 +4731,7 @@ export const updateInvoiceBody = zod
       })
       .describe('Resource update operation model.')
       .describe('The customer the invoice is sent to.'),
-    description: zod
+    description: zod.coerce
       .string()
       .max(updateInvoiceBodyDescriptionMax)
       .optional()
@@ -4719,36 +4742,36 @@ export const updateInvoiceBody = zod
       .array(
         zod
           .object({
-            description: zod
+            description: zod.coerce
               .string()
               .max(updateInvoiceBodyLinesItemDescriptionMax)
               .optional()
               .describe(
                 'Optional description of the resource. Maximum 1024 characters.'
               ),
-            featureKey: zod
+            featureKey: zod.coerce
               .string()
               .min(1)
               .max(updateInvoiceBodyLinesItemFeatureKeyMax)
               .regex(updateInvoiceBodyLinesItemFeatureKeyRegExp)
               .optional()
               .describe('The feature that the usage is based on.'),
-            id: zod
+            id: zod.coerce
               .string()
               .regex(updateInvoiceBodyLinesItemIdRegExp)
               .optional()
               .describe('The ID of the line.'),
-            invoiceAt: zod
+            invoiceAt: zod.coerce
               .date()
               .describe('The time this line item should be invoiced.'),
             metadata: zod
-              .record(zod.string(), zod.string())
+              .record(zod.string(), zod.coerce.string())
               .describe(
                 'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
               )
               .nullish()
               .describe('Additional metadata for the resource.'),
-            name: zod
+            name: zod.coerce
               .string()
               .min(1)
               .max(updateInvoiceBodyLinesItemNameMax)
@@ -4757,8 +4780,8 @@ export const updateInvoiceBody = zod
               ),
             period: zod
               .object({
-                from: zod.date().describe('Period start time.'),
-                to: zod.date().describe('Period end time.'),
+                from: zod.coerce.date().describe('Period start time.'),
+                to: zod.coerce.date().describe('Period end time.'),
               })
               .describe('A period with a start and end time.')
               .describe(
@@ -4768,7 +4791,7 @@ export const updateInvoiceBody = zod
               .discriminatedUnion('type', [
                 zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(updateInvoiceBodyLinesItemPriceAmountRegExpOne)
                       .describe(
@@ -4791,14 +4814,14 @@ export const updateInvoiceBody = zod
                   .describe('Flat price with payment term.'),
                 zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(updateInvoiceBodyLinesItemPriceAmountRegExpThree)
                       .describe(
                         'Numeric represents an arbitrary precision number.'
                       )
                       .describe('The amount of the unit price.'),
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         updateInvoiceBodyLinesItemPriceMaximumAmountRegExpOne
@@ -4810,7 +4833,7 @@ export const updateInvoiceBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         updateInvoiceBodyLinesItemPriceMinimumAmountRegExpOne
@@ -4827,7 +4850,7 @@ export const updateInvoiceBody = zod
                   .describe('Unit price with spend commitments.'),
                 zod
                   .object({
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         updateInvoiceBodyLinesItemPriceMaximumAmountRegExpThree
@@ -4839,7 +4862,7 @@ export const updateInvoiceBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         updateInvoiceBodyLinesItemPriceMinimumAmountRegExpThree
@@ -4863,7 +4886,7 @@ export const updateInvoiceBody = zod
                           .object({
                             flatPrice: zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     updateInvoiceBodyLinesItemPriceTiersItemFlatPriceAmountRegExpOne
@@ -4883,7 +4906,7 @@ export const updateInvoiceBody = zod
                               ),
                             unitPrice: zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     updateInvoiceBodyLinesItemPriceTiersItemUnitPriceAmountRegExpOne
@@ -4901,7 +4924,7 @@ export const updateInvoiceBody = zod
                               .describe(
                                 'The unit price component of the tier.'
                               ),
-                            upToAmount: zod
+                            upToAmount: zod.coerce
                               .string()
                               .regex(
                                 updateInvoiceBodyLinesItemPriceTiersItemUpToAmountRegExpOne
@@ -4927,7 +4950,7 @@ export const updateInvoiceBody = zod
                   .describe('Tiered price with spend commitments.'),
                 zod
                   .object({
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         updateInvoiceBodyLinesItemPriceMaximumAmountRegExpFive
@@ -4939,7 +4962,7 @@ export const updateInvoiceBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         updateInvoiceBodyLinesItemPriceMinimumAmountRegExpFive
@@ -4951,7 +4974,7 @@ export const updateInvoiceBody = zod
                       .describe(
                         'The customer is committed to spend at least the amount.'
                       ),
-                    multiplier: zod
+                    multiplier: zod.coerce
                       .string()
                       .regex(updateInvoiceBodyLinesItemPriceMultiplierRegExpOne)
                       .describe(
@@ -4966,14 +4989,14 @@ export const updateInvoiceBody = zod
                   .describe('Dynamic price with spend commitments.'),
                 zod
                   .object({
-                    amount: zod
+                    amount: zod.coerce
                       .string()
                       .regex(updateInvoiceBodyLinesItemPriceAmountRegExpFive)
                       .describe(
                         'Numeric represents an arbitrary precision number.'
                       )
                       .describe('The price of one package.'),
-                    maximumAmount: zod
+                    maximumAmount: zod.coerce
                       .string()
                       .regex(
                         updateInvoiceBodyLinesItemPriceMaximumAmountRegExpSeven
@@ -4985,7 +5008,7 @@ export const updateInvoiceBody = zod
                       .describe(
                         'The customer is limited to spend at most the amount.'
                       ),
-                    minimumAmount: zod
+                    minimumAmount: zod.coerce
                       .string()
                       .regex(
                         updateInvoiceBodyLinesItemPriceMinimumAmountRegExpSeven
@@ -4997,7 +5020,7 @@ export const updateInvoiceBody = zod
                       .describe(
                         'The customer is committed to spend at least the amount.'
                       ),
-                    quantityPerPackage: zod
+                    quantityPerPackage: zod.coerce
                       .string()
                       .regex(
                         updateInvoiceBodyLinesItemPriceQuantityPerPackageRegExpOne
@@ -5019,7 +5042,7 @@ export const updateInvoiceBody = zod
                   .object({
                     percentage: zod
                       .object({
-                        correlationId: zod
+                        correlationId: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardDiscountsPercentageCorrelationIdRegExp
@@ -5028,7 +5051,7 @@ export const updateInvoiceBody = zod
                           .describe(
                             'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
                           ),
-                        percentage: zod
+                        percentage: zod.coerce
                           .number()
                           .describe(
                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -5040,7 +5063,7 @@ export const updateInvoiceBody = zod
                       .describe('The percentage discount.'),
                     usage: zod
                       .object({
-                        correlationId: zod
+                        correlationId: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardDiscountsUsageCorrelationIdRegExp
@@ -5049,7 +5072,7 @@ export const updateInvoiceBody = zod
                           .describe(
                             'Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing use case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an invoice line,\nplease make sure to keep the same correlation ID of the discount or in progressive billing\nsetups the discount amounts might be incorrect.'
                           ),
-                        quantity: zod
+                        quantity: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardDiscountsUsageQuantityRegExpOne
@@ -5068,7 +5091,7 @@ export const updateInvoiceBody = zod
                   .describe('A discount by type.')
                   .optional()
                   .describe('The discounts that are applied to the line.'),
-                featureKey: zod
+                featureKey: zod.coerce
                   .string()
                   .min(1)
                   .max(updateInvoiceBodyLinesItemRateCardFeatureKeyMax)
@@ -5079,7 +5102,7 @@ export const updateInvoiceBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceAmountRegExpOne
@@ -5104,7 +5127,7 @@ export const updateInvoiceBody = zod
                       .describe('Flat price with payment term.'),
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceAmountRegExpThree
@@ -5113,7 +5136,7 @@ export const updateInvoiceBody = zod
                             'Numeric represents an arbitrary precision number.'
                           )
                           .describe('The amount of the unit price.'),
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceMaximumAmountRegExpOne
@@ -5125,7 +5148,7 @@ export const updateInvoiceBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceMinimumAmountRegExpOne
@@ -5142,7 +5165,7 @@ export const updateInvoiceBody = zod
                       .describe('Unit price with spend commitments.'),
                     zod
                       .object({
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceMaximumAmountRegExpThree
@@ -5154,7 +5177,7 @@ export const updateInvoiceBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceMinimumAmountRegExpThree
@@ -5178,7 +5201,7 @@ export const updateInvoiceBody = zod
                               .object({
                                 flatPrice: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         updateInvoiceBodyLinesItemRateCardPriceTiersItemFlatPriceAmountRegExpOne
@@ -5200,7 +5223,7 @@ export const updateInvoiceBody = zod
                                   ),
                                 unitPrice: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         updateInvoiceBodyLinesItemRateCardPriceTiersItemUnitPriceAmountRegExpOne
@@ -5220,7 +5243,7 @@ export const updateInvoiceBody = zod
                                   .describe(
                                     'The unit price component of the tier.'
                                   ),
-                                upToAmount: zod
+                                upToAmount: zod.coerce
                                   .string()
                                   .regex(
                                     updateInvoiceBodyLinesItemRateCardPriceTiersItemUpToAmountRegExpOne
@@ -5246,7 +5269,7 @@ export const updateInvoiceBody = zod
                       .describe('Tiered price with spend commitments.'),
                     zod
                       .object({
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceMaximumAmountRegExpFive
@@ -5258,7 +5281,7 @@ export const updateInvoiceBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceMinimumAmountRegExpFive
@@ -5270,7 +5293,7 @@ export const updateInvoiceBody = zod
                           .describe(
                             'The customer is committed to spend at least the amount.'
                           ),
-                        multiplier: zod
+                        multiplier: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceMultiplierRegExpOne
@@ -5289,7 +5312,7 @@ export const updateInvoiceBody = zod
                       .describe('Dynamic price with spend commitments.'),
                     zod
                       .object({
-                        amount: zod
+                        amount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceAmountRegExpFive
@@ -5298,7 +5321,7 @@ export const updateInvoiceBody = zod
                             'Numeric represents an arbitrary precision number.'
                           )
                           .describe('The price of one package.'),
-                        maximumAmount: zod
+                        maximumAmount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceMaximumAmountRegExpSeven
@@ -5310,7 +5333,7 @@ export const updateInvoiceBody = zod
                           .describe(
                             'The customer is limited to spend at most the amount.'
                           ),
-                        minimumAmount: zod
+                        minimumAmount: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceMinimumAmountRegExpSeven
@@ -5322,7 +5345,7 @@ export const updateInvoiceBody = zod
                           .describe(
                             'The customer is committed to spend at least the amount.'
                           ),
-                        quantityPerPackage: zod
+                        quantityPerPackage: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardPriceQuantityPerPackageRegExpOne
@@ -5353,7 +5376,7 @@ export const updateInvoiceBody = zod
                       ),
                     customInvoicing: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .describe(
                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -5364,7 +5387,7 @@ export const updateInvoiceBody = zod
                       .describe('Custom invoicing tax config.'),
                     stripe: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyLinesItemRateCardTaxConfigStripeCodeRegExp
@@ -5403,7 +5426,7 @@ export const updateInvoiceBody = zod
                   ),
                 customInvoicing: zod
                   .object({
-                    code: zod
+                    code: zod.coerce
                       .string()
                       .describe(
                         'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -5414,7 +5437,7 @@ export const updateInvoiceBody = zod
                   .describe('Custom invoicing tax config.'),
                 stripe: zod
                   .object({
-                    code: zod
+                    code: zod.coerce
                       .string()
                       .regex(
                         updateInvoiceBodyLinesItemTaxConfigStripeCodeRegExp
@@ -5439,7 +5462,7 @@ export const updateInvoiceBody = zod
       )
       .describe('The lines included in the invoice.'),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
@@ -5451,8 +5474,8 @@ export const updateInvoiceBody = zod
           .array(
             zod
               .object({
-                city: zod.string().optional().describe('City.'),
-                country: zod
+                city: zod.coerce.string().optional().describe('City.'),
+                country: zod.coerce
                   .string()
                   .min(updateInvoiceBodySupplierAddressesItemCountryMinOne)
                   .max(updateInvoiceBodySupplierAddressesItemCountryMaxOne)
@@ -5464,17 +5487,26 @@ export const updateInvoiceBody = zod
                   .describe(
                     'Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.'
                   ),
-                line1: zod
+                line1: zod.coerce
                   .string()
                   .optional()
                   .describe('First line of the address.'),
-                line2: zod
+                line2: zod.coerce
                   .string()
                   .optional()
                   .describe('Second line of the address.'),
-                phoneNumber: zod.string().optional().describe('Phone number.'),
-                postalCode: zod.string().optional().describe('Postal code.'),
-                state: zod.string().optional().describe('State or province.'),
+                phoneNumber: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('Phone number.'),
+                postalCode: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('Postal code.'),
+                state: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('State or province.'),
               })
               .describe('Address')
           )
@@ -5483,13 +5515,13 @@ export const updateInvoiceBody = zod
           .describe(
             'Regular post addresses for where information should be sent if needed.'
           ),
-        name: zod
+        name: zod.coerce
           .string()
           .optional()
           .describe('Legal name or representation of the organization.'),
         taxId: zod
           .object({
-            code: zod
+            code: zod.coerce
               .string()
               .min(1)
               .max(updateInvoiceBodySupplierTaxIdCodeMaxOne)
@@ -5517,7 +5549,7 @@ export const updateInvoiceBody = zod
           .object({
             invoicing: zod
               .object({
-                autoAdvance: zod
+                autoAdvance: zod.coerce
                   .boolean()
                   .default(
                     updateInvoiceBodyWorkflowWorkflowInvoicingAutoAdvanceDefault
@@ -5538,7 +5570,7 @@ export const updateInvoiceBody = zod
                       ),
                     customInvoicing: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .describe(
                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -5549,7 +5581,7 @@ export const updateInvoiceBody = zod
                       .describe('Custom invoicing tax config.'),
                     stripe: zod
                       .object({
-                        code: zod
+                        code: zod.coerce
                           .string()
                           .regex(
                             updateInvoiceBodyWorkflowWorkflowInvoicingDefaultTaxConfigStripeCodeRegExp
@@ -5567,7 +5599,7 @@ export const updateInvoiceBody = zod
                   .describe(
                     'Default tax configuration to apply to the invoices.'
                   ),
-                draftPeriod: zod
+                draftPeriod: zod.coerce
                   .string()
                   .default(
                     updateInvoiceBodyWorkflowWorkflowInvoicingDraftPeriodDefault
@@ -5575,7 +5607,7 @@ export const updateInvoiceBody = zod
                   .describe(
                     'The period for the invoice to be kept in draft status for manual reviews.'
                   ),
-                dueAfter: zod
+                dueAfter: zod.coerce
                   .string()
                   .default(
                     updateInvoiceBodyWorkflowWorkflowInvoicingDueAfterDefault
@@ -5630,7 +5662,7 @@ export const advanceInvoiceActionPathInvoiceIdRegExp = new RegExp(
 )
 
 export const advanceInvoiceActionParams = zod.object({
-  invoiceId: zod.string().regex(advanceInvoiceActionPathInvoiceIdRegExp),
+  invoiceId: zod.coerce.string().regex(advanceInvoiceActionPathInvoiceIdRegExp),
 })
 
 /**
@@ -5648,7 +5680,7 @@ export const approveInvoiceActionPathInvoiceIdRegExp = new RegExp(
 )
 
 export const approveInvoiceActionParams = zod.object({
-  invoiceId: zod.string().regex(approveInvoiceActionPathInvoiceIdRegExp),
+  invoiceId: zod.coerce.string().regex(approveInvoiceActionPathInvoiceIdRegExp),
 })
 
 /**
@@ -5662,7 +5694,7 @@ export const retryInvoiceActionPathInvoiceIdRegExp = new RegExp(
 )
 
 export const retryInvoiceActionParams = zod.object({
-  invoiceId: zod.string().regex(retryInvoiceActionPathInvoiceIdRegExp),
+  invoiceId: zod.coerce.string().regex(retryInvoiceActionPathInvoiceIdRegExp),
 })
 
 /**
@@ -5679,7 +5711,7 @@ export const snapshotQuantitiesInvoiceActionPathInvoiceIdRegExp = new RegExp(
 )
 
 export const snapshotQuantitiesInvoiceActionParams = zod.object({
-  invoiceId: zod
+  invoiceId: zod.coerce
     .string()
     .regex(snapshotQuantitiesInvoiceActionPathInvoiceIdRegExp),
 })
@@ -5695,7 +5727,9 @@ export const recalculateInvoiceTaxActionPathInvoiceIdRegExp = new RegExp(
 )
 
 export const recalculateInvoiceTaxActionParams = zod.object({
-  invoiceId: zod.string().regex(recalculateInvoiceTaxActionPathInvoiceIdRegExp),
+  invoiceId: zod.coerce
+    .string()
+    .regex(recalculateInvoiceTaxActionPathInvoiceIdRegExp),
 })
 
 /**
@@ -5711,7 +5745,7 @@ export const voidInvoiceActionPathInvoiceIdRegExp = new RegExp(
 )
 
 export const voidInvoiceActionParams = zod.object({
-  invoiceId: zod.string().regex(voidInvoiceActionPathInvoiceIdRegExp),
+  invoiceId: zod.coerce.string().regex(voidInvoiceActionPathInvoiceIdRegExp),
 })
 
 export const voidInvoiceActionBodyOverridesItemLineIdRegExp = new RegExp(
@@ -5733,7 +5767,7 @@ export const voidInvoiceActionBody = zod
               ),
             zod
               .object({
-                nextInvoiceAt: zod
+                nextInvoiceAt: zod.coerce
                   .date()
                   .optional()
                   .describe(
@@ -5749,7 +5783,7 @@ export const voidInvoiceActionBody = zod
             'VoidInvoiceLineAction describes how to handle a specific line item in the invoice when voiding.'
           )
           .describe('The action to take on the line items.'),
-        percentage: zod
+        percentage: zod.coerce
           .number()
           .describe(
             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -5779,7 +5813,7 @@ export const voidInvoiceActionBody = zod
                       ),
                     zod
                       .object({
-                        nextInvoiceAt: zod
+                        nextInvoiceAt: zod.coerce
                           .date()
                           .optional()
                           .describe(
@@ -5795,7 +5829,7 @@ export const voidInvoiceActionBody = zod
                     'VoidInvoiceLineAction describes how to handle a specific line item in the invoice when voiding.'
                   )
                   .describe('The action to take on the line items.'),
-                percentage: zod
+                percentage: zod.coerce
                   .number()
                   .describe(
                     'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -5808,7 +5842,7 @@ export const voidInvoiceActionBody = zod
                 'InvoiceVoidAction describes how to handle the voided line items.'
               )
               .describe('The action to take on the line item.'),
-            lineId: zod
+            lineId: zod.coerce
               .string()
               .regex(voidInvoiceActionBodyOverridesItemLineIdRegExp)
               .describe('The line item ID to override.'),
@@ -5821,7 +5855,7 @@ export const voidInvoiceActionBody = zod
       .describe(
         'Per line item overrides for the action.\n\nIf not specified, the `action` will be applied to all line items.'
       ),
-    reason: zod.string().describe('The reason for voiding the invoice.'),
+    reason: zod.coerce.string().describe('The reason for voiding the invoice.'),
   })
   .describe('Request to void an invoice')
 
@@ -5846,18 +5880,18 @@ export const listBillingProfilesQueryParams = zod.object({
         .describe('BillingProfileExpand details what profile fields to expand')
     )
     .optional(),
-  includeArchived: zod.boolean().optional(),
+  includeArchived: zod.coerce.boolean().optional(),
   order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
   orderBy: zod
     .enum(['createdAt', 'updatedAt', 'default', 'name'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listBillingProfilesQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listBillingProfilesQueryPageSizeMax)
@@ -5911,15 +5945,15 @@ export const createBillingProfileBody = zod
   .object({
     apps: zod
       .object({
-        invoicing: zod
+        invoicing: zod.coerce
           .string()
           .regex(createBillingProfileBodyAppsInvoicingRegExp)
           .describe('The invoicing app used for this workflow'),
-        payment: zod
+        payment: zod.coerce
           .string()
           .regex(createBillingProfileBodyAppsPaymentRegExp)
           .describe('The payment app used for this workflow'),
-        tax: zod
+        tax: zod.coerce
           .string()
           .regex(createBillingProfileBodyAppsTaxRegExp)
           .describe('The tax app used for this workflow'),
@@ -5928,8 +5962,8 @@ export const createBillingProfileBody = zod
         "BillingProfileAppsCreate represents the input for creating a billing profile's apps"
       )
       .describe('The apps used by this billing profile.'),
-    default: zod.boolean().describe('Is this the default profile?'),
-    description: zod
+    default: zod.coerce.boolean().describe('Is this the default profile?'),
+    description: zod.coerce
       .string()
       .max(createBillingProfileBodyDescriptionMax)
       .optional()
@@ -5937,13 +5971,13 @@ export const createBillingProfileBody = zod
         'Optional description of the resource. Maximum 1024 characters.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(createBillingProfileBodyNameMax)
@@ -5956,8 +5990,8 @@ export const createBillingProfileBody = zod
           .array(
             zod
               .object({
-                city: zod.string().optional().describe('City.'),
-                country: zod
+                city: zod.coerce.string().optional().describe('City.'),
+                country: zod.coerce
                   .string()
                   .min(
                     createBillingProfileBodySupplierAddressesItemCountryMinOne
@@ -5975,17 +6009,26 @@ export const createBillingProfileBody = zod
                   .describe(
                     'Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.'
                   ),
-                line1: zod
+                line1: zod.coerce
                   .string()
                   .optional()
                   .describe('First line of the address.'),
-                line2: zod
+                line2: zod.coerce
                   .string()
                   .optional()
                   .describe('Second line of the address.'),
-                phoneNumber: zod.string().optional().describe('Phone number.'),
-                postalCode: zod.string().optional().describe('Postal code.'),
-                state: zod.string().optional().describe('State or province.'),
+                phoneNumber: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('Phone number.'),
+                postalCode: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('Postal code.'),
+                state: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('State or province.'),
               })
               .describe('Address')
           )
@@ -5994,17 +6037,17 @@ export const createBillingProfileBody = zod
           .describe(
             'Regular post addresses for where information should be sent if needed.'
           ),
-        id: zod
+        id: zod.coerce
           .string()
           .optional()
           .describe('Unique identifier for the party (if available)'),
-        name: zod
+        name: zod.coerce
           .string()
           .optional()
           .describe('Legal name or representation of the organization.'),
         taxId: zod
           .object({
-            code: zod
+            code: zod.coerce
               .string()
               .min(1)
               .max(createBillingProfileBodySupplierTaxIdCodeMaxOne)
@@ -6050,7 +6093,7 @@ export const createBillingProfileBody = zod
               .describe(
                 'The alignment for collecting the pending line items into an invoice.'
               ),
-            interval: zod
+            interval: zod.coerce
               .string()
               .default(
                 createBillingProfileBodyWorkflowCollectionIntervalDefault
@@ -6066,7 +6109,7 @@ export const createBillingProfileBody = zod
           .describe('The collection settings for this workflow'),
         invoicing: zod
           .object({
-            autoAdvance: zod
+            autoAdvance: zod.coerce
               .boolean()
               .default(
                 createBillingProfileBodyWorkflowInvoicingAutoAdvanceDefault
@@ -6087,7 +6130,7 @@ export const createBillingProfileBody = zod
                   ),
                 customInvoicing: zod
                   .object({
-                    code: zod
+                    code: zod.coerce
                       .string()
                       .describe(
                         'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -6098,7 +6141,7 @@ export const createBillingProfileBody = zod
                   .describe('Custom invoicing tax config.'),
                 stripe: zod
                   .object({
-                    code: zod
+                    code: zod.coerce
                       .string()
                       .regex(
                         createBillingProfileBodyWorkflowInvoicingDefaultTaxConfigStripeCodeRegExp
@@ -6114,7 +6157,7 @@ export const createBillingProfileBody = zod
               .describe('Set of provider specific tax configs.')
               .optional()
               .describe('Default tax configuration to apply to the invoices.'),
-            draftPeriod: zod
+            draftPeriod: zod.coerce
               .string()
               .default(
                 createBillingProfileBodyWorkflowInvoicingDraftPeriodDefault
@@ -6122,13 +6165,13 @@ export const createBillingProfileBody = zod
               .describe(
                 'The period for the invoice to be kept in draft status for manual reviews.'
               ),
-            dueAfter: zod
+            dueAfter: zod.coerce
               .string()
               .default(createBillingProfileBodyWorkflowInvoicingDueAfterDefault)
               .describe(
                 "The period after which the invoice is due.\nWith some payment solutions it's only applicable for manual collection method."
               ),
-            progressiveBilling: zod
+            progressiveBilling: zod.coerce
               .boolean()
               .optional()
               .describe(
@@ -6159,13 +6202,13 @@ export const createBillingProfileBody = zod
           .describe('The payment settings for this workflow'),
         tax: zod
           .object({
-            enabled: zod
+            enabled: zod.coerce
               .boolean()
               .default(createBillingProfileBodyWorkflowTaxEnabledDefault)
               .describe(
                 'Enable automatic tax calculation when tax is supported by the app.\nFor example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.'
               ),
-            enforced: zod
+            enforced: zod.coerce
               .boolean()
               .optional()
               .describe(
@@ -6199,7 +6242,7 @@ export const deleteBillingProfilePathIdRegExp = new RegExp(
 )
 
 export const deleteBillingProfileParams = zod.object({
-  id: zod.string().regex(deleteBillingProfilePathIdRegExp),
+  id: zod.coerce.string().regex(deleteBillingProfilePathIdRegExp),
 })
 
 /**
@@ -6215,7 +6258,7 @@ export const getBillingProfilePathIdRegExp = new RegExp(
 )
 
 export const getBillingProfileParams = zod.object({
-  id: zod.string().regex(getBillingProfilePathIdRegExp),
+  id: zod.coerce.string().regex(getBillingProfilePathIdRegExp),
 })
 
 export const getBillingProfileQueryParams = zod.object({
@@ -6240,7 +6283,7 @@ export const updateBillingProfilePathIdRegExp = new RegExp(
 )
 
 export const updateBillingProfileParams = zod.object({
-  id: zod.string().regex(updateBillingProfilePathIdRegExp),
+  id: zod.coerce.string().regex(updateBillingProfilePathIdRegExp),
 })
 
 export const updateBillingProfileBodyNameMax = 256
@@ -6271,8 +6314,8 @@ export const updateBillingProfileBodyWorkflowTaxEnforcedDefault = false
 
 export const updateBillingProfileBody = zod
   .object({
-    default: zod.boolean().describe('Is this the default profile?'),
-    description: zod
+    default: zod.coerce.boolean().describe('Is this the default profile?'),
+    description: zod.coerce
       .string()
       .max(updateBillingProfileBodyDescriptionMax)
       .optional()
@@ -6280,13 +6323,13 @@ export const updateBillingProfileBody = zod
         'Optional description of the resource. Maximum 1024 characters.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(updateBillingProfileBodyNameMax)
@@ -6299,8 +6342,8 @@ export const updateBillingProfileBody = zod
           .array(
             zod
               .object({
-                city: zod.string().optional().describe('City.'),
-                country: zod
+                city: zod.coerce.string().optional().describe('City.'),
+                country: zod.coerce
                   .string()
                   .min(
                     updateBillingProfileBodySupplierAddressesItemCountryMinOne
@@ -6318,17 +6361,26 @@ export const updateBillingProfileBody = zod
                   .describe(
                     'Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.'
                   ),
-                line1: zod
+                line1: zod.coerce
                   .string()
                   .optional()
                   .describe('First line of the address.'),
-                line2: zod
+                line2: zod.coerce
                   .string()
                   .optional()
                   .describe('Second line of the address.'),
-                phoneNumber: zod.string().optional().describe('Phone number.'),
-                postalCode: zod.string().optional().describe('Postal code.'),
-                state: zod.string().optional().describe('State or province.'),
+                phoneNumber: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('Phone number.'),
+                postalCode: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('Postal code.'),
+                state: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('State or province.'),
               })
               .describe('Address')
           )
@@ -6337,17 +6389,17 @@ export const updateBillingProfileBody = zod
           .describe(
             'Regular post addresses for where information should be sent if needed.'
           ),
-        id: zod
+        id: zod.coerce
           .string()
           .optional()
           .describe('Unique identifier for the party (if available)'),
-        name: zod
+        name: zod.coerce
           .string()
           .optional()
           .describe('Legal name or representation of the organization.'),
         taxId: zod
           .object({
-            code: zod
+            code: zod.coerce
               .string()
               .min(1)
               .max(updateBillingProfileBodySupplierTaxIdCodeMaxOne)
@@ -6393,7 +6445,7 @@ export const updateBillingProfileBody = zod
               .describe(
                 'The alignment for collecting the pending line items into an invoice.'
               ),
-            interval: zod
+            interval: zod.coerce
               .string()
               .default(
                 updateBillingProfileBodyWorkflowCollectionIntervalDefault
@@ -6409,7 +6461,7 @@ export const updateBillingProfileBody = zod
           .describe('The collection settings for this workflow'),
         invoicing: zod
           .object({
-            autoAdvance: zod
+            autoAdvance: zod.coerce
               .boolean()
               .default(
                 updateBillingProfileBodyWorkflowInvoicingAutoAdvanceDefault
@@ -6430,7 +6482,7 @@ export const updateBillingProfileBody = zod
                   ),
                 customInvoicing: zod
                   .object({
-                    code: zod
+                    code: zod.coerce
                       .string()
                       .describe(
                         'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -6441,7 +6493,7 @@ export const updateBillingProfileBody = zod
                   .describe('Custom invoicing tax config.'),
                 stripe: zod
                   .object({
-                    code: zod
+                    code: zod.coerce
                       .string()
                       .regex(
                         updateBillingProfileBodyWorkflowInvoicingDefaultTaxConfigStripeCodeRegExp
@@ -6457,7 +6509,7 @@ export const updateBillingProfileBody = zod
               .describe('Set of provider specific tax configs.')
               .optional()
               .describe('Default tax configuration to apply to the invoices.'),
-            draftPeriod: zod
+            draftPeriod: zod.coerce
               .string()
               .default(
                 updateBillingProfileBodyWorkflowInvoicingDraftPeriodDefault
@@ -6465,13 +6517,13 @@ export const updateBillingProfileBody = zod
               .describe(
                 'The period for the invoice to be kept in draft status for manual reviews.'
               ),
-            dueAfter: zod
+            dueAfter: zod.coerce
               .string()
               .default(updateBillingProfileBodyWorkflowInvoicingDueAfterDefault)
               .describe(
                 "The period after which the invoice is due.\nWith some payment solutions it's only applicable for manual collection method."
               ),
-            progressiveBilling: zod
+            progressiveBilling: zod.coerce
               .boolean()
               .optional()
               .describe(
@@ -6502,13 +6554,13 @@ export const updateBillingProfileBody = zod
           .describe('The payment settings for this workflow'),
         tax: zod
           .object({
-            enabled: zod
+            enabled: zod.coerce
               .boolean()
               .default(updateBillingProfileBodyWorkflowTaxEnabledDefault)
               .describe(
                 'Enable automatic tax calculation when tax is supported by the app.\nFor example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.'
               ),
-            enforced: zod
+            enforced: zod.coerce
               .boolean()
               .optional()
               .describe(
@@ -6555,8 +6607,8 @@ export const createCustomerBody = zod
   .object({
     billingAddress: zod
       .object({
-        city: zod.string().optional().describe('City.'),
-        country: zod
+        city: zod.coerce.string().optional().describe('City.'),
+        country: zod.coerce
           .string()
           .min(createCustomerBodyBillingAddressCountryMinOne)
           .max(createCustomerBodyBillingAddressCountryMaxOne)
@@ -6568,18 +6620,24 @@ export const createCustomerBody = zod
           .describe(
             'Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.'
           ),
-        line1: zod.string().optional().describe('First line of the address.'),
-        line2: zod.string().optional().describe('Second line of the address.'),
-        phoneNumber: zod.string().optional().describe('Phone number.'),
-        postalCode: zod.string().optional().describe('Postal code.'),
-        state: zod.string().optional().describe('State or province.'),
+        line1: zod.coerce
+          .string()
+          .optional()
+          .describe('First line of the address.'),
+        line2: zod.coerce
+          .string()
+          .optional()
+          .describe('Second line of the address.'),
+        phoneNumber: zod.coerce.string().optional().describe('Phone number.'),
+        postalCode: zod.coerce.string().optional().describe('Postal code.'),
+        state: zod.coerce.string().optional().describe('State or province.'),
       })
       .describe('Address')
       .optional()
       .describe(
         'The billing address of the customer.\nUsed for tax and invoicing.'
       ),
-    currency: zod
+    currency: zod.coerce
       .string()
       .min(createCustomerBodyCurrencyMinOne)
       .max(createCustomerBodyCurrencyMaxOne)
@@ -6591,14 +6649,14 @@ export const createCustomerBody = zod
       .describe(
         'Currency of the customer.\nUsed for billing, tax and invoicing.'
       ),
-    description: zod
+    description: zod.coerce
       .string()
       .max(createCustomerBodyDescriptionMax)
       .optional()
       .describe(
         'Optional description of the resource. Maximum 1024 characters.'
       ),
-    key: zod
+    key: zod.coerce
       .string()
       .min(1)
       .max(createCustomerBodyKeyMax)
@@ -6607,27 +6665,27 @@ export const createCustomerBody = zod
         'An optional unique key of the customer.\nUseful to reference the customer in external systems.\nFor example, your database ID.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(createCustomerBodyNameMax)
       .describe(
         'Human-readable name for the resource. Between 1 and 256 characters.'
       ),
-    primaryEmail: zod
+    primaryEmail: zod.coerce
       .string()
       .optional()
       .describe('The primary email address of the customer.'),
     usageAttribution: zod
       .object({
         subjectKeys: zod
-          .array(zod.string())
+          .array(zod.coerce.string())
           .min(1)
           .max(createCustomerBodyUsageAttributionSubjectKeysMax)
           .describe('The subjects that are attributed to the customer.'),
@@ -6659,15 +6717,15 @@ export const listCustomersQueryParams = zod.object({
     )
     .optional()
     .describe('What parts of the list output to expand in listings'),
-  includeDeleted: zod
+  includeDeleted: zod.coerce
     .boolean()
     .optional()
     .describe('Include deleted customers.'),
-  key: zod
+  key: zod.coerce
     .string()
     .optional()
     .describe('Filter customers by key.\nCase-sensitive exact match.'),
-  name: zod
+  name: zod.coerce
     .string()
     .optional()
     .describe('Filter customers by name.\nCase-insensitive partial match.'),
@@ -6676,28 +6734,28 @@ export const listCustomersQueryParams = zod.object({
     .enum(['id', 'name', 'createdAt'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listCustomersQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listCustomersQueryPageSizeMax)
     .default(listCustomersQueryPageSizeDefault)
     .describe('The maximum number of items per page.\n\nDefault is 100.'),
-  planKey: zod
+  planKey: zod.coerce
     .string()
     .optional()
     .describe('Filter customers by the plan key of their susbcription.'),
-  primaryEmail: zod
+  primaryEmail: zod.coerce
     .string()
     .optional()
     .describe(
       'Filter customers by primary email.\nCase-insensitive partial match.'
     ),
-  subject: zod
+  subject: zod.coerce
     .string()
     .optional()
     .describe(
@@ -6716,7 +6774,7 @@ export const getCustomerPathCustomerIdOrKeyRegExp = new RegExp(
 )
 
 export const getCustomerParams = zod.object({
-  customerIdOrKey: zod
+  customerIdOrKey: zod.coerce
     .string()
     .min(1)
     .max(getCustomerPathCustomerIdOrKeyMax)
@@ -6747,7 +6805,7 @@ export const updateCustomerPathCustomerIdOrKeyRegExp = new RegExp(
 )
 
 export const updateCustomerParams = zod.object({
-  customerIdOrKey: zod
+  customerIdOrKey: zod.coerce
     .string()
     .min(1)
     .max(updateCustomerPathCustomerIdOrKeyMax)
@@ -6775,8 +6833,8 @@ export const updateCustomerBody = zod
   .object({
     billingAddress: zod
       .object({
-        city: zod.string().optional().describe('City.'),
-        country: zod
+        city: zod.coerce.string().optional().describe('City.'),
+        country: zod.coerce
           .string()
           .min(updateCustomerBodyBillingAddressCountryMinOne)
           .max(updateCustomerBodyBillingAddressCountryMaxOne)
@@ -6788,18 +6846,24 @@ export const updateCustomerBody = zod
           .describe(
             'Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.'
           ),
-        line1: zod.string().optional().describe('First line of the address.'),
-        line2: zod.string().optional().describe('Second line of the address.'),
-        phoneNumber: zod.string().optional().describe('Phone number.'),
-        postalCode: zod.string().optional().describe('Postal code.'),
-        state: zod.string().optional().describe('State or province.'),
+        line1: zod.coerce
+          .string()
+          .optional()
+          .describe('First line of the address.'),
+        line2: zod.coerce
+          .string()
+          .optional()
+          .describe('Second line of the address.'),
+        phoneNumber: zod.coerce.string().optional().describe('Phone number.'),
+        postalCode: zod.coerce.string().optional().describe('Postal code.'),
+        state: zod.coerce.string().optional().describe('State or province.'),
       })
       .describe('Address')
       .optional()
       .describe(
         'The billing address of the customer.\nUsed for tax and invoicing.'
       ),
-    currency: zod
+    currency: zod.coerce
       .string()
       .min(updateCustomerBodyCurrencyMinOne)
       .max(updateCustomerBodyCurrencyMaxOne)
@@ -6811,14 +6875,14 @@ export const updateCustomerBody = zod
       .describe(
         'Currency of the customer.\nUsed for billing, tax and invoicing.'
       ),
-    description: zod
+    description: zod.coerce
       .string()
       .max(updateCustomerBodyDescriptionMax)
       .optional()
       .describe(
         'Optional description of the resource. Maximum 1024 characters.'
       ),
-    key: zod
+    key: zod.coerce
       .string()
       .min(1)
       .max(updateCustomerBodyKeyMax)
@@ -6827,27 +6891,27 @@ export const updateCustomerBody = zod
         'An optional unique key of the customer.\nUseful to reference the customer in external systems.\nFor example, your database ID.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(updateCustomerBodyNameMax)
       .describe(
         'Human-readable name for the resource. Between 1 and 256 characters.'
       ),
-    primaryEmail: zod
+    primaryEmail: zod.coerce
       .string()
       .optional()
       .describe('The primary email address of the customer.'),
     usageAttribution: zod
       .object({
         subjectKeys: zod
-          .array(zod.string())
+          .array(zod.coerce.string())
           .min(1)
           .max(updateCustomerBodyUsageAttributionSubjectKeysMax)
           .describe('The subjects that are attributed to the customer.'),
@@ -6870,7 +6934,7 @@ export const deleteCustomerPathCustomerIdOrKeyRegExp = new RegExp(
 )
 
 export const deleteCustomerParams = zod.object({
-  customerIdOrKey: zod
+  customerIdOrKey: zod.coerce
     .string()
     .min(1)
     .max(deleteCustomerPathCustomerIdOrKeyMax)
@@ -6888,7 +6952,7 @@ export const getCustomerAccessPathCustomerIdOrKeyRegExp = new RegExp(
 )
 
 export const getCustomerAccessParams = zod.object({
-  customerIdOrKey: zod
+  customerIdOrKey: zod.coerce
     .string()
     .min(1)
     .max(getCustomerAccessPathCustomerIdOrKeyMax)
@@ -6906,7 +6970,7 @@ export const listCustomerAppDataPathCustomerIdOrKeyRegExp = new RegExp(
 )
 
 export const listCustomerAppDataParams = zod.object({
-  customerIdOrKey: zod
+  customerIdOrKey: zod.coerce
     .string()
     .min(1)
     .max(listCustomerAppDataPathCustomerIdOrKeyMax)
@@ -6918,12 +6982,12 @@ export const listCustomerAppDataQueryPageSizeDefault = 100
 export const listCustomerAppDataQueryPageSizeMax = 1000
 
 export const listCustomerAppDataQueryParams = zod.object({
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listCustomerAppDataQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listCustomerAppDataQueryPageSizeMax)
@@ -6946,7 +7010,7 @@ export const upsertCustomerAppDataPathCustomerIdOrKeyRegExp = new RegExp(
 )
 
 export const upsertCustomerAppDataParams = zod.object({
-  customerIdOrKey: zod
+  customerIdOrKey: zod.coerce
     .string()
     .min(1)
     .max(upsertCustomerAppDataPathCustomerIdOrKeyMax)
@@ -6985,15 +7049,17 @@ export const upsertCustomerAppDataBodyItem = zod
   .discriminatedUnion('type', [
     zod
       .object({
-        id: zod
+        id: zod.coerce
           .string()
           .regex(upsertCustomerAppDataBodyIdRegExp)
           .optional()
           .describe(
             'The app ID.\nIf not provided, it will use the global default for the app type.'
           ),
-        stripeCustomerId: zod.string().describe('The Stripe customer ID.'),
-        stripeDefaultPaymentMethodId: zod
+        stripeCustomerId: zod.coerce
+          .string()
+          .describe('The Stripe customer ID.'),
+        stripeDefaultPaymentMethodId: zod.coerce
           .string()
           .optional()
           .describe('The Stripe default payment method ID.'),
@@ -7004,23 +7070,23 @@ export const upsertCustomerAppDataBodyItem = zod
       .object({
         app: zod
           .object({
-            createdAt: zod
+            createdAt: zod.coerce
               .date()
               .describe('Timestamp of when the resource was created.'),
-            deletedAt: zod
+            deletedAt: zod.coerce
               .date()
               .optional()
               .describe(
                 'Timestamp of when the resource was permanently deleted.'
               ),
-            description: zod
+            description: zod.coerce
               .string()
               .max(upsertCustomerAppDataBodyAppDescriptionMax)
               .optional()
               .describe(
                 'Optional description of the resource. Maximum 1024 characters.'
               ),
-            id: zod
+            id: zod.coerce
               .string()
               .regex(upsertCustomerAppDataBodyAppIdRegExp)
               .describe('A unique identifier for the resource.'),
@@ -7030,10 +7096,10 @@ export const upsertCustomerAppDataBodyItem = zod
                   .array(
                     zod
                       .object({
-                        description: zod
+                        description: zod.coerce
                           .string()
                           .describe('The capability description.'),
-                        key: zod
+                        key: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -7043,7 +7109,9 @@ export const upsertCustomerAppDataBodyItem = zod
                             upsertCustomerAppDataBodyAppListingCapabilitiesItemKeyRegExp
                           )
                           .describe('Key'),
-                        name: zod.string().describe('The capability name.'),
+                        name: zod.coerce
+                          .string()
+                          .describe('The capability name.'),
                         type: zod
                           .enum([
                             'reportUsage',
@@ -7060,7 +7128,9 @@ export const upsertCustomerAppDataBodyItem = zod
                       )
                   )
                   .describe("The app's capabilities."),
-                description: zod.string().describe("The app's description."),
+                description: zod.coerce
+                  .string()
+                  .describe("The app's description."),
                 installMethods: zod
                   .array(
                     zod
@@ -7074,7 +7144,7 @@ export const upsertCustomerAppDataBodyItem = zod
                   .describe(
                     'Install methods.\n\nList of methods to install the app.'
                   ),
-                name: zod.string().describe("The app's name."),
+                name: zod.coerce.string().describe("The app's name."),
                 type: zod
                   .enum(['stripe', 'sandbox', 'custom_invoicing'])
                   .describe('Type of the app.')
@@ -7087,13 +7157,13 @@ export const upsertCustomerAppDataBodyItem = zod
                 'The marketplace listing that this installed app is based on.'
               ),
             metadata: zod
-              .record(zod.string(), zod.string())
+              .record(zod.string(), zod.coerce.string())
               .describe(
                 'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
               )
               .nullish()
               .describe('Additional metadata for the resource.'),
-            name: zod
+            name: zod.coerce
               .string()
               .min(1)
               .max(upsertCustomerAppDataBodyAppNameMax)
@@ -7105,7 +7175,7 @@ export const upsertCustomerAppDataBodyItem = zod
               .describe('App installed status.')
               .describe('Status of the app connection.'),
             type: zod.enum(['sandbox']),
-            updatedAt: zod
+            updatedAt: zod.coerce
               .date()
               .describe('Timestamp of when the resource was last updated.'),
           })
@@ -7114,7 +7184,7 @@ export const upsertCustomerAppDataBodyItem = zod
           )
           .optional()
           .describe('The installed sandbox app this data belongs to.'),
-        id: zod
+        id: zod.coerce
           .string()
           .regex(upsertCustomerAppDataBodyIdRegExpOne)
           .optional()
@@ -7128,33 +7198,33 @@ export const upsertCustomerAppDataBodyItem = zod
       .object({
         app: zod
           .object({
-            createdAt: zod
+            createdAt: zod.coerce
               .date()
               .describe('Timestamp of when the resource was created.'),
-            deletedAt: zod
+            deletedAt: zod.coerce
               .date()
               .optional()
               .describe(
                 'Timestamp of when the resource was permanently deleted.'
               ),
-            description: zod
+            description: zod.coerce
               .string()
               .max(upsertCustomerAppDataBodyAppDescriptionMaxOne)
               .optional()
               .describe(
                 'Optional description of the resource. Maximum 1024 characters.'
               ),
-            enableDraftSyncHook: zod
+            enableDraftSyncHook: zod.coerce
               .boolean()
               .describe(
                 'Enable draft.sync hook.\n\nIf the hook is not enabled, the invoice will be progressed to the next state automatically.'
               ),
-            enableIssuingSyncHook: zod
+            enableIssuingSyncHook: zod.coerce
               .boolean()
               .describe(
                 'Enable issuing.sync hook.\n\nIf the hook is not enabled, the invoice will be progressed to the next state automatically.'
               ),
-            id: zod
+            id: zod.coerce
               .string()
               .regex(upsertCustomerAppDataBodyAppIdRegExpOne)
               .describe('A unique identifier for the resource.'),
@@ -7164,10 +7234,10 @@ export const upsertCustomerAppDataBodyItem = zod
                   .array(
                     zod
                       .object({
-                        description: zod
+                        description: zod.coerce
                           .string()
                           .describe('The capability description.'),
-                        key: zod
+                        key: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -7177,7 +7247,9 @@ export const upsertCustomerAppDataBodyItem = zod
                             upsertCustomerAppDataBodyAppListingCapabilitiesItemKeyRegExpOne
                           )
                           .describe('Key'),
-                        name: zod.string().describe('The capability name.'),
+                        name: zod.coerce
+                          .string()
+                          .describe('The capability name.'),
                         type: zod
                           .enum([
                             'reportUsage',
@@ -7194,7 +7266,9 @@ export const upsertCustomerAppDataBodyItem = zod
                       )
                   )
                   .describe("The app's capabilities."),
-                description: zod.string().describe("The app's description."),
+                description: zod.coerce
+                  .string()
+                  .describe("The app's description."),
                 installMethods: zod
                   .array(
                     zod
@@ -7208,7 +7282,7 @@ export const upsertCustomerAppDataBodyItem = zod
                   .describe(
                     'Install methods.\n\nList of methods to install the app.'
                   ),
-                name: zod.string().describe("The app's name."),
+                name: zod.coerce.string().describe("The app's name."),
                 type: zod
                   .enum(['stripe', 'sandbox', 'custom_invoicing'])
                   .describe('Type of the app.')
@@ -7221,13 +7295,13 @@ export const upsertCustomerAppDataBodyItem = zod
                 'The marketplace listing that this installed app is based on.'
               ),
             metadata: zod
-              .record(zod.string(), zod.string())
+              .record(zod.string(), zod.coerce.string())
               .describe(
                 'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
               )
               .nullish()
               .describe('Additional metadata for the resource.'),
-            name: zod
+            name: zod.coerce
               .string()
               .min(1)
               .max(upsertCustomerAppDataBodyAppNameMaxOne)
@@ -7239,7 +7313,7 @@ export const upsertCustomerAppDataBodyItem = zod
               .describe('App installed status.')
               .describe('Status of the app connection.'),
             type: zod.enum(['custom_invoicing']),
-            updatedAt: zod
+            updatedAt: zod.coerce
               .date()
               .describe('Timestamp of when the resource was last updated.'),
           })
@@ -7248,7 +7322,7 @@ export const upsertCustomerAppDataBodyItem = zod
           )
           .optional()
           .describe('The installed custom invoicing app this data belongs to.'),
-        id: zod
+        id: zod.coerce
           .string()
           .regex(upsertCustomerAppDataBodyIdRegExpTwo)
           .optional()
@@ -7256,7 +7330,7 @@ export const upsertCustomerAppDataBodyItem = zod
             'The app ID.\nIf not provided, it will use the global default for the app type.'
           ),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .describe(
             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
@@ -7287,8 +7361,8 @@ export const deleteCustomerAppDataPathAppIdRegExp = new RegExp(
 )
 
 export const deleteCustomerAppDataParams = zod.object({
-  appId: zod.string().regex(deleteCustomerAppDataPathAppIdRegExp),
-  customerIdOrKey: zod
+  appId: zod.coerce.string().regex(deleteCustomerAppDataPathAppIdRegExp),
+  customerIdOrKey: zod.coerce
     .string()
     .min(1)
     .max(deleteCustomerAppDataPathCustomerIdOrKeyMax)
@@ -7311,12 +7385,12 @@ export const getCustomerEntitlementValuePathFeatureKeyRegExp = new RegExp(
 )
 
 export const getCustomerEntitlementValueParams = zod.object({
-  customerIdOrKey: zod
+  customerIdOrKey: zod.coerce
     .string()
     .min(1)
     .max(getCustomerEntitlementValuePathCustomerIdOrKeyMax)
     .regex(getCustomerEntitlementValuePathCustomerIdOrKeyRegExp),
-  featureKey: zod
+  featureKey: zod.coerce
     .string()
     .min(1)
     .max(getCustomerEntitlementValuePathFeatureKeyMax)
@@ -7324,7 +7398,7 @@ export const getCustomerEntitlementValueParams = zod.object({
 })
 
 export const getCustomerEntitlementValueQueryParams = zod.object({
-  time: zod.date().optional(),
+  time: zod.coerce.date().optional(),
 })
 
 /**
@@ -7338,7 +7412,7 @@ export const listCustomerSubscriptionsPathCustomerIdOrKeyRegExp = new RegExp(
 )
 
 export const listCustomerSubscriptionsParams = zod.object({
-  customerIdOrKey: zod
+  customerIdOrKey: zod.coerce
     .string()
     .min(1)
     .max(listCustomerSubscriptionsPathCustomerIdOrKeyMax)
@@ -7350,12 +7424,12 @@ export const listCustomerSubscriptionsQueryPageSizeDefault = 100
 export const listCustomerSubscriptionsQueryPageSizeMax = 1000
 
 export const listCustomerSubscriptionsQueryParams = zod.object({
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listCustomerSubscriptionsQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listCustomerSubscriptionsQueryPageSizeMax)
@@ -7389,25 +7463,25 @@ export const listEntitlementsQueryParams = zod.object({
     .describe(
       'Filtering by multiple entitlement types.\n\nUsage: `?entitlementType=metered&entitlementType=boolean`'
     ),
-  excludeInactive: zod
+  excludeInactive: zod.coerce
     .boolean()
     .optional()
     .describe(
       'Exclude inactive entitlements in the response (those scheduled for later or earlier)'
     ),
   feature: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe(
       'Filtering by multiple features.\n\nUsage: `?feature=feature-1&feature=feature-2`'
     ),
-  limit: zod
+  limit: zod.coerce
     .number()
     .min(1)
     .max(listEntitlementsQueryLimitMax)
     .default(listEntitlementsQueryLimitDefault)
     .describe('Number of items to return.\n\nDefault is 100.'),
-  offset: zod
+  offset: zod.coerce
     .number()
     .min(listEntitlementsQueryOffsetMin)
     .optional()
@@ -7417,19 +7491,19 @@ export const listEntitlementsQueryParams = zod.object({
     .enum(['createdAt', 'updatedAt'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listEntitlementsQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listEntitlementsQueryPageSizeMax)
     .default(listEntitlementsQueryPageSizeDefault)
     .describe('The maximum number of items per page.\n\nDefault is 100.'),
   subject: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe(
       'Filtering by multiple subjects.\n\nUsage: `?subject=customer-1&subject=customer-2`'
@@ -7445,7 +7519,9 @@ export const getEntitlementByIdPathEntitlementIdRegExp = new RegExp(
 )
 
 export const getEntitlementByIdParams = zod.object({
-  entitlementId: zod.string().regex(getEntitlementByIdPathEntitlementIdRegExp),
+  entitlementId: zod.coerce
+    .string()
+    .regex(getEntitlementByIdPathEntitlementIdRegExp),
 })
 
 /**
@@ -7459,36 +7535,39 @@ export const listEventsQueryLimitDefault = 100
 export const listEventsQueryLimitMax = 100
 
 export const listEventsQueryParams = zod.object({
-  clientId: zod
+  clientId: zod.coerce
     .string()
     .min(1)
     .max(listEventsQueryClientIdMax)
     .optional()
     .describe('Client ID\nUseful to track progress of a query.'),
-  from: zod
+  from: zod.coerce
     .date()
     .optional()
     .describe('Start date-time in RFC 3339 format.\n\nInclusive.'),
-  id: zod.string().optional().describe('The event ID.\n\nAccepts partial ID.'),
-  ingestedAtFrom: zod
+  id: zod.coerce
+    .string()
+    .optional()
+    .describe('The event ID.\n\nAccepts partial ID.'),
+  ingestedAtFrom: zod.coerce
     .date()
     .optional()
     .describe('Start date-time in RFC 3339 format.\n\nInclusive.'),
-  ingestedAtTo: zod
+  ingestedAtTo: zod.coerce
     .date()
     .optional()
     .describe('End date-time in RFC 3339 format.\n\nInclusive.'),
-  limit: zod
+  limit: zod.coerce
     .number()
     .min(1)
     .max(listEventsQueryLimitMax)
     .default(listEventsQueryLimitDefault)
     .describe('Number of events to return.'),
-  subject: zod
+  subject: zod.coerce
     .string()
     .optional()
     .describe('The event subject.\n\nAccepts partial subject.'),
-  to: zod
+  to: zod.coerce
     .date()
     .optional()
     .describe('End date-time in RFC 3339 format.\n\nInclusive.'),
@@ -7515,36 +7594,36 @@ export const ingestEventsBody = zod
       .describe(
         'Content type of the CloudEvents data value. Only the value \"application/json\" is allowed over HTTP.'
       ),
-    dataschema: zod
+    dataschema: zod.coerce
       .string()
       .url()
       .min(1)
       .nullish()
       .describe('Identifies the schema that data adheres to.'),
-    id: zod.string().min(1).describe('Identifies the event.'),
-    source: zod
+    id: zod.coerce.string().min(1).describe('Identifies the event.'),
+    source: zod.coerce
       .string()
       .min(1)
       .describe('Identifies the context in which an event happened.'),
-    specversion: zod
+    specversion: zod.coerce
       .string()
       .min(1)
       .describe(
         'The version of the CloudEvents specification which the event uses.'
       ),
-    subject: zod
+    subject: zod.coerce
       .string()
       .min(1)
       .describe(
         'Describes the subject of the event in the context of the event producer (identified by source).'
       ),
-    time: zod
+    time: zod.coerce
       .date()
       .nullish()
       .describe(
         'Timestamp of when the occurrence happened. Must adhere to RFC 3339.'
       ),
-    type: zod
+    type: zod.coerce
       .string()
       .min(1)
       .describe(
@@ -7570,36 +7649,36 @@ export const ingestEventsBody = zod
             .describe(
               'Content type of the CloudEvents data value. Only the value \"application/json\" is allowed over HTTP.'
             ),
-          dataschema: zod
+          dataschema: zod.coerce
             .string()
             .url()
             .min(1)
             .nullish()
             .describe('Identifies the schema that data adheres to.'),
-          id: zod.string().min(1).describe('Identifies the event.'),
-          source: zod
+          id: zod.coerce.string().min(1).describe('Identifies the event.'),
+          source: zod.coerce
             .string()
             .min(1)
             .describe('Identifies the context in which an event happened.'),
-          specversion: zod
+          specversion: zod.coerce
             .string()
             .min(1)
             .describe(
               'The version of the CloudEvents specification which the event uses.'
             ),
-          subject: zod
+          subject: zod.coerce
             .string()
             .min(1)
             .describe(
               'Describes the subject of the event in the context of the event producer (identified by source).'
             ),
-          time: zod
+          time: zod.coerce
             .date()
             .nullish()
             .describe(
               'Timestamp of when the occurrence happened. Must adhere to RFC 3339.'
             ),
-          type: zod
+          type: zod.coerce
             .string()
             .min(1)
             .describe(
@@ -7629,18 +7708,21 @@ export const listFeaturesQueryLimitDefault = 100
 export const listFeaturesQueryLimitMax = 1000
 
 export const listFeaturesQueryParams = zod.object({
-  includeArchived: zod
+  includeArchived: zod.coerce
     .boolean()
     .optional()
     .describe('Filter by meterGroupByFilters'),
-  limit: zod
+  limit: zod.coerce
     .number()
     .min(1)
     .max(listFeaturesQueryLimitMax)
     .default(listFeaturesQueryLimitDefault)
     .describe('Number of items to return.\n\nDefault is 100.'),
-  meterSlug: zod.array(zod.string()).optional().describe('Filter by meterSlug'),
-  offset: zod
+  meterSlug: zod
+    .array(zod.coerce.string())
+    .optional()
+    .describe('Filter by meterSlug'),
+  offset: zod.coerce
     .number()
     .min(listFeaturesQueryOffsetMin)
     .optional()
@@ -7650,12 +7732,12 @@ export const listFeaturesQueryParams = zod.object({
     .enum(['id', 'key', 'name', 'createdAt', 'updatedAt'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listFeaturesQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listFeaturesQueryPageSizeMax)
@@ -7683,7 +7765,7 @@ export const createFeatureBodyMeterSlugRegExp = new RegExp(
 
 export const createFeatureBody = zod
   .object({
-    key: zod
+    key: zod.coerce
       .string()
       .min(1)
       .max(createFeatureBodyKeyMax)
@@ -7692,18 +7774,18 @@ export const createFeatureBody = zod
         'A key is a unique string that is used to identify a resource.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .optional(),
     meterGroupByFilters: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .optional()
       .describe(
         'Optional meter group by filters.\nUseful if the meter scope is broader than what feature tracks.\nExample scenario would be a meter tracking all token use with groupBy fields for the model,\nthen the feature could filter for model=gpt-4.'
       ),
-    meterSlug: zod
+    meterSlug: zod.coerce
       .string()
       .min(1)
       .max(createFeatureBodyMeterSlugMax)
@@ -7712,7 +7794,7 @@ export const createFeatureBody = zod
       .describe(
         'A key is a unique string that is used to identify a resource.'
       ),
-    name: zod.string(),
+    name: zod.coerce.string(),
   })
   .describe(
     'Represents a feature that can be enabled or disabled for a plan.\nUsed both for product catalog and entitlements.'
@@ -7723,7 +7805,7 @@ export const createFeatureBody = zod
  * @summary Get feature
  */
 export const getFeatureParams = zod.object({
-  featureId: zod.string(),
+  featureId: zod.coerce.string(),
 })
 
 /**
@@ -7734,7 +7816,7 @@ This means, if you want to create a new feature with the same key, and then crea
  * @summary Delete feature
  */
 export const deleteFeatureParams = zod.object({
-  featureId: zod.string(),
+  featureId: zod.coerce.string(),
 })
 
 /**
@@ -7754,19 +7836,19 @@ export const listGrantsQueryLimitMax = 1000
 
 export const listGrantsQueryParams = zod.object({
   feature: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe(
       'Filtering by multiple features.\n\nUsage: `?feature=feature-1&feature=feature-2`'
     ),
-  includeDeleted: zod.boolean().optional().describe('Include deleted'),
-  limit: zod
+  includeDeleted: zod.coerce.boolean().optional().describe('Include deleted'),
+  limit: zod.coerce
     .number()
     .min(1)
     .max(listGrantsQueryLimitMax)
     .default(listGrantsQueryLimitDefault)
     .describe('Number of items to return.\n\nDefault is 100.'),
-  offset: zod
+  offset: zod.coerce
     .number()
     .min(listGrantsQueryOffsetMin)
     .optional()
@@ -7776,19 +7858,19 @@ export const listGrantsQueryParams = zod.object({
     .enum(['id', 'createdAt', 'updatedAt'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listGrantsQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listGrantsQueryPageSizeMax)
     .default(listGrantsQueryPageSizeDefault)
     .describe('The maximum number of items per page.\n\nDefault is 100.'),
   subject: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe(
       'Filtering by multiple subjects.\n\nUsage: `?subject=customer-1&subject=customer-2`'
@@ -7801,7 +7883,7 @@ For example, if you have a single grant for your metered entitlement with an ini
  * @summary Void grant
  */
 export const voidGrantParams = zod.object({
-  grantId: zod.string(),
+  grantId: zod.coerce.string(),
 })
 
 /**
@@ -7809,7 +7891,7 @@ export const voidGrantParams = zod.object({
  * @summary Get progress
  */
 export const getProgressParams = zod.object({
-  id: zod.string(),
+  id: zod.coerce.string(),
 })
 
 /**
@@ -7821,12 +7903,12 @@ export const listMarketplaceListingsQueryPageSizeDefault = 100
 export const listMarketplaceListingsQueryPageSizeMax = 1000
 
 export const listMarketplaceListingsQueryParams = zod.object({
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listMarketplaceListingsQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listMarketplaceListingsQueryPageSizeMax)
@@ -7856,13 +7938,13 @@ export const marketplaceAppInstallBodyCreateBillingProfileDefault = true
 
 export const marketplaceAppInstallBody = zod
   .object({
-    createBillingProfile: zod
+    createBillingProfile: zod.coerce
       .boolean()
       .default(marketplaceAppInstallBodyCreateBillingProfileDefault)
       .describe(
         'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.'
       ),
-    name: zod
+    name: zod.coerce
       .string()
       .optional()
       .describe(
@@ -7884,18 +7966,18 @@ export const marketplaceAppAPIKeyInstallParams = zod.object({
 export const marketplaceAppAPIKeyInstallBodyCreateBillingProfileDefault = true
 
 export const marketplaceAppAPIKeyInstallBody = zod.object({
-  apiKey: zod
+  apiKey: zod.coerce
     .string()
     .describe(
       'The API key for the provider.\nFor example, the Stripe API key.'
     ),
-  createBillingProfile: zod
+  createBillingProfile: zod.coerce
     .boolean()
     .default(marketplaceAppAPIKeyInstallBodyCreateBillingProfileDefault)
     .describe(
       'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.'
     ),
-  name: zod
+  name: zod.coerce
     .string()
     .optional()
     .describe(
@@ -7924,7 +8006,7 @@ export const marketplaceOAuth2InstallAuthorizeParams = zod.object({
 })
 
 export const marketplaceOAuth2InstallAuthorizeQueryParams = zod.object({
-  code: zod
+  code: zod.coerce
     .string()
     .optional()
     .describe(
@@ -7942,19 +8024,19 @@ export const marketplaceOAuth2InstallAuthorizeQueryParams = zod.object({
     ])
     .optional()
     .describe('Error code.\nRequired with the error response.'),
-  error_description: zod
+  error_description: zod.coerce
     .string()
     .optional()
     .describe(
       'Optional human-readable text providing additional information,\nused to assist the client developer in understanding the error that occurred.'
     ),
-  error_uri: zod
+  error_uri: zod.coerce
     .string()
     .optional()
     .describe(
       'Optional uri identifying a human-readable web page with\ninformation about the error, used to provide the client\ndeveloper with additional information about the error'
     ),
-  state: zod
+  state: zod.coerce
     .string()
     .optional()
     .describe(
@@ -7972,18 +8054,21 @@ export const listMetersQueryPageSizeMax = 1000
 export const listMetersQueryIncludeDeletedDefault = false
 
 export const listMetersQueryParams = zod.object({
-  includeDeleted: zod.boolean().optional().describe('Include deleted meters.'),
+  includeDeleted: zod.coerce
+    .boolean()
+    .optional()
+    .describe('Include deleted meters.'),
   order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
   orderBy: zod
     .enum(['key', 'name', 'aggregation', 'createdAt', 'updatedAt'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listMetersQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listMetersQueryPageSizeMax)
@@ -8009,34 +8094,37 @@ export const createMeterBody = zod
       .enum(['SUM', 'COUNT', 'UNIQUE_COUNT', 'AVG', 'MIN', 'MAX', 'LATEST'])
       .describe('The aggregation type to use for the meter.')
       .describe('The aggregation type to use for the meter.'),
-    description: zod
+    description: zod.coerce
       .string()
       .max(createMeterBodyDescriptionMax)
       .optional()
       .describe(
         'Optional description of the resource. Maximum 1024 characters.'
       ),
-    eventFrom: zod
+    eventFrom: zod.coerce
       .date()
       .optional()
       .describe(
         'The date since the meter should include events.\nUseful to skip old events.\nIf not specified, all historical events are included.'
       ),
-    eventType: zod.string().min(1).describe('The event type to aggregate.'),
+    eventType: zod.coerce
+      .string()
+      .min(1)
+      .describe('The event type to aggregate.'),
     groupBy: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .optional()
       .describe(
         'Named JSONPath expressions to extract the group by values from the event data.\n\nKeys must be unique and consist only alphanumeric and underscore characters.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(createMeterBodyNameMax)
@@ -8044,7 +8132,7 @@ export const createMeterBody = zod
       .describe(
         'Human-readable name for the resource. Between 1 and 256 characters.\nDefaults to the slug if not specified.'
       ),
-    slug: zod
+    slug: zod.coerce
       .string()
       .min(1)
       .max(createMeterBodySlugMax)
@@ -8052,7 +8140,7 @@ export const createMeterBody = zod
       .describe(
         'A unique, human-readable identifier for the meter.\nMust consist only alphanumeric and underscore characters.'
       ),
-    valueProperty: zod
+    valueProperty: zod.coerce
       .string()
       .min(1)
       .optional()
@@ -8073,7 +8161,7 @@ export const getMeterPathMeterIdOrSlugRegExp = new RegExp(
 )
 
 export const getMeterParams = zod.object({
-  meterIdOrSlug: zod
+  meterIdOrSlug: zod.coerce
     .string()
     .min(1)
     .max(getMeterPathMeterIdOrSlugMax)
@@ -8091,7 +8179,7 @@ export const updateMeterPathMeterIdOrSlugRegExp = new RegExp(
 )
 
 export const updateMeterParams = zod.object({
-  meterIdOrSlug: zod
+  meterIdOrSlug: zod.coerce
     .string()
     .min(1)
     .max(updateMeterPathMeterIdOrSlugMax)
@@ -8103,7 +8191,7 @@ export const updateMeterBodyNameMax = 256
 
 export const updateMeterBody = zod
   .object({
-    description: zod
+    description: zod.coerce
       .string()
       .max(updateMeterBodyDescriptionMax)
       .optional()
@@ -8111,19 +8199,19 @@ export const updateMeterBody = zod
         'Optional description of the resource. Maximum 1024 characters.'
       ),
     groupBy: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .optional()
       .describe(
         'Named JSONPath expressions to extract the group by values from the event data.\n\nKeys must be unique and consist only alphanumeric and underscore characters.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(updateMeterBodyNameMax)
@@ -8147,7 +8235,7 @@ export const deleteMeterPathMeterIdOrSlugRegExp = new RegExp(
 )
 
 export const deleteMeterParams = zod.object({
-  meterIdOrSlug: zod
+  meterIdOrSlug: zod.coerce
     .string()
     .min(1)
     .max(deleteMeterPathMeterIdOrSlugMax)
@@ -8165,7 +8253,7 @@ export const queryMeterPathMeterIdOrSlugRegExp = new RegExp(
 )
 
 export const queryMeterParams = zod.object({
-  meterIdOrSlug: zod
+  meterIdOrSlug: zod.coerce
     .string()
     .min(1)
     .max(queryMeterPathMeterIdOrSlugMax)
@@ -8176,37 +8264,37 @@ export const queryMeterQueryClientIdMax = 36
 export const queryMeterQueryWindowTimeZoneDefault = 'UTC'
 
 export const queryMeterQueryParams = zod.object({
-  clientId: zod
+  clientId: zod.coerce
     .string()
     .min(1)
     .max(queryMeterQueryClientIdMax)
     .optional()
     .describe('Client ID\nUseful to track progress of a query.'),
   filterGroupBy: zod
-    .record(zod.string(), zod.string())
+    .record(zod.string(), zod.coerce.string())
     .optional()
     .describe(
       'Simple filter for group bys with exact match.\n\nFor example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo'
     ),
-  from: zod
+  from: zod.coerce
     .date()
     .optional()
     .describe(
       'Start date-time in RFC 3339 format.\n\nInclusive.\n\nFor example: ?from=2025-01-01T00%3A00%3A00.000Z'
     ),
   groupBy: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe(
       'If not specified a single aggregate will be returned for each subject and time window.\n`subject` is a reserved group by value.\n\nFor example: ?groupBy=subject&groupBy=model'
     ),
   subject: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe(
       'Filtering by multiple subjects.\n\nFor example: ?subject=customer-1&subject=customer-2'
     ),
-  to: zod
+  to: zod.coerce
     .date()
     .optional()
     .describe(
@@ -8218,7 +8306,7 @@ export const queryMeterQueryParams = zod.object({
     .describe(
       'If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.\n\nFor example: ?windowSize=DAY'
     ),
-  windowTimeZone: zod
+  windowTimeZone: zod.coerce
     .string()
     .default(queryMeterQueryWindowTimeZoneDefault)
     .describe(
@@ -8236,7 +8324,7 @@ export const queryMeterPostPathMeterIdOrSlugRegExp = new RegExp(
 )
 
 export const queryMeterPostParams = zod.object({
-  meterIdOrSlug: zod
+  meterIdOrSlug: zod.coerce
     .string()
     .min(1)
     .max(queryMeterPostPathMeterIdOrSlugMax)
@@ -8250,33 +8338,33 @@ export const queryMeterPostBodyGroupByMax = 100
 
 export const queryMeterPostBody = zod
   .object({
-    clientId: zod
+    clientId: zod.coerce
       .string()
       .min(1)
       .max(queryMeterPostBodyClientIdMax)
       .optional()
       .describe('Client ID\nUseful to track progress of a query.'),
     filterGroupBy: zod
-      .record(zod.string(), zod.array(zod.string()))
+      .record(zod.string(), zod.array(zod.coerce.string()))
       .optional()
       .describe('Simple filter for group bys with exact match.'),
-    from: zod
+    from: zod.coerce
       .date()
       .optional()
       .describe('Start date-time in RFC 3339 format.\n\nInclusive.'),
     groupBy: zod
-      .array(zod.string())
+      .array(zod.coerce.string())
       .max(queryMeterPostBodyGroupByMax)
       .optional()
       .describe(
         'If not specified a single aggregate will be returned for each subject and time window.\n`subject` is a reserved group by value.'
       ),
     subject: zod
-      .array(zod.string())
+      .array(zod.coerce.string())
       .max(queryMeterPostBodySubjectMax)
       .optional()
       .describe('Filtering by multiple subjects.'),
-    to: zod
+    to: zod.coerce
       .date()
       .optional()
       .describe('End date-time in RFC 3339 format.\n\nInclusive.'),
@@ -8287,7 +8375,7 @@ export const queryMeterPostBody = zod
       .describe(
         'If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.'
       ),
-    windowTimeZone: zod
+    windowTimeZone: zod.coerce
       .string()
       .default(queryMeterPostBodyWindowTimeZoneDefault)
       .describe(
@@ -8307,7 +8395,7 @@ export const listMeterSubjectsPathMeterIdOrSlugRegExp = new RegExp(
 )
 
 export const listMeterSubjectsParams = zod.object({
-  meterIdOrSlug: zod
+  meterIdOrSlug: zod.coerce
     .string()
     .min(1)
     .max(listMeterSubjectsPathMeterIdOrSlugMax)
@@ -8325,13 +8413,13 @@ export const listNotificationChannelsQueryPageSizeDefault = 100
 export const listNotificationChannelsQueryPageSizeMax = 1000
 
 export const listNotificationChannelsQueryParams = zod.object({
-  includeDeleted: zod
+  includeDeleted: zod.coerce
     .boolean()
     .optional()
     .describe(
       'Include deleted notification channels in response.\n\nUsage: `?includeDeleted=true`'
     ),
-  includeDisabled: zod
+  includeDisabled: zod.coerce
     .boolean()
     .optional()
     .describe(
@@ -8342,12 +8430,12 @@ export const listNotificationChannelsQueryParams = zod.object({
     .enum(['id', 'type', 'createdAt', 'updatedAt'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listNotificationChannelsQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listNotificationChannelsQueryPageSizeMax)
@@ -8367,15 +8455,15 @@ export const createNotificationChannelBodySigningSecretRegExp = new RegExp(
 export const createNotificationChannelBody = zod
   .object({
     customHeaders: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .optional()
       .describe('Custom HTTP headers sent as part of the webhook request.'),
-    disabled: zod
+    disabled: zod.coerce
       .boolean()
       .optional()
       .describe('Whether the channel is disabled or not.'),
-    name: zod.string().describe('User friendly name of the channel.'),
-    signingSecret: zod
+    name: zod.coerce.string().describe('User friendly name of the channel.'),
+    signingSecret: zod.coerce
       .string()
       .regex(createNotificationChannelBodySigningSecretRegExp)
       .optional()
@@ -8383,7 +8471,9 @@ export const createNotificationChannelBody = zod
         'Signing secret used for webhook request validation on the receiving end.\n\nFormat: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24'
       ),
     type: zod.enum(['WEBHOOK']).describe('Notification channel type.'),
-    url: zod.string().describe('Webhook URL where the notification is sent.'),
+    url: zod.coerce
+      .string()
+      .describe('Webhook URL where the notification is sent.'),
   })
   .describe(
     'Request with input parameters for creating new notification channel with webhook type.'
@@ -8401,7 +8491,9 @@ export const updateNotificationChannelPathChannelIdRegExp = new RegExp(
 )
 
 export const updateNotificationChannelParams = zod.object({
-  channelId: zod.string().regex(updateNotificationChannelPathChannelIdRegExp),
+  channelId: zod.coerce
+    .string()
+    .regex(updateNotificationChannelPathChannelIdRegExp),
 })
 
 export const updateNotificationChannelBodyDisabledDefault = false
@@ -8412,15 +8504,15 @@ export const updateNotificationChannelBodySigningSecretRegExp = new RegExp(
 export const updateNotificationChannelBody = zod
   .object({
     customHeaders: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .optional()
       .describe('Custom HTTP headers sent as part of the webhook request.'),
-    disabled: zod
+    disabled: zod.coerce
       .boolean()
       .optional()
       .describe('Whether the channel is disabled or not.'),
-    name: zod.string().describe('User friendly name of the channel.'),
-    signingSecret: zod
+    name: zod.coerce.string().describe('User friendly name of the channel.'),
+    signingSecret: zod.coerce
       .string()
       .regex(updateNotificationChannelBodySigningSecretRegExp)
       .optional()
@@ -8428,7 +8520,9 @@ export const updateNotificationChannelBody = zod
         'Signing secret used for webhook request validation on the receiving end.\n\nFormat: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24'
       ),
     type: zod.enum(['WEBHOOK']).describe('Notification channel type.'),
-    url: zod.string().describe('Webhook URL where the notification is sent.'),
+    url: zod.coerce
+      .string()
+      .describe('Webhook URL where the notification is sent.'),
   })
   .describe(
     'Request with input parameters for creating new notification channel with webhook type.'
@@ -8446,7 +8540,9 @@ export const getNotificationChannelPathChannelIdRegExp = new RegExp(
 )
 
 export const getNotificationChannelParams = zod.object({
-  channelId: zod.string().regex(getNotificationChannelPathChannelIdRegExp),
+  channelId: zod.coerce
+    .string()
+    .regex(getNotificationChannelPathChannelIdRegExp),
 })
 
 /**
@@ -8460,7 +8556,9 @@ export const deleteNotificationChannelPathChannelIdRegExp = new RegExp(
 )
 
 export const deleteNotificationChannelParams = zod.object({
-  channelId: zod.string().regex(deleteNotificationChannelPathChannelIdRegExp),
+  channelId: zod.coerce
+    .string()
+    .regex(deleteNotificationChannelPathChannelIdRegExp),
 })
 
 /**
@@ -8480,7 +8578,7 @@ export const listNotificationEventsQueryPageSizeMax = 1000
 export const listNotificationEventsQueryParams = zod.object({
   channel: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .regex(listNotificationEventsQueryChannelItemRegExp)
         .describe(
@@ -8492,12 +8590,12 @@ export const listNotificationEventsQueryParams = zod.object({
       'Filtering by multiple channel ids.\n\nUsage: `?channel=01J8J4RXH778XB056JS088PCYT&channel=01J8J4S1R1G9EVN62RG23A9M6J`'
     ),
   feature: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe(
       'Filtering by multiple feature ids or keys.\n\nUsage: `?feature=feature-1&feature=feature-2`'
     ),
-  from: zod
+  from: zod.coerce
     .date()
     .optional()
     .describe('Start date-time in RFC 3339 format.\nInclusive.'),
@@ -8506,12 +8604,12 @@ export const listNotificationEventsQueryParams = zod.object({
     .enum(['id', 'createdAt'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listNotificationEventsQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listNotificationEventsQueryPageSizeMax)
@@ -8519,7 +8617,7 @@ export const listNotificationEventsQueryParams = zod.object({
     .describe('The maximum number of items per page.\n\nDefault is 100.'),
   rule: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .regex(listNotificationEventsQueryRuleItemRegExp)
         .describe(
@@ -8531,12 +8629,12 @@ export const listNotificationEventsQueryParams = zod.object({
       'Filtering by multiple rule ids.\n\nUsage: `?rule=01J8J2XYZ2N5WBYK09EDZFBSZM&rule=01J8J4R4VZH180KRKQ63NB2VA5`'
     ),
   subject: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe(
       'Filtering by multiple subject ids or keys.\n\nUsage: `?subject=subject-1&subject=subject-2`'
     ),
-  to: zod
+  to: zod.coerce
     .date()
     .optional()
     .describe('End date-time in RFC 3339 format.\nInclusive.'),
@@ -8547,7 +8645,7 @@ export const listNotificationEventsQueryParams = zod.object({
  * @summary Get notification event
  */
 export const getNotificationEventParams = zod.object({
-  eventId: zod.string(),
+  eventId: zod.coerce.string(),
 })
 
 /**
@@ -8567,14 +8665,14 @@ export const listNotificationRulesQueryPageSizeMax = 1000
 
 export const listNotificationRulesQueryParams = zod.object({
   channel: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe(
       'Filtering by multiple notifiaction channel ids.\n\nUsage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3`'
     ),
   feature: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .min(1)
         .max(listNotificationRulesQueryFeatureItemMax)
@@ -8587,13 +8685,13 @@ export const listNotificationRulesQueryParams = zod.object({
     .describe(
       'Filtering by multiple feature ids/keys.\n\nUsage: `?feature=feature-1&feature=feature-2`'
     ),
-  includeDeleted: zod
+  includeDeleted: zod.coerce
     .boolean()
     .optional()
     .describe(
       'Include deleted notification rules in response.\n\nUsage: `?includeDeleted=true`'
     ),
-  includeDisabled: zod
+  includeDisabled: zod.coerce
     .boolean()
     .optional()
     .describe(
@@ -8604,12 +8702,12 @@ export const listNotificationRulesQueryParams = zod.object({
     .enum(['id', 'type', 'createdAt', 'updatedAt'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listNotificationRulesQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listNotificationRulesQueryPageSizeMax)
@@ -8655,7 +8753,7 @@ export const createNotificationRuleBody = zod
       .object({
         channels: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .regex(createNotificationRuleBodyChannelsItemRegExp)
               .describe(
@@ -8664,13 +8762,13 @@ export const createNotificationRuleBody = zod
           )
           .min(1)
           .describe('List of notification channels the rule is applied to.'),
-        disabled: zod
+        disabled: zod.coerce
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
         features: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .min(1)
               .max(createNotificationRuleBodyFeaturesItemMax)
@@ -8684,7 +8782,7 @@ export const createNotificationRuleBody = zod
           .describe(
             'Optional field for defining the scope of notification by feature. It may contain features by id or key.'
           ),
-        name: zod
+        name: zod.coerce
           .string()
           .describe('The user friendly name of the notification rule.'),
         thresholds: zod
@@ -8697,7 +8795,7 @@ export const createNotificationRuleBody = zod
                     'Type of the rule in the balance threshold specification.'
                   )
                   .describe('Type of the threshold.'),
-                value: zod.number().describe('Value of the threshold.'),
+                value: zod.coerce.number().describe('Value of the threshold.'),
               })
               .describe('Threshold value with multiple supported types.')
           )
@@ -8713,7 +8811,7 @@ export const createNotificationRuleBody = zod
       .object({
         channels: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .regex(createNotificationRuleBodyChannelsItemRegExpOne)
               .describe(
@@ -8722,13 +8820,13 @@ export const createNotificationRuleBody = zod
           )
           .min(1)
           .describe('List of notification channels the rule is applied to.'),
-        disabled: zod
+        disabled: zod.coerce
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
         features: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .min(1)
               .max(createNotificationRuleBodyFeaturesItemMaxOne)
@@ -8742,7 +8840,7 @@ export const createNotificationRuleBody = zod
           .describe(
             'Optional field for defining the scope of notification by feature. It may contain features by id or key.'
           ),
-        name: zod
+        name: zod.coerce
           .string()
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['entitlements.reset']),
@@ -8754,7 +8852,7 @@ export const createNotificationRuleBody = zod
       .object({
         channels: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .regex(createNotificationRuleBodyChannelsItemRegExpTwo)
               .describe(
@@ -8763,11 +8861,11 @@ export const createNotificationRuleBody = zod
           )
           .min(1)
           .describe('List of notification channels the rule is applied to.'),
-        disabled: zod
+        disabled: zod.coerce
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
-        name: zod
+        name: zod.coerce
           .string()
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['invoice.created']),
@@ -8779,7 +8877,7 @@ export const createNotificationRuleBody = zod
       .object({
         channels: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .regex(createNotificationRuleBodyChannelsItemRegExpThree)
               .describe(
@@ -8788,11 +8886,11 @@ export const createNotificationRuleBody = zod
           )
           .min(1)
           .describe('List of notification channels the rule is applied to.'),
-        disabled: zod
+        disabled: zod.coerce
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
-        name: zod
+        name: zod.coerce
           .string()
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['invoice.updated']),
@@ -8814,7 +8912,7 @@ export const updateNotificationRulePathRuleIdRegExp = new RegExp(
 )
 
 export const updateNotificationRuleParams = zod.object({
-  ruleId: zod.string().regex(updateNotificationRulePathRuleIdRegExp),
+  ruleId: zod.coerce.string().regex(updateNotificationRulePathRuleIdRegExp),
 })
 
 export const updateNotificationRuleBodyDisabledDefault = false
@@ -8851,7 +8949,7 @@ export const updateNotificationRuleBody = zod
       .object({
         channels: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .regex(updateNotificationRuleBodyChannelsItemRegExp)
               .describe(
@@ -8860,13 +8958,13 @@ export const updateNotificationRuleBody = zod
           )
           .min(1)
           .describe('List of notification channels the rule is applied to.'),
-        disabled: zod
+        disabled: zod.coerce
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
         features: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .min(1)
               .max(updateNotificationRuleBodyFeaturesItemMax)
@@ -8880,7 +8978,7 @@ export const updateNotificationRuleBody = zod
           .describe(
             'Optional field for defining the scope of notification by feature. It may contain features by id or key.'
           ),
-        name: zod
+        name: zod.coerce
           .string()
           .describe('The user friendly name of the notification rule.'),
         thresholds: zod
@@ -8893,7 +8991,7 @@ export const updateNotificationRuleBody = zod
                     'Type of the rule in the balance threshold specification.'
                   )
                   .describe('Type of the threshold.'),
-                value: zod.number().describe('Value of the threshold.'),
+                value: zod.coerce.number().describe('Value of the threshold.'),
               })
               .describe('Threshold value with multiple supported types.')
           )
@@ -8909,7 +9007,7 @@ export const updateNotificationRuleBody = zod
       .object({
         channels: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .regex(updateNotificationRuleBodyChannelsItemRegExpOne)
               .describe(
@@ -8918,13 +9016,13 @@ export const updateNotificationRuleBody = zod
           )
           .min(1)
           .describe('List of notification channels the rule is applied to.'),
-        disabled: zod
+        disabled: zod.coerce
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
         features: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .min(1)
               .max(updateNotificationRuleBodyFeaturesItemMaxOne)
@@ -8938,7 +9036,7 @@ export const updateNotificationRuleBody = zod
           .describe(
             'Optional field for defining the scope of notification by feature. It may contain features by id or key.'
           ),
-        name: zod
+        name: zod.coerce
           .string()
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['entitlements.reset']),
@@ -8950,7 +9048,7 @@ export const updateNotificationRuleBody = zod
       .object({
         channels: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .regex(updateNotificationRuleBodyChannelsItemRegExpTwo)
               .describe(
@@ -8959,11 +9057,11 @@ export const updateNotificationRuleBody = zod
           )
           .min(1)
           .describe('List of notification channels the rule is applied to.'),
-        disabled: zod
+        disabled: zod.coerce
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
-        name: zod
+        name: zod.coerce
           .string()
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['invoice.created']),
@@ -8975,7 +9073,7 @@ export const updateNotificationRuleBody = zod
       .object({
         channels: zod
           .array(
-            zod
+            zod.coerce
               .string()
               .regex(updateNotificationRuleBodyChannelsItemRegExpThree)
               .describe(
@@ -8984,11 +9082,11 @@ export const updateNotificationRuleBody = zod
           )
           .min(1)
           .describe('List of notification channels the rule is applied to.'),
-        disabled: zod
+        disabled: zod.coerce
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
-        name: zod
+        name: zod.coerce
           .string()
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['invoice.updated']),
@@ -9010,7 +9108,7 @@ export const getNotificationRulePathRuleIdRegExp = new RegExp(
 )
 
 export const getNotificationRuleParams = zod.object({
-  ruleId: zod.string().regex(getNotificationRulePathRuleIdRegExp),
+  ruleId: zod.coerce.string().regex(getNotificationRulePathRuleIdRegExp),
 })
 
 /**
@@ -9024,7 +9122,7 @@ export const deleteNotificationRulePathRuleIdRegExp = new RegExp(
 )
 
 export const deleteNotificationRuleParams = zod.object({
-  ruleId: zod.string().regex(deleteNotificationRulePathRuleIdRegExp),
+  ruleId: zod.coerce.string().regex(deleteNotificationRulePathRuleIdRegExp),
 })
 
 /**
@@ -9036,7 +9134,7 @@ export const testNotificationRulePathRuleIdRegExp = new RegExp(
 )
 
 export const testNotificationRuleParams = zod.object({
-  ruleId: zod.string().regex(testNotificationRulePathRuleIdRegExp),
+  ruleId: zod.coerce.string().regex(testNotificationRulePathRuleIdRegExp),
 })
 
 /**
@@ -9064,7 +9162,7 @@ export const listPlansQueryPageSizeMax = 1000
 export const listPlansQueryParams = zod.object({
   currency: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .min(listPlansQueryCurrencyItemMin)
         .max(listPlansQueryCurrencyItemMax)
@@ -9077,7 +9175,7 @@ export const listPlansQueryParams = zod.object({
     .describe('Filter by plan.currency attribute'),
   id: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .regex(listPlansQueryIdItemRegExp)
         .describe(
@@ -9086,7 +9184,7 @@ export const listPlansQueryParams = zod.object({
     )
     .optional()
     .describe('Filter by plan.id attribute'),
-  includeDeleted: zod
+  includeDeleted: zod.coerce
     .boolean()
     .optional()
     .describe(
@@ -9094,7 +9192,7 @@ export const listPlansQueryParams = zod.object({
     ),
   key: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .min(1)
         .max(listPlansQueryKeyItemMax)
@@ -9106,7 +9204,7 @@ export const listPlansQueryParams = zod.object({
     .optional()
     .describe('Filter by plan.key attribute'),
   keyVersion: zod
-    .record(zod.string(), zod.array(zod.number()))
+    .record(zod.string(), zod.array(zod.coerce.number()))
     .optional()
     .describe('Filter by plan.key and plan.version attributes'),
   order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
@@ -9114,12 +9212,12 @@ export const listPlansQueryParams = zod.object({
     .enum(['id', 'key', 'version', 'created_at', 'updated_at'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listPlansQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listPlansQueryPageSizeMax)
@@ -9254,7 +9352,7 @@ export const createPlanBody = zod
   .object({
     alignment: zod
       .object({
-        billablesMustAlign: zod
+        billablesMustAlign: zod.coerce
           .boolean()
           .optional()
           .describe(
@@ -9264,12 +9362,12 @@ export const createPlanBody = zod
       .describe('Alignment configuration for a plan or subscription.')
       .optional()
       .describe('Alignment configuration for the plan.'),
-    billingCadence: zod
+    billingCadence: zod.coerce
       .string()
       .describe(
         'The default billing cadence for subscriptions using this plan.\nDefines how often customers are billed using ISO8601 duration format.\nExamples: \"P1M\" (monthly), \"P3M\" (quarterly), \"P1Y\" (annually).'
       ),
-    currency: zod
+    currency: zod.coerce
       .string()
       .min(createPlanBodyCurrencyMinOne)
       .max(createPlanBodyCurrencyMaxOne)
@@ -9278,27 +9376,27 @@ export const createPlanBody = zod
         'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.\nCustom three-letter currency codes are also supported for convenience.'
       )
       .describe('The currency code of the plan.'),
-    description: zod
+    description: zod.coerce
       .string()
       .max(createPlanBodyDescriptionMax)
       .optional()
       .describe(
         'Optional description of the resource. Maximum 1024 characters.'
       ),
-    key: zod
+    key: zod.coerce
       .string()
       .min(1)
       .max(createPlanBodyKeyMax)
       .regex(createPlanBodyKeyRegExp)
       .describe('A semi-unique identifier for the resource.'),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(createPlanBodyNameMax)
@@ -9309,31 +9407,31 @@ export const createPlanBody = zod
       .array(
         zod
           .object({
-            description: zod
+            description: zod.coerce
               .string()
               .max(createPlanBodyPhasesItemDescriptionMax)
               .optional()
               .describe(
                 'Optional description of the resource. Maximum 1024 characters.'
               ),
-            duration: zod
+            duration: zod.coerce
               .string()
               .nullable()
               .describe('The duration of the phase.'),
-            key: zod
+            key: zod.coerce
               .string()
               .min(1)
               .max(createPlanBodyPhasesItemKeyMax)
               .regex(createPlanBodyPhasesItemKeyRegExp)
               .describe('A semi-unique identifier for the resource.'),
             metadata: zod
-              .record(zod.string(), zod.string())
+              .record(zod.string(), zod.coerce.string())
               .describe(
                 'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
               )
               .nullish()
               .describe('Additional metadata for the resource.'),
-            name: zod
+            name: zod.coerce
               .string()
               .min(1)
               .max(createPlanBodyPhasesItemNameMax)
@@ -9346,13 +9444,13 @@ export const createPlanBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        billingCadence: zod
+                        billingCadence: zod.coerce
                           .string()
                           .nullable()
                           .describe(
                             'The billing cadence of the rate card.\nWhen null it means it is a one time fee.'
                           ),
-                        description: zod
+                        description: zod.coerce
                           .string()
                           .max(
                             createPlanBodyPhasesItemRateCardsItemDescriptionMax
@@ -9365,7 +9463,7 @@ export const createPlanBody = zod
                           .object({
                             percentage: zod
                               .object({
-                                percentage: zod
+                                percentage: zod.coerce
                                   .number()
                                   .describe(
                                     'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -9377,7 +9475,7 @@ export const createPlanBody = zod
                               .describe('The percentage discount.'),
                             usage: zod
                               .object({
-                                quantity: zod
+                                quantity: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemDiscountsUsageQuantityRegExpOne
@@ -9404,13 +9502,13 @@ export const createPlanBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                isSoftLimit: zod
+                                isSoftLimit: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                                   ),
-                                issueAfterReset: zod
+                                issueAfterReset: zod.coerce
                                   .number()
                                   .min(
                                     createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMin
@@ -9419,7 +9517,7 @@ export const createPlanBody = zod
                                   .describe(
                                     'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                                   ),
-                                issueAfterResetPriority: zod
+                                issueAfterResetPriority: zod.coerce
                                   .number()
                                   .min(1)
                                   .max(
@@ -9432,7 +9530,7 @@ export const createPlanBody = zod
                                     'Defines the grant priority for the default grant.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -9440,14 +9538,14 @@ export const createPlanBody = zod
                                   .describe(
                                     'Additional metadata for the feature.'
                                   ),
-                                preserveOverageAtReset: zod
+                                preserveOverageAtReset: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                                   ),
                                 type: zod.enum(['metered']),
-                                usagePeriod: zod
+                                usagePeriod: zod.coerce
                                   .string()
                                   .optional()
                                   .describe(
@@ -9459,13 +9557,13 @@ export const createPlanBody = zod
                               ),
                             zod
                               .object({
-                                config: zod
+                                config: zod.coerce
                                   .string()
                                   .describe(
                                     'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -9481,7 +9579,7 @@ export const createPlanBody = zod
                             zod
                               .object({
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -9502,7 +9600,7 @@ export const createPlanBody = zod
                           .describe(
                             'The entitlement of the rate card.\nOnly available when featureKey is set.'
                           ),
-                        featureKey: zod
+                        featureKey: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -9515,7 +9613,7 @@ export const createPlanBody = zod
                           .describe(
                             'The feature the customer is entitled to use.'
                           ),
-                        key: zod
+                        key: zod.coerce
                           .string()
                           .min(1)
                           .max(createPlanBodyPhasesItemRateCardsItemKeyMax)
@@ -9524,13 +9622,13 @@ export const createPlanBody = zod
                             'A semi-unique identifier for the resource.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
                           .nullish()
                           .describe('Additional metadata for the resource.'),
-                        name: zod
+                        name: zod.coerce
                           .string()
                           .min(1)
                           .max(createPlanBodyPhasesItemRateCardsItemNameMax)
@@ -9539,7 +9637,7 @@ export const createPlanBody = zod
                           ),
                         price: zod
                           .object({
-                            amount: zod
+                            amount: zod.coerce
                               .string()
                               .regex(
                                 createPlanBodyPhasesItemRateCardsItemPriceAmountRegExpOne
@@ -9579,7 +9677,7 @@ export const createPlanBody = zod
                               ),
                             customInvoicing: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .describe(
                                     'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -9590,7 +9688,7 @@ export const createPlanBody = zod
                               .describe('Custom invoicing tax config.'),
                             stripe: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemTaxConfigStripeCodeRegExp
@@ -9615,10 +9713,10 @@ export const createPlanBody = zod
                       ),
                     zod
                       .object({
-                        billingCadence: zod
+                        billingCadence: zod.coerce
                           .string()
                           .describe('The billing cadence of the rate card.'),
-                        description: zod
+                        description: zod.coerce
                           .string()
                           .max(
                             createPlanBodyPhasesItemRateCardsItemDescriptionMaxOne
@@ -9631,7 +9729,7 @@ export const createPlanBody = zod
                           .object({
                             percentage: zod
                               .object({
-                                percentage: zod
+                                percentage: zod.coerce
                                   .number()
                                   .describe(
                                     'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -9643,7 +9741,7 @@ export const createPlanBody = zod
                               .describe('The percentage discount.'),
                             usage: zod
                               .object({
-                                quantity: zod
+                                quantity: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemDiscountsUsageQuantityRegExpThree
@@ -9670,13 +9768,13 @@ export const createPlanBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                isSoftLimit: zod
+                                isSoftLimit: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                                   ),
-                                issueAfterReset: zod
+                                issueAfterReset: zod.coerce
                                   .number()
                                   .min(
                                     createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMinOne
@@ -9685,7 +9783,7 @@ export const createPlanBody = zod
                                   .describe(
                                     'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                                   ),
-                                issueAfterResetPriority: zod
+                                issueAfterResetPriority: zod.coerce
                                   .number()
                                   .min(1)
                                   .max(
@@ -9698,7 +9796,7 @@ export const createPlanBody = zod
                                     'Defines the grant priority for the default grant.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -9706,14 +9804,14 @@ export const createPlanBody = zod
                                   .describe(
                                     'Additional metadata for the feature.'
                                   ),
-                                preserveOverageAtReset: zod
+                                preserveOverageAtReset: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                                   ),
                                 type: zod.enum(['metered']),
-                                usagePeriod: zod
+                                usagePeriod: zod.coerce
                                   .string()
                                   .optional()
                                   .describe(
@@ -9725,13 +9823,13 @@ export const createPlanBody = zod
                               ),
                             zod
                               .object({
-                                config: zod
+                                config: zod.coerce
                                   .string()
                                   .describe(
                                     'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -9747,7 +9845,7 @@ export const createPlanBody = zod
                             zod
                               .object({
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -9768,7 +9866,7 @@ export const createPlanBody = zod
                           .describe(
                             'The entitlement of the rate card.\nOnly available when featureKey is set.'
                           ),
-                        featureKey: zod
+                        featureKey: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -9781,7 +9879,7 @@ export const createPlanBody = zod
                           .describe(
                             'The feature the customer is entitled to use.'
                           ),
-                        key: zod
+                        key: zod.coerce
                           .string()
                           .min(1)
                           .max(createPlanBodyPhasesItemRateCardsItemKeyMaxOne)
@@ -9792,13 +9890,13 @@ export const createPlanBody = zod
                             'A semi-unique identifier for the resource.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
                           .nullish()
                           .describe('Additional metadata for the resource.'),
-                        name: zod
+                        name: zod.coerce
                           .string()
                           .min(1)
                           .max(createPlanBodyPhasesItemRateCardsItemNameMaxOne)
@@ -9809,7 +9907,7 @@ export const createPlanBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceAmountRegExpThree
@@ -9834,7 +9932,7 @@ export const createPlanBody = zod
                               .describe('Flat price with payment term.'),
                             zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceAmountRegExpFive
@@ -9843,7 +9941,7 @@ export const createPlanBody = zod
                                     'Numeric represents an arbitrary precision number.'
                                   )
                                   .describe('The amount of the unit price.'),
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceMaximumAmountRegExpOne
@@ -9855,7 +9953,7 @@ export const createPlanBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceMinimumAmountRegExpOne
@@ -9872,7 +9970,7 @@ export const createPlanBody = zod
                               .describe('Unit price with spend commitments.'),
                             zod
                               .object({
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceMaximumAmountRegExpThree
@@ -9884,7 +9982,7 @@ export const createPlanBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceMinimumAmountRegExpThree
@@ -9908,7 +10006,7 @@ export const createPlanBody = zod
                                       .object({
                                         flatPrice: zod
                                           .object({
-                                            amount: zod
+                                            amount: zod.coerce
                                               .string()
                                               .regex(
                                                 createPlanBodyPhasesItemRateCardsItemPriceTiersItemFlatPriceAmountRegExpOne
@@ -9932,7 +10030,7 @@ export const createPlanBody = zod
                                           ),
                                         unitPrice: zod
                                           .object({
-                                            amount: zod
+                                            amount: zod.coerce
                                               .string()
                                               .regex(
                                                 createPlanBodyPhasesItemRateCardsItemPriceTiersItemUnitPriceAmountRegExpOne
@@ -9954,7 +10052,7 @@ export const createPlanBody = zod
                                           .describe(
                                             'The unit price component of the tier.'
                                           ),
-                                        upToAmount: zod
+                                        upToAmount: zod.coerce
                                           .string()
                                           .regex(
                                             createPlanBodyPhasesItemRateCardsItemPriceTiersItemUpToAmountRegExpOne
@@ -9980,7 +10078,7 @@ export const createPlanBody = zod
                               .describe('Tiered price with spend commitments.'),
                             zod
                               .object({
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceMaximumAmountRegExpFive
@@ -9992,7 +10090,7 @@ export const createPlanBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceMinimumAmountRegExpFive
@@ -10004,7 +10102,7 @@ export const createPlanBody = zod
                                   .describe(
                                     'The customer is committed to spend at least the amount.'
                                   ),
-                                multiplier: zod
+                                multiplier: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceMultiplierRegExpOne
@@ -10025,7 +10123,7 @@ export const createPlanBody = zod
                               ),
                             zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceAmountRegExpSeven
@@ -10034,7 +10132,7 @@ export const createPlanBody = zod
                                     'Numeric represents an arbitrary precision number.'
                                   )
                                   .describe('The price of one package.'),
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceMaximumAmountRegExpSeven
@@ -10046,7 +10144,7 @@ export const createPlanBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceMinimumAmountRegExpSeven
@@ -10058,7 +10156,7 @@ export const createPlanBody = zod
                                   .describe(
                                     'The customer is committed to spend at least the amount.'
                                   ),
-                                quantityPerPackage: zod
+                                quantityPerPackage: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemPriceQuantityPerPackageRegExpOne
@@ -10091,7 +10189,7 @@ export const createPlanBody = zod
                               ),
                             customInvoicing: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .describe(
                                     'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -10102,7 +10200,7 @@ export const createPlanBody = zod
                               .describe('Custom invoicing tax config.'),
                             stripe: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .regex(
                                     createPlanBodyPhasesItemRateCardsItemTaxConfigStripeCodeRegExpOne
@@ -10142,7 +10240,7 @@ export const createPlanBody = zod
       ),
     proRatingConfig: zod
       .object({
-        enabled: zod
+        enabled: zod.coerce
           .boolean()
           .describe('Whether pro-rating is enabled for this plan.'),
         mode: zod
@@ -10173,7 +10271,7 @@ export const nextPlanPathPlanIdOrKeyRegExp = new RegExp(
 )
 
 export const nextPlanParams = zod.object({
-  planIdOrKey: zod
+  planIdOrKey: zod.coerce
     .string()
     .min(1)
     .max(nextPlanPathPlanIdOrKeyMax)
@@ -10189,7 +10287,7 @@ export const updatePlanPathPlanIdRegExp = new RegExp(
 )
 
 export const updatePlanParams = zod.object({
-  planId: zod.string().regex(updatePlanPathPlanIdRegExp),
+  planId: zod.coerce.string().regex(updatePlanPathPlanIdRegExp),
 })
 
 export const updatePlanBodyNameMax = 256
@@ -10296,7 +10394,7 @@ export const updatePlanBody = zod
   .object({
     alignment: zod
       .object({
-        billablesMustAlign: zod
+        billablesMustAlign: zod.coerce
           .boolean()
           .optional()
           .describe(
@@ -10306,12 +10404,12 @@ export const updatePlanBody = zod
       .describe('Alignment configuration for a plan or subscription.')
       .optional()
       .describe('Alignment configuration for the plan.'),
-    billingCadence: zod
+    billingCadence: zod.coerce
       .string()
       .describe(
         'The default billing cadence for subscriptions using this plan.\nDefines how often customers are billed using ISO8601 duration format.\nExamples: \"P1M\" (monthly), \"P3M\" (quarterly), \"P1Y\" (annually).'
       ),
-    description: zod
+    description: zod.coerce
       .string()
       .max(updatePlanBodyDescriptionMax)
       .optional()
@@ -10319,13 +10417,13 @@ export const updatePlanBody = zod
         'Optional description of the resource. Maximum 1024 characters.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(updatePlanBodyNameMax)
@@ -10336,31 +10434,31 @@ export const updatePlanBody = zod
       .array(
         zod
           .object({
-            description: zod
+            description: zod.coerce
               .string()
               .max(updatePlanBodyPhasesItemDescriptionMax)
               .optional()
               .describe(
                 'Optional description of the resource. Maximum 1024 characters.'
               ),
-            duration: zod
+            duration: zod.coerce
               .string()
               .nullable()
               .describe('The duration of the phase.'),
-            key: zod
+            key: zod.coerce
               .string()
               .min(1)
               .max(updatePlanBodyPhasesItemKeyMax)
               .regex(updatePlanBodyPhasesItemKeyRegExp)
               .describe('A semi-unique identifier for the resource.'),
             metadata: zod
-              .record(zod.string(), zod.string())
+              .record(zod.string(), zod.coerce.string())
               .describe(
                 'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
               )
               .nullish()
               .describe('Additional metadata for the resource.'),
-            name: zod
+            name: zod.coerce
               .string()
               .min(1)
               .max(updatePlanBodyPhasesItemNameMax)
@@ -10373,13 +10471,13 @@ export const updatePlanBody = zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        billingCadence: zod
+                        billingCadence: zod.coerce
                           .string()
                           .nullable()
                           .describe(
                             'The billing cadence of the rate card.\nWhen null it means it is a one time fee.'
                           ),
-                        description: zod
+                        description: zod.coerce
                           .string()
                           .max(
                             updatePlanBodyPhasesItemRateCardsItemDescriptionMax
@@ -10392,7 +10490,7 @@ export const updatePlanBody = zod
                           .object({
                             percentage: zod
                               .object({
-                                percentage: zod
+                                percentage: zod.coerce
                                   .number()
                                   .describe(
                                     'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -10404,7 +10502,7 @@ export const updatePlanBody = zod
                               .describe('The percentage discount.'),
                             usage: zod
                               .object({
-                                quantity: zod
+                                quantity: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemDiscountsUsageQuantityRegExpOne
@@ -10431,13 +10529,13 @@ export const updatePlanBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                isSoftLimit: zod
+                                isSoftLimit: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                                   ),
-                                issueAfterReset: zod
+                                issueAfterReset: zod.coerce
                                   .number()
                                   .min(
                                     updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMin
@@ -10446,7 +10544,7 @@ export const updatePlanBody = zod
                                   .describe(
                                     'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                                   ),
-                                issueAfterResetPriority: zod
+                                issueAfterResetPriority: zod.coerce
                                   .number()
                                   .min(1)
                                   .max(
@@ -10459,7 +10557,7 @@ export const updatePlanBody = zod
                                     'Defines the grant priority for the default grant.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -10467,14 +10565,14 @@ export const updatePlanBody = zod
                                   .describe(
                                     'Additional metadata for the feature.'
                                   ),
-                                preserveOverageAtReset: zod
+                                preserveOverageAtReset: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                                   ),
                                 type: zod.enum(['metered']),
-                                usagePeriod: zod
+                                usagePeriod: zod.coerce
                                   .string()
                                   .optional()
                                   .describe(
@@ -10486,13 +10584,13 @@ export const updatePlanBody = zod
                               ),
                             zod
                               .object({
-                                config: zod
+                                config: zod.coerce
                                   .string()
                                   .describe(
                                     'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -10508,7 +10606,7 @@ export const updatePlanBody = zod
                             zod
                               .object({
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -10529,7 +10627,7 @@ export const updatePlanBody = zod
                           .describe(
                             'The entitlement of the rate card.\nOnly available when featureKey is set.'
                           ),
-                        featureKey: zod
+                        featureKey: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -10542,7 +10640,7 @@ export const updatePlanBody = zod
                           .describe(
                             'The feature the customer is entitled to use.'
                           ),
-                        key: zod
+                        key: zod.coerce
                           .string()
                           .min(1)
                           .max(updatePlanBodyPhasesItemRateCardsItemKeyMax)
@@ -10551,13 +10649,13 @@ export const updatePlanBody = zod
                             'A semi-unique identifier for the resource.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
                           .nullish()
                           .describe('Additional metadata for the resource.'),
-                        name: zod
+                        name: zod.coerce
                           .string()
                           .min(1)
                           .max(updatePlanBodyPhasesItemRateCardsItemNameMax)
@@ -10566,7 +10664,7 @@ export const updatePlanBody = zod
                           ),
                         price: zod
                           .object({
-                            amount: zod
+                            amount: zod.coerce
                               .string()
                               .regex(
                                 updatePlanBodyPhasesItemRateCardsItemPriceAmountRegExpOne
@@ -10606,7 +10704,7 @@ export const updatePlanBody = zod
                               ),
                             customInvoicing: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .describe(
                                     'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -10617,7 +10715,7 @@ export const updatePlanBody = zod
                               .describe('Custom invoicing tax config.'),
                             stripe: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemTaxConfigStripeCodeRegExp
@@ -10642,10 +10740,10 @@ export const updatePlanBody = zod
                       ),
                     zod
                       .object({
-                        billingCadence: zod
+                        billingCadence: zod.coerce
                           .string()
                           .describe('The billing cadence of the rate card.'),
-                        description: zod
+                        description: zod.coerce
                           .string()
                           .max(
                             updatePlanBodyPhasesItemRateCardsItemDescriptionMaxOne
@@ -10658,7 +10756,7 @@ export const updatePlanBody = zod
                           .object({
                             percentage: zod
                               .object({
-                                percentage: zod
+                                percentage: zod.coerce
                                   .number()
                                   .describe(
                                     'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -10670,7 +10768,7 @@ export const updatePlanBody = zod
                               .describe('The percentage discount.'),
                             usage: zod
                               .object({
-                                quantity: zod
+                                quantity: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemDiscountsUsageQuantityRegExpThree
@@ -10697,13 +10795,13 @@ export const updatePlanBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                isSoftLimit: zod
+                                isSoftLimit: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                                   ),
-                                issueAfterReset: zod
+                                issueAfterReset: zod.coerce
                                   .number()
                                   .min(
                                     updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMinOne
@@ -10712,7 +10810,7 @@ export const updatePlanBody = zod
                                   .describe(
                                     'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                                   ),
-                                issueAfterResetPriority: zod
+                                issueAfterResetPriority: zod.coerce
                                   .number()
                                   .min(1)
                                   .max(
@@ -10725,7 +10823,7 @@ export const updatePlanBody = zod
                                     'Defines the grant priority for the default grant.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -10733,14 +10831,14 @@ export const updatePlanBody = zod
                                   .describe(
                                     'Additional metadata for the feature.'
                                   ),
-                                preserveOverageAtReset: zod
+                                preserveOverageAtReset: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                                   ),
                                 type: zod.enum(['metered']),
-                                usagePeriod: zod
+                                usagePeriod: zod.coerce
                                   .string()
                                   .optional()
                                   .describe(
@@ -10752,13 +10850,13 @@ export const updatePlanBody = zod
                               ),
                             zod
                               .object({
-                                config: zod
+                                config: zod.coerce
                                   .string()
                                   .describe(
                                     'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -10774,7 +10872,7 @@ export const updatePlanBody = zod
                             zod
                               .object({
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -10795,7 +10893,7 @@ export const updatePlanBody = zod
                           .describe(
                             'The entitlement of the rate card.\nOnly available when featureKey is set.'
                           ),
-                        featureKey: zod
+                        featureKey: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -10808,7 +10906,7 @@ export const updatePlanBody = zod
                           .describe(
                             'The feature the customer is entitled to use.'
                           ),
-                        key: zod
+                        key: zod.coerce
                           .string()
                           .min(1)
                           .max(updatePlanBodyPhasesItemRateCardsItemKeyMaxOne)
@@ -10819,13 +10917,13 @@ export const updatePlanBody = zod
                             'A semi-unique identifier for the resource.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
                           .nullish()
                           .describe('Additional metadata for the resource.'),
-                        name: zod
+                        name: zod.coerce
                           .string()
                           .min(1)
                           .max(updatePlanBodyPhasesItemRateCardsItemNameMaxOne)
@@ -10836,7 +10934,7 @@ export const updatePlanBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceAmountRegExpThree
@@ -10861,7 +10959,7 @@ export const updatePlanBody = zod
                               .describe('Flat price with payment term.'),
                             zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceAmountRegExpFive
@@ -10870,7 +10968,7 @@ export const updatePlanBody = zod
                                     'Numeric represents an arbitrary precision number.'
                                   )
                                   .describe('The amount of the unit price.'),
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceMaximumAmountRegExpOne
@@ -10882,7 +10980,7 @@ export const updatePlanBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceMinimumAmountRegExpOne
@@ -10899,7 +10997,7 @@ export const updatePlanBody = zod
                               .describe('Unit price with spend commitments.'),
                             zod
                               .object({
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceMaximumAmountRegExpThree
@@ -10911,7 +11009,7 @@ export const updatePlanBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceMinimumAmountRegExpThree
@@ -10935,7 +11033,7 @@ export const updatePlanBody = zod
                                       .object({
                                         flatPrice: zod
                                           .object({
-                                            amount: zod
+                                            amount: zod.coerce
                                               .string()
                                               .regex(
                                                 updatePlanBodyPhasesItemRateCardsItemPriceTiersItemFlatPriceAmountRegExpOne
@@ -10959,7 +11057,7 @@ export const updatePlanBody = zod
                                           ),
                                         unitPrice: zod
                                           .object({
-                                            amount: zod
+                                            amount: zod.coerce
                                               .string()
                                               .regex(
                                                 updatePlanBodyPhasesItemRateCardsItemPriceTiersItemUnitPriceAmountRegExpOne
@@ -10981,7 +11079,7 @@ export const updatePlanBody = zod
                                           .describe(
                                             'The unit price component of the tier.'
                                           ),
-                                        upToAmount: zod
+                                        upToAmount: zod.coerce
                                           .string()
                                           .regex(
                                             updatePlanBodyPhasesItemRateCardsItemPriceTiersItemUpToAmountRegExpOne
@@ -11007,7 +11105,7 @@ export const updatePlanBody = zod
                               .describe('Tiered price with spend commitments.'),
                             zod
                               .object({
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceMaximumAmountRegExpFive
@@ -11019,7 +11117,7 @@ export const updatePlanBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceMinimumAmountRegExpFive
@@ -11031,7 +11129,7 @@ export const updatePlanBody = zod
                                   .describe(
                                     'The customer is committed to spend at least the amount.'
                                   ),
-                                multiplier: zod
+                                multiplier: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceMultiplierRegExpOne
@@ -11052,7 +11150,7 @@ export const updatePlanBody = zod
                               ),
                             zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceAmountRegExpSeven
@@ -11061,7 +11159,7 @@ export const updatePlanBody = zod
                                     'Numeric represents an arbitrary precision number.'
                                   )
                                   .describe('The price of one package.'),
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceMaximumAmountRegExpSeven
@@ -11073,7 +11171,7 @@ export const updatePlanBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceMinimumAmountRegExpSeven
@@ -11085,7 +11183,7 @@ export const updatePlanBody = zod
                                   .describe(
                                     'The customer is committed to spend at least the amount.'
                                   ),
-                                quantityPerPackage: zod
+                                quantityPerPackage: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemPriceQuantityPerPackageRegExpOne
@@ -11118,7 +11216,7 @@ export const updatePlanBody = zod
                               ),
                             customInvoicing: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .describe(
                                     'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -11129,7 +11227,7 @@ export const updatePlanBody = zod
                               .describe('Custom invoicing tax config.'),
                             stripe: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .regex(
                                     updatePlanBodyPhasesItemRateCardsItemTaxConfigStripeCodeRegExpOne
@@ -11169,7 +11267,7 @@ export const updatePlanBody = zod
       ),
     proRatingConfig: zod
       .object({
-        enabled: zod
+        enabled: zod.coerce
           .boolean()
           .describe('Whether pro-rating is enabled for this plan.'),
         mode: zod
@@ -11198,7 +11296,7 @@ export const getPlanPathPlanIdRegExp = new RegExp(
 )
 
 export const getPlanParams = zod.object({
-  planId: zod
+  planId: zod.coerce
     .string()
     .min(1)
     .max(getPlanPathPlanIdMax)
@@ -11208,7 +11306,7 @@ export const getPlanParams = zod.object({
 export const getPlanQueryIncludeLatestDefault = false
 
 export const getPlanQueryParams = zod.object({
-  includeLatest: zod
+  includeLatest: zod.coerce
     .boolean()
     .optional()
     .describe(
@@ -11227,7 +11325,7 @@ export const deletePlanPathPlanIdRegExp = new RegExp(
 )
 
 export const deletePlanParams = zod.object({
-  planId: zod.string().regex(deletePlanPathPlanIdRegExp),
+  planId: zod.coerce.string().regex(deletePlanPathPlanIdRegExp),
 })
 
 /**
@@ -11241,7 +11339,7 @@ export const listPlanAddonsPathPlanIdRegExp = new RegExp(
 )
 
 export const listPlanAddonsParams = zod.object({
-  planId: zod
+  planId: zod.coerce
     .string()
     .min(1)
     .max(listPlanAddonsPathPlanIdMax)
@@ -11264,7 +11362,7 @@ export const listPlanAddonsQueryPageSizeMax = 1000
 export const listPlanAddonsQueryParams = zod.object({
   id: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .regex(listPlanAddonsQueryIdItemRegExp)
         .describe(
@@ -11273,7 +11371,7 @@ export const listPlanAddonsQueryParams = zod.object({
     )
     .optional()
     .describe('Filter by addon.id attribute.'),
-  includeDeleted: zod
+  includeDeleted: zod.coerce
     .boolean()
     .optional()
     .describe(
@@ -11281,7 +11379,7 @@ export const listPlanAddonsQueryParams = zod.object({
     ),
   key: zod
     .array(
-      zod
+      zod.coerce
         .string()
         .min(1)
         .max(listPlanAddonsQueryKeyItemMax)
@@ -11293,7 +11391,7 @@ export const listPlanAddonsQueryParams = zod.object({
     .optional()
     .describe('Filter by addon.key attribute.'),
   keyVersion: zod
-    .record(zod.string(), zod.array(zod.number()))
+    .record(zod.string(), zod.array(zod.coerce.number()))
     .optional()
     .describe('Filter by addon.key and addon.version attributes.'),
   order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
@@ -11301,12 +11399,12 @@ export const listPlanAddonsQueryParams = zod.object({
     .enum(['id', 'key', 'version', 'created_at', 'updated_at'])
     .optional()
     .describe('The order by field.'),
-  page: zod
+  page: zod.coerce
     .number()
     .min(1)
     .default(listPlanAddonsQueryPageDefault)
     .describe('Page index.\n\nDefault is 1.'),
-  pageSize: zod
+  pageSize: zod.coerce
     .number()
     .min(1)
     .max(listPlanAddonsQueryPageSizeMax)
@@ -11323,7 +11421,7 @@ export const createPlanAddonPathPlanIdRegExp = new RegExp(
 )
 
 export const createPlanAddonParams = zod.object({
-  planId: zod.string().regex(createPlanAddonPathPlanIdRegExp),
+  planId: zod.coerce.string().regex(createPlanAddonPathPlanIdRegExp),
 })
 
 export const createPlanAddonBodyAddonIdRegExp = new RegExp(
@@ -11332,23 +11430,23 @@ export const createPlanAddonBodyAddonIdRegExp = new RegExp(
 
 export const createPlanAddonBody = zod
   .object({
-    addonId: zod
+    addonId: zod.coerce
       .string()
       .regex(createPlanAddonBodyAddonIdRegExp)
       .describe('The add-on unique identifier in ULID format.'),
-    fromPlanPhase: zod
+    fromPlanPhase: zod.coerce
       .string()
       .describe(
         'The key of the plan phase from the add-on becomes available for purchase.'
       ),
-    maxQuantity: zod
+    maxQuantity: zod.coerce
       .number()
       .optional()
       .describe(
         'The maximum number of times the add-on can be purchased for the plan.\nIt is not applicable for add-ons with single instance type.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
@@ -11369,25 +11467,25 @@ export const updatePlanAddonPathPlanAddonIdRegExp = new RegExp(
 )
 
 export const updatePlanAddonParams = zod.object({
-  planAddonId: zod.string().regex(updatePlanAddonPathPlanAddonIdRegExp),
-  planId: zod.string().regex(updatePlanAddonPathPlanIdRegExp),
+  planAddonId: zod.coerce.string().regex(updatePlanAddonPathPlanAddonIdRegExp),
+  planId: zod.coerce.string().regex(updatePlanAddonPathPlanIdRegExp),
 })
 
 export const updatePlanAddonBody = zod
   .object({
-    fromPlanPhase: zod
+    fromPlanPhase: zod.coerce
       .string()
       .describe(
         'The key of the plan phase from the add-on becomes available for purchase.'
       ),
-    maxQuantity: zod
+    maxQuantity: zod.coerce
       .number()
       .optional()
       .describe(
         'The maximum number of times the add-on can be purchased for the plan.\nIt is not applicable for add-ons with single instance type.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
@@ -11412,12 +11510,12 @@ export const getPlanAddonPathPlanAddonIdRegExp = new RegExp(
 )
 
 export const getPlanAddonParams = zod.object({
-  planAddonId: zod
+  planAddonId: zod.coerce
     .string()
     .min(1)
     .max(getPlanAddonPathPlanAddonIdMax)
     .regex(getPlanAddonPathPlanAddonIdRegExp),
-  planId: zod
+  planId: zod.coerce
     .string()
     .min(1)
     .max(getPlanAddonPathPlanIdMax)
@@ -11438,8 +11536,8 @@ export const deletePlanAddonPathPlanAddonIdRegExp = new RegExp(
 )
 
 export const deletePlanAddonParams = zod.object({
-  planAddonId: zod.string().regex(deletePlanAddonPathPlanAddonIdRegExp),
-  planId: zod.string().regex(deletePlanAddonPathPlanIdRegExp),
+  planAddonId: zod.coerce.string().regex(deletePlanAddonPathPlanAddonIdRegExp),
+  planId: zod.coerce.string().regex(deletePlanAddonPathPlanIdRegExp),
 })
 
 /**
@@ -11451,7 +11549,7 @@ export const archivePlanPathPlanIdRegExp = new RegExp(
 )
 
 export const archivePlanParams = zod.object({
-  planId: zod.string().regex(archivePlanPathPlanIdRegExp),
+  planId: zod.coerce.string().regex(archivePlanPathPlanIdRegExp),
 })
 
 /**
@@ -11463,7 +11561,7 @@ export const publishPlanPathPlanIdRegExp = new RegExp(
 )
 
 export const publishPlanParams = zod.object({
-  planId: zod.string().regex(publishPlanPathPlanIdRegExp),
+  planId: zod.coerce.string().regex(publishPlanPathPlanIdRegExp),
 })
 
 /**
@@ -11477,7 +11575,7 @@ export const queryPortalMeterPathMeterSlugRegExp = new RegExp(
 )
 
 export const queryPortalMeterParams = zod.object({
-  meterSlug: zod
+  meterSlug: zod.coerce
     .string()
     .min(1)
     .max(queryPortalMeterPathMeterSlugMax)
@@ -11488,31 +11586,31 @@ export const queryPortalMeterQueryClientIdMax = 36
 export const queryPortalMeterQueryWindowTimeZoneDefault = 'UTC'
 
 export const queryPortalMeterQueryParams = zod.object({
-  clientId: zod
+  clientId: zod.coerce
     .string()
     .min(1)
     .max(queryPortalMeterQueryClientIdMax)
     .optional()
     .describe('Client ID\nUseful to track progress of a query.'),
   filterGroupBy: zod
-    .record(zod.string(), zod.string())
+    .record(zod.string(), zod.coerce.string())
     .optional()
     .describe(
       'Simple filter for group bys with exact match.\n\nFor example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo'
     ),
-  from: zod
+  from: zod.coerce
     .date()
     .optional()
     .describe(
       'Start date-time in RFC 3339 format.\n\nInclusive.\n\nFor example: ?from=2025-01-01T00%3A00%3A00.000Z'
     ),
   groupBy: zod
-    .array(zod.string())
+    .array(zod.coerce.string())
     .optional()
     .describe(
       'If not specified a single aggregate will be returned for each subject and time window.\n`subject` is a reserved group by value.\n\nFor example: ?groupBy=subject&groupBy=model'
     ),
-  to: zod
+  to: zod.coerce
     .date()
     .optional()
     .describe(
@@ -11524,7 +11622,7 @@ export const queryPortalMeterQueryParams = zod.object({
     .describe(
       'If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.\n\nFor example: ?windowSize=DAY'
     ),
-  windowTimeZone: zod
+  windowTimeZone: zod.coerce
     .string()
     .default(queryPortalMeterQueryWindowTimeZoneDefault)
     .describe(
@@ -11539,12 +11637,12 @@ export const queryPortalMeterQueryParams = zod.object({
 export const createPortalTokenBody = zod
   .object({
     allowedMeterSlugs: zod
-      .array(zod.string())
+      .array(zod.coerce.string())
       .optional()
       .describe(
         'Optional, if defined only the specified meters will be allowed.'
       ),
-    subject: zod.string(),
+    subject: zod.coerce.string(),
   })
   .describe(
     "A consumer portal token.\n\nValidator doesn't obey required for readOnly properties\nSee: https://github.com/stoplightio/spectral/issues/1274"
@@ -11558,7 +11656,7 @@ export const listPortalTokensQueryLimitDefault = 25
 export const listPortalTokensQueryLimitMax = 100
 
 export const listPortalTokensQueryParams = zod.object({
-  limit: zod
+  limit: zod.coerce
     .number()
     .min(1)
     .max(listPortalTokensQueryLimitMax)
@@ -11570,8 +11668,11 @@ export const listPortalTokensQueryParams = zod.object({
  * @summary Invalidate portal tokens
  */
 export const invalidatePortalTokensBody = zod.object({
-  id: zod.string().optional().describe('Invalidate a portal token by ID.'),
-  subject: zod
+  id: zod.coerce
+    .string()
+    .optional()
+    .describe('Invalidate a portal token by ID.'),
+  subject: zod.coerce
     .string()
     .optional()
     .describe('Invalidate all portal tokens for a subject.'),
@@ -11616,14 +11717,14 @@ export const createStripeCheckoutSessionBodyOptionsCustomTextTermsOfServiceAccep
 
 export const createStripeCheckoutSessionBody = zod
   .object({
-    appId: zod
+    appId: zod.coerce
       .string()
       .regex(createStripeCheckoutSessionBodyAppIdRegExp)
       .optional()
       .describe('If not provided, the default Stripe app is used if any.'),
     customer: zod
       .object({
-        id: zod
+        id: zod.coerce
           .string()
           .regex(createStripeCheckoutSessionBodyCustomerIdRegExp)
           .describe(
@@ -11634,7 +11735,7 @@ export const createStripeCheckoutSessionBody = zod
       .or(
         zod
           .object({
-            key: zod.string(),
+            key: zod.coerce.string(),
           })
           .describe('Create Stripe checkout session with customer key.')
       )
@@ -11643,8 +11744,8 @@ export const createStripeCheckoutSessionBody = zod
           .object({
             billingAddress: zod
               .object({
-                city: zod.string().optional().describe('City.'),
-                country: zod
+                city: zod.coerce.string().optional().describe('City.'),
+                country: zod.coerce
                   .string()
                   .min(
                     createStripeCheckoutSessionBodyCustomerBillingAddressCountryMinOne
@@ -11662,24 +11763,33 @@ export const createStripeCheckoutSessionBody = zod
                   .describe(
                     'Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.'
                   ),
-                line1: zod
+                line1: zod.coerce
                   .string()
                   .optional()
                   .describe('First line of the address.'),
-                line2: zod
+                line2: zod.coerce
                   .string()
                   .optional()
                   .describe('Second line of the address.'),
-                phoneNumber: zod.string().optional().describe('Phone number.'),
-                postalCode: zod.string().optional().describe('Postal code.'),
-                state: zod.string().optional().describe('State or province.'),
+                phoneNumber: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('Phone number.'),
+                postalCode: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('Postal code.'),
+                state: zod.coerce
+                  .string()
+                  .optional()
+                  .describe('State or province.'),
               })
               .describe('Address')
               .optional()
               .describe(
                 'The billing address of the customer.\nUsed for tax and invoicing.'
               ),
-            currency: zod
+            currency: zod.coerce
               .string()
               .min(createStripeCheckoutSessionBodyCustomerCurrencyMinOne)
               .max(createStripeCheckoutSessionBodyCustomerCurrencyMaxOne)
@@ -11691,14 +11801,14 @@ export const createStripeCheckoutSessionBody = zod
               .describe(
                 'Currency of the customer.\nUsed for billing, tax and invoicing.'
               ),
-            description: zod
+            description: zod.coerce
               .string()
               .max(createStripeCheckoutSessionBodyCustomerDescriptionMax)
               .optional()
               .describe(
                 'Optional description of the resource. Maximum 1024 characters.'
               ),
-            key: zod
+            key: zod.coerce
               .string()
               .min(1)
               .max(createStripeCheckoutSessionBodyCustomerKeyMaxOne)
@@ -11707,27 +11817,27 @@ export const createStripeCheckoutSessionBody = zod
                 'An optional unique key of the customer.\nUseful to reference the customer in external systems.\nFor example, your database ID.'
               ),
             metadata: zod
-              .record(zod.string(), zod.string())
+              .record(zod.string(), zod.coerce.string())
               .describe(
                 'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
               )
               .nullish()
               .describe('Additional metadata for the resource.'),
-            name: zod
+            name: zod.coerce
               .string()
               .min(1)
               .max(createStripeCheckoutSessionBodyCustomerNameMax)
               .describe(
                 'Human-readable name for the resource. Between 1 and 256 characters.'
               ),
-            primaryEmail: zod
+            primaryEmail: zod.coerce
               .string()
               .optional()
               .describe('The primary email address of the customer.'),
             usageAttribution: zod
               .object({
                 subjectKeys: zod
-                  .array(zod.string())
+                  .array(zod.coerce.string())
                   .min(1)
                   .max(
                     createStripeCheckoutSessionBodyCustomerUsageAttributionSubjectKeysMax
@@ -11757,13 +11867,13 @@ export const createStripeCheckoutSessionBody = zod
           .describe(
             'Specify whether Checkout should collect the customer’s billing address. Defaults to auto.'
           ),
-        cancelURL: zod
+        cancelURL: zod.coerce
           .string()
           .optional()
           .describe(
             'If set, Checkout displays a back button and customers will be directed to this URL if they decide to cancel payment and return to your website.\nThis parameter is not allowed if ui_mode is embedded.'
           ),
-        clientReferenceID: zod
+        clientReferenceID: zod.coerce
           .string()
           .optional()
           .describe(
@@ -11813,7 +11923,7 @@ export const createStripeCheckoutSessionBody = zod
           .describe(
             'Configure fields for the Checkout Session to gather active consent from customers.'
           ),
-        currency: zod
+        currency: zod.coerce
           .string()
           .min(createStripeCheckoutSessionBodyOptionsCurrencyMinOne)
           .max(createStripeCheckoutSessionBodyOptionsCurrencyMaxOne)
@@ -11864,7 +11974,7 @@ export const createStripeCheckoutSessionBody = zod
           .object({
             afterSubmit: zod
               .object({
-                message: zod
+                message: zod.coerce
                   .string()
                   .max(
                     createStripeCheckoutSessionBodyOptionsCustomTextAfterSubmitMessageMax
@@ -11877,7 +11987,7 @@ export const createStripeCheckoutSessionBody = zod
               ),
             shippingAddress: zod
               .object({
-                message: zod
+                message: zod.coerce
                   .string()
                   .max(
                     createStripeCheckoutSessionBodyOptionsCustomTextShippingAddressMessageMax
@@ -11890,7 +12000,7 @@ export const createStripeCheckoutSessionBody = zod
               ),
             submit: zod
               .object({
-                message: zod
+                message: zod.coerce
                   .string()
                   .max(
                     createStripeCheckoutSessionBodyOptionsCustomTextSubmitMessageMax
@@ -11903,7 +12013,7 @@ export const createStripeCheckoutSessionBody = zod
               ),
             termsOfServiceAcceptance: zod
               .object({
-                message: zod
+                message: zod.coerce
                   .string()
                   .max(
                     createStripeCheckoutSessionBodyOptionsCustomTextTermsOfServiceAcceptanceMessageMax
@@ -11920,21 +12030,21 @@ export const createStripeCheckoutSessionBody = zod
           .describe(
             'Display additional text for your customers using custom text.'
           ),
-        expiresAt: zod
+        expiresAt: zod.coerce
           .number()
           .optional()
           .describe(
             'The Epoch time in seconds at which the Checkout Session will expire.\nIt can be anywhere from 30 minutes to 24 hours after Checkout Session creation. By default, this value is 24 hours from creation.'
           ),
-        locale: zod.string().optional(),
+        locale: zod.coerce.string().optional(),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .optional()
           .describe(
             'Set of key-value pairs that you can attach to an object.\nThis can be useful for storing additional information about the object in a structured format.\nIndividual keys can be unset by posting an empty value to them.\nAll keys can be unset by posting an empty value to metadata.'
           ),
         paymentMethodTypes: zod
-          .array(zod.string())
+          .array(zod.coerce.string())
           .optional()
           .describe(
             'A list of the types of payment methods (e.g., card) this Checkout Session can accept.'
@@ -11946,13 +12056,13 @@ export const createStripeCheckoutSessionBody = zod
           .describe(
             'This parameter applies to ui_mode: embedded. Defaults to always.\nLearn more about the redirect behavior of embedded sessions at\nhttps://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form'
           ),
-        returnURL: zod
+        returnURL: zod.coerce
           .string()
           .optional()
           .describe(
             'The URL to redirect your customer back to after they authenticate or cancel their payment on the payment method’s app or site.\nThis parameter is required if ui_mode is embedded and redirect-based payment methods are enabled on the session.'
           ),
-        successURL: zod
+        successURL: zod.coerce
           .string()
           .optional()
           .describe(
@@ -11960,7 +12070,7 @@ export const createStripeCheckoutSessionBody = zod
           ),
         taxIdCollection: zod
           .object({
-            enabled: zod
+            enabled: zod.coerce
               .boolean()
               .describe(
                 'Enable tax ID collection during checkout. Defaults to false.'
@@ -11988,7 +12098,7 @@ export const createStripeCheckoutSessionBody = zod
         'Create Stripe checkout session options\nSee https://docs.stripe.com/api/checkout/sessions/create'
       )
       .describe('Options passed to Stripe when creating the checkout session.'),
-    stripeCustomerId: zod
+    stripeCustomerId: zod.coerce
       .string()
       .optional()
       .describe(
@@ -12006,19 +12116,19 @@ If the subject exists, it will be partially updated with the provided fields.
  */
 export const upsertSubjectBodyItem = zod
   .object({
-    currentPeriodEnd: zod
+    currentPeriodEnd: zod.coerce
       .date()
       .optional()
       .describe('The end of the current period for the subject.'),
-    currentPeriodStart: zod
+    currentPeriodStart: zod.coerce
       .date()
       .optional()
       .describe('The start of the current period for the subject.'),
-    displayName: zod
+    displayName: zod.coerce
       .string()
       .nullish()
       .describe('A human-readable display name for the subject.'),
-    key: zod
+    key: zod.coerce
       .string()
       .describe(
         'A unique, human-readable identifier for the subject.\nThis is typically a database ID or a customer key.'
@@ -12027,7 +12137,7 @@ export const upsertSubjectBodyItem = zod
       .record(zod.string(), zod.any())
       .nullish()
       .describe('Metadata for the subject.'),
-    stripeCustomerId: zod
+    stripeCustomerId: zod.coerce
       .string()
       .nullish()
       .describe('The Stripe customer ID for the subject.'),
@@ -12040,7 +12150,7 @@ export const upsertSubjectBody = zod.array(upsertSubjectBodyItem)
  * @summary Get subject
  */
 export const getSubjectParams = zod.object({
-  subjectIdOrKey: zod.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 /**
@@ -12048,7 +12158,7 @@ export const getSubjectParams = zod.object({
  * @summary Delete subject
  */
 export const deleteSubjectParams = zod.object({
-  subjectIdOrKey: zod.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 /**
@@ -12064,7 +12174,7 @@ Once an entitlement is created you cannot modify it, only delete it.
  * @summary Create a subject entitlement
  */
 export const createEntitlementParams = zod.object({
-  subjectIdOrKey: zod.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 export const createEntitlementBodyFeatureKeyMax = 64
@@ -12102,14 +12212,14 @@ export const createEntitlementBody = zod
   .discriminatedUnion('type', [
     zod
       .object({
-        featureId: zod
+        featureId: zod.coerce
           .string()
           .regex(createEntitlementBodyFeatureIdRegExp)
           .optional()
           .describe(
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
-        featureKey: zod
+        featureKey: zod.coerce
           .string()
           .min(1)
           .max(createEntitlementBodyFeatureKeyMax)
@@ -12118,26 +12228,26 @@ export const createEntitlementBody = zod
           .describe(
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
-        isSoftLimit: zod
+        isSoftLimit: zod.coerce
           .boolean()
           .optional()
           .describe(
             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
           ),
-        issueAfterReset: zod
+        issueAfterReset: zod.coerce
           .number()
           .min(createEntitlementBodyIssueAfterResetMin)
           .optional()
           .describe(
             'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
           ),
-        issueAfterResetPriority: zod
+        issueAfterResetPriority: zod.coerce
           .number()
           .min(1)
           .max(createEntitlementBodyIssueAfterResetPriorityMax)
           .default(createEntitlementBodyIssueAfterResetPriorityDefault)
           .describe('Defines the grant priority for the default grant.'),
-        isUnlimited: zod
+        isUnlimited: zod.coerce
           .boolean()
           .optional()
           .describe(
@@ -12147,7 +12257,7 @@ export const createEntitlementBody = zod
           .enum(['CURRENT_PERIOD_START', 'NOW'])
           .describe('Start of measurement options')
           .or(
-            zod
+            zod.coerce
               .date()
               .describe(
                 '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -12159,13 +12269,13 @@ export const createEntitlementBody = zod
             'Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time.'
           ),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .describe(
             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
           .optional()
           .describe('Additional metadata for the feature.'),
-        preserveOverageAtReset: zod
+        preserveOverageAtReset: zod.coerce
           .boolean()
           .optional()
           .describe(
@@ -12174,11 +12284,11 @@ export const createEntitlementBody = zod
         type: zod.enum(['metered']),
         usagePeriod: zod
           .object({
-            anchor: zod
+            anchor: zod.coerce
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
+            interval: zod.coerce
               .string()
               .or(
                 zod
@@ -12196,19 +12306,19 @@ export const createEntitlementBody = zod
       .describe('Create inpurs for metered entitlement'),
     zod
       .object({
-        config: zod
+        config: zod.coerce
           .string()
           .describe(
             'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
           ),
-        featureId: zod
+        featureId: zod.coerce
           .string()
           .regex(createEntitlementBodyFeatureIdRegExpOne)
           .optional()
           .describe(
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
-        featureKey: zod
+        featureKey: zod.coerce
           .string()
           .min(1)
           .max(createEntitlementBodyFeatureKeyMaxOne)
@@ -12218,7 +12328,7 @@ export const createEntitlementBody = zod
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .describe(
             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
@@ -12227,11 +12337,11 @@ export const createEntitlementBody = zod
         type: zod.enum(['static']),
         usagePeriod: zod
           .object({
-            anchor: zod
+            anchor: zod.coerce
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
+            interval: zod.coerce
               .string()
               .or(
                 zod
@@ -12250,14 +12360,14 @@ export const createEntitlementBody = zod
       .describe('Create inputs for static entitlement'),
     zod
       .object({
-        featureId: zod
+        featureId: zod.coerce
           .string()
           .regex(createEntitlementBodyFeatureIdRegExpTwo)
           .optional()
           .describe(
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
-        featureKey: zod
+        featureKey: zod.coerce
           .string()
           .min(1)
           .max(createEntitlementBodyFeatureKeyMaxTwo)
@@ -12267,7 +12377,7 @@ export const createEntitlementBody = zod
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .describe(
             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
@@ -12276,11 +12386,11 @@ export const createEntitlementBody = zod
         type: zod.enum(['boolean']),
         usagePeriod: zod
           .object({
-            anchor: zod
+            anchor: zod.coerce
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
+            interval: zod.coerce
               .string()
               .or(
                 zod
@@ -12305,13 +12415,13 @@ export const createEntitlementBody = zod
  * @summary List subject entitlements
  */
 export const listSubjectEntitlementsParams = zod.object({
-  subjectIdOrKey: zod.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 export const listSubjectEntitlementsQueryIncludeDeletedDefault = false
 
 export const listSubjectEntitlementsQueryParams = zod.object({
-  includeDeleted: zod.boolean().optional(),
+  includeDeleted: zod.coerce.boolean().optional(),
 })
 
 /**
@@ -12319,14 +12429,14 @@ export const listSubjectEntitlementsQueryParams = zod.object({
  * @summary List subject entitlement grants
  */
 export const listEntitlementGrantsParams = zod.object({
-  entitlementIdOrFeatureKey: zod.string(),
-  subjectIdOrKey: zod.string(),
+  entitlementIdOrFeatureKey: zod.coerce.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 export const listEntitlementGrantsQueryIncludeDeletedDefault = false
 
 export const listEntitlementGrantsQueryParams = zod.object({
-  includeDeleted: zod.boolean().optional(),
+  includeDeleted: zod.coerce.boolean().optional(),
   orderBy: zod.enum(['id', 'createdAt', 'updatedAt']).optional(),
 })
 
@@ -12345,8 +12455,8 @@ Grants cannot be changed once created, only deleted. This is to ensure that bala
  * @summary Create subject entitlement grant
  */
 export const createGrantParams = zod.object({
-  entitlementIdOrFeatureKey: zod.string(),
-  subjectIdOrKey: zod.string(),
+  entitlementIdOrFeatureKey: zod.coerce.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 export const createGrantBodyAmountMin = 0
@@ -12356,18 +12466,18 @@ export const createGrantBodyMinRolloverAmountDefault = 0
 
 export const createGrantBody = zod
   .object({
-    amount: zod
+    amount: zod.coerce
       .number()
       .min(createGrantBodyAmountMin)
       .describe('The amount to grant. Should be a positive number.'),
-    effectiveAt: zod
+    effectiveAt: zod.coerce
       .date()
       .describe(
         'Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).'
       ),
     expiration: zod
       .object({
-        count: zod
+        count: zod.coerce
           .number()
           .describe('The number of time units in the expiration period.'),
         duration: zod
@@ -12377,26 +12487,26 @@ export const createGrantBody = zod
       })
       .describe('The grant expiration definition')
       .describe('The grant expiration definition'),
-    maxRolloverAmount: zod
+    maxRolloverAmount: zod.coerce
       .number()
       .optional()
       .describe(
         'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .optional()
       .describe('The grant metadata.'),
-    minRolloverAmount: zod
+    minRolloverAmount: zod.coerce
       .number()
       .optional()
       .describe(
         'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
       ),
-    priority: zod
+    priority: zod.coerce
       .number()
       .min(1)
       .max(createGrantBodyPriorityMax)
@@ -12406,11 +12516,11 @@ export const createGrantBody = zod
       ),
     recurrence: zod
       .object({
-        anchor: zod
+        anchor: zod.coerce
           .date()
           .optional()
           .describe('A date-time anchor to base the recurring period on.'),
-        interval: zod
+        interval: zod.coerce
           .string()
           .or(
             zod
@@ -12435,8 +12545,8 @@ This endpoint is useful for upgrades, downgrades, or other changes to entitlemen
  * @summary Override subject entitlement
  */
 export const overrideEntitlementParams = zod.object({
-  entitlementIdOrFeatureKey: zod.string(),
-  subjectIdOrKey: zod.string(),
+  entitlementIdOrFeatureKey: zod.coerce.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 export const overrideEntitlementBodyFeatureKeyMax = 64
@@ -12474,14 +12584,14 @@ export const overrideEntitlementBody = zod
   .discriminatedUnion('type', [
     zod
       .object({
-        featureId: zod
+        featureId: zod.coerce
           .string()
           .regex(overrideEntitlementBodyFeatureIdRegExp)
           .optional()
           .describe(
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
-        featureKey: zod
+        featureKey: zod.coerce
           .string()
           .min(1)
           .max(overrideEntitlementBodyFeatureKeyMax)
@@ -12490,26 +12600,26 @@ export const overrideEntitlementBody = zod
           .describe(
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
-        isSoftLimit: zod
+        isSoftLimit: zod.coerce
           .boolean()
           .optional()
           .describe(
             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
           ),
-        issueAfterReset: zod
+        issueAfterReset: zod.coerce
           .number()
           .min(overrideEntitlementBodyIssueAfterResetMin)
           .optional()
           .describe(
             'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
           ),
-        issueAfterResetPriority: zod
+        issueAfterResetPriority: zod.coerce
           .number()
           .min(1)
           .max(overrideEntitlementBodyIssueAfterResetPriorityMax)
           .default(overrideEntitlementBodyIssueAfterResetPriorityDefault)
           .describe('Defines the grant priority for the default grant.'),
-        isUnlimited: zod
+        isUnlimited: zod.coerce
           .boolean()
           .optional()
           .describe(
@@ -12519,7 +12629,7 @@ export const overrideEntitlementBody = zod
           .enum(['CURRENT_PERIOD_START', 'NOW'])
           .describe('Start of measurement options')
           .or(
-            zod
+            zod.coerce
               .date()
               .describe(
                 '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -12531,13 +12641,13 @@ export const overrideEntitlementBody = zod
             'Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time.'
           ),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .describe(
             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
           .optional()
           .describe('Additional metadata for the feature.'),
-        preserveOverageAtReset: zod
+        preserveOverageAtReset: zod.coerce
           .boolean()
           .optional()
           .describe(
@@ -12546,11 +12656,11 @@ export const overrideEntitlementBody = zod
         type: zod.enum(['metered']),
         usagePeriod: zod
           .object({
-            anchor: zod
+            anchor: zod.coerce
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
+            interval: zod.coerce
               .string()
               .or(
                 zod
@@ -12568,19 +12678,19 @@ export const overrideEntitlementBody = zod
       .describe('Create inpurs for metered entitlement'),
     zod
       .object({
-        config: zod
+        config: zod.coerce
           .string()
           .describe(
             'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
           ),
-        featureId: zod
+        featureId: zod.coerce
           .string()
           .regex(overrideEntitlementBodyFeatureIdRegExpOne)
           .optional()
           .describe(
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
-        featureKey: zod
+        featureKey: zod.coerce
           .string()
           .min(1)
           .max(overrideEntitlementBodyFeatureKeyMaxOne)
@@ -12590,7 +12700,7 @@ export const overrideEntitlementBody = zod
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .describe(
             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
@@ -12599,11 +12709,11 @@ export const overrideEntitlementBody = zod
         type: zod.enum(['static']),
         usagePeriod: zod
           .object({
-            anchor: zod
+            anchor: zod.coerce
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
+            interval: zod.coerce
               .string()
               .or(
                 zod
@@ -12622,14 +12732,14 @@ export const overrideEntitlementBody = zod
       .describe('Create inputs for static entitlement'),
     zod
       .object({
-        featureId: zod
+        featureId: zod.coerce
           .string()
           .regex(overrideEntitlementBodyFeatureIdRegExpTwo)
           .optional()
           .describe(
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
-        featureKey: zod
+        featureKey: zod.coerce
           .string()
           .min(1)
           .max(overrideEntitlementBodyFeatureKeyMaxTwo)
@@ -12639,7 +12749,7 @@ export const overrideEntitlementBody = zod
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
         metadata: zod
-          .record(zod.string(), zod.string())
+          .record(zod.string(), zod.coerce.string())
           .describe(
             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
@@ -12648,11 +12758,11 @@ export const overrideEntitlementBody = zod
         type: zod.enum(['boolean']),
         usagePeriod: zod
           .object({
-            anchor: zod
+            anchor: zod.coerce
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
+            interval: zod.coerce
               .string()
               .or(
                 zod
@@ -12679,12 +12789,12 @@ For convenience reasons, /value works with both entitlementId and featureKey.
  * @summary Get subject entitlement value
  */
 export const getEntitlementValueParams = zod.object({
-  entitlementIdOrFeatureKey: zod.string(),
-  subjectIdOrKey: zod.string(),
+  entitlementIdOrFeatureKey: zod.coerce.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 export const getEntitlementValueQueryParams = zod.object({
-  time: zod.date().optional(),
+  time: zod.coerce.date().optional(),
 })
 
 /**
@@ -12692,8 +12802,8 @@ export const getEntitlementValueQueryParams = zod.object({
  * @summary Get subject entitlement
  */
 export const getEntitlementParams = zod.object({
-  entitlementId: zod.string(),
-  subjectIdOrKey: zod.string(),
+  entitlementId: zod.coerce.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 /**
@@ -12702,8 +12812,8 @@ As access and status checks can be historical queries, deleting an entitlement p
  * @summary Delete subject entitlement
  */
 export const deleteEntitlementParams = zod.object({
-  entitlementId: zod.string(),
-  subjectIdOrKey: zod.string(),
+  entitlementId: zod.coerce.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 /**
@@ -12715,20 +12825,20 @@ WindowedHistory returns windowed usage data for the period enriched with balance
  * @summary Get subject entitlement history
  */
 export const getEntitlementHistoryParams = zod.object({
-  entitlementId: zod.string(),
-  subjectIdOrKey: zod.string(),
+  entitlementId: zod.coerce.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 export const getEntitlementHistoryQueryWindowTimeZoneDefault = 'UTC'
 
 export const getEntitlementHistoryQueryParams = zod.object({
-  from: zod
+  from: zod.coerce
     .date()
     .optional()
     .describe(
       'Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to the last reset. Gets truncated to the granularity of the underlying meter.'
     ),
-  to: zod
+  to: zod.coerce
     .date()
     .optional()
     .describe(
@@ -12737,7 +12847,7 @@ export const getEntitlementHistoryQueryParams = zod.object({
   windowSize: zod
     .enum(['MINUTE', 'HOUR', 'DAY', 'MONTH'])
     .describe('Windowsize'),
-  windowTimeZone: zod
+  windowTimeZone: zod.coerce
     .string()
     .default(getEntitlementHistoryQueryWindowTimeZoneDefault)
     .describe('The timezone used when calculating the windows.'),
@@ -12750,25 +12860,25 @@ Usage is automatically reset for metered entitlements based on their usage perio
  * @summary Reset subject entitlement
  */
 export const resetEntitlementUsageParams = zod.object({
-  entitlementId: zod.string(),
-  subjectIdOrKey: zod.string(),
+  entitlementId: zod.coerce.string(),
+  subjectIdOrKey: zod.coerce.string(),
 })
 
 export const resetEntitlementUsageBody = zod
   .object({
-    effectiveAt: zod
+    effectiveAt: zod.coerce
       .date()
       .optional()
       .describe(
         'The time at which the reset takes effect, defaults to now. The reset cannot be in the future. The provided value is truncated to the minute due to how historical meter data is stored.'
       ),
-    preserveOverage: zod
+    preserveOverage: zod.coerce
       .boolean()
       .optional()
       .describe(
         "Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.\n- If true, the overage is preserved.\n- If false, the overage is forgiven."
       ),
-    retainAnchor: zod
+    retainAnchor: zod.coerce
       .boolean()
       .optional()
       .describe(
@@ -12907,7 +13017,7 @@ export const createSubscriptionBody = zod
   .object({
     alignment: zod
       .object({
-        billablesMustAlign: zod
+        billablesMustAlign: zod.coerce
           .boolean()
           .optional()
           .describe(
@@ -12917,37 +13027,37 @@ export const createSubscriptionBody = zod
       .describe('Alignment configuration for a plan or subscription.')
       .optional()
       .describe('What alignment settings the subscription should have.'),
-    billingAnchor: zod
+    billingAnchor: zod.coerce
       .date()
       .optional()
       .describe(
         'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
       ),
-    customerId: zod
+    customerId: zod.coerce
       .string()
       .regex(createSubscriptionBodyCustomerIdRegExp)
       .optional()
       .describe(
         'The ID of the customer. Provide either the key or ID. Has presedence over the key.'
       ),
-    customerKey: zod
+    customerKey: zod.coerce
       .string()
       .min(1)
       .max(createSubscriptionBodyCustomerKeyMax)
       .optional()
       .describe('The key of the customer. Provide either the key or ID.'),
-    description: zod
+    description: zod.coerce
       .string()
       .optional()
       .describe('Description for the Subscription.'),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .optional()
       .describe('Arbitrary metadata associated with the subscription.'),
-    name: zod
+    name: zod.coerce
       .string()
       .optional()
       .describe(
@@ -12955,19 +13065,19 @@ export const createSubscriptionBody = zod
       ),
     plan: zod
       .object({
-        key: zod
+        key: zod.coerce
           .string()
           .min(1)
           .max(createSubscriptionBodyPlanKeyMax)
           .regex(createSubscriptionBodyPlanKeyRegExp)
           .describe('The plan key.'),
-        version: zod.number().optional().describe('The plan version.'),
+        version: zod.coerce.number().optional().describe('The plan version.'),
       })
       .describe(
         'References an exact plan defaulting to the current active version.'
       )
       .describe('The plan reference to change to.'),
-    startingPhase: zod
+    startingPhase: zod.coerce
       .string()
       .min(1)
       .optional()
@@ -12980,7 +13090,7 @@ export const createSubscriptionBody = zod
         'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
       )
       .or(
-        zod
+        zod.coerce
           .date()
           .describe(
             '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -12998,20 +13108,20 @@ export const createSubscriptionBody = zod
   .or(
     zod
       .object({
-        billingAnchor: zod
+        billingAnchor: zod.coerce
           .date()
           .optional()
           .describe(
             'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
           ),
-        customerId: zod
+        customerId: zod.coerce
           .string()
           .regex(createSubscriptionBodyCustomerIdRegExpOne)
           .optional()
           .describe(
             'The ID of the customer. Provide either the key or ID. Has presedence over the key.'
           ),
-        customerKey: zod
+        customerKey: zod.coerce
           .string()
           .min(1)
           .max(createSubscriptionBodyCustomerKeyMaxOne)
@@ -13021,7 +13131,7 @@ export const createSubscriptionBody = zod
           .object({
             alignment: zod
               .object({
-                billablesMustAlign: zod
+                billablesMustAlign: zod.coerce
                   .boolean()
                   .optional()
                   .describe(
@@ -13031,12 +13141,12 @@ export const createSubscriptionBody = zod
               .describe('Alignment configuration for a plan or subscription.')
               .optional()
               .describe('Alignment configuration for the plan.'),
-            billingCadence: zod
+            billingCadence: zod.coerce
               .string()
               .describe(
                 'The default billing cadence for subscriptions using this plan.\nDefines how often customers are billed using ISO8601 duration format.\nExamples: \"P1M\" (monthly), \"P3M\" (quarterly), \"P1Y\" (annually).'
               ),
-            currency: zod
+            currency: zod.coerce
               .string()
               .min(createSubscriptionBodyCustomPlanCurrencyMinOne)
               .max(createSubscriptionBodyCustomPlanCurrencyMaxOne)
@@ -13045,7 +13155,7 @@ export const createSubscriptionBody = zod
                 'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.\nCustom three-letter currency codes are also supported for convenience.'
               )
               .describe('The currency code of the plan.'),
-            description: zod
+            description: zod.coerce
               .string()
               .max(createSubscriptionBodyCustomPlanDescriptionMax)
               .optional()
@@ -13053,13 +13163,13 @@ export const createSubscriptionBody = zod
                 'Optional description of the resource. Maximum 1024 characters.'
               ),
             metadata: zod
-              .record(zod.string(), zod.string())
+              .record(zod.string(), zod.coerce.string())
               .describe(
                 'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
               )
               .nullish()
               .describe('Additional metadata for the resource.'),
-            name: zod
+            name: zod.coerce
               .string()
               .min(1)
               .max(createSubscriptionBodyCustomPlanNameMax)
@@ -13070,7 +13180,7 @@ export const createSubscriptionBody = zod
               .array(
                 zod
                   .object({
-                    description: zod
+                    description: zod.coerce
                       .string()
                       .max(
                         createSubscriptionBodyCustomPlanPhasesItemDescriptionMax
@@ -13079,11 +13189,11 @@ export const createSubscriptionBody = zod
                       .describe(
                         'Optional description of the resource. Maximum 1024 characters.'
                       ),
-                    duration: zod
+                    duration: zod.coerce
                       .string()
                       .nullable()
                       .describe('The duration of the phase.'),
-                    key: zod
+                    key: zod.coerce
                       .string()
                       .min(1)
                       .max(createSubscriptionBodyCustomPlanPhasesItemKeyMax)
@@ -13092,13 +13202,13 @@ export const createSubscriptionBody = zod
                       )
                       .describe('A semi-unique identifier for the resource.'),
                     metadata: zod
-                      .record(zod.string(), zod.string())
+                      .record(zod.string(), zod.coerce.string())
                       .describe(
                         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                       )
                       .nullish()
                       .describe('Additional metadata for the resource.'),
-                    name: zod
+                    name: zod.coerce
                       .string()
                       .min(1)
                       .max(createSubscriptionBodyCustomPlanPhasesItemNameMax)
@@ -13111,13 +13221,13 @@ export const createSubscriptionBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                billingCadence: zod
+                                billingCadence: zod.coerce
                                   .string()
                                   .nullable()
                                   .describe(
                                     'The billing cadence of the rate card.\nWhen null it means it is a one time fee.'
                                   ),
-                                description: zod
+                                description: zod.coerce
                                   .string()
                                   .max(
                                     createSubscriptionBodyCustomPlanPhasesItemRateCardsItemDescriptionMax
@@ -13130,7 +13240,7 @@ export const createSubscriptionBody = zod
                                   .object({
                                     percentage: zod
                                       .object({
-                                        percentage: zod
+                                        percentage: zod.coerce
                                           .number()
                                           .describe(
                                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -13144,7 +13254,7 @@ export const createSubscriptionBody = zod
                                       .describe('The percentage discount.'),
                                     usage: zod
                                       .object({
-                                        quantity: zod
+                                        quantity: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemDiscountsUsageQuantityRegExpOne
@@ -13171,13 +13281,13 @@ export const createSubscriptionBody = zod
                                   .discriminatedUnion('type', [
                                     zod
                                       .object({
-                                        isSoftLimit: zod
+                                        isSoftLimit: zod.coerce
                                           .boolean()
                                           .optional()
                                           .describe(
                                             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                                           ),
-                                        issueAfterReset: zod
+                                        issueAfterReset: zod.coerce
                                           .number()
                                           .min(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMin
@@ -13186,7 +13296,7 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                                           ),
-                                        issueAfterResetPriority: zod
+                                        issueAfterResetPriority: zod.coerce
                                           .number()
                                           .min(1)
                                           .max(
@@ -13199,7 +13309,10 @@ export const createSubscriptionBody = zod
                                             'Defines the grant priority for the default grant.'
                                           ),
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -13207,14 +13320,14 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'Additional metadata for the feature.'
                                           ),
-                                        preserveOverageAtReset: zod
+                                        preserveOverageAtReset: zod.coerce
                                           .boolean()
                                           .optional()
                                           .describe(
                                             'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                                           ),
                                         type: zod.enum(['metered']),
-                                        usagePeriod: zod
+                                        usagePeriod: zod.coerce
                                           .string()
                                           .optional()
                                           .describe(
@@ -13226,13 +13339,16 @@ export const createSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        config: zod
+                                        config: zod.coerce
                                           .string()
                                           .describe(
                                             'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                                           ),
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -13248,7 +13364,10 @@ export const createSubscriptionBody = zod
                                     zod
                                       .object({
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -13269,7 +13388,7 @@ export const createSubscriptionBody = zod
                                   .describe(
                                     'The entitlement of the rate card.\nOnly available when featureKey is set.'
                                   ),
-                                featureKey: zod
+                                featureKey: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -13282,7 +13401,7 @@ export const createSubscriptionBody = zod
                                   .describe(
                                     'The feature the customer is entitled to use.'
                                   ),
-                                key: zod
+                                key: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -13295,7 +13414,7 @@ export const createSubscriptionBody = zod
                                     'A semi-unique identifier for the resource.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -13303,7 +13422,7 @@ export const createSubscriptionBody = zod
                                   .describe(
                                     'Additional metadata for the resource.'
                                   ),
-                                name: zod
+                                name: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -13314,7 +13433,7 @@ export const createSubscriptionBody = zod
                                   ),
                                 price: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpOne
@@ -13356,7 +13475,7 @@ export const createSubscriptionBody = zod
                                       ),
                                     customInvoicing: zod
                                       .object({
-                                        code: zod
+                                        code: zod.coerce
                                           .string()
                                           .describe(
                                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -13367,7 +13486,7 @@ export const createSubscriptionBody = zod
                                       .describe('Custom invoicing tax config.'),
                                     stripe: zod
                                       .object({
-                                        code: zod
+                                        code: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemTaxConfigStripeCodeRegExp
@@ -13394,12 +13513,12 @@ export const createSubscriptionBody = zod
                               ),
                             zod
                               .object({
-                                billingCadence: zod
+                                billingCadence: zod.coerce
                                   .string()
                                   .describe(
                                     'The billing cadence of the rate card.'
                                   ),
-                                description: zod
+                                description: zod.coerce
                                   .string()
                                   .max(
                                     createSubscriptionBodyCustomPlanPhasesItemRateCardsItemDescriptionMaxOne
@@ -13412,7 +13531,7 @@ export const createSubscriptionBody = zod
                                   .object({
                                     percentage: zod
                                       .object({
-                                        percentage: zod
+                                        percentage: zod.coerce
                                           .number()
                                           .describe(
                                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -13426,7 +13545,7 @@ export const createSubscriptionBody = zod
                                       .describe('The percentage discount.'),
                                     usage: zod
                                       .object({
-                                        quantity: zod
+                                        quantity: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemDiscountsUsageQuantityRegExpThree
@@ -13453,13 +13572,13 @@ export const createSubscriptionBody = zod
                                   .discriminatedUnion('type', [
                                     zod
                                       .object({
-                                        isSoftLimit: zod
+                                        isSoftLimit: zod.coerce
                                           .boolean()
                                           .optional()
                                           .describe(
                                             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                                           ),
-                                        issueAfterReset: zod
+                                        issueAfterReset: zod.coerce
                                           .number()
                                           .min(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMinOne
@@ -13468,7 +13587,7 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                                           ),
-                                        issueAfterResetPriority: zod
+                                        issueAfterResetPriority: zod.coerce
                                           .number()
                                           .min(1)
                                           .max(
@@ -13481,7 +13600,10 @@ export const createSubscriptionBody = zod
                                             'Defines the grant priority for the default grant.'
                                           ),
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -13489,14 +13611,14 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'Additional metadata for the feature.'
                                           ),
-                                        preserveOverageAtReset: zod
+                                        preserveOverageAtReset: zod.coerce
                                           .boolean()
                                           .optional()
                                           .describe(
                                             'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                                           ),
                                         type: zod.enum(['metered']),
-                                        usagePeriod: zod
+                                        usagePeriod: zod.coerce
                                           .string()
                                           .optional()
                                           .describe(
@@ -13508,13 +13630,16 @@ export const createSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        config: zod
+                                        config: zod.coerce
                                           .string()
                                           .describe(
                                             'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                                           ),
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -13530,7 +13655,10 @@ export const createSubscriptionBody = zod
                                     zod
                                       .object({
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -13551,7 +13679,7 @@ export const createSubscriptionBody = zod
                                   .describe(
                                     'The entitlement of the rate card.\nOnly available when featureKey is set.'
                                   ),
-                                featureKey: zod
+                                featureKey: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -13564,7 +13692,7 @@ export const createSubscriptionBody = zod
                                   .describe(
                                     'The feature the customer is entitled to use.'
                                   ),
-                                key: zod
+                                key: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -13577,7 +13705,7 @@ export const createSubscriptionBody = zod
                                     'A semi-unique identifier for the resource.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -13585,7 +13713,7 @@ export const createSubscriptionBody = zod
                                   .describe(
                                     'Additional metadata for the resource.'
                                   ),
-                                name: zod
+                                name: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -13598,7 +13726,7 @@ export const createSubscriptionBody = zod
                                   .discriminatedUnion('type', [
                                     zod
                                       .object({
-                                        amount: zod
+                                        amount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpThree
@@ -13627,7 +13755,7 @@ export const createSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        amount: zod
+                                        amount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpFive
@@ -13638,7 +13766,7 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'The amount of the unit price.'
                                           ),
-                                        maximumAmount: zod
+                                        maximumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMaximumAmountRegExpOne
@@ -13650,7 +13778,7 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'The customer is limited to spend at most the amount.'
                                           ),
-                                        minimumAmount: zod
+                                        minimumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMinimumAmountRegExpOne
@@ -13669,7 +13797,7 @@ export const createSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        maximumAmount: zod
+                                        maximumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMaximumAmountRegExpThree
@@ -13681,7 +13809,7 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'The customer is limited to spend at most the amount.'
                                           ),
-                                        minimumAmount: zod
+                                        minimumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMinimumAmountRegExpThree
@@ -13707,7 +13835,7 @@ export const createSubscriptionBody = zod
                                               .object({
                                                 flatPrice: zod
                                                   .object({
-                                                    amount: zod
+                                                    amount: zod.coerce
                                                       .string()
                                                       .regex(
                                                         createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceTiersItemFlatPriceAmountRegExpOne
@@ -13731,7 +13859,7 @@ export const createSubscriptionBody = zod
                                                   ),
                                                 unitPrice: zod
                                                   .object({
-                                                    amount: zod
+                                                    amount: zod.coerce
                                                       .string()
                                                       .regex(
                                                         createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceTiersItemUnitPriceAmountRegExpOne
@@ -13753,7 +13881,7 @@ export const createSubscriptionBody = zod
                                                   .describe(
                                                     'The unit price component of the tier.'
                                                   ),
-                                                upToAmount: zod
+                                                upToAmount: zod.coerce
                                                   .string()
                                                   .regex(
                                                     createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceTiersItemUpToAmountRegExpOne
@@ -13781,7 +13909,7 @@ export const createSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        maximumAmount: zod
+                                        maximumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMaximumAmountRegExpFive
@@ -13793,7 +13921,7 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'The customer is limited to spend at most the amount.'
                                           ),
-                                        minimumAmount: zod
+                                        minimumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMinimumAmountRegExpFive
@@ -13805,7 +13933,7 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'The customer is committed to spend at least the amount.'
                                           ),
-                                        multiplier: zod
+                                        multiplier: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMultiplierRegExpOne
@@ -13826,7 +13954,7 @@ export const createSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        amount: zod
+                                        amount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpSeven
@@ -13837,7 +13965,7 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'The price of one package.'
                                           ),
-                                        maximumAmount: zod
+                                        maximumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMaximumAmountRegExpSeven
@@ -13849,7 +13977,7 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'The customer is limited to spend at most the amount.'
                                           ),
-                                        minimumAmount: zod
+                                        minimumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMinimumAmountRegExpSeven
@@ -13861,7 +13989,7 @@ export const createSubscriptionBody = zod
                                           .describe(
                                             'The customer is committed to spend at least the amount.'
                                           ),
-                                        quantityPerPackage: zod
+                                        quantityPerPackage: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceQuantityPerPackageRegExpOne
@@ -13898,7 +14026,7 @@ export const createSubscriptionBody = zod
                                       ),
                                     customInvoicing: zod
                                       .object({
-                                        code: zod
+                                        code: zod.coerce
                                           .string()
                                           .describe(
                                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -13909,7 +14037,7 @@ export const createSubscriptionBody = zod
                                       .describe('Custom invoicing tax config.'),
                                     stripe: zod
                                       .object({
-                                        code: zod
+                                        code: zod.coerce
                                           .string()
                                           .regex(
                                             createSubscriptionBodyCustomPlanPhasesItemRateCardsItemTaxConfigStripeCodeRegExpOne
@@ -13951,7 +14079,7 @@ export const createSubscriptionBody = zod
               ),
             proRatingConfig: zod
               .object({
-                enabled: zod
+                enabled: zod.coerce
                   .boolean()
                   .describe('Whether pro-rating is enabled for this plan.'),
                 mode: zod
@@ -13982,7 +14110,7 @@ export const createSubscriptionBody = zod
             'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
           )
           .or(
-            zod
+            zod.coerce
               .date()
               .describe(
                 '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -14008,11 +14136,13 @@ export const getSubscriptionPathSubscriptionIdRegExp = new RegExp(
 )
 
 export const getSubscriptionParams = zod.object({
-  subscriptionId: zod.string().regex(getSubscriptionPathSubscriptionIdRegExp),
+  subscriptionId: zod.coerce
+    .string()
+    .regex(getSubscriptionPathSubscriptionIdRegExp),
 })
 
 export const getSubscriptionQueryParams = zod.object({
-  at: zod
+  at: zod.coerce
     .date()
     .optional()
     .describe(
@@ -14030,7 +14160,9 @@ export const editSubscriptionPathSubscriptionIdRegExp = new RegExp(
 )
 
 export const editSubscriptionParams = zod.object({
-  subscriptionId: zod.string().regex(editSubscriptionPathSubscriptionIdRegExp),
+  subscriptionId: zod.coerce
+    .string()
+    .regex(editSubscriptionPathSubscriptionIdRegExp),
 })
 
 export const editSubscriptionBodyCustomizationsItemRateCardKeyMax = 64
@@ -14132,18 +14264,18 @@ export const editSubscriptionBody = zod
             zod
               .object({
                 op: zod.enum(['add_item']),
-                phaseKey: zod.string(),
+                phaseKey: zod.coerce.string(),
                 rateCard: zod
                   .discriminatedUnion('type', [
                     zod
                       .object({
-                        billingCadence: zod
+                        billingCadence: zod.coerce
                           .string()
                           .nullable()
                           .describe(
                             'The billing cadence of the rate card.\nWhen null it means it is a one time fee.'
                           ),
-                        description: zod
+                        description: zod.coerce
                           .string()
                           .max(
                             editSubscriptionBodyCustomizationsItemRateCardDescriptionMax
@@ -14156,7 +14288,7 @@ export const editSubscriptionBody = zod
                           .object({
                             percentage: zod
                               .object({
-                                percentage: zod
+                                percentage: zod.coerce
                                   .number()
                                   .describe(
                                     'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -14168,7 +14300,7 @@ export const editSubscriptionBody = zod
                               .describe('The percentage discount.'),
                             usage: zod
                               .object({
-                                quantity: zod
+                                quantity: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardDiscountsUsageQuantityRegExpOne
@@ -14195,13 +14327,13 @@ export const editSubscriptionBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                isSoftLimit: zod
+                                isSoftLimit: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                                   ),
-                                issueAfterReset: zod
+                                issueAfterReset: zod.coerce
                                   .number()
                                   .min(
                                     editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIssueAfterResetMin
@@ -14210,7 +14342,7 @@ export const editSubscriptionBody = zod
                                   .describe(
                                     'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                                   ),
-                                issueAfterResetPriority: zod
+                                issueAfterResetPriority: zod.coerce
                                   .number()
                                   .min(1)
                                   .max(
@@ -14223,7 +14355,7 @@ export const editSubscriptionBody = zod
                                     'Defines the grant priority for the default grant.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -14231,14 +14363,14 @@ export const editSubscriptionBody = zod
                                   .describe(
                                     'Additional metadata for the feature.'
                                   ),
-                                preserveOverageAtReset: zod
+                                preserveOverageAtReset: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                                   ),
                                 type: zod.enum(['metered']),
-                                usagePeriod: zod
+                                usagePeriod: zod.coerce
                                   .string()
                                   .optional()
                                   .describe(
@@ -14250,13 +14382,13 @@ export const editSubscriptionBody = zod
                               ),
                             zod
                               .object({
-                                config: zod
+                                config: zod.coerce
                                   .string()
                                   .describe(
                                     'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -14272,7 +14404,7 @@ export const editSubscriptionBody = zod
                             zod
                               .object({
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -14293,7 +14425,7 @@ export const editSubscriptionBody = zod
                           .describe(
                             'The entitlement of the rate card.\nOnly available when featureKey is set.'
                           ),
-                        featureKey: zod
+                        featureKey: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -14306,7 +14438,7 @@ export const editSubscriptionBody = zod
                           .describe(
                             'The feature the customer is entitled to use.'
                           ),
-                        key: zod
+                        key: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -14319,13 +14451,13 @@ export const editSubscriptionBody = zod
                             'A semi-unique identifier for the resource.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
                           .nullish()
                           .describe('Additional metadata for the resource.'),
-                        name: zod
+                        name: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -14336,7 +14468,7 @@ export const editSubscriptionBody = zod
                           ),
                         price: zod
                           .object({
-                            amount: zod
+                            amount: zod.coerce
                               .string()
                               .regex(
                                 editSubscriptionBodyCustomizationsItemRateCardPriceAmountRegExpOne
@@ -14376,7 +14508,7 @@ export const editSubscriptionBody = zod
                               ),
                             customInvoicing: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .describe(
                                     'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -14387,7 +14519,7 @@ export const editSubscriptionBody = zod
                               .describe('Custom invoicing tax config.'),
                             stripe: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardTaxConfigStripeCodeRegExp
@@ -14412,10 +14544,10 @@ export const editSubscriptionBody = zod
                       ),
                     zod
                       .object({
-                        billingCadence: zod
+                        billingCadence: zod.coerce
                           .string()
                           .describe('The billing cadence of the rate card.'),
-                        description: zod
+                        description: zod.coerce
                           .string()
                           .max(
                             editSubscriptionBodyCustomizationsItemRateCardDescriptionMaxOne
@@ -14428,7 +14560,7 @@ export const editSubscriptionBody = zod
                           .object({
                             percentage: zod
                               .object({
-                                percentage: zod
+                                percentage: zod.coerce
                                   .number()
                                   .describe(
                                     'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -14440,7 +14572,7 @@ export const editSubscriptionBody = zod
                               .describe('The percentage discount.'),
                             usage: zod
                               .object({
-                                quantity: zod
+                                quantity: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardDiscountsUsageQuantityRegExpThree
@@ -14467,13 +14599,13 @@ export const editSubscriptionBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                isSoftLimit: zod
+                                isSoftLimit: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                                   ),
-                                issueAfterReset: zod
+                                issueAfterReset: zod.coerce
                                   .number()
                                   .min(
                                     editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIssueAfterResetMinOne
@@ -14482,7 +14614,7 @@ export const editSubscriptionBody = zod
                                   .describe(
                                     'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                                   ),
-                                issueAfterResetPriority: zod
+                                issueAfterResetPriority: zod.coerce
                                   .number()
                                   .min(1)
                                   .max(
@@ -14495,7 +14627,7 @@ export const editSubscriptionBody = zod
                                     'Defines the grant priority for the default grant.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -14503,14 +14635,14 @@ export const editSubscriptionBody = zod
                                   .describe(
                                     'Additional metadata for the feature.'
                                   ),
-                                preserveOverageAtReset: zod
+                                preserveOverageAtReset: zod.coerce
                                   .boolean()
                                   .optional()
                                   .describe(
                                     'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                                   ),
                                 type: zod.enum(['metered']),
-                                usagePeriod: zod
+                                usagePeriod: zod.coerce
                                   .string()
                                   .optional()
                                   .describe(
@@ -14522,13 +14654,13 @@ export const editSubscriptionBody = zod
                               ),
                             zod
                               .object({
-                                config: zod
+                                config: zod.coerce
                                   .string()
                                   .describe(
                                     'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -14544,7 +14676,7 @@ export const editSubscriptionBody = zod
                             zod
                               .object({
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -14565,7 +14697,7 @@ export const editSubscriptionBody = zod
                           .describe(
                             'The entitlement of the rate card.\nOnly available when featureKey is set.'
                           ),
-                        featureKey: zod
+                        featureKey: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -14578,7 +14710,7 @@ export const editSubscriptionBody = zod
                           .describe(
                             'The feature the customer is entitled to use.'
                           ),
-                        key: zod
+                        key: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -14591,13 +14723,13 @@ export const editSubscriptionBody = zod
                             'A semi-unique identifier for the resource.'
                           ),
                         metadata: zod
-                          .record(zod.string(), zod.string())
+                          .record(zod.string(), zod.coerce.string())
                           .describe(
                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                           )
                           .nullish()
                           .describe('Additional metadata for the resource.'),
-                        name: zod
+                        name: zod.coerce
                           .string()
                           .min(1)
                           .max(
@@ -14610,7 +14742,7 @@ export const editSubscriptionBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceAmountRegExpThree
@@ -14635,7 +14767,7 @@ export const editSubscriptionBody = zod
                               .describe('Flat price with payment term.'),
                             zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceAmountRegExpFive
@@ -14644,7 +14776,7 @@ export const editSubscriptionBody = zod
                                     'Numeric represents an arbitrary precision number.'
                                   )
                                   .describe('The amount of the unit price.'),
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceMaximumAmountRegExpOne
@@ -14656,7 +14788,7 @@ export const editSubscriptionBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceMinimumAmountRegExpOne
@@ -14673,7 +14805,7 @@ export const editSubscriptionBody = zod
                               .describe('Unit price with spend commitments.'),
                             zod
                               .object({
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceMaximumAmountRegExpThree
@@ -14685,7 +14817,7 @@ export const editSubscriptionBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceMinimumAmountRegExpThree
@@ -14709,7 +14841,7 @@ export const editSubscriptionBody = zod
                                       .object({
                                         flatPrice: zod
                                           .object({
-                                            amount: zod
+                                            amount: zod.coerce
                                               .string()
                                               .regex(
                                                 editSubscriptionBodyCustomizationsItemRateCardPriceTiersItemFlatPriceAmountRegExpOne
@@ -14733,7 +14865,7 @@ export const editSubscriptionBody = zod
                                           ),
                                         unitPrice: zod
                                           .object({
-                                            amount: zod
+                                            amount: zod.coerce
                                               .string()
                                               .regex(
                                                 editSubscriptionBodyCustomizationsItemRateCardPriceTiersItemUnitPriceAmountRegExpOne
@@ -14755,7 +14887,7 @@ export const editSubscriptionBody = zod
                                           .describe(
                                             'The unit price component of the tier.'
                                           ),
-                                        upToAmount: zod
+                                        upToAmount: zod.coerce
                                           .string()
                                           .regex(
                                             editSubscriptionBodyCustomizationsItemRateCardPriceTiersItemUpToAmountRegExpOne
@@ -14781,7 +14913,7 @@ export const editSubscriptionBody = zod
                               .describe('Tiered price with spend commitments.'),
                             zod
                               .object({
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceMaximumAmountRegExpFive
@@ -14793,7 +14925,7 @@ export const editSubscriptionBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceMinimumAmountRegExpFive
@@ -14805,7 +14937,7 @@ export const editSubscriptionBody = zod
                                   .describe(
                                     'The customer is committed to spend at least the amount.'
                                   ),
-                                multiplier: zod
+                                multiplier: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceMultiplierRegExpOne
@@ -14826,7 +14958,7 @@ export const editSubscriptionBody = zod
                               ),
                             zod
                               .object({
-                                amount: zod
+                                amount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceAmountRegExpSeven
@@ -14835,7 +14967,7 @@ export const editSubscriptionBody = zod
                                     'Numeric represents an arbitrary precision number.'
                                   )
                                   .describe('The price of one package.'),
-                                maximumAmount: zod
+                                maximumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceMaximumAmountRegExpSeven
@@ -14847,7 +14979,7 @@ export const editSubscriptionBody = zod
                                   .describe(
                                     'The customer is limited to spend at most the amount.'
                                   ),
-                                minimumAmount: zod
+                                minimumAmount: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceMinimumAmountRegExpSeven
@@ -14859,7 +14991,7 @@ export const editSubscriptionBody = zod
                                   .describe(
                                     'The customer is committed to spend at least the amount.'
                                   ),
-                                quantityPerPackage: zod
+                                quantityPerPackage: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardPriceQuantityPerPackageRegExpOne
@@ -14892,7 +15024,7 @@ export const editSubscriptionBody = zod
                               ),
                             customInvoicing: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .describe(
                                     'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -14903,7 +15035,7 @@ export const editSubscriptionBody = zod
                               .describe('Custom invoicing tax config.'),
                             stripe: zod
                               .object({
-                                code: zod
+                                code: zod.coerce
                                   .string()
                                   .regex(
                                     editSubscriptionBodyCustomizationsItemRateCardTaxConfigStripeCodeRegExpOne
@@ -14934,9 +15066,9 @@ export const editSubscriptionBody = zod
               .describe('Add a new item to a phase.'),
             zod
               .object({
-                itemKey: zod.string(),
+                itemKey: zod.coerce.string(),
                 op: zod.enum(['remove_item']),
-                phaseKey: zod.string(),
+                phaseKey: zod.coerce.string(),
               })
               .describe('Remove an item from a phase.'),
             zod
@@ -14944,7 +15076,7 @@ export const editSubscriptionBody = zod
                 op: zod.enum(['add_phase']),
                 phase: zod
                   .object({
-                    description: zod
+                    description: zod.coerce
                       .string()
                       .optional()
                       .describe('The description of the phase.'),
@@ -14952,7 +15084,7 @@ export const editSubscriptionBody = zod
                       .object({
                         percentage: zod
                           .object({
-                            percentage: zod
+                            percentage: zod.coerce
                               .number()
                               .describe(
                                 'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -14964,7 +15096,7 @@ export const editSubscriptionBody = zod
                           .describe('The percentage discount.'),
                         usage: zod
                           .object({
-                            quantity: zod
+                            quantity: zod.coerce
                               .string()
                               .regex(
                                 editSubscriptionBodyCustomizationsItemPhaseDiscountsUsageQuantityRegExpOne
@@ -14985,13 +15117,13 @@ export const editSubscriptionBody = zod
                       .describe('Discount by type on a price')
                       .optional()
                       .describe('The discounts on the plan.'),
-                    duration: zod
+                    duration: zod.coerce
                       .string()
                       .optional()
                       .describe(
                         'The intended duration of the new phase.\nDuration is required when the phase will not be the last phase.'
                       ),
-                    key: zod
+                    key: zod.coerce
                       .string()
                       .min(1)
                       .max(editSubscriptionBodyCustomizationsItemPhaseKeyMaxTwo)
@@ -14999,8 +15131,10 @@ export const editSubscriptionBody = zod
                         editSubscriptionBodyCustomizationsItemPhaseKeyRegExpTwo
                       )
                       .describe('A locally unique identifier for the phase.'),
-                    name: zod.string().describe('The name of the phase.'),
-                    startAfter: zod
+                    name: zod.coerce
+                      .string()
+                      .describe('The name of the phase.'),
+                    startAfter: zod.coerce
                       .string()
                       .nullable()
                       .describe(
@@ -15013,7 +15147,7 @@ export const editSubscriptionBody = zod
             zod
               .object({
                 op: zod.enum(['remove_phase']),
-                phaseKey: zod.string(),
+                phaseKey: zod.coerce.string(),
                 shift: zod
                   .enum(['next', 'prev'])
                   .describe(
@@ -15023,9 +15157,9 @@ export const editSubscriptionBody = zod
               .describe('Remove a phase'),
             zod
               .object({
-                extendBy: zod.string(),
+                extendBy: zod.coerce.string(),
                 op: zod.enum(['stretch_phase']),
-                phaseKey: zod.string(),
+                phaseKey: zod.coerce.string(),
               })
               .describe('Stretch a phase'),
             zod
@@ -15046,7 +15180,7 @@ export const editSubscriptionBody = zod
         'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
       )
       .or(
-        zod
+        zod.coerce
           .date()
           .describe(
             '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -15071,7 +15205,7 @@ export const deleteSubscriptionPathSubscriptionIdRegExp = new RegExp(
 )
 
 export const deleteSubscriptionParams = zod.object({
-  subscriptionId: zod
+  subscriptionId: zod.coerce
     .string()
     .regex(deleteSubscriptionPathSubscriptionIdRegExp),
 })
@@ -15085,7 +15219,7 @@ export const createSubscriptionAddonPathSubscriptionIdRegExp = new RegExp(
 )
 
 export const createSubscriptionAddonParams = zod.object({
-  subscriptionId: zod
+  subscriptionId: zod.coerce
     .string()
     .regex(createSubscriptionAddonPathSubscriptionIdRegExp),
 })
@@ -15101,13 +15235,13 @@ export const createSubscriptionAddonBody = zod
   .object({
     addon: zod
       .object({
-        id: zod
+        id: zod.coerce
           .string()
           .regex(createSubscriptionAddonBodyAddonIdRegExp)
           .describe('The ID of the add-on.'),
       })
       .describe('The add-on to create.'),
-    description: zod
+    description: zod.coerce
       .string()
       .max(createSubscriptionAddonBodyDescriptionMax)
       .optional()
@@ -15115,20 +15249,20 @@ export const createSubscriptionAddonBody = zod
         'Optional description of the resource. Maximum 1024 characters.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(createSubscriptionAddonBodyNameMax)
       .describe(
         'Human-readable name for the resource. Between 1 and 256 characters.'
       ),
-    quantity: zod
+    quantity: zod.coerce
       .number()
       .min(createSubscriptionAddonBodyQuantityMin)
       .describe(
@@ -15140,7 +15274,7 @@ export const createSubscriptionAddonBody = zod
         'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
       )
       .or(
-        zod
+        zod.coerce
           .date()
           .describe(
             '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -15164,7 +15298,7 @@ export const listSubscriptionAddonsPathSubscriptionIdRegExp = new RegExp(
 )
 
 export const listSubscriptionAddonsParams = zod.object({
-  subscriptionId: zod
+  subscriptionId: zod.coerce
     .string()
     .regex(listSubscriptionAddonsPathSubscriptionIdRegExp),
 })
@@ -15181,10 +15315,10 @@ export const getSubscriptionAddonPathSubscriptionAddonIdRegExp = new RegExp(
 )
 
 export const getSubscriptionAddonParams = zod.object({
-  subscriptionAddonId: zod
+  subscriptionAddonId: zod.coerce
     .string()
     .regex(getSubscriptionAddonPathSubscriptionAddonIdRegExp),
-  subscriptionId: zod
+  subscriptionId: zod.coerce
     .string()
     .regex(getSubscriptionAddonPathSubscriptionIdRegExp),
 })
@@ -15201,10 +15335,10 @@ export const updateSubscriptionAddonPathSubscriptionAddonIdRegExp = new RegExp(
 )
 
 export const updateSubscriptionAddonParams = zod.object({
-  subscriptionAddonId: zod
+  subscriptionAddonId: zod.coerce
     .string()
     .regex(updateSubscriptionAddonPathSubscriptionAddonIdRegExp),
-  subscriptionId: zod
+  subscriptionId: zod.coerce
     .string()
     .regex(updateSubscriptionAddonPathSubscriptionIdRegExp),
 })
@@ -15215,7 +15349,7 @@ export const updateSubscriptionAddonBodyQuantityMin = 0
 
 export const updateSubscriptionAddonBody = zod
   .object({
-    description: zod
+    description: zod.coerce
       .string()
       .max(updateSubscriptionAddonBodyDescriptionMax)
       .optional()
@@ -15223,13 +15357,13 @@ export const updateSubscriptionAddonBody = zod
         'Optional description of the resource. Maximum 1024 characters.'
       ),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .nullish()
       .describe('Additional metadata for the resource.'),
-    name: zod
+    name: zod.coerce
       .string()
       .min(1)
       .max(updateSubscriptionAddonBodyNameMax)
@@ -15237,7 +15371,7 @@ export const updateSubscriptionAddonBody = zod
       .describe(
         'Human-readable name for the resource. Between 1 and 256 characters.'
       ),
-    quantity: zod
+    quantity: zod.coerce
       .number()
       .min(updateSubscriptionAddonBodyQuantityMin)
       .optional()
@@ -15250,7 +15384,7 @@ export const updateSubscriptionAddonBody = zod
         'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
       )
       .or(
-        zod
+        zod.coerce
           .date()
           .describe(
             '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -15276,7 +15410,7 @@ export const cancelSubscriptionPathSubscriptionIdRegExp = new RegExp(
 )
 
 export const cancelSubscriptionParams = zod.object({
-  subscriptionId: zod
+  subscriptionId: zod.coerce
     .string()
     .regex(cancelSubscriptionPathSubscriptionIdRegExp),
 })
@@ -15288,7 +15422,7 @@ export const cancelSubscriptionBody = zod.object({
       'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
     )
     .or(
-      zod
+      zod.coerce
         .date()
         .describe(
           '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -15311,7 +15445,7 @@ export const changeSubscriptionPathSubscriptionIdRegExp = new RegExp(
 )
 
 export const changeSubscriptionParams = zod.object({
-  subscriptionId: zod
+  subscriptionId: zod.coerce
     .string()
     .regex(changeSubscriptionPathSubscriptionIdRegExp),
 })
@@ -15433,7 +15567,7 @@ export const changeSubscriptionBody = zod
   .object({
     alignment: zod
       .object({
-        billablesMustAlign: zod
+        billablesMustAlign: zod.coerce
           .boolean()
           .optional()
           .describe(
@@ -15443,24 +15577,24 @@ export const changeSubscriptionBody = zod
       .describe('Alignment configuration for a plan or subscription.')
       .optional()
       .describe('What alignment settings the subscription should have.'),
-    billingAnchor: zod
+    billingAnchor: zod.coerce
       .date()
       .optional()
       .describe(
         'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.'
       ),
-    description: zod
+    description: zod.coerce
       .string()
       .optional()
       .describe('Description for the Subscription.'),
     metadata: zod
-      .record(zod.string(), zod.string())
+      .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
       .optional()
       .describe('Arbitrary metadata associated with the subscription.'),
-    name: zod
+    name: zod.coerce
       .string()
       .optional()
       .describe(
@@ -15468,19 +15602,19 @@ export const changeSubscriptionBody = zod
       ),
     plan: zod
       .object({
-        key: zod
+        key: zod.coerce
           .string()
           .min(1)
           .max(changeSubscriptionBodyPlanKeyMax)
           .regex(changeSubscriptionBodyPlanKeyRegExp)
           .describe('The plan key.'),
-        version: zod.number().optional().describe('The plan version.'),
+        version: zod.coerce.number().optional().describe('The plan version.'),
       })
       .describe(
         'References an exact plan defaulting to the current active version.'
       )
       .describe('The plan reference to change to.'),
-    startingPhase: zod
+    startingPhase: zod.coerce
       .string()
       .min(1)
       .optional()
@@ -15493,7 +15627,7 @@ export const changeSubscriptionBody = zod
         'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
       )
       .or(
-        zod
+        zod.coerce
           .date()
           .describe(
             '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -15510,7 +15644,7 @@ export const changeSubscriptionBody = zod
   .or(
     zod
       .object({
-        billingAnchor: zod
+        billingAnchor: zod.coerce
           .date()
           .optional()
           .describe(
@@ -15520,7 +15654,7 @@ export const changeSubscriptionBody = zod
           .object({
             alignment: zod
               .object({
-                billablesMustAlign: zod
+                billablesMustAlign: zod.coerce
                   .boolean()
                   .optional()
                   .describe(
@@ -15530,12 +15664,12 @@ export const changeSubscriptionBody = zod
               .describe('Alignment configuration for a plan or subscription.')
               .optional()
               .describe('Alignment configuration for the plan.'),
-            billingCadence: zod
+            billingCadence: zod.coerce
               .string()
               .describe(
                 'The default billing cadence for subscriptions using this plan.\nDefines how often customers are billed using ISO8601 duration format.\nExamples: \"P1M\" (monthly), \"P3M\" (quarterly), \"P1Y\" (annually).'
               ),
-            currency: zod
+            currency: zod.coerce
               .string()
               .min(changeSubscriptionBodyCustomPlanCurrencyMinOne)
               .max(changeSubscriptionBodyCustomPlanCurrencyMaxOne)
@@ -15544,7 +15678,7 @@ export const changeSubscriptionBody = zod
                 'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.\nCustom three-letter currency codes are also supported for convenience.'
               )
               .describe('The currency code of the plan.'),
-            description: zod
+            description: zod.coerce
               .string()
               .max(changeSubscriptionBodyCustomPlanDescriptionMax)
               .optional()
@@ -15552,13 +15686,13 @@ export const changeSubscriptionBody = zod
                 'Optional description of the resource. Maximum 1024 characters.'
               ),
             metadata: zod
-              .record(zod.string(), zod.string())
+              .record(zod.string(), zod.coerce.string())
               .describe(
                 'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
               )
               .nullish()
               .describe('Additional metadata for the resource.'),
-            name: zod
+            name: zod.coerce
               .string()
               .min(1)
               .max(changeSubscriptionBodyCustomPlanNameMax)
@@ -15569,7 +15703,7 @@ export const changeSubscriptionBody = zod
               .array(
                 zod
                   .object({
-                    description: zod
+                    description: zod.coerce
                       .string()
                       .max(
                         changeSubscriptionBodyCustomPlanPhasesItemDescriptionMax
@@ -15578,11 +15712,11 @@ export const changeSubscriptionBody = zod
                       .describe(
                         'Optional description of the resource. Maximum 1024 characters.'
                       ),
-                    duration: zod
+                    duration: zod.coerce
                       .string()
                       .nullable()
                       .describe('The duration of the phase.'),
-                    key: zod
+                    key: zod.coerce
                       .string()
                       .min(1)
                       .max(changeSubscriptionBodyCustomPlanPhasesItemKeyMax)
@@ -15591,13 +15725,13 @@ export const changeSubscriptionBody = zod
                       )
                       .describe('A semi-unique identifier for the resource.'),
                     metadata: zod
-                      .record(zod.string(), zod.string())
+                      .record(zod.string(), zod.coerce.string())
                       .describe(
                         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                       )
                       .nullish()
                       .describe('Additional metadata for the resource.'),
-                    name: zod
+                    name: zod.coerce
                       .string()
                       .min(1)
                       .max(changeSubscriptionBodyCustomPlanPhasesItemNameMax)
@@ -15610,13 +15744,13 @@ export const changeSubscriptionBody = zod
                           .discriminatedUnion('type', [
                             zod
                               .object({
-                                billingCadence: zod
+                                billingCadence: zod.coerce
                                   .string()
                                   .nullable()
                                   .describe(
                                     'The billing cadence of the rate card.\nWhen null it means it is a one time fee.'
                                   ),
-                                description: zod
+                                description: zod.coerce
                                   .string()
                                   .max(
                                     changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemDescriptionMax
@@ -15629,7 +15763,7 @@ export const changeSubscriptionBody = zod
                                   .object({
                                     percentage: zod
                                       .object({
-                                        percentage: zod
+                                        percentage: zod.coerce
                                           .number()
                                           .describe(
                                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -15643,7 +15777,7 @@ export const changeSubscriptionBody = zod
                                       .describe('The percentage discount.'),
                                     usage: zod
                                       .object({
-                                        quantity: zod
+                                        quantity: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemDiscountsUsageQuantityRegExpOne
@@ -15670,13 +15804,13 @@ export const changeSubscriptionBody = zod
                                   .discriminatedUnion('type', [
                                     zod
                                       .object({
-                                        isSoftLimit: zod
+                                        isSoftLimit: zod.coerce
                                           .boolean()
                                           .optional()
                                           .describe(
                                             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                                           ),
-                                        issueAfterReset: zod
+                                        issueAfterReset: zod.coerce
                                           .number()
                                           .min(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMin
@@ -15685,7 +15819,7 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                                           ),
-                                        issueAfterResetPriority: zod
+                                        issueAfterResetPriority: zod.coerce
                                           .number()
                                           .min(1)
                                           .max(
@@ -15698,7 +15832,10 @@ export const changeSubscriptionBody = zod
                                             'Defines the grant priority for the default grant.'
                                           ),
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -15706,14 +15843,14 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'Additional metadata for the feature.'
                                           ),
-                                        preserveOverageAtReset: zod
+                                        preserveOverageAtReset: zod.coerce
                                           .boolean()
                                           .optional()
                                           .describe(
                                             'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                                           ),
                                         type: zod.enum(['metered']),
-                                        usagePeriod: zod
+                                        usagePeriod: zod.coerce
                                           .string()
                                           .optional()
                                           .describe(
@@ -15725,13 +15862,16 @@ export const changeSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        config: zod
+                                        config: zod.coerce
                                           .string()
                                           .describe(
                                             'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                                           ),
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -15747,7 +15887,10 @@ export const changeSubscriptionBody = zod
                                     zod
                                       .object({
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -15768,7 +15911,7 @@ export const changeSubscriptionBody = zod
                                   .describe(
                                     'The entitlement of the rate card.\nOnly available when featureKey is set.'
                                   ),
-                                featureKey: zod
+                                featureKey: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -15781,7 +15924,7 @@ export const changeSubscriptionBody = zod
                                   .describe(
                                     'The feature the customer is entitled to use.'
                                   ),
-                                key: zod
+                                key: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -15794,7 +15937,7 @@ export const changeSubscriptionBody = zod
                                     'A semi-unique identifier for the resource.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -15802,7 +15945,7 @@ export const changeSubscriptionBody = zod
                                   .describe(
                                     'Additional metadata for the resource.'
                                   ),
-                                name: zod
+                                name: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -15813,7 +15956,7 @@ export const changeSubscriptionBody = zod
                                   ),
                                 price: zod
                                   .object({
-                                    amount: zod
+                                    amount: zod.coerce
                                       .string()
                                       .regex(
                                         changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpOne
@@ -15855,7 +15998,7 @@ export const changeSubscriptionBody = zod
                                       ),
                                     customInvoicing: zod
                                       .object({
-                                        code: zod
+                                        code: zod.coerce
                                           .string()
                                           .describe(
                                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -15866,7 +16009,7 @@ export const changeSubscriptionBody = zod
                                       .describe('Custom invoicing tax config.'),
                                     stripe: zod
                                       .object({
-                                        code: zod
+                                        code: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemTaxConfigStripeCodeRegExp
@@ -15893,12 +16036,12 @@ export const changeSubscriptionBody = zod
                               ),
                             zod
                               .object({
-                                billingCadence: zod
+                                billingCadence: zod.coerce
                                   .string()
                                   .describe(
                                     'The billing cadence of the rate card.'
                                   ),
-                                description: zod
+                                description: zod.coerce
                                   .string()
                                   .max(
                                     changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemDescriptionMaxOne
@@ -15911,7 +16054,7 @@ export const changeSubscriptionBody = zod
                                   .object({
                                     percentage: zod
                                       .object({
-                                        percentage: zod
+                                        percentage: zod.coerce
                                           .number()
                                           .describe(
                                             'Numeric representation of a percentage\n\n50% is represented as 50'
@@ -15925,7 +16068,7 @@ export const changeSubscriptionBody = zod
                                       .describe('The percentage discount.'),
                                     usage: zod
                                       .object({
-                                        quantity: zod
+                                        quantity: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemDiscountsUsageQuantityRegExpThree
@@ -15952,13 +16095,13 @@ export const changeSubscriptionBody = zod
                                   .discriminatedUnion('type', [
                                     zod
                                       .object({
-                                        isSoftLimit: zod
+                                        isSoftLimit: zod.coerce
                                           .boolean()
                                           .optional()
                                           .describe(
                                             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
                                           ),
-                                        issueAfterReset: zod
+                                        issueAfterReset: zod.coerce
                                           .number()
                                           .min(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMinOne
@@ -15967,7 +16110,7 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
                                           ),
-                                        issueAfterResetPriority: zod
+                                        issueAfterResetPriority: zod.coerce
                                           .number()
                                           .min(1)
                                           .max(
@@ -15980,7 +16123,10 @@ export const changeSubscriptionBody = zod
                                             'Defines the grant priority for the default grant.'
                                           ),
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -15988,14 +16134,14 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'Additional metadata for the feature.'
                                           ),
-                                        preserveOverageAtReset: zod
+                                        preserveOverageAtReset: zod.coerce
                                           .boolean()
                                           .optional()
                                           .describe(
                                             'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
                                           ),
                                         type: zod.enum(['metered']),
-                                        usagePeriod: zod
+                                        usagePeriod: zod.coerce
                                           .string()
                                           .optional()
                                           .describe(
@@ -16007,13 +16153,16 @@ export const changeSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        config: zod
+                                        config: zod.coerce
                                           .string()
                                           .describe(
                                             'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
                                           ),
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -16029,7 +16178,10 @@ export const changeSubscriptionBody = zod
                                     zod
                                       .object({
                                         metadata: zod
-                                          .record(zod.string(), zod.string())
+                                          .record(
+                                            zod.string(),
+                                            zod.coerce.string()
+                                          )
                                           .describe(
                                             'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                           )
@@ -16050,7 +16202,7 @@ export const changeSubscriptionBody = zod
                                   .describe(
                                     'The entitlement of the rate card.\nOnly available when featureKey is set.'
                                   ),
-                                featureKey: zod
+                                featureKey: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -16063,7 +16215,7 @@ export const changeSubscriptionBody = zod
                                   .describe(
                                     'The feature the customer is entitled to use.'
                                   ),
-                                key: zod
+                                key: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -16076,7 +16228,7 @@ export const changeSubscriptionBody = zod
                                     'A semi-unique identifier for the resource.'
                                   ),
                                 metadata: zod
-                                  .record(zod.string(), zod.string())
+                                  .record(zod.string(), zod.coerce.string())
                                   .describe(
                                     'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
                                   )
@@ -16084,7 +16236,7 @@ export const changeSubscriptionBody = zod
                                   .describe(
                                     'Additional metadata for the resource.'
                                   ),
-                                name: zod
+                                name: zod.coerce
                                   .string()
                                   .min(1)
                                   .max(
@@ -16097,7 +16249,7 @@ export const changeSubscriptionBody = zod
                                   .discriminatedUnion('type', [
                                     zod
                                       .object({
-                                        amount: zod
+                                        amount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpThree
@@ -16126,7 +16278,7 @@ export const changeSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        amount: zod
+                                        amount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpFive
@@ -16137,7 +16289,7 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'The amount of the unit price.'
                                           ),
-                                        maximumAmount: zod
+                                        maximumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMaximumAmountRegExpOne
@@ -16149,7 +16301,7 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'The customer is limited to spend at most the amount.'
                                           ),
-                                        minimumAmount: zod
+                                        minimumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMinimumAmountRegExpOne
@@ -16168,7 +16320,7 @@ export const changeSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        maximumAmount: zod
+                                        maximumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMaximumAmountRegExpThree
@@ -16180,7 +16332,7 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'The customer is limited to spend at most the amount.'
                                           ),
-                                        minimumAmount: zod
+                                        minimumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMinimumAmountRegExpThree
@@ -16206,7 +16358,7 @@ export const changeSubscriptionBody = zod
                                               .object({
                                                 flatPrice: zod
                                                   .object({
-                                                    amount: zod
+                                                    amount: zod.coerce
                                                       .string()
                                                       .regex(
                                                         changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceTiersItemFlatPriceAmountRegExpOne
@@ -16230,7 +16382,7 @@ export const changeSubscriptionBody = zod
                                                   ),
                                                 unitPrice: zod
                                                   .object({
-                                                    amount: zod
+                                                    amount: zod.coerce
                                                       .string()
                                                       .regex(
                                                         changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceTiersItemUnitPriceAmountRegExpOne
@@ -16252,7 +16404,7 @@ export const changeSubscriptionBody = zod
                                                   .describe(
                                                     'The unit price component of the tier.'
                                                   ),
-                                                upToAmount: zod
+                                                upToAmount: zod.coerce
                                                   .string()
                                                   .regex(
                                                     changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceTiersItemUpToAmountRegExpOne
@@ -16280,7 +16432,7 @@ export const changeSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        maximumAmount: zod
+                                        maximumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMaximumAmountRegExpFive
@@ -16292,7 +16444,7 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'The customer is limited to spend at most the amount.'
                                           ),
-                                        minimumAmount: zod
+                                        minimumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMinimumAmountRegExpFive
@@ -16304,7 +16456,7 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'The customer is committed to spend at least the amount.'
                                           ),
-                                        multiplier: zod
+                                        multiplier: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMultiplierRegExpOne
@@ -16325,7 +16477,7 @@ export const changeSubscriptionBody = zod
                                       ),
                                     zod
                                       .object({
-                                        amount: zod
+                                        amount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpSeven
@@ -16336,7 +16488,7 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'The price of one package.'
                                           ),
-                                        maximumAmount: zod
+                                        maximumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMaximumAmountRegExpSeven
@@ -16348,7 +16500,7 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'The customer is limited to spend at most the amount.'
                                           ),
-                                        minimumAmount: zod
+                                        minimumAmount: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceMinimumAmountRegExpSeven
@@ -16360,7 +16512,7 @@ export const changeSubscriptionBody = zod
                                           .describe(
                                             'The customer is committed to spend at least the amount.'
                                           ),
-                                        quantityPerPackage: zod
+                                        quantityPerPackage: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceQuantityPerPackageRegExpOne
@@ -16397,7 +16549,7 @@ export const changeSubscriptionBody = zod
                                       ),
                                     customInvoicing: zod
                                       .object({
-                                        code: zod
+                                        code: zod.coerce
                                           .string()
                                           .describe(
                                             'Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.'
@@ -16408,7 +16560,7 @@ export const changeSubscriptionBody = zod
                                       .describe('Custom invoicing tax config.'),
                                     stripe: zod
                                       .object({
-                                        code: zod
+                                        code: zod.coerce
                                           .string()
                                           .regex(
                                             changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemTaxConfigStripeCodeRegExpOne
@@ -16450,7 +16602,7 @@ export const changeSubscriptionBody = zod
               ),
             proRatingConfig: zod
               .object({
-                enabled: zod
+                enabled: zod.coerce
                   .boolean()
                   .describe('Whether pro-rating is enabled for this plan.'),
                 mode: zod
@@ -16481,7 +16633,7 @@ export const changeSubscriptionBody = zod
             'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
           )
           .or(
-            zod
+            zod.coerce
               .date()
               .describe(
                 '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -16509,7 +16661,7 @@ export const migrateSubscriptionPathSubscriptionIdRegExp = new RegExp(
 )
 
 export const migrateSubscriptionParams = zod.object({
-  subscriptionId: zod
+  subscriptionId: zod.coerce
     .string()
     .regex(migrateSubscriptionPathSubscriptionIdRegExp),
 })
@@ -16517,20 +16669,20 @@ export const migrateSubscriptionParams = zod.object({
 export const migrateSubscriptionBodyTimingDefault = 'immediate'
 
 export const migrateSubscriptionBody = zod.object({
-  billingAnchor: zod
+  billingAnchor: zod.coerce
     .date()
     .optional()
     .describe(
       'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.'
     ),
-  startingPhase: zod
+  startingPhase: zod.coerce
     .string()
     .min(1)
     .optional()
     .describe(
       'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.'
     ),
-  targetVersion: zod
+  targetVersion: zod.coerce
     .number()
     .min(1)
     .optional()
@@ -16543,7 +16695,7 @@ export const migrateSubscriptionBody = zod.object({
       'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
     )
     .or(
-      zod
+      zod.coerce
         .date()
         .describe(
           '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
@@ -16568,7 +16720,7 @@ export const restoreSubscriptionPathSubscriptionIdRegExp = new RegExp(
 )
 
 export const restoreSubscriptionParams = zod.object({
-  subscriptionId: zod
+  subscriptionId: zod.coerce
     .string()
     .regex(restoreSubscriptionPathSubscriptionIdRegExp),
 })
@@ -16582,7 +16734,7 @@ export const unscheduleCancelationPathSubscriptionIdRegExp = new RegExp(
 )
 
 export const unscheduleCancelationParams = zod.object({
-  subscriptionId: zod
+  subscriptionId: zod.coerce
     .string()
     .regex(unscheduleCancelationPathSubscriptionIdRegExp),
 })
@@ -16596,17 +16748,17 @@ export const listEventsV2QueryLimitMax = 100
 export const listEventsV2QueryClientIdMax = 36
 
 export const listEventsV2QueryParams = zod.object({
-  clientId: zod
+  clientId: zod.coerce
     .string()
     .min(1)
     .max(listEventsV2QueryClientIdMax)
     .optional()
     .describe('Client ID\nUseful to track progress of a query.'),
-  cursor: zod
+  cursor: zod.coerce
     .string()
     .optional()
     .describe('The cursor after which to start the pagination.'),
-  limit: zod
+  limit: zod.coerce
     .number()
     .min(1)
     .max(listEventsV2QueryLimitMax)

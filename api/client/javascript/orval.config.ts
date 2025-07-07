@@ -12,12 +12,19 @@ export default defineConfig({
       namingConvention: 'PascalCase',
       override: {
         header: () => `
-/* eslint-disable no-useless-escape */
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-`,
+        /* eslint-disable no-useless-escape */
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-nocheck
+        `,
         useDates: true,
         zod: {
+          coerce: {
+            body: true,
+            header: false,
+            param: true,
+            query: true,
+            response: false,
+          },
           generate: {
             body: true,
             header: false,
