@@ -7,11 +7,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // Reconciler is a component that periodically reconciles the subscription state with the billing state
@@ -86,7 +85,10 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 	subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
 		Namespaces: in.Namespaces,
 		Customers:  in.Customers,
-		ActiveAt:   lo.ToPtr(time.Now().Add(-in.Lookback)),
+		ActiveInPeriod: &timeutil.ClosedPeriod{
+			From: time.Now().Add(-in.Lookback),
+			To:   time.Now(),
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list subscriptions: %w", err)
