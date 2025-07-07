@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -26,7 +26,7 @@ type UsageResetUpdate struct {
 	ResetTime           time.Time
 	Anchor              time.Time
 	EntitlementID       string
-	UsagePeriodInterval isodate.String
+	UsagePeriodInterval datetime.ISODurationString
 }
 
 func (u UsageResetUpdate) Validate() error {

@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // ID filters vertices based on their ID field.
@@ -102,7 +102,7 @@ func Anchor(v time.Time) predicate.UsageReset {
 }
 
 // UsagePeriodInterval applies equality check predicate on the "usage_period_interval" field. It's identical to UsagePeriodIntervalEQ.
-func UsagePeriodInterval(v isodate.String) predicate.UsageReset {
+func UsagePeriodInterval(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldEQ(FieldUsagePeriodInterval, vc))
 }
@@ -448,19 +448,19 @@ func AnchorLTE(v time.Time) predicate.UsageReset {
 }
 
 // UsagePeriodIntervalEQ applies the EQ predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalEQ(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalEQ(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldEQ(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalNEQ applies the NEQ predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalNEQ(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalNEQ(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldNEQ(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalIn applies the In predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalIn(vs ...isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalIn(vs ...datetime.ISODurationString) predicate.UsageReset {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -469,7 +469,7 @@ func UsagePeriodIntervalIn(vs ...isodate.String) predicate.UsageReset {
 }
 
 // UsagePeriodIntervalNotIn applies the NotIn predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalNotIn(vs ...isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalNotIn(vs ...datetime.ISODurationString) predicate.UsageReset {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -478,55 +478,55 @@ func UsagePeriodIntervalNotIn(vs ...isodate.String) predicate.UsageReset {
 }
 
 // UsagePeriodIntervalGT applies the GT predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalGT(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalGT(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldGT(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalGTE applies the GTE predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalGTE(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalGTE(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldGTE(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalLT applies the LT predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalLT(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalLT(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldLT(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalLTE applies the LTE predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalLTE(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalLTE(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldLTE(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalContains applies the Contains predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalContains(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalContains(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldContains(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalHasPrefix applies the HasPrefix predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalHasPrefix(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalHasPrefix(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldHasPrefix(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalHasSuffix applies the HasSuffix predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalHasSuffix(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalHasSuffix(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldHasSuffix(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalEqualFold applies the EqualFold predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalEqualFold(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalEqualFold(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldEqualFold(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalContainsFold applies the ContainsFold predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalContainsFold(v isodate.String) predicate.UsageReset {
+func UsagePeriodIntervalContainsFold(v datetime.ISODurationString) predicate.UsageReset {
 	vc := string(v)
 	return predicate.UsageReset(sql.FieldContainsFold(FieldUsagePeriodInterval, vc))
 }

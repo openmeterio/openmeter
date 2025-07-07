@@ -52796,7 +52796,7 @@ type UsageResetMutation struct {
 	deleted_at            *time.Time
 	reset_time            *time.Time
 	anchor                *time.Time
-	usage_period_interval *isodate.String
+	usage_period_interval *datetime.ISODurationString
 	clearedFields         map[string]struct{}
 	entitlement           *string
 	clearedentitlement    bool
@@ -53175,12 +53175,12 @@ func (m *UsageResetMutation) ResetAnchor() {
 }
 
 // SetUsagePeriodInterval sets the "usage_period_interval" field.
-func (m *UsageResetMutation) SetUsagePeriodInterval(i isodate.String) {
-	m.usage_period_interval = &i
+func (m *UsageResetMutation) SetUsagePeriodInterval(dds datetime.ISODurationString) {
+	m.usage_period_interval = &dds
 }
 
 // UsagePeriodInterval returns the value of the "usage_period_interval" field in the mutation.
-func (m *UsageResetMutation) UsagePeriodInterval() (r isodate.String, exists bool) {
+func (m *UsageResetMutation) UsagePeriodInterval() (r datetime.ISODurationString, exists bool) {
 	v := m.usage_period_interval
 	if v == nil {
 		return
@@ -53191,7 +53191,7 @@ func (m *UsageResetMutation) UsagePeriodInterval() (r isodate.String, exists boo
 // OldUsagePeriodInterval returns the old "usage_period_interval" field's value of the UsageReset entity.
 // If the UsageReset object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UsageResetMutation) OldUsagePeriodInterval(ctx context.Context) (v isodate.String, err error) {
+func (m *UsageResetMutation) OldUsagePeriodInterval(ctx context.Context) (v datetime.ISODurationString, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUsagePeriodInterval is only allowed on UpdateOne operations")
 	}
@@ -53404,7 +53404,7 @@ func (m *UsageResetMutation) SetField(name string, value ent.Value) error {
 		m.SetAnchor(v)
 		return nil
 	case usagereset.FieldUsagePeriodInterval:
-		v, ok := value.(isodate.String)
+		v, ok := value.(datetime.ISODurationString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

@@ -14,7 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // UsageResetCreate is the builder for creating a UsageReset entity.
@@ -92,7 +92,7 @@ func (_c *UsageResetCreate) SetAnchor(v time.Time) *UsageResetCreate {
 }
 
 // SetUsagePeriodInterval sets the "usage_period_interval" field.
-func (_c *UsageResetCreate) SetUsagePeriodInterval(v isodate.String) *UsageResetCreate {
+func (_c *UsageResetCreate) SetUsagePeriodInterval(v datetime.ISODurationString) *UsageResetCreate {
 	_c.mutation.SetUsagePeriodInterval(v)
 	return _c
 }
