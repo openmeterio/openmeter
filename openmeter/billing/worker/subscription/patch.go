@@ -147,6 +147,11 @@ func (h *Handler) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarch
 			return nil, fmt.Errorf("getting line: %w", err)
 		}
 
+		// Ignored lines do not take part in syncing so we skip them
+		if ignore, ok := line.Annotations[billing.AnnotationSubscriptionSyncIgnore]; ok && ignore == true {
+			return nil, nil
+		}
+
 		return []linePatch{
 			newDeleteLinePatch(line.LineID(), line.InvoiceID),
 		}, nil

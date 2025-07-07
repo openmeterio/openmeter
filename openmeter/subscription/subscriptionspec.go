@@ -785,8 +785,8 @@ func (s SubscriptionItemSpec) GetFullServicePeriodAt(
 		return timeutil.ClosedPeriod{}, fmt.Errorf("item is not billable")
 	}
 
-	if !itemCadence.IsActiveAt(at) {
-		return timeutil.ClosedPeriod{}, fmt.Errorf("item is not active at %s", at)
+	if !itemCadence.IsActiveAt(at) && !itemCadence.ActiveFrom.Equal(at) {
+		return timeutil.ClosedPeriod{}, fmt.Errorf("item is not active at %s: [%s, %s]", at, itemCadence.ActiveFrom, itemCadence.ActiveTo)
 	}
 
 	if !phaseCadence.IsActiveAt(at) {

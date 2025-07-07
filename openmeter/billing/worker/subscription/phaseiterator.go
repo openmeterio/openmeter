@@ -349,7 +349,15 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 			return empty, err
 		}
 
-		servicePeriod, err := fullServicePeriod.Open().Intersection(item.SubscriptionItem.CadencedModel.AsPeriod()).Closed()
+		inter := fullServicePeriod.Open().Intersection(item.SubscriptionItem.CadencedModel.AsPeriod())
+
+		// .Intersection() treats zero length periods as non-intersecting (to be consistent with .Contains() calls)
+		// We need to handle this case separately
+		if cl, err := item.SubscriptionItem.CadencedModel.AsPeriod().Closed(); err == nil && cl.From.Equal(cl.To) {
+			inter = lo.ToPtr(cl.Open())
+		}
+
+		servicePeriod, err := inter.Closed()
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to get service period", slog.Any("error", err))
 			return empty, err
