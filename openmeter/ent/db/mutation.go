@@ -2214,8 +2214,8 @@ func (m *AddonRateCardMutation) ResetTaxConfig() {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (m *AddonRateCardMutation) SetBillingCadence(i datetime.ISODurationString) {
-	m.billing_cadence = &i
+func (m *AddonRateCardMutation) SetBillingCadence(dds datetime.ISODurationString) {
+	m.billing_cadence = &dds
 }
 
 // BillingCadence returns the value of the "billing_cadence" field in the mutation.
@@ -10432,8 +10432,8 @@ func (m *BillingCustomerOverrideMutation) ResetCollectionAlignment() {
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (m *BillingCustomerOverrideMutation) SetLineCollectionPeriod(i datetime.ISODurationString) {
-	m.line_collection_period = &i
+func (m *BillingCustomerOverrideMutation) SetLineCollectionPeriod(dds datetime.ISODurationString) {
+	m.line_collection_period = &dds
 }
 
 // LineCollectionPeriod returns the value of the "line_collection_period" field in the mutation.
@@ -10530,8 +10530,8 @@ func (m *BillingCustomerOverrideMutation) ResetInvoiceAutoAdvance() {
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceDraftPeriod(i datetime.ISODurationString) {
-	m.invoice_draft_period = &i
+func (m *BillingCustomerOverrideMutation) SetInvoiceDraftPeriod(dds datetime.ISODurationString) {
+	m.invoice_draft_period = &dds
 }
 
 // InvoiceDraftPeriod returns the value of the "invoice_draft_period" field in the mutation.
@@ -10579,8 +10579,8 @@ func (m *BillingCustomerOverrideMutation) ResetInvoiceDraftPeriod() {
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceDueAfter(i datetime.ISODurationString) {
-	m.invoice_due_after = &i
+func (m *BillingCustomerOverrideMutation) SetInvoiceDueAfter(dds datetime.ISODurationString) {
+	m.invoice_due_after = &dds
 }
 
 // InvoiceDueAfter returns the value of the "invoice_due_after" field in the mutation.
@@ -27794,8 +27794,8 @@ func (m *BillingWorkflowConfigMutation) ResetCollectionAlignment() {
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (m *BillingWorkflowConfigMutation) SetLineCollectionPeriod(i datetime.ISODurationString) {
-	m.line_collection_period = &i
+func (m *BillingWorkflowConfigMutation) SetLineCollectionPeriod(dds datetime.ISODurationString) {
+	m.line_collection_period = &dds
 }
 
 // LineCollectionPeriod returns the value of the "line_collection_period" field in the mutation.
@@ -27866,8 +27866,8 @@ func (m *BillingWorkflowConfigMutation) ResetInvoiceAutoAdvance() {
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (m *BillingWorkflowConfigMutation) SetInvoiceDraftPeriod(i datetime.ISODurationString) {
-	m.invoice_draft_period = &i
+func (m *BillingWorkflowConfigMutation) SetInvoiceDraftPeriod(dds datetime.ISODurationString) {
+	m.invoice_draft_period = &dds
 }
 
 // InvoiceDraftPeriod returns the value of the "invoice_draft_period" field in the mutation.
@@ -27902,8 +27902,8 @@ func (m *BillingWorkflowConfigMutation) ResetInvoiceDraftPeriod() {
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (m *BillingWorkflowConfigMutation) SetInvoiceDueAfter(i datetime.ISODurationString) {
-	m.invoice_due_after = &i
+func (m *BillingWorkflowConfigMutation) SetInvoiceDueAfter(dds datetime.ISODurationString) {
+	m.invoice_due_after = &dds
 }
 
 // InvoiceDueAfter returns the value of the "invoice_due_after" field in the mutation.
@@ -32087,8 +32087,8 @@ func (m *EntitlementMutation) ResetConfig() {
 }
 
 // SetUsagePeriodInterval sets the "usage_period_interval" field.
-func (m *EntitlementMutation) SetUsagePeriodInterval(i datetime.ISODurationString) {
-	m.usage_period_interval = &i
+func (m *EntitlementMutation) SetUsagePeriodInterval(dds datetime.ISODurationString) {
+	m.usage_period_interval = &dds
 }
 
 // UsagePeriodInterval returns the value of the "usage_period_interval" field in the mutation.
@@ -35298,8 +35298,8 @@ func (m *GrantMutation) ResetResetMinRollover() {
 }
 
 // SetRecurrencePeriod sets the "recurrence_period" field.
-func (m *GrantMutation) SetRecurrencePeriod(i datetime.ISODurationString) {
-	m.recurrence_period = &i
+func (m *GrantMutation) SetRecurrencePeriod(dds datetime.ISODurationString) {
+	m.recurrence_period = &dds
 }
 
 // RecurrencePeriod returns the value of the "recurrence_period" field in the mutation.
@@ -40954,8 +40954,8 @@ func (m *PlanMutation) ResetCurrency() {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (m *PlanMutation) SetBillingCadence(i datetime.ISODurationString) {
-	m.billing_cadence = &i
+func (m *PlanMutation) SetBillingCadence(dds datetime.ISODurationString) {
+	m.billing_cadence = &dds
 }
 
 // BillingCadence returns the value of the "billing_cadence" field in the mutation.
@@ -43407,8 +43407,8 @@ func (m *PlanPhaseMutation) ResetIndex() {
 }
 
 // SetDuration sets the "duration" field.
-func (m *PlanPhaseMutation) SetDuration(i datetime.ISODurationString) {
-	m.duration = &i
+func (m *PlanPhaseMutation) SetDuration(dds datetime.ISODurationString) {
+	m.duration = &dds
 }
 
 // Duration returns the value of the "duration" field in the mutation.
@@ -44627,8 +44627,8 @@ func (m *PlanRateCardMutation) ResetTaxConfig() {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (m *PlanRateCardMutation) SetBillingCadence(i datetime.ISODurationString) {
-	m.billing_cadence = &i
+func (m *PlanRateCardMutation) SetBillingCadence(dds datetime.ISODurationString) {
+	m.billing_cadence = &dds
 }
 
 // BillingCadence returns the value of the "billing_cadence" field in the mutation.
@@ -46878,8 +46878,8 @@ func (m *SubscriptionMutation) ResetBillingAnchor() {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (m *SubscriptionMutation) SetBillingCadence(i datetime.ISODurationString) {
-	m.billing_cadence = &i
+func (m *SubscriptionMutation) SetBillingCadence(dds datetime.ISODurationString) {
+	m.billing_cadence = &dds
 }
 
 // BillingCadence returns the value of the "billing_cadence" field in the mutation.
@@ -50126,8 +50126,8 @@ func (m *SubscriptionItemMutation) ResetRestartsBillingPeriod() {
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (m *SubscriptionItemMutation) SetActiveFromOverrideRelativeToPhaseStart(i datetime.ISODurationString) {
-	m.active_from_override_relative_to_phase_start = &i
+func (m *SubscriptionItemMutation) SetActiveFromOverrideRelativeToPhaseStart(dds datetime.ISODurationString) {
+	m.active_from_override_relative_to_phase_start = &dds
 }
 
 // ActiveFromOverrideRelativeToPhaseStart returns the value of the "active_from_override_relative_to_phase_start" field in the mutation.
@@ -50175,8 +50175,8 @@ func (m *SubscriptionItemMutation) ResetActiveFromOverrideRelativeToPhaseStart()
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (m *SubscriptionItemMutation) SetActiveToOverrideRelativeToPhaseStart(i datetime.ISODurationString) {
-	m.active_to_override_relative_to_phase_start = &i
+func (m *SubscriptionItemMutation) SetActiveToOverrideRelativeToPhaseStart(dds datetime.ISODurationString) {
+	m.active_to_override_relative_to_phase_start = &dds
 }
 
 // ActiveToOverrideRelativeToPhaseStart returns the value of the "active_to_override_relative_to_phase_start" field in the mutation.
@@ -50456,8 +50456,8 @@ func (m *SubscriptionItemMutation) ResetTaxConfig() {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (m *SubscriptionItemMutation) SetBillingCadence(i datetime.ISODurationString) {
-	m.billing_cadence = &i
+func (m *SubscriptionItemMutation) SetBillingCadence(dds datetime.ISODurationString) {
+	m.billing_cadence = &dds
 }
 
 // BillingCadence returns the value of the "billing_cadence" field in the mutation.
