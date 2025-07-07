@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -530,7 +530,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			ResetTime:           timeAfterMonthAnd15Days,
 			Anchor:              timeAfterMonthAnd15Days,
 			EntitlementID:       ent.ID,
-			UsagePeriodInterval: isodate.String("P1W"),
+			UsagePeriodInterval: datetime.ISODurationString("P1W"),
 		})
 		require.NoError(t, err)
 
@@ -546,7 +546,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			ResetTime:           timeAfter25Days,
 			Anchor:              timeAfter25Days,
 			EntitlementID:       ent.ID,
-			UsagePeriodInterval: isodate.String("P1D"),
+			UsagePeriodInterval: datetime.ISODurationString("P1D"),
 		})
 		require.NoError(t, err)
 
@@ -561,15 +561,15 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		// First lets assert the 3 vlaues
 		inp1, _, err := ent.UsagePeriod.GetUsagePeriodInputAt(now)
 		require.NoError(t, err)
-		assert.Equal(t, isodate.String("P1M"), inp1.GetValue().Interval.ISOString())
+		assert.Equal(t, datetime.ISODurationString("P1M"), inp1.GetValue().Interval.ISOString())
 		assert.Equal(t, now, inp1.GetValue().Anchor)
 		inp2, _, err := ent.UsagePeriod.GetUsagePeriodInputAt(timeAfterMonthAnd15Days)
 		require.NoError(t, err)
-		assert.Equal(t, isodate.String("P1W"), inp2.GetValue().Interval.ISOString())
+		assert.Equal(t, datetime.ISODurationString("P1W"), inp2.GetValue().Interval.ISOString())
 		assert.Equal(t, timeAfterMonthAnd15Days, inp2.GetValue().Anchor)
 		inp3, _, err := ent.UsagePeriod.GetUsagePeriodInputAt(timeAfter25Days)
 		require.NoError(t, err)
-		assert.Equal(t, isodate.String("P1D"), inp3.GetValue().Interval.ISOString())
+		assert.Equal(t, datetime.ISODurationString("P1D"), inp3.GetValue().Interval.ISOString())
 		assert.Equal(t, timeAfter25Days, inp3.GetValue().Anchor)
 
 		// Second, lets assert that the period resolution is correct (we'll query the period one minute after the resets)

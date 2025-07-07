@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
-	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // UsageReset is the model entity for the UsageReset schema.
@@ -34,7 +34,7 @@ type UsageReset struct {
 	// Anchor holds the value of the "anchor" field.
 	Anchor time.Time `json:"anchor,omitempty"`
 	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
-	UsagePeriodInterval isodate.String `json:"usage_period_interval,omitempty"`
+	UsagePeriodInterval datetime.ISODurationString `json:"usage_period_interval,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UsageResetQuery when eager-loading is set.
 	Edges        UsageResetEdges `json:"edges"`
@@ -138,7 +138,7 @@ func (_m *UsageReset) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field usage_period_interval", values[i])
 			} else if value.Valid {
-				_m.UsagePeriodInterval = isodate.String(value.String)
+				_m.UsagePeriodInterval = datetime.ISODurationString(value.String)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
