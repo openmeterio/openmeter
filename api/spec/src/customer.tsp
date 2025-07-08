@@ -46,7 +46,7 @@ interface Customers {
   @operationId("getCustomer")
   @summary("Get customer")
   get(
-    @path customerIdOrKey: ULIDOrKey,
+    @path customerIdOrKey: ULIDOrExternalKey,
     ...GetCustomerParams,
   ): Customer | NotFoundError | CommonErrors;
 
@@ -58,7 +58,7 @@ interface Customers {
   @operationId("updateCustomer")
   @summary("Update customer")
   update(
-    @path customerIdOrKey: ULIDOrKey,
+    @path customerIdOrKey: ULIDOrExternalKey,
     @body customer: TypeSpec.Rest.Resource.ResourceReplaceModel<Customer>,
   ): Customer | NotFoundError | CommonErrors;
 
@@ -69,7 +69,7 @@ interface Customers {
   @route("/{customerIdOrKey}")
   @operationId("deleteCustomer")
   @summary("Delete customer")
-  delete(@path customerIdOrKey: ULIDOrKey): {
+  delete(@path customerIdOrKey: ULIDOrExternalKey): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
 
@@ -81,7 +81,7 @@ interface Customers {
   @operationId("listCustomerAppData")
   @summary("List customer app data")
   listAppData(
-    @path customerIdOrKey: ULIDOrKey,
+    @path customerIdOrKey: ULIDOrExternalKey,
     ...ListCustomerAppDataParams,
   ): PaginatedResponse<App.CustomerAppData> | NotFoundError | CommonErrors;
 
@@ -93,7 +93,7 @@ interface Customers {
   @operationId("upsertCustomerAppData")
   @summary("Upsert customer app data")
   upsertAppData(
-    @path customerIdOrKey: ULIDOrKey,
+    @path customerIdOrKey: ULIDOrExternalKey,
     @body appData: App.CustomerAppData[],
   ): App.CustomerAppData[] | NotFoundError | CommonErrors;
 
@@ -104,7 +104,7 @@ interface Customers {
   @route("/{customerIdOrKey}/apps/{appId}")
   @operationId("deleteCustomerAppData")
   @summary("Delete customer app data")
-  deleteAppData(@path customerIdOrKey: ULIDOrKey, @path appId: ULID): {
+  deleteAppData(@path customerIdOrKey: ULIDOrExternalKey, @path appId: ULID): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
 
@@ -116,7 +116,7 @@ interface Customers {
   @operationId("listCustomerSubscriptions")
   @summary("List customer subscriptions")
   listCustomerSubscriptions(
-    @path customerIdOrKey: ULIDOrKey,
+    @path customerIdOrKey: ULIDOrExternalKey,
     ...QueryPagination,
   ): PaginatedResponse<ProductCatalog.Subscription> | NotFoundError | CommonErrors;
 }

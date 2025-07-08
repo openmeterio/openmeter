@@ -3041,10 +3041,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            $ref: '#/components/schemas/ULIDOrExternalKey'
         - $ref: '#/components/parameters/queryCustomerGet'
       responses:
         '200':
@@ -3112,10 +3109,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            $ref: '#/components/schemas/ULIDOrExternalKey'
       responses:
         '200':
           description: The request has succeeded.
@@ -3188,10 +3182,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            $ref: '#/components/schemas/ULIDOrExternalKey'
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -3327,10 +3318,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            $ref: '#/components/schemas/ULIDOrExternalKey'
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/queryCustomerList.type'
@@ -3400,10 +3388,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            $ref: '#/components/schemas/ULIDOrExternalKey'
       responses:
         '200':
           description: The request has succeeded.
@@ -3481,10 +3466,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            $ref: '#/components/schemas/ULIDOrExternalKey'
         - name: appId
           in: path
           required: true
@@ -3643,10 +3625,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            $ref: '#/components/schemas/ULIDOrExternalKey'
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
       responses:
@@ -22506,6 +22485,18 @@ components:
           description: The customer is limited to spend at most the amount.
           title: Maximum amount
       description: Tiered price with spend commitments.
+    ULIDOrExternalKey:
+      anyOf:
+        - type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+        - type: string
+          minLength: 1
+          maxLength: 256
+          description: ExternalKey is a looser version of key.
+      description: ULID (Universally Unique Lexicographically Sortable Identifier) or external unique key.
+      x-go-type: string
     UnauthorizedProblemResponse:
       type: object
       allOf:

@@ -9837,6 +9837,8 @@ export interface components {
        */
       maximumAmount?: components['schemas']['Numeric']
     }
+    /** @description ULID (Universally Unique Lexicographically Sortable Identifier) or external unique key. */
+    ULIDOrExternalKey: string
     /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
     UnauthorizedProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description A Problem Details object (RFC 7807).
@@ -10867,6 +10869,7 @@ export type TaxConfig = components['schemas']['TaxConfig']
 export type TieredPriceMode = components['schemas']['TieredPriceMode']
 export type TieredPriceWithCommitments =
   components['schemas']['TieredPriceWithCommitments']
+export type UlidOrExternalKey = components['schemas']['ULIDOrExternalKey']
 export type UnauthorizedProblemResponse =
   components['schemas']['UnauthorizedProblemResponse']
 export type UnexpectedProblemResponse =
@@ -14889,7 +14892,7 @@ export interface operations {
       }
       header?: never
       path: {
-        customerIdOrKey: string
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
       }
       cookie?: never
     }
@@ -14983,7 +14986,7 @@ export interface operations {
       query?: never
       header?: never
       path: {
-        customerIdOrKey: string
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
       }
       cookie?: never
     }
@@ -15081,7 +15084,7 @@ export interface operations {
       query?: never
       header?: never
       path: {
-        customerIdOrKey: string
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
       }
       cookie?: never
     }
@@ -15278,7 +15281,7 @@ export interface operations {
       }
       header?: never
       path: {
-        customerIdOrKey: string
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
       }
       cookie?: never
     }
@@ -15372,7 +15375,7 @@ export interface operations {
       query?: never
       header?: never
       path: {
-        customerIdOrKey: string
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
       }
       cookie?: never
     }
@@ -15470,7 +15473,7 @@ export interface operations {
       query?: never
       header?: never
       path: {
-        customerIdOrKey: string
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
         appId: string
       }
       cookie?: never
@@ -15669,7 +15672,7 @@ export interface operations {
       }
       header?: never
       path: {
-        customerIdOrKey: string
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
       }
       cookie?: never
     }
