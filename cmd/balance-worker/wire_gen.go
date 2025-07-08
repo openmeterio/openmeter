@@ -224,9 +224,20 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
-	notificationService, err := common.NewNotificationService(logger, repository, handler, featureConnector)
+	eventHandler, cleanup7, err := common.NewNotificationEventHandler(logger, repository, handler)
 	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
+	notificationService, err := common.NewNotificationService(logger, repository, handler, eventHandler, featureConnector)
+	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -237,6 +248,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectAdapter, err := common.NewSubjectAdapter(client)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -247,6 +259,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectService, err := common.NewSubjectService(subjectAdapter)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -257,6 +270,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	filterStateStorage, err := common.NewBalanceWorkerFilterStateStorage(balanceWorkerConfiguration)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -268,6 +282,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, notificationService, subjectService, logger, filterStateStorage)
 	worker, err := common.NewBalanceWorker(workerOptions)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -279,6 +294,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -288,7 +304,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v4, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v4, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	group := common.BalanceWorkerGroup(ctx, worker, v4)
 	runner := common.Runner{
 		Group:  group,
@@ -301,6 +317,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Logger:            logger,
 	}
 	return application, func() {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()

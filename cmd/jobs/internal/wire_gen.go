@@ -409,8 +409,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	notificationService, err := common.NewNotificationService(logger, repository, webhookHandler, featureConnector)
+	eventHandler, cleanup7, err := common.NewNotificationEventHandler(logger, repository, webhookHandler)
 	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	notificationService, err := common.NewNotificationService(logger, repository, webhookHandler, eventHandler, featureConnector)
+	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -447,6 +458,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		StreamingConnector:            connector,
 	}
 	return application, func() {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()

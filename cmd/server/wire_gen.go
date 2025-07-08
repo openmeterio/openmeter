@@ -432,8 +432,20 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	notificationService, err := common.NewNotificationService(logger, repository, handler, featureConnector)
+	eventHandler, cleanup8, err := common.NewNotificationEventHandler(logger, repository, handler)
 	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	notificationService, err := common.NewNotificationService(logger, repository, handler, eventHandler, featureConnector)
+	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -446,6 +458,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	portalConfiguration := conf.Portal
 	portalService, err := common.NewPortalService(portalConfiguration)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -459,6 +472,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	routerHooks := common.NewRouterHooks(v6)
 	subjectAdapter, err := common.NewSubjectAdapter(client)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -470,6 +484,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectService, err := common.NewSubjectService(subjectAdapter)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -482,6 +497,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -492,10 +508,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v7, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v7, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -543,6 +560,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Tracer:                      tracer,
 	}
 	return application, func() {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
