@@ -6767,18 +6767,25 @@ export const listCustomersQueryParams = zod.object({
  * Get a customer by ID or key.
  * @summary Get customer
  */
-export const getCustomerPathCustomerIdOrKeyMax = 64
-
-export const getCustomerPathCustomerIdOrKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+export const getCustomerPathCustomerIdOrKeyRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const getCustomerPathCustomerIdOrKeyMaxTwo = 256
 
 export const getCustomerParams = zod.object({
   customerIdOrKey: zod.coerce
     .string()
-    .min(1)
-    .max(getCustomerPathCustomerIdOrKeyMax)
-    .regex(getCustomerPathCustomerIdOrKeyRegExp),
+    .regex(getCustomerPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(getCustomerPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
 })
 
 export const getCustomerQueryParams = zod.object({
@@ -6798,18 +6805,25 @@ export const getCustomerQueryParams = zod.object({
  * Update a customer by ID.
  * @summary Update customer
  */
-export const updateCustomerPathCustomerIdOrKeyMax = 64
-
-export const updateCustomerPathCustomerIdOrKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+export const updateCustomerPathCustomerIdOrKeyRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const updateCustomerPathCustomerIdOrKeyMaxTwo = 256
 
 export const updateCustomerParams = zod.object({
   customerIdOrKey: zod.coerce
     .string()
-    .min(1)
-    .max(updateCustomerPathCustomerIdOrKeyMax)
-    .regex(updateCustomerPathCustomerIdOrKeyRegExp),
+    .regex(updateCustomerPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(updateCustomerPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
 })
 
 export const updateCustomerBodyNameMax = 256
@@ -6927,18 +6941,25 @@ export const updateCustomerBody = zod
  * Delete a customer by ID.
  * @summary Delete customer
  */
-export const deleteCustomerPathCustomerIdOrKeyMax = 64
-
-export const deleteCustomerPathCustomerIdOrKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+export const deleteCustomerPathCustomerIdOrKeyRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const deleteCustomerPathCustomerIdOrKeyMaxTwo = 256
 
 export const deleteCustomerParams = zod.object({
   customerIdOrKey: zod.coerce
     .string()
-    .min(1)
-    .max(deleteCustomerPathCustomerIdOrKeyMax)
-    .regex(deleteCustomerPathCustomerIdOrKeyRegExp),
+    .regex(deleteCustomerPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(deleteCustomerPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
 })
 
 /**
@@ -6963,18 +6984,25 @@ export const getCustomerAccessParams = zod.object({
  * List customers app data.
  * @summary List customer app data
  */
-export const listCustomerAppDataPathCustomerIdOrKeyMax = 64
-
-export const listCustomerAppDataPathCustomerIdOrKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+export const listCustomerAppDataPathCustomerIdOrKeyRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const listCustomerAppDataPathCustomerIdOrKeyMaxTwo = 256
 
 export const listCustomerAppDataParams = zod.object({
   customerIdOrKey: zod.coerce
     .string()
-    .min(1)
-    .max(listCustomerAppDataPathCustomerIdOrKeyMax)
-    .regex(listCustomerAppDataPathCustomerIdOrKeyRegExp),
+    .regex(listCustomerAppDataPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(listCustomerAppDataPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
 })
 
 export const listCustomerAppDataQueryPageDefault = 1
@@ -7003,18 +7031,25 @@ export const listCustomerAppDataQueryParams = zod.object({
  * Upsert customer app data.
  * @summary Upsert customer app data
  */
-export const upsertCustomerAppDataPathCustomerIdOrKeyMax = 64
-
-export const upsertCustomerAppDataPathCustomerIdOrKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+export const upsertCustomerAppDataPathCustomerIdOrKeyRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const upsertCustomerAppDataPathCustomerIdOrKeyMaxTwo = 256
 
 export const upsertCustomerAppDataParams = zod.object({
   customerIdOrKey: zod.coerce
     .string()
-    .min(1)
-    .max(upsertCustomerAppDataPathCustomerIdOrKeyMax)
-    .regex(upsertCustomerAppDataPathCustomerIdOrKeyRegExp),
+    .regex(upsertCustomerAppDataPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(upsertCustomerAppDataPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
 })
 
 export const upsertCustomerAppDataBodyIdRegExp = new RegExp(
@@ -7351,11 +7386,10 @@ export const upsertCustomerAppDataBody = zod.array(
  * Delete customer app data.
  * @summary Delete customer app data
  */
-export const deleteCustomerAppDataPathCustomerIdOrKeyMax = 64
-
-export const deleteCustomerAppDataPathCustomerIdOrKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+export const deleteCustomerAppDataPathCustomerIdOrKeyRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const deleteCustomerAppDataPathCustomerIdOrKeyMaxTwo = 256
 export const deleteCustomerAppDataPathAppIdRegExp = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
@@ -7364,9 +7398,17 @@ export const deleteCustomerAppDataParams = zod.object({
   appId: zod.coerce.string().regex(deleteCustomerAppDataPathAppIdRegExp),
   customerIdOrKey: zod.coerce
     .string()
-    .min(1)
-    .max(deleteCustomerAppDataPathCustomerIdOrKeyMax)
-    .regex(deleteCustomerAppDataPathCustomerIdOrKeyRegExp),
+    .regex(deleteCustomerAppDataPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(deleteCustomerAppDataPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
 })
 
 /**
@@ -7405,18 +7447,25 @@ export const getCustomerEntitlementValueQueryParams = zod.object({
  * Lists all subscriptions for a customer.
  * @summary List customer subscriptions
  */
-export const listCustomerSubscriptionsPathCustomerIdOrKeyMax = 64
-
-export const listCustomerSubscriptionsPathCustomerIdOrKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+export const listCustomerSubscriptionsPathCustomerIdOrKeyRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const listCustomerSubscriptionsPathCustomerIdOrKeyMaxTwo = 256
 
 export const listCustomerSubscriptionsParams = zod.object({
   customerIdOrKey: zod.coerce
     .string()
-    .min(1)
-    .max(listCustomerSubscriptionsPathCustomerIdOrKeyMax)
-    .regex(listCustomerSubscriptionsPathCustomerIdOrKeyRegExp),
+    .regex(listCustomerSubscriptionsPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(listCustomerSubscriptionsPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
 })
 
 export const listCustomerSubscriptionsQueryPageDefault = 1

@@ -39,6 +39,16 @@ scalar ExternalKey extends string;
 @maxLength(64)
 scalar ULIDOrKey extends string;
 
+/**
+ * ULID (Universally Unique Lexicographically Sortable Identifier) or external unique key.
+ */
+@extension("x-go-type", "string")
+@friendlyName("ULIDOrExternalKey")
+union ULIDOrExternalKey {
+  id: ULID,
+  key: ExternalKey,
+}
+
 // NOTE (andras): key format enforcement isn't supported by TypeSpec (patternProperties). See: https://github.com/microsoft/typespec/discussions/1626
 // TODO: decide if we want to use the generated Metadata type instead and update code to use it
 /**
