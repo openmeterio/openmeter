@@ -348,6 +348,18 @@ func TestOpenPeriod(t *testing.T) {
 				period2:  OpenPeriod{From: &now, To: nil},
 				expected: nil,
 			},
+			{
+				name:     "zero length periods are not contained",
+				period1:  OpenPeriod{From: &now, To: &now},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: nil,
+			},
+			{
+				name:     "zero length periods are not contained (other way around)",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{From: &now, To: &now},
+				expected: nil,
+			},
 		}
 
 		for _, tt := range tests {

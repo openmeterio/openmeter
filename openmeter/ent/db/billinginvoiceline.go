@@ -29,6 +29,8 @@ type BillingInvoiceLine struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations map[string]interface{} `json:"annotations,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// Metadata holds the value of the "metadata" field.
@@ -256,7 +258,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billinginvoiceline.FieldQuantity:
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
-		case billinginvoiceline.FieldMetadata, billinginvoiceline.FieldTaxConfig:
+		case billinginvoiceline.FieldAnnotations, billinginvoiceline.FieldMetadata, billinginvoiceline.FieldTaxConfig:
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
@@ -290,6 +292,14 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
+			}
+		case billinginvoiceline.FieldAnnotations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
+				}
 			}
 		case billinginvoiceline.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -609,6 +619,9 @@ func (_m *BillingInvoiceLine) String() string {
 	var builder strings.Builder
 	builder.WriteString("BillingInvoiceLine(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
+	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")

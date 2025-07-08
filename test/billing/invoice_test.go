@@ -140,6 +140,10 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 						Metadata: map[string]string{
 							"key": "value",
 						},
+						Annotations: models.Annotations{
+							"string_key": "value",
+							"float_key":  1.0,
+						},
 
 						PerUnitAmount: alpacadecimal.NewFromFloat(100),
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
@@ -248,6 +252,10 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 				Metadata: map[string]string{
 					"key": "value",
+				},
+				Annotations: models.Annotations{
+					"string_key": "value",
+					"float_key":  1.0,
 				},
 			},
 			FlatFee: &billing.FlatFeeLine{

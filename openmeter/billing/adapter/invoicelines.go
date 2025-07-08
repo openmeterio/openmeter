@@ -87,6 +87,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetNillableDescription(line.Description).
 					SetCurrency(line.Currency).
 					SetMetadata(line.Metadata).
+					SetAnnotations(line.Annotations).
 					SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
 					// Totals
 					SetAmount(line.Totals.Amount).

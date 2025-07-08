@@ -40,6 +40,18 @@ func (_u *BillingInvoiceLineUpdate) Where(ps ...predicate.BillingInvoiceLine) *B
 	return _u
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_u *BillingInvoiceLineUpdate) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *BillingInvoiceLineUpdate) ClearAnnotations() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
 // SetMetadata sets the "metadata" field.
 func (_u *BillingInvoiceLineUpdate) SetMetadata(v map[string]string) *BillingInvoiceLineUpdate {
 	_u.mutation.SetMetadata(v)
@@ -812,6 +824,12 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 			}
 		}
 	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(billinginvoiceline.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(billinginvoiceline.FieldAnnotations, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(billinginvoiceline.FieldMetadata, field.TypeJSON, value)
 	}
@@ -1297,6 +1315,18 @@ type BillingInvoiceLineUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *BillingInvoiceLineMutation
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *BillingInvoiceLineUpdateOne) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *BillingInvoiceLineUpdateOne) ClearAnnotations() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
 }
 
 // SetMetadata sets the "metadata" field.
@@ -2100,6 +2130,12 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(billinginvoiceline.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(billinginvoiceline.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(billinginvoiceline.FieldMetadata, field.TypeJSON, value)

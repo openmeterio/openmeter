@@ -17,6 +17,8 @@ const (
 	Label = "billing_invoice_line"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
 	// FieldMetadata holds the string denoting the metadata field in the database.
@@ -183,6 +185,7 @@ const (
 // Columns holds all SQL columns for billinginvoiceline fields.
 var Columns = []string{
 	FieldID,
+	FieldAnnotations,
 	FieldNamespace,
 	FieldMetadata,
 	FieldCreatedAt,

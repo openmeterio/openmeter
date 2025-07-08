@@ -3377,6 +3377,273 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 	s.expectNoLineWithChildID(gatheringInvoice, *updatedLine.ChildUniqueReferenceID)
 }
 
+func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have a subscription with a single phase with recurring flat fee
+	// When
+	//  we have the draft and gathering invoices created, and manually mark lines as sync ignored, and then edit the line
+	// Then
+	//  resyncing the subscription would not cause the sync ignored lines to
+	//  - be touched on the draft invoice
+	//  - be deleted on the gathering invoice
+	//  - but new versions of lines can be created when they have NEW reference IDs
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "in-advance",
+						Name: "in-advance",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(5),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				},
+			},
+		},
+	})
+
+	// Let's sync for 2 months so we have lines on gathering and draft
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
+
+	// Let's assert we have one line on the draft invoice
+	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: s.Customer.GetID(),
+	})
+	s.NoError(err)
+	s.Len(draftInvoices, 1)
+	draftInvoice := draftInvoices[0]
+
+	s.DebugDumpInvoice("draft invoice", draftInvoice)
+
+	lines, ok := draftInvoice.Lines.Get()
+	s.True(ok)
+	s.Len(lines, 1)
+
+	draftLineReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID)
+	s.Equal(draftLineReferenceID, *lines[0].ChildUniqueReferenceID)
+
+	// Let's assert we have two lines on the gathering invoice
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	gatheringLines, ok := gatheringInvoice.Lines.Get()
+	s.True(ok)
+	s.Len(gatheringLines, 2)
+
+	gatheringLineReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[1]", subsView.Subscription.ID)
+	s.Equal(gatheringLineReferenceID, *gatheringLines[0].ChildUniqueReferenceID)
+
+	// Now let's manually mark the lines as sync ignored
+	_, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+		Invoice: draftInvoice.InvoiceID(),
+		EditFn: func(invoice *billing.Invoice) error {
+			line := s.getLineByChildID(*invoice, draftLineReferenceID)
+
+			line.Annotations = models.Annotations{
+				billing.AnnotationSubscriptionSyncIgnore: true,
+			}
+
+			return nil
+		},
+	})
+	s.NoError(err)
+
+	var gatheringInvoiceIgnoredLine *billing.Line
+
+	gatheringInvoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+		Invoice: gatheringInvoice.InvoiceID(),
+		EditFn: func(invoice *billing.Invoice) error {
+			line := s.getLineByChildID(*invoice, gatheringLineReferenceID)
+
+			line.Annotations = models.Annotations{
+				billing.AnnotationSubscriptionSyncIgnore: true,
+			}
+
+			gatheringInvoiceIgnoredLine = line.Clone()
+
+			return nil
+		},
+	})
+	s.NoError(err)
+
+	// Now let's edit the subscription
+	subsView, err = s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
+		patch.PatchRemoveItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-advance",
+		},
+		subscriptionAddItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-advance",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+		}.AsPatch(),
+	}, s.timingImmediate())
+	s.NoError(err)
+
+	// Now let's resync the subscription
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
+
+	// Then the lines should not be updated
+	draftInvoiceAfterSync, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		Invoice: draftInvoice.InvoiceID(),
+		Expand:  billing.InvoiceExpandAll,
+	})
+	s.NoError(err)
+	s.DebugDumpInvoice("draft invoice - after sync", draftInvoiceAfterSync)
+
+	expectedInvoice := draftInvoice.Clone()
+	expectedInvoice.Lines = expectedInvoice.Lines.Map(func(line *billing.Line) *billing.Line {
+		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == draftLineReferenceID {
+			line.Annotations = models.Annotations{
+				billing.AnnotationSubscriptionSyncIgnore: true,
+			}
+		}
+
+		return line
+	})
+
+	if len(expectedInvoice.ValidationIssues) == 0 {
+		expectedInvoice.ValidationIssues = nil
+	}
+
+	s.Equal(expectedInvoice.RemoveMetaForCompare(), draftInvoiceAfterSync.RemoveMetaForCompare())
+
+	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
+
+	gatheringInvoiceIgnoredLineAfterSync := s.getLineByChildID(gatheringInvoice, *gatheringInvoiceIgnoredLine.ChildUniqueReferenceID)
+	s.Equal(gatheringInvoiceIgnoredLine.RemoveMetaForCompare(), gatheringInvoiceIgnoredLineAfterSync.RemoveMetaForCompare())
+
+	// But the non-marked line should be deleted
+	deletedGartheringLinereferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[2]", subsView.Subscription.ID)
+	for _, line := range gatheringInvoice.Lines.OrEmpty() {
+		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == deletedGartheringLinereferenceID {
+			s.Fail("deleted line should be deleted")
+		}
+	}
+
+	// Finally, let's assert that the new versions of the lines are created!
+	updatedGartheringLines := gatheringInvoice.Lines.OrEmpty()
+	s.Len(updatedGartheringLines, 4)
+
+	newLineReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[1]/period[0]", subsView.Subscription.ID)
+	updatedLine := s.getLineByChildID(gatheringInvoice, newLineReferenceID)
+	s.NotNil(updatedLine)
+	s.Equal(alpacadecimal.NewFromFloat(10), updatedLine.FlatFee.PerUnitAmount)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriodChanges() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have a subscription with a single phase with two recurring fee items
+	// When
+	//  we have the gathering invoice and manually mark a line as sync ignored
+	//  and we cancel the subscription so the line would end earlier than before
+	// Then
+	//  the marked line doesn't change after re-syncing the subscription
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "marked",
+						Name: "marked",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(5),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: datetime.MustParse(s.T(), "P3M"),
+				},
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "non-marked",
+						Name: "non-marked",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(5),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: datetime.MustParse(s.T(), "P3M"),
+				},
+			},
+		},
+	})
+
+	// Let's just sync for the current month
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-04-01T00:00:00Z")))
+
+	// Let's assert we have two lines on the gathering invoice
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	gatheringLines, ok := gatheringInvoice.Lines.Get()
+	s.True(ok)
+	s.Len(gatheringLines, 4)
+
+	markedLineReferenceID := fmt.Sprintf("%s/first-phase/marked/v[0]/period[0]", subsView.Subscription.ID)
+	unMarkedLineReferenceID := fmt.Sprintf("%s/first-phase/non-marked/v[0]/period[0]", subsView.Subscription.ID)
+
+	// Now let's manually mark the lines as sync ignored
+	gatheringInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+		Invoice: gatheringInvoice.InvoiceID(),
+		EditFn: func(invoice *billing.Invoice) error {
+			line := s.getLineByChildID(*invoice, markedLineReferenceID)
+
+			line.Annotations = models.Annotations{
+				billing.AnnotationSubscriptionSyncIgnore: true,
+			}
+
+			return nil
+		},
+	})
+	s.NoError(err)
+
+	// Now let's cancel the subscription
+	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+		Custom: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")), // we cancel after the first month
+	})
+	s.NoError(err)
+
+	subsView, err = s.SubscriptionService.GetView(ctx, subsView.Subscription.NamespacedID)
+	s.NoError(err)
+
+	// Now let's resync the subscription
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-04-01T00:00:00Z")))
+
+	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
+
+	// And assert that everything works as expected
+	markedLine := s.getLineByChildID(gatheringInvoice, markedLineReferenceID)
+	s.NotNil(markedLine)
+	s.Equal(markedLine.Period, billing.Period{
+		Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+		End:   s.mustParseTime("2024-04-01T00:00:00Z"), // period wasn't updated
+	})
+
+	unmarkedLine := s.getLineByChildID(gatheringInvoice, unMarkedLineReferenceID)
+	s.NotNil(unmarkedLine)
+	s.Equal(unmarkedLine.Period, billing.Period{
+		Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+		End:   s.mustParseTime("2024-02-01T00:00:00Z"), // period was updated
+	})
+}
+
 func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	ctx := s.Context
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))

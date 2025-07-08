@@ -132,6 +132,7 @@ type LineBase struct {
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	Metadata    map[string]string    `json:"metadata"`
+	Annotations models.Annotations   `json:"annotations"`
 	Name        string               `json:"name"`
 	Type        InvoiceLineType      `json:"type"`
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
@@ -210,6 +211,13 @@ func (i LineBase) Clone() LineBase {
 		out.Metadata = make(map[string]string, len(i.Metadata))
 		for k, v := range i.Metadata {
 			out.Metadata[k] = v
+		}
+	}
+
+	if i.Annotations != nil {
+		out.Annotations = make(models.Annotations, len(i.Annotations))
+		for k, v := range i.Annotations {
+			out.Annotations[k] = v
 		}
 	}
 
@@ -591,6 +599,7 @@ type NewFlatFeeLineInput struct {
 
 	Name        string
 	Metadata    map[string]string
+	Annotations models.Annotations
 	Description *string
 
 	Currency currencyx.Code
@@ -617,6 +626,7 @@ func NewFlatFeeLine(input NewFlatFeeLineInput) *Line {
 
 			Name:        input.Name,
 			Metadata:    input.Metadata,
+			Annotations: input.Annotations,
 			Description: input.Description,
 
 			Status: InvoiceLineStatusValid,
@@ -673,6 +683,7 @@ func NewUsageBasedFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineO
 
 			Name:        input.Name,
 			Metadata:    input.Metadata,
+			Annotations: input.Annotations,
 			Description: input.Description,
 
 			Status: InvoiceLineStatusValid,
@@ -1102,11 +1113,12 @@ func (u UpdateInvoiceLineInput) Apply(l *Line) (*Line, error) {
 type UpdateInvoiceLineBaseInput struct {
 	InvoiceAt mo.Option[time.Time]
 
-	Metadata  mo.Option[map[string]string]
-	Name      mo.Option[string]
-	ManagedBy mo.Option[InvoiceLineManagedBy]
-	Period    mo.Option[Period]
-	TaxConfig mo.Option[*productcatalog.TaxConfig]
+	Metadata    mo.Option[map[string]string]
+	Annotations mo.Option[models.Annotations]
+	Name        mo.Option[string]
+	ManagedBy   mo.Option[InvoiceLineManagedBy]
+	Period      mo.Option[Period]
+	TaxConfig   mo.Option[*productcatalog.TaxConfig]
 }
 
 func (u UpdateInvoiceLineBaseInput) Validate() error {
@@ -1152,6 +1164,10 @@ func (u UpdateInvoiceLineBaseInput) Apply(l *Line) error {
 
 	if u.Metadata.IsPresent() {
 		l.Metadata = u.Metadata.OrEmpty()
+	}
+
+	if u.Annotations.IsPresent() {
+		l.Annotations = u.Annotations.OrEmpty()
 	}
 
 	if u.Name.IsPresent() {

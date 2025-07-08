@@ -320,6 +320,7 @@ type BillingInvoiceLine struct {
 
 func (BillingInvoiceLine) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		entutils.AnnotationsMixin{},
 		entutils.ResourceMixin{},
 		InvoiceLineBaseMixin{},
 		TotalsMixin{},

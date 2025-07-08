@@ -16212,6 +16212,7 @@ type BillingInvoiceLineMutation struct {
 	op                           Op
 	typ                          string
 	id                           *string
+	annotations                  *map[string]interface{}
 	namespace                    *string
 	metadata                     *map[string]string
 	created_at                   *time.Time
@@ -16372,6 +16373,55 @@ func (m *BillingInvoiceLineMutation) IDs(ctx context.Context) ([]string, error) 
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *BillingInvoiceLineMutation) SetAnnotations(value map[string]interface{}) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *BillingInvoiceLineMutation) Annotations() (r map[string]interface{}, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *BillingInvoiceLineMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[billinginvoiceline.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *BillingInvoiceLineMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceline.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *BillingInvoiceLineMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, billinginvoiceline.FieldAnnotations)
 }
 
 // SetNamespace sets the "namespace" field.
@@ -18193,7 +18243,10 @@ func (m *BillingInvoiceLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineMutation) Fields() []string {
-	fields := make([]string, 0, 33)
+	fields := make([]string, 0, 34)
+	if m.annotations != nil {
+		fields = append(fields, billinginvoiceline.FieldAnnotations)
+	}
 	if m.namespace != nil {
 		fields = append(fields, billinginvoiceline.FieldNamespace)
 	}
@@ -18301,6 +18354,8 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 // schema.
 func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case billinginvoiceline.FieldAnnotations:
+		return m.Annotations()
 	case billinginvoiceline.FieldNamespace:
 		return m.Namespace()
 	case billinginvoiceline.FieldMetadata:
@@ -18376,6 +18431,8 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case billinginvoiceline.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case billinginvoiceline.FieldNamespace:
 		return m.OldNamespace(ctx)
 	case billinginvoiceline.FieldMetadata:
@@ -18451,6 +18508,13 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 // type.
 func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case billinginvoiceline.FieldAnnotations:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
 	case billinginvoiceline.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
@@ -18712,6 +18776,9 @@ func (m *BillingInvoiceLineMutation) AddField(name string, value ent.Value) erro
 // mutation.
 func (m *BillingInvoiceLineMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(billinginvoiceline.FieldAnnotations) {
+		fields = append(fields, billinginvoiceline.FieldAnnotations)
+	}
 	if m.FieldCleared(billinginvoiceline.FieldMetadata) {
 		fields = append(fields, billinginvoiceline.FieldMetadata)
 	}
@@ -18768,6 +18835,9 @@ func (m *BillingInvoiceLineMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 	switch name {
+	case billinginvoiceline.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
 	case billinginvoiceline.FieldMetadata:
 		m.ClearMetadata()
 		return nil
@@ -18818,6 +18888,9 @@ func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 	switch name {
+	case billinginvoiceline.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
 	case billinginvoiceline.FieldNamespace:
 		m.ResetNamespace()
 		return nil

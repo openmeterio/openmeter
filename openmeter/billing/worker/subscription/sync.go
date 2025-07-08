@@ -629,6 +629,15 @@ func (h *Handler) getPatchesForExistingLineOrHierarchy(existingLine billing.Line
 }
 
 func (h *Handler) getPatchesForExistingLine(existingLine *billing.Line, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
+	// Lines can be manually marked as ignored in syncing, which is used for cases where we're doing backwards incompatible changes
+	if ignore, ok := expectedLine.Annotations[billing.AnnotationSubscriptionSyncIgnore]; ok && ignore == true {
+		return nil, nil
+	}
+
+	if ignore, ok := existingLine.Annotations[billing.AnnotationSubscriptionSyncIgnore]; ok && ignore == true {
+		return nil, nil
+	}
+
 	// Manual edits prevent resyncronization so that we preserve the user intent
 	if existingLine.ManagedBy != billing.SubscriptionManagedLine {
 		return nil, nil
