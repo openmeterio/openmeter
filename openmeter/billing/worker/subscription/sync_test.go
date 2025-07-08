@@ -3404,7 +3404,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: isodate.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParse(s.T(), "P1M"),
 				},
 			},
 		},
@@ -3486,7 +3486,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -3568,7 +3568,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: isodate.MustParse(s.T(), "P3M"),
+					BillingCadence: datetime.MustParse(s.T(), "P3M"),
 				},
 				&productcatalog.UsageBasedRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
@@ -3579,7 +3579,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: isodate.MustParse(s.T(), "P3M"),
+					BillingCadence: datetime.MustParse(s.T(), "P3M"),
 				},
 			},
 		},
