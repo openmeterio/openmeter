@@ -81,6 +81,11 @@ func (s *Service) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 	return s.adapter.GetCustomer(ctx, input)
 }
 
+// GetCustomerByUsageAttribution gets a customer by usage attribution
+func (s *Service) GetCustomerByUsageAttribution(ctx context.Context, input customer.GetCustomerByUsageAttributionInput) (*customer.Customer, error) {
+	return s.adapter.GetCustomerByUsageAttribution(ctx, input)
+}
+
 // UpdateCustomer updates a customer
 func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
 	// Validate the input

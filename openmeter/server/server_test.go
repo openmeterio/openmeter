@@ -1034,6 +1034,10 @@ func (n NoopCustomerService) GetCustomer(ctx context.Context, input customer.Get
 	return &customer.Customer{}, nil
 }
 
+func (n NoopCustomerService) GetCustomerByUsageAttribution(ctx context.Context, input customer.GetCustomerByUsageAttributionInput) (*customer.Customer, error) {
+	return &customer.Customer{}, nil
+}
+
 func (n NoopCustomerService) UpdateCustomer(ctx context.Context, params customer.UpdateCustomerInput) (*customer.Customer, error) {
 	return &customer.Customer{}, nil
 }
