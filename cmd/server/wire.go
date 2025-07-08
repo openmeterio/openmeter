@@ -51,6 +51,7 @@ type Application struct {
 	EntitlementRegistry         *registry.Entitlement
 	FeatureConnector            feature.FeatureConnector
 	IngestCollector             ingest.Collector
+	IngestService               *ingest.Service
 	KafkaProducer               *kafka.Producer
 	KafkaMetrics                *kafkametrics.Metrics
 	KafkaIngestNamespaceHandler *kafkaingest.NamespaceHandler
@@ -96,6 +97,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewDefaultTextMapPropagator,
 		common.NewKafkaIngestCollector,
 		common.NewIngestCollector,
+		common.NewIngestService,
 		common.NewServerPublisher,
 		common.Notification,
 		common.Streaming,

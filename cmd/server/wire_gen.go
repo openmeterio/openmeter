@@ -341,7 +341,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	appRegistry := common.NewAppRegistry(appService, appSandboxProvisioner, appstripeService, appcustominvoicingService)
-	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger)
+	dedupeConfiguration := conf.Dedupe
+	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger, commonMetadata)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -371,8 +372,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	ingestCollector, cleanup7, err := common.NewIngestCollector(conf, collector, logger, meter, tracer)
+	ingestCollector, cleanup7, err := common.NewIngestCollector(dedupeConfiguration, collector, logger, meter, tracer)
 	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	ingestService, err := common.NewIngestService(ingestCollector, logger)
+	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -535,6 +547,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		EntitlementRegistry:         entitlement,
 		FeatureConnector:            featureConnector,
 		IngestCollector:             ingestCollector,
+		IngestService:               ingestService,
 		KafkaProducer:               producer,
 		KafkaMetrics:                metrics,
 		KafkaIngestNamespaceHandler: namespaceHandler,
@@ -587,6 +600,7 @@ type Application struct {
 	EntitlementRegistry         *registry.Entitlement
 	FeatureConnector            feature.FeatureConnector
 	IngestCollector             ingest.Collector
+	IngestService               *ingest.Service
 	KafkaProducer               *kafka2.Producer
 	KafkaMetrics                *metrics.Metrics
 	KafkaIngestNamespaceHandler *kafkaingest.NamespaceHandler
