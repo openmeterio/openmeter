@@ -13,6 +13,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/collector/benthos/input/runai"
+	"github.com/openmeterio/openmeter/collector/benthos/services/leaderelection"
 )
 
 var resourceTypes = []string{"workload", "pod"}
@@ -124,7 +125,7 @@ func init() {
 	err := service.RegisterBatchInput("run_ai", runAIInputConfig(), func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchInput, error) {
 		httpMetrics := mgr.Metrics().NewTimer("run_ai_http_request_ns", "url", "status_code")
 		resourceTypeMetrics := mgr.Metrics().NewGauge("run_ai_resource_count", "type")
-		in, err := newRunAIInput(conf, mgr.Logger(), httpMetrics, resourceTypeMetrics)
+		in, err := newRunAIInput(conf, mgr, httpMetrics, resourceTypeMetrics)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +142,6 @@ func init() {
 var _ service.BatchInput = (*runAIInput)(nil)
 
 type runAIInput struct {
-	logger        *service.Logger
 	service       *runai.Service
 	resourceType  string
 	metrics       []runai.MetricType
@@ -151,12 +151,16 @@ type runAIInput struct {
 	scheduler     gocron.Scheduler
 	store         map[time.Time][]runai.ResourceWithMetrics
 	mu            sync.Mutex
+	resources     *service.Resources
+	logger        *service.Logger
 
 	timingMetrics       *service.MetricTimer
 	resourceTypeMetrics *service.MetricGauge
 }
 
-func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetrics *service.MetricTimer, resourceTypeMetrics *service.MetricGauge) (*runAIInput, error) {
+func newRunAIInput(conf *service.ParsedConfig, resources *service.Resources, httpMetrics *service.MetricTimer, resourceTypeMetrics *service.MetricGauge) (*runAIInput, error) {
+	logger := resources.Logger().With("component", "run_ai")
+
 	url, err := conf.FieldString(fieldURL)
 	if err != nil {
 		return nil, err
@@ -241,7 +245,7 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetri
 		return nil, err
 	}
 
-	service, err := runai.NewService(url, appID, appSecret, logger, runai.ServiceConfig{
+	service, err := runai.NewService(url, appID, appSecret, resources.Logger(), runai.ServiceConfig{
 		Timeout:             requestTimeout,
 		RetryCount:          retryCount,
 		RetryWaitTime:       retryWaitTime,
@@ -260,7 +264,6 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetri
 	}
 
 	return &runAIInput{
-		logger:        logger,
 		service:       service,
 		resourceType:  resourceType,
 		interval:      interval,
@@ -270,8 +273,10 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger, httpMetri
 		metrics: lo.Map(metrics, func(metric string, _ int) runai.MetricType {
 			return runai.MetricType(metric)
 		}),
-		store: make(map[time.Time][]runai.ResourceWithMetrics),
-		mu:    sync.Mutex{},
+		store:     make(map[time.Time][]runai.ResourceWithMetrics),
+		mu:        sync.Mutex{},
+		resources: resources,
+		logger:    logger,
 	}, nil
 }
 
@@ -341,8 +346,28 @@ func (in *runAIInput) Connect(ctx context.Context) error {
 		return err
 	}
 
-	// Start the scheduler
-	in.scheduler.Start()
+	go func() {
+		running := false
+		for {
+			switch leaderelection.IsLeader(in.resources) {
+			case false:
+				if running {
+					err := in.scheduler.StopJobs()
+					if err != nil {
+						in.logger.Errorf("error stopping jobs: %v", err)
+					}
+					running = false
+				}
+			case true:
+				if !running {
+					in.scheduler.Start()
+					running = true
+				}
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+	}()
 
 	return nil
 }

@@ -12,8 +12,13 @@ import (
 	_ "github.com/openmeterio/openmeter/collector/benthos/bloblang" // import bloblang plugins
 	_ "github.com/openmeterio/openmeter/collector/benthos/input"    // import input plugins
 	_ "github.com/openmeterio/openmeter/collector/benthos/output"   // import output plugins
+	"github.com/openmeterio/openmeter/collector/benthos/services/leaderelection"
 )
 
 func main() {
-	service.RunCLI(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	service.RunCLI(ctx,
+		leaderelection.GetLeaderElectionCLIOpts(ctx)...)
 }

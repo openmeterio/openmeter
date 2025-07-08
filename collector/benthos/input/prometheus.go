@@ -12,6 +12,8 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/redpanda-data/benthos/v4/public/service"
 	"github.com/robfig/cron/v3"
+
+	"github.com/openmeterio/openmeter/collector/benthos/services/leaderelection"
 )
 
 const (
@@ -61,7 +63,7 @@ input:
 
 func init() {
 	err := service.RegisterBatchInput("prometheus", prometheusInputConfig(), func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchInput, error) {
-		return newPrometheusInput(conf, mgr.Logger())
+		return newPrometheusInput(conf, mgr)
 	})
 	if err != nil {
 		panic(err)
@@ -83,6 +85,7 @@ type QueryResult struct {
 var _ service.BatchInput = (*prometheusInput)(nil)
 
 type prometheusInput struct {
+	resources   *service.Resources
 	logger      *service.Logger
 	client      v1.API
 	queries     []PromQuery
@@ -94,7 +97,9 @@ type prometheusInput struct {
 	mu          sync.Mutex
 }
 
-func newPrometheusInput(conf *service.ParsedConfig, logger *service.Logger) (*prometheusInput, error) {
+func newPrometheusInput(conf *service.ParsedConfig, res *service.Resources) (*prometheusInput, error) {
+	logger := res.Logger().With("component", "prometheus")
+
 	url, err := conf.FieldString(fieldPrometheusURL)
 	if err != nil {
 		return nil, err
@@ -171,6 +176,7 @@ func newPrometheusInput(conf *service.ParsedConfig, logger *service.Logger) (*pr
 	}
 
 	return &prometheusInput{
+		resources:   res,
 		logger:      logger,
 		client:      v1.NewAPI(client),
 		queries:     queries,
@@ -258,8 +264,28 @@ func (in *prometheusInput) Connect(ctx context.Context) error {
 		return err
 	}
 
-	// Start the scheduler
-	in.scheduler.Start()
+	go func() {
+		running := false
+		for {
+			switch leaderelection.IsLeader(in.resources) {
+			case false:
+				if running {
+					err := in.scheduler.StopJobs()
+					if err != nil {
+						in.logger.Errorf("error stopping jobs: %v", err)
+					}
+					running = false
+				}
+			case true:
+				if !running {
+					in.scheduler.Start()
+					running = true
+				}
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+	}()
 
 	return nil
 }
