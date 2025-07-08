@@ -366,7 +366,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger)
+	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger, commonMetadata)
 	if err != nil {
 		cleanup6()
 		cleanup5()

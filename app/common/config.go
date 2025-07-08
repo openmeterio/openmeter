@@ -24,6 +24,7 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Entitlements"),
 	// Events
 	wire.FieldsOf(new(config.Configuration), "Events"),
+	wire.FieldsOf(new(config.Configuration), "Dedupe"),
 	// Kafka
 	// TODO: refactor to move out Kafka config from ingest and consolidate
 	wire.FieldsOf(new(config.KafkaIngestConfiguration), "KafkaConfiguration"),

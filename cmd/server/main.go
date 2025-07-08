@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/debug"
-	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
@@ -114,12 +113,8 @@ func main() {
 	}
 
 	// Initialize HTTP Ingest handler
-	ingestService := ingest.Service{
-		Collector: app.IngestCollector,
-		Logger:    logger,
-	}
 	ingestHandler := ingestdriver.NewIngestEventsHandler(
-		ingestService.IngestEvents,
+		app.IngestService.IngestEvents,
 		namespacedriver.StaticNamespaceDecoder(app.NamespaceManager.GetDefaultNamespace()),
 		nil,
 		errorsx.NewSlogHandler(logger),

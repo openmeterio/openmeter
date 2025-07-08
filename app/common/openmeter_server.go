@@ -45,7 +45,7 @@ func NewKafkaIngestCollector(
 }
 
 func NewIngestCollector(
-	conf config.Configuration,
+	dedupeConfig config.DedupeConfiguration,
 	kafkaCollector *kafkaingest.Collector,
 	logger *slog.Logger,
 	meter metric.Meter,
@@ -56,8 +56,8 @@ func NewIngestCollector(
 		return nil, nil, fmt.Errorf("init kafka ingest: %w", err)
 	}
 
-	if conf.Dedupe.Enabled {
-		deduplicator, err := conf.Dedupe.NewDeduplicator()
+	if dedupeConfig.Enabled {
+		deduplicator, err := dedupeConfig.NewDeduplicator()
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to initialize deduplicator: %w", err)
 		}
@@ -102,4 +102,14 @@ func ServerProvisionTopics(conf config.EventsConfiguration) []pkgkafka.TopicConf
 	}
 
 	return provisionTopics
+}
+
+func NewIngestService(
+	collector ingest.Collector,
+	logger *slog.Logger,
+) (*ingest.Service, error) {
+	return &ingest.Service{
+		Collector: collector,
+		Logger:    logger,
+	}, nil
 }

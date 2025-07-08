@@ -37,24 +37,17 @@ var KafkaNamespaceResolver = wire.NewSet(
 	wire.Bind(new(topicresolver.Resolver), new(*topicresolver.NamespacedTopicResolver)),
 )
 
-// TODO: use ingest config directly?
-// TODO: use kafka config directly?
 // TODO: add closer function?
-func NewKafkaProducer(conf config.KafkaIngestConfiguration, logger *slog.Logger) (*kafka.Producer, error) {
-	// Initialize Kafka Admin Client
+func NewKafkaProducer(conf config.KafkaIngestConfiguration, logger *slog.Logger, meta Metadata) (*kafka.Producer, error) {
 	kafkaConfig := conf.CreateKafkaConfig()
+	_ = kafkaConfig.SetKey("client.id", meta.ServiceName)
 
-	// Initialize Kafka Producer
 	producer, err := kafka.NewProducer(&kafkaConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kafka producer: %w", err)
 	}
 
-	// TODO: move out of this function?
 	go pkgkafka.ConsumeLogChannel(producer, logger.WithGroup("kafka").WithGroup("producer"))
-
-	// TODO: remove?
-	logger.Debug("connected to Kafka")
 
 	return producer, nil
 }
