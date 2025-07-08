@@ -367,12 +367,20 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 		)
 	}
 
-	query := a.db.Customer.Query().Where(customerdb.Namespace(input.Namespace))
+	query := a.db.Customer.Query().
+		Where(customerdb.Namespace(input.Namespace)).
+		Where(customerdb.HasSubjectsWith(customersubjectsdb.SubjectKey(input.SubjectKey)))
 	query = withSubjects(query)
 	query = withActiveSubscription(query)
 
 	customerEntity, err := query.First(ctx)
 	if err != nil {
+		if entdb.IsNotFound(err) {
+			return nil, models.NewGenericNotFoundError(
+				fmt.Errorf("customer with subject key %s not found in %s namespace", input.SubjectKey, input.Namespace),
+			)
+		}
+
 		return nil, fmt.Errorf("failed to fetch customer: %w", err)
 	}
 
