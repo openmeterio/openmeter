@@ -16,6 +16,7 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationadapter "github.com/openmeterio/openmeter/openmeter/notification/adapter"
+	"github.com/openmeterio/openmeter/openmeter/notification/eventhandler"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	webhooksvix "github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
@@ -165,10 +166,30 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		return nil, fmt.Errorf("failed to create webhook handler: %w", err)
 	}
 
+	eventHandler, err := eventhandler.New(eventhandler.Config{
+		Repository: adapter,
+		Webhook:    webhook,
+		Logger:     logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
+	}
+
+	if err = eventHandler.Start(); err != nil {
+		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
+	}
+
+	t.Cleanup(func() {
+		if err = eventHandler.Close(); err != nil {
+			logger.Error("failed to close notification event handler", "error", err)
+		}
+	})
+
 	service, err := notificationservice.New(notificationservice.Config{
 		Adapter:          adapter,
 		FeatureConnector: featureConnector,
 		Webhook:          webhook,
+		EventHandler:     eventHandler,
 		Logger:           logger.With(slog.String("subsystem", "notification")),
 	})
 	if err != nil {

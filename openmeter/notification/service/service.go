@@ -7,7 +7,6 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/openmeter/notification/eventhandler"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
@@ -32,8 +31,9 @@ type Service struct {
 type Config struct {
 	FeatureConnector feature.FeatureConnector
 
-	Adapter notification.Repository
-	Webhook webhook.Handler
+	Adapter      notification.Repository
+	Webhook      webhook.Handler
+	EventHandler notification.EventHandler
 
 	Logger *slog.Logger
 }
@@ -55,24 +55,15 @@ func New(config Config) (*Service, error) {
 		return nil, errors.New("missing logger")
 	}
 
-	eventHandler, err := eventhandler.New(eventhandler.Config{
-		Repository: config.Adapter,
-		Webhook:    config.Webhook,
-		Logger:     config.Logger,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
-	}
-
-	if err = eventHandler.Start(); err != nil {
-		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
+	if config.EventHandler == nil {
+		return nil, errors.New("missing event handler")
 	}
 
 	return &Service{
 		adapter:      config.Adapter,
 		feature:      config.FeatureConnector,
 		webhook:      config.Webhook,
-		eventHandler: eventHandler,
+		eventHandler: config.EventHandler,
 		logger:       config.Logger,
 	}, nil
 }
