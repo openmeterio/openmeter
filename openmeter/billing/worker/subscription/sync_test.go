@@ -4462,6 +4462,118 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 	})
 }
 
+func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithmChange() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2025-01-31T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	// Given
+	//	a subscription started with a monthly in advance flat fee
+	//  the first month is already synced
+	// When we change the algorithm we use to calculate the period (emulated by an invoice change)
+	// Then
+	//  The next line will be automatically adjusted to start at the end of the previous period's end
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "in-advance",
+						Name: "in-advance",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(6),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, clock.Now()))
+
+	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", invoice)
+
+	invoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+		Invoice: invoice.InvoiceID(),
+		EditFn: func(invoice *billing.Invoice) error {
+			line := invoice.Lines.OrEmpty()[0]
+			// simulate some faulty behavior (the old algo would have set the end to 03-03, but this way we can test this with both the old and new alog)
+			line.Period.Start = s.mustParseTime("2025-01-31T00:00:00Z")
+			line.Period.End = s.mustParseTime("2025-03-02T00:00:00Z")
+			line.Annotations = models.Annotations{
+				billing.AnnotationSubscriptionSyncIgnore: true,
+			}
+
+			invoice.Lines = billing.NewLineChildren([]*billing.Line{
+				line,
+			})
+			return nil
+		},
+	})
+	s.NoError(err)
+
+	s.DebugDumpInvoice("gathering invoice - updated", invoice)
+	s.expectLines(invoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-advance",
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(6.0),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2025-01-31T00:00:00Z"),
+					End:   s.mustParseTime("2025-03-02T00:00:00Z"),
+				},
+			},
+		},
+	})
+
+	// Let's generate the next set of items
+	clock.FreezeTime(s.mustParseTime("2025-02-28T00:00:00Z"))
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, clock.Now()))
+
+	invoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice - updated", invoice)
+
+	s.expectLines(invoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-advance",
+				PeriodMin: 0,
+				PeriodMax: 1,
+			},
+			Qty:       mo.Some(1.0),
+			UnitPrice: mo.Some(6.0),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2025-01-31T00:00:00Z"),
+					End:   s.mustParseTime("2025-03-02T00:00:00Z"),
+				},
+				{
+					Start: s.mustParseTime("2025-03-02T00:00:00Z"),
+					// TODO: Once the period fix is there, this should be 03-31
+					End: s.mustParseTime("2025-04-03T00:00:00Z"),
+				},
+			},
+
+			InvoiceAt: mo.Some([]time.Time{
+				s.mustParseTime("2025-01-31T00:00:00Z"),
+				// TODO: Once the period fix is there, this should be 03-31
+				s.mustParseTime("2025-03-02T00:00:00Z"),
+			}),
+		},
+	})
+}
+
 type expectedLine struct {
 	Matcher   lineMatcher
 	Qty       mo.Option[float64]

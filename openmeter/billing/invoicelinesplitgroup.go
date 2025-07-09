@@ -333,3 +333,14 @@ func (i LineOrHierarchy) ChildUniqueReferenceID() *string {
 
 	return nil
 }
+
+func (i LineOrHierarchy) ServicePeriod() Period {
+	switch i.t {
+	case LineOrHierarchyTypeLine:
+		return i.line.Period
+	case LineOrHierarchyTypeHierarchy:
+		return i.splitLineHierarchy.Group.ServicePeriod
+	}
+
+	return Period{}
+}
