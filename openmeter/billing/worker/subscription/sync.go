@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -271,13 +272,6 @@ func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs
 			return nil, nil
 		}
 
-		inScopeLinesByUniqueID, unique := slicesx.UniqueGroupBy(inScopeLines, func(i subscriptionItemWithPeriods) string {
-			return i.UniqueID
-		})
-		if !unique {
-			return nil, fmt.Errorf("duplicate unique ids in the upcoming lines")
-		}
-
 		existingLinesByUniqueID, unique := slicesx.UniqueGroupBy(
 			lo.Filter(existingLines, func(l billing.LineOrHierarchy, _ int) bool {
 				return l.ChildUniqueReferenceID() != nil
@@ -287,6 +281,19 @@ func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs
 			})
 		if !unique {
 			return nil, fmt.Errorf("duplicate unique ids in the existing lines")
+		}
+
+		// let's correct the period start (+invoiceAt) for any upcoming lines if needed
+		inScopeLines, err = h.correctPeriodStartForUpcomingLines(ctx, subs.Subscription.ID, inScopeLines, existingLinesByUniqueID)
+		if err != nil {
+			return nil, fmt.Errorf("correcting period start for upcoming lines: %w", err)
+		}
+
+		inScopeLinesByUniqueID, unique := slicesx.UniqueGroupBy(inScopeLines, func(i subscriptionItemWithPeriods) string {
+			return i.UniqueID
+		})
+		if !unique {
+			return nil, fmt.Errorf("duplicate unique ids in the upcoming lines")
 		}
 
 		existingLineUniqueIDs := lo.Keys(existingLinesByUniqueID)
@@ -330,6 +337,114 @@ func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs
 			LinesToUpsert: linesToUpsert,
 		}, nil
 	})
+}
+
+// correctPeriodStartForUpcomingLines corrects the period start for the upcoming lines, it will adjust the period start for the lines.
+//
+// The adjustment only happens if the line is subscription managed and has billing.subscription.sync.ignore annotation. This esentially
+// allows for reanchoring if the period calculation changes.
+func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscriptionID string, inScopeLines []subscriptionItemWithPeriods, existingLinesByUniqueID map[string]billing.LineOrHierarchy) ([]subscriptionItemWithPeriods, error) {
+	for idx, line := range inScopeLines {
+		if line.PeriodIndex == 0 {
+			// This is the first period, so we don't need to correct the period start
+			continue
+		}
+
+		previousPeriodUniqueID := strings.Join([]string{
+			subscriptionID,
+			line.PhaseKey,
+			line.Spec.ItemKey,
+			fmt.Sprintf("v[%d]", line.ItemVersion),
+			fmt.Sprintf("period[%d]", line.PeriodIndex-1),
+		}, "/")
+
+		existingPreviousLine, ok := existingLinesByUniqueID[previousPeriodUniqueID]
+		if !ok {
+			// This is a new line, so we don't need to correct the period start
+			continue
+		}
+
+		switch existingPreviousLine.Type() {
+		case billing.LineOrHierarchyTypeLine:
+			previousLine, err := existingPreviousLine.AsLine()
+			if err != nil {
+				return nil, fmt.Errorf("getting previous line: %w", err)
+			}
+
+			if !h.isLineInScopeForPeriodCorrection(previousLine) {
+				continue
+			}
+		case billing.LineOrHierarchyTypeHierarchy:
+			hierarchy, err := existingPreviousLine.AsHierarchy()
+			if err != nil {
+				return nil, fmt.Errorf("getting previous hierarchy: %w", err)
+			}
+
+			if !h.isHierarchyInScopeForPeriodCorrection(hierarchy) {
+				continue
+			}
+
+		default:
+			continue
+		}
+
+		previousServicePeriod := existingPreviousLine.ServicePeriod()
+
+		// If the lines are continuous we are fine
+		if line.ServicePeriod.Start.Equal(previousServicePeriod.End) {
+			continue
+		}
+
+		// Should not happen as this line is never the first line
+		if !line.ServicePeriod.Start.Equal(line.BillingPeriod.Start) || !line.FullServicePeriod.Start.Equal(line.BillingPeriod.Start) {
+			return nil, fmt.Errorf("line[%s] service period start does not match billing period start or full service period start", line.UniqueID)
+		}
+
+		inScopeLines[idx].ServicePeriod.Start = previousServicePeriod.End
+		inScopeLines[idx].BillingPeriod.Start = previousServicePeriod.End
+		inScopeLines[idx].FullServicePeriod.Start = previousServicePeriod.End
+	}
+
+	return inScopeLines, nil
+}
+
+func (h *Handler) isLineInScopeForPeriodCorrection(line *billing.Line) bool {
+	if line.ManagedBy != billing.SubscriptionManagedLine {
+		// We only correct the period start for subscription managed lines, for manual edits
+		// we should not apply this logic, as the user might have created a setup where the period start
+		// is no longer valid.
+		return false
+	}
+
+	if line.Annotations == nil {
+		// If the previous line is not annotated to be frozen we should not correct the period start
+		return false
+	}
+
+	val, ok := line.Annotations[billing.AnnotationSubscriptionSyncIgnore]
+	if !ok {
+		return false
+	}
+
+	boolVal, ok := val.(bool)
+	if !ok {
+		return false
+	}
+
+	return boolVal
+}
+
+func (h *Handler) isHierarchyInScopeForPeriodCorrection(hierarchy *billing.SplitLineHierarchy) bool {
+	servicePeriod := hierarchy.Group.ServicePeriod
+
+	// The correction can only happen if the last line the progressively billed group is in scope for the period correction
+	for _, line := range hierarchy.Lines {
+		if line.Line.Period.End.Equal(servicePeriod.End) {
+			return h.isLineInScopeForPeriodCorrection(line.Line)
+		}
+	}
+
+	return false
 }
 
 func (h *Handler) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.SubscriptionView, currency currencyx.Calculator, invoiceByID InvoiceByID) ([]linePatch, error) {

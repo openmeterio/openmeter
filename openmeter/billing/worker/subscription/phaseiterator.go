@@ -45,7 +45,12 @@ type subscriptionItemWithPeriods struct {
 	subscription.SubscriptionItemView
 	// References
 	UniqueID string
+
 	PhaseID  string
+	PhaseKey string
+
+	PeriodIndex int
+	ItemVersion int
 
 	// Period Information
 
@@ -374,7 +379,10 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 				fmt.Sprintf("v[%d]", version),
 				fmt.Sprintf("period[%d]", periodIdx),
 			}, "/"),
-			PhaseID: it.phase.SubscriptionPhase.ID,
+			PhaseID:     it.phase.SubscriptionPhase.ID,
+			PhaseKey:    it.phase.Spec.PhaseKey,
+			PeriodIndex: periodIdx,
+			ItemVersion: version,
 
 			ServicePeriod: billing.Period{
 				Start: servicePeriod.From,
@@ -465,7 +473,10 @@ func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.Subscripti
 			item.Spec.ItemKey,
 			fmt.Sprintf("v[%d]", versionID),
 		}, "/"),
-		PhaseID: it.phase.SubscriptionPhase.ID,
+		PhaseID:     it.phase.SubscriptionPhase.ID,
+		PhaseKey:    it.phase.Spec.PhaseKey,
+		PeriodIndex: 0,
+		ItemVersion: versionID,
 
 		ServicePeriod: billing.Period{
 			Start: servicePeriod.From,
