@@ -535,6 +535,48 @@ func (s *CustomerHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	require.True(t, models.IsGenericNotFoundError(err), "Fetching non-existent customer must return not found error")
 }
 
+// TestGetByUsageAttribution tests the getting of a customer by usage attribution
+func (s *CustomerHandlerTestSuite) TestGetByUsageAttribution(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	service := s.Env.Customer()
+
+	// Create a customer
+	createdCustomer, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Name: TestName,
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: TestSubjectKeys,
+			},
+		},
+	})
+
+	require.NoError(t, err, "Creating customer must not return error")
+	require.NotNil(t, createdCustomer, "Customer must not be nil")
+
+	// Get the customer by usage attribution
+	cus, err := service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  s.namespace,
+		SubjectKey: TestSubjectKeys[0],
+	})
+
+	require.NoError(t, err, "Fetching customer must not return error")
+	require.NotNil(t, cus, "Customer must not be nil")
+	require.Equal(t, s.namespace, cus.Namespace, "Customer namespace must match")
+	require.Equal(t, createdCustomer.ID, cus.ID, "Customer ID must match")
+	require.Equal(t, TestName, cus.Name, "Customer name must match")
+	require.Equal(t, TestSubjectKeys, cus.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+
+	// Get the customer by usage attribution with a non-existent subject key
+	_, err = service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  s.namespace,
+		SubjectKey: "non-existent-subject-key",
+	})
+
+	require.True(t, models.IsGenericNotFoundError(err), "Fetching customer with non-existent subject key must return not found error")
+}
+
 // TestDelete tests the deletion of a customer
 func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)

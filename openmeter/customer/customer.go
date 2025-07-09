@@ -137,6 +137,24 @@ func (c CustomerUsageAttribution) GetSubjectKey() (string, error) {
 	return c.SubjectKeys[0], nil
 }
 
+// GetCustomerByUsageAttributionInput represents the input for the GetCustomerByUsageAttribution method
+type GetCustomerByUsageAttributionInput struct {
+	Namespace  string
+	SubjectKey string
+}
+
+func (i GetCustomerByUsageAttributionInput) Validate() error {
+	if i.Namespace == "" {
+		return models.NewGenericValidationError(errors.New("namespace is required"))
+	}
+
+	if i.SubjectKey == "" {
+		return models.NewGenericValidationError(errors.New("subject key is required"))
+	}
+
+	return nil
+}
+
 // ListCustomersInput represents the input for the ListCustomers method
 type ListCustomersInput struct {
 	Namespace string

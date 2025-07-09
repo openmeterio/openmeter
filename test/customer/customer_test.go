@@ -39,6 +39,10 @@ func TestCustomer(t *testing.T) {
 			testSuite.TestGet(ctx, t)
 		})
 
+		t.Run("TestGetByUsageAttribution", func(t *testing.T) {
+			testSuite.TestGetByUsageAttribution(ctx, t)
+		})
+
 		t.Run("TestUpdate", func(t *testing.T) {
 			testSuite.TestUpdate(ctx, t)
 		})

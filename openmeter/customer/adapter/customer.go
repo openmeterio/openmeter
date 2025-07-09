@@ -37,16 +37,9 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			// Build the database query
 			now := clock.Now().UTC()
 
-			query := repo.db.Customer.
-				Query().
-				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
-					query.Where(customersubjectsdb.DeletedAtIsNil())
-				}).
-				WithSubscription(func(sq *entdb.SubscriptionQuery) {
-					applyActiveSubscriptionFilter(sq, now)
-					sq.WithPlan()
-				}).
-				Where(customerdb.Namespace(input.Namespace))
+			query := repo.db.Customer.Query().Where(customerdb.Namespace(input.Namespace))
+			query = withSubjects(query)
+			query = withSubscription(query, now)
 
 			// Do not return deleted customers by default
 			if !input.IncludeDeleted {
@@ -311,14 +304,9 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 				)
 			}
 
-			query := repo.db.Customer.Query().
-				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
-					query.Where(customersubjectsdb.DeletedAtIsNil())
-				}).
-				WithSubscription(func(query *entdb.SubscriptionQuery) {
-					applyActiveSubscriptionFilter(query, clock.Now().UTC())
-					query.WithPlan()
-				})
+			query := repo.db.Customer.Query()
+			query = withSubjects(query)
+			query = withActiveSubscription(query)
 
 			if input.CustomerID != nil {
 				query = query.Where(customerdb.Namespace(input.CustomerID.Namespace))
@@ -369,6 +357,38 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 			return CustomerFromDBEntity(*entity)
 		},
 	)
+}
+
+// GetCustomerByUsageAttribution gets a customer by usage attribution
+func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input customer.GetCustomerByUsageAttributionInput) (*customer.Customer, error) {
+	if err := input.Validate(); err != nil {
+		return nil, models.NewGenericValidationError(
+			fmt.Errorf("error getting customer by usage attribution: %w", err),
+		)
+	}
+
+	query := a.db.Customer.Query().
+		Where(customerdb.Namespace(input.Namespace)).
+		Where(customerdb.HasSubjectsWith(customersubjectsdb.SubjectKey(input.SubjectKey)))
+	query = withSubjects(query)
+	query = withActiveSubscription(query)
+
+	customerEntity, err := query.First(ctx)
+	if err != nil {
+		if entdb.IsNotFound(err) {
+			return nil, models.NewGenericNotFoundError(
+				fmt.Errorf("customer with subject key %s not found in %s namespace", input.SubjectKey, input.Namespace),
+			)
+		}
+
+		return nil, fmt.Errorf("failed to fetch customer: %w", err)
+	}
+
+	if customerEntity == nil {
+		return nil, fmt.Errorf("invalid query result: nil customer received")
+	}
+
+	return CustomerFromDBEntity(*customerEntity)
 }
 
 // UpdateCustomer updates a customer
@@ -597,6 +617,28 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				return cus, nil
 			},
 		)
+	})
+}
+
+// withSubjects returns a query with the subjects
+func withSubjects(query *entdb.CustomerQuery) *entdb.CustomerQuery {
+	return query.WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
+		query.Where(customersubjectsdb.DeletedAtIsNil())
+	})
+}
+
+// withActiveSubscription returns a query with the active subscription
+func withActiveSubscription(query *entdb.CustomerQuery) *entdb.CustomerQuery {
+	now := clock.Now().UTC()
+
+	return withSubscription(query, now)
+}
+
+// withSubscription returns a query with the subscription
+func withSubscription(query *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
+	return query.WithSubscription(func(query *entdb.SubscriptionQuery) {
+		applyActiveSubscriptionFilter(query, at)
+		query.WithPlan()
 	})
 }
 
