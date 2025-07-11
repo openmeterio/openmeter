@@ -172,7 +172,7 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 	batch := make([]*service.Message, 0)
 
 	if !leaderelection.IsLeader(in.resources) {
-		return batch, nil, nil
+		return batch, func(context.Context, error) error { return nil }, nil
 	}
 
 	// Iterate over each namespace and list pods.
