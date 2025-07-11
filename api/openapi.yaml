@@ -13500,6 +13500,12 @@ components:
             Only with the `subscriptions` expand option.
           title: Subscriptions
           readOnly: true
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
       description: A customer object.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH

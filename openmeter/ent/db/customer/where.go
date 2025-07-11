@@ -1038,6 +1038,16 @@ func BillingAddressPhoneNumberContainsFold(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldContainsFold(FieldBillingAddressPhoneNumber, v))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldAnnotations))
+}
+
 // KeyEQ applies the EQ predicate on the "key" field.
 func KeyEQ(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldKey, v))

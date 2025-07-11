@@ -24,6 +24,7 @@ func (Customer) Mixin() []ent.Mixin {
 		entutils.CustomerAddressMixin{
 			FieldPrefix: "billing",
 		},
+		entutils.AnnotationsMixin{},
 	}
 }
 

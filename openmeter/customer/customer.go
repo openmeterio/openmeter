@@ -21,6 +21,7 @@ type Customer struct {
 	Currency         *currencyx.Code          `json:"currency,omitempty"`
 	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
 	Metadata         *models.Metadata         `json:"metadata,omitempty"`
+	Annotation       *models.Annotations      `json:"annotations,omitempty"`
 }
 
 func (c Customer) Validate() error {
@@ -53,6 +54,7 @@ type CustomerMutate struct {
 	Currency         *currencyx.Code          `json:"currency"`
 	BillingAddress   *models.Address          `json:"billingAddress"`
 	Metadata         *models.Metadata         `json:"metadata"`
+	Annotation       *models.Annotations      `json:"annotations,omitempty"`
 }
 
 func (c CustomerMutate) Validate() error {

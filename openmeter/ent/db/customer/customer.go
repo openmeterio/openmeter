@@ -42,6 +42,8 @@ const (
 	FieldBillingAddressLine2 = "billing_address_line2"
 	// FieldBillingAddressPhoneNumber holds the string denoting the billing_address_phone_number field in the database.
 	FieldBillingAddressPhoneNumber = "billing_address_phone_number"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
 	// FieldPrimaryEmail holds the string denoting the primary_email field in the database.
@@ -114,6 +116,7 @@ var Columns = []string{
 	FieldBillingAddressLine1,
 	FieldBillingAddressLine2,
 	FieldBillingAddressPhoneNumber,
+	FieldAnnotations,
 	FieldKey,
 	FieldPrimaryEmail,
 	FieldCurrency,

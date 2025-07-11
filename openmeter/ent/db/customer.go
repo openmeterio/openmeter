@@ -49,6 +49,8 @@ type Customer struct {
 	BillingAddressLine2 *string `json:"billing_address_line2,omitempty"`
 	// BillingAddressPhoneNumber holds the value of the "billing_address_phone_number" field.
 	BillingAddressPhoneNumber *string `json:"billing_address_phone_number,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations map[string]interface{} `json:"annotations,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// PrimaryEmail holds the value of the "primary_email" field.
@@ -130,7 +132,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case customer.FieldMetadata:
+		case customer.FieldMetadata, customer.FieldAnnotations:
 			values[i] = new([]byte)
 		case customer.FieldID, customer.FieldNamespace, customer.FieldName, customer.FieldDescription, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldKey, customer.FieldPrimaryEmail, customer.FieldCurrency:
 			values[i] = new(sql.NullString)
@@ -251,6 +253,14 @@ func (_m *Customer) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.BillingAddressPhoneNumber = new(string)
 				*_m.BillingAddressPhoneNumber = value.String
+			}
+		case customer.FieldAnnotations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
+				}
 			}
 		case customer.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -392,6 +402,9 @@ func (_m *Customer) String() string {
 		builder.WriteString("billing_address_phone_number=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
 	builder.WriteString("key=")
 	builder.WriteString(_m.Key)
