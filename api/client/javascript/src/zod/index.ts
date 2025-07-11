@@ -6966,18 +6966,25 @@ export const deleteCustomerParams = zod.object({
  * Get the overall access of a customer.
  * @summary Get customer access
  */
-export const getCustomerAccessPathCustomerIdOrKeyMax = 64
-
-export const getCustomerAccessPathCustomerIdOrKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+export const getCustomerAccessPathCustomerIdOrKeyRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
+export const getCustomerAccessPathCustomerIdOrKeyMaxTwo = 256
 
 export const getCustomerAccessParams = zod.object({
   customerIdOrKey: zod.coerce
     .string()
-    .min(1)
-    .max(getCustomerAccessPathCustomerIdOrKeyMax)
-    .regex(getCustomerAccessPathCustomerIdOrKeyRegExp),
+    .regex(getCustomerAccessPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(getCustomerAccessPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
 })
 
 /**
@@ -7415,11 +7422,9 @@ export const deleteCustomerAppDataParams = zod.object({
  * Checks customer access to a given feature (by key). All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
  * @summary Get customer entitlement value
  */
-export const getCustomerEntitlementValuePathCustomerIdOrKeyMax = 64
-
-export const getCustomerEntitlementValuePathCustomerIdOrKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
+export const getCustomerEntitlementValuePathCustomerIdOrKeyRegExpOne =
+  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
+export const getCustomerEntitlementValuePathCustomerIdOrKeyMaxTwo = 256
 export const getCustomerEntitlementValuePathFeatureKeyMax = 64
 
 export const getCustomerEntitlementValuePathFeatureKeyRegExp = new RegExp(
@@ -7429,9 +7434,17 @@ export const getCustomerEntitlementValuePathFeatureKeyRegExp = new RegExp(
 export const getCustomerEntitlementValueParams = zod.object({
   customerIdOrKey: zod.coerce
     .string()
-    .min(1)
-    .max(getCustomerEntitlementValuePathCustomerIdOrKeyMax)
-    .regex(getCustomerEntitlementValuePathCustomerIdOrKeyRegExp),
+    .regex(getCustomerEntitlementValuePathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(getCustomerEntitlementValuePathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
   featureKey: zod.coerce
     .string()
     .min(1)

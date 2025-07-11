@@ -19,7 +19,7 @@ interface Customer {
   @route("/entitlements/{featureKey}/value")
   @summary("Get customer entitlement value")
   getCustomerEntitlementValue(
-    @path customerIdOrKey: ULIDOrKey,
+    @path customerIdOrKey: ULIDOrExternalKey,
     @path featureKey: Key,
     @query(#{ explode: true }) time?: DateTime,
   ): EntitlementValue | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
@@ -32,7 +32,7 @@ interface Customer {
   @route("/access")
   @summary("Get customer access")
   getCustomerAccess(
-    @path customerIdOrKey: ULIDOrKey,
+    @path customerIdOrKey: ULIDOrExternalKey,
   ): CustomerAccess | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 }
 
