@@ -62,6 +62,17 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+leaderElection:
+  # -- Specifies whether leader election should be enabled.
+  enabled: false
+  lease:
+    # -- Duration of the lease.
+    duration: 10s
+    # -- Renew deadline of the lease.
+    renewDeadline: 5s
+    # -- Retry period of the lease.
+    retryPeriod: 2s
+
 rbac:
   # -- Specifies whether RBAC resources should be created.
   # If disabled, the operator is responsible for creating the necessary resources based on the templates.

@@ -15,8 +15,11 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // import kubernetes auth plugins
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
+	"github.com/openmeterio/openmeter/collector/benthos/services/leaderelection"
 )
 
 // TODO: add batching config and policy
@@ -40,7 +43,7 @@ func kubernetesResourcesInputConfig() *service.ConfigSpec {
 
 func init() {
 	err := service.RegisterBatchInput("kubernetes_resources", kubernetesResourcesInputConfig(), func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchInput, error) {
-		return newKubernetesResourcesInput(conf, mgr.Logger())
+		return newKubernetesResourcesInput(conf, mgr)
 	})
 	if err != nil {
 		panic(err)
@@ -52,6 +55,7 @@ type kubernetesResourcesInput struct {
 	resourceType  string
 	labelSelector labels.Selector
 	logger        *service.Logger
+	resources     *service.Resources
 
 	manager manager.Manager
 	client  client.Client
@@ -61,7 +65,12 @@ type kubernetesResourcesInput struct {
 	done   chan struct{}
 }
 
-func newKubernetesResourcesInput(conf *service.ParsedConfig, logger *service.Logger) (*kubernetesResourcesInput, error) {
+func newKubernetesResourcesInput(conf *service.ParsedConfig, res *service.Resources) (*kubernetesResourcesInput, error) {
+	logger := res.Logger().With("component", "kubernetes_resources")
+
+	crLogger := logr.New(&managerLogger{logger})
+	ctrllog.SetLogger(crLogger)
+
 	namespaces, err := conf.FieldStringList("namespaces")
 	if err != nil {
 		return nil, err
@@ -108,7 +117,7 @@ func newKubernetesResourcesInput(conf *service.ParsedConfig, logger *service.Log
 
 	// Create a new manager. Its client will automatically use a cache.
 	mgr, err := manager.New(kubeconfig, manager.Options{
-		Logger: logr.New(&managerLogger{logger}),
+		Logger: crLogger,
 		Scheme: scheme,
 		// Disable servers.
 		Metrics:                metricsserver.Options{BindAddress: "0"},
@@ -129,6 +138,7 @@ func newKubernetesResourcesInput(conf *service.ParsedConfig, logger *service.Log
 		manager:       mgr,
 		client:        client,
 		logger:        logger,
+		resources:     res,
 	}, nil
 }
 
@@ -160,6 +170,10 @@ func (in *kubernetesResourcesInput) Connect(ctx context.Context) error {
 
 func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.MessageBatch, service.AckFunc, error) {
 	batch := make([]*service.Message, 0)
+
+	if !leaderelection.IsLeader(in.resources) {
+		return batch, func(context.Context, error) error { return nil }, nil
+	}
 
 	// Iterate over each namespace and list pods.
 	for _, ns := range in.namespaces {
@@ -277,15 +291,10 @@ func (l *managerLogger) Enabled(level int) bool {
 }
 
 func (l *managerLogger) Info(level int, msg string, keysAndValues ...any) {
-	switch level {
-	case 0:
-		l.logger.Debugf(msg, keysAndValues...)
-	case 1:
+	if level == 0 {
 		l.logger.Infof(msg, keysAndValues...)
-	case 2:
-		l.logger.Warnf(msg, keysAndValues...)
-	case 3:
-		l.logger.Errorf(msg, keysAndValues...)
+	} else {
+		l.logger.Debugf(msg, keysAndValues...)
 	}
 }
 
