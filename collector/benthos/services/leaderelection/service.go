@@ -133,7 +133,7 @@ func (s *Service) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) Stop(ctx context.Context) error {
+func (s *Service) Stop(ctx context.Context) {
 	s.logger.Debug("stopping leader election service")
 
 	s.mu.Lock()
@@ -144,7 +144,6 @@ func (s *Service) Stop(ctx context.Context) error {
 	}
 
 	s.started = false
-	return nil
 }
 
 func GetLeaderElectionCLIOpts(ctx context.Context) []service.CLIOptFunc {
@@ -188,12 +187,10 @@ func GetLeaderElectionCLIOpts(ctx context.Context) []service.CLIOptFunc {
 				return fmt.Errorf("failed to start leader election service: %w", err)
 			}
 
-			// Ensure proper cleanup when context is cancelled
+			// Ensure proper cleanup when context is canceled
 			go func() {
 				<-ctx.Done()
-				if err := s.Stop(ctx); err != nil {
-					s.logger.Errorf("failed to stop leader election service: %v", err)
-				}
+				s.Stop(ctx)
 			}()
 
 			return nil
