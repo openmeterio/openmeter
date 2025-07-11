@@ -3,6 +3,7 @@ package leaderelection
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/redpanda-data/benthos/v4/public/service"
@@ -36,6 +37,9 @@ type Service struct {
 	logger               *service.Logger
 	resources            *service.Resources
 	leaderElectionConfig *leaderelection.LeaderElectionConfig
+	started              bool
+	cancel               context.CancelFunc
+	mu                   sync.Mutex
 }
 
 // TODO: add metrics to leader election
@@ -94,14 +98,52 @@ func NewService(res *service.Resources, cfg Config) (*Service, error) {
 }
 
 func (s *Service) Start(ctx context.Context) error {
+	s.logger.Debug("starting leader election service")
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.started {
+		return fmt.Errorf("leader election service already started")
+	}
+
 	s.resources.SetGeneric(IsLeaderKey, false)
 
-	leaderelection.RunOrDie(ctx, *s.leaderElectionConfig)
+	lec := *s.leaderElectionConfig
+	le, err := leaderelection.NewLeaderElector(lec)
+	if err != nil {
+		return fmt.Errorf("failed to create leader elector: %w", err)
+	}
+
+	if lec.WatchDog != nil {
+		lec.WatchDog.SetLeaderElection(le)
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	s.cancel = cancel
+
+	// Start leader election in a goroutine to make this non-blocking
+	go func() {
+		defer s.Stop(ctx)
+
+		s.started = true
+		le.Run(ctx)
+	}()
+
 	return nil
 }
 
 func (s *Service) Stop(ctx context.Context) error {
 	s.logger.Debug("stopping leader election service")
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.started && s.cancel != nil {
+		s.cancel()
+	}
+
+	s.started = false
 	return nil
 }
 
@@ -141,11 +183,12 @@ func GetLeaderElectionCLIOpts(ctx context.Context) []service.CLIOptFunc {
 				return err
 			}
 
-			go func() {
-				if err := s.Start(ctx); err != nil {
-					s.logger.Errorf("failed to start leader election service: %v", err)
-				}
-			}()
+			// Start the leader election service (non-blocking)
+			if err := s.Start(ctx); err != nil {
+				return fmt.Errorf("failed to start leader election service: %w", err)
+			}
+
+			// Ensure proper cleanup when context is cancelled
 			go func() {
 				<-ctx.Done()
 				if err := s.Stop(ctx); err != nil {
