@@ -56,7 +56,7 @@ func (h *handler) GetSubject() GetSubjectHandler {
 			}
 
 			// Respond with subject
-			return sub.ToAPIModel(), nil
+			return FromSubject(sub), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetSubjectResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -96,7 +96,7 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 
 			// Response
 			resp := pagination.MapPagedResponse(result, func(sub subject.Subject) api.Subject {
-				return sub.ToAPIModel()
+				return FromSubject(sub)
 			})
 
 			return resp.Items, nil
@@ -250,8 +250,8 @@ func (h *handler) UpsertSubject() UpsertSubjectHandler {
 			// Respond with updated subject(s)
 			var list []api.Subject
 
-			for _, subjectEntity := range subjects {
-				list = append(list, subjectEntity.ToAPIModel())
+			for _, sub := range subjects {
+				list = append(list, FromSubject(sub))
 			}
 
 			return list, nil

@@ -280,23 +280,24 @@ func (a *adapter) Delete(ctx context.Context, id models.NamespacedID) error {
 
 // mapEntity maps subject entity to subject model
 func mapEntity(subjectEntity *db.Subject) subject.Subject {
-	subject := subject.Subject{
-		Id:       subjectEntity.ID,
-		Key:      subjectEntity.Key,
-		Metadata: subjectEntity.Metadata,
+	s := subject.Subject{
+		Namespace: subjectEntity.Namespace,
+		Id:        subjectEntity.ID,
+		Key:       subjectEntity.Key,
+		Metadata:  subjectEntity.Metadata,
 	}
 
-	if subject.Metadata == nil {
-		subject.Metadata = make(map[string]interface{})
+	if s.Metadata == nil {
+		s.Metadata = make(map[string]interface{})
 	}
 
 	if subjectEntity.DisplayName != nil {
-		subject.DisplayName = subjectEntity.DisplayName
+		s.DisplayName = subjectEntity.DisplayName
 	}
 
 	if subjectEntity.StripeCustomerID != nil {
-		subject.StripeCustomerId = subjectEntity.StripeCustomerID
+		s.StripeCustomerId = subjectEntity.StripeCustomerID
 	}
 
-	return subject
+	return s
 }

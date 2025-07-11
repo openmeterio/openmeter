@@ -2,12 +2,11 @@ package subject
 
 import (
 	"errors"
-
-	"github.com/openmeterio/openmeter/api"
 )
 
 // Subject represents a subject in the system.
 type Subject struct {
+	Namespace   string
 	Id          string
 	Key         string
 	DisplayName *string
@@ -24,29 +23,6 @@ func (s Subject) Validate() error {
 	}
 
 	return errors.Join(errs...)
-}
-
-// ToAPIModel converts the subject to the API model.
-func (s Subject) ToAPIModel() api.Subject {
-	var metadata *map[string]interface{}
-
-	if s.Metadata != nil {
-		m := map[string]interface{}{}
-
-		for k, v := range s.Metadata {
-			m[k] = v
-		}
-
-		metadata = &m
-	}
-
-	return api.Subject{
-		Id:               s.Id,
-		Key:              s.Key,
-		DisplayName:      s.DisplayName,
-		Metadata:         metadata,
-		StripeCustomerId: s.StripeCustomerId,
-	}
 }
 
 // SubjectKey is key only version of Subject

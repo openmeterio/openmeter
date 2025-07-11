@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
+	subjecthttphandler "github.com/openmeterio/openmeter/openmeter/subject/httphandler"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -189,7 +190,7 @@ func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createB
 				EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{
 					Entitlement: *entitlementAPIEntity,
 					Feature:     productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature),
-					Subject:     in.Snapshot.Subject.ToAPIModel(),
+					Subject:     subjecthttphandler.FromSubject(in.Snapshot.Subject),
 					Value:       (api.EntitlementValue)(*in.Snapshot.Value),
 				},
 				Threshold: in.Threshold,
