@@ -267,23 +267,29 @@ func (in *prometheusInput) Connect(ctx context.Context) error {
 	go func() {
 		running := false
 		for {
-			switch leaderelection.IsLeader(in.resources) {
-			case false:
+			select {
+			case <-ctx.Done():
 				if running {
-					err := in.scheduler.StopJobs()
-					if err != nil {
-						in.logger.Errorf("error stopping jobs: %v", err)
-					}
-					running = false
+					_ = in.scheduler.StopJobs()
 				}
-			case true:
-				if !running {
-					in.scheduler.Start()
-					running = true
+				return
+			case <-time.After(1 * time.Second):
+				switch leaderelection.IsLeader(in.resources) {
+				case false:
+					if running {
+						err := in.scheduler.StopJobs()
+						if err != nil {
+							in.logger.Errorf("error stopping jobs: %v", err)
+						}
+						running = false
+					}
+				case true:
+					if !running {
+						in.scheduler.Start()
+						running = true
+					}
 				}
 			}
-
-			time.Sleep(1 * time.Second)
 		}
 	}()
 
