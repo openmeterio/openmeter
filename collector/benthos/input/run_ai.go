@@ -346,28 +346,34 @@ func (in *runAIInput) Connect(ctx context.Context) error {
 		return err
 	}
 
-	go func() {
-		running := false
-		for {
-			switch leaderelection.IsLeader(in.resources) {
-			case false:
-				if running {
-					err := in.scheduler.StopJobs()
-					if err != nil {
-						in.logger.Errorf("error stopping jobs: %v", err)
-					}
-					running = false
-				}
-			case true:
-				if !running {
-					in.scheduler.Start()
-					running = true
-				}
-			}
-
-			time.Sleep(1 * time.Second)
-		}
-	}()
+go func() {
+    running := false
+    for {
+        select {
+        case <-ctx.Done():
+            if running {
+                _ = in.scheduler.StopJobs()
+            }
+            return
+        case <-time.After(1 * time.Second):
+            switch leaderelection.IsLeader(in.resources) {
+            case false:
+                if running {
+                    err := in.scheduler.StopJobs()
+                    if err != nil {
+                        in.logger.Errorf("error stopping jobs: %v", err)
+                    }
+                    running = false
+                }
+            case true:
+                if !running {
+                    in.scheduler.Start()
+                    running = true
+                }
+            }
+        }
+    }
+}()
 
 	return nil
 }
