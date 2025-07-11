@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
+	subjecthttphandler "github.com/openmeterio/openmeter/openmeter/subject/httphandler"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -126,7 +127,7 @@ func (b *EntitlementSnapshotHandler) createResetEvent(ctx context.Context, in cr
 			EntitlementReset: &notification.EntitlementResetPayload{
 				Entitlement: *entitlementAPIEntity,
 				Feature:     productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature),
-				Subject:     in.Snapshot.Subject.ToAPIModel(),
+				Subject:     subjecthttphandler.FromSubject(in.Snapshot.Subject),
 				Value:       (api.EntitlementValue)(*in.Snapshot.Value),
 			},
 		},
