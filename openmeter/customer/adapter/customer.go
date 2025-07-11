@@ -168,6 +168,10 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 					query = query.SetMetadata(input.Metadata.ToMap())
 				}
 
+				if input.Annotation != nil {
+					query = query.SetAnnotations(*input.Annotation)
+				}
+
 				if input.BillingAddress != nil {
 					query = query.
 						SetNillableBillingAddressCity(input.BillingAddress.City).
@@ -443,6 +447,12 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 					query = query.SetMetadata(input.Metadata.ToMap())
 				} else {
 					query = query.ClearMetadata()
+				}
+
+				if input.Annotation != nil {
+					query = query.SetAnnotations(*input.Annotation)
+				} else {
+					query = query.ClearAnnotations()
 				}
 
 				if input.BillingAddress != nil {

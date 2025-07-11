@@ -26,6 +26,12 @@ func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
 		metadata = lo.ToPtr(models.NewMetadata(e.Metadata))
 	}
 
+	var annotations *models.Annotations
+
+	if len(e.Annotations) > 0 {
+		annotations = lo.ToPtr(e.Annotations)
+	}
+
 	result := &customer.Customer{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 			ID:          e.ID,
@@ -42,6 +48,7 @@ func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
 		PrimaryEmail: e.PrimaryEmail,
 		Currency:     e.Currency,
 		Metadata:     metadata,
+		Annotation:   annotations,
 	}
 
 	if e.Key != "" {

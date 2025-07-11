@@ -79,13 +79,38 @@ func MapAddress(apiAddress *api.Address) *models.Address {
 	return &address
 }
 
+func FromMetadata(metadata models.Metadata) *api.Metadata {
+	if len(metadata) == 0 {
+		return nil
+	}
+
+	result := make(api.Metadata)
+	if len(metadata) > 0 {
+		for k, v := range metadata {
+			result[k] = v
+		}
+	}
+
+	return &result
+}
+
+func FromAnnotations(annotations models.Annotations) *api.Annotations {
+	if len(annotations) == 0 {
+		return nil
+	}
+
+	result := make(api.Annotations)
+	if len(annotations) > 0 {
+		for k, v := range annotations {
+			result[k] = v
+		}
+	}
+
+	return &result
+}
+
 // CustomerToAPI converts a Customer to an API Customer
 func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscription, expand []api.CustomerExpand) (api.Customer, error) {
-	var metadata *api.Metadata
-
-	if c.Metadata != nil {
-		metadata = lo.ToPtr(c.Metadata.ToMap())
-	}
 	// Map the customer to the API Customer
 	apiCustomer := api.Customer{
 		Id:               c.ManagedResource.ID,
@@ -97,7 +122,8 @@ func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscriptio
 		CreatedAt:        c.CreatedAt,
 		UpdatedAt:        c.UpdatedAt,
 		DeletedAt:        c.DeletedAt,
-		Metadata:         metadata,
+		Metadata:         FromMetadata(lo.FromPtr(c.Metadata)),
+		Annotations:      FromAnnotations(lo.FromPtr(c.Annotation)),
 	}
 
 	if c.BillingAddress != nil {

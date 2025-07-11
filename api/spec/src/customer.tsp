@@ -288,12 +288,17 @@ model Customer {
   /**
    * The subscriptions of the customer.
    * Only with the `subscriptions` expand option.
-   *
-   * @visibility(Lifecycle.Read)
    */
   @summary("Subscriptions")
   @visibility(Lifecycle.Read)
   subscriptions?: ProductCatalog.Subscription[];
+
+  /**
+   * Set of key-value pairs managed by the system. Cannot be modified by user.
+   */
+  @summary("Annotations")
+  @visibility(Lifecycle.Read)
+  annotations?: Annotations;
 }
 
 /**

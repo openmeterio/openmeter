@@ -28760,6 +28760,7 @@ type CustomerMutation struct {
 	billing_address_line1            *string
 	billing_address_line2            *string
 	billing_address_phone_number     *string
+	annotations                      *map[string]interface{}
 	key                              *string
 	primary_email                    *string
 	currency                         *currencyx.Code
@@ -29521,6 +29522,55 @@ func (m *CustomerMutation) ResetBillingAddressPhoneNumber() {
 	delete(m.clearedFields, customer.FieldBillingAddressPhoneNumber)
 }
 
+// SetAnnotations sets the "annotations" field.
+func (m *CustomerMutation) SetAnnotations(value map[string]interface{}) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *CustomerMutation) Annotations() (r map[string]interface{}, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the Customer entity.
+// If the Customer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CustomerMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *CustomerMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[customer.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *CustomerMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[customer.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *CustomerMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, customer.FieldAnnotations)
+}
+
 // SetKey sets the "key" field.
 func (m *CustomerMutation) SetKey(s string) {
 	m.key = &s
@@ -29957,7 +30007,7 @@ func (m *CustomerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, customer.FieldNamespace)
 	}
@@ -29999,6 +30049,9 @@ func (m *CustomerMutation) Fields() []string {
 	}
 	if m.billing_address_phone_number != nil {
 		fields = append(fields, customer.FieldBillingAddressPhoneNumber)
+	}
+	if m.annotations != nil {
+		fields = append(fields, customer.FieldAnnotations)
 	}
 	if m.key != nil {
 		fields = append(fields, customer.FieldKey)
@@ -30045,6 +30098,8 @@ func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingAddressLine2()
 	case customer.FieldBillingAddressPhoneNumber:
 		return m.BillingAddressPhoneNumber()
+	case customer.FieldAnnotations:
+		return m.Annotations()
 	case customer.FieldKey:
 		return m.Key()
 	case customer.FieldPrimaryEmail:
@@ -30088,6 +30143,8 @@ func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldBillingAddressLine2(ctx)
 	case customer.FieldBillingAddressPhoneNumber:
 		return m.OldBillingAddressPhoneNumber(ctx)
+	case customer.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case customer.FieldKey:
 		return m.OldKey(ctx)
 	case customer.FieldPrimaryEmail:
@@ -30201,6 +30258,13 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetBillingAddressPhoneNumber(v)
 		return nil
+	case customer.FieldAnnotations:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
 	case customer.FieldKey:
 		v, ok := value.(string)
 		if !ok {
@@ -30282,6 +30346,9 @@ func (m *CustomerMutation) ClearedFields() []string {
 	if m.FieldCleared(customer.FieldBillingAddressPhoneNumber) {
 		fields = append(fields, customer.FieldBillingAddressPhoneNumber)
 	}
+	if m.FieldCleared(customer.FieldAnnotations) {
+		fields = append(fields, customer.FieldAnnotations)
+	}
 	if m.FieldCleared(customer.FieldKey) {
 		fields = append(fields, customer.FieldKey)
 	}
@@ -30334,6 +30401,9 @@ func (m *CustomerMutation) ClearField(name string) error {
 		return nil
 	case customer.FieldBillingAddressPhoneNumber:
 		m.ClearBillingAddressPhoneNumber()
+		return nil
+	case customer.FieldAnnotations:
+		m.ClearAnnotations()
 		return nil
 	case customer.FieldKey:
 		m.ClearKey()
@@ -30393,6 +30463,9 @@ func (m *CustomerMutation) ResetField(name string) error {
 		return nil
 	case customer.FieldBillingAddressPhoneNumber:
 		m.ResetBillingAddressPhoneNumber()
+		return nil
+	case customer.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	case customer.FieldKey:
 		m.ResetKey()

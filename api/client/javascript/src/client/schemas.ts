@@ -3674,6 +3674,11 @@ export interface components {
        *     Only with the `subscriptions` expand option.
        */
       readonly subscriptions?: components['schemas']['Subscription'][]
+      /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations']
     }
     /** @description CustomerAccess describes what features the customer has access to. */
     CustomerAccess: {

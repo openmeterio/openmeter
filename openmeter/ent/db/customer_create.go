@@ -202,6 +202,12 @@ func (_c *CustomerCreate) SetNillableBillingAddressPhoneNumber(v *string) *Custo
 	return _c
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_c *CustomerCreate) SetAnnotations(v map[string]interface{}) *CustomerCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
 // SetKey sets the "key" field.
 func (_c *CustomerCreate) SetKey(v string) *CustomerCreate {
 	_c.mutation.SetKey(v)
@@ -506,6 +512,10 @@ func (_c *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.BillingAddressPhoneNumber(); ok {
 		_spec.SetField(customer.FieldBillingAddressPhoneNumber, field.TypeString, value)
 		_node.BillingAddressPhoneNumber = &value
+	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(customer.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
 	}
 	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(customer.FieldKey, field.TypeString, value)
@@ -855,6 +865,24 @@ func (u *CustomerUpsert) ClearBillingAddressPhoneNumber() *CustomerUpsert {
 	return u
 }
 
+// SetAnnotations sets the "annotations" field.
+func (u *CustomerUpsert) SetAnnotations(v map[string]interface{}) *CustomerUpsert {
+	u.Set(customer.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateAnnotations() *CustomerUpsert {
+	u.SetExcluded(customer.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *CustomerUpsert) ClearAnnotations() *CustomerUpsert {
+	u.SetNull(customer.FieldAnnotations)
+	return u
+}
+
 // SetKey sets the "key" field.
 func (u *CustomerUpsert) SetKey(v string) *CustomerUpsert {
 	u.Set(customer.FieldKey, v)
@@ -1198,6 +1226,27 @@ func (u *CustomerUpsertOne) UpdateBillingAddressPhoneNumber() *CustomerUpsertOne
 func (u *CustomerUpsertOne) ClearBillingAddressPhoneNumber() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearBillingAddressPhoneNumber()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *CustomerUpsertOne) SetAnnotations(v map[string]interface{}) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateAnnotations() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *CustomerUpsertOne) ClearAnnotations() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearAnnotations()
 	})
 }
 
@@ -1720,6 +1769,27 @@ func (u *CustomerUpsertBulk) UpdateBillingAddressPhoneNumber() *CustomerUpsertBu
 func (u *CustomerUpsertBulk) ClearBillingAddressPhoneNumber() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearBillingAddressPhoneNumber()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *CustomerUpsertBulk) SetAnnotations(v map[string]interface{}) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateAnnotations() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *CustomerUpsertBulk) ClearAnnotations() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearAnnotations()
 	})
 }
 

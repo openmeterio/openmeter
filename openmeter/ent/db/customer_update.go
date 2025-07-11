@@ -247,6 +247,18 @@ func (_u *CustomerUpdate) ClearBillingAddressPhoneNumber() *CustomerUpdate {
 	return _u
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_u *CustomerUpdate) SetAnnotations(v map[string]interface{}) *CustomerUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *CustomerUpdate) ClearAnnotations() *CustomerUpdate {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
 // SetKey sets the "key" field.
 func (_u *CustomerUpdate) SetKey(v string) *CustomerUpdate {
 	_u.mutation.SetKey(v)
@@ -609,6 +621,12 @@ func (_u *CustomerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.BillingAddressPhoneNumberCleared() {
 		_spec.ClearField(customer.FieldBillingAddressPhoneNumber, field.TypeString)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(customer.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(customer.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Key(); ok {
 		_spec.SetField(customer.FieldKey, field.TypeString, value)
@@ -1069,6 +1087,18 @@ func (_u *CustomerUpdateOne) ClearBillingAddressPhoneNumber() *CustomerUpdateOne
 	return _u
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_u *CustomerUpdateOne) SetAnnotations(v map[string]interface{}) *CustomerUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *CustomerUpdateOne) ClearAnnotations() *CustomerUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
 // SetKey sets the "key" field.
 func (_u *CustomerUpdateOne) SetKey(v string) *CustomerUpdateOne {
 	_u.mutation.SetKey(v)
@@ -1461,6 +1491,12 @@ func (_u *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err 
 	}
 	if _u.mutation.BillingAddressPhoneNumberCleared() {
 		_spec.ClearField(customer.FieldBillingAddressPhoneNumber, field.TypeString)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(customer.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(customer.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Key(); ok {
 		_spec.SetField(customer.FieldKey, field.TypeString, value)

@@ -1875,6 +1875,20 @@ func (u *CustomerUpdateOne) SetOrClearBillingAddressPhoneNumber(value *string) *
 	return u.SetBillingAddressPhoneNumber(*value)
 }
 
+func (u *CustomerUpdate) SetOrClearAnnotations(value *map[string]interface{}) *CustomerUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *CustomerUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *CustomerUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *CustomerUpdate) SetOrClearKey(value *string) *CustomerUpdate {
 	if value == nil {
 		return u.ClearKey()

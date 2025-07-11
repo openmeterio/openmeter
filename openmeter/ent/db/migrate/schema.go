@@ -1286,6 +1286,7 @@ var (
 		{Name: "billing_address_line1", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_line2", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_phone_number", Type: field.TypeString, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "key", Type: field.TypeString, Nullable: true},
 		{Name: "primary_email", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
@@ -1312,9 +1313,19 @@ var (
 				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[0]},
 			},
 			{
+				Name:    "customer_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{CustomersColumns[15]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
 				Name:    "customer_namespace_key",
 				Unique:  true,
-				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[15]},
+				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[16]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -1327,7 +1338,7 @@ var (
 			{
 				Name:    "customer_primary_email",
 				Unique:  false,
-				Columns: []*schema.Column{CustomersColumns[16]},
+				Columns: []*schema.Column{CustomersColumns[17]},
 			},
 			{
 				Name:    "customer_created_at",
