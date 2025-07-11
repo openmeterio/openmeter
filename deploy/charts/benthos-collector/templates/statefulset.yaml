@@ -81,6 +81,14 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.labels['app.kubernetes.io/version']
+            - name: LEADER_ELECTION
+              value: {{ .Values.leaderElection.enabled | quote }}
+            - name: LEASE_DURATION
+              value: {{ .Values.leaderElection.lease.duration | quote }}
+            - name: LEASE_RENEW_DEADLINE
+              value: {{ .Values.leaderElection.lease.renewDeadline | quote }}
+            - name: LEASE_RETRY_PERIOD
+              value: {{ .Values.leaderElection.lease.retryPeriod | quote }}
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}

@@ -42,6 +42,10 @@ helm install --generate-name --wait oci://ghcr.io/openmeterio/helm-charts/bentho
 | serviceAccount.automount | bool | `true` | Automatically mount a ServiceAccount's API credentials? |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template |
+| leaderElection.enabled | bool | `false` | Specifies whether leader election should be enabled. |
+| leaderElection.lease.duration | string | `"10s"` | Duration of the lease. |
+| leaderElection.lease.renewDeadline | string | `"5s"` | Renew deadline of the lease. |
+| leaderElection.lease.retryPeriod | string | `"2s"` | Retry period of the lease. |
 | rbac.create | bool | `true` | Specifies whether RBAC resources should be created. If disabled, the operator is responsible for creating the necessary resources based on the templates. |
 | podAnnotations | object | `{}` | Annotations to be added to pods. |
 | podLabels | object | `{}` | Labels to be added to pods. |

@@ -28,17 +28,17 @@ var leaderElectionCLIFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:    leaseLockNamespaceFlag,
 		Usage:   "Namespace of the lease lock",
-		EnvVars: []string{"LEASE_LOCK_NAMESPACE"},
+		EnvVars: []string{"K8S_NAMESPACE", "LEASE_LOCK_NAMESPACE"},
 	},
 	&cli.StringFlag{
 		Name:    leaseLockNameFlag,
 		Usage:   "Name of the lease lock",
-		EnvVars: []string{"LEASE_LOCK_NAME"},
+		EnvVars: []string{"K8S_APP_INSTANCE", "LEASE_LOCK_NAME"},
 	},
 	&cli.StringFlag{
 		Name:    leaseLockIdentityFlag,
 		Usage:   "Identity of the lease lock",
-		EnvVars: []string{"POD_NAME", "LEASE_LOCK_IDENTITY"},
+		EnvVars: []string{"K8S_POD_NAME", "LEASE_LOCK_IDENTITY"},
 		Value:   hostname,
 	},
 	&cli.DurationFlag{

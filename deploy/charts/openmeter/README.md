@@ -143,6 +143,10 @@ config:
 | svix.enabled | bool | `true` |  |
 | svix.signingSecret | string | `"CeRc6WK8KjzRXrKkd9YFnSWcNyqLSIY8JwiaCeRc6WK4UkM"` | Specifies the JWT secret SVIX uses for authentication. For details, [see](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication). **It is recommended to change this before deployment.** |
 | svix.signedJwt | string | `"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdml4LXNlcnZlciIsImlhdCI6MTczMDk4NzU0MywiZXhwIjoyMjM1OTA5MDAwLCJhdWQiOiIiLCJzdWIiOiJvcmdfMjNyYjhZZEdxTVQwcUl6cGdHd2RYZkhpck11In0.J90SzVuNwecyCtWAQlOoWplJaK4rnIb3rCWXrHQPqJY"` | Specifies the JWT OpenMeter uses to authenticate with Svix. This is an example Token intended for development purposes. You should create your own using the instructions in [svix documentation](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication). |
+| svix.database | object | `{"dsn":""}` | External database configuration for Svix |
+| svix.database.dsn | string | `""` | External PostgreSQL DSN for Svix. If not provided, uses internal PostgreSQL. |
+| svix.redis | object | `{"dsn":""}` | External Redis configuration for Svix |
+| svix.redis.dsn | string | `""` | External Redis DSN for Svix. If not provided, uses internal Redis. |
 | svix.replicaCount | int | `1` | Number of replicas (pods) to launch. |
 | svix.image.repository | string | `"docker.io/svix/svix-server"` | Name of the image repository to pull the container image from. |
 | svix.image.pullPolicy | string | `"IfNotPresent"` | [Image pull policy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) for updating already existing images on a node. |
