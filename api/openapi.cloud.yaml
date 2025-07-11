@@ -3247,10 +3247,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            $ref: '#/components/schemas/ULIDOrExternalKey'
       responses:
         '200':
           description: The request has succeeded.
@@ -3538,10 +3535,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            $ref: '#/components/schemas/ULIDOrExternalKey'
         - name: featureKey
           in: path
           required: true
