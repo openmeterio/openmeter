@@ -12,6 +12,9 @@ image:
   # -- Image tag override for the default value (chart appVersion).
   tag: ""
 
+# -- Number of replicas of pods in the StatefulSet
+replicaCount: 1
+
 openmeter:
   # -- OpenMeter API URL
   url: https://openmeter.cloud

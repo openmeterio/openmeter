@@ -25,6 +25,7 @@ helm install --generate-name --wait oci://ghcr.io/openmeterio/helm-charts/bentho
 | image.repository | string | `"ghcr.io/openmeterio/benthos-collector"` | Name of the image repository to pull the container image from. |
 | image.pullPolicy | string | `"IfNotPresent"` | [Image pull policy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) for updating already existing images on a node. |
 | image.tag | string | `""` | Image tag override for the default value (chart appVersion). |
+| replicaCount | int | `1` | Number of replicas of pods in the StatefulSet |
 | openmeter.url | string | `"https://openmeter.cloud"` | OpenMeter API URL |
 | openmeter.token | string | `""` | OpenMeter token |
 | config | object | `{}` | Benthos configuration Takes precedence over `configFile` and `preset`. |
