@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "benthos-collector.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount | int }}
   serviceName: {{ include "benthos-collector.fullname" . }}
   selector:
     matchLabels:
