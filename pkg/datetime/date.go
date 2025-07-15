@@ -59,6 +59,10 @@ func (p ISODuration) Simplify(exact bool) ISODuration {
 	return ISODuration{p.Period.Simplify(exact)}
 }
 
+func (p ISODuration) Negate() ISODuration {
+	return ISODuration{p.Period.Negate()}
+}
+
 // InHours returns the value of the period in hours
 func (p ISODuration) InHours(daysInMonth int) (alpacadecimal.Decimal, error) {
 	zero := alpacadecimal.NewFromInt(0)
