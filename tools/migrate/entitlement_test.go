@@ -1098,29 +1098,49 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 						// Should add dates exactly as go's add_date
 						tt := []struct {
 							duration datetime.ISODurationString
+							neg      bool
 							date     time.Time
 						}{
 							// Adding only a small calendar duration
-							{"P1D", time.Date(2025, 3, 12, 3, 0, 2, 0, time.UTC)},
+							{"P1D", false, time.Date(2025, 3, 12, 3, 0, 2, 0, time.UTC)},
 							// Adding time components only
-							{"PT2H3M", time.Date(2025, 3, 12, 3, 0, 2, 0, time.UTC)},
+							{"PT2H3M", false, time.Date(2025, 3, 12, 3, 0, 2, 0, time.UTC)},
 							// February is a 27 day month
-							{"P1M", time.Date(2025, 1, 31, 3, 0, 2, 0, time.UTC)},
-							{"P3M", time.Date(2025, 1, 31, 0, 8, 0, 0, time.UTC)},
+							{"P1M", false, time.Date(2025, 1, 31, 3, 0, 2, 0, time.UTC)},
+							{"P3M", false, time.Date(2025, 1, 31, 0, 8, 0, 0, time.UTC)},
 							// June is a 30 day month
-							{"P1M", time.Date(2025, 5, 31, 1, 0, 3, 0, time.UTC)},
-							{"P3M", time.Date(2025, 5, 31, 0, 7, 0, 0, time.UTC)},
+							{"P1M", false, time.Date(2025, 5, 31, 1, 0, 3, 0, time.UTC)},
+							{"P3M", false, time.Date(2025, 5, 31, 0, 7, 0, 0, time.UTC)},
 							// Just a random complex duration
-							{"P1Y4M5DT2H3M6S", time.Date(2025, 1, 12, 3, 0, 2, 0, time.UTC)},
+							{"P1Y4M5DT2H3M6S", false, time.Date(2025, 1, 12, 3, 0, 2, 0, time.UTC)},
+							// Add negative durations
+							{"P1D", true, time.Date(2025, 3, 11, 3, 0, 2, 0, time.UTC)},
+							{"P1W", true, time.Date(2025, 3, 11, 3, 0, 2, 0, time.UTC)},
+							{"P1W", true, time.Date(2025, 3, 4, 3, 0, 2, 0, time.UTC)},
+							{"P1M", true, time.Date(2025, 2, 28, 3, 0, 2, 0, time.UTC)},
+							{"P1Y", true, time.Date(2024, 1, 12, 3, 0, 2, 0, time.UTC)},
+							{"P1Y4M5DT2H3M6S", true, time.Date(2024, 8, 7, 0, 56, 54, 0, time.UTC)},
 						}
 
 						for _, tc := range tt {
 							var res sql.NullTime
-							err := db.QueryRow(`SELECT om_func_go_add_date_normalized($1, $2)`, tc.date, tc.duration).Scan(&res)
+							query := `SELECT om_func_go_add_date_normalized($1,`
+							if tc.neg {
+								query += `$2::INTERVAL * -1`
+							} else {
+								query += `$2`
+							}
+							query += `);`
+
+							require.NoError(t, db.QueryRow(query, tc.date, tc.duration).Scan(&res))
 							require.True(t, res.Valid, "should return a valid time, got inputs: %v, %v", tc.date, tc.duration)
 
 							duration, err := tc.duration.Parse()
 							require.NoError(t, err)
+
+							if tc.neg {
+								duration = duration.Negate()
+							}
 
 							exp, _ := duration.Period.AddTo(tc.date)
 
@@ -1129,12 +1149,11 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 
 						// PG does not support nanosecond resolution so we'll lose that
 						{
-
 							durStr := datetime.ISODurationString("P3M")
 							at := time.Date(2025, 1, 31, 0, 8, 0, 1, time.UTC)
 
 							var res sql.NullTime
-							err := db.QueryRow(`SELECT om_func_go_add_date_normalized($1, $2)`, at, durStr).Scan(&res)
+							require.NoError(t, db.QueryRow(`SELECT om_func_go_add_date_normalized($1, $2)`, at, durStr).Scan(&res))
 							require.True(t, res.Valid, "should return a valid time, got inputs: %v, %v", at, durStr)
 
 							duration, err := durStr.Parse()
@@ -1203,6 +1222,20 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 							// Notice the expected normalization
 							require.Equal(t, time.Date(2025, 3, 3, 0, 0, 0, 0, time.UTC), res.UTC())
 						}
+						// Test the specific failing scenario: anchor after cutoff with P1W interval
+						{
+							var res time.Time
+							require.NoError(t, db.QueryRow(`SELECT om_func_get_go_normalized_last_iteration_not_after_cutoff($1, $2, $3)`,
+								testutils.GetRFC3339Time(t, "2024-11-06T19:30:00Z"), // anchor
+								"P1W", // interval
+								testutils.GetRFC3339Time(t, "2024-11-06T19:29:00Z"), // cutoff (1 minute before anchor)
+							).Scan(&res))
+
+							// Should return the last weekly iteration before the cutoff
+							// Starting from 2024-11-06T19:30:00Z and going backwards by weeks
+							// Should be 2024-10-30T19:30:00Z (one week before)
+							require.Equal(t, testutils.GetRFC3339Time(t, "2024-10-30T19:30:00Z"), res.UTC())
+						}
 					},
 				},
 			},
@@ -1210,6 +1243,8 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 	})
 
 	t.Run("om_func_update_usage_period_durations", func(t *testing.T) {
+		now := time.Now()
+
 		featId := ulid.Make()
 
 		// Ent1 hasn't had any resets yet
@@ -1245,6 +1280,23 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 		ent5Ur2ResetTime := time.Date(2025, 3, 23, 0, 0, 0, 0, time.UTC)
 		ent5Ur2Anchor := time.Date(2025, 3, 23, 0, 0, 0, 0, time.UTC)
 		ent5Ur2Interval := "P1M"
+		// Ent6 has time components only in the interval
+		// As the period is measure in hours, we'll set relative times close to current time
+		entId6 := ulid.Make()
+		ent6Interval := "PT3H"
+		ent6MeasureUsageFrom := now.Truncate(time.Hour).Add(-time.Hour * 5)
+		ent6Ur1Id := ulid.Make()
+		ent6Ur1ResetTime := ent6MeasureUsageFrom.Add(time.Hour*2 + time.Minute*30)
+		ent6Ur1Anchor := ent6MeasureUsageFrom
+		ent6Ur1Interval := "PT1H"
+		// Ent7 has both time and date components in the interval
+		entId7 := ulid.Make()
+		ent7Interval := "P1MT2H"
+		ent7MeasureUsageFrom := time.Date(2025, 1, 31, 0, 0, 0, 0, time.UTC)
+		ent7Ur1Id := ulid.Make()
+		ent7Ur1ResetTime := time.Date(2025, 3, 12, 0, 0, 0, 0, time.UTC)
+		ent7Ur1Anchor := time.Date(2025, 3, 11, 0, 0, 0, 0, time.UTC)
+		ent7Ur1Interval := "P1MT1H"
 
 		runner{
 			stops: stops{
@@ -1358,6 +1410,40 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 							},
 						))
 
+						require.NoError(t, q.CreateEntitlement(
+							ctx,
+							v20250703081943.CreateEntitlementParams{
+								Namespace:           "default",
+								ID:                  entId6.String(),
+								CreatedAt:           now,
+								UpdatedAt:           now,
+								EntitlementType:     "metered",
+								FeatureKey:          "feat_1",
+								FeatureID:           featId.String(),
+								SubjectKey:          "subject_6",
+								UsagePeriodInterval: sql.NullString{String: ent6Interval, Valid: true},
+								UsagePeriodAnchor:   sql.NullTime{Time: ent6MeasureUsageFrom, Valid: true},
+								MeasureUsageFrom:    sql.NullTime{Time: ent6MeasureUsageFrom, Valid: true},
+							},
+						))
+
+						require.NoError(t, q.CreateEntitlement(
+							ctx,
+							v20250703081943.CreateEntitlementParams{
+								Namespace:           "default",
+								ID:                  entId7.String(),
+								CreatedAt:           now,
+								UpdatedAt:           now,
+								EntitlementType:     "metered",
+								FeatureKey:          "feat_1",
+								FeatureID:           featId.String(),
+								SubjectKey:          "subject_7",
+								UsagePeriodInterval: sql.NullString{String: ent7Interval, Valid: true},
+								UsagePeriodAnchor:   sql.NullTime{Time: ent7MeasureUsageFrom, Valid: true},
+								MeasureUsageFrom:    sql.NullTime{Time: ent7MeasureUsageFrom, Valid: true},
+							},
+						))
+
 						// 3. Create usage resets
 						// Ent 2
 						require.NoError(t, q.CreateUsageResetWithInterval(
@@ -1432,6 +1518,36 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 								UsagePeriodInterval: ent5Ur2Interval,
 							},
 						))
+
+						// Ent 6
+						require.NoError(t, q.CreateUsageResetWithInterval(
+							ctx,
+							v20250703081943.CreateUsageResetWithIntervalParams{
+								Namespace:           "default",
+								ID:                  ent6Ur1Id.String(),
+								CreatedAt:           now,
+								UpdatedAt:           now,
+								EntitlementID:       entId6.String(),
+								Anchor:              ent6Ur1Anchor,
+								ResetTime:           ent6Ur1ResetTime,
+								UsagePeriodInterval: ent6Ur1Interval,
+							},
+						))
+
+						// Ent 7
+						require.NoError(t, q.CreateUsageResetWithInterval(
+							ctx,
+							v20250703081943.CreateUsageResetWithIntervalParams{
+								Namespace:           "default",
+								ID:                  ent7Ur1Id.String(),
+								CreatedAt:           now,
+								UpdatedAt:           now,
+								EntitlementID:       entId7.String(),
+								Anchor:              ent7Ur1Anchor,
+								ResetTime:           ent7Ur1ResetTime,
+								UsagePeriodInterval: ent7Ur1Interval,
+							},
+						))
 					},
 				},
 				{
@@ -1448,7 +1564,6 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 
 						// Entitlement 1 with no resets
 						{
-
 							ent1, err := q.GetEntitlementByID(ctx, entId1.String())
 							require.NoError(t, err)
 
@@ -1492,7 +1607,6 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 							// The last reset should have the original anchor
 							// This is so we're consistent with how billing handles the period change!
 							assert.Equal(t, ent1MeasureUsageFrom, lastReset.Anchor.UTC(), "Should have the correct anchor, got %+v", lastReset)
-
 						}
 
 						// Entitlement 2 with a single reset (misaligned but NOT reanchoring)
@@ -1645,8 +1759,147 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 								assert.Equal(t, "P30D", justAfter.UsagePeriodInterval, "Should have the correct usage period interval, got %+v", justAfter)
 							}
 						}
+
+						// Entitlement 6, time-only interval
+						{
+							ent6, err := q.GetEntitlementByID(ctx, entId6.String())
+							require.NoError(t, err)
+
+							usageResets, err := q.GetUsageResetsByEntitlementID(ctx, ent6.ID)
+							require.NoError(t, err)
+
+							ursJSON, err := json.MarshalIndent(usageResets, "", "  ")
+							require.NoError(t, err)
+
+							require.Len(t, usageResets, 5, "Should have the correct number of usage resets, got %s", ursJSON)
+
+							nowMinus5HoursTruncated := now.Truncate(time.Hour).Add(-time.Hour * 5).UTC()
+
+							// Let's make assertions for all expected items
+							assert.Equal(t, nowMinus5HoursTruncated, usageResets[0].Anchor.UTC(), "Should have the correct anchor, got %+v", usageResets[0])
+							assert.Equal(t, nowMinus5HoursTruncated, usageResets[0].ResetTime.UTC(), "Should have the correct reset time, got %+v", usageResets[0])
+
+							assert.Equal(t, nowMinus5HoursTruncated.Add(time.Hour*2), usageResets[1].Anchor.UTC(), "Should have the correct anchor, got %+v", usageResets[1])
+							assert.Equal(t, nowMinus5HoursTruncated.Add(time.Hour*2+time.Minute*30), usageResets[1].ResetTime.UTC(), "Should have the correct reset time, got %+v", usageResets[1])
+
+							// Now it will realign itself to the anchor
+							assert.Equal(t, nowMinus5HoursTruncated.Add(time.Hour*3), usageResets[2].Anchor.UTC(), "Should have the correct anchor, got %+v", usageResets[2])
+							assert.Equal(t, nowMinus5HoursTruncated.Add(time.Hour*3), usageResets[2].ResetTime.UTC(), "Should have the correct reset time, got %+v", usageResets[2])
+
+							assert.Equal(t, nowMinus5HoursTruncated.Add(time.Hour*4), usageResets[3].Anchor.UTC(), "Should have the correct anchor, got %+v", usageResets[3])
+							assert.Equal(t, nowMinus5HoursTruncated.Add(time.Hour*4), usageResets[3].ResetTime.UTC(), "Should have the correct reset time, got %+v", usageResets[3])
+
+							// And the last item will restore to the original anchor
+							assert.Equal(t, nowMinus5HoursTruncated, usageResets[4].Anchor.UTC(), "Should have the correct anchor, got %+v", usageResets[4])
+							assert.Equal(t, nowMinus5HoursTruncated.Add(time.Hour*5), usageResets[4].ResetTime.UTC(), "Should have the correct reset time, got %+v", usageResets[4])
+						}
+
+						// Entitlement 7, date+time interval
+						{
+							ent7, err := q.GetEntitlementByID(ctx, entId7.String())
+							require.NoError(t, err)
+
+							usageResets, err := q.GetUsageResetsByEntitlementID(ctx, ent7.ID)
+							require.NoError(t, err)
+
+							// Let's test we have the normalized interval
+							assert.Equal(t, "P31DT2H", usageResets[0].UsagePeriodInterval, "Should have the correct usage period interval, got %+v", usageResets[0])
+							assert.Equal(t, time.Date(2025, 1, 31, 0, 0, 0, 0, time.UTC), usageResets[0].Anchor.UTC(), "Should have the correct anchor, got %+v", usageResets[0])
+							assert.Equal(t, time.Date(2025, 1, 31, 0, 0, 0, 0, time.UTC), usageResets[0].ResetTime.UTC(), "Should have the correct reset time, got %+v", usageResets[0])
+
+							// Let's assert the usage reset update
+							assert.Equal(t, time.Date(2025, 3, 12, 0, 0, 0, 0, time.UTC), usageResets[2].ResetTime.UTC(), "Should have the correct reset time, got %+v", usageResets[2])
+							assert.Equal(t, time.Date(2025, 3, 11, 0, 0, 0, 0, time.UTC), usageResets[2].Anchor.UTC(), "Should have the correct anchor, got %+v", usageResets[2])
+							assert.Equal(t, "P31DT1H", usageResets[2].UsagePeriodInterval, "Should have the correct usage period interval, got %+v", usageResets[2])
+
+							// Let's assert it realigns correctly
+							assert.Equal(t, time.Date(2025, 4, 11, 1, 0, 0, 0, time.UTC), usageResets[3].ResetTime.UTC(), "Should have the correct reset time, got %+v", usageResets[3])
+							assert.Equal(t, time.Date(2025, 4, 11, 1, 0, 0, 0, time.UTC), usageResets[3].Anchor.UTC(), "Should have the correct anchor, got %+v", usageResets[3])
+							assert.Equal(t, "P30DT1H", usageResets[3].UsagePeriodInterval, "Should have the correct usage period interval, got %+v", usageResets[3])
+						}
 					},
 				},
+			},
+		}.Test(t)
+	})
+
+	t.Run("Should work on failing lines of dev dataset", func(t *testing.T) {
+		runner{
+			stops: stops{
+				// Let's start with setup
+				{
+					// before version:   20250708102539,
+					version:   20250703081943,
+					direction: directionUp,
+					// Let's do setup
+					action: func(t *testing.T, db *sql.DB) {
+						q := v20250703081943.New(db)
+						ctx := context.Background()
+
+						// 1. Create (some) Feature so it will work
+						require.NoError(t, q.CreateFeature(
+							ctx,
+							v20250703081943.CreateFeatureParams{
+								Namespace: "org_2l3uuzkgTdvCyom82y11jeZO2u5",
+								ID:        "01J5ZSQF319B1M61GNH9ZBG23D",
+								Key:       "total_api_usage",
+								Name:      "total_api_usage",
+								CreatedAt: testutils.GetRFC3339Time(t, "2024-11-06T19:29:00Z"),
+								UpdatedAt: testutils.GetRFC3339Time(t, "2024-11-06T19:29:00Z"),
+							},
+						))
+
+						// 2. Create the entitlement
+						require.NoError(t, q.CreateEntitlement(
+							ctx,
+							v20250703081943.CreateEntitlementParams{
+								ID:              "01JC1F7J8FXTX0YGVNB5Y4CH11",
+								Namespace:       "org_2l3uuzkgTdvCyom82y11jeZO2u5",
+								CreatedAt:       testutils.GetRFC3339Time(t, "2024-11-06T19:29:11Z"),
+								UpdatedAt:       testutils.GetRFC3339Time(t, "2024-11-06T19:32:04Z"),
+								FeatureID:       "01J5ZSQF319B1M61GNH9ZBG23D",
+								SubjectKey:      "lol",
+								EntitlementType: "metered",
+								FeatureKey:      "total_api_usage",
+								MeasureUsageFrom: sql.NullTime{
+									Time:  testutils.GetRFC3339Time(t, "2024-11-06T19:29:00Z"),
+									Valid: true,
+								},
+								UsagePeriodInterval: sql.NullString{
+									String: "P1W",
+									Valid:  true,
+								},
+								UsagePeriodAnchor: sql.NullTime{
+									Time:  testutils.GetRFC3339Time(t, "2024-11-06T19:30:00Z"),
+									Valid: true,
+								},
+							},
+						))
+
+						// 3. Let's create the usage resets
+						require.NoError(t, q.CreateUsageResetWithInterval(
+							ctx,
+							v20250703081943.CreateUsageResetWithIntervalParams{
+								ID:                  "01JC1FAW6XTAGF9BDRSMC79VQC",
+								Namespace:           "org_2l3uuzkgTdvCyom82y11jeZO2u5",
+								CreatedAt:           testutils.GetRFC3339Time(t, "2024-11-06T19:30:59Z"),
+								UpdatedAt:           testutils.GetRFC3339Time(t, "2024-11-06T19:30:59Z"),
+								ResetTime:           testutils.GetRFC3339Time(t, "2024-11-06T19:30:00Z"),
+								EntitlementID:       "01JC1F7J8FXTX0YGVNB5Y4CH11",
+								Anchor:              testutils.GetRFC3339Time(t, "2024-11-06T19:30:00Z"),
+								UsagePeriodInterval: "P1W",
+							},
+						))
+					},
+				},
+				// And now do assertions
+				// {
+				// 	version:   20250708102539,
+				// 	direction: directionUp,
+				// 	// Let's do assertions
+				// 	action: func(t *testing.T, db *sql.DB) {
+				// 	},
+				// },
 			},
 		}.Test(t)
 	})

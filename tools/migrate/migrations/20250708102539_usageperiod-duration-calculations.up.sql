@@ -121,13 +121,18 @@ BEGIN
     );
 
     -- Check if the target day exists in the target month
-    -- If it does, use it
-    IF target_day <= days_in_target_month THEN
+    -- Handle both positive overflow and negative underflow
+    IF target_day >= 1 AND target_day <= days_in_target_month THEN
+        -- Day is valid, use it directly
         result_date = MAKE_DATE(target_year, target_month, target_day);
-    ELSE
-    -- If it does not, normalize it
+    ELSIF target_day > days_in_target_month THEN
+        -- Positive overflow: day is too large for the month
         overflow_days = target_day - days_in_target_month;
         result_date = MAKE_DATE(target_year, target_month, days_in_target_month) + overflow_days;
+    ELSE
+        -- Negative underflow: day is less than 1
+        -- We need to go back to the previous month(s) and add the negative days
+        result_date = MAKE_DATE(target_year, target_month, 1) + (target_day - 1);
     END IF;
 
     -- Finally, lets add back the time part (there's no normalization there so we can just add the durations)
@@ -170,7 +175,7 @@ BEGIN
     ELSE
         -- We iterate backwards
         WHILE iter_ts > cutoff LOOP
-            iter_ts = om_func_go_add_date_normalized(iter_ts, duration * -1);
+            iter_ts = om_func_go_add_date_normalized(iter_ts, -duration);
 
             result_ts = iter_ts;
         END LOOP;
@@ -189,8 +194,8 @@ DECLARE
     current_entitlement RECORD;
     current_usage_reset RECORD;
     initial_usage_reset RECORD;
-    iteration_ts        TIMESTAMP;
-    next_iteration_ts   TIMESTAMP;
+    iteration_ts        TIMESTAMPTZ;
+    next_iteration_ts   TIMESTAMPTZ;
     normalized_interval INTERVAL;
     current_anchor TIMESTAMPTZ;
     entitlement_usage_reset_iteration INT;
@@ -203,7 +208,13 @@ BEGIN
     -- We need to create an initial "virtual" usage reset
     SELECT
         current_entitlement.measure_usage_from AS reset_time,
-        current_entitlement.usage_period_anchor AS anchor,
+        current_entitlement.usage_period_anchor as anchor,
+        -- -- We have to normalize current_entitlement.usage_period_anchor as the anchor time as it should never be after the reset
+        -- om_func_get_go_normalized_last_iteration_not_after_cutoff(
+        --     current_entitlement.usage_period_anchor,
+        --     current_entitlement.usage_period_interval::INTERVAL,
+        --     current_entitlement.measure_usage_from
+        -- ) AS anchor,
         current_entitlement.usage_period_interval AS usage_period_interval
     INTO initial_usage_reset;
 
@@ -238,7 +249,7 @@ BEGIN
         );
 
         -- And let's zero all the variables we'll use
-        next_iteration_ts = NULL::TIMESTAMP;
+        next_iteration_ts = NULL::TIMESTAMPTZ;
         usage_reset_iteration = 0;
 
         WHILE TRUE LOOP
@@ -319,5 +330,320 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
+-- This is the main method executing the calculations
+CREATE OR REPLACE FUNCTION om_func_calc_usage_period_durations_batch(
+    IN ent_ids TEXT[],
+    IN cutoff TIMESTAMPTZ
+) RETURNS TABLE (
+    namespace TEXT,
+    entitlement_id TEXT,
+    usage_reset_id TEXT,
+    reset_time TIMESTAMPTZ,
+    anchor TIMESTAMPTZ,
+    usage_period_interval TEXT
+) AS $$
+DECLARE
+    current_entitlement RECORD;
+    current_usage_reset RECORD;
+    initial_usage_reset RECORD;
+    iteration_ts        TIMESTAMPTZ;
+    next_iteration_ts   TIMESTAMPTZ;
+    normalized_interval INTERVAL;
+    current_anchor TIMESTAMPTZ;
+    entitlement_usage_reset_iteration INT;
+    usage_reset_iteration INT;
+BEGIN
+    FOR current_entitlement IN
+        SELECT * FROM entitlements
+        WHERE id = ANY(ent_ids)
+    LOOP
+
+        IF current_entitlement.entitlement_type != 'metered' THEN
+            RAISE EXCEPTION 'Entitlement % is not a metered entitlement', current_entitlement.id;
+        END IF;
+
+        entitlement_usage_reset_iteration = 0;
+
+        -- We need to create an initial "virtual" usage reset
+        SELECT
+            current_entitlement.measure_usage_from AS reset_time,
+            current_entitlement.usage_period_anchor as anchor,
+            -- -- We have to normalize current_entitlement.usage_period_anchor as the anchor time as it should never be after the reset
+            -- om_func_get_go_normalized_last_iteration_not_after_cutoff(
+            --     current_entitlement.usage_period_anchor,
+            --     current_entitlement.usage_period_interval::INTERVAL,
+            --     current_entitlement.measure_usage_from
+            -- ) AS anchor,
+            current_entitlement.usage_period_interval AS usage_period_interval
+        INTO initial_usage_reset;
+
+        -- We have to build a timeline of usage resets
+        FOR current_usage_reset IN
+            SELECT
+                eur.id,
+                eur.reset_time,
+                eur.anchor,
+                eur.usage_period_interval,
+                LEAD(eur.reset_time) OVER w AS next_reset_time
+            FROM (
+                SELECT
+                    NULL AS id,
+                    initial_usage_reset.reset_time AS reset_time,
+                    initial_usage_reset.anchor AS anchor,
+                    initial_usage_reset.usage_period_interval AS usage_period_interval
+                UNION ALL
+                (
+                    SELECT
+                        ur.id, ur.reset_time, ur.anchor, ur.usage_period_interval
+                    FROM usage_resets ur
+                    WHERE ur.entitlement_id = current_entitlement.id
+                    ORDER BY ur.reset_time ASC
+                )
+            ) eur
+            WINDOW w AS (
+                ORDER BY eur.reset_time ASC
+            )
+        LOOP
+            -- The iteration starting point will be the closest iteration of the current anchor not after the reset time
+            iteration_ts = om_func_get_go_normalized_last_iteration_not_after_cutoff(
+                current_usage_reset.anchor,
+                current_usage_reset.usage_period_interval::INTERVAL,
+                current_usage_reset.reset_time
+            );
+
+            -- And let's zero all the variables we'll use
+            next_iteration_ts = NULL::TIMESTAMPTZ;
+            usage_reset_iteration = 0;
+
+            WHILE TRUE LOOP
+                IF iteration_ts > cutoff THEN
+                    EXIT;
+                END IF;
+
+                IF current_usage_reset.next_reset_time IS NOT NULL AND iteration_ts > current_usage_reset.next_reset_time THEN
+                    EXIT;
+                END IF;
+
+                -- Now we'll calculate the next iteration timestamp via the normalized function
+                next_iteration_ts = om_func_go_add_date_normalized(
+                    iteration_ts::TIMESTAMPTZ,
+                    current_usage_reset.usage_period_interval::INTERVAL
+                );
+
+                -- Then we'll normalize the interval between the two
+                normalized_interval = om_func_go_normalize_interval_to_str(iteration_ts, next_iteration_ts);
+
+                RAISE NOTICE 'Called Normalize for %, %, %, % at iteration % %', iteration_ts, next_iteration_ts, current_usage_reset.usage_period_interval, normalized_interval, usage_reset_iteration, entitlement_usage_reset_iteration;
+
+                -- Now let's populate the result set
+
+                -- If this is our first iteration for the usage reset, we need to UPDATE the usage reset
+                IF usage_reset_iteration = 0 AND entitlement_usage_reset_iteration > 0 THEN
+                    -- Add value with ID present to result set
+
+                    om_func_calc_usage_period_durations_batch.namespace := current_entitlement.namespace;
+                    om_func_calc_usage_period_durations_batch.entitlement_id := current_entitlement.id;
+                    om_func_calc_usage_period_durations_batch.usage_reset_id := current_usage_reset.id;
+                    om_func_calc_usage_period_durations_batch.reset_time := current_usage_reset.reset_time::TIMESTAMPTZ;
+                    om_func_calc_usage_period_durations_batch.anchor := om_func_get_go_normalized_last_iteration_not_after_cutoff(
+                        current_usage_reset.anchor,
+                        current_usage_reset.usage_period_interval::INTERVAL,
+                        current_usage_reset.reset_time
+                    )::TIMESTAMPTZ;
+                    om_func_calc_usage_period_durations_batch.usage_period_interval := normalized_interval;
+
+                    RETURN NEXT;
+                ELSE
+                    current_anchor = iteration_ts;
+
+                    -- If we're in the "current" period relative to the cutoff
+                    -- meaning iteration_ts is before the cutoff and next_iteration_ts is after it,
+                    -- then the new algo should take place (without normalization)
+                    -- so we should restore the usage_period_interval to the original value...
+                    IF next_iteration_ts > cutoff THEN
+                        normalized_interval = current_usage_reset.usage_period_interval;
+                        current_anchor = current_usage_reset.anchor;
+                        -- Note that we don't need to exit here as the loop will stop at the start of next iteration
+                    END IF;
+
+                    om_func_calc_usage_period_durations_batch.namespace := current_entitlement.namespace;
+                    om_func_calc_usage_period_durations_batch.entitlement_id := current_entitlement.id;
+                    om_func_calc_usage_period_durations_batch.usage_reset_id := NULL;
+                    om_func_calc_usage_period_durations_batch.reset_time := iteration_ts;
+                    om_func_calc_usage_period_durations_batch.anchor := current_anchor;
+                    om_func_calc_usage_period_durations_batch.usage_period_interval := normalized_interval;
+
+                    RETURN NEXT;
+                END IF;
+
+                iteration_ts = next_iteration_ts;
+                usage_reset_iteration = usage_reset_iteration + 1;
+            END LOOP;
+
+            entitlement_usage_reset_iteration = entitlement_usage_reset_iteration + 1;
+        END LOOP;
+    END LOOP;
+
+    RETURN;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+CREATE OR REPLACE FUNCTION om_func_update_usage_period_durations_batch(
+    batch_size INT,
+    cutoff TIMESTAMPTZ
+) RETURNS VOID AS $$
+DECLARE
+    query_offset INT;
+    total_count INT;
+    curr_batch_ent_ids TEXT[];
+    --
+    start_time TIMESTAMPTZ;
+    curr_time TIMESTAMPTZ;
+    elapsed INTERVAL;
+    estimated_seconds BIGINT;
+    estimated_remaining_seconds BIGINT;
+BEGIN
+    query_offset = 0;
+    start_time = NOW();
+
+    -- Let's iterate through the entitlements in batches
+    LOOP
+        -- Let's update the total count on each iteration so we get any new items as well
+        total_count = (SELECT COUNT(*) FROM entitlements WHERE entitlement_type = 'metered');
+
+        IF query_offset >= total_count THEN
+            EXIT;
+        END IF;
+
+                -- Let's get the next batch of entitlements
+        SELECT ARRAY_AGG(id)
+        FROM (
+            SELECT id FROM entitlements
+            WHERE entitlement_type = 'metered'
+            ORDER BY created_at, id
+            LIMIT batch_size OFFSET query_offset
+        ) batch INTO curr_batch_ent_ids;
+
+        -- Exit if no more records found
+        IF curr_batch_ent_ids IS NULL OR array_length(curr_batch_ent_ids, 1) = 0 THEN
+            EXIT;
+        END IF;
+
+        -- Let's update the usage resets
+        -- First we'll start with the updates where usage_reset_id is NOT NULL
+        UPDATE usage_resets ur
+        SET
+            usage_period_interval = res.usage_period_interval,
+            anchor = res.anchor,
+            reset_time = res.reset_time,
+            updated_at = NOW()
+        FROM (SELECT * FROM om_func_calc_usage_period_durations_batch(curr_batch_ent_ids, cutoff)) res
+        WHERE res.usage_reset_id IS NOT NULL AND ur.id = res.usage_reset_id;
+
+        -- Second, we'll follow with the inserts where usage_reset_id is NULL
+        INSERT INTO usage_resets (
+            namespace,
+            id,
+            created_at,
+            updated_at,
+            entitlement_id,
+            reset_time,
+            anchor,
+            usage_period_interval
+        )
+                SELECT
+            res.namespace,
+            om_func_generate_ulid(),
+            NOW(),
+            NOW(),
+            res.entitlement_id,
+            res.reset_time,
+            res.anchor,
+            res.usage_period_interval
+        FROM (SELECT * FROM om_func_calc_usage_period_durations_batch(curr_batch_ent_ids, cutoff)) res
+        WHERE res.usage_reset_id IS NULL;
+
+        -- Let's increment counter and offset
+        query_offset = query_offset + array_length(curr_batch_ent_ids, 1);
+
+        -- Calculate estimated remaining time
+        curr_time = CLOCK_TIMESTAMP();
+
+        elapsed = curr_time - start_time;
+        estimated_seconds = (EXTRACT(EPOCH FROM elapsed) * total_count / query_offset)::BIGINT;
+        estimated_remaining_seconds = estimated_seconds - (EXTRACT(EPOCH FROM elapsed));
+
+        RAISE NOTICE 'Processed % of % records (%.1f%%) - %, EST-total: %, EST-remaining: %',
+            query_offset, total_count,
+            (query_offset::FLOAT / total_count * 100),
+            age(curr_time, start_time),
+            '1 SECOND'::INTERVAL * estimated_seconds,
+            '1 SECOND'::INTERVAL * estimated_remaining_seconds;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
 -- Let's run the migration
-SELECT om_func_update_usage_period_durations(id, NOW()) FROM entitlements WHERE entitlement_type = 'metered';
+-- This is the fast version that doesnt work
+SELECT om_func_update_usage_period_durations_batch(100, NOW());
+
+-- This version works
+-- SELECT om_func_update_usage_period_durations(id, NOW()) FROM entitlements WHERE entitlement_type = 'metered';
+
+-- This runs the working version with progress tracking
+-- -- Let's run the migration with batching and progress tracking
+-- DO $$
+-- DECLARE
+--     batch_size INT := 100;  -- Process 100 entitlements at a time
+--     processed_count INT := 0;
+--     total_count INT;
+--     current_ent RECORD;
+--     start_time TIMESTAMPTZ;
+--     curr_time TIMESTAMPTZ;
+--     elapsed INTERVAL;
+--     estimated_seconds BIGINT;
+--     estimated_remaining_seconds BIGINT;
+-- BEGIN
+--     start_time = CLOCK_TIMESTAMP();
+
+--     -- Get total count for progress tracking
+--     total_count = (SELECT COUNT(*) FROM entitlements WHERE entitlement_type = 'metered');
+
+--     RAISE NOTICE 'Starting migration of % entitlements at %', total_count, start_time;
+
+--     FOR current_ent IN
+--         SELECT id FROM entitlements
+--         WHERE entitlement_type = 'metered'
+--         ORDER BY id
+--     LOOP
+--         BEGIN
+--             PERFORM om_func_update_usage_period_durations(current_ent.id, CLOCK_TIMESTAMP());
+
+--             processed_count := processed_count + 1;
+
+--             -- Log progress every batch_size records
+--             IF processed_count % batch_size = 0 THEN
+--                 -- Calculate estimated remaining time
+--                 curr_time = CLOCK_TIMESTAMP();
+
+--                 elapsed = curr_time - start_time;
+--                 estimated_seconds = (EXTRACT(EPOCH FROM elapsed) * total_count / processed_count)::BIGINT;
+--                 estimated_remaining_seconds = estimated_seconds - (EXTRACT(EPOCH FROM elapsed));
+
+--                 RAISE NOTICE 'Processed % of % records (%.1f%%) - %, EST-total: %, EST-remaining: %',
+--                     processed_count, total_count,
+--                     (processed_count::FLOAT / total_count * 100),
+--                     age(curr_time, start_time),
+--                     '1 SECOND'::INTERVAL * estimated_seconds,
+--                     '1 SECOND'::INTERVAL * estimated_remaining_seconds;
+--             END IF;
+
+--         EXCEPTION WHEN OTHERS THEN
+--             RAISE NOTICE 'Error processing entitlement %: %', current_ent.id, SQLERRM;
+--             -- Continue processing other entitlements
+--         END;
+--     END LOOP;
+
+--         RAISE NOTICE 'Migration completed at %. Processed % records in %',
+--         CLOCK_TIMESTAMP(), processed_count, (CLOCK_TIMESTAMP() - start_time);
+-- END $$;
