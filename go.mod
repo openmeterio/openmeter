@@ -36,7 +36,7 @@ require (
 	github.com/google/wire v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.35.1
-	github.com/invopop/gobl v0.218.0
+	github.com/invopop/gobl v0.220.2
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/jmattheis/goverter v1.9.0
 	github.com/lmittmann/tint v1.1.2
@@ -470,7 +470,7 @@ require (
 	github.com/trinodb/trino-go-client v0.320.0 // indirect
 	github.com/twmb/franz-go v1.18.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.9.0 // indirect
-	github.com/urfave/cli/v2 v2.27.6 // indirect
+	github.com/urfave/cli/v2 v2.27.6
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
