@@ -30,7 +30,7 @@ require (
 	github.com/go-slog/otelslog v0.3.0
 	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/golang-cz/devslog v0.0.15
-	github.com/golang-jwt/jwt/v5 v5.2.2
+	github.com/golang-jwt/jwt/v5 v5.2.3
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
@@ -470,7 +470,7 @@ require (
 	github.com/trinodb/trino-go-client v0.320.0 // indirect
 	github.com/twmb/franz-go v1.18.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.9.0 // indirect
-	github.com/urfave/cli/v2 v2.27.6 // indirect
+	github.com/urfave/cli/v2 v2.27.6
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
