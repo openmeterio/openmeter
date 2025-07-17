@@ -36,8 +36,8 @@ type subjectHook struct {
 	ignoreErrors bool
 }
 
-func (s subjectHook) provisionCustomerForSubject(ctx context.Context, sub *subject.Subject) error {
-	err := s.provisioner.ProvisionCustomerForSubject(ctx, sub)
+func (s subjectHook) provision(ctx context.Context, sub *subject.Subject) error {
+	err := s.provisioner.Provision(ctx, sub)
 	if err != nil {
 		if s.ignoreErrors {
 			s.logger.Warn("failed to provision customer for subject", "error", err)
@@ -54,11 +54,11 @@ func (s subjectHook) provisionCustomerForSubject(ctx context.Context, sub *subje
 }
 
 func (s subjectHook) PostCreate(ctx context.Context, sub *subject.Subject) error {
-	return s.provisionCustomerForSubject(ctx, sub)
+	return s.provision(ctx, sub)
 }
 
 func (s subjectHook) PostUpdate(ctx context.Context, sub *subject.Subject) error {
-	return s.provisionCustomerForSubject(ctx, sub)
+	return s.provision(ctx, sub)
 }
 
 func NewSubjectHook(config SubjectHookConfig) (SubjectHook, error) {
@@ -187,7 +187,7 @@ type CustomerProvisioner struct {
 
 var ErrCustomerKeyConflict = errors.New("customer key conflict")
 
-func (p CustomerProvisioner) GetCustomerForSubject(ctx context.Context, sub *subject.Subject) (*customer.Customer, error) {
+func (p CustomerProvisioner) getCustomerForSubject(ctx context.Context, sub *subject.Subject) (*customer.Customer, error) {
 	var (
 		cus *customer.Customer
 		err error
@@ -224,20 +224,26 @@ func (p CustomerProvisioner) GetCustomerForSubject(ctx context.Context, sub *sub
 }
 
 // EnsureCustomer returns a Customer entity created/updated based on the provided Subject.
-func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Subject) (*customer.Customer, error) {
+func (p CustomerProvisioner) ensureCustomer(ctx context.Context, sub *subject.Subject) (*customer.Customer, error) {
 	if sub == nil {
 		return nil, errors.New("failed to provision customer for subject: subject is nil")
 	}
 
 	var keyConflict bool
 
-	cus, err := p.GetCustomerForSubject(ctx, sub)
+	cus, err := p.getCustomerForSubject(ctx, sub)
 	if err != nil {
 		if errors.Is(err, ErrCustomerKeyConflict) {
 			keyConflict = true
 		} else if !models.IsGenericNotFoundError(err) {
 			return nil, err
 		}
+	}
+
+	// Ignore deleted Customers
+	if cus != nil && cus.DeletedAt != nil {
+		cus = nil
+		keyConflict = false
 	}
 
 	annotations := models.Annotations{
@@ -254,12 +260,14 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 			return cus, nil
 		}
 
+		customerID := customer.CustomerID{
+			Namespace: cus.Namespace,
+			ID:        cus.ID,
+		}
+
 		// Update Customer for Subject in case there is non to be found
 		cus, err = p.customer.UpdateCustomer(ctx, customer.UpdateCustomerInput{
-			CustomerID: customer.CustomerID{
-				Namespace: cus.Namespace,
-				ID:        cus.ID,
-			},
+			CustomerID: customerID,
 			CustomerMutate: customer.CustomerMutate{
 				Key:              lo.ToPtr(lo.FromPtrOr(cus.Key, sub.Key)),
 				Name:             lo.FromPtr(sub.DisplayName),
@@ -268,7 +276,15 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 				PrimaryEmail:     cus.PrimaryEmail,
 				Currency:         cus.Currency,
 				BillingAddress:   cus.BillingAddress,
-				Metadata:         lo.ToPtr(cus.Metadata.Merge(MetadataFromMap(sub.Metadata))),
+				Metadata: func() *models.Metadata {
+					cm := lo.FromPtr(cus.Metadata)
+
+					if len(sub.Metadata) == 0 && len(cm) == 0 {
+						return nil
+					}
+
+					return lo.ToPtr(cm.Merge(MetadataFromMap(sub.Metadata)))
+				}(),
 				Annotation: func() *models.Annotations {
 					if len(lo.FromPtr(cus.Annotation)) == 0 && len(annotations) == 0 {
 						return nil
@@ -285,7 +301,7 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to update customer for subject [namespace=%s customer.id=%s]: %w",
-				cus.Namespace, cus.ID, err)
+				customerID.Namespace, customerID.ID, err)
 		}
 
 		return cus, nil
@@ -316,7 +332,7 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 	})
 }
 
-func (p CustomerProvisioner) EnsureStripeCustomer(ctx context.Context, customerID customer.CustomerID, stripeCustomerID string) error {
+func (p CustomerProvisioner) ensureStripeCustomer(ctx context.Context, customerID customer.CustomerID, stripeCustomerID string) error {
 	customerOverride, err := p.customerOverride.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: customerID,
 		Expand: billing.CustomerOverrideExpand{
@@ -354,8 +370,8 @@ func (p CustomerProvisioner) EnsureStripeCustomer(ctx context.Context, customerI
 	return nil
 }
 
-func (p CustomerProvisioner) ProvisionCustomerForSubject(ctx context.Context, sub *subject.Subject) error {
-	cus, err := p.EnsureCustomer(ctx, sub)
+func (p CustomerProvisioner) Provision(ctx context.Context, sub *subject.Subject) error {
+	cus, err := p.ensureCustomer(ctx, sub)
 	if err != nil {
 		return fmt.Errorf("failed to provision customer for subject [namespace=%s subject.id=%s subject.key=%s]: %w",
 			sub.Namespace, sub.Id, sub.Key, err)
@@ -367,7 +383,7 @@ func (p CustomerProvisioner) ProvisionCustomerForSubject(ctx context.Context, su
 	}
 
 	if sub.StripeCustomerId != nil {
-		if err := p.EnsureStripeCustomer(ctx, customerID, *sub.StripeCustomerId); err != nil {
+		if err := p.ensureStripeCustomer(ctx, customerID, *sub.StripeCustomerId); err != nil {
 			return fmt.Errorf("failed to update stripe customer id for subject customer [namespace=%s subject.id=%s subject.key=%s customer.id=%s]: %w",
 				sub.Namespace, sub.Id, sub.Key, cus.ID, err)
 		}

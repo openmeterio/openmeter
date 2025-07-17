@@ -57,20 +57,15 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 			Key:              "acme-inc",
 			DisplayName:      lo.ToPtr("ACME Inc."),
 			StripeCustomerId: lo.ToPtr("cus_abcdefgh"),
-			Metadata: lo.ToPtr(map[string]interface{}{
-				"foo": "bar",
-				"bar": 1,
-				"baz": true,
-			}),
 		})
 		require.NoError(t, err, "creating subject should not fail")
 		assert.NotNilf(t, sub, "subject must not be nil")
 
-		cus, err := provisioner.GetCustomerForSubject(ctx, &sub)
+		cus, err := provisioner.getCustomerForSubject(ctx, &sub)
 		require.ErrorAsf(t, err, new(*models.GenericNotFoundError), "error must be not found error")
 		assert.Nilf(t, cus, "customer must be nil")
 
-		cus, err = provisioner.EnsureCustomer(ctx, &sub)
+		cus, err = provisioner.ensureCustomer(ctx, &sub)
 		require.NoError(t, err, "provisioning customer should not fail")
 		assert.NotNilf(t, cus, "customer must not be nil")
 
@@ -125,7 +120,7 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 			require.NoError(t, err, "updating customer should not fail")
 			assert.NotNilf(t, sub, "customer must not be nil")
 
-			cus, err = provisioner.EnsureCustomer(ctx, &sub)
+			cus, err = provisioner.ensureCustomer(ctx, &sub)
 			require.NoError(t, err, "provisioning customer should not fail")
 			assert.NotNilf(t, cus, "customer must not be nil")
 
@@ -180,7 +175,7 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 			require.NoError(t, err, "creating customer should not fail")
 			assert.NotNilf(t, cus, "customer must not be nil")
 
-			cus, err = provisioner.EnsureCustomer(ctx, &sub)
+			cus, err = provisioner.ensureCustomer(ctx, &sub)
 			require.NoError(t, err, "provisioning customer should not fail")
 			assert.NotNilf(t, cus, "customer must not be nil")
 
@@ -233,7 +228,7 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 			require.NoError(t, err, "creating customer should not fail")
 			assert.NotNilf(t, cus, "customer must not be nil")
 
-			cus, err = provisioner.EnsureCustomer(ctx, &sub)
+			cus, err = provisioner.ensureCustomer(ctx, &sub)
 			require.NoError(t, err, "provisioning customer should not fail")
 			assert.NotNilf(t, cus, "customer must not be nil")
 
