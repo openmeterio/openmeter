@@ -64,7 +64,7 @@ require (
 	github.com/samber/mo v1.14.0
 	github.com/samber/slog-multi v1.4.1
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
 	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/stretchr/testify v1.10.0
