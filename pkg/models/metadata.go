@@ -16,6 +16,24 @@ func (m Metadata) ToMap() map[string]string {
 	return m
 }
 
+func (m Metadata) Merge(d Metadata) Metadata {
+	if len(m) == 0 && len(d) == 0 {
+		return nil
+	}
+
+	r := make(Metadata)
+
+	for k, v := range m {
+		r[k] = v
+	}
+
+	for k, v := range d {
+		r[k] = v
+	}
+
+	return r
+}
+
 func NewMetadata[T ~map[string]string](m T) Metadata {
 	return Metadata(m)
 }
