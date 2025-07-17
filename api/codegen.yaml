@@ -9,6 +9,7 @@ compatibility:
   # See: https://github.com/oapi-codegen/oapi-codegen/issues/778
   disable-required-readonly-as-pointer: true
   always-prefix-enum-values: true
+  preserve-original-operation-id-casing-in-embedded-spec: true
 output: ./api.gen.go
 output-options:
   skip-prune: true
