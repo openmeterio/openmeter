@@ -32,42 +32,81 @@ type subjectHook struct {
 
 	provisioner *CustomerProvisioner
 	logger      *slog.Logger
+
+	ignoreErrors bool
+}
+
+func (s subjectHook) provisionCustomerForSubject(ctx context.Context, sub *subject.Subject) error {
+	err := s.provisioner.ProvisionCustomerForSubject(ctx, sub)
+	if err != nil {
+		if s.ignoreErrors {
+			s.logger.Warn("failed to provision customer for subject", "error", err)
+
+			return nil
+		} else {
+			s.logger.Error("failed to provision customer for subject", "error", err)
+
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s subjectHook) PostCreate(ctx context.Context, sub *subject.Subject) error {
-	return s.provisioner.ProvisionCustomerForSubject(ctx, sub)
+	return s.provisionCustomerForSubject(ctx, sub)
 }
 
 func (s subjectHook) PostUpdate(ctx context.Context, sub *subject.Subject) error {
-	return s.provisioner.ProvisionCustomerForSubject(ctx, sub)
+	return s.provisionCustomerForSubject(ctx, sub)
 }
 
-func NewSubjectHook(
-	customer customer.Service,
-	customerOverride billing.CustomerOverrideService,
-	logger *slog.Logger,
-) (SubjectHook, error) {
-	if customer == nil {
-		return nil, fmt.Errorf("customer service is required")
-	}
-
-	if logger == nil {
-		return nil, fmt.Errorf("logger is required")
+func NewSubjectHook(config SubjectHookConfig) (SubjectHook, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid subject hook config: %w", err)
 	}
 
 	provisioner, err := NewCustomerProvisioner(CustomerProvisionerConfig{
-		Customer:         customer,
-		CustomerOverride: customerOverride,
-		Logger:           logger,
+		Customer:         config.Customer,
+		CustomerOverride: config.CustomerOverride,
+		Logger:           config.Logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize customer provisioner: %w", err)
 	}
 
 	return &subjectHook{
-		provisioner: provisioner,
-		logger:      logger.With("subsystem", "customer.subject.hook"),
+		provisioner:  provisioner,
+		logger:       config.Logger.With("subsystem", "customer.subject.hook"),
+		ignoreErrors: config.IgnoreErrors,
 	}, nil
+}
+
+type SubjectHookConfig struct {
+	Customer         customer.Service
+	CustomerOverride billing.CustomerOverrideService
+	Logger           *slog.Logger
+
+	// IgnoreErrors if set to true makes the hooks ignore (not returning error)
+	IgnoreErrors bool
+}
+
+func (c SubjectHookConfig) Validate() error {
+	var errs []error
+
+	if c.Customer == nil {
+		errs = append(errs, fmt.Errorf("customer service is required"))
+	}
+
+	if c.CustomerOverride == nil {
+		errs = append(errs, fmt.Errorf("customer override service is required"))
+	}
+
+	if c.Logger == nil {
+		errs = append(errs, fmt.Errorf("logger is required"))
+	}
+
+	return errors.Join(errs...)
 }
 
 func CmpSubjectCustomer(s *subject.Subject, c *customer.Customer) bool {

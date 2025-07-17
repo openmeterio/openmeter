@@ -69,7 +69,12 @@ func NewCustomerSubjectServiceHook(
 	}
 
 	// Initialize the customer subject hook and register for subject service
-	h, err := customerservicehooks.NewSubjectHook(customerService, customerOverrideService, logger)
+	h, err := customerservicehooks.NewSubjectHook(customerservicehooks.SubjectHookConfig{
+		Customer:         customerService,
+		CustomerOverride: customerOverrideService,
+		Logger:           logger,
+		IgnoreErrors:     config.IgnoreErrors,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer subject hook: %w", err)
 	}
