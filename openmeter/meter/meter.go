@@ -293,5 +293,6 @@ type MeterQueryRow struct {
 	WindowStart time.Time          `json:"windowStart"`
 	WindowEnd   time.Time          `json:"windowEnd"`
 	Subject     *string            `json:"subject"`
+	CustomerID  *string            `json:"customerId"`
 	GroupBy     map[string]*string `json:"groupBy"`
 }

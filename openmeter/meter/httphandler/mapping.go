@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -49,6 +50,7 @@ func ToAPIMeterQueryResult(from *time.Time, to *time.Time, windowSize *api.Windo
 // ToAPIMeterQueryRow converts a meter.MeterQueryRow to an api.MeterQueryRow.
 func ToAPIMeterQueryRow(row meter.MeterQueryRow) api.MeterQueryRow {
 	apiRow := api.MeterQueryRow{
+		CustomerId:  row.CustomerID,
 		Subject:     row.Subject,
 		GroupBy:     row.GroupBy,
 		WindowStart: row.WindowStart,
@@ -70,15 +72,16 @@ func ToAPIMeterQueryRowList(rows []meter.MeterQueryRow) []api.MeterQueryRow {
 }
 
 // ToQueryParamsFromAPIParams converts a api.QueryMeterParams to a streaming.QueryParams.
-func ToQueryParamsFromAPIParams(m meter.Meter, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
+func ToQueryParamsFromAPIParams(m meter.Meter, filterCustomer []customer.Customer, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
 	request := api.QueryMeterPostJSONRequestBody{
-		ClientId:       apiParams.ClientId,
-		From:           apiParams.From,
-		To:             apiParams.To,
-		Subject:        apiParams.Subject,
-		GroupBy:        apiParams.GroupBy,
-		WindowSize:     apiParams.WindowSize,
-		WindowTimeZone: apiParams.WindowTimeZone,
+		ClientId:         apiParams.ClientId,
+		From:             apiParams.From,
+		To:               apiParams.To,
+		Subject:          apiParams.Subject,
+		GroupBy:          apiParams.GroupBy,
+		FilterCustomerId: apiParams.FilterCustomerId,
+		WindowSize:       apiParams.WindowSize,
+		WindowTimeZone:   apiParams.WindowTimeZone,
 	}
 
 	if apiParams.FilterGroupBy != nil {
@@ -89,15 +92,16 @@ func ToQueryParamsFromAPIParams(m meter.Meter, apiParams api.QueryMeterParams) (
 		request.FilterGroupBy = &filterGroupBy
 	}
 
-	return ToQueryParamsFromRequest(m, request)
+	return ToQueryParamsFromRequest(m, filterCustomer, request)
 }
 
 // ToQueryParamsFromRequest converts a api.QueryMeterPostJSONRequestBody to a streaming.QueryParams.
-func ToQueryParamsFromRequest(m meter.Meter, request api.QueryMeterPostJSONRequestBody) (streaming.QueryParams, error) {
+func ToQueryParamsFromRequest(m meter.Meter, filterCustomer []customer.Customer, request api.QueryMeterPostJSONRequestBody) (streaming.QueryParams, error) {
 	params := streaming.QueryParams{
-		ClientID: request.ClientId,
-		From:     request.From,
-		To:       request.To,
+		ClientID:       request.ClientId,
+		From:           request.From,
+		To:             request.To,
+		FilterCustomer: filterCustomer,
 	}
 
 	if request.WindowSize != nil {
@@ -107,7 +111,7 @@ func ToQueryParamsFromRequest(m meter.Meter, request api.QueryMeterPostJSONReque
 	if request.GroupBy != nil {
 		for _, groupBy := range *request.GroupBy {
 			// Validate group by, `subject` is a special group by
-			if ok := groupBy == "subject" || m.GroupBy[groupBy] != ""; !ok {
+			if ok := groupBy == "subject" || groupBy == "customer_id" || m.GroupBy[groupBy] != ""; !ok {
 				err := fmt.Errorf("invalid group by: %s", groupBy)
 				return params, models.NewGenericValidationError(err)
 			}
@@ -124,6 +128,11 @@ func ToQueryParamsFromRequest(m meter.Meter, request api.QueryMeterPostJSONReque
 		if !slices.Contains(params.GroupBy, "subject") {
 			params.GroupBy = append(params.GroupBy, "subject")
 		}
+	}
+
+	// Add customer_id to group by if not already present and there are customers to filter by
+	if len(filterCustomer) > 0 && !slices.Contains(params.GroupBy, "customer_id") {
+		params.GroupBy = append(params.GroupBy, "customer_id")
 	}
 
 	if request.WindowTimeZone != nil {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -104,7 +105,22 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := ToQueryParamsFromAPIParams(meter, request.params)
+			var filterCustomer []customer.Customer
+
+			// Resolve customer IDs to customers
+			if request.params.FilterCustomerId != nil && len(*request.params.FilterCustomerId) > 0 {
+				customers, err := h.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+					Namespace:   request.namespace,
+					CustomerIDs: *request.params.FilterCustomerId,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to list customers: %w", err)
+				}
+
+				filterCustomer = customers.Items
+			}
+
+			params, err := ToQueryParamsFromAPIParams(meter, filterCustomer, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
@@ -167,7 +183,22 @@ func (h *handler) QueryMeterPost() QueryMeterPostHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := ToQueryParamsFromRequest(meter, request.params)
+			var filterCustomer []customer.Customer
+
+			// Resolve customer IDs to customers
+			if request.params.FilterCustomerId != nil && len(*request.params.FilterCustomerId) > 0 {
+				customers, err := h.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+					Namespace:   request.namespace,
+					CustomerIDs: *request.params.FilterCustomerId,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to list customers: %w", err)
+				}
+
+				filterCustomer = customers.Items
+			}
+
+			params, err := ToQueryParamsFromRequest(meter, filterCustomer, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}

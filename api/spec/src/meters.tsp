@@ -371,11 +371,20 @@ model MeterQuery {
   /**
    * Filtering by multiple subjects.
    *
-   * For example: ?subject=customer-1&subject=customer-2
+   * For example: ?subject=subject-1&subject=subject-2
+   */
+  @query(#{ explode: true })
+  @example(#["subject-1", "subject-2"])
+  subject?: string[];
+
+  /**
+   * Filtering by multiple customers.
+   *
+   * For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2
    */
   @query(#{ explode: true })
   @example(#["customer-1", "customer-2"])
-  subject?: string[];
+  filterCustomerId?: string[];
 
   /**
    * Simple filter for group bys with exact match.
@@ -440,9 +449,16 @@ model MeterQueryRequest {
   /**
    * Filtering by multiple subjects.
    */
-  @example(#["customer-1", "customer-2"])
+  @example(#["subject-1", "subject-2"])
   @maxItems(100)
   subject?: string[];
+
+  /**
+   * Filtering by multiple customers.
+   */
+  @example(#["id-1", "id-2"])
+  @maxItems(100)
+  filterCustomerId?: string[];
 
   /**
    * Simple filter for group bys with exact match.
@@ -535,6 +551,11 @@ model MeterQueryRow {
    * If not specified, the value is aggregated over all subjects.
    */
   subject: string | null;
+
+  /**
+   * The customer ID the value is aggregated over.
+   */
+  customerId?: string;
 
   /**
    * The group by values the value is aggregated over.

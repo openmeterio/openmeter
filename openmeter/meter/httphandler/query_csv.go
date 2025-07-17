@@ -8,6 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -49,8 +50,23 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
+			var filterCustomer []customer.Customer
+
+			// Resolve customer IDs to customers
+			if request.params.FilterCustomerId != nil && len(*request.params.FilterCustomerId) > 0 {
+				customers, err := h.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+					Namespace:   request.namespace,
+					CustomerIDs: *request.params.FilterCustomerId,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to list customers: %w", err)
+				}
+
+				filterCustomer = customers.Items
+			}
+
 			// Query meter
-			params, err := ToQueryParamsFromAPIParams(meter, request.params)
+			params, err := ToQueryParamsFromAPIParams(meter, filterCustomer, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}

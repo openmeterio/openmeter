@@ -2,8 +2,10 @@ package streaming
 
 import (
 	"errors"
+	"slices"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -12,6 +14,7 @@ type QueryParams struct {
 	ClientID       *string
 	From           *time.Time
 	To             *time.Time
+	FilterCustomer []customer.Customer
 	FilterSubject  []string
 	FilterGroupBy  map[string][]string
 	GroupBy        []string
@@ -35,6 +38,14 @@ func (p *QueryParams) Validate() error {
 		if p.From.After(*p.To) {
 			errs = append(errs, errors.New("from must be before to"))
 		}
+	}
+
+	if len(p.FilterCustomer) > 0 && len(p.FilterSubject) > 0 {
+		errs = append(errs, errors.New("filter customer and filter subject cannot be used together"))
+	}
+
+	if slices.Contains(p.GroupBy, "customer_id") && len(p.FilterCustomer) == 0 {
+		errs = append(errs, errors.New("filter customer is required when grouping by customer_id"))
 	}
 
 	if len(errs) > 0 {

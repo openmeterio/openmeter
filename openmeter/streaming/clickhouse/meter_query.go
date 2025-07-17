@@ -1,6 +1,7 @@
 package clickhouse
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
 	"math"
@@ -9,23 +10,25 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/huandu/go-sqlbuilder"
+	"github.com/samber/lo"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type queryMeter struct {
-	Database        string
-	EventsTableName string
-	Namespace       string
-	Meter           meterpkg.Meter
-	Subject         []string
-	FilterGroupBy   map[string][]string
-	From            *time.Time
-	To              *time.Time
-	GroupBy         []string
-	WindowSize      *meterpkg.WindowSize
-	WindowTimeZone  *time.Location
+	Database            string
+	EventsTableName     string
+	Namespace           string
+	Meter               meterpkg.Meter
+	Subject             []string
+	SubjectToCustomerID map[string]string
+	FilterGroupBy       map[string][]string
+	From                *time.Time
+	To                  *time.Time
+	GroupBy             []string
+	WindowSize          *meterpkg.WindowSize
+	WindowTimeZone      *time.Location
 }
 
 // from returns the from time for the query.
@@ -195,6 +198,12 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 			continue
 		}
 
+		// Customer ID is a special case as it's a top level column
+		if groupByKey == "customer_id" {
+			groupByColumns = append(groupByColumns, "customer_id")
+			continue
+		}
+
 		// Group by columns need to be parsed from the JSON data
 		groupByColumn := sqlbuilder.Escape(groupByKey)
 		groupByJSONPath := sqlbuilder.Escape(d.Meter.GroupBy[groupByKey])
@@ -202,6 +211,16 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 		selectColumns = append(selectColumns, selectColumn)
 		groupByColumns = append(groupByColumns, groupByColumn)
+	}
+
+	if len(d.SubjectToCustomerID) > 0 {
+		var caseBuilder bytes.Buffer
+		caseBuilder.WriteString("CASE")
+		for subject, customerID := range d.SubjectToCustomerID {
+			caseBuilder.WriteString(fmt.Sprintf(" WHEN %s = '%s' THEN '%s'", getColumn("subject"), subject, customerID))
+		}
+		caseBuilder.WriteString(" ELSE '' END AS customer_id")
+		selectColumns = append(selectColumns, caseBuilder.String())
 	}
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
@@ -245,6 +264,11 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 					column = "subject"
 				}
 
+				// Customer ID is a special case
+				if groupByKey == "customer_id" {
+					column = "customer_id"
+				}
+
 				return fmt.Sprintf("%s = '%s'", column, sqlbuilder.Escape((value)))
 			}
 
@@ -277,6 +301,22 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRow, error) {
 	values := []meterpkg.MeterQueryRow{}
 
+	// Get the columns from the query
+	columns := rows.Columns()
+
+	if columns[0] != "windowstart" {
+		return values, fmt.Errorf("first column is not windowstart")
+	}
+
+	if columns[1] != "windowend" {
+		return values, fmt.Errorf("second column is not windowend")
+	}
+
+	if columns[2] != "value" {
+		return values, fmt.Errorf("third column is not value")
+	}
+
+	// Scan the rows
 	for rows.Next() {
 		row := meterpkg.MeterQueryRow{
 			GroupBy: map[string]*string{},
@@ -286,9 +326,10 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
 		argCount := len(args)
 
-		for range queryMeter.GroupBy {
-			tmp := ""
-			args = append(args, &tmp)
+		if len(columns) > argCount {
+			for range columns[argCount:] {
+				args = append(args, lo.ToPtr(""))
+			}
 		}
 
 		if err := rows.Scan(args...); err != nil {
@@ -312,26 +353,22 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 			return values, fmt.Errorf("value is infinite")
 		}
 
-		for i, key := range queryMeter.GroupBy {
+		for i, column := range columns[argCount:] {
 			if s, ok := args[i+argCount].(*string); ok {
 				// Subject is a top level field
-				if key == "subject" {
+				if column == "subject" {
 					row.Subject = s
 					continue
 				}
 
-				// We treat empty string as nil
-				if s != nil && *s == "" {
-					row.GroupBy[key] = nil
-				} else {
-					row.GroupBy[key] = s
+				// Customer ID is a top level field
+				if column == "customer_id" {
+					row.CustomerID = s
+					continue
 				}
-			}
-		}
 
-		// an empty row is returned when there are no values for the meter
-		if row.WindowStart.IsZero() && row.WindowEnd.IsZero() && row.Value == 0 {
-			continue
+				row.GroupBy[column] = s
+			}
 		}
 
 		values = append(values, row)

@@ -11,7 +11,6 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"golang.org/x/exp/constraints"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -128,22 +127,6 @@ func (c *Connector) ListEventsV2(ctx context.Context, params meterevent.ListEven
 	return events, nil
 }
 
-// QueryMeterWithCustomer is a wrapper around QueryMeter that adds a customer filter to the query
-func (c *Connector) QueryMeterWithCustomer(ctx context.Context, customer customer.Customer, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
-	// Ensure that there is no existing filter on subjects
-	if len(params.FilterSubject) > 0 {
-		return nil, fmt.Errorf("filter subject is not supported when querying with customer")
-	}
-
-	// Copy the params to avoid modifying the original
-	queryParams := params
-
-	// Add the customer subject keys to the query params
-	queryParams.FilterSubject = append(queryParams.FilterSubject, customer.UsageAttribution.SubjectKeys...)
-
-	return c.QueryMeter(ctx, customer.Namespace, meter, queryParams)
-}
-
 func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
 	// Validate params
 	if namespace == "" {
@@ -154,23 +137,35 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
+	subjectToCustomerID := map[string]string{}
+
+	if len(params.FilterCustomer) > 0 {
+		for _, customer := range params.FilterCustomer {
+			for _, subjectKey := range customer.UsageAttribution.SubjectKeys {
+				params.FilterSubject = append(params.FilterSubject, subjectKey)
+				subjectToCustomerID[subjectKey] = customer.ID
+			}
+		}
+	}
+
 	// We sort the group by keys to ensure the order of the group by columns is deterministic
 	// It helps testing the SQL queries.
 	groupBy := append([]string(nil), params.GroupBy...)
 	sort.Strings(groupBy)
 
 	query := queryMeter{
-		Database:        c.config.Database,
-		EventsTableName: c.config.EventsTableName,
-		Namespace:       namespace,
-		Meter:           meter,
-		From:            params.From,
-		To:              params.To,
-		Subject:         params.FilterSubject,
-		FilterGroupBy:   params.FilterGroupBy,
-		GroupBy:         groupBy,
-		WindowSize:      params.WindowSize,
-		WindowTimeZone:  params.WindowTimeZone,
+		Database:            c.config.Database,
+		EventsTableName:     c.config.EventsTableName,
+		Namespace:           namespace,
+		Meter:               meter,
+		From:                params.From,
+		To:                  params.To,
+		Subject:             params.FilterSubject,
+		SubjectToCustomerID: subjectToCustomerID,
+		FilterGroupBy:       params.FilterGroupBy,
+		GroupBy:             groupBy,
+		WindowSize:          params.WindowSize,
+		WindowTimeZone:      params.WindowTimeZone,
 	}
 
 	// Load cached rows if any

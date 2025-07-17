@@ -275,6 +275,7 @@ func NewRouter(config Config) (*Router, error) {
 
 	router.meterHandler = meterhttphandler.New(
 		staticNamespaceDecoder,
+		config.Customer,
 		config.MeterManageService,
 		config.StreamingConnector,
 		config.SubjectService,

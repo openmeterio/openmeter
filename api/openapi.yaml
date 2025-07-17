@@ -5460,6 +5460,7 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.windowSize'
         - $ref: '#/components/parameters/MeterQuery.windowTimeZone'
         - $ref: '#/components/parameters/MeterQuery.subject'
+        - $ref: '#/components/parameters/MeterQuery.filterCustomerId'
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
       description: Query meter for usage.
@@ -7789,6 +7790,7 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.to'
         - $ref: '#/components/parameters/MeterQuery.windowSize'
         - $ref: '#/components/parameters/MeterQuery.windowTimeZone'
+        - $ref: '#/components/parameters/MeterQuery.filterCustomerId'
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
       description: Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers.
@@ -10806,6 +10808,19 @@ components:
         maxLength: 36
       explode: false
       style: form
+    MeterQuery.filterCustomerId:
+      name: filterCustomerId
+      in: query
+      required: false
+      description: |-
+        Filtering by multiple customers.
+
+        For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2
+      schema:
+        type: array
+        items:
+          type: string
+      style: form
     MeterQuery.filterGroupBy:
       name: filterGroupBy
       in: query
@@ -10855,7 +10870,7 @@ components:
       description: |-
         Filtering by multiple subjects.
 
-        For example: ?subject=customer-1&subject=customer-2
+        For example: ?subject=subject-1&subject=subject-2
       schema:
         type: array
         items:
@@ -17965,8 +17980,17 @@ components:
           maxItems: 100
           description: Filtering by multiple subjects.
           example:
-            - customer-1
-            - customer-2
+            - subject-1
+            - subject-2
+        filterCustomerId:
+          type: array
+          items:
+            type: string
+          maxItems: 100
+          description: Filtering by multiple customers.
+          example:
+            - id-1
+            - id-2
         filterGroupBy:
           type: object
           additionalProperties:
@@ -18066,6 +18090,9 @@ components:
           description: |-
             The subject the value is aggregated over.
             If not specified, the value is aggregated over all subjects.
+        customerId:
+          type: string
+          description: The customer ID the value is aggregated over.
         groupBy:
           type: object
           additionalProperties:
