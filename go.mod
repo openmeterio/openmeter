@@ -471,7 +471,7 @@ require (
 	github.com/trinodb/trino-go-client v0.320.0 // indirect
 	github.com/twmb/franz-go v1.18.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.9.0 // indirect
-	github.com/urfave/cli/v2 v2.27.6
+	github.com/urfave/cli/v2 v2.27.7
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
