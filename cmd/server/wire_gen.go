@@ -342,6 +342,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	appRegistry := common.NewAppRegistry(appService, appSandboxProvisioner, appstripeService, appcustominvoicingService)
+	customerConfiguration := conf.Customer
 	subjectAdapter, err := common.NewSubjectAdapter(client)
 	if err != nil {
 		cleanup6()
@@ -362,7 +363,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v3, err := common.NewCustomerSubjectServiceHook(logger, subjectService, customerService, billingService)
+	v3, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, subjectService, customerService, billingService)
 	if err != nil {
 		cleanup6()
 		cleanup5()

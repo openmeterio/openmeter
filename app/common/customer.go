@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/wire"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -57,11 +58,16 @@ func NewCustomerService(
 }
 
 func NewCustomerSubjectServiceHook(
+	config config.CustomerConfiguration,
 	logger *slog.Logger,
 	subjectService subject.Service,
 	customerService customer.Service,
 	customerOverrideService billing.CustomerOverrideService,
 ) (customerservicehooks.SubjectHook, error) {
+	if !config.EnableSubjectHook {
+		return new(customerservicehooks.NoopSubjectHook), nil
+	}
+
 	// Initialize the customer subject hook and register for subject service
 	h, err := customerservicehooks.NewSubjectHook(customerService, customerOverrideService, logger)
 	if err != nil {

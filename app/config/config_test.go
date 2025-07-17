@@ -403,6 +403,9 @@ func TestComplete(t *testing.T) {
 				PaginationSize:      10000,
 			},
 		},
+		Customer: CustomerConfiguration{
+			EnableSubjectHook: true,
+		},
 	}
 
 	assert.Equal(t, expected, actual)

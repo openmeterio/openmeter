@@ -106,6 +106,9 @@ sink:
       - "range"
       - "roundrobin"
 
+customer:
+  enableSubjectHook: true
+
 dedupe:
   enabled: true
   driver: redis
