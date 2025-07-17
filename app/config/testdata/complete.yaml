@@ -108,6 +108,7 @@ sink:
 
 customer:
   enableSubjectHook: true
+  ignoreErrors: true
 
 dedupe:
   enabled: true

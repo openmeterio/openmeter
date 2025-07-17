@@ -405,6 +405,7 @@ func TestComplete(t *testing.T) {
 		},
 		Customer: CustomerConfiguration{
 			EnableSubjectHook: true,
+			IgnoreErrors:      true,
 		},
 	}
 
