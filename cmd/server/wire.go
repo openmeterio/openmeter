@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
@@ -45,6 +46,7 @@ type Application struct {
 	Addon                       addon.Service
 	AppRegistry                 common.AppRegistry
 	Customer                    customer.Service
+	CustomerSubjectHook         customerservicehooks.SubjectHook
 	Billing                     billing.Service
 	EntClient                   *db.Client
 	EventPublisher              eventbus.Publisher
@@ -85,6 +87,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ClickHouse,
 		common.Config,
 		common.Customer,
+		common.NewCustomerSubjectServiceHook,
 		common.Database,
 		common.Entitlement,
 		common.Framework,
