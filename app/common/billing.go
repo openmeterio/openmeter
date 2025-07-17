@@ -27,6 +27,7 @@ import (
 var Billing = wire.NewSet(
 	BillingService,
 	BillingAdapter,
+	wire.Bind(new(billing.CustomerOverrideService), new(billing.Service)),
 )
 
 func BillingAdapter(

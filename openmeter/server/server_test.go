@@ -1512,6 +1512,8 @@ var _ subject.Service = &NoopSubjectService{}
 
 type NoopSubjectService struct{}
 
+func (n NoopSubjectService) RegisterHooks(_ ...models.ServiceHook[subject.Subject]) {}
+
 func (n NoopSubjectService) Create(ctx context.Context, input subject.CreateInput) (subject.Subject, error) {
 	return subject.Subject{}, nil
 }

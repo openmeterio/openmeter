@@ -10,10 +10,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var _ subject.Service = &Service{}
+var _ subject.Service = (*Service)(nil)
 
 type Service struct {
 	subjectAdapter subject.Adapter
+	hooks          models.ServiceHookRegistry[subject.Subject]
+}
+
+func (s *Service) RegisterHooks(hooks ...models.ServiceHook[subject.Subject]) {
+	s.hooks.RegisterHooks(hooks...)
 }
 
 // New creates a new subject service
@@ -24,6 +29,7 @@ func New(subjectAdapter subject.Adapter) (*Service, error) {
 
 	return &Service{
 		subjectAdapter: subjectAdapter,
+		hooks:          models.ServiceHookRegistry[subject.Subject]{},
 	}, nil
 }
 
@@ -34,7 +40,16 @@ func (s *Service) Create(ctx context.Context, input subject.CreateInput) (subjec
 	}
 
 	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {
-		return s.subjectAdapter.Create(ctx, input)
+		sub, err := s.subjectAdapter.Create(ctx, input)
+		if err != nil {
+			return subject.Subject{}, err
+		}
+
+		if err = s.hooks.PostCreate(ctx, &sub); err != nil {
+			return subject.Subject{}, err
+		}
+
+		return sub, nil
 	})
 }
 
@@ -45,7 +60,28 @@ func (s *Service) Update(ctx context.Context, input subject.UpdateInput) (subjec
 	}
 
 	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {
-		return s.subjectAdapter.Update(ctx, input)
+		sub, err := s.subjectAdapter.GetById(ctx, models.NamespacedID{
+			Namespace: input.Namespace,
+			ID:        input.ID,
+		})
+		if err != nil {
+			return subject.Subject{}, err
+		}
+
+		if err = s.hooks.PreUpdate(ctx, &sub); err != nil {
+			return subject.Subject{}, err
+		}
+
+		sub, err = s.subjectAdapter.Update(ctx, input)
+		if err != nil {
+			return subject.Subject{}, err
+		}
+
+		if err = s.hooks.PostUpdate(ctx, &sub); err != nil {
+			return subject.Subject{}, err
+		}
+
+		return sub, nil
 	})
 }
 
@@ -92,6 +128,23 @@ func (s *Service) Delete(ctx context.Context, id models.NamespacedID) error {
 	}
 
 	return transaction.RunWithNoValue(ctx, s.subjectAdapter, func(ctx context.Context) error {
-		return s.subjectAdapter.Delete(ctx, id)
+		sub, err := s.subjectAdapter.GetById(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		if err = s.hooks.PreDelete(ctx, &sub); err != nil {
+			return err
+		}
+
+		if err = s.subjectAdapter.Delete(ctx, id); err != nil {
+			return err
+		}
+
+		if err = s.hooks.PostDelete(ctx, &sub); err != nil {
+			return err
+		}
+
+		return nil
 	})
 }

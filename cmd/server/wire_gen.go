@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
@@ -341,6 +342,37 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	appRegistry := common.NewAppRegistry(appService, appSandboxProvisioner, appstripeService, appcustominvoicingService)
+	customerConfiguration := conf.Customer
+	subjectAdapter, err := common.NewSubjectAdapter(client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	subjectService, err := common.NewSubjectService(subjectAdapter)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	v3, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, subjectService, customerService, billingService)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	dedupeConfiguration := conf.Dedupe
 	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger, commonMetadata)
 	if err != nil {
@@ -415,9 +447,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v3 := conf.Meters
+	v4 := conf.Meters
 	manageService := common.NewMeterManageService(adapter, manager, eventbusPublisher)
-	v4 := common.NewMeterConfigInitializer(logger, v3, manageService, manager)
+	v5 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
 	metereventService := common.NewMeterEventService(connector, service)
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
@@ -432,8 +464,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	notificationConfiguration := conf.Notification
 	webhookConfiguration := notificationConfiguration.Webhook
-	v5 := conf.Svix
-	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v5)
+	v6 := conf.Svix
+	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v6)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -480,32 +512,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
-	routerHooks := common.NewRouterHooks(v6)
-	subjectAdapter, err := common.NewSubjectAdapter(client)
-	if err != nil {
-		cleanup8()
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	subjectService, err := common.NewSubjectService(subjectAdapter)
-	if err != nil {
-		cleanup8()
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
+	v7 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	routerHooks := common.NewRouterHooks(v7)
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
@@ -520,7 +528,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v7, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v8, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -541,6 +549,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Addon:                       addonService,
 		AppRegistry:                 appRegistry,
 		Customer:                    customerService,
+		CustomerSubjectHook:         v3,
 		Billing:                     billingService,
 		EntClient:                   client,
 		EventPublisher:              eventbusPublisher,
@@ -553,7 +562,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaIngestNamespaceHandler: namespaceHandler,
 		Logger:                      logger,
 		MetricMeter:                 meter,
-		MeterConfigInitializer:      v4,
+		MeterConfigInitializer:      v5,
 		MeterManageService:          manageService,
 		MeterEventService:           metereventService,
 		NamespaceManager:            manager,
@@ -567,7 +576,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		SubjectService:              subjectService,
 		Subscription:                subscriptionServiceWithWorkflow,
 		StreamingConnector:          connector,
-		TelemetryServer:             v7,
+		TelemetryServer:             v8,
 		TerminationChecker:          terminationChecker,
 		RuntimeMetricsCollector:     runtimeMetricsCollector,
 		Tracer:                      tracer,
@@ -594,6 +603,7 @@ type Application struct {
 	Addon                       addon.Service
 	AppRegistry                 common.AppRegistry
 	Customer                    customer.Service
+	CustomerSubjectHook         hooks.SubjectHook
 	Billing                     billing.Service
 	EntClient                   *db.Client
 	EventPublisher              eventbus.Publisher

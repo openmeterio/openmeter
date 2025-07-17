@@ -9,6 +9,8 @@ import (
 )
 
 type Service interface {
+	models.ServiceHooks[Subject]
+
 	Create(ctx context.Context, input CreateInput) (Subject, error)
 	Update(ctx context.Context, input UpdateInput) (Subject, error)
 

@@ -6,12 +6,16 @@ import (
 
 	"github.com/google/wire"
 
+	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	entitlementvalidator "github.com/openmeterio/openmeter/openmeter/entitlement/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/registry"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
@@ -51,4 +55,26 @@ func NewCustomerService(
 	service.RegisterRequestValidator(validator)
 
 	return service, nil
+}
+
+func NewCustomerSubjectServiceHook(
+	config config.CustomerConfiguration,
+	logger *slog.Logger,
+	subjectService subject.Service,
+	customerService customer.Service,
+	customerOverrideService billing.CustomerOverrideService,
+) (customerservicehooks.SubjectHook, error) {
+	if !config.EnableSubjectHook {
+		return new(customerservicehooks.NoopSubjectHook), nil
+	}
+
+	// Initialize the customer subject hook and register for subject service
+	h, err := customerservicehooks.NewSubjectHook(customerService, customerOverrideService, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create customer subject hook: %w", err)
+	}
+
+	subjectService.RegisterHooks(h)
+
+	return h, nil
 }

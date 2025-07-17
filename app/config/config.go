@@ -27,6 +27,7 @@ type Configuration struct {
 
 	Aggregation     AggregationConfiguration
 	Entitlements    EntitlementsConfiguration
+	Customer        CustomerConfiguration
 	Dedupe          DedupeConfiguration
 	Events          EventsConfiguration
 	Ingest          IngestConfiguration
@@ -143,6 +144,10 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "termination"))
 	}
 
+	if err := c.Customer.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "customer"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -185,4 +190,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureEntitlements(v, flags)
 	ConfigureTermination(v, "termination")
 	ConfigureProgressManager(v)
+	ConfigureCustomer(v, "customer")
 }
