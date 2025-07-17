@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"time"
 
@@ -365,6 +366,11 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 				if column == "customer_id" {
 					row.CustomerID = s
 					continue
+				}
+
+				// Consistency check
+				if !slices.Contains(queryMeter.GroupBy, column) {
+					return values, fmt.Errorf("column %s is not a valid group by", column)
 				}
 
 				row.GroupBy[column] = s
