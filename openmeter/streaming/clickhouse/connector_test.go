@@ -12,10 +12,17 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+// MockConnector is a mock implementation of the Connector interface
+type MockConnector struct {
+	mock.Mock
+}
 
 // MockConnectorOption is a function that configures the Connector
 type MockConnectorOption func(Config) Config
@@ -43,6 +50,65 @@ func GetMockConnector(t *testing.T, opts ...MockConnectorOption) (*Connector, *M
 	require.NoError(t, err)
 
 	return connector, mockClickhouse
+}
+
+// TestConnector_QueryMeterWithCustomer tests the QueryMeterWithCustomer function
+func TestConnector_QueryMeterWithCustomer(t *testing.T) {
+	mockCH := NewMockClickHouse()
+
+	config := Config{
+		Logger:          slog.Default(),
+		ClickHouse:      mockCH,
+		Database:        "testdb",
+		EventsTableName: "events",
+		ProgressManager: progressmanager.NewMockProgressManager(),
+	}
+
+	connector := &Connector{config: config}
+
+	mockCustomer := customer.Customer{
+		ManagedResource: models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "test-namespace",
+			},
+		},
+		UsageAttribution: customer.CustomerUsageAttribution{
+			SubjectKeys: []string{"test-subject-1", "test-subject-2"},
+		},
+	}
+
+	mockMeter := meter.Meter{
+		Key:           "test-meter",
+		EventType:     "test-event",
+		Aggregation:   meter.MeterAggregationSum,
+		ValueProperty: lo.ToPtr("$.value"),
+	}
+
+	mockQueryParams := streaming.QueryParams{
+		From: lo.ToPtr(time.Now().Add(-1 * time.Hour)),
+		To:   lo.ToPtr(time.Now()),
+	}
+
+	// Mock the SQL query and response
+	mockRows1 := NewMockRows()
+	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+		"test-namespace",
+		"test-event",
+		"test-subject-1",
+		"test-subject-2",
+		mockQueryParams.From.Unix(),
+		mockQueryParams.To.Unix(),
+	}).Return(mockRows1, nil)
+
+	// Mock rows
+	mockRows1.On("Next").Return(true).Once()
+	mockRows1.On("Scan", mock.Anything).Return(nil)
+	mockRows1.On("Next").Return(false)
+	mockRows1.On("Err").Return(nil)
+	mockRows1.On("Close").Return(nil)
+
+	_, err := connector.QueryMeterWithCustomer(context.Background(), mockCustomer, mockMeter, mockQueryParams)
+	require.NoError(t, err)
 }
 
 // TestConnector_QueryMeter tests the queryMeter function

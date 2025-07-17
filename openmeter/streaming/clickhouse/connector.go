@@ -11,6 +11,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"golang.org/x/exp/constraints"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -125,6 +126,22 @@ func (c *Connector) ListEventsV2(ctx context.Context, params meterevent.ListEven
 	}
 
 	return events, nil
+}
+
+// QueryMeterWithCustomer is a wrapper around QueryMeter that adds a customer filter to the query
+func (c *Connector) QueryMeterWithCustomer(ctx context.Context, customer customer.Customer, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
+	// Ensure that there is no existing filter on subjects
+	if len(params.FilterSubject) > 0 {
+		return nil, fmt.Errorf("filter subject is not supported when querying with customer")
+	}
+
+	// Copy the params to avoid modifying the original
+	queryParams := params
+
+	// Add the customer subject keys to the query params
+	queryParams.FilterSubject = append(queryParams.FilterSubject, customer.UsageAttribution.SubjectKeys...)
+
+	return c.QueryMeter(ctx, customer.Namespace, meter, queryParams)
 }
 
 func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
