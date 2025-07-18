@@ -10820,6 +10820,7 @@ components:
         type: array
         items:
           type: string
+        maxItems: 100
       style: form
     MeterQuery.filterGroupBy:
       name: filterGroupBy

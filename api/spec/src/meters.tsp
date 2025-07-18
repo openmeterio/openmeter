@@ -383,6 +383,7 @@ model MeterQuery {
    * For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2
    */
   @query(#{ explode: true })
+  @maxItems(100)
   @example(#["customer-1", "customer-2"])
   filterCustomerId?: string[];
 
