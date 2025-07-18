@@ -436,7 +436,7 @@ func TestMetadataFromMap(t *testing.T) {
 				"e":  `"bar","buzz"`,
 				"f1": "3.14",
 				"f2": "3.14",
-				"g":  `"foo"="bar","bar"="baz"`,
+				"g":  `"bar"="baz","foo"="bar"`,
 				"h":  "true",
 			},
 		},

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"maps"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -447,6 +448,8 @@ func toString(v interface{}, rec int) string {
 				result = append(result, `"`+k.String()+`"="`+s+`"`)
 			}
 		}
+
+		slices.Sort(result)
 
 		return strings.Join(result, ",")
 	case reflect.Slice:
