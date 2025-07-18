@@ -107,6 +107,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	windowEnd := from.Add(time.Hour)
 	value := 42.0
 
+	mockRows1.On("Columns").Return([]string{"windowstart", "windowend", "value"})
 	mockRows1.On("Next").Return(true).Once()
 	mockRows1.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
 		dest := args.Get(0).([]interface{})
@@ -160,6 +161,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	mockCH.ExpectedCalls = nil
 	mockRows4 := NewMockRows()
 	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(mockRows4, nil)
+	mockRows4.On("Columns").Return([]string{"windowstart", "windowend", "value"})
 	mockRows4.On("Next").Return(true).Once()
 	mockRows4.On("Scan", mock.Anything).Return(errors.New(scanErrorMsg))
 	mockRows4.On("Close").Return(nil)

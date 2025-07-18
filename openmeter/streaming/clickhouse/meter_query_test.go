@@ -251,6 +251,27 @@ func TestQueryMeter(t *testing.T) {
 			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, om_events.subject FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "subject2"},
 		},
+		{ // Select customer ID
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationSum,
+					ValueProperty: lo.ToPtr("$.value"),
+				},
+				SubjectToCustomerID: map[string]string{
+					"subject1": "customer1",
+					"subject2": "customer2",
+				},
+				Subject: []string{"subject1", "subject2"},
+				GroupBy: []string{"customer_id"},
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, CASE WHEN om_events.subject = 'subject1' THEN 'customer1' WHEN om_events.subject = 'subject2' THEN 'customer2' ELSE '' END AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ?) GROUP BY customer_id",
+			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "subject2"},
+		},
 		{ // Aggregate data with filtering for a single group and single value
 			query: queryMeter{
 				Database:        "openmeter",
@@ -314,7 +335,6 @@ func TestQueryMeter(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run("", func(t *testing.T) {
 			gotSql, gotArgs, err := tt.query.toSQL()
 			if err != nil {
