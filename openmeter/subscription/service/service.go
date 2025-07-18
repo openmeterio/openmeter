@@ -488,6 +488,8 @@ func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscr
 				PrimaryEmail:     cust.PrimaryEmail,
 				BillingAddress:   cust.BillingAddress,
 				Currency:         &currentSpec.Currency,
+				Metadata:         cust.Metadata,
+				Annotation:       cust.Annotation,
 			},
 		}); err != nil {
 			return fmt.Errorf("failed to update customer currency: %w", err)
