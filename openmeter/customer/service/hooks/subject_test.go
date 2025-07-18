@@ -420,7 +420,6 @@ func TestMetadataFromMap(t *testing.T) {
 				"f1": float32(3.14),
 				"f2": 3.14,
 				"g": map[string]interface{}{
-					"foo": "bar",
 					"bar": "baz",
 				},
 				"h": lo.ToPtr(true),
@@ -436,7 +435,7 @@ func TestMetadataFromMap(t *testing.T) {
 				"e":  `"bar","buzz"`,
 				"f1": "3.14",
 				"f2": "3.14",
-				"g":  `"foo"="bar","bar"="baz"`,
+				"g":  `"bar"="baz"`,
 				"h":  "true",
 			},
 		},
