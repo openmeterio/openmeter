@@ -120,7 +120,12 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				filterCustomer = customers.Items
 			}
 
-			params, err := ToQueryParamsFromAPIParams(meter, filterCustomer, request.params)
+			params, err := ToQueryParamsFromRequest(
+				meter,
+				filterCustomer,
+				// Convert the POST request body to a GET request params
+				ToRequestFromQueryParamsPOSTBody(request.params),
+			)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}

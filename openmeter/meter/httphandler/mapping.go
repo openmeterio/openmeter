@@ -72,7 +72,9 @@ func ToAPIMeterQueryRowList(rows []meter.MeterQueryRow) []api.MeterQueryRow {
 }
 
 // ToQueryParamsFromAPIParams converts a api.QueryMeterParams to a streaming.QueryParams.
-func ToQueryParamsFromAPIParams(m meter.Meter, filterCustomer []customer.Customer, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
+// This is used to convert an API POST query body to GET request params.
+func ToRequestFromQueryParamsPOSTBody(apiParams api.QueryMeterParams) api.QueryMeterPostJSONRequestBody {
+	// Map the POST request body to a GET request params
 	request := api.QueryMeterPostJSONRequestBody{
 		ClientId:         apiParams.ClientId,
 		From:             apiParams.From,
@@ -92,10 +94,11 @@ func ToQueryParamsFromAPIParams(m meter.Meter, filterCustomer []customer.Custome
 		request.FilterGroupBy = &filterGroupBy
 	}
 
-	return ToQueryParamsFromRequest(m, filterCustomer, request)
+	return request
 }
 
 // ToQueryParamsFromRequest converts a api.QueryMeterPostJSONRequestBody to a streaming.QueryParams.
+// This is used to convert an API GET query params to a service level streaming.QueryParams.
 func ToQueryParamsFromRequest(m meter.Meter, filterCustomer []customer.Customer, request api.QueryMeterPostJSONRequestBody) (streaming.QueryParams, error) {
 	params := streaming.QueryParams{
 		ClientID:       request.ClientId,
