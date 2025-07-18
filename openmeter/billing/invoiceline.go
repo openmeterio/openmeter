@@ -124,15 +124,15 @@ func (p Period) Duration() time.Duration {
 
 // LineBase represents the common fields for an invoice item.
 type LineBase struct {
-	Namespace string `json:"namespace"`
-	ID        string `json:"id"`
+	Namespace string `json:"namespace,omitempty"`
+	ID        string `json:"id,omitempty"`
 
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
-	Metadata    map[string]string    `json:"metadata"`
-	Annotations models.Annotations   `json:"annotations"`
+	Metadata    map[string]string    `json:"metadata,omitempty"`
+	Annotations models.Annotations   `json:"annotations,omitempty"`
 	Name        string               `json:"name"`
 	Type        InvoiceLineType      `json:"type"`
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
@@ -158,7 +158,7 @@ type LineBase struct {
 	ExternalIDs  LineExternalIDs        `json:"externalIDs,omitempty"`
 	Subscription *SubscriptionReference `json:"subscription,omitempty"`
 
-	Totals Totals `json:"totals"`
+	Totals Totals `json:"totals,omitempty"`
 }
 
 func (i LineBase) Equal(other LineBase) bool {
@@ -850,14 +850,14 @@ func (c LineChildren) NonDeletedLineCount() int {
 }
 
 type UsageBasedLine struct {
-	ConfigID string `json:"configId"`
+	ConfigID string `json:"configId,omitempty"`
 
 	// Price is the price of the usage based line. Note: this should be a pointer or marshaling will fail for
 	// empty prices.
 	Price      *productcatalog.Price `json:"price"`
 	FeatureKey string                `json:"featureKey"`
 
-	Quantity        *alpacadecimal.Decimal `json:"quantity"`
+	Quantity        *alpacadecimal.Decimal `json:"quantity,omitempty"`
 	MeteredQuantity *alpacadecimal.Decimal `json:"meteredQuantity,omitempty"`
 
 	PreLinePeriodQuantity        *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
@@ -917,10 +917,10 @@ func (i UsageBasedLine) Validate() error {
 }
 
 type CreatePendingInvoiceLinesInput struct {
-	Customer customer.CustomerID
-	Currency currencyx.Code
+	Customer customer.CustomerID `json:"customer"`
+	Currency currencyx.Code      `json:"currency"`
 
-	Lines []*Line
+	Lines []*Line `json:"lines"`
 }
 
 func (c CreatePendingInvoiceLinesInput) Validate() error {

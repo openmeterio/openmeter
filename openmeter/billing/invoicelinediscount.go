@@ -350,8 +350,8 @@ var (
 )
 
 type LineDiscounts struct {
-	Amount AmountLineDiscountsManaged
-	Usage  UsageLineDiscountsManaged
+	Amount AmountLineDiscountsManaged `json:"amount,omitempty"`
+	Usage  UsageLineDiscountsManaged  `json:"usage,omitempty"`
 }
 
 func (i LineDiscounts) Clone() LineDiscounts {
