@@ -1,6 +1,7 @@
 package httpdriver
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"time"
@@ -8,7 +9,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -97,14 +97,13 @@ func ToRequestFromQueryParamsPOSTBody(apiParams api.QueryMeterParams) api.QueryM
 	return request
 }
 
-// ToQueryParamsFromRequest converts a api.QueryMeterPostJSONRequestBody to a streaming.QueryParams.
+// toQueryParamsFromRequest converts a api.QueryMeterPostJSONRequestBody to a streaming.QueryParams.
 // This is used to convert an API GET query params to a service level streaming.QueryParams.
-func ToQueryParamsFromRequest(m meter.Meter, filterCustomer []customer.Customer, request api.QueryMeterPostJSONRequestBody) (streaming.QueryParams, error) {
+func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, request api.QueryMeterPostJSONRequestBody) (streaming.QueryParams, error) {
 	params := streaming.QueryParams{
-		ClientID:       request.ClientId,
-		From:           request.From,
-		To:             request.To,
-		FilterCustomer: filterCustomer,
+		ClientID: request.ClientId,
+		From:     request.From,
+		To:       request.To,
 	}
 
 	if request.WindowSize != nil {
@@ -133,9 +132,19 @@ func ToQueryParamsFromRequest(m meter.Meter, filterCustomer []customer.Customer,
 		}
 	}
 
-	// Add customer_id to group by if not already present and there are customers to filter by
-	if len(filterCustomer) > 0 && !slices.Contains(params.GroupBy, "customer_id") {
-		params.GroupBy = append(params.GroupBy, "customer_id")
+	// Resolve filter customer IDs to customers
+	if request.FilterCustomerId != nil {
+		filterCustomer, err := h.getFilterCustomer(ctx, m.Namespace, *request.FilterCustomerId)
+		if err != nil {
+			return params, fmt.Errorf("failed to get filter customer: %w", err)
+		}
+
+		params.FilterCustomer = filterCustomer
+
+		// Add customer_id to group by if not already present and there are customers to filter by
+		if len(filterCustomer) > 0 && !slices.Contains(params.GroupBy, "customer_id") {
+			params.GroupBy = append(params.GroupBy, "customer_id")
+		}
 	}
 
 	if request.WindowTimeZone != nil {

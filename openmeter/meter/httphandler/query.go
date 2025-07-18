@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/samber/lo"
 )
 
 type (
@@ -105,24 +106,9 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			var filterCustomer []customer.Customer
-
-			// Resolve customer IDs to customers
-			if request.params.FilterCustomerId != nil && len(*request.params.FilterCustomerId) > 0 {
-				customers, err := h.customerService.ListCustomers(ctx, customer.ListCustomersInput{
-					Namespace:   request.namespace,
-					CustomerIDs: *request.params.FilterCustomerId,
-				})
-				if err != nil {
-					return nil, fmt.Errorf("failed to list customers: %w", err)
-				}
-
-				filterCustomer = customers.Items
-			}
-
-			params, err := ToQueryParamsFromRequest(
+			params, err := h.toQueryParamsFromRequest(
+				ctx,
 				meter,
-				filterCustomer,
 				// Convert the POST request body to a GET request params
 				ToRequestFromQueryParamsPOSTBody(request.params),
 			)
@@ -188,22 +174,7 @@ func (h *handler) QueryMeterPost() QueryMeterPostHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			var filterCustomer []customer.Customer
-
-			// Resolve customer IDs to customers
-			if request.params.FilterCustomerId != nil && len(*request.params.FilterCustomerId) > 0 {
-				customers, err := h.customerService.ListCustomers(ctx, customer.ListCustomersInput{
-					Namespace:   request.namespace,
-					CustomerIDs: *request.params.FilterCustomerId,
-				})
-				if err != nil {
-					return nil, fmt.Errorf("failed to list customers: %w", err)
-				}
-
-				filterCustomer = customers.Items
-			}
-
-			params, err := ToQueryParamsFromRequest(meter, filterCustomer, request.params)
+			params, err := h.toQueryParamsFromRequest(ctx, meter, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
@@ -223,4 +194,35 @@ func (h *handler) QueryMeterPost() QueryMeterPostHandler {
 			httptransport.WithOperationName("queryMeterPost"),
 		)...,
 	)
+}
+
+// getFilterCustomer resolves the customer IDs to customers.
+func (h *handler) getFilterCustomer(ctx context.Context, namespace string, filterCustomerIds []string) ([]customer.Customer, error) {
+	var filterCustomer []customer.Customer
+
+	if len(filterCustomerIds) == 0 {
+		return filterCustomer, nil
+	}
+
+	// List customers
+	customers, err := h.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace:   namespace,
+		CustomerIDs: filterCustomerIds,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list customers: %w", err)
+	}
+
+	customersById := lo.KeyBy(customers.Items, func(c customer.Customer) string {
+		return c.ID
+	})
+
+	// Check if all customers are returned
+	for _, customerId := range filterCustomerIds {
+		if _, ok := customersById[customerId]; !ok {
+			return nil, fmt.Errorf("customer %s not found", customerId)
+		}
+	}
+
+	return customers.Items, nil
 }
