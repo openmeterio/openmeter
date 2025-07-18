@@ -2,6 +2,7 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -174,4 +176,41 @@ func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, r
 	}
 
 	return params, nil
+}
+
+// getFilterCustomer resolves the customer IDs to customers.
+func (h *handler) getFilterCustomer(ctx context.Context, namespace string, filterCustomerIds []string) ([]customer.Customer, error) {
+	var filterCustomer []customer.Customer
+
+	if len(filterCustomerIds) == 0 {
+		return filterCustomer, nil
+	}
+
+	// List customers
+	customers, err := h.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace:   namespace,
+		CustomerIDs: filterCustomerIds,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list customers: %w", err)
+	}
+
+	customersById := lo.KeyBy(customers.Items, func(c customer.Customer) string {
+		return c.ID
+	})
+
+	// Check if all customers are returned
+	for _, customerId := range filterCustomerIds {
+		var errs []error
+
+		if _, ok := customersById[customerId]; !ok {
+			errs = append(errs, fmt.Errorf("customer with id %s not found", customerId))
+		}
+
+		if len(errs) > 0 {
+			return nil, models.NewGenericNotFoundError(errors.Join(errs...))
+		}
+	}
+
+	return customers.Items, nil
 }
