@@ -13,23 +13,24 @@ import (
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type queryMeter struct {
-	Database            string
-	EventsTableName     string
-	Namespace           string
-	Meter               meterpkg.Meter
-	Subject             []string
-	SubjectToCustomerID map[string]string
-	FilterGroupBy       map[string][]string
-	From                *time.Time
-	To                  *time.Time
-	GroupBy             []string
-	WindowSize          *meterpkg.WindowSize
-	WindowTimeZone      *time.Location
+	Database        string
+	EventsTableName string
+	Namespace       string
+	Meter           meterpkg.Meter
+	FilterCustomer  []customer.Customer
+	FilterSubject   []string
+	FilterGroupBy   map[string][]string
+	From            *time.Time
+	To              *time.Time
+	GroupBy         []string
+	WindowSize      *meterpkg.WindowSize
+	WindowTimeZone  *time.Location
 }
 
 // from returns the from time for the query.
@@ -66,41 +67,31 @@ func (d *queryMeter) from() *time.Time {
 // We only filter by columns that are in the ClickHouse table order.
 func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.EventsTableName)
-	getColumn := columnFactory(d.EventsTableName)
-	timeColumn := getColumn("time")
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select("count() AS total")
 	query.From(tableName)
 
-	// The event table is ordered by namespace, type
-	query.Where(query.Equal("namespace", d.Namespace))
-	query.Where(query.Equal("type", d.Meter.EventType))
-
-	if len(d.Subject) > 0 {
-		mapFunc := func(subject string) string {
-			return query.Equal(getColumn("subject"), subject)
-		}
-
-		query.Where(query.Or(slicesx.Map(d.Subject, mapFunc)...))
-	}
-
-	// The event table is partitioned by time
-	from := d.from()
-
-	if from != nil {
-		query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
-	}
-
-	if d.To != nil {
-		query.Where(query.LessThan(timeColumn, d.To.Unix()))
-	}
+	// Where by ordered columns
+	query = d.whereByOrderedColumns(query)
 
 	sql, args := query.Build()
 	return sql, args
 }
 
+// toSQL returns the SQL query for the meter query.
 func (d *queryMeter) toSQL() (string, []interface{}, error) {
+	// We map subjects to customer IDs if they are provided
+	subjectToCustomerID := map[string]string{}
+
+	if len(d.FilterCustomer) > 0 {
+		for _, customer := range d.FilterCustomer {
+			for _, subjectKey := range customer.UsageAttribution.SubjectKeys {
+				subjectToCustomerID[subjectKey] = customer.ID
+			}
+		}
+	}
+
 	tableName := getTableName(d.Database, d.EventsTableName)
 	getColumn := columnFactory(d.EventsTableName)
 	timeColumn := getColumn("time")
@@ -214,13 +205,14 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		groupByColumns = append(groupByColumns, groupByColumn)
 	}
 
+	// Select customer_id column
 	// We map subjects to customer IDs if they are provided
-	if len(d.SubjectToCustomerID) > 0 {
+	if len(subjectToCustomerID) > 0 {
 		var caseBuilder bytes.Buffer
 		caseBuilder.WriteString("CASE ")
 
 		// Add the case statements for each subject to customer ID mapping
-		for subject, customerID := range d.SubjectToCustomerID {
+		for subject, customerID := range subjectToCustomerID {
 			str := fmt.Sprintf(
 				"WHEN %s = '%s' THEN '%s' ",
 				getColumn("subject"),
@@ -240,17 +232,11 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select(selectColumns...)
 	query.From(tableName)
-	query.Where(query.Equal(getColumn("namespace"), d.Namespace))
-	query.Where(query.Equal(getColumn("type"), d.Meter.EventType))
 
-	if len(d.Subject) > 0 {
-		mapFunc := func(subject string) string {
-			return query.Equal(getColumn("subject"), subject)
-		}
+	// Where by ordered columns
+	query = d.whereByOrderedColumns(query)
 
-		query.Where(query.Or(slicesx.Map(d.Subject, mapFunc)...))
-	}
-
+	// Where by columns not in the order of the event table
 	if len(d.FilterGroupBy) > 0 {
 		// We sort the group by s to ensure the query is deterministic
 		groupByKeys := make([]string, 0, len(d.FilterGroupBy))
@@ -286,29 +272,83 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 				return fmt.Sprintf("%s = '%s'", column, sqlbuilder.Escape((value)))
 			}
 
-			query.Where(query.Or(slicesx.Map(values, mapFunc)...))
+			query = query.Where(query.Or(slicesx.Map(values, mapFunc)...))
 		}
 	}
 
-	// Apply the time where clause
-	from := d.from()
+	// Group by
+	query = query.GroupBy(groupByColumns...)
 
-	if from != nil {
-		query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
-	}
-
-	if d.To != nil {
-		query.Where(query.LessThan(timeColumn, d.To.Unix()))
-	}
-
-	query.GroupBy(groupByColumns...)
-
+	// Order by
 	if groupByWindowSize {
-		query.OrderBy("windowstart")
+		query = query.OrderBy("windowstart")
 	}
 
 	sql, args := query.Build()
 	return sql, args, nil
+}
+
+// whereByOrderedColumns applies the where clause to the query for columns that are ordered by the event table.
+// The event table is ordered by namespace, type, subject, time.
+func (d *queryMeter) whereByOrderedColumns(query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
+	getColumn := columnFactory(d.EventsTableName)
+
+	query.Where(query.Equal(getColumn("namespace"), d.Namespace))
+	query.Where(query.Equal(getColumn("type"), d.Meter.EventType))
+
+	query = d.subjectWhere(query)
+	query = d.timeWhere(query)
+
+	return query
+}
+
+// subjectWhere applies the subject filter to the query.
+func (d *queryMeter) subjectWhere(query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
+	// Helper function to filter by subject
+	getColumn := columnFactory(d.EventsTableName)
+	subjectColumn := getColumn("subject")
+
+	mapFunc := func(subject string) string {
+		return query.Equal(subjectColumn, subject)
+	}
+
+	// If the customer filter is provided, we add all the subjects to the filter
+	if len(d.FilterCustomer) > 0 {
+		var subjects []string
+
+		for _, customer := range d.FilterCustomer {
+			subjects = append(subjects, customer.UsageAttribution.SubjectKeys...)
+		}
+
+		query = query.Where(query.Or(slicesx.Map(subjects, mapFunc)...))
+	}
+
+	// If we have a subject filter, we add it to the query
+	// If we have both a customer filter and a subject filter,
+	// this is an AND between the two filters
+	if len(d.FilterSubject) > 0 {
+		query = query.Where(query.Or(slicesx.Map(d.FilterSubject, mapFunc)...))
+	}
+
+	return query
+}
+
+// timeWhere applies the time filter to the query.
+func (d *queryMeter) timeWhere(query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
+	getColumn := columnFactory(d.EventsTableName)
+	timeColumn := getColumn("time")
+
+	from := d.from()
+
+	if from != nil {
+		query = query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
+	}
+
+	if d.To != nil {
+		query = query.Where(query.LessThan(timeColumn, d.To.Unix()))
+	}
+
+	return query
 }
 
 // scanRows scans the rows from the query and returns a list of meter query rows.

@@ -137,35 +137,24 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
-	subjectToCustomerID := map[string]string{}
-
-	if len(params.FilterCustomer) > 0 {
-		for _, customer := range params.FilterCustomer {
-			for _, subjectKey := range customer.UsageAttribution.SubjectKeys {
-				params.FilterSubject = append(params.FilterSubject, subjectKey)
-				subjectToCustomerID[subjectKey] = customer.ID
-			}
-		}
-	}
-
 	// We sort the group by keys to ensure the order of the group by columns is deterministic
 	// It helps testing the SQL queries.
 	groupBy := append([]string(nil), params.GroupBy...)
 	sort.Strings(groupBy)
 
 	query := queryMeter{
-		Database:            c.config.Database,
-		EventsTableName:     c.config.EventsTableName,
-		Namespace:           namespace,
-		Meter:               meter,
-		From:                params.From,
-		To:                  params.To,
-		Subject:             params.FilterSubject,
-		SubjectToCustomerID: subjectToCustomerID,
-		FilterGroupBy:       params.FilterGroupBy,
-		GroupBy:             groupBy,
-		WindowSize:          params.WindowSize,
-		WindowTimeZone:      params.WindowTimeZone,
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Namespace:       namespace,
+		Meter:           meter,
+		From:            params.From,
+		To:              params.To,
+		FilterCustomer:  params.FilterCustomer,
+		FilterSubject:   params.FilterSubject,
+		FilterGroupBy:   params.FilterGroupBy,
+		GroupBy:         groupBy,
+		WindowSize:      params.WindowSize,
+		WindowTimeZone:  params.WindowTimeZone,
 	}
 
 	// Load cached rows if any
