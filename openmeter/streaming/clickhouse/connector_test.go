@@ -17,11 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
-// MockConnector is a mock implementation of the Connector interface
-type MockConnector struct {
-	mock.Mock
-}
-
 // MockConnectorOption is a function that configures the Connector
 type MockConnectorOption func(Config) Config
 
