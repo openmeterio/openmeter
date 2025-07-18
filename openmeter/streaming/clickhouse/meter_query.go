@@ -214,13 +214,26 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		groupByColumns = append(groupByColumns, groupByColumn)
 	}
 
+	// We map subjects to customer IDs if they are provided
 	if len(d.SubjectToCustomerID) > 0 {
 		var caseBuilder bytes.Buffer
-		caseBuilder.WriteString("CASE")
+		caseBuilder.WriteString("CASE ")
+
+		// Add the case statements for each subject to customer ID mapping
 		for subject, customerID := range d.SubjectToCustomerID {
-			caseBuilder.WriteString(fmt.Sprintf(" WHEN %s = '%s' THEN '%s'", getColumn("subject"), subject, customerID))
+			str := fmt.Sprintf(
+				"WHEN %s = '%s' THEN '%s' ",
+				getColumn("subject"),
+				sqlbuilder.Escape(subject),
+				sqlbuilder.Escape(customerID),
+			)
+			caseBuilder.WriteString(str)
 		}
-		caseBuilder.WriteString(" ELSE '' END AS customer_id")
+
+		// If the subject is not in the map, we return an empty string
+		caseBuilder.WriteString("ELSE '' END AS customer_id")
+
+		// Add the case statement to the select columns
 		selectColumns = append(selectColumns, caseBuilder.String())
 	}
 
