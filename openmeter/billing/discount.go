@@ -76,8 +76,8 @@ func (d UsageDiscount) Equal(other UsageDiscount) bool {
 var _ models.Clonable[Discounts] = (*Discounts)(nil)
 
 type Discounts struct {
-	Percentage *PercentageDiscount `json:"percentage"`
-	Usage      *UsageDiscount      `json:"usage"`
+	Percentage *PercentageDiscount `json:"percentage,omitempty"`
+	Usage      *UsageDiscount      `json:"usage,omitempty"`
 }
 
 func (d Discounts) Clone() Discounts {
