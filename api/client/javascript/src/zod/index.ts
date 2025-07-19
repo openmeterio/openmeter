@@ -8324,6 +8324,7 @@ export const queryMeterParams = zod.object({
 
 export const queryMeterQueryClientIdMax = 36
 export const queryMeterQueryWindowTimeZoneDefault = 'UTC'
+export const queryMeterQueryFilterCustomerIdMax = 100
 
 export const queryMeterQueryParams = zod.object({
   clientId: zod.coerce
@@ -8334,6 +8335,7 @@ export const queryMeterQueryParams = zod.object({
     .describe('Client ID\nUseful to track progress of a query.'),
   filterCustomerId: zod
     .array(zod.coerce.string())
+    .max(queryMeterQueryFilterCustomerIdMax)
     .optional()
     .describe(
       'Filtering by multiple customers.\n\nFor example: ?filterCustomerId=customer-1&filterCustomerId=customer-2'
@@ -11658,6 +11660,7 @@ export const queryPortalMeterParams = zod.object({
 
 export const queryPortalMeterQueryClientIdMax = 36
 export const queryPortalMeterQueryWindowTimeZoneDefault = 'UTC'
+export const queryPortalMeterQueryFilterCustomerIdMax = 100
 
 export const queryPortalMeterQueryParams = zod.object({
   clientId: zod.coerce
@@ -11668,6 +11671,7 @@ export const queryPortalMeterQueryParams = zod.object({
     .describe('Client ID\nUseful to track progress of a query.'),
   filterCustomerId: zod
     .array(zod.coerce.string())
+    .max(queryPortalMeterQueryFilterCustomerIdMax)
     .optional()
     .describe(
       'Filtering by multiple customers.\n\nFor example: ?filterCustomerId=customer-1&filterCustomerId=customer-2'
