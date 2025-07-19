@@ -6739,6 +6739,8 @@ export interface components {
       /** @description The subject the value is aggregated over.
        *     If not specified, the value is aggregated over all subjects. */
       subject: string | null
+      /** @description The customer ID the value is aggregated over. */
+      customerId?: string
       /** @description The group by values the value is aggregated over. */
       groupBy: {
         [key: string]: string | null
