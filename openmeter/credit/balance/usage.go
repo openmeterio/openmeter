@@ -102,8 +102,8 @@ func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.Namespaced
 
 		return vTo.Sub(vFrom).InexactFloat64(), nil
 
-	// For SUM and COUNT we can simply query the meter
-	case meter.MeterAggregationSum, meter.MeterAggregationCount:
+	// For other aggregation types we can simply query the meter
+	case meter.MeterAggregationSum, meter.MeterAggregationCount, meter.MeterAggregationLatest:
 		// If the two times are the same we can return 0.0 as there's no usage
 		if period.From.Equal(period.To) {
 			return 0.0, nil

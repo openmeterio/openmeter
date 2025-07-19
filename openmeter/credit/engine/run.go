@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -57,6 +58,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 			Grants:           relevantGrants,
 			Until:            period.To,
 			StartingSnapshot: snapshot,
+			Meter:            params.Meter,
 		})
 		if err != nil {
 			return RunResult{}, fmt.Errorf("failed to run calculation for period %s - %s: %w", period.From, period.To, err)
@@ -100,6 +102,8 @@ type inbetweenRunParams struct {
 	Until time.Time
 	// Starting snapshot of the balances at the START OF THE PERIOD.
 	StartingSnapshot balance.Snapshot
+	// Meter for the current run.
+	Meter meter.Meter
 }
 
 // Burns down all grants in the defined period by the usage amounts.
@@ -142,7 +146,12 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 
 	overage := params.StartingSnapshot.Overage
 
-	for _, phase := range phases {
+	for idx, phase := range phases {
+		if params.Meter.Aggregation == meter.MeterAggregationLatest && idx != len(phases)-1 {
+			// For LATEST aggregation, we only care about the current state, so we skip all phases except the last one
+			continue
+		}
+
 		// reprioritize grants if needed
 		if rePrioritize {
 			err = PrioritizeGrants(grants)

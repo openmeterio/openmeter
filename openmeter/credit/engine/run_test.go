@@ -917,3 +917,148 @@ func TestEngine(t *testing.T) {
 		})
 	}
 }
+
+func TestLatestAggregationEngine(t *testing.T) {
+	t1, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+	assert.NoError(t, err)
+	meterSlug := "meter-latest"
+
+	// Create a meter with LATEST aggregation
+	meter := meterpkg.Meter{
+		Key:         meterSlug,
+		Aggregation: meterpkg.MeterAggregationLatest,
+	}
+
+	// Grant 1: Active from start, expires during the period (should NOT be included)
+	grant1 := makeGrant(grant.Grant{
+		ID:          "grant-1-expired",
+		Amount:      50.0,
+		Priority:    1,
+		EffectiveAt: t1,
+		Expiration: grant.ExpirationPeriod{
+			Duration: grant.ExpirationPeriodDurationHour,
+			Count:    1, // Expires after 1 hour
+		},
+	})
+
+	// Grant 2: Active from start, remains active throughout (should be included)
+	grant2 := makeGrant(grant.Grant{
+		ID:          "grant-2-active",
+		Amount:      100.0,
+		Priority:    2,
+		EffectiveAt: t1,
+		Expiration: grant.ExpirationPeriod{
+			Duration: grant.ExpirationPeriodDurationDay,
+			Count:    30, // Active for 30 days
+		},
+	})
+
+	// Grant 3: Becomes effective during the period, remains active (should be included)
+	grant3 := makeGrant(grant.Grant{
+		ID:          "grant-3-later",
+		Amount:      75.0,
+		Priority:    3,
+		EffectiveAt: t1.Add(time.Hour), // Becomes effective after 1 hour
+		Expiration: grant.ExpirationPeriod{
+			Duration: grant.ExpirationPeriodDurationDay,
+			Count:    30,
+		},
+	})
+
+	// Grant 4: Future grant, not yet effective (should NOT be included)
+	grant4 := makeGrant(grant.Grant{
+		ID:          "grant-4-future",
+		Amount:      200.0,
+		Priority:    4,
+		EffectiveAt: t1.Add(time.Hour * 4), // Becomes effective after 4 hours (after our calculation period)
+		Expiration: grant.ExpirationPeriod{
+			Duration: grant.ExpirationPeriodDurationDay,
+			Count:    30,
+		},
+	})
+
+	streamingConnector := testutils.NewMockStreamingConnector(t)
+
+	// Current usage value at the end of the period
+	currentLatestValue := 30.0
+	streamingConnector.AddSimpleEvent(meterSlug, currentLatestValue, t1.Add(time.Hour*2))
+
+	eng := engine.NewEngine(engine.EngineConfig{
+		QueryUsage: func(ctx context.Context, from, to time.Time) (float64, error) {
+			rows, err := streamingConnector.QueryMeter(ctx, "default", meter, streaming.QueryParams{
+				From: &from,
+				To:   &to,
+			})
+			if err != nil {
+				return 0.0, err
+			}
+			if len(rows) > 1 {
+				return 0.0, fmt.Errorf("expected 1 row, got %d", len(rows))
+			}
+			if len(rows) == 0 {
+				return 0.0, nil
+			}
+			return rows[0].Value, nil
+		},
+	})
+
+	allGrants := []grant.Grant{grant1, grant2, grant3, grant4}
+	endTime := t1.Add(time.Hour * 3) // 3 hours after start
+
+	// Initial balances for all grants
+	initialBalances := balance.Map{
+		grant1.ID: grant1.Amount,
+		grant2.ID: grant2.Amount,
+		grant3.ID: grant3.Amount,
+		grant4.ID: grant4.Amount,
+	}
+
+	res, err := eng.Run(context.Background(), engine.RunParams{
+		Grants: allGrants,
+		StartingSnapshot: balance.Snapshot{
+			Usage: balance.SnapshottedUsage{
+				Since: t1,
+				Usage: 0.0,
+			},
+			Balances: initialBalances,
+			Overage:  0,
+			At:       t1,
+		},
+		Until: endTime,
+		ResetBehavior: grant.ResetBehavior{
+			PreserveOverage: false,
+		},
+		Resets: timeutil.SimpleTimeline{},
+		Meter:  meter,
+	})
+
+	assert.NoError(t, err)
+
+	// At endTime (t1 + 3 hours):
+	// - grant1: EXPIRED (effective from t1, expires at t1+1h)
+	// - grant2: ACTIVE (effective from t1, expires at t1+30d)
+	// - grant3: ACTIVE (effective from t1+1h, expires at t1+1h+30d)
+	// - grant4: NOT YET EFFECTIVE (effective from t1+4h)
+
+	// Only grant2 and grant3 should be active at endTime
+	// Expected calculation: (grant2 + grant3) - currentUsage = (100 + 75) - 30 = 145
+
+	// Verify that only active grants have positive balances
+	// grant1 (expired) should have 0 balance
+	assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID], "Expired grant should have 0 balance")
+
+	// grant4 (not yet effective) should have 0 balance
+	assert.Equal(t, 0.0, res.Snapshot.Balances[grant4.ID], "Future grant should have 0 balance")
+
+	// Active grants (grant2 and grant3) should have balances after subtracting usage
+	// The exact distribution depends on priority and burn-down logic, but total should be correct
+	totalActiveBalance := res.Snapshot.Balances[grant2.ID] + res.Snapshot.Balances[grant3.ID]
+	expectedTotalBalance := (grant2.Amount + grant3.Amount) - currentLatestValue // (100 + 75) - 30 = 145
+	assert.Equal(t, expectedTotalBalance, totalActiveBalance, "Total balance should equal active grants minus current usage")
+
+	// Verify total usage matches the current latest value
+	assert.Equal(t, currentLatestValue, res.History.Segments()[0].TotalUsage)
+
+	// Should have only one history segment for LATEST aggregation
+	assert.Equal(t, 1, len(res.History.Segments()))
+}

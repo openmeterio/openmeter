@@ -95,6 +95,7 @@ func NewFeatureConnector(
 			meterpkg.MeterAggregationSum,
 			meterpkg.MeterAggregationCount,
 			meterpkg.MeterAggregationUniqueCount,
+			meterpkg.MeterAggregationLatest,
 		},
 	}
 }

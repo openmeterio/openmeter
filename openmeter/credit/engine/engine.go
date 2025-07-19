@@ -6,10 +6,13 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type RunParams struct {
+	// Meter for the current run.
+	Meter meter.Meter
 	// List of all grants that are active at the relevant period at some point.
 	Grants []grant.Grant
 	// End of the period to burn down the grants for.
