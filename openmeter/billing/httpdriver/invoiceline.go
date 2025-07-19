@@ -276,6 +276,10 @@ func mapInvoiceLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		return api.InvoiceLine{}, fmt.Errorf("line type is not usage based [line=%s]", line.ID)
 	}
 
+	if line.UsageBased == nil {
+		return api.InvoiceLine{}, fmt.Errorf("usage based line details are nil [line=%s]", line.ID)
+	}
+
 	if line.UsageBased.Price == nil {
 		return api.InvoiceLine{}, fmt.Errorf("price is nil [line=%s]", line.ID)
 	}
