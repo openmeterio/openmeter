@@ -84,11 +84,9 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	// We map subjects to customer IDs if they are provided
 	subjectToCustomerID := map[string]string{}
 
-	if len(d.FilterCustomer) > 0 {
-		for _, customer := range d.FilterCustomer {
-			for _, subjectKey := range customer.UsageAttribution.SubjectKeys {
-				subjectToCustomerID[subjectKey] = customer.ID
-			}
+	for _, customer := range d.FilterCustomer {
+		for _, subjectKey := range customer.UsageAttribution.SubjectKeys {
+			subjectToCustomerID[subjectKey] = customer.ID
 		}
 	}
 
