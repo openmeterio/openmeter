@@ -8332,6 +8332,12 @@ export const queryMeterQueryParams = zod.object({
     .max(queryMeterQueryClientIdMax)
     .optional()
     .describe('Client ID\nUseful to track progress of a query.'),
+  filterCustomerId: zod
+    .array(zod.coerce.string())
+    .optional()
+    .describe(
+      'Filtering by multiple customers.\n\nFor example: ?filterCustomerId=customer-1&filterCustomerId=customer-2'
+    ),
   filterGroupBy: zod
     .record(zod.string(), zod.coerce.string())
     .optional()
@@ -8354,7 +8360,7 @@ export const queryMeterQueryParams = zod.object({
     .array(zod.coerce.string())
     .optional()
     .describe(
-      'Filtering by multiple subjects.\n\nFor example: ?subject=customer-1&subject=customer-2'
+      'Filtering by multiple subjects.\n\nFor example: ?subject=subject-1&subject=subject-2'
     ),
   to: zod.coerce
     .date()
@@ -8396,6 +8402,7 @@ export const queryMeterPostParams = zod.object({
 export const queryMeterPostBodyClientIdMax = 36
 export const queryMeterPostBodyWindowTimeZoneDefault = 'UTC'
 export const queryMeterPostBodySubjectMax = 100
+export const queryMeterPostBodyFilterCustomerIdMax = 100
 export const queryMeterPostBodyGroupByMax = 100
 
 export const queryMeterPostBody = zod
@@ -8406,6 +8413,11 @@ export const queryMeterPostBody = zod
       .max(queryMeterPostBodyClientIdMax)
       .optional()
       .describe('Client ID\nUseful to track progress of a query.'),
+    filterCustomerId: zod
+      .array(zod.coerce.string())
+      .max(queryMeterPostBodyFilterCustomerIdMax)
+      .optional()
+      .describe('Filtering by multiple customers.'),
     filterGroupBy: zod
       .record(zod.string(), zod.array(zod.coerce.string()))
       .optional()
@@ -11654,6 +11666,12 @@ export const queryPortalMeterQueryParams = zod.object({
     .max(queryPortalMeterQueryClientIdMax)
     .optional()
     .describe('Client ID\nUseful to track progress of a query.'),
+  filterCustomerId: zod
+    .array(zod.coerce.string())
+    .optional()
+    .describe(
+      'Filtering by multiple customers.\n\nFor example: ?filterCustomerId=customer-1&filterCustomerId=customer-2'
+    ),
   filterGroupBy: zod
     .record(zod.string(), zod.coerce.string())
     .optional()

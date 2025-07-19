@@ -104,7 +104,12 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := ToQueryParamsFromAPIParams(meter, request.params)
+			params, err := h.toQueryParamsFromRequest(
+				ctx,
+				meter,
+				// Convert the POST request body to a GET request params
+				ToRequestFromQueryParamsPOSTBody(request.params),
+			)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
@@ -167,7 +172,7 @@ func (h *handler) QueryMeterPost() QueryMeterPostHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := ToQueryParamsFromRequest(meter, request.params)
+			params, err := h.toQueryParamsFromRequest(ctx, meter, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}

@@ -1,6 +1,8 @@
 package httpdriver
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -8,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -49,6 +52,7 @@ func ToAPIMeterQueryResult(from *time.Time, to *time.Time, windowSize *api.Windo
 // ToAPIMeterQueryRow converts a meter.MeterQueryRow to an api.MeterQueryRow.
 func ToAPIMeterQueryRow(row meter.MeterQueryRow) api.MeterQueryRow {
 	apiRow := api.MeterQueryRow{
+		CustomerId:  row.CustomerID,
 		Subject:     row.Subject,
 		GroupBy:     row.GroupBy,
 		WindowStart: row.WindowStart,
@@ -70,15 +74,18 @@ func ToAPIMeterQueryRowList(rows []meter.MeterQueryRow) []api.MeterQueryRow {
 }
 
 // ToQueryParamsFromAPIParams converts a api.QueryMeterParams to a streaming.QueryParams.
-func ToQueryParamsFromAPIParams(m meter.Meter, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
+// This is used to convert an API POST query body to GET request params.
+func ToRequestFromQueryParamsPOSTBody(apiParams api.QueryMeterParams) api.QueryMeterPostJSONRequestBody {
+	// Map the POST request body to a GET request params
 	request := api.QueryMeterPostJSONRequestBody{
-		ClientId:       apiParams.ClientId,
-		From:           apiParams.From,
-		To:             apiParams.To,
-		Subject:        apiParams.Subject,
-		GroupBy:        apiParams.GroupBy,
-		WindowSize:     apiParams.WindowSize,
-		WindowTimeZone: apiParams.WindowTimeZone,
+		ClientId:         apiParams.ClientId,
+		From:             apiParams.From,
+		To:               apiParams.To,
+		Subject:          apiParams.Subject,
+		GroupBy:          apiParams.GroupBy,
+		FilterCustomerId: apiParams.FilterCustomerId,
+		WindowSize:       apiParams.WindowSize,
+		WindowTimeZone:   apiParams.WindowTimeZone,
 	}
 
 	if apiParams.FilterGroupBy != nil {
@@ -89,11 +96,12 @@ func ToQueryParamsFromAPIParams(m meter.Meter, apiParams api.QueryMeterParams) (
 		request.FilterGroupBy = &filterGroupBy
 	}
 
-	return ToQueryParamsFromRequest(m, request)
+	return request
 }
 
-// ToQueryParamsFromRequest converts a api.QueryMeterPostJSONRequestBody to a streaming.QueryParams.
-func ToQueryParamsFromRequest(m meter.Meter, request api.QueryMeterPostJSONRequestBody) (streaming.QueryParams, error) {
+// toQueryParamsFromRequest converts a api.QueryMeterPostJSONRequestBody to a streaming.QueryParams.
+// This is used to convert an API GET query params to a service level streaming.QueryParams.
+func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, request api.QueryMeterPostJSONRequestBody) (streaming.QueryParams, error) {
 	params := streaming.QueryParams{
 		ClientID: request.ClientId,
 		From:     request.From,
@@ -107,7 +115,7 @@ func ToQueryParamsFromRequest(m meter.Meter, request api.QueryMeterPostJSONReque
 	if request.GroupBy != nil {
 		for _, groupBy := range *request.GroupBy {
 			// Validate group by, `subject` is a special group by
-			if ok := groupBy == "subject" || m.GroupBy[groupBy] != ""; !ok {
+			if ok := groupBy == "subject" || groupBy == "customer_id" || m.GroupBy[groupBy] != ""; !ok {
 				err := fmt.Errorf("invalid group by: %s", groupBy)
 				return params, models.NewGenericValidationError(err)
 			}
@@ -123,6 +131,21 @@ func ToQueryParamsFromRequest(m meter.Meter, request api.QueryMeterPostJSONReque
 		// Add subject to group by if not already present
 		if !slices.Contains(params.GroupBy, "subject") {
 			params.GroupBy = append(params.GroupBy, "subject")
+		}
+	}
+
+	// Resolve filter customer IDs to customers
+	if request.FilterCustomerId != nil {
+		filterCustomer, err := h.getFilterCustomer(ctx, m.Namespace, *request.FilterCustomerId)
+		if err != nil {
+			return params, fmt.Errorf("failed to get filter customer: %w", err)
+		}
+
+		params.FilterCustomer = filterCustomer
+
+		// Add customer_id to group by if not already present and there are customers to filter by
+		if len(filterCustomer) > 0 && !slices.Contains(params.GroupBy, "customer_id") {
+			params.GroupBy = append(params.GroupBy, "customer_id")
 		}
 	}
 
@@ -153,4 +176,41 @@ func ToQueryParamsFromRequest(m meter.Meter, request api.QueryMeterPostJSONReque
 	}
 
 	return params, nil
+}
+
+// getFilterCustomer resolves the customer IDs to customers.
+func (h *handler) getFilterCustomer(ctx context.Context, namespace string, filterCustomerIds []string) ([]customer.Customer, error) {
+	var filterCustomer []customer.Customer
+
+	if len(filterCustomerIds) == 0 {
+		return filterCustomer, nil
+	}
+
+	// List customers
+	customers, err := h.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace:   namespace,
+		CustomerIDs: filterCustomerIds,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list customers: %w", err)
+	}
+
+	customersById := lo.KeyBy(customers.Items, func(c customer.Customer) string {
+		return c.ID
+	})
+
+	// Check if all customers are returned
+	for _, customerId := range filterCustomerIds {
+		var errs []error
+
+		if _, ok := customersById[customerId]; !ok {
+			errs = append(errs, fmt.Errorf("customer with id %s not found", customerId))
+		}
+
+		if len(errs) > 0 {
+			return nil, models.NewGenericNotFoundError(errors.Join(errs...))
+		}
+	}
+
+	return customers.Items, nil
 }

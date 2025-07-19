@@ -7,7 +7,9 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestQueryMeter(t *testing.T) {
@@ -37,11 +39,11 @@ func TestQueryMeter(t *testing.T) {
 						"group2": "$.group2",
 					},
 				},
-				Subject:    []string{subject},
-				From:       &from,
-				To:         &to,
-				GroupBy:    []string{"subject", "group1", "group2"},
-				WindowSize: &windowSize,
+				FilterSubject: []string{subject},
+				From:          &from,
+				To:            &to,
+				GroupBy:       []string{"subject", "group1", "group2"},
+				WindowSize:    &windowSize,
 			},
 			wantSQL:  "SELECT tumbleStart(om_events.time, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(om_events.time, toIntervalHour(1), 'UTC') AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, om_events.subject, JSON_VALUE(om_events.data, '$.group1') as group1, JSON_VALUE(om_events.data, '$.group2') as group2 FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ?) AND om_events.time >= ? AND om_events.time < ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
 			wantArgs: []interface{}{"my_namespace", "event1", "subject1", from.Unix(), to.Unix()},
@@ -203,8 +205,8 @@ func TestQueryMeter(t *testing.T) {
 						"group2": "$.group2",
 					},
 				},
-				Subject: []string{subject},
-				GroupBy: []string{"subject"},
+				FilterSubject: []string{subject},
+				GroupBy:       []string{"subject"},
 			},
 			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, om_events.subject FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"my_namespace", "event1", "subject1"},
@@ -224,8 +226,8 @@ func TestQueryMeter(t *testing.T) {
 						"group2": "$.group2",
 					},
 				},
-				Subject: []string{subject},
-				GroupBy: []string{"subject", "group1", "group2"},
+				FilterSubject: []string{subject},
+				GroupBy:       []string{"subject", "group1", "group2"},
 			},
 			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, om_events.subject, JSON_VALUE(om_events.data, '$.group1') as group1, JSON_VALUE(om_events.data, '$.group2') as group2 FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ?) GROUP BY subject, group1, group2",
 			wantArgs: []interface{}{"my_namespace", "event1", "subject1"},
@@ -245,11 +247,81 @@ func TestQueryMeter(t *testing.T) {
 						"group2": "$.group2",
 					},
 				},
-				Subject: []string{subject, "subject2"},
-				GroupBy: []string{"subject"},
+				FilterSubject: []string{subject, "subject2"},
+				GroupBy:       []string{"subject"},
 			},
 			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, om_events.subject FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "subject2"},
+		},
+		{ // Select customer ID
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationSum,
+					ValueProperty: lo.ToPtr("$.value"),
+				},
+				FilterCustomer: []customer.Customer{
+					{
+						ManagedResource: models.ManagedResource{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: "my_namespace",
+							},
+							ID: "customer1",
+						},
+						UsageAttribution: customer.CustomerUsageAttribution{
+							SubjectKeys: []string{"subject1"},
+						},
+					},
+					{
+						ManagedResource: models.ManagedResource{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: "my_namespace",
+							},
+							ID: "customer2",
+						},
+						UsageAttribution: customer.CustomerUsageAttribution{
+							SubjectKeys: []string{"subject2"},
+						},
+					},
+				},
+				GroupBy: []string{"customer_id"},
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, CASE WHEN om_events.subject = 'subject1' THEN 'customer1' WHEN om_events.subject = 'subject2' THEN 'customer2' ELSE '' END AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ?) GROUP BY customer_id",
+			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "subject2"},
+		},
+		{ // Filter by both customer and subject
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationSum,
+					ValueProperty: lo.ToPtr("$.value"),
+				},
+				FilterCustomer: []customer.Customer{
+					{
+						ManagedResource: models.ManagedResource{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: "my_namespace",
+							},
+							ID: "customer1",
+						},
+						UsageAttribution: customer.CustomerUsageAttribution{
+							SubjectKeys: []string{"subject1", "subject2"},
+						},
+					},
+				},
+				FilterSubject: []string{"subject1"},
+				GroupBy:       []string{"customer_id"},
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, CASE WHEN om_events.subject = 'subject1' THEN 'customer1' WHEN om_events.subject = 'subject2' THEN 'customer1' ELSE '' END AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ?) AND (om_events.subject = ?) GROUP BY customer_id",
+			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "subject2", "subject1"},
 		},
 		{ // Aggregate data with filtering for a single group and single value
 			query: queryMeter{
@@ -314,7 +386,6 @@ func TestQueryMeter(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run("", func(t *testing.T) {
 			gotSql, gotArgs, err := tt.query.toSQL()
 			if err != nil {

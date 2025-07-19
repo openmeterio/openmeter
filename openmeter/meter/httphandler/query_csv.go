@@ -50,7 +50,12 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 			}
 
 			// Query meter
-			params, err := ToQueryParamsFromAPIParams(meter, request.params)
+			params, err := h.toQueryParamsFromRequest(
+				ctx,
+				meter,
+				// Convert the POST request body to a GET request params
+				ToRequestFromQueryParamsPOSTBody(request.params),
+			)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}

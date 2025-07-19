@@ -6625,11 +6625,19 @@ export interface components {
       /**
        * @description Filtering by multiple subjects.
        * @example [
-       *       "customer-1",
-       *       "customer-2"
+       *       "subject-1",
+       *       "subject-2"
        *     ]
        */
       subject?: string[]
+      /**
+       * @description Filtering by multiple customers.
+       * @example [
+       *       "id-1",
+       *       "id-2"
+       *     ]
+       */
+      filterCustomerId?: string[]
       /**
        * @description Simple filter for group bys with exact match.
        * @example {
@@ -10225,6 +10233,10 @@ export interface components {
     /** @description Client ID
      *     Useful to track progress of a query. */
     'MeterQuery.clientId': string
+    /** @description Filtering by multiple customers.
+     *
+     *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2 */
+    'MeterQuery.filterCustomerId': string[]
     /** @description Simple filter for group bys with exact match.
      *
      *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
@@ -10244,7 +10256,7 @@ export interface components {
     'MeterQuery.groupBy': string[]
     /** @description Filtering by multiple subjects.
      *
-     *     For example: ?subject=customer-1&subject=customer-2 */
+     *     For example: ?subject=subject-1&subject=subject-2 */
     'MeterQuery.subject': string[]
     /** @description End date-time in RFC 3339 format.
      *
@@ -10999,6 +11011,8 @@ export type ParameterMeterOrderByOrderingOrderBy =
   components['parameters']['MeterOrderByOrdering.orderBy']
 export type ParameterMeterQueryClientId =
   components['parameters']['MeterQuery.clientId']
+export type ParameterMeterQueryFilterCustomerId =
+  components['parameters']['MeterQuery.filterCustomerId']
 export type ParameterMeterQueryFilterGroupBy =
   components['parameters']['MeterQuery.filterGroupBy']
 export type ParameterMeterQueryFrom =
@@ -18076,8 +18090,12 @@ export interface operations {
         windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
         /** @description Filtering by multiple subjects.
          *
-         *     For example: ?subject=customer-1&subject=customer-2 */
+         *     For example: ?subject=subject-1&subject=subject-2 */
         subject?: components['parameters']['MeterQuery.subject']
+        /** @description Filtering by multiple customers.
+         *
+         *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2 */
+        filterCustomerId?: components['parameters']['MeterQuery.filterCustomerId']
         /** @description Simple filter for group bys with exact match.
          *
          *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
@@ -20942,6 +20960,10 @@ export interface operations {
          *
          *     For example: ?windowTimeZone=UTC */
         windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
+        /** @description Filtering by multiple customers.
+         *
+         *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2 */
+        filterCustomerId?: components['parameters']['MeterQuery.filterCustomerId']
         /** @description Simple filter for group bys with exact match.
          *
          *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
