@@ -81,15 +81,6 @@ func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
 
 // toSQL returns the SQL query for the meter query.
 func (d *queryMeter) toSQL() (string, []interface{}, error) {
-	// We map subjects to customer IDs if they are provided
-	subjectToCustomerID := map[string]string{}
-
-	for _, customer := range d.FilterCustomer {
-		for _, subjectKey := range customer.UsageAttribution.SubjectKeys {
-			subjectToCustomerID[subjectKey] = customer.ID
-		}
-	}
-
 	tableName := getTableName(d.Database, d.EventsTableName)
 	getColumn := columnFactory(d.EventsTableName)
 	timeColumn := getColumn("time")
@@ -205,19 +196,21 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 	// Select customer_id column
 	// We map subjects to customer IDs if they are provided
-	if len(subjectToCustomerID) > 0 {
+	if len(d.FilterCustomer) > 0 {
 		var caseBuilder bytes.Buffer
 		caseBuilder.WriteString("CASE ")
 
 		// Add the case statements for each subject to customer ID mapping
-		for subject, customerID := range subjectToCustomerID {
-			str := fmt.Sprintf(
-				"WHEN %s = '%s' THEN '%s' ",
-				getColumn("subject"),
-				sqlbuilder.Escape(subject),
-				sqlbuilder.Escape(customerID),
-			)
-			caseBuilder.WriteString(str)
+		for _, customer := range d.FilterCustomer {
+			for _, subjectKey := range customer.UsageAttribution.SubjectKeys {
+				str := fmt.Sprintf(
+					"WHEN %s = '%s' THEN '%s' ",
+					getColumn("subject"),
+					sqlbuilder.Escape(subjectKey),
+					sqlbuilder.Escape(customer.ID),
+				)
+				caseBuilder.WriteString(str)
+			}
 		}
 
 		// If the subject is not in the map, we return an empty string
