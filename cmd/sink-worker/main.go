@@ -247,6 +247,7 @@ func initSink(
 		NamespaceTopicRegexp:    conf.Sink.NamespaceTopicRegexp,
 		MeterRefetchInterval:    conf.Sink.MeterRefetchInterval,
 		MeterService:            meterService,
+		LogDroppedEvents:        conf.Sink.LogDroppedEvents,
 	}
 
 	return sink.NewSink(sinkConfig)
