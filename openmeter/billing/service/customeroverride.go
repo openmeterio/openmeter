@@ -75,7 +75,9 @@ func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCust
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.CustomerOverrideWithDetails, error) {
-		if err := s.customerService.CustomerExists(ctx, input.Customer); err != nil {
+		if _, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &input.Customer,
+		}); err != nil {
 			return def, err
 		}
 

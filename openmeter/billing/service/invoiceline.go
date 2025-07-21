@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -26,17 +27,36 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		input.Lines[i].Currency = input.Currency
 	}
 
+	cust, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerID: &input.Customer,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
-		if err := s.validateCustomerForUpdate(ctx, input.Customer); err != nil {
-			return nil, err
+	maxPeriodEnd := lo.FromPtr(cust.DeletedAt)
+	if !maxPeriodEnd.IsZero() {
+		var errs []error
+		for _, line := range input.Lines {
+			if line.Period.End.After(maxPeriodEnd) {
+				errs = append(errs, fmt.Errorf("line[%s]: line period end[%s] is after customer deleted at[%s]", line.ID, line.Period.End, maxPeriodEnd))
+			}
 		}
 
+		if len(errs) > 0 {
+			return nil, billing.ValidationError{
+				Err: errors.Join(errs...),
+			}
+		}
+	}
+
+	return transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
 		lineServices, err := s.lineService.FromEntities(lo.Map(input.Lines, func(l *billing.Line, _ int) *billing.Line {
 			l.Namespace = input.Customer.Namespace
 			l.Status = billing.InvoiceLineStatusValid

@@ -41,7 +41,7 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 
 	// Get the customer first to check their usage attribution subjects
 	cust, err := v.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-		CustomerID: lo.ToPtr(customer.CustomerID(input)),
+		CustomerID: lo.ToPtr(input),
 	})
 	if err != nil {
 		return err
