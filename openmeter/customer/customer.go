@@ -222,11 +222,7 @@ func (i UpdateCustomerInput) Validate() error {
 }
 
 // DeleteCustomerInput represents the input for the DeleteCustomer method
-type DeleteCustomerInput CustomerID
-
-func (i DeleteCustomerInput) Validate() error {
-	return CustomerID(i).Validate()
-}
+type DeleteCustomerInput = CustomerID
 
 // GetCustomerInput represents the input for the GetCustomer method
 type GetCustomerInput struct {

@@ -4009,3 +4009,87 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	s.Nil(gatheringInvoice.Period)
 	s.NotNil(gatheringInvoice.DeletedAt)
 }
+
+func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() {
+	namespace := "ns-create-pending-invoice-lines-for-deleted-customers"
+	ctx := context.Background()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	customerDeletedAt := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
+	invoiceAt := lo.Must(time.Parse(time.RFC3339, "2024-01-01T00:00:00Z"))
+
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-01-01T00:00:00Z"))
+	periodEnd := periodStart.Add(time.Hour * 24)
+
+	clock.SetTime(invoiceAt)
+	defer clock.ResetTime()
+	customer := s.CreateTestCustomer(namespace, "test-customer")
+
+	clock.SetTime(customerDeletedAt)
+	s.NoError(s.CustomerService.DeleteCustomer(ctx, customer.GetID()))
+
+	// Given we have a deleted customer
+	// When we try to create pending lines that are before the deletion
+	// Then we should be able to create a finalized invoice
+
+	// When we try to create pending lines that are after the deletion
+	// Then we should not be able to perform the operation
+
+	clock.SetTime(customerDeletedAt.Add(24 * time.Hour))
+
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []*billing.Line{
+			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+				Period:    billing.Period{Start: periodStart, End: periodEnd},
+				InvoiceAt: periodStart,
+				Name:      "Flat fee",
+
+				PerUnitAmount: alpacadecimal.NewFromFloat(10),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(pendingLines.Lines, 1)
+
+	// Create the invoice
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer:                   customer.GetID(),
+		ProgressiveBillingOverride: lo.ToPtr(false),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+
+	invoice := invoices[0]
+	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+	// Approve the invoice
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.InvoiceID())
+	s.NoError(err)
+	s.Equal(billing.InvoiceStatusPaid, invoice.Status)
+
+	// Negative test:
+	// When we try to create pending lines that are after the deletion
+	// Then we should not be able to perform the operation
+
+	pendingLines, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []*billing.Line{
+			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+				Period:    billing.Period{Start: clock.Now(), End: clock.Now().Add(time.Hour * 24)},
+				InvoiceAt: clock.Now(),
+				Name:      "Flat fee",
+
+				PerUnitAmount: alpacadecimal.NewFromFloat(10),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+	})
+	s.Error(err)
+	s.Nil(pendingLines)
+}

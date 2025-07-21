@@ -659,7 +659,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 
 	// Delete the customer
 	require.Equal(t, sub.CustomerId, customerId.ID, "Subscription customer ID must match")
-	err = custService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
+	err = custService.DeleteCustomer(ctx, customerId)
 
 	require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}), "Deleting customer with active subscription must return validation error, got %T", err)
 	require.EqualError(t, err, fmt.Sprintf("validation error: customer %s still have active subscriptions, please cancel them before deleting the customer", customerId.ID), "Deleting customer with active subscription must return error")
@@ -673,7 +673,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	clock.SetTime(clock.Now().Add(1 * time.Minute))
 
 	// Delete the customer again
-	err = custService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
+	err = custService.DeleteCustomer(ctx, customerId)
 
 	require.NoError(t, err, "Deleting customer must not return error")
 
@@ -686,7 +686,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	require.NotNil(t, getCustomer.DeletedAt, "DeletedAt must not be nil")
 
 	// Delete the customer again should return not found error
-	err = custService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
+	err = custService.DeleteCustomer(ctx, customerId)
 	require.True(t, models.IsGenericNotFoundError(err), "Deleting customer again must return not found error")
 
 	// Should allow to create a customer with the same subject keys

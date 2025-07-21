@@ -258,7 +258,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 				return DeleteCustomerRequest{}, err
 			}
 
-			return DeleteCustomerRequest(cus.GetID()), nil
+			return cus.GetID(), nil
 		},
 		func(ctx context.Context, request DeleteCustomerRequest) (DeleteCustomerResponse, error) {
 			err := h.service.DeleteCustomer(ctx, request)

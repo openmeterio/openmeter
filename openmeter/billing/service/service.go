@@ -158,22 +158,8 @@ func transcationForInvoiceManipulation[T any](ctx context.Context, svc *Service,
 		return empty, fmt.Errorf("validating customer: %w", err)
 	}
 
-	// Let's try to resolve the customer to validate if it exists
-	dbCustomer, err := svc.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-		CustomerID: &customerID,
-	})
-	if err != nil {
-		return empty, err
-	}
-
-	if dbCustomer.IsDeleted() {
-		return empty, billing.ValidationError{
-			Err: fmt.Errorf("customer is deleted"),
-		}
-	}
-
 	// NOTE: This should not be in transaction, or we can get a conflict for parallel writes
-	err = svc.adapter.UpsertCustomerOverride(ctx, customerID)
+	err := svc.adapter.UpsertCustomerOverride(ctx, customerID)
 	if err != nil {
 		var empty T
 		return empty, fmt.Errorf("upserting customer override: %w", err)
