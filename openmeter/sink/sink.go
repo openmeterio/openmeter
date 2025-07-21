@@ -94,6 +94,9 @@ type SinkConfig struct {
 
 	// MeterService is the service to fetch meters from the database
 	MeterService meter.Service
+
+	// LogDroppedEvents controls whether dropped events are logged
+	LogDroppedEvents bool
 }
 
 func (s *SinkConfig) Validate() error {
@@ -409,13 +412,16 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []sinkmodels.SinkM
 		case sinkmodels.OK, sinkmodels.INVALID:
 			// Do nothing: include in batch
 		case sinkmodels.DROP:
-			// Skip message from batch
-			logger.Debug("dropping message",
-				slog.String("status", message.Status.State.String()),
-				slog.String("error", message.Status.DropError.Error()),
-				slog.String("message", string(message.KafkaMessage.Value)),
-				slog.String("namespace", message.Namespace),
-			)
+			// Skip event from batch
+			if s.config.LogDroppedEvents {
+				logger.WarnContext(ctx, "event dropped",
+					slog.String("namespace", message.Namespace),
+					slog.String("event", string(message.KafkaMessage.Value)),
+					slog.String("error", message.Status.DropError.Error()),
+					slog.String("status", message.Status.State.String()),
+				)
+			}
+
 			continue
 		default:
 			return fmt.Errorf("unknown state type: %s", message.Status.State.String())

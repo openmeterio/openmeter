@@ -135,6 +135,7 @@ notification:
 #   serverURL: http://localhost:8071
 
 #sink:
+#  logDroppedEvents: true
 #  kafka:
 #    brokers: 127.0.0.1:9092,127.0.0.2:9092
 #    securityProtocol: SASL_SSL

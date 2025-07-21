@@ -35,6 +35,9 @@ type SinkConfiguration struct {
 
 	// MeterRefetchInterval is the interval to refetch meters from the database
 	MeterRefetchInterval time.Duration
+
+	// LogDroppedEvents controls whether dropped events are logged
+	LogDroppedEvents bool
 }
 
 func (c SinkConfiguration) Validate() error {
@@ -162,6 +165,7 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.namespaceRefetchTimeout", "10s")
 	v.SetDefault("sink.namespaceTopicRegexp", "^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$")
 	v.SetDefault("sink.meterRefetchInterval", "15s")
+	v.SetDefault("sink.logDroppedEvents", false)
 
 	// TODO: remove, config moved to aggregation config
 	// Sink Storage
