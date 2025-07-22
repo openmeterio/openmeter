@@ -5,12 +5,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/balance"
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -593,5 +597,111 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			From: timeAfter25Days,
 			To:   timeAfter25Days.AddDate(0, 0, 1),
 		}, period3)
+	})
+
+	t.Run("Should not create snapshots if underlying meter uses LATEST aggregation type", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		now := testutils.GetRFC3339Time(t, "2025-02-01T00:00:00Z")
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
+		conn, deps := setupConnector(t)
+		defer deps.Teardown()
+
+		latestMeterSlug := "latest_meter"
+
+		// Create a meter with LATEST aggregation type
+		require.NoError(t, deps.meterAdapter.ReplaceMeters(ctx, []meter.Meter{{
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: now,
+					UpdatedAt: now,
+				},
+				Name: "Latest Meter",
+			},
+			Key:           latestMeterSlug,
+			Aggregation:   meter.MeterAggregationLatest,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		}}))
+
+		// Create feature with the LATEST meter
+		f, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Name:      "latest_feature",
+			Key:       "latest_feature",
+			MeterSlug: lo.ToPtr(latestMeterSlug),
+			Namespace: namespace,
+		})
+		require.NoError(t, err)
+
+		// Create entitlement
+
+		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+			Namespace:       namespace,
+			FeatureID:       f.ID,
+			FeatureKey:      f.Key,
+			SubjectKey:      "subject1",
+			EntitlementType: entitlement.EntitlementTypeMetered,
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodMonth,
+				Anchor:   now,
+			})),
+			IsSoftLimit:      lo.ToPtr(false),
+			MeasureUsageFrom: &now,
+		})
+		require.NoError(t, err)
+
+		owner := models.NamespacedID{
+			Namespace: namespace,
+			ID:        ent.ID,
+		}
+
+		// Create a grant
+		_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+			OwnerID:     ent.ID,
+			Namespace:   namespace,
+			Amount:      1000,
+			Priority:    1,
+			EffectiveAt: now,
+			ExpiresAt:   now.AddDate(0, 0, 10),
+		})
+		require.NoError(t, err)
+
+		// Add usage events
+		deps.streamingConnector.AddSimpleEvent(latestMeterSlug, 100, now.Add(time.Minute))
+		deps.streamingConnector.AddSimpleEvent(latestMeterSlug, 200, now.Add(time.Minute*2))
+
+		// Move time forward beyond grace period to trigger snapshot creation for regular meters
+		queryTime := now.AddDate(0, 0, 8) // 8 days later, beyond grace period
+		clock.SetTime(queryTime)
+
+		// Get snapshots count before calling GetEntitlementBalance
+		snapshotsBefore, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
+		// For LATEST aggregation, we expect no snapshots to exist, so this should return an error
+		require.Error(t, err)
+		require.IsType(t, &balance.NoSavedBalanceForOwnerError{}, err)
+
+		// Trigger balance calculation which would normally create snapshots
+		entBalance, err := conn.GetEntitlementBalance(ctx, owner, queryTime)
+		require.NoError(t, err)
+
+		// Verify the balance calculation works
+		require.Equal(t, 800.0, entBalance.Balance)       // 1000 - 200 (latest value)
+		require.Equal(t, 200.0, entBalance.UsageInPeriod) // latest value in current period
+
+		// Verify that no snapshots were created after the calculation
+		snapshotsAfter, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
+		// Should still return error indicating no snapshots exist
+		require.Error(t, err)
+		require.IsType(t, &balance.NoSavedBalanceForOwnerError{}, err)
+
+		// Ensure we didn't accidentally create any snapshots
+		require.Equal(t, snapshotsBefore, snapshotsAfter)
 	})
 }

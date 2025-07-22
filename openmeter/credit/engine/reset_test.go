@@ -23,7 +23,8 @@ func TestReset(t *testing.T) {
 	meterSlug := "meter-1"
 
 	meter := meterpkg.Meter{
-		Key: meterSlug,
+		Key:         meterSlug,
+		Aggregation: meterpkg.MeterAggregationSum,
 	}
 
 	grant1 := makeGrant(grant.Grant{
@@ -75,6 +76,7 @@ func TestReset(t *testing.T) {
 		res, err := eng.Run(
 			context.Background(),
 			engine.RunParams{
+				Meter:  meter,
 				Grants: []grant.Grant{g1},
 				StartingSnapshot: balance.Snapshot{
 					Usage: balance.SnapshottedUsage{
@@ -135,6 +137,7 @@ func TestReset(t *testing.T) {
 		res, err := eng.Run(
 			context.Background(),
 			engine.RunParams{
+				Meter:  meter,
 				Grants: []grant.Grant{g1},
 				StartingSnapshot: balance.Snapshot{
 					Balances: balance.Map{
@@ -188,6 +191,7 @@ func TestReset(t *testing.T) {
 		res, err := eng.Run(
 			context.Background(),
 			engine.RunParams{
+				Meter:  meter,
 				Grants: []grant.Grant{grant1, g2},
 				StartingSnapshot: balance.Snapshot{
 					Usage: u,
@@ -226,6 +230,7 @@ func TestReset(t *testing.T) {
 		res, err := eng.Run(
 			context.Background(),
 			engine.RunParams{
+				Meter:  meter,
 				Grants: []grant.Grant{g1},
 				StartingSnapshot: balance.Snapshot{
 					Balances: balance.Map{
@@ -261,6 +266,7 @@ func TestReset(t *testing.T) {
 		_, err := eng.Run(
 			context.Background(),
 			engine.RunParams{
+				Meter:  meter,
 				Grants: []grant.Grant{g1},
 				StartingSnapshot: balance.Snapshot{
 					Balances: balance.Map{g1.ID: 100.0},

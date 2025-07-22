@@ -3,6 +3,7 @@ package testutils
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -45,6 +46,7 @@ func (m *MockStreamingConnector) AddSimpleEvent(meterSlug string, value float64,
 		Value:     value,
 		Time:      at,
 	})
+	m.sortMeterEvents(meterSlug)
 }
 
 func (m *MockStreamingConnector) SetSimpleEvents(meterSlug string, fn func(events []SimpleEvent) []SimpleEvent) {
@@ -52,10 +54,18 @@ func (m *MockStreamingConnector) SetSimpleEvents(meterSlug string, fn func(event
 		m.events[meterSlug] = []SimpleEvent{}
 	}
 	m.events[meterSlug] = fn(m.events[meterSlug])
+	m.sortMeterEvents(meterSlug)
 }
 
 func (m *MockStreamingConnector) AddRow(meterSlug string, row meter.MeterQueryRow) {
 	m.rows[meterSlug] = append(m.rows[meterSlug], row)
+}
+
+func (m *MockStreamingConnector) sortMeterEvents(meterSlug string) {
+	// Let's sort events by Time ASC
+	slices.SortStableFunc(m.events[meterSlug], func(a, b SimpleEvent) int {
+		return a.Time.Compare(b.Time)
+	})
 }
 
 func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
@@ -91,7 +101,7 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 			}
 		}
 	} else {
-		row, err := m.aggregateEvents(mm.Key, params)
+		row, err := m.aggregateEvents(mm, params)
 		if err != nil {
 			return rows, err
 		}
@@ -123,10 +133,10 @@ func (m *MockStreamingConnector) windowSizeDuration(windowSize meter.WindowSize)
 }
 
 // We approximate the actual logic by a simple filter + aggregation for most cases
-func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
-	events, ok := m.events[meterSlug]
+func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+	events, ok := m.events[mm.Key]
 	if !ok {
-		return []meter.MeterQueryRow{}, meter.NewMeterNotFoundError(meterSlug)
+		return []meter.MeterQueryRow{}, meter.NewMeterNotFoundError(mm.Key)
 	}
 
 	if params.From == nil || params.To == nil {
@@ -173,15 +183,30 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params stream
 	for i := range rows {
 		row := &rows[i]
 		var value float64
+
+		effectiveWindowSize := lo.FromPtrOr(params.WindowSize, meter.WindowSizeMinute)
+
 		for _, event := range events {
-			eventWindowStart := event.Time.Truncate(time.Minute)
+			eventWindowStart, err := effectiveWindowSize.Truncate(event.Time)
+			if err != nil {
+				return nil, fmt.Errorf("failed to truncate by windowsize in event aggregation")
+			}
 			// windowend is exclusive when doing this rounding
-			eventWindowEnd := eventWindowStart.Add(time.Minute)
+			eventWindowEnd, err := effectiveWindowSize.AddTo(eventWindowStart)
+			if err != nil {
+				return nil, fmt.Errorf("failed calculate window end in event aggregation")
+			}
 
 			if (eventWindowStart.After(row.WindowStart) || eventWindowStart.Equal(row.WindowStart)) &&
 				(eventWindowEnd.Before(row.WindowEnd) || eventWindowEnd.Equal(row.WindowEnd)) {
 				// TODO: Add support for more aggregation types
-				value += event.Value
+				switch mm.Aggregation {
+				case meter.MeterAggregationLatest:
+					// Note: events are already sorted by time ASC when they are registered
+					value = event.Value
+				default:
+					value += event.Value
+				}
 			}
 		}
 		rows[i].Value = value

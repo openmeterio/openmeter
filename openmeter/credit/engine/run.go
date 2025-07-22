@@ -146,12 +146,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 
 	overage := params.StartingSnapshot.Overage
 
-	for idx, phase := range phases {
-		if params.Meter.Aggregation == meter.MeterAggregationLatest && idx != len(phases)-1 {
-			// For LATEST aggregation, we only care about the current state, so we skip all phases except the last one
-			continue
-		}
-
+	for _, phase := range phases {
 		// reprioritize grants if needed
 		if rePrioritize {
 			err = PrioritizeGrants(grants)
@@ -186,6 +181,14 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		// if a grant becomes active at the start of this period then their balance becomes the full amount
 		for _, grant := range activeGrants {
 			if grant.EffectiveAt.Equal(phase.from) {
+				balancesAtPhaseStart[grant.ID] = grant.Amount
+			}
+		}
+
+		// If we usae LATEST aggregation, Grant Amounts are treated as "limits" instead of as "budgets",
+		// so we always deduct the point-in-time values from the original granted amounts
+		if params.Meter.Aggregation == meter.MeterAggregationLatest {
+			for _, grant := range activeGrants {
 				balancesAtPhaseStart[grant.ID] = grant.Amount
 			}
 		}

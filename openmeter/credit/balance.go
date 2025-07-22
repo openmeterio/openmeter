@@ -315,6 +315,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 			grants: grants,
 			owner:  ownerID,
 			before: at,
+			meter:  owner.Meter,
 		}, snap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save snapshot: %w", err)

@@ -2,11 +2,13 @@ package engine_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,8 +26,9 @@ func TestEngine(t *testing.T) {
 	assert.NoError(t, err)
 	meterSlug := "meter-1"
 
-	meter := meterpkg.Meter{
-		Key: meterSlug,
+	defaultMeter := meterpkg.Meter{
+		Key:         meterSlug,
+		Aggregation: meterpkg.MeterAggregationSum,
 	}
 
 	grant1 := makeGrant(grant.Grant{
@@ -52,12 +55,13 @@ func TestEngine(t *testing.T) {
 
 	// Tests with single engine
 	tt := []struct {
-		name string
-		run  func(t *testing.T, engine engine.Engine, use addUsageFunc)
+		name  string
+		meter meterpkg.Meter
+		run   func(t *testing.T, engine engine.Engine, use addUsageFunc, mm meterpkg.Meter)
 	}{
 		{
 			name: "Should return the same result on subsequent runs",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
 				g1 = makeGrant(g1)
@@ -65,6 +69,7 @@ func TestEngine(t *testing.T) {
 				res1, err1 := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g1},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -80,6 +85,7 @@ func TestEngine(t *testing.T) {
 				res2, err2 := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g1},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -97,11 +103,12 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Reports overage if there are no grants",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				use(50.0, t1.Add(time.Hour))
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{},
@@ -131,11 +138,12 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Errors if balance was provided for nonexistent grants",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				use(50.0, t1.Add(time.Hour))
 				_, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -152,7 +160,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Errors on missing balance for one of the grants",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				use(50.0, t1.Add(time.Hour))
 				g1 := grant1
 				g1 = makeGrant(g1)
@@ -161,6 +169,7 @@ func TestEngine(t *testing.T) {
 				_, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -177,7 +186,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Should do nothing for 0 length period",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// We have report usage so the meter is found
 				use(100.0, t1.Add(time.Hour))
 
@@ -191,6 +200,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{grant1},
 						StartingSnapshot: balance.Snapshot{
 							Usage: u,
@@ -216,11 +226,12 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Able to burn down single active grant",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				use(50.0, t1.Add(time.Hour))
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{grant1},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -238,7 +249,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Return 0 balance for grant with future effectiveAt",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				use(50.0, t1.Add(time.Hour))
 				g := grant1
 				g.EffectiveAt = t1.AddDate(0, 0, 10)
@@ -247,6 +258,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -264,7 +276,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Return 0 balance for deleted grant",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				use(50.0, t1.Add(time.Hour))
 				g := grant1
 				g.EffectiveAt = t1
@@ -274,6 +286,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -291,7 +304,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant until it's deleted",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				deletionTime := t1.Add(time.Hour)
 				use(50.0, deletionTime.Add(-time.Minute))
 				use(50.0, deletionTime.Add(time.Minute))
@@ -303,6 +316,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -325,7 +339,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant until it's voided",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				voidingTime := t1.Add(time.Hour)
 				use(50.0, voidingTime.Add(-time.Minute))
 				use(50.0, voidingTime.Add(time.Minute))
@@ -337,6 +351,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -359,7 +374,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Return 0 balance for grant with past expiresAt",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				use(50.0, t1.Add(time.Hour))
 				g := grant1
 				g.EffectiveAt = t1.AddDate(-1, 0, 0)
@@ -370,6 +385,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -387,7 +403,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Does not burn down grant that expires at start of period",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				use(50.0, t1.Add(time.Hour))
 				g := grant1
 				g.EffectiveAt = t1.AddDate(-1, 0, 0)
@@ -398,6 +414,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -415,7 +432,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant that becomes active during phase",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// burn down with usage after grant effectiveAt
 				use(25.0, t1.Add(time.Hour))
 				// burn down with usage prior to grant effectiveAt
@@ -429,6 +446,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -455,7 +473,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down multiple grants",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// burn down with usage after grant effectiveAt
 				use(200, t1.Add(time.Hour))
 				g1 := grant1
@@ -469,6 +487,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -488,7 +507,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant with higher priority first",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// burn down with usage after grant effectiveAt
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
@@ -504,6 +523,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g2, g1},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -523,7 +543,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant that expires first",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// burn down with usage after grant effectiveAt
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
@@ -539,6 +559,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g2, g1},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -558,7 +579,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant that expires first among many",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// make lots of grants
 				nGrant := func(i int) grant.Grant {
 					return makeGrant(grant.Grant{
@@ -600,6 +621,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: grants,
 						StartingSnapshot: balance.Snapshot{
 							Balances: bm,
@@ -621,7 +643,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down recurring grant",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// burn down with usage after grant effectiveAt
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
@@ -635,6 +657,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g1},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -653,7 +676,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down recurring grant that takes effect later before it has recurred",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				tg1 := start.AddDate(0, 0, -1)
@@ -682,6 +705,7 @@ func TestEngine(t *testing.T) {
 				res1, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -702,7 +726,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down recurring grant that takes effect later after it has recurred",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				tg1 := start.AddDate(0, 0, -1)
@@ -732,6 +756,7 @@ func TestEngine(t *testing.T) {
 				res2, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -753,7 +778,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Return GrantBurnDownHistory",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				end := start.AddDate(0, 1, 0)
@@ -789,6 +814,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -809,7 +835,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Should calculate sequential periods across timezones and convert to UTC",
-			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				t1 := start.Add(time.Hour)
@@ -856,6 +882,7 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
+						Meter:  mm,
 						Grants: []grant.Grant{g1, g2, g3},
 						StartingSnapshot: balance.Snapshot{
 							Balances: balance.Map{
@@ -885,16 +912,123 @@ func TestEngine(t *testing.T) {
 				assert.Equal(t, end.In(time.UTC), res.History.Segments()[4].ClosedPeriod.To)
 			},
 		},
+		{
+			name: "Should use latest aggregation correctly",
+			meter: meterpkg.Meter{
+				Key:         meterSlug,
+				Aggregation: meterpkg.MeterAggregationLatest,
+			},
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc, mm meterpkg.Meter) {
+				// burn down with usage after grant effectiveAt
+				start := t1
+				end := start.Add(time.Hour * 3)
+
+				use(0, start.Add(-time.Minute)) // we need usage so everything's found
+
+				// Grant 1: Active from start, expires during the period
+				g1 := makeGrant(grant.Grant{
+					ID:          "grant-1-expired",
+					Amount:      50.0,
+					Priority:    1,
+					EffectiveAt: start,
+					Expiration: grant.ExpirationPeriod{
+						Duration: grant.ExpirationPeriodDurationHour,
+						Count:    1, // Expires after 1 hour
+					},
+				})
+
+				// Grant 2: Active from start, remains active throughout
+				g2 := makeGrant(grant.Grant{
+					ID:          "grant-2-active",
+					Amount:      100.0,
+					Priority:    2,
+					EffectiveAt: start,
+					Expiration: grant.ExpirationPeriod{
+						Duration: grant.ExpirationPeriodDurationDay,
+						Count:    30, // Active for 30 days
+					},
+				})
+
+				// Grant 3: Becomes effective during the period, remains active
+				g3 := makeGrant(grant.Grant{
+					ID:          "grant-3-later",
+					Amount:      75.0,
+					Priority:    3,
+					EffectiveAt: start.Add(time.Hour), // Becomes effective after 1 hour
+					Expiration: grant.ExpirationPeriod{
+						Duration: grant.ExpirationPeriodDurationDay,
+						Count:    30,
+					},
+				})
+
+				// Grant 4: Future grant, not yet effective
+				g4 := makeGrant(grant.Grant{
+					ID:          "grant-4-future",
+					Amount:      200.0,
+					Priority:    4,
+					EffectiveAt: start.Add(time.Hour * 4), // Becomes effective after 4 hours (after our calculation period)
+					Expiration: grant.ExpirationPeriod{
+						Duration: grant.ExpirationPeriodDurationDay,
+						Count:    30,
+					},
+				})
+
+				// Let's add some usage
+				use(15, start)
+				use(30, start.Add(time.Hour))
+				use(10, start.Add(time.Hour*2))
+				use(20, start.Add(time.Hour*3))
+
+				res, err := eng.Run(
+					context.Background(),
+					engine.RunParams{
+						Meter:  mm,
+						Grants: []grant.Grant{g1, g2, g3, g4},
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 50.0,
+								g2.ID: 100.0,
+								g3.ID: 75.0,
+								g4.ID: 200.0,
+							},
+							Overage: 0,
+							At:      start,
+						},
+						Until: end,
+					})
+				require.NoError(t, err)
+
+				resJSON, err := json.MarshalIndent(res, "", "  ")
+				require.NoError(t, err)
+
+				// Let's start with asserting the ending balance
+				// 175 (active total at end) - 10 (last usage value) = 165
+				assert.Equal(t, 165.0, res.Snapshot.Balance(), "received following result %s", string(resJSON))
+
+				// Now let's assert the history
+				// We should have 2 segments: start -> 1h, 1h -> end
+				assert.Equal(t, 2, len(res.History.Segments()), "received following result %s", string(resJSON))
+
+				assert.Equal(t, 15.0, res.History.Segments()[0].TotalUsage)
+				assert.Equal(t, 150.0, res.History.Segments()[0].BalanceAtStart.Balance())
+				assert.Equal(t, 135.0, res.History.Segments()[0].ApplyUsage().Balance())
+
+				assert.Equal(t, 10.0, res.History.Segments()[1].TotalUsage)
+				assert.Equal(t, 175.0, res.History.Segments()[1].BalanceAtStart.Balance())
+				assert.Equal(t, 165.0, res.History.Segments()[1].ApplyUsage().Balance())
+			},
+		},
 	}
 
 	for _, tc := range tt {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			streamingConnector := testutils.NewMockStreamingConnector(t)
 
+			mm := lo.Ternary(tc.meter.Key == "", defaultMeter, tc.meter)
+
 			queryFeatureUsage := func(ctx context.Context, from, to time.Time) (float64, error) {
-				rows, err := streamingConnector.QueryMeter(ctx, "default", meter, streaming.QueryParams{
+				rows, err := streamingConnector.QueryMeter(ctx, "default", mm, streaming.QueryParams{
 					From: &from,
 					To:   &to,
 				})
@@ -913,152 +1047,7 @@ func TestEngine(t *testing.T) {
 				QueryUsage: queryFeatureUsage,
 			}), func(usage float64, at time.Time) {
 				streamingConnector.AddSimpleEvent(meterSlug, usage, at)
-			})
+			}, mm)
 		})
 	}
-}
-
-func TestLatestAggregationEngine(t *testing.T) {
-	t1, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
-	assert.NoError(t, err)
-	meterSlug := "meter-latest"
-
-	// Create a meter with LATEST aggregation
-	meter := meterpkg.Meter{
-		Key:         meterSlug,
-		Aggregation: meterpkg.MeterAggregationLatest,
-	}
-
-	// Grant 1: Active from start, expires during the period (should NOT be included)
-	grant1 := makeGrant(grant.Grant{
-		ID:          "grant-1-expired",
-		Amount:      50.0,
-		Priority:    1,
-		EffectiveAt: t1,
-		Expiration: grant.ExpirationPeriod{
-			Duration: grant.ExpirationPeriodDurationHour,
-			Count:    1, // Expires after 1 hour
-		},
-	})
-
-	// Grant 2: Active from start, remains active throughout (should be included)
-	grant2 := makeGrant(grant.Grant{
-		ID:          "grant-2-active",
-		Amount:      100.0,
-		Priority:    2,
-		EffectiveAt: t1,
-		Expiration: grant.ExpirationPeriod{
-			Duration: grant.ExpirationPeriodDurationDay,
-			Count:    30, // Active for 30 days
-		},
-	})
-
-	// Grant 3: Becomes effective during the period, remains active (should be included)
-	grant3 := makeGrant(grant.Grant{
-		ID:          "grant-3-later",
-		Amount:      75.0,
-		Priority:    3,
-		EffectiveAt: t1.Add(time.Hour), // Becomes effective after 1 hour
-		Expiration: grant.ExpirationPeriod{
-			Duration: grant.ExpirationPeriodDurationDay,
-			Count:    30,
-		},
-	})
-
-	// Grant 4: Future grant, not yet effective (should NOT be included)
-	grant4 := makeGrant(grant.Grant{
-		ID:          "grant-4-future",
-		Amount:      200.0,
-		Priority:    4,
-		EffectiveAt: t1.Add(time.Hour * 4), // Becomes effective after 4 hours (after our calculation period)
-		Expiration: grant.ExpirationPeriod{
-			Duration: grant.ExpirationPeriodDurationDay,
-			Count:    30,
-		},
-	})
-
-	streamingConnector := testutils.NewMockStreamingConnector(t)
-
-	// Current usage value at the end of the period
-	currentLatestValue := 30.0
-	streamingConnector.AddSimpleEvent(meterSlug, currentLatestValue, t1.Add(time.Hour*2))
-
-	eng := engine.NewEngine(engine.EngineConfig{
-		QueryUsage: func(ctx context.Context, from, to time.Time) (float64, error) {
-			rows, err := streamingConnector.QueryMeter(ctx, "default", meter, streaming.QueryParams{
-				From: &from,
-				To:   &to,
-			})
-			if err != nil {
-				return 0.0, err
-			}
-			if len(rows) > 1 {
-				return 0.0, fmt.Errorf("expected 1 row, got %d", len(rows))
-			}
-			if len(rows) == 0 {
-				return 0.0, nil
-			}
-			return rows[0].Value, nil
-		},
-	})
-
-	allGrants := []grant.Grant{grant1, grant2, grant3, grant4}
-	endTime := t1.Add(time.Hour * 3) // 3 hours after start
-
-	// Initial balances for all grants
-	initialBalances := balance.Map{
-		grant1.ID: grant1.Amount,
-		grant2.ID: grant2.Amount,
-		grant3.ID: grant3.Amount,
-		grant4.ID: grant4.Amount,
-	}
-
-	res, err := eng.Run(context.Background(), engine.RunParams{
-		Grants: allGrants,
-		StartingSnapshot: balance.Snapshot{
-			Usage: balance.SnapshottedUsage{
-				Since: t1,
-				Usage: 0.0,
-			},
-			Balances: initialBalances,
-			Overage:  0,
-			At:       t1,
-		},
-		Until: endTime,
-		ResetBehavior: grant.ResetBehavior{
-			PreserveOverage: false,
-		},
-		Resets: timeutil.SimpleTimeline{},
-		Meter:  meter,
-	})
-
-	assert.NoError(t, err)
-
-	// At endTime (t1 + 3 hours):
-	// - grant1: EXPIRED (effective from t1, expires at t1+1h)
-	// - grant2: ACTIVE (effective from t1, expires at t1+30d)
-	// - grant3: ACTIVE (effective from t1+1h, expires at t1+1h+30d)
-	// - grant4: NOT YET EFFECTIVE (effective from t1+4h)
-
-	// Only grant2 and grant3 should be active at endTime
-	// Expected calculation: (grant2 + grant3) - currentUsage = (100 + 75) - 30 = 145
-
-	// Verify that only active grants have positive balances
-	// grant1 (expired) should have 0 balance
-	assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID], "Expired grant should have 0 balance")
-
-	// grant4 (not yet effective) should have 0 balance
-	assert.Equal(t, 0.0, res.Snapshot.Balances[grant4.ID], "Future grant should have 0 balance")
-
-	// Active grants (grant2 and grant3) should have balances after subtracting usage
-	// The exact distribution depends on priority and burn-down logic, but total should be correct
-	totalActiveBalance := res.Snapshot.Balances[grant2.ID] + res.Snapshot.Balances[grant3.ID]
-	expectedTotalBalance := (grant2.Amount + grant3.Amount) - currentLatestValue // (100 + 75) - 30 = 145
-	assert.Equal(t, expectedTotalBalance, totalActiveBalance, "Total balance should equal active grants minus current usage")
-
-	// Verify total usage matches the current latest value
-	assert.Equal(t, currentLatestValue, res.History.Segments()[0].TotalUsage)
-
-	// Should have only one history segment for LATEST aggregation
-	assert.Equal(t, 1, len(res.History.Segments()))
 }
