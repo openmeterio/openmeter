@@ -111,6 +111,56 @@ func (a *Router) OverrideEntitlement(w http.ResponseWriter, r *http.Request, sub
 
 // Customer APIs
 
+// Get customer access
+// (GET /api/v1/customers/{customerId}/access)
+func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
+	a.customerHandler.GetCustomerAccess().With(customerdriver.GetCustomerAccessParams{
+		CustomerIDOrKey: customerIdOrKey,
+	}).ServeHTTP(w, r)
+}
+
+// Create customer entitlement
+// (POST /api/v1/customers/{customerIdOrKey}/entitlements)
+func (a *Router) CreateCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
+	unimplemented.CreateCustomerEntitlement(w, r, customerIdOrKey)
+}
+
+// List customer entitlements
+// (GET /api/v1/customers/{customerIdOrKey}/entitlements)
+func (a *Router) ListCustomerEntitlements(w http.ResponseWriter, r *http.Request, customerIdOrKey string, params api.ListCustomerEntitlementsParams) {
+	unimplemented.ListCustomerEntitlements(w, r, customerIdOrKey, params)
+}
+
+// Get customer entitlement
+// (GET /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey})
+func (a *Router) GetCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
+	unimplemented.GetCustomerEntitlement(w, r, customerIdOrKey, featureKey)
+}
+
+// Delete customer entitlement
+// (DELETE /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey})
+func (a *Router) DeleteCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
+	unimplemented.DeleteCustomerEntitlement(w, r, customerIdOrKey, featureKey)
+}
+
+// Override customer entitlement
+// (PUT /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/override)
+func (a *Router) OverrideCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
+	unimplemented.OverrideCustomerEntitlement(w, r, customerIdOrKey, featureKey)
+}
+
+// List customer entitlement grants
+// (GET /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/grants)
+func (a *Router) ListCustomerEntitlementGrants(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.ListCustomerEntitlementGrantsParams) {
+	unimplemented.ListCustomerEntitlementGrants(w, r, customerIdOrKey, featureKey, params)
+}
+
+// Create customer entitlement grant
+// (POST /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/grants)
+func (a *Router) CreateCustomerEntitlementGrant(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
+	unimplemented.CreateCustomerEntitlementGrant(w, r, customerIdOrKey, featureKey)
+}
+
 // Get entitlement value
 // (GET /api/v1/customers/{customerId}/entitlements/{featureKey}/value)
 func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementValueParams) {
@@ -120,10 +170,14 @@ func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Requ
 	}).ServeHTTP(w, r)
 }
 
-// Get customer access
-// (GET /api/v1/customers/{customerId}/access)
-func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
-	a.customerHandler.GetCustomerAccess().With(customerdriver.GetCustomerAccessParams{
-		CustomerIDOrKey: customerIdOrKey,
-	}).ServeHTTP(w, r)
+// Get entitlement history
+// (GET /api/v1/customers/{customerId}/entitlements/{featureKey}/history)
+func (a *Router) GetCustomerEntitlementHistory(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementHistoryParams) {
+	unimplemented.GetCustomerEntitlementHistory(w, r, customerIdOrKey, featureKey, params)
+}
+
+// Reset entitlement usage
+// (POST /api/v1/customers/{customerId}/entitlements/{featureKey}/reset)
+func (a *Router) ResetCustomerEntitlementUsage(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
+	unimplemented.ResetCustomerEntitlementUsage(w, r, customerIdOrKey, featureKey)
 }
