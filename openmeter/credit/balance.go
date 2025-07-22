@@ -88,6 +88,7 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 		Until:            period.To,
 		ResetBehavior:    owner.ResetBehavior,
 		Resets:           resetTimesInclusive.After(period.From),
+		Meter:            owner.Meter,
 	})
 	if err != nil {
 		return def, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, at, err)
@@ -106,6 +107,7 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 		grants: grants,
 		owner:  ownerID,
 		before: m.getSnapshotBefore(clock.Now()),
+		meter:  owner.Meter,
 	}, result); err != nil {
 		return def, fmt.Errorf("failed to snapshot engine result: %w", err)
 	}
@@ -195,6 +197,7 @@ func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.Name
 		Until:            period.To,
 		ResetBehavior:    owner.ResetBehavior,
 		Resets:           resetTimesInclusive.After(snap.At),
+		Meter:            owner.Meter,
 	})
 	if err != nil {
 		return def, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, period.From, err)
@@ -293,6 +296,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		Until:            queriedPeriod.To,
 		ResetBehavior:    resetBehavior,
 		Resets:           resetTimeline.After(bal.At),
+		Meter:            owner.Meter,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate balance for reset: %w", err)
@@ -311,6 +315,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 			grants: grants,
 			owner:  ownerID,
 			before: at,
+			meter:  owner.Meter,
 		}, snap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save snapshot: %w", err)

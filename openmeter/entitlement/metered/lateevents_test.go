@@ -202,6 +202,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			ownerConnector,
 			streamingConnector,
 			inconsistentCreditConnector,
+			meterAdapter,
 		}
 	}
 

@@ -41,7 +41,7 @@ func Test_Fuzzing(t *testing.T) {
 		},
 		Key:         meterSlug,
 		EventType:   "requests",
-		Aggregation: meterpkg.MeterAggregationCount,
+		Aggregation: meterpkg.MeterAggregationSum,
 	}
 
 	grant1 := makeGrant(grant.Grant{
@@ -118,6 +118,7 @@ func Test_Fuzzing(t *testing.T) {
 							Overage:  0,
 							At:       start,
 						},
+						Meter: meter,
 						Until: intermediate,
 					})
 
@@ -139,6 +140,7 @@ func Test_Fuzzing(t *testing.T) {
 						Grants:           []grant.Grant{g1, g2},
 						StartingSnapshot: res.Snapshot,
 						Until:            end,
+						Meter:            meter,
 					})
 
 				assert.NoError(t, err)
@@ -214,6 +216,7 @@ func Test_Fuzzing(t *testing.T) {
 								Overage:  0,
 								At:       start,
 							},
+							Meter: meter,
 							Until: end,
 						})
 					if err != nil {
@@ -300,6 +303,7 @@ func Test_Fuzzing(t *testing.T) {
 							Overage:  0,
 							At:       start,
 						},
+						Meter: meter,
 						Until: end,
 					})
 				if err != nil {
@@ -338,6 +342,7 @@ func Test_Fuzzing(t *testing.T) {
 								At:       pStart,
 							},
 							Until: pEnd,
+							Meter: meter,
 						})
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)

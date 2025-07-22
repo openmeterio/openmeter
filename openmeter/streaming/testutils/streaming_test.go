@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -17,11 +18,13 @@ func TestMockStreamingConnector(t *testing.T) {
 	defaultMeterSlug := "default-meter"
 
 	defaultMeter := meter.Meter{
-		Key: defaultMeterSlug,
+		Key:         defaultMeterSlug,
+		Aggregation: meter.MeterAggregationSum,
 	}
 
 	type tc struct {
 		Name          string
+		Meter         meter.Meter
 		Events        []SimpleEvent
 		Rows          []meter.MeterQueryRow
 		Query         streaming.QueryParams
@@ -251,6 +254,69 @@ func TestMockStreamingConnector(t *testing.T) {
 				{MeterSlug: defaultMeterSlug, Value: 3, Time: now.Add(-time.Second)},
 			},
 		},
+		{
+			Name: "Should use latest value if meter.Aggregation is LATEST when NOT windowed",
+			Query: streaming.QueryParams{
+				From: convert.ToPointer(now.Add(-time.Minute * 3)),
+				To:   convert.ToPointer(now),
+			},
+			Meter: meter.Meter{
+				Key:         defaultMeterSlug,
+				Aggregation: meter.MeterAggregationLatest,
+			},
+			Expected: []meter.MeterQueryRow{
+				{
+					Value:       3,
+					WindowStart: now.Add(-time.Minute * 3),
+					WindowEnd:   now,
+					GroupBy:     map[string]*string{},
+				},
+			},
+			Events: []SimpleEvent{
+				// Events should be sorted by time ASC and the LAST value should be returned
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: now.Add(-time.Minute)},
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: now.Add(-time.Minute * 2).Add(-time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: now.Add(-time.Minute * 2).Add(time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 3, Time: now.Add(-time.Second)},
+				{MeterSlug: defaultMeterSlug, Value: 4, Time: now.Add(time.Second * 2)},
+			},
+		},
+		{
+			Name: "Should use latest value if meter.Aggregation is LATEST when windowed",
+			Query: streaming.QueryParams{
+				From:           convert.ToPointer(now.Add(-time.Hour * 2)),
+				To:             convert.ToPointer(now),
+				WindowSize:     convert.ToPointer(meter.WindowSizeHour),
+				WindowTimeZone: time.UTC,
+			},
+			Meter: meter.Meter{
+				Key:         defaultMeterSlug,
+				Aggregation: meter.MeterAggregationLatest,
+			},
+			Expected: []meter.MeterQueryRow{
+				{
+					Value:       3,
+					WindowStart: now.Add(-time.Hour * 2),
+					WindowEnd:   now.Add(-time.Hour),
+					GroupBy:     map[string]*string{},
+				},
+				{
+					Value:       5,
+					WindowStart: now.Add(-time.Hour),
+					WindowEnd:   now,
+					GroupBy:     map[string]*string{},
+				},
+			},
+			Events: []SimpleEvent{
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: now.Add(-time.Hour * 2).Add(-time.Second * 2)}, // Should be ignored
+				{MeterSlug: defaultMeterSlug, Value: 3, Time: now.Add(-time.Hour * 2).Add(time.Second * 6)},  // Should be last value in first window
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: now.Add(-time.Hour * 2).Add(time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 4, Time: now.Add(-time.Hour)}, // Should fall into second window
+				{MeterSlug: defaultMeterSlug, Value: 5, Time: now.Add(-time.Second)},
+				{MeterSlug: defaultMeterSlug, Value: 6, Time: now.Add(-time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 7, Time: now.Add(time.Second * 2)}, // Should be ignored
+			},
+		},
 	}
 
 	for _, tc := range tt {
@@ -265,7 +331,9 @@ func TestMockStreamingConnector(t *testing.T) {
 				streamingConnector.AddRow(defaultMeterSlug, row)
 			}
 
-			result, err := streamingConnector.QueryMeter(context.Background(), "namespace", defaultMeter, tc.Query)
+			mm := lo.Ternary(tc.Meter.Key == "", defaultMeter, tc.Meter)
+
+			result, err := streamingConnector.QueryMeter(context.Background(), "namespace", mm, tc.Query)
 			if tc.ExpectedError != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.ExpectedError, err)

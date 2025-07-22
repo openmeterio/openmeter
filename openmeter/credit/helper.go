@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -146,6 +147,8 @@ func (m *connector) buildEngineForOwner(ctx context.Context, params buildEngineF
 }
 
 type snapshotParams struct {
+	// Meter information to determine aggregation type
+	meter meter.Meter
 	// All grants used at engine.Run
 	grants []grant.Grant
 	// Owner of the snapshot
@@ -158,6 +161,12 @@ type snapshotParams struct {
 func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapshotParams, runRes engine.RunResult) error {
 	ctx, span := m.Tracer.Start(ctx, "credit.snapshotEngineResult", cTrace.WithOwner(snapParams.owner))
 	defer span.End()
+
+	// Skip snapshotting for LATEST type entitlements as the values fluctuate and snapshots can't be used
+	if snapParams.meter.Aggregation == meter.MeterAggregationLatest {
+		m.Logger.Debug("skipping snapshot for LATEST aggregation type entitlement", "owner", snapParams.owner, "meter", snapParams.meter.Key)
+		return nil
+	}
 
 	segs := runRes.History.Segments()
 

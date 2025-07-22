@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 
@@ -92,6 +93,10 @@ func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment, usageAtStar
 type GrantBurnDownHistory struct {
 	segments     []GrantBurnDownHistorySegment
 	usageAtStart balance.SnapshottedUsage
+}
+
+func (g GrantBurnDownHistory) MarshalJSON() ([]byte, error) {
+	return json.Marshal(g.segments)
 }
 
 func (g *GrantBurnDownHistory) GetSnapshotAtStartOfSegment(segmentIndex int) (balance.Snapshot, error) {

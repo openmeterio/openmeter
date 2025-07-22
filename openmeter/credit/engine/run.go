@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -57,6 +58,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 			Grants:           relevantGrants,
 			Until:            period.To,
 			StartingSnapshot: snapshot,
+			Meter:            params.Meter,
 		})
 		if err != nil {
 			return RunResult{}, fmt.Errorf("failed to run calculation for period %s - %s: %w", period.From, period.To, err)
@@ -100,6 +102,8 @@ type inbetweenRunParams struct {
 	Until time.Time
 	// Starting snapshot of the balances at the START OF THE PERIOD.
 	StartingSnapshot balance.Snapshot
+	// Meter for the current run.
+	Meter meter.Meter
 }
 
 // Burns down all grants in the defined period by the usage amounts.
@@ -177,6 +181,14 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		// if a grant becomes active at the start of this period then their balance becomes the full amount
 		for _, grant := range activeGrants {
 			if grant.EffectiveAt.Equal(phase.from) {
+				balancesAtPhaseStart[grant.ID] = grant.Amount
+			}
+		}
+
+		// If we usae LATEST aggregation, Grant Amounts are treated as "limits" instead of as "budgets",
+		// so we always deduct the point-in-time values from the original granted amounts
+		if params.Meter.Aggregation == meter.MeterAggregationLatest {
+			for _, grant := range activeGrants {
 				balancesAtPhaseStart[grant.ID] = grant.Amount
 			}
 		}
