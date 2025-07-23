@@ -19,7 +19,7 @@ func (a *adapter) ListChannels(ctx context.Context, params notification.ListChan
 		query := a.db.NotificationChannel.Query().
 			Where(channeldb.Or(
 				channeldb.DeletedAtIsNil(),
-				channeldb.DeletedAtLTE(clock.Now()),
+				channeldb.DeletedAtGT(clock.Now()),
 			)) // Do not return deleted channels
 
 		if len(params.Namespaces) > 0 {
