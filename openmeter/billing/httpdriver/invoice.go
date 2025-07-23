@@ -639,12 +639,15 @@ func mapPeriodToAPI(p *billing.Period) *api.Period {
 	}
 }
 
-func mapInvoiceCustomerToAPI(c billing.InvoiceCustomer) api.BillingParty {
+func mapInvoiceCustomerToAPI(c billing.InvoiceCustomer) api.BillingInvoiceCustomerExtendedDetails {
 	a := c.BillingAddress
 
-	out := api.BillingParty{
+	out := api.BillingInvoiceCustomerExtendedDetails{
 		Id:   lo.ToPtr(c.CustomerID),
 		Name: lo.EmptyableToPtr(c.Name),
+		UsageAttribution: api.CustomerUsageAttribution{
+			SubjectKeys: c.UsageAttribution.SubjectKeys,
+		},
 	}
 
 	if a != nil && !lo.IsEmpty(*a) {

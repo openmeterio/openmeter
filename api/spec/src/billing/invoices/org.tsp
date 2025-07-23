@@ -58,6 +58,22 @@ model BillingParty {
 }
 
 /**
+ * BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to extend the billing party details for invoices.
+ *
+ * These fields contain the OpenMeter specific details for the customer, that are not strictly required for the invoice itself.
+ */
+@friendlyName("BillingInvoiceCustomerExtendedDetails")
+model BillingInvoiceCustomerExtendedDetails {
+  ...BillingParty;
+
+  /**
+   * Mapping to attribute metered usage to the customer
+   */
+  @summary("Usage Attribution")
+  usageAttribution: CustomerUsageAttribution;
+}
+
+/**
  * Identity stores the details required to identify an entity for tax purposes in a specific country.
  */
 @friendlyName("BillingPartyTaxIdentity")
