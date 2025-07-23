@@ -2540,6 +2540,25 @@ export interface components {
       /** @description The usage discount. */
       usage?: components['schemas']['BillingDiscountUsage']
     }
+    /** @description BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to extend the billing party details for invoices.
+     *
+     *     These fields contain the OpenMeter specific details for the customer, that are not strictly required for the invoice itself. */
+    BillingInvoiceCustomerExtendedDetails: {
+      /** @description Unique identifier for the party (if available) */
+      readonly id?: string
+      /** @description Legal name or representation of the organization. */
+      name?: string
+      /** @description The entity's legal ID code used for tax purposes. They may have
+       *     other numbers, but we're only interested in those valid for tax purposes. */
+      taxId?: components['schemas']['BillingPartyTaxIdentity']
+      /** @description Regular post addresses for where information should be sent if needed. */
+      addresses?: components['schemas']['Address'][]
+      /**
+       * Usage Attribution
+       * @description Mapping to attribute metered usage to the customer
+       */
+      usageAttribution: components['schemas']['CustomerUsageAttribution']
+    }
     /** @description Party represents a person or business entity. */
     BillingParty: {
       /** @description Unique identifier for the party (if available) */
@@ -5265,7 +5284,7 @@ export interface components {
       /** @description The taxable entity supplying the goods or services. */
       supplier: components['schemas']['BillingParty']
       /** @description Legal entity receiving the goods or services. */
-      customer: components['schemas']['BillingParty']
+      customer: components['schemas']['BillingInvoiceCustomerExtendedDetails']
       /** @description Number specifies the human readable key used to reference this Invoice.
        *
        *     The invoice number can change in the draft phases, as we are allocating temporary draft
@@ -10381,6 +10400,8 @@ export type BillingDiscountReason =
   components['schemas']['BillingDiscountReason']
 export type BillingDiscountUsage = components['schemas']['BillingDiscountUsage']
 export type BillingDiscounts = components['schemas']['BillingDiscounts']
+export type BillingInvoiceCustomerExtendedDetails =
+  components['schemas']['BillingInvoiceCustomerExtendedDetails']
 export type BillingParty = components['schemas']['BillingParty']
 export type BillingPartyReplaceUpdate =
   components['schemas']['BillingPartyReplaceUpdate']

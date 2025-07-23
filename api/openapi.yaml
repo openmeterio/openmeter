@@ -11885,6 +11885,39 @@ components:
             - $ref: '#/components/schemas/BillingDiscountUsage'
           description: The usage discount.
       description: A discount by type.
+    BillingInvoiceCustomerExtendedDetails:
+      type: object
+      required:
+        - usageAttribution
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the party (if available)
+          readOnly: true
+        name:
+          type: string
+          description: Legal name or representation of the organization.
+        taxId:
+          allOf:
+            - $ref: '#/components/schemas/BillingPartyTaxIdentity'
+          description: |-
+            The entity's legal ID code used for tax purposes. They may have
+            other numbers, but we're only interested in those valid for tax purposes.
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+          maxItems: 1
+          description: Regular post addresses for where information should be sent if needed.
+        usageAttribution:
+          allOf:
+            - $ref: '#/components/schemas/CustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer
+          title: Usage Attribution
+      description: |-
+        BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to extend the billing party details for invoices.
+
+        These fields contain the OpenMeter specific details for the customer, that are not strictly required for the invoice itself.
     BillingParty:
       type: object
       properties:
@@ -15790,7 +15823,7 @@ components:
           description: The taxable entity supplying the goods or services.
         customer:
           allOf:
-            - $ref: '#/components/schemas/BillingParty'
+            - $ref: '#/components/schemas/BillingInvoiceCustomerExtendedDetails'
           description: Legal entity receiving the goods or services.
         number:
           allOf:

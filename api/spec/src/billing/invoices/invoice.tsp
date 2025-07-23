@@ -69,7 +69,7 @@ model Invoice {
    * Legal entity receiving the goods or services.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  customer: BillingParty;
+  customer: BillingInvoiceCustomerExtendedDetails;
 
   /**
    * Number specifies the human readable key used to reference this Invoice.
