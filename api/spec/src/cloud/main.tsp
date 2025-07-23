@@ -181,6 +181,18 @@ namespace OpenMeterCloud.Entitlements {
   @tag("Entitlements")
   @tag("Customers")
   interface Customer extends OpenMeter.Entitlements.Customer {}
+
+  @route("/api/v1/customers/{customerIdOrKey}/entitlements")
+  @tag("Entitlements")
+  @tag("Customers")
+  interface CustomerEntitlements
+    extends OpenMeter.Entitlements.CustomerEntitlements {}
+
+  @route("/api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}")
+  @tag("Entitlements")
+  @tag("Customers")
+  interface CustomerEntitlement
+    extends OpenMeter.Entitlements.CustomerEntitlement {}
 }
 
 namespace OpenMeterCloud.Billing {
