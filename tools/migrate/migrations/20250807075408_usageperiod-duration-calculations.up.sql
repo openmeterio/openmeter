@@ -477,7 +477,3 @@ WHERE
         SELECT "id" FROM billing_invoices
         WHERE "status" = 'gathering'
     );
-
-
-
-
