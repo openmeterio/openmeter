@@ -23,16 +23,16 @@ type CountEventRow struct {
 
 // RawEvent represents a single raw event
 type RawEvent struct {
-	Namespace  string    `ch:"namespace"`
-	ID         string    `ch:"id"`
-	Type       string    `ch:"type"`
-	Source     string    `ch:"source"`
-	Subject    string    `ch:"subject"`
-	Time       time.Time `ch:"time"`
-	Data       string    `ch:"data"`
-	IngestedAt time.Time `ch:"ingested_at"`
-	StoredAt   time.Time `ch:"stored_at"`
-	StoreRowID string    `ch:"store_row_id"`
+	Namespace  string    `ch:"namespace" json:"-"`
+	ID         string    `ch:"id" json:"id"`
+	Type       string    `ch:"type" json:"type"`
+	Source     string    `ch:"source" json:"source"`
+	Subject    string    `ch:"subject" json:"subject"`
+	Time       time.Time `ch:"time" json:"time"`
+	Data       string    `ch:"data" json:"data"`
+	IngestedAt time.Time `ch:"ingested_at" json:"ingested_at,omitempty,omitzero"`
+	StoredAt   time.Time `ch:"stored_at" json:"stored_at,omitempty,omitzero"`
+	StoreRowID string    `ch:"store_row_id" json:"store_row_id,omitempty,omitzero"`
 }
 
 type Connector interface {
