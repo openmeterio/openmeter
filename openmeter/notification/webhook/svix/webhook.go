@@ -330,6 +330,10 @@ func (h svixHandler) DeleteWebhook(ctx context.Context, params webhook.DeleteWeb
 
 	err := h.client.Endpoint.Delete(ctx, params.Namespace, params.ID)
 	if err = internal.WrapSvixError(err); err != nil {
+		if webhook.IsNotFoundError(err) {
+			return nil
+		}
+
 		return fmt.Errorf("failed to delete Svix endpoint: %w", err)
 	}
 

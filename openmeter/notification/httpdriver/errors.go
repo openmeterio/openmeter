@@ -17,6 +17,7 @@ func errorEncoder() encoder.ErrorEncoder {
 			commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[notification.ValidationError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[webhook.ValidationError](ctx, http.StatusInternalServerError, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[webhook.NotFoundError](ctx, http.StatusInternalServerError, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[notification.UpdateAfterDeleteError](ctx, http.StatusConflict, err, w)
 	}
 }
