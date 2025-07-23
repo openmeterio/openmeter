@@ -24,7 +24,7 @@ func (h svixHandler) CreateApplication(ctx context.Context, id string) (*svix.Ap
 	app, err := h.client.Application.GetOrCreate(ctx, input, &svix.ApplicationCreateOptions{
 		IdempotencyKey: &idempotencyKey,
 	})
-	if err = internal.AsSvixError(err); err != nil {
+	if err = internal.WrapSvixError(err); err != nil {
 		return nil, fmt.Errorf("failed to get or create Svix application: %w", err)
 	}
 

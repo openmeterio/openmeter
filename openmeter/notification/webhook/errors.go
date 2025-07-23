@@ -1,6 +1,8 @@
 package webhook
 
-import "errors"
+import (
+	"errors"
+)
 
 var ErrNotImplemented = errors.New("not implemented")
 
@@ -36,4 +38,38 @@ func NewValidationError(err error) error {
 	}
 
 	return ValidationError{err: err}
+}
+
+func IsValidationError(err error) bool {
+	return isError[ValidationError](err)
+}
+
+type NotFoundError struct {
+	err error
+}
+
+func (e NotFoundError) Error() string {
+	return e.err.Error()
+}
+
+func (e NotFoundError) Unwrap() error {
+	return e.err
+}
+
+func NewNotFoundError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return NotFoundError{err: err}
+}
+
+func IsNotFoundError(err error) bool {
+	return isError[NotFoundError](err)
+}
+
+func isError[T error](err error) bool {
+	var t T
+
+	return errors.As(err, &t)
 }
