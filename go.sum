@@ -744,8 +744,8 @@ github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/ClickHouse/ch-go v0.67.0 h1:18MQF6vZHj+4/hTRaK7JbS/TIzn4I55wC+QzO24uiqc=
 github.com/ClickHouse/ch-go v0.67.0/go.mod h1:2MSAeyVmgt+9a2k2SQPPG1b4qbTPzdGDpf1+bcHh+18=
-github.com/ClickHouse/clickhouse-go/v2 v2.38.0 h1:vgmMCSlxZQOieTlBKZw/ik7wmM9KpC92JtGTScE+bjE=
-github.com/ClickHouse/clickhouse-go/v2 v2.38.0/go.mod h1:m13KylpdcPzpIjznlfXp53IpdgZ7plTxOSCZnKphYZ8=
+github.com/ClickHouse/clickhouse-go/v2 v2.39.0 h1:spDlvQPW4d2EIOmzxeoRdeUPQ5j9zFryEx6L+XjfGoM=
+github.com/ClickHouse/clickhouse-go/v2 v2.39.0/go.mod h1:m13KylpdcPzpIjznlfXp53IpdgZ7plTxOSCZnKphYZ8=
 github.com/DATA-DOG/go-sqlmock v1.5.0 h1:Shsta01QNfFxHCfpW6YH2STWB0MudeXXEWMr20OEh60=
 github.com/DATA-DOG/go-sqlmock v1.5.0/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DataDog/zstd v1.5.6 h1:LbEglqepa/ipmmQJUDnSsfvA8e8IStVcGaFWDuxvGOY=
