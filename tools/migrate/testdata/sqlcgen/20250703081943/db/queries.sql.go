@@ -202,7 +202,7 @@ func (q *Queries) GetSchemaVersion(ctx context.Context) (int64, error) {
 
 const getUsageResetByID = `-- name: GetUsageResetByID :one
 
-SELECT id, namespace, created_at, updated_at, deleted_at, reset_time, entitlement_id, anchor, usage_period_interval FROM usage_resets WHERE id = $1
+SELECT id, namespace, annotations, created_at, updated_at, deleted_at, reset_time, entitlement_id, anchor, usage_period_interval FROM usage_resets WHERE id = $1
 `
 
 // Post-migration queries with usage_period_interval column
@@ -213,6 +213,7 @@ func (q *Queries) GetUsageResetByID(ctx context.Context, id string) (UsageReset,
 	err := row.Scan(
 		&i.ID,
 		&i.Namespace,
+		&i.Annotations,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -237,7 +238,7 @@ func (q *Queries) GetUsageResetInterval(ctx context.Context, id string) (string,
 }
 
 const getUsageResetsByEntitlementID = `-- name: GetUsageResetsByEntitlementID :many
-SELECT id, namespace, created_at, updated_at, deleted_at, reset_time, entitlement_id, anchor, usage_period_interval FROM usage_resets WHERE entitlement_id = $1 ORDER BY reset_time ASC
+SELECT id, namespace, annotations, created_at, updated_at, deleted_at, reset_time, entitlement_id, anchor, usage_period_interval FROM usage_resets WHERE entitlement_id = $1 ORDER BY reset_time ASC
 `
 
 // Query to get all usage resets for an entitlement
@@ -253,6 +254,7 @@ func (q *Queries) GetUsageResetsByEntitlementID(ctx context.Context, entitlement
 		if err := rows.Scan(
 			&i.ID,
 			&i.Namespace,
+			&i.Annotations,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,

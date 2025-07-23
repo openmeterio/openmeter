@@ -52937,6 +52937,7 @@ type UsageResetMutation struct {
 	typ                   string
 	id                    *string
 	namespace             *string
+	annotations           *map[string]interface{}
 	created_at            *time.Time
 	updated_at            *time.Time
 	deleted_at            *time.Time
@@ -53089,6 +53090,55 @@ func (m *UsageResetMutation) OldNamespace(ctx context.Context) (v string, err er
 // ResetNamespace resets all changes to the "namespace" field.
 func (m *UsageResetMutation) ResetNamespace() {
 	m.namespace = nil
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *UsageResetMutation) SetAnnotations(value map[string]interface{}) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *UsageResetMutation) Annotations() (r map[string]interface{}, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the UsageReset entity.
+// If the UsageReset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UsageResetMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *UsageResetMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[usagereset.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *UsageResetMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[usagereset.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *UsageResetMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, usagereset.FieldAnnotations)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -53417,9 +53467,12 @@ func (m *UsageResetMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UsageResetMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.namespace != nil {
 		fields = append(fields, usagereset.FieldNamespace)
+	}
+	if m.annotations != nil {
+		fields = append(fields, usagereset.FieldAnnotations)
 	}
 	if m.created_at != nil {
 		fields = append(fields, usagereset.FieldCreatedAt)
@@ -53452,6 +53505,8 @@ func (m *UsageResetMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case usagereset.FieldNamespace:
 		return m.Namespace()
+	case usagereset.FieldAnnotations:
+		return m.Annotations()
 	case usagereset.FieldCreatedAt:
 		return m.CreatedAt()
 	case usagereset.FieldUpdatedAt:
@@ -53477,6 +53532,8 @@ func (m *UsageResetMutation) OldField(ctx context.Context, name string) (ent.Val
 	switch name {
 	case usagereset.FieldNamespace:
 		return m.OldNamespace(ctx)
+	case usagereset.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case usagereset.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case usagereset.FieldUpdatedAt:
@@ -53506,6 +53563,13 @@ func (m *UsageResetMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
+		return nil
+	case usagereset.FieldAnnotations:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
 		return nil
 	case usagereset.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -53586,6 +53650,9 @@ func (m *UsageResetMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *UsageResetMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(usagereset.FieldAnnotations) {
+		fields = append(fields, usagereset.FieldAnnotations)
+	}
 	if m.FieldCleared(usagereset.FieldDeletedAt) {
 		fields = append(fields, usagereset.FieldDeletedAt)
 	}
@@ -53603,6 +53670,9 @@ func (m *UsageResetMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *UsageResetMutation) ClearField(name string) error {
 	switch name {
+	case usagereset.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
 	case usagereset.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
@@ -53616,6 +53686,9 @@ func (m *UsageResetMutation) ResetField(name string) error {
 	switch name {
 	case usagereset.FieldNamespace:
 		m.ResetNamespace()
+		return nil
+	case usagereset.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	case usagereset.FieldCreatedAt:
 		m.ResetCreatedAt()
