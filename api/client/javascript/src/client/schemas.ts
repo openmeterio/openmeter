@@ -15769,7 +15769,7 @@ export interface operations {
       }
       header?: never
       path: {
-        customerIdOrKey: string
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
       }
       cookie?: never
     }

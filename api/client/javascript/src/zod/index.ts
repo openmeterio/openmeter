@@ -7688,8 +7688,25 @@ export const createCustomerEntitlementBody = zod
  * List all entitlements for a customer. For checking entitlement access, use the /value endpoint instead.
  * @summary List customer entitlements
  */
+export const listCustomerEntitlementsPathCustomerIdOrKeyRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+export const listCustomerEntitlementsPathCustomerIdOrKeyMaxTwo = 256
+
 export const listCustomerEntitlementsParams = zod.object({
-  customerIdOrKey: zod.coerce.string(),
+  customerIdOrKey: zod.coerce
+    .string()
+    .regex(listCustomerEntitlementsPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(listCustomerEntitlementsPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
 })
 
 export const listCustomerEntitlementsQueryIncludeDeletedDefault = false
@@ -7742,6 +7759,11 @@ export const deleteCustomerEntitlementPathCustomerIdOrKeyRegExpOne = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
 export const deleteCustomerEntitlementPathCustomerIdOrKeyMaxTwo = 256
+export const deleteCustomerEntitlementPathFeatureKeyMax = 64
+
+export const deleteCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
 
 export const deleteCustomerEntitlementParams = zod.object({
   customerIdOrKey: zod.coerce
@@ -7757,7 +7779,11 @@ export const deleteCustomerEntitlementParams = zod.object({
         .max(deleteCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
         .describe('ExternalKey is a looser version of key.')
     ),
-  featureKey: zod.coerce.string(),
+  featureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(deleteCustomerEntitlementPathFeatureKeyMax)
+    .regex(deleteCustomerEntitlementPathFeatureKeyRegExp),
 })
 
 /**
@@ -7767,6 +7793,11 @@ export const deleteCustomerEntitlementParams = zod.object({
 export const listCustomerEntitlementGrantsPathCustomerIdOrKeyRegExpOne =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 export const listCustomerEntitlementGrantsPathCustomerIdOrKeyMaxTwo = 256
+export const listCustomerEntitlementGrantsPathFeatureKeyMax = 64
+
+export const listCustomerEntitlementGrantsPathFeatureKeyRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
 
 export const listCustomerEntitlementGrantsParams = zod.object({
   customerIdOrKey: zod.coerce
@@ -7782,7 +7813,11 @@ export const listCustomerEntitlementGrantsParams = zod.object({
         .max(listCustomerEntitlementGrantsPathCustomerIdOrKeyMaxTwo)
         .describe('ExternalKey is a looser version of key.')
     ),
-  featureKey: zod.coerce.string(),
+  featureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(listCustomerEntitlementGrantsPathFeatureKeyMax)
+    .regex(listCustomerEntitlementGrantsPathFeatureKeyRegExp),
 })
 
 export const listCustomerEntitlementGrantsQueryIncludeDeletedDefault = false
@@ -7809,6 +7844,11 @@ Grants cannot be changed once created, only deleted. This is to ensure that bala
 export const createCustomerEntitlementGrantPathCustomerIdOrKeyRegExpOne =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 export const createCustomerEntitlementGrantPathCustomerIdOrKeyMaxTwo = 256
+export const createCustomerEntitlementGrantPathFeatureKeyMax = 64
+
+export const createCustomerEntitlementGrantPathFeatureKeyRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
 
 export const createCustomerEntitlementGrantParams = zod.object({
   customerIdOrKey: zod.coerce
@@ -7824,7 +7864,11 @@ export const createCustomerEntitlementGrantParams = zod.object({
         .max(createCustomerEntitlementGrantPathCustomerIdOrKeyMaxTwo)
         .describe('ExternalKey is a looser version of key.')
     ),
-  featureKey: zod.coerce.string(),
+  featureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(createCustomerEntitlementGrantPathFeatureKeyMax)
+    .regex(createCustomerEntitlementGrantPathFeatureKeyRegExp),
 })
 
 export const createCustomerEntitlementGrantBodyAmountMin = 0
@@ -7917,6 +7961,11 @@ WindowedHistory returns windowed usage data for the period enriched with balance
 export const getCustomerEntitlementHistoryPathCustomerIdOrKeyRegExpOne =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 export const getCustomerEntitlementHistoryPathCustomerIdOrKeyMaxTwo = 256
+export const getCustomerEntitlementHistoryPathFeatureKeyMax = 64
+
+export const getCustomerEntitlementHistoryPathFeatureKeyRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
 
 export const getCustomerEntitlementHistoryParams = zod.object({
   customerIdOrKey: zod.coerce
@@ -7932,7 +7981,11 @@ export const getCustomerEntitlementHistoryParams = zod.object({
         .max(getCustomerEntitlementHistoryPathCustomerIdOrKeyMaxTwo)
         .describe('ExternalKey is a looser version of key.')
     ),
-  featureKey: zod.coerce.string(),
+  featureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(getCustomerEntitlementHistoryPathFeatureKeyMax)
+    .regex(getCustomerEntitlementHistoryPathFeatureKeyRegExp),
 })
 
 export const getCustomerEntitlementHistoryQueryWindowTimeZoneDefault = 'UTC'
@@ -7968,6 +8021,11 @@ This endpoint is useful for upgrades, downgrades, or other changes to entitlemen
 export const overrideCustomerEntitlementPathCustomerIdOrKeyRegExpOne =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 export const overrideCustomerEntitlementPathCustomerIdOrKeyMaxTwo = 256
+export const overrideCustomerEntitlementPathFeatureKeyMax = 64
+
+export const overrideCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
 
 export const overrideCustomerEntitlementParams = zod.object({
   customerIdOrKey: zod.coerce
@@ -7983,7 +8041,11 @@ export const overrideCustomerEntitlementParams = zod.object({
         .max(overrideCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
         .describe('ExternalKey is a looser version of key.')
     ),
-  featureKey: zod.coerce.string(),
+  featureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(overrideCustomerEntitlementPathFeatureKeyMax)
+    .regex(overrideCustomerEntitlementPathFeatureKeyRegExp),
 })
 
 export const overrideCustomerEntitlementBodyFeatureKeyMax = 64
@@ -8231,6 +8293,11 @@ Usage is automatically reset for metered entitlements based on their usage perio
 export const resetCustomerEntitlementUsagePathCustomerIdOrKeyRegExpOne =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 export const resetCustomerEntitlementUsagePathCustomerIdOrKeyMaxTwo = 256
+export const resetCustomerEntitlementUsagePathFeatureKeyMax = 64
+
+export const resetCustomerEntitlementUsagePathFeatureKeyRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
 
 export const resetCustomerEntitlementUsageParams = zod.object({
   customerIdOrKey: zod.coerce
@@ -8246,7 +8313,11 @@ export const resetCustomerEntitlementUsageParams = zod.object({
         .max(resetCustomerEntitlementUsagePathCustomerIdOrKeyMaxTwo)
         .describe('ExternalKey is a looser version of key.')
     ),
-  featureKey: zod.coerce.string(),
+  featureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(resetCustomerEntitlementUsagePathFeatureKeyMax)
+    .regex(resetCustomerEntitlementUsagePathFeatureKeyRegExp),
 })
 
 export const resetCustomerEntitlementUsageBody = zod

@@ -3618,7 +3618,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
+            $ref: '#/components/schemas/ULIDOrExternalKey'
         - name: includeDeleted
           in: query
           required: false
@@ -3775,6 +3775,9 @@ paths:
           required: true
           schema:
             type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -3845,6 +3848,9 @@ paths:
           required: true
           schema:
             type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
         - name: includeDeleted
           in: query
           required: false
@@ -3941,6 +3947,9 @@ paths:
           required: true
           schema:
             type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -4026,6 +4035,9 @@ paths:
           required: true
           schema:
             type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
         - name: from
           in: query
           required: false
@@ -4140,6 +4152,9 @@ paths:
           required: true
           schema:
             type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -4229,6 +4244,9 @@ paths:
           required: true
           schema:
             type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '

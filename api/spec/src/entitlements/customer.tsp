@@ -56,7 +56,7 @@ interface CustomerEntitlements {
   @operationId("listCustomerEntitlements")
   @summary("List customer entitlements")
   list(
-    @path customerIdOrKey: string,
+    @path customerIdOrKey: ULIDOrExternalKey,
     @query includeDeleted?: boolean = false,
   ): Entitlement[] | OpenMeter.CommonErrors;
 
@@ -80,7 +80,7 @@ interface CustomerEntitlements {
   @operationId("deleteCustomerEntitlement")
   @summary("Delete customer entitlement")
   @route("/{featureKey}")
-  delete(@path customerIdOrKey: ULIDOrExternalKey, @path featureKey: string): {
+  delete(@path customerIdOrKey: ULIDOrExternalKey, @path featureKey: Key): {
     @statusCode _: 204;
   } | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 
@@ -95,7 +95,7 @@ interface CustomerEntitlements {
   @summary("Override customer entitlement")
   override(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @path featureKey: string,
+    @path featureKey: Key,
     @body entitlement: EntitlementCreateInputs,
   ):
     | {
@@ -120,7 +120,7 @@ interface CustomerEntitlement {
   @summary("List customer entitlement grants")
   getGrants(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @path featureKey: string,
+    @path featureKey: Key,
     @query includeDeleted?: boolean = false,
     @query orderBy?: GrantOrderBy = GrantOrderBy.UpdatedAt,
   ): Grant[] | OpenMeter.CommonErrors;
@@ -144,7 +144,7 @@ interface CustomerEntitlement {
   @summary("Create customer entitlement grant")
   createCustomerEntitlementGrant(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @path featureKey: string,
+    @path featureKey: Key,
     @body grant: GrantCreateInput,
   ): {
     @statusCode _: 201;
@@ -177,7 +177,7 @@ interface CustomerEntitlement {
   @summary("Get customer entitlement history")
   getCustomerEntitlementHistory(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @path featureKey: string,
+    @path featureKey: Key,
 
     /**
      * Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to the last reset. Gets truncated to the granularity of the underlying meter.
@@ -212,7 +212,7 @@ interface CustomerEntitlement {
   @summary("Reset customer entitlement")
   resetCustomerEntitlement(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @path featureKey: string,
+    @path featureKey: Key,
     @body reset: ResetEntitlementUsageInput,
   ): {
     @statusCode _: 204;
