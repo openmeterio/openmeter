@@ -1592,6 +1592,17 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 							firstReset := usageResets[0]
 							secondReset := usageResets[1]
 
+							// Let's assert that annotations were added
+							for _, reset := range usageResets {
+								assert.True(t, reset.Annotations.Valid, "Should have annotations, got %+v", reset)
+								var ann map[string]string
+
+								assert.NoError(t, json.Unmarshal(reset.Annotations.RawMessage, &ann))
+
+								assert.Equal(t, "period_migration", ann["source"], "Should have the correct annotations, got %+v", reset)
+							}
+
+							// Let's assert the period info
 							assert.Equal(t, time.Date(2025, 1, 31, 0, 0, 0, 0, time.UTC), firstReset.ResetTime.UTC(), "Should have the correct reset time, got %+v", firstReset)
 							assert.Equal(t, "P31D", firstReset.UsagePeriodInterval, "Should have the correct usage period interval, got %+v", firstReset)
 							assert.Equal(t, time.Date(2025, 1, 31, 0, 0, 0, 0, time.UTC), firstReset.Anchor.UTC(), "Should have the correct anchor, got %+v", firstReset)

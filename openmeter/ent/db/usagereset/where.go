@@ -172,6 +172,16 @@ func NamespaceContainsFold(v string) predicate.UsageReset {
 	return predicate.UsageReset(sql.FieldContainsFold(FieldNamespace, v))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldNotNull(FieldAnnotations))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.UsageReset {
 	return predicate.UsageReset(sql.FieldEQ(FieldCreatedAt, v))
