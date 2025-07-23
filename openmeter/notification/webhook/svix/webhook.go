@@ -25,14 +25,14 @@ func (h svixHandler) GetOrUpdateEndpointHeaders(ctx context.Context, appID, endp
 		}
 
 		err := h.client.Endpoint.UpdateHeaders(ctx, appID, endpointID, input)
-		if err = internal.AsSvixError(err); err != nil {
+		if err = internal.WrapSvixError(err); err != nil {
 			return nil, fmt.Errorf("failed to set custom headers for Svix endpoint: %w", err)
 		}
 
 		resp = headers
 	} else {
 		out, err := h.client.Endpoint.GetHeaders(ctx, appID, endpointID)
-		if err = internal.AsSvixError(err); err != nil || out == nil {
+		if err = internal.WrapSvixError(err); err != nil || out == nil {
 			return nil, fmt.Errorf("failed to get custom headers for Svix endpoint: %w", err)
 		}
 
@@ -70,7 +70,7 @@ func (h svixHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID, endpo
 		err = h.client.Endpoint.RotateSecret(ctx, appID, endpointID, input, &svix.EndpointRotateSecretOptions{
 			IdempotencyKey: &idempotencyKey,
 		})
-		if err = internal.AsSvixError(err); err != nil {
+		if err = internal.WrapSvixError(err); err != nil {
 			return resp, fmt.Errorf("failed to update Svix endpoint secret: %w", err)
 		}
 
@@ -160,7 +160,7 @@ func (h svixHandler) CreateWebhook(ctx context.Context, params webhook.CreateWeb
 	endpoint, err := h.client.Endpoint.Create(ctx, app.Id, input, &svix.EndpointCreateOptions{
 		IdempotencyKey: &idempotencyKey,
 	})
-	if err = internal.AsSvixError(err); err != nil {
+	if err = internal.WrapSvixError(err); err != nil {
 		return nil, fmt.Errorf("failed to create Svix endpoint: %w", err)
 	}
 
@@ -237,7 +237,7 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 	}
 
 	endpoint, err := h.client.Endpoint.Update(ctx, app.Id, params.ID, input)
-	if err = internal.AsSvixError(err); err != nil {
+	if err = internal.WrapSvixError(err); err != nil {
 		return nil, fmt.Errorf("failed to update Svix endpoint: %w", err)
 	}
 
@@ -329,7 +329,7 @@ func (h svixHandler) DeleteWebhook(ctx context.Context, params webhook.DeleteWeb
 	}
 
 	err := h.client.Endpoint.Delete(ctx, params.Namespace, params.ID)
-	if err = internal.AsSvixError(err); err != nil {
+	if err = internal.WrapSvixError(err); err != nil {
 		return fmt.Errorf("failed to delete Svix endpoint: %w", err)
 	}
 
@@ -342,7 +342,7 @@ func (h svixHandler) GetWebhook(ctx context.Context, params webhook.GetWebhookIn
 	}
 
 	endpoint, err := h.client.Endpoint.Get(ctx, params.Namespace, params.ID)
-	if err = internal.AsSvixError(err); err != nil {
+	if err = internal.WrapSvixError(err); err != nil {
 		return nil, fmt.Errorf("failed to get Svix endpoint: %w", err)
 	}
 
@@ -368,7 +368,7 @@ func (h svixHandler) GetWebhook(ctx context.Context, params webhook.GetWebhookIn
 
 func (h svixHandler) ListWebhooks(ctx context.Context, params webhook.ListWebhooksInput) ([]webhook.Webhook, error) {
 	listOut, err := h.client.Endpoint.List(ctx, params.Namespace, nil)
-	if err = internal.AsSvixError(err); err != nil {
+	if err = internal.WrapSvixError(err); err != nil {
 		return nil, fmt.Errorf("failed to list Svix endpoints: %w", err)
 	}
 

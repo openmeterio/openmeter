@@ -21,7 +21,7 @@ func (h svixHandler) RegisterEventTypes(ctx context.Context, params webhook.Regi
 		}
 
 		_, err := h.client.EventType.Update(ctx, eventType.Name, input)
-		if err = internal.AsSvixError(err); err != nil {
+		if err = internal.WrapSvixError(err); err != nil {
 			return fmt.Errorf("failed to create event type: %w", err)
 		}
 	}

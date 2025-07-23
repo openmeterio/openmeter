@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/samber/lo"
 	svix "github.com/svix/svix-webhooks/go"
+
+	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 )
 
 var _ error = (*SvixError)(nil)
@@ -23,10 +26,21 @@ func (e SvixError) Error() string {
 	buf := bytes.NewBuffer(out)
 
 	buf.WriteString(lo.FromPtrOr(e.Code, "unknown svix error"))
-	buf.WriteString(":")
+	buf.WriteString(": ")
 	buf.WriteString(strings.Join(e.Details, ", "))
 
 	return buf.String()
+}
+
+func (e SvixError) Wrap() error {
+	switch e.HTTPStatus {
+	case HTTPStatusValidationError, http.StatusBadRequest:
+		return webhook.NewValidationError(e)
+	case http.StatusNotFound:
+		return webhook.NewNotFoundError(e)
+	default:
+		return e
+	}
 }
 
 type SvixErrorBody struct {
@@ -46,7 +60,7 @@ type SvixValidationError struct {
 
 const HTTPStatusValidationError = 422
 
-func AsSvixError(err error) error {
+func WrapSvixError(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -69,7 +83,7 @@ func AsSvixError(err error) error {
 			Details: lo.Map(body.Detail, func(item SvixValidationError, _ int) string {
 				return fmt.Sprintf("%s: %s", item.Type, item.Message)
 			}),
-		}
+		}.Wrap()
 	default:
 		var body SvixErrorBody
 
@@ -83,6 +97,6 @@ func AsSvixError(err error) error {
 			Details: []string{
 				body.Detail,
 			},
-		}
+		}.Wrap()
 	}
 }

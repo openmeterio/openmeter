@@ -39,7 +39,7 @@ func (h svixHandler) SendMessage(ctx context.Context, params webhook.SendMessage
 	o, err := h.client.Message.Create(ctx, params.Namespace, input, &svix.MessageCreateOptions{
 		IdempotencyKey: &idempotencyKey,
 	})
-	if err = internal.AsSvixError(err); err != nil {
+	if err = internal.WrapSvixError(err); err != nil {
 		var svixErr Error
 
 		ok := errors.As(err, &svixErr)
@@ -71,18 +71,7 @@ func (h svixHandler) getMessage(ctx context.Context, namespace, eventID string) 
 	o, err := h.client.Message.Get(ctx, namespace, eventID, &svix.MessageGetOptions{
 		WithContent: lo.ToPtr(true),
 	})
-	if err = internal.AsSvixError(err); err != nil {
-		var svixErr Error
-
-		ok := errors.As(err, &svixErr)
-		if !ok {
-			return nil, fmt.Errorf("failed to send message: %w", err)
-		}
-
-		if svixErr.HTTPStatus == internal.HTTPStatusValidationError {
-			return nil, webhook.NewValidationError(svixErr)
-		}
-
+	if err = internal.WrapSvixError(err); err != nil {
 		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
 
