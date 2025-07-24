@@ -272,7 +272,6 @@ func (w *Worker) Run(ctx context.Context) error {
 	return w.router.Run(ctx)
 }
 
-// TODO: Validate this is present for all routers
 func (w *Worker) Close() error {
 	if err := w.router.Close(); err != nil {
 		return err

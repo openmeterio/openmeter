@@ -137,7 +137,7 @@ func NewDLQTelemetryMiddleware(opts NewDLQTelemetryOptions) (func(message.Handle
 
 			resMsg, err := h(msg)
 			if err != nil {
-				// Context might be cancelled here, so we cannot rely on log.WarnContext/ErrorContext
+				// Context might be canceled here, so we cannot rely on log.WarnContext/ErrorContext
 				if opts.Router.IsClosed() {
 					opts.Logger.Warn("Message processing failed, router is closing", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
 				} else {

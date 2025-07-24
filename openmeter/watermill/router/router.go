@@ -16,7 +16,7 @@ type Options struct {
 	Subscriber  message.Subscriber
 	Publisher   message.Publisher
 	Logger      *slog.Logger
-	MetricMeter metric.Meter // TODO: make sure this is not nil at all locations
+	MetricMeter metric.Meter
 
 	Config config.ConsumerConfiguration
 }
@@ -124,14 +124,12 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 		)
 	}
 
-	if opts.MetricMeter != nil {
-		// This should be the last to report every message processing try
-		handlerMetrics, err := HandlerMetrics(opts.MetricMeter, "consumer", opts.Logger)
-		if err != nil {
-			return nil, err
-		}
-		router.AddMiddleware(handlerMetrics)
+	// This should be the last to report every message processing try
+	handlerMetrics, err := HandlerMetrics(opts.MetricMeter, "consumer", opts.Logger)
+	if err != nil {
+		return nil, err
 	}
+	router.AddMiddleware(handlerMetrics)
 
 	return router, nil
 }

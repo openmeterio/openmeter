@@ -166,9 +166,5 @@ func (w *Worker) Run(ctx context.Context) error {
 }
 
 func (w *Worker) Close() error {
-	if err := w.router.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return w.router.Close()
 }

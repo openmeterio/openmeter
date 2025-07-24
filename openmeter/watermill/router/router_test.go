@@ -12,6 +12,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
 )
@@ -208,6 +209,7 @@ func TestDefaultRouter(t *testing.T) {
 			options.Subscriber = inMemoryPubSub
 			options.Publisher = inMemoryPubSub
 			options.Logger = slog.Default()
+			options.MetricMeter = sdkmetric.NewMeterProvider().Meter("router_test")
 
 			options.Config.DLQ.Topic = "test-dlq"
 			options.Config.ConsumerGroupName = "test-group"
