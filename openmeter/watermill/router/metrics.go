@@ -1,6 +1,7 @@
 package router
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -82,17 +83,46 @@ const (
 	messageProcessingTimeMetricName  = "watermill.router.message_processing_time_ms"
 )
 
-func DLQMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (func(message.HandlerFunc) message.HandlerFunc, error) {
-	meterMessageProcessingCount, err := metricMeter.Int64Counter(
-		fmt.Sprintf("%s.%s", prefix, messageProcessingCountMetricName),
+type NewDLQTelemetryOptions struct {
+	MetricMeter metric.Meter
+	Prefix      string
+	Logger      *slog.Logger
+	Router      *message.Router
+}
+
+func (o *NewDLQTelemetryOptions) Validate() error {
+	var errs []error
+
+	if o.MetricMeter == nil {
+		errs = append(errs, errors.New("metric meter is required"))
+	}
+
+	if o.Logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+
+	if o.Router == nil {
+		errs = append(errs, errors.New("router is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+func NewDLQTelemetryMiddleware(opts NewDLQTelemetryOptions) (func(message.HandlerFunc) message.HandlerFunc, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("dlq telemetry: invalid options: %w", err)
+	}
+
+	meterMessageProcessingCount, err := opts.MetricMeter.Int64Counter(
+		fmt.Sprintf("%s.%s", opts.Prefix, messageProcessingCountMetricName),
 		metric.WithDescription("Number of messages processed"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	meterMessageProcessingTime, err := metricMeter.Int64Histogram(
-		fmt.Sprintf("%s.%s", prefix, messageProcessingTimeMetricName),
+	meterMessageProcessingTime, err := opts.MetricMeter.Int64Histogram(
+		fmt.Sprintf("%s.%s", opts.Prefix, messageProcessingTimeMetricName),
 		metric.WithDescription("Time spent processing a message (including retries)"),
 	)
 	if err != nil {
@@ -107,16 +137,21 @@ func DLQMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (func
 
 			resMsg, err := h(msg)
 			if err != nil {
-				log.Error("Failed to process message, message is going to DLQ", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
+				// Context might be canceled here, so we cannot rely on log.WarnContext/ErrorContext
+				if opts.Router.IsClosed() {
+					opts.Logger.Warn("Message processing failed, router is closing", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
+				} else {
+					opts.Logger.Error("Failed to process message, message is going to DLQ", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
 
-				meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
-					meterAttributeCEType,
-					meterAttributeStatusFailed,
-				))
-				meterMessageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributes(
-					meterAttributeCEType,
-					meterAttributeStatusFailed,
-				))
+					meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
+						meterAttributeCEType,
+						meterAttributeStatusFailed,
+					))
+					meterMessageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributes(
+						meterAttributeCEType,
+						meterAttributeStatusFailed,
+					))
+				}
 
 				return resMsg, err
 			}

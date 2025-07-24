@@ -47,7 +47,9 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 	}
 
 	if handlingError != nil {
-		w.opts.Logger.ErrorContext(ctx, "error handling batched ingest event", "error", handlingError)
+		// This is a warning, as we might succeed retrying the event later. The DLQ Telemetry middleware will properly log
+		// the error.
+		w.opts.Logger.WarnContext(ctx, "error handling batched ingest event", "error", handlingError)
 	}
 
 	return handlingError

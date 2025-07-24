@@ -38,6 +38,10 @@ func (o *Options) Validate() error {
 		return err
 	}
 
+	if o.MetricMeter == nil {
+		return errors.New("metric meter is required")
+	}
+
 	return nil
 }
 
@@ -56,7 +60,22 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 	// This should be the outermost middleware, to catch failures including the ones caused by Recoverer
 
 	// If retry queue is not enabled, we can directly push messages to the DLQ
-	poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.Config.DLQ.Topic)
+	poisionQueue, err := middleware.PoisonQueueWithFilter(
+		opts.Publisher,
+		opts.Config.DLQ.Topic,
+		func(err error) bool {
+			// If the router is closed, we don't want to push to the DLQ as Close() will cancel the context almost
+			// immediately.
+			//
+			// Propagating the error (skipping from poision queue) means that the message will be NAcked, meaning that
+			// it will be retried at least for Kafka.
+			if router.IsClosed() {
+				return false
+			}
+
+			return true
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -65,14 +84,17 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 		poisionQueue,
 	)
 
-	if opts.MetricMeter != nil {
-		dlqMetrics, err := DLQMetrics(opts.MetricMeter, "consumer", opts.Logger)
-		if err != nil {
-			return nil, err
-		}
-
-		router.AddMiddleware(dlqMetrics)
+	dlqMetrics, err := NewDLQTelemetryMiddleware(NewDLQTelemetryOptions{
+		MetricMeter: opts.MetricMeter,
+		Prefix:      "consumer",
+		Logger:      opts.Logger,
+		Router:      router,
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	router.AddMiddleware(dlqMetrics)
 
 	router.AddMiddleware(
 		middleware.CorrelationID,
@@ -102,14 +124,12 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 		)
 	}
 
-	if opts.MetricMeter != nil {
-		// This should be the last to report every message processing try
-		handlerMetrics, err := HandlerMetrics(opts.MetricMeter, "consumer", opts.Logger)
-		if err != nil {
-			return nil, err
-		}
-		router.AddMiddleware(handlerMetrics)
+	// This should be the last to report every message processing try
+	handlerMetrics, err := HandlerMetrics(opts.MetricMeter, "consumer", opts.Logger)
+	if err != nil {
+		return nil, err
 	}
+	router.AddMiddleware(handlerMetrics)
 
 	return router, nil
 }
