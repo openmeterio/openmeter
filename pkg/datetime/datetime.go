@@ -3,6 +3,8 @@ package datetime
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/alpacahq/alpacadecimal"
 )
 
 // DateTime extends the time.Time type to support the RFC 9557 format.
@@ -44,14 +46,15 @@ func (t *DateTime) UnmarshalJSON(data []byte) error {
 }
 
 // Add adds a duration to a DateTime.
-func (dt DateTime) Add(d Duration) DateTime {
+func (dt DateTime) Add(d ISODuration) DateTime {
 	years := d.Years()
 	months := d.Months()
 	weeks := d.Weeks()
 	days := d.Days()
 	hours := d.Hours()
 	minutes := d.Minutes()
-	seconds := d.Seconds()
+	// We can safely ignore this error
+	seconds, _ := alpacadecimal.NewFromString(d.SecondsDecimal().String())
 
 	dt = dt.AddYearsNoOverflow(years).
 		AddMonthsNoOverflow(months).
@@ -83,8 +86,7 @@ func (d DateTime) AddYearsNoOverflow(years int) DateTime {
 	if day > lastDay {
 		day = lastDay
 	}
-	d.Time = time.Date(lastYear, lastMonth, day, hour, minute, second, nanosecond, d.Location())
-	return d
+	return d.shiftClockTo(time.Date(lastYear, lastMonth, day, hour, minute, second, nanosecond, d.Location()))
 }
 
 // AddMonthsNoOverflow adds some months without overflowing month.
@@ -97,36 +99,38 @@ func (d DateTime) AddMonthsNoOverflow(months int) DateTime {
 	if day > lastDay {
 		day = lastDay
 	}
-	d.Time = time.Date(lastYear, lastMonth, day, hour, minute, second, nanosecond, d.Location())
-	return d
+	return d.shiftClockTo(time.Date(lastYear, lastMonth, day, hour, minute, second, nanosecond, d.Location()))
 }
 
 // AddWeeks adds some weeks to the DateTime.
 func (d DateTime) AddWeeks(weeks int) DateTime {
-	d.Time = d.Time.AddDate(0, 0, weeks*7)
-	return d
+	return d.shiftClockTo(d.Time.AddDate(0, 0, weeks*7))
 }
 
 // AddDays adds some days to the DateTime.
 func (d DateTime) AddDays(days int) DateTime {
-	d.Time = d.Time.AddDate(0, 0, days)
-	return d
+	return d.shiftClockTo(d.Time.AddDate(0, 0, days))
 }
 
 // AddHours adds some hours to the DateTime.
 func (d DateTime) AddHours(hours int) DateTime {
-	d.Time = d.Time.Add(time.Duration(hours) * time.Hour)
-	return d
+	return d.shiftClockTo(d.Time.Add(time.Duration(hours) * time.Hour))
 }
 
 // AddMinutes adds some minutes to the DateTime.
 func (d DateTime) AddMinutes(minutes int) DateTime {
-	d.Time = d.Time.Add(time.Duration(minutes) * time.Minute)
-	return d
+	return d.shiftClockTo(d.Time.Add(time.Duration(minutes) * time.Minute))
 }
 
 // AddSeconds adds some seconds to the DateTime.
-func (d DateTime) AddSeconds(seconds int) DateTime {
-	d.Time = d.Time.Add(time.Duration(seconds) * time.Second)
+func (d DateTime) AddSeconds(seconds alpacadecimal.Decimal) DateTime {
+	nano := seconds.Mul(alpacadecimal.NewFromInt(int64(time.Second))).BigInt().Int64()
+	return d.shiftClockTo(d.Time.Add(time.Duration(nano)))
+}
+
+// To mimic time.Add(d time.Duration) behavior, we want to use clock shift instead of constructing time instances.
+func (d DateTime) shiftClockTo(t time.Time) DateTime {
+	wallTimeDiff := t.Sub(d.Time.Round(0))
+	d.Time = d.Time.Add(wallTimeDiff)
 	return d
 }

@@ -338,7 +338,7 @@ func (t *MeteredEntitlementTemplate) Validate() error {
 		errs = append(errs, ErrEntitlementTemplateNegativeUsagePeriod)
 	}
 
-	hour := datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)
+	hour := datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)
 	if diff, err := t.UsagePeriod.Subtract(hour); err == nil && diff.Sign() == -1 {
 		errs = append(errs, ErrEntitlementTemplateUsagePeriodLessThenAnHour)
 	}

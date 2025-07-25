@@ -125,7 +125,7 @@ func (d *diffable) restore() subscription.AppliesToSpec {
 						combinedPer := targetCadence.AsPeriod().Union(testCadence.AsPeriod())
 
 						if combinedPer.From != nil && !combinedPer.From.Equal(pCad.ActiveFrom) {
-							targetItem.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.Between(pCad.ActiveFrom, *combinedPer.From))
+							targetItem.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.ISODurationBetween(pCad.ActiveFrom, *combinedPer.From))
 						}
 
 						if combinedPer.To == nil {
@@ -133,7 +133,7 @@ func (d *diffable) restore() subscription.AppliesToSpec {
 						}
 
 						if combinedPer.To != nil && !combinedPer.To.Equal(pCad.ActiveFrom) {
-							targetItem.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.Between(pCad.ActiveFrom, *combinedPer.To))
+							targetItem.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.ISODurationBetween(pCad.ActiveFrom, *combinedPer.To))
 						}
 					} else {
 						mergedItems = append(mergedItems, targetItem)

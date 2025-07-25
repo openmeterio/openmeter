@@ -26,7 +26,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
-	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -158,7 +157,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -170,7 +169,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 					PhaseMeta: productcatalog.PhaseMeta{
 						Name:     "free trial",
 						Key:      "free-trial",
-						Duration: lo.ToPtr(testutils.GetISODuration(s.T(), "P1M")),
+						Duration: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 					},
 					// TODO[OM-1031]: let's add discount handling (as this could be a 100% discount for the first month)
 					RateCards: productcatalog.RateCards{
@@ -181,7 +180,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
 								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
 							},
-							BillingCadence: datetime.MustParse(s.T(), "P1M"),
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
 					},
 				},
@@ -189,7 +188,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 					PhaseMeta: productcatalog.PhaseMeta{
 						Name:     "discounted phase",
 						Key:      "discounted-phase",
-						Duration: lo.ToPtr(testutils.GetISODuration(s.T(), "P2M")),
+						Duration: lo.ToPtr(datetime.MustParseDuration(s.T(), "P2M")),
 					},
 					// TODO[OM-1031]: 50% discount
 					RateCards: productcatalog.RateCards{
@@ -203,7 +202,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 									Amount: alpacadecimal.NewFromFloat(5),
 								}),
 							},
-							BillingCadence: datetime.MustParse(s.T(), "P1M"),
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
 					},
 				},
@@ -224,7 +223,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 									Amount: alpacadecimal.NewFromFloat(10),
 								}),
 							},
-							BillingCadence: datetime.MustParse(s.T(), "P1M"),
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
 					},
 				},
@@ -256,7 +255,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	s.NotNil(subsView)
 
 	freeTierPhase := getPhaseByKey(s.T(), subsView, "free-trial")
-	s.Equal(lo.ToPtr(datetime.MustParse(s.T(), "P1M")), freeTierPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].Spec.RateCard.GetBillingCadence())
+	s.Equal(lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")), freeTierPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].Spec.RateCard.GetBillingCadence())
 
 	discountedPhase := getPhaseByKey(s.T(), subsView, "discounted-phase")
 	var gatheringInvoiceID billing.InvoiceID
@@ -577,7 +576,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -601,7 +600,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 									PaymentTerm: productcatalog.InArrearsPaymentTerm,
 								}),
 							},
-							BillingCadence: datetime.MustParse(s.T(), "P1D"),
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 						},
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
@@ -612,7 +611,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 									PaymentTerm: productcatalog.InArrearsPaymentTerm,
 								}),
 							},
-							BillingCadence: datetime.MustParse(s.T(), "P3M"),
+							BillingCadence: datetime.MustParseDuration(s.T(), "P3M"),
 						},
 					},
 				},
@@ -758,7 +757,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -781,7 +780,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -846,7 +845,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -865,7 +864,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 									PaymentTerm: productcatalog.InAdvancePaymentTerm,
 								}),
 							},
-							BillingCadence: datetime.MustParse(s.T(), "P1M"),
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
 					},
 				},
@@ -892,7 +891,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -976,7 +975,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -995,7 +994,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 									PaymentTerm: productcatalog.InArrearsPaymentTerm,
 								}),
 							},
-							BillingCadence: datetime.MustParse(s.T(), "P1M"),
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
 					},
 				},
@@ -1022,7 +1021,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -1102,7 +1101,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -1125,7 +1124,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 				Amount:      alpacadecimal.NewFromFloat(20),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -1231,7 +1230,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -1284,7 +1283,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -1392,7 +1391,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -1449,7 +1448,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -1556,7 +1555,7 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -1575,7 +1574,7 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 									PaymentTerm: productcatalog.InAdvancePaymentTerm,
 								}),
 							},
-							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1D")),
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1D")),
 						},
 					},
 				},
@@ -1629,7 +1628,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P4W"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P4W"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -1648,7 +1647,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 									PaymentTerm: productcatalog.InAdvancePaymentTerm,
 								}),
 							},
-							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1W")),
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1W")),
 						},
 						&productcatalog.FlatFeeRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
@@ -1659,7 +1658,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 									PaymentTerm: productcatalog.InArrearsPaymentTerm,
 								}),
 							},
-							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1W")),
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1W")),
 						},
 					},
 				},
@@ -1693,7 +1692,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 									PaymentTerm: productcatalog.InAdvancePaymentTerm,
 								}),
 							},
-							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1W")),
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1W")),
 						},
 					},
 				},
@@ -1721,7 +1720,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 									PaymentTerm: productcatalog.InArrearsPaymentTerm,
 								}),
 							},
-							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1W")),
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1W")),
 						},
 					},
 				},
@@ -1898,7 +1897,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -1909,7 +1908,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 					PhaseMeta: productcatalog.PhaseMeta{
 						Name:     "trial",
 						Key:      "trial",
-						Duration: lo.ToPtr(testutils.GetISODuration(s.T(), "P1M")),
+						Duration: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 					},
 					// TODO[OM-1031]: let's add discount handling (as this could be a 100% discount for the first month)
 					RateCards: productcatalog.RateCards{
@@ -1920,7 +1919,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
 								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
 							},
-							BillingCadence: datetime.MustParse(s.T(), "P1M"),
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
 					},
 				},
@@ -1942,7 +1941,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 									Amount: alpacadecimal.NewFromFloat(5),
 								}),
 							},
-							BillingCadence: datetime.MustParse(s.T(), "P1M"),
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
 					},
 				},
@@ -2018,7 +2017,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 	s.updateProfile(func(profile *billing.Profile) {
 		profile.WorkflowConfig.Invoicing = billing.InvoicingConfig{
 			AutoAdvance:        true,
-			DraftPeriod:        datetime.MustParse(s.T(), "P0D"),
+			DraftPeriod:        datetime.MustParseDuration(s.T(), "P0D"),
 			ProgressiveBilling: true,
 		}
 
@@ -2064,7 +2063,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -2086,7 +2085,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
 								Price:      testPrice,
 							},
-							BillingCadence: datetime.MustParse(s.T(), "P1M"),
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
 					},
 				},
@@ -2288,7 +2287,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -2403,7 +2402,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -2442,7 +2441,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "second-phase",
 					Name:       "second-phase",
-					StartAfter: datetime.MustParse(s.T(), "P2D"),
+					StartAfter: datetime.MustParseDuration(s.T(), "P2D"),
 				},
 			},
 		},
@@ -2453,7 +2452,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -2546,7 +2545,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -2623,7 +2622,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "second-phase",
 					Name:       "second-phase",
-					StartAfter: datetime.MustParse(s.T(), "P30D"),
+					StartAfter: datetime.MustParseDuration(s.T(), "P30D"),
 				},
 			},
 		},
@@ -2634,7 +2633,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -2757,7 +2756,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -2813,7 +2812,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "second-phase",
 					Name:       "second-phase",
-					StartAfter: datetime.MustParse(s.T(), "P30D"),
+					StartAfter: datetime.MustParseDuration(s.T(), "P30D"),
 				},
 			},
 		},
@@ -2824,7 +2823,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -2912,7 +2911,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -3033,7 +3032,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "second-phase",
 					Name:       "second-phase",
-					StartAfter: datetime.MustParse(s.T(), "P10D"),
+					StartAfter: datetime.MustParseDuration(s.T(), "P10D"),
 				},
 			},
 		},
@@ -3044,7 +3043,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 
@@ -3161,7 +3160,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1D"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 				},
 			},
 		},
@@ -3233,7 +3232,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
 						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -3333,7 +3332,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1D"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 				},
 			},
 		},
@@ -3404,7 +3403,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -3486,7 +3485,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1M")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -3568,7 +3567,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P3M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P3M"),
 				},
 				&productcatalog.UsageBasedRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
@@ -3579,7 +3578,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P3M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P3M"),
 				},
 			},
 		},
@@ -3674,7 +3673,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
 						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -3789,7 +3788,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 						}),
 						TaxConfig: taxConfig,
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1D"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 				},
 			},
 		},
@@ -3820,7 +3819,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
 			TaxConfig:      taxConfig,
-			BillingCadence: lo.ToPtr(datetime.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -3863,7 +3862,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 				&productcatalog.UsageBasedRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
@@ -3875,7 +3874,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -3940,7 +3939,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 				&productcatalog.UsageBasedRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
@@ -3952,7 +3951,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -4022,7 +4021,7 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 							},
 						},
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 				&productcatalog.UsageBasedRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
@@ -4034,7 +4033,7 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -4147,7 +4146,7 @@ func (s *SubscriptionHandlerTestSuite) TestUseUsageBasedFlatFeeLinesCompatibilit
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -4247,7 +4246,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 						PaymentTerm: productcatalog.InAdvancePaymentTerm,
 					}),
 				},
-				BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1M")),
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 			},
 			&productcatalog.FlatFeeRateCard{
 				RateCardMeta: productcatalog.RateCardMeta{
@@ -4258,7 +4257,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 						PaymentTerm: productcatalog.InArrearsPaymentTerm,
 					}),
 				},
-				BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1M")),
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 			},
 			&productcatalog.UsageBasedRateCard{
 				RateCardMeta: productcatalog.RateCardMeta{
@@ -4270,7 +4269,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 						Amount: alpacadecimal.NewFromFloat(10),
 					}),
 				},
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 			},
 		},
 	}
@@ -4289,7 +4288,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -4487,7 +4486,7 @@ func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithm
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
@@ -4560,8 +4559,7 @@ func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithm
 				},
 				{
 					Start: s.mustParseTime("2025-03-02T00:00:00Z"),
-					// TODO: Once the period fix is there, this should be 03-31
-					End: s.mustParseTime("2025-04-03T00:00:00Z"),
+					End:   s.mustParseTime("2025-03-28T00:00:00Z"), // TODO: once we implement sticky recurrence (sticking to end of month) this should be 03-31
 				},
 			},
 
@@ -4686,7 +4684,7 @@ func (s *SubscriptionHandlerTestSuite) phaseMeta(key string, duration string) pr
 	}
 
 	if duration != "" {
-		out.Duration = lo.ToPtr(datetime.MustParse(s.T(), duration))
+		out.Duration = lo.ToPtr(datetime.MustParseDuration(s.T(), duration))
 	}
 
 	return out
@@ -4768,7 +4766,7 @@ func (i subscriptionAddItem) AsPatch() subscription.Patch {
 func (s *SubscriptionHandlerTestSuite) generatePeriods(startStr, endStr string, cadenceStr string, n int) []billing.Period { //nolint: unparam
 	start := s.mustParseTime(startStr)
 	end := s.mustParseTime(endStr)
-	cadence := datetime.MustParse(s.T(), cadenceStr)
+	cadence := datetime.MustParseDuration(s.T(), cadenceStr)
 
 	out := []billing.Period{}
 
@@ -4810,7 +4808,7 @@ func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlanPhases(phases [
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(s.T(), "P1M"),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,

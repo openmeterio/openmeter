@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 func TestAddItem(t *testing.T) {
@@ -95,7 +96,7 @@ func TestAddItem(t *testing.T) {
 					CreateInput: subscription.SubscriptionItemSpec{
 						CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
 							CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
-								ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(testutils.GetISODuration(t, "P1D")),
+								ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(datetime.MustParseDuration(t, "P1D")),
 							},
 						},
 					},
@@ -250,7 +251,7 @@ func TestAddItem(t *testing.T) {
 					updatedRc := s.Phases["test_phase_2"].ItemsByKey["rate-card-2"][0]
 
 					// We have to use seconds here as diff resolution will be in seconds
-					updatedRc.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "PT86400S"))
+					updatedRc.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "PT86400S"))
 
 					s.Phases["test_phase_2"].ItemsByKey["rate-card-2"] = []*subscription.SubscriptionItemSpec{
 						updatedRc,
@@ -271,7 +272,7 @@ func TestAddItem(t *testing.T) {
 									},
 								},
 								CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
-									ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(testutils.GetISODuration(t, "PT86400S")),
+									ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(datetime.MustParseDuration(t, "PT86400S")),
 								},
 							},
 						},

@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestDateTime_Parse_Format(t *testing.T) {
+func TestDateTimeParseFormat(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -62,11 +63,11 @@ func TestDateTime_Parse_Format(t *testing.T) {
 	}
 }
 
-func TestDateTime_Add(t *testing.T) {
+func TestDateTimeAdd(t *testing.T) {
 	tests := []struct {
 		name     string
 		start    string
-		duration Duration
+		duration ISODuration
 		expected string
 		outputTz *time.Location
 	}{
@@ -185,6 +186,13 @@ func TestDateTime_Add(t *testing.T) {
 				expected.Format(RFC9557Layout))
 		})
 	}
+}
+
+func TestDateTimeShiftClockTo(t *testing.T) {
+	someTime := time.Now()
+	later := someTime.Add(time.Second)
+
+	require.Equal(t, NewDateTime(someTime).shiftClockTo(later).AsTime(), someTime.Add(time.Second))
 }
 
 // NOTE: The fuzz test below is commented out because the timezone database might have

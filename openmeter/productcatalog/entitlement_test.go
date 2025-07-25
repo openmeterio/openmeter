@@ -27,7 +27,7 @@ func TestEntitlementTemplate_JSON(t *testing.T) {
 				IssueAfterReset:         lo.ToPtr(500.0),
 				IssueAfterResetPriority: lo.ToPtr[uint8](1),
 				PreserveOverageAtReset:  lo.ToPtr(true),
-				UsagePeriod:             datetime.MustParse(t, "P1M"),
+				UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 			}),
 		},
 		{
@@ -83,7 +83,7 @@ func TestEntitlementTemplateEqual(t *testing.T) {
 					IssueAfterReset:         lo.ToPtr(1000.0),
 					IssueAfterResetPriority: lo.ToPtr[uint8](5),
 					PreserveOverageAtReset:  lo.ToPtr(true),
-					UsagePeriod:             datetime.MustParse(t, "P1M"),
+					UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 				},
 			),
 			Right: NewEntitlementTemplateFrom(
@@ -93,7 +93,7 @@ func TestEntitlementTemplateEqual(t *testing.T) {
 					IssueAfterReset:         lo.ToPtr(1000.0),
 					IssueAfterResetPriority: lo.ToPtr[uint8](5),
 					PreserveOverageAtReset:  lo.ToPtr(true),
-					UsagePeriod:             datetime.MustParse(t, "P1M"),
+					UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 				},
 			),
 			ExpectedResult: true,
@@ -107,7 +107,7 @@ func TestEntitlementTemplateEqual(t *testing.T) {
 					IssueAfterReset:         lo.ToPtr(1000.0),
 					IssueAfterResetPriority: lo.ToPtr[uint8](5),
 					PreserveOverageAtReset:  lo.ToPtr(true),
-					UsagePeriod:             datetime.MustParse(t, "P1M"),
+					UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 				},
 			),
 			Right: NewEntitlementTemplateFrom(
@@ -117,7 +117,7 @@ func TestEntitlementTemplateEqual(t *testing.T) {
 					IssueAfterReset:         lo.ToPtr(2000.0),
 					IssueAfterResetPriority: lo.ToPtr[uint8](1),
 					PreserveOverageAtReset:  lo.ToPtr(false),
-					UsagePeriod:             datetime.MustParse(t, "P3M"),
+					UsagePeriod:             datetime.MustParseDuration(t, "P3M"),
 				},
 			),
 			ExpectedResult: false,
@@ -131,7 +131,7 @@ func TestEntitlementTemplateEqual(t *testing.T) {
 					IssueAfterReset:         lo.ToPtr(1000.0),
 					IssueAfterResetPriority: lo.ToPtr[uint8](5),
 					PreserveOverageAtReset:  lo.ToPtr(true),
-					UsagePeriod:             datetime.MustParse(t, "P1M"),
+					UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 				},
 			),
 			Right: NewEntitlementTemplateFrom(

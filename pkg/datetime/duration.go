@@ -2,86 +2,122 @@ package datetime
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/govalues/decimal"
 	"github.com/rickb777/period"
 	"github.com/samber/lo"
 )
 
-// Duration represents a duration of time.
-type Duration struct {
+// ISODuration represents ISO 8601 duration.
+// It is mostly a wrapper around github.com/rickb777/period
+type ISODuration struct {
 	period.Period
 }
 
-// NewDuration creates a new Duration from a period.Period.
-func NewDuration(p period.Period) Duration {
-	return Duration{p}
-}
-
-// DurationString is a string that represents a duration of time.
-type DurationString period.ISOString
-
-// Parse parses an ISO8601 duration string into a Duration.
-func (d DurationString) Parse() (Duration, error) {
-	res, err := period.Parse(string(d))
-	if err != nil {
-		return Duration{}, NewDurationParseError(string(d), err)
+func NewISODuration(years, months, weeks, days, hours, minutes, seconds int) ISODuration {
+	return ISODuration{
+		period.New(years, months, weeks, days, hours, minutes, seconds),
 	}
-
-	return Duration{res}, nil
-}
-
-// ParsePtrOrNil parses the ISO8601 string representation of the duration or if it is nil, returns nil
-func (i *DurationString) ParsePtrOrNil() (*Duration, error) {
-	if i == nil {
-		return nil, nil
-	}
-
-	d, err := i.Parse()
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.ToPtr(d), nil
 }
 
 // MarshalJSON marshals the Duration to a JSON string.
-func (d Duration) MarshalJSON() ([]byte, error) {
+func (d ISODuration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.Period)
 }
 
 // UnmarshalJSON unmarshals the Duration from a JSON string.
-func (d *Duration) UnmarshalJSON(data []byte) error {
+func (d *ISODuration) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &d.Period)
 }
 
-// Add adds two durations together.
-func (d Duration) Add(d2 Duration) (Duration, error) {
-	p, err := d.Period.Add(d2.Period)
-	if err != nil {
-		return Duration{}, err
-	}
-
-	return Duration{p}, nil
+// ISOString() returns the ISO8601 string representation of the period
+func (p ISODuration) ISOString() ISODurationString {
+	return ISODurationString(p.Period.String())
 }
 
-// Subtract subtracts one duration from another.
-func (d Duration) Subtract(d2 Duration) (Duration, error) {
-	p, err := d.Period.Subtract(d2.Period)
-	if err != nil {
-		return Duration{}, err
+// ISOStringPtrOrNil() returns the ISO8601 string representation of the period or if Period is nil, returns nil
+func (d *ISODuration) ISOStringPtrOrNil() *ISODurationString {
+	if d == nil {
+		return nil
 	}
 
-	return Duration{p}, nil
+	return lo.ToPtr(d.ISOString())
+}
+
+// Equal returns true if the two periods are equal
+func (p *ISODuration) Equal(v *ISODuration) bool {
+	if p == nil && v == nil {
+		return true
+	}
+
+	if p == nil || v == nil {
+		return false
+	}
+
+	return p.String() == v.String()
+}
+
+func (p ISODuration) Normalise(exact bool) ISODuration {
+	return ISODuration{p.Period.Normalise(exact)}
+}
+
+func (p ISODuration) Simplify(exact bool) ISODuration {
+	return ISODuration{p.Period.Simplify(exact)}
+}
+
+func (p ISODuration) Add(p2 ISODuration) (ISODuration, error) {
+	s2 := period.ISOString(p2.String())
+	per2, err := period.Parse(string(s2))
+	if err != nil {
+		return ISODuration{}, err
+	}
+	p3, err := p.Period.Add(per2)
+	if err != nil {
+		return ISODuration{}, NewDurationArithmeticError(p.String(), err)
+	}
+	return ISODuration{p3}, nil
+}
+
+func (p ISODuration) Subtract(p2 ISODuration) (ISODuration, error) {
+	s2 := period.ISOString(p2.String())
+	per2, err := period.Parse(string(s2))
+	if err != nil {
+		return ISODuration{}, err
+	}
+	p3, err := p.Period.Subtract(per2)
+	if err != nil {
+		return ISODuration{}, NewDurationArithmeticError(p.String(), err)
+	}
+	return ISODuration{p3}, nil
+}
+
+// AddTo adds the duration to the time.Time and returns the result and a boolean indicating if the conversion was precise.
+// The conversion is always precise but the signature is kept for backwards compatibility.
+func (p ISODuration) AddTo(t time.Time) (time.Time, bool) {
+	// Use our custom date arithmetic to handle month/year overflow correctly
+	result := NewDateTime(t).Add(p).AsTime()
+
+	return result, true
+}
+
+func ISODurationBetween(start time.Time, end time.Time) ISODuration {
+	per := period.Between(start, end)
+	return ISODuration{per}
+}
+
+// ISODurationFromDuration creates an IMPRECISE Period from a time.Duration
+func ISODurationFromDuration(d time.Duration) ISODuration {
+	return ISODuration{period.NewOf(d).Normalise(false).Simplify(false)}
 }
 
 // DivisibleBy returns true if the duration is divisible by the smaller duration.
-func (d Duration) DivisibleBy(smaller Duration) (bool, error) {
+func (d ISODuration) DivisibleBy(smaller ISODuration) (bool, error) {
 	l := d.Simplify(true)
 	s := smaller.Simplify(true)
 
 	if l.IsZero() {
-		return true, nil
+		return false, nil
 	}
 
 	if s.IsZero() {
@@ -90,16 +126,16 @@ func (d Duration) DivisibleBy(smaller Duration) (bool, error) {
 
 	// Test with different days-per-month and hours-per-day scenarios
 	testDaysInMonth := []int{28, 29, 30, 31}
-	testHoursInDays := []int{24, 23}
+	testHoursInDays := []int{25, 24, 23}
 
 	for _, daysInMonth := range testDaysInMonth {
 		for _, hoursInDays := range testHoursInDays {
-			largerSeconds, err := convertPeriodToSeconds(l, daysInMonth, hoursInDays)
+			largerSeconds, err := convertPeriodToSeconds(l.Period, daysInMonth, hoursInDays)
 			if err != nil {
 				return false, err
 			}
 
-			smallerSeconds, err := convertPeriodToSeconds(s, daysInMonth, hoursInDays)
+			smallerSeconds, err := convertPeriodToSeconds(s.Period, daysInMonth, hoursInDays)
 			if err != nil {
 				return false, err
 			}

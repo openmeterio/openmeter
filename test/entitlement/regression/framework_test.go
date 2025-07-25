@@ -146,7 +146,7 @@ func setupDependencies(t *testing.T) Dependencies {
 			Granularity:            time.Minute,
 			Publisher:              mockPublisher,
 			TransactionManager:     transactionManager,
-			SnapshotGracePeriod:    datetime.NewPeriod(0, 0, 0, 1, 0, 0, 0),
+			SnapshotGracePeriod:    datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0),
 		},
 	)
 

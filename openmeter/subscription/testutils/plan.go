@@ -60,7 +60,7 @@ func BuildTestPlan(t *testing.T) *testPlanbuilder {
 					Key:            "test_plan",
 					Version:        1,
 					Currency:       currency.USD,
-					BillingCadence: datetime.MustParse(t, "P1M"),
+					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
 						Enabled: true,
 						Mode:    productcatalog.ProRatingModeProratePrices,
@@ -77,8 +77,8 @@ func BuildTestPlan(t *testing.T) *testPlanbuilder {
 func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
 	b := BuildTestPlan(t)
 
-	b.AddPhase(lo.ToPtr(testutils.GetISODuration(t, "P1M")), ExampleRateCard1.Clone())
-	b.AddPhase(lo.ToPtr(testutils.GetISODuration(t, "P2M")), ExampleRateCard1.Clone(), ExampleRateCard2.Clone(), ExampleRateCard3ForAddons.Clone())
+	b.AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), ExampleRateCard1.Clone())
+	b.AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P2M")), ExampleRateCard1.Clone(), ExampleRateCard2.Clone(), ExampleRateCard3ForAddons.Clone())
 	b.AddPhase(nil, ExampleRateCard1.Clone(), ExampleRateCard3ForAddons.Clone())
 
 	return b.Build()

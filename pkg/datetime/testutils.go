@@ -18,8 +18,8 @@ func MustLoadLocation(t *testing.T, name string) *time.Location {
 	return loc
 }
 
-// MustParseTime is a helper function to parse time with error checking
-func MustParseTime(t *testing.T, timeStr string) DateTime {
+// MustParseDateTime is a helper function to parse time with error checking
+func MustParseDateTime(t *testing.T, timeStr string) DateTime {
 	t.Helper()
 	dt, err := Parse(timeStr)
 	assert.NoError(t, err, "failed to parse time string %q", timeStr)
@@ -35,9 +35,11 @@ func MustParseTimeInLocation(t *testing.T, timeStr string, loc *time.Location) D
 }
 
 // MustParseDuration is a helper function to parse duration with error checking
-func MustParseDuration(t *testing.T, durationStr string) Duration {
-	t.Helper()
-	p, err := period.Parse(durationStr)
-	assert.NoError(t, err, "failed to parse duration string %q", durationStr)
-	return NewDuration(p)
+func MustParseDuration(t *testing.T, s string) ISODuration {
+	res, err := period.Parse(s)
+	if err != nil {
+		t.Fatalf("failed to parse period: %v", err)
+	}
+
+	return ISODuration{res}
 }

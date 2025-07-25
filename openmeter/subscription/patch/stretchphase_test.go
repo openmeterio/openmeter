@@ -39,7 +39,7 @@ func TestStretchPhase(t *testing.T) {
 				Name: "Should extend first phase by 1 Month",
 				Patch: patch.PatchStretchPhase{
 					PhaseKey: "test_phase_1",
-					Duration: testutils.GetISODuration(t, "P1M"),
+					Duration: datetime.MustParseDuration(t, "P1M"),
 				},
 				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
 					s := getSpec(t)
@@ -55,7 +55,7 @@ func TestStretchPhase(t *testing.T) {
 					require.True(t, ok)
 
 					// The second phase should start after 1 month
-					require.Equal(t, p2.StartAfter, datetime.NewPeriod(0, 1, 0, 0, 0, 0, 0))
+					require.Equal(t, p2.StartAfter, datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0))
 
 					return &s
 				},
@@ -67,7 +67,7 @@ func TestStretchPhase(t *testing.T) {
 
 					for k := range s.Phases {
 						if k != "test_phase_1" {
-							nSA, err := s.Phases[k].StartAfter.Add(testutils.GetISODuration(t, "P1M"))
+							nSA, err := s.Phases[k].StartAfter.Add(datetime.MustParseDuration(t, "P1M"))
 							require.NoError(t, err)
 
 							s.Phases[k].StartAfter = nSA
@@ -81,7 +81,7 @@ func TestStretchPhase(t *testing.T) {
 				Name: "Should shrink first phase by 2 weeks",
 				Patch: patch.PatchStretchPhase{
 					PhaseKey: "test_phase_1",
-					Duration: testutils.GetISODuration(t, "-P2W"),
+					Duration: datetime.MustParseDuration(t, "-P2W"),
 				},
 				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
 					s := getSpec(t)
@@ -97,7 +97,7 @@ func TestStretchPhase(t *testing.T) {
 					require.True(t, ok)
 
 					// The second phase should start after 1 month
-					require.Equal(t, p2.StartAfter, datetime.NewPeriod(0, 1, 0, 0, 0, 0, 0))
+					require.Equal(t, p2.StartAfter, datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0))
 
 					return &s
 				},
@@ -109,7 +109,7 @@ func TestStretchPhase(t *testing.T) {
 
 					for k := range s.Phases {
 						if k != "test_phase_1" {
-							nSA, err := s.Phases[k].StartAfter.Subtract(testutils.GetISODuration(t, "P2W"))
+							nSA, err := s.Phases[k].StartAfter.Subtract(datetime.MustParseDuration(t, "P2W"))
 							require.NoError(t, err)
 
 							s.Phases[k].StartAfter = nSA
@@ -123,7 +123,7 @@ func TestStretchPhase(t *testing.T) {
 				Name: "Should not allow stretching if there's a single phase",
 				Patch: patch.PatchStretchPhase{
 					PhaseKey: "test_phase_1",
-					Duration: testutils.GetISODuration(t, "P1M"),
+					Duration: datetime.MustParseDuration(t, "P1M"),
 				},
 				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
 					s := getSpec(t)
@@ -149,7 +149,7 @@ func TestStretchPhase(t *testing.T) {
 				Name: "Should not allow stretching more than phase length",
 				Patch: patch.PatchStretchPhase{
 					PhaseKey: "test_phase_1",
-					Duration: testutils.GetISODuration(t, "-P1M"),
+					Duration: datetime.MustParseDuration(t, "-P1M"),
 				},
 				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
 					s := getSpec(t)
@@ -172,7 +172,7 @@ func TestStretchPhase(t *testing.T) {
 				Name: "Should work when stretching past next phase",
 				Patch: patch.PatchStretchPhase{
 					PhaseKey: "test_phase_1",
-					Duration: testutils.GetISODuration(t, "P5M"),
+					Duration: datetime.MustParseDuration(t, "P5M"),
 				},
 				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
 					s := getSpec(t)
@@ -191,7 +191,7 @@ func TestStretchPhase(t *testing.T) {
 
 					for k := range s.Phases {
 						if k != "test_phase_1" {
-							nSA, err := s.Phases[k].StartAfter.Add(testutils.GetISODuration(t, "P5M"))
+							nSA, err := s.Phases[k].StartAfter.Add(datetime.MustParseDuration(t, "P5M"))
 							require.NoError(t, err)
 
 							s.Phases[k].StartAfter = nSA
@@ -211,9 +211,9 @@ func TestStretchPhase(t *testing.T) {
 }
 
 func TestASD(t *testing.T) {
-	p1 := testutils.GetISODuration(t, "P1M")
-	p2 := testutils.GetISODuration(t, "P2W")
-	p3 := testutils.GetISODuration(t, "-P2W")
+	p1 := datetime.MustParseDuration(t, "P1M")
+	p2 := datetime.MustParseDuration(t, "P2W")
+	p3 := datetime.MustParseDuration(t, "-P2W")
 
 	r1, err := p1.Subtract(p2)
 	require.Nil(t, err)

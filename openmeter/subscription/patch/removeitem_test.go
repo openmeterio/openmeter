@@ -11,6 +11,7 @@ import (
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 func TestRemoveItem(t *testing.T) {
@@ -224,7 +225,7 @@ func TestRemoveItem(t *testing.T) {
 
 					// When removing an item from the current phase it should close that item with the current timestamp
 					// We have to use seconds due to how duration is managed
-					s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "PT86400S"))
+					s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "PT86400S"))
 
 					return *s
 				},
