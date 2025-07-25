@@ -153,7 +153,7 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 
 	return span.Wrap(ctx, func(ctx context.Context) error {
 		if !subs.Spec.HasBillables() {
-			h.logger.InfoContext(ctx, "subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
+			h.logger.DebugContext(ctx, "subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
 			return nil
 		}
 
