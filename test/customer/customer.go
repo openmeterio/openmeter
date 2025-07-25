@@ -233,7 +233,7 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 			PlanMeta: productcatalog.PlanMeta{
 				Name:           "Empty Plan",
 				Currency:       currency.Code("USD"),
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -613,7 +613,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 			PlanMeta: productcatalog.PlanMeta{
 				Name:           "Empty Plan",
 				Currency:       currency.Code("USD"),
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,

@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
-	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -110,7 +109,7 @@ func TestValidations(t *testing.T) {
 		t.Run("Restore", func(t *testing.T) {
 			err := rc.Restore(&productcatalog.UsageBasedRateCard{
 				RateCardMeta:   meta,
-				BillingCadence: testutils.GetISODuration(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			}, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
 			require.NoError(t, err)
 		})
@@ -211,12 +210,12 @@ func TestValidations(t *testing.T) {
 		// The addon would do nothing (which is valid)
 		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
 			RateCardMeta:   meta.Clone(),
-			BillingCadence: testutils.GetISODuration(t, "P2M"),
+			BillingCadence: datetime.MustParseDuration(t, "P2M"),
 		})
 
 		target := &productcatalog.UsageBasedRateCard{
 			RateCardMeta:   meta.Clone(),
-			BillingCadence: testutils.GetISODuration(t, "P1M"),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
 		}
 
 		err := rc.Apply(target, models.Annotations{})
@@ -380,7 +379,7 @@ func TestExtendApply(t *testing.T) {
 		meta := someMeta.Clone()
 		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 			IssueAfterReset: lo.ToPtr(100.0),
-			UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+			UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 		})
 
 		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
@@ -405,7 +404,7 @@ func TestExtendApply(t *testing.T) {
 		meta := someMeta.Clone()
 		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 			IssueAfterReset: lo.ToPtr(100.0),
-			UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+			UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 		})
 
 		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
@@ -446,7 +445,7 @@ func TestExtendApply(t *testing.T) {
 
 		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
 			RateCardMeta:   meta.Clone(),
-			BillingCadence: testutils.GetISODuration(t, "P1M"),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
 		})
 
 		meta.Discounts = productcatalog.Discounts{}
@@ -456,7 +455,7 @@ func TestExtendApply(t *testing.T) {
 
 		target := &productcatalog.UsageBasedRateCard{
 			RateCardMeta:   meta.Clone(),
-			BillingCadence: testutils.GetISODuration(t, "P1M"),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
 		}
 
 		err := rc.Apply(target, models.Annotations{})
@@ -567,7 +566,7 @@ func TestExtendRestore(t *testing.T) {
 		meta := someMeta.Clone()
 		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 			IssueAfterReset: lo.ToPtr(100.0),
-			UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+			UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 		})
 
 		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
@@ -701,7 +700,7 @@ func TestExtendRestore(t *testing.T) {
 		meta := someMeta.Clone()
 		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 			IssueAfterReset: lo.ToPtr(10.0),
-			UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+			UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 		})
 
 		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
@@ -710,7 +709,7 @@ func TestExtendRestore(t *testing.T) {
 
 		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 			IssueAfterReset: lo.ToPtr(100.0),
-			UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+			UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 		})
 
 		target := &productcatalog.FlatFeeRateCard{
@@ -729,7 +728,7 @@ func TestExtendRestore(t *testing.T) {
 		meta := someMeta.Clone()
 		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 			IssueAfterReset: lo.ToPtr(100.0),
-			UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+			UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 		})
 
 		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
@@ -738,7 +737,7 @@ func TestExtendRestore(t *testing.T) {
 
 		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 			IssueAfterReset: lo.ToPtr(50.0),
-			UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+			UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 		})
 
 		target := &productcatalog.FlatFeeRateCard{
@@ -755,7 +754,7 @@ func TestExtendRestore(t *testing.T) {
 		meta := someMeta.Clone()
 		meta.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 			IssueAfterReset: lo.ToPtr(100.0),
-			UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+			UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 		})
 
 		rc := getTestAddonRateCard(&productcatalog.FlatFeeRateCard{
@@ -785,7 +784,7 @@ func TestExtendRestore(t *testing.T) {
 
 		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
 			RateCardMeta:   meta.Clone(),
-			BillingCadence: testutils.GetISODuration(t, "P1M"),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
 		})
 
 		meta.Discounts = productcatalog.Discounts{}
@@ -795,7 +794,7 @@ func TestExtendRestore(t *testing.T) {
 
 		target := &productcatalog.UsageBasedRateCard{
 			RateCardMeta:   meta.Clone(),
-			BillingCadence: testutils.GetISODuration(t, "P1M"),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
 		}
 
 		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
@@ -815,7 +814,7 @@ func TestExtendRestore(t *testing.T) {
 
 		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
 			RateCardMeta:   meta.Clone(),
-			BillingCadence: testutils.GetISODuration(t, "P1M"),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
 		})
 
 		meta.Discounts = productcatalog.Discounts{
@@ -829,7 +828,7 @@ func TestExtendRestore(t *testing.T) {
 
 		target := &productcatalog.UsageBasedRateCard{
 			RateCardMeta:   meta.Clone(),
-			BillingCadence: testutils.GetISODuration(t, "P1M"),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
 		}
 
 		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
@@ -849,7 +848,7 @@ func TestExtendRestore(t *testing.T) {
 
 		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
 			RateCardMeta:   meta.Clone(),
-			BillingCadence: testutils.GetISODuration(t, "P1M"),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
 		})
 
 		meta.Discounts = productcatalog.Discounts{
@@ -863,7 +862,7 @@ func TestExtendRestore(t *testing.T) {
 
 		target := &productcatalog.UsageBasedRateCard{
 			RateCardMeta:   meta.Clone(),
-			BillingCadence: testutils.GetISODuration(t, "P1M"),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
 		}
 
 		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)

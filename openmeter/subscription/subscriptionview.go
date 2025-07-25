@@ -313,7 +313,7 @@ func NewSubscriptionView(
 			return nil, fmt.Errorf("phase %s is duplicated", phase.Key)
 		}
 
-		phaseStartAfter := datetime.Between(sub.ActiveFrom, phase.ActiveFrom)
+		phaseStartAfter := datetime.ISODurationBetween(sub.ActiveFrom, phase.ActiveFrom)
 
 		phaseSpec := SubscriptionPhaseSpec{
 			CreateSubscriptionPhasePlanInput: CreateSubscriptionPhasePlanInput{

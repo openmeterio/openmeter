@@ -33,7 +33,7 @@ func (c *EntitlementsConfiguration) GetGracePeriod() datetime.ISODuration {
 	gracePeriod, err := c.GracePeriod.Parse()
 	if err != nil {
 		slog.Error("failed to parse grace period, using default of 1 day", "error", err)
-		return datetime.NewPeriod(0, 0, 0, 1, 0, 0, 0)
+		return datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0)
 	}
 	return gracePeriod
 }

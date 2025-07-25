@@ -11,6 +11,7 @@ import (
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 func TestUnscheduleEdit(t *testing.T) {
@@ -55,9 +56,9 @@ func TestUnscheduleEdit(t *testing.T) {
 
 					// Create a future version of the item
 					futureItem := *items[0]
-					items[0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P2D"))
+					items[0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P2D"))
 
-					futureItem.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P2D"))
+					futureItem.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P2D"))
 					items = append(items, &futureItem)
 
 					phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey] = items
@@ -98,10 +99,10 @@ func TestUnscheduleEdit(t *testing.T) {
 
 					// Create two future versions of the item
 					futureItem1 := *items[0]
-					futureItem1.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P2D"))
+					futureItem1.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P2D"))
 
 					futureItem2 := *items[0]
-					futureItem2.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P3D"))
+					futureItem2.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P3D"))
 
 					items = append(items, &futureItem1, &futureItem2)
 					phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey] = items
@@ -128,17 +129,17 @@ func TestUnscheduleEdit(t *testing.T) {
 
 					// Create two future versions of the item
 					futureItem1 := *items[0]
-					items[0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P1D"))
+					items[0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P1D"))
 
-					futureItem1.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P1D"))
-					futureItem1.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P3D"))
+					futureItem1.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P1D"))
+					futureItem1.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P3D"))
 
 					futureItem2 := *items[0]
-					futureItem2.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P3D"))
-					futureItem2.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P4D"))
+					futureItem2.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P3D"))
+					futureItem2.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P4D"))
 
 					futureItem3 := *items[0]
-					futureItem3.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P4D"))
+					futureItem3.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P4D"))
 
 					items = append(items, &futureItem1, &futureItem2, &futureItem3)
 					phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey] = items
@@ -153,9 +154,9 @@ func TestUnscheduleEdit(t *testing.T) {
 					phase := s.Phases["test_phase_1"]
 					items := phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
 					futureItem1 := *items[0]
-					items[0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P1D"))
+					items[0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P1D"))
 
-					futureItem1.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "P1D"))
+					futureItem1.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P1D"))
 
 					items = append(items, &futureItem1)
 					phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey] = items

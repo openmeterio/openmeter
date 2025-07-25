@@ -18,7 +18,6 @@ import (
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
-	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -103,7 +102,7 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should delete a single RateCard that was created by the addon and leave in place the RateCard with the same key as that was part of the subscription", withDeps(func(t *testing.T, deps *tcDeps) {
-		oneMonth := testutils.GetISODuration(t, "P1M")
+		oneMonth := datetime.MustParseDuration(t, "P1M")
 
 		oneMonthLater, _ := oneMonth.AddTo(now)
 
@@ -139,7 +138,7 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should delete a single RateCard from a phase where it was created by the addon but leave RateCard with same key in another phase where it was already present", withDeps(func(t *testing.T, deps *tcDeps) {
-		oneMonth := testutils.GetISODuration(t, "P1M")
+		oneMonth := datetime.MustParseDuration(t, "P1M")
 
 		oneMonthLater, _ := oneMonth.AddTo(now)
 
@@ -204,7 +203,7 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should restore a single RateCard and delete subsequent created RateCards", withDeps(func(t *testing.T, deps *tcDeps) {
-		oneMonth := testutils.GetISODuration(t, "P1M")
+		oneMonth := datetime.MustParseDuration(t, "P1M")
 
 		env := buildSubAndAddon(
 			t,
@@ -244,7 +243,7 @@ func TestRestore(t *testing.T) {
 		// then twice,
 		// then remove it once, (which should leave the first addition in place)
 		// then again (which should remove the added items)
-		oneMonth := testutils.GetISODuration(t, "P1M")
+		oneMonth := datetime.MustParseDuration(t, "P1M")
 
 		env := buildSubAndAddon(
 			t,
@@ -299,7 +298,7 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should re-combine single split item when restoring", withDeps(func(t *testing.T, deps *tcDeps) {
-		oneMonth := testutils.GetISODuration(t, "P1M")
+		oneMonth := datetime.MustParseDuration(t, "P1M")
 
 		oneMonthLater, _ := oneMonth.AddTo(now)
 
@@ -334,7 +333,7 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should not recombine different original items into one", withDeps(func(t *testing.T, deps *tcDeps) {
-		twoMonths := testutils.GetISODuration(t, "P2M")
+		twoMonths := datetime.MustParseDuration(t, "P2M")
 
 		twoMonthsLater, _ := twoMonths.AddTo(now)
 
@@ -348,7 +347,7 @@ func TestRestore(t *testing.T) {
 					Key:            "test_plan",
 					Version:        1,
 					Currency:       currency.USD,
-					BillingCadence: datetime.MustParse(t, "P1M"),
+					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
 						Enabled: true,
 						Mode:    productcatalog.ProRatingModeProratePrices,

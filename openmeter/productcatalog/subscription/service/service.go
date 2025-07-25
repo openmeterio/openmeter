@@ -47,7 +47,7 @@ func (s *service) zeroPhasesBeforeStartingPhase(p *plan.Plan, startingPhase stri
 
 		if !reachedStartingPhase {
 			// Instead of deleting the earlier phases, we set their length to 0
-			phase.Duration = lo.ToPtr(datetime.FromDuration(time.Duration(0)))
+			phase.Duration = lo.ToPtr(datetime.ISODurationFromDuration(time.Duration(0)))
 		}
 
 		if idx == len(p.Phases)-1 && !reachedStartingPhase {
