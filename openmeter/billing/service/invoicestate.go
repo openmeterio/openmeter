@@ -640,6 +640,15 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 			}
 		}
 
+		// Let's set the issuedAt now as if the finalization fails we will roll back the state transition
+		m.Invoice.IssuedAt = lo.ToPtr(clock.Now().In(time.UTC))
+
+		// Let's update the dueAt now that we know when the invoice was issued (so that downstream apps
+		// can use this during the sync)
+		if err := invoicecalc.CalculateDueAt(&m.Invoice); err != nil {
+			return nil, err
+		}
+
 		results, err := app.FinalizeInvoice(ctx, clonedInvoice)
 		if err != nil {
 			return nil, err
@@ -649,10 +658,6 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 			if err := results.MergeIntoInvoice(&m.Invoice); err != nil {
 				return nil, err
 			}
-		}
-
-		if m.Invoice.IssuedAt == nil {
-			m.Invoice.IssuedAt = lo.ToPtr(clock.Now().In(time.UTC))
 		}
 
 		return nil, nil

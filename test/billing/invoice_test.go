@@ -310,7 +310,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			ExpandedFields: billing.InvoiceExpandAll,
 		}
 
-		s.NoError(invoicecalc.GatheringInvoiceCollectionAt(&expectedInvoice, nil))
+		s.NoError(invoicecalc.GatheringInvoiceCollectionAt(&expectedInvoice))
 
 		require.Equal(s.T(),
 			expectedInvoice.RemoveMetaForCompare(),
