@@ -7,7 +7,7 @@ import (
 )
 
 // CalculateDraftUntil calculates the draft until date
-func CalculateDraftUntil(i *billing.Invoice, _ CalculatorDependencies) error {
+func CalculateDraftUntil(i *billing.Invoice) error {
 	if !i.Workflow.Config.Invoicing.AutoAdvance {
 		i.DraftUntil = nil
 		return nil
