@@ -206,7 +206,7 @@ func (c CreateEntitlementInputs) Validate() error {
 
 	// Let's validate the Usage Period
 	if c.UsagePeriod != nil {
-		if per, err := c.UsagePeriod.GetValue().Interval.ISODuration.Subtract(datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		if per, err := c.UsagePeriod.GetValue().Interval.ISODuration.Subtract(datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 			return fmt.Errorf("UsagePeriod must be at least 1 hour")
 		}
 	}

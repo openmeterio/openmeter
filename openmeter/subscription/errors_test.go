@@ -11,8 +11,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -48,7 +48,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 					Key:     "test",
 					Version: 1,
 				},
-				BillingCadence: testutils.GetISODuration(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Mode: productcatalog.ProRatingModeProratePrices,
 				},
@@ -64,7 +64,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 				"phase1": {
 					CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 						PhaseKey:   "phase1",
-						StartAfter: testutils.GetISODuration(t, "P0D"),
+						StartAfter: datetime.MustParseDuration(t, "P0D"),
 						Name:       "phase1",
 					},
 					CreateSubscriptionPhaseCustomerInput: subscription.CreateSubscriptionPhaseCustomerInput{},
@@ -89,13 +89,13 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 													et.FromMetered(productcatalog.MeteredEntitlementTemplate{
 														IssueAfterReset:         lo.ToPtr(10.0),
 														IssueAfterResetPriority: lo.ToPtr(uint8(1)),
-														UsagePeriod:             testutils.GetISODuration(t, "P1M"),
+														UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 													})
 
 													return &et
 												}(),
 											},
-											BillingCadence: testutils.GetISODuration(t, "P1M"),
+											BillingCadence: datetime.MustParseDuration(t, "P1M"),
 										},
 									},
 									CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{},
@@ -118,7 +118,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 					Key:     "test",
 					Version: 1,
 				},
-				BillingCadence: testutils.GetISODuration(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Mode: productcatalog.ProRatingModeProratePrices,
 				},
@@ -134,7 +134,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 				"phase1": {
 					CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 						PhaseKey:   "phase1",
-						StartAfter: testutils.GetISODuration(t, "P0D"),
+						StartAfter: datetime.MustParseDuration(t, "P0D"),
 						Name:       "phase1",
 					},
 					CreateSubscriptionPhaseCustomerInput: subscription.CreateSubscriptionPhaseCustomerInput{},
@@ -159,13 +159,13 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 													et.FromMetered(productcatalog.MeteredEntitlementTemplate{
 														// IssueAfterReset:         lo.ToPtr(10.0), // will error
 														IssueAfterResetPriority: lo.ToPtr(uint8(1)),
-														UsagePeriod:             testutils.GetISODuration(t, "P1M"),
+														UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 													})
 
 													return &et
 												}(),
 											},
-											BillingCadence: testutils.GetISODuration(t, "P1M"),
+											BillingCadence: datetime.MustParseDuration(t, "P1M"),
 										},
 									},
 									CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{},
@@ -177,7 +177,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 				"phase2": {
 					CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 						PhaseKey:   "phase2",
-						StartAfter: testutils.GetISODuration(t, "-P2D"), // will error
+						StartAfter: datetime.MustParseDuration(t, "-P2D"), // will error
 						Name:       "phase2",
 					},
 					CreateSubscriptionPhaseCustomerInput: subscription.CreateSubscriptionPhaseCustomerInput{},

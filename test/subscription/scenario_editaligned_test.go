@@ -57,7 +57,7 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 				Name:           "Test Plan",
 				Key:            "test_plan",
 				Currency:       "USD",
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -86,11 +86,11 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 									},
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-									UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+									UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 									IssueAfterReset: lo.ToPtr(0.0), // We will change this in the update
 								}),
 							},
-							BillingCadence: testutils.GetISODuration(t, "P1M"),
+							BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						},
 					},
 				},
@@ -171,7 +171,7 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 								FeatureKey: lo.ToPtr("test_feature_1"),
 								Key:        "test_feature_1",
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-									UsagePeriod:     testutils.GetISODuration(t, "P1M"),
+									UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 									IssueAfterReset: lo.ToPtr(100.0), // So we have an update on the entitlement
 								}),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
@@ -183,7 +183,7 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 									},
 								},
 							},
-							BillingCadence: testutils.GetISODuration(t, "P1M"),
+							BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						},
 					},
 					CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{},

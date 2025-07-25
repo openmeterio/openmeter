@@ -22,7 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var MonthPeriod = datetime.NewPeriod(0, 1, 0, 0, 0, 0, 0)
+var MonthPeriod = datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0)
 
 func TestPlanAddonService(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())

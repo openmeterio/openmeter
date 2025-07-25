@@ -18,3 +18,7 @@ func NewDateTimeParseError(value string) error {
 func NewDurationParseError(value string, err error) error {
 	return fmt.Errorf("failed to parse duration '%s': %w", value, err)
 }
+
+func NewDurationArithmeticError(value string, err error) error {
+	return fmt.Errorf("failed to perform arithmetic on duration '%s': %w", value, err)
+}
