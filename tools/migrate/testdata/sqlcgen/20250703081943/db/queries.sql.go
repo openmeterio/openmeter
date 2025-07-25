@@ -7,8 +7,109 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
+
+const createEntitlement = `-- name: CreateEntitlement :exec
+INSERT INTO entitlements (
+    namespace,
+    id,
+    created_at,
+    updated_at,
+    entitlement_type,
+    feature_key,
+    feature_id,
+    subject_key,
+    usage_period_interval,
+    usage_period_anchor,
+    measure_usage_from
+)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10,
+    $11
+)
+`
+
+type CreateEntitlementParams struct {
+	Namespace           string
+	ID                  string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	EntitlementType     string
+	FeatureKey          string
+	FeatureID           string
+	SubjectKey          string
+	UsagePeriodInterval sql.NullString
+	UsagePeriodAnchor   sql.NullTime
+	MeasureUsageFrom    sql.NullTime
+}
+
+func (q *Queries) CreateEntitlement(ctx context.Context, arg CreateEntitlementParams) error {
+	_, err := q.db.ExecContext(ctx, createEntitlement,
+		arg.Namespace,
+		arg.ID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.EntitlementType,
+		arg.FeatureKey,
+		arg.FeatureID,
+		arg.SubjectKey,
+		arg.UsagePeriodInterval,
+		arg.UsagePeriodAnchor,
+		arg.MeasureUsageFrom,
+	)
+	return err
+}
+
+const createFeature = `-- name: CreateFeature :exec
+INSERT INTO features (
+    namespace,
+    id,
+    key,
+    name,
+    created_at,
+    updated_at
+)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6
+)
+`
+
+type CreateFeatureParams struct {
+	Namespace string
+	ID        string
+	Key       string
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) CreateFeature(ctx context.Context, arg CreateFeatureParams) error {
+	_, err := q.db.ExecContext(ctx, createFeature,
+		arg.Namespace,
+		arg.ID,
+		arg.Key,
+		arg.Name,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
 
 const createUsageResetWithInterval = `-- name: CreateUsageResetWithInterval :exec
 INSERT INTO usage_resets (
@@ -51,6 +152,42 @@ func (q *Queries) CreateUsageResetWithInterval(ctx context.Context, arg CreateUs
 	return err
 }
 
+const getEntitlementByID = `-- name: GetEntitlementByID :one
+SELECT id, namespace, metadata, created_at, updated_at, deleted_at, entitlement_type, feature_key, subject_key, measure_usage_from, issue_after_reset, issue_after_reset_priority, is_soft_limit, preserve_overage_at_reset, config, usage_period_interval, usage_period_anchor, current_usage_period_start, current_usage_period_end, feature_id, active_from, active_to, annotations FROM entitlements WHERE id = $1
+`
+
+// Query to get an entitlement by ID
+func (q *Queries) GetEntitlementByID(ctx context.Context, id string) (Entitlement, error) {
+	row := q.db.QueryRowContext(ctx, getEntitlementByID, id)
+	var i Entitlement
+	err := row.Scan(
+		&i.ID,
+		&i.Namespace,
+		&i.Metadata,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.EntitlementType,
+		&i.FeatureKey,
+		&i.SubjectKey,
+		&i.MeasureUsageFrom,
+		&i.IssueAfterReset,
+		&i.IssueAfterResetPriority,
+		&i.IsSoftLimit,
+		&i.PreserveOverageAtReset,
+		&i.Config,
+		&i.UsagePeriodInterval,
+		&i.UsagePeriodAnchor,
+		&i.CurrentUsagePeriodStart,
+		&i.CurrentUsagePeriodEnd,
+		&i.FeatureID,
+		&i.ActiveFrom,
+		&i.ActiveTo,
+		&i.Annotations,
+	)
+	return i, err
+}
+
 const getSchemaVersion = `-- name: GetSchemaVersion :one
 SELECT version FROM schema_om ORDER BY version DESC LIMIT 1
 `
@@ -65,7 +202,7 @@ func (q *Queries) GetSchemaVersion(ctx context.Context) (int64, error) {
 
 const getUsageResetByID = `-- name: GetUsageResetByID :one
 
-SELECT id, namespace, created_at, updated_at, deleted_at, reset_time, entitlement_id, anchor, usage_period_interval FROM usage_resets WHERE id = $1
+SELECT id, namespace, annotations, created_at, updated_at, deleted_at, reset_time, entitlement_id, anchor, usage_period_interval FROM usage_resets WHERE id = $1
 `
 
 // Post-migration queries with usage_period_interval column
@@ -76,6 +213,7 @@ func (q *Queries) GetUsageResetByID(ctx context.Context, id string) (UsageReset,
 	err := row.Scan(
 		&i.ID,
 		&i.Namespace,
+		&i.Annotations,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -97,4 +235,43 @@ func (q *Queries) GetUsageResetInterval(ctx context.Context, id string) (string,
 	var usage_period_interval string
 	err := row.Scan(&usage_period_interval)
 	return usage_period_interval, err
+}
+
+const getUsageResetsByEntitlementID = `-- name: GetUsageResetsByEntitlementID :many
+SELECT id, namespace, annotations, created_at, updated_at, deleted_at, reset_time, entitlement_id, anchor, usage_period_interval FROM usage_resets WHERE entitlement_id = $1 ORDER BY reset_time ASC
+`
+
+// Query to get all usage resets for an entitlement
+func (q *Queries) GetUsageResetsByEntitlementID(ctx context.Context, entitlementID string) ([]UsageReset, error) {
+	rows, err := q.db.QueryContext(ctx, getUsageResetsByEntitlementID, entitlementID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UsageReset
+	for rows.Next() {
+		var i UsageReset
+		if err := rows.Scan(
+			&i.ID,
+			&i.Namespace,
+			&i.Annotations,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.ResetTime,
+			&i.EntitlementID,
+			&i.Anchor,
+			&i.UsagePeriodInterval,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

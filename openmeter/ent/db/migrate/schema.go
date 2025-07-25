@@ -2388,6 +2388,7 @@ var (
 	UsageResetsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
@@ -2404,7 +2405,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "usage_resets_entitlements_usage_reset",
-				Columns:    []*schema.Column{UsageResetsColumns[8]},
+				Columns:    []*schema.Column{UsageResetsColumns[9]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -2421,14 +2422,24 @@ var (
 				Columns: []*schema.Column{UsageResetsColumns[1]},
 			},
 			{
+				Name:    "usagereset_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{UsageResetsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
 				Name:    "usagereset_namespace_entitlement_id",
 				Unique:  false,
-				Columns: []*schema.Column{UsageResetsColumns[1], UsageResetsColumns[8]},
+				Columns: []*schema.Column{UsageResetsColumns[1], UsageResetsColumns[9]},
 			},
 			{
 				Name:    "usagereset_namespace_entitlement_id_reset_time",
 				Unique:  false,
-				Columns: []*schema.Column{UsageResetsColumns[1], UsageResetsColumns[8], UsageResetsColumns[5]},
+				Columns: []*schema.Column{UsageResetsColumns[1], UsageResetsColumns[9], UsageResetsColumns[6]},
 			},
 		},
 	}

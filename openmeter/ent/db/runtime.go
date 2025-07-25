@@ -1576,8 +1576,8 @@ func init() {
 	_ = usageresetMixinFields0
 	usageresetMixinFields1 := usageresetMixin[1].Fields()
 	_ = usageresetMixinFields1
-	usageresetMixinFields2 := usageresetMixin[2].Fields()
-	_ = usageresetMixinFields2
+	usageresetMixinFields3 := usageresetMixin[3].Fields()
+	_ = usageresetMixinFields3
 	usageresetFields := schema.UsageReset{}.Fields()
 	_ = usageresetFields
 	// usageresetDescNamespace is the schema descriptor for namespace field.
@@ -1585,11 +1585,11 @@ func init() {
 	// usagereset.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	usagereset.NamespaceValidator = usageresetDescNamespace.Validators[0].(func(string) error)
 	// usageresetDescCreatedAt is the schema descriptor for created_at field.
-	usageresetDescCreatedAt := usageresetMixinFields2[0].Descriptor()
+	usageresetDescCreatedAt := usageresetMixinFields3[0].Descriptor()
 	// usagereset.DefaultCreatedAt holds the default value on creation for the created_at field.
 	usagereset.DefaultCreatedAt = usageresetDescCreatedAt.Default.(func() time.Time)
 	// usageresetDescUpdatedAt is the schema descriptor for updated_at field.
-	usageresetDescUpdatedAt := usageresetMixinFields2[1].Descriptor()
+	usageresetDescUpdatedAt := usageresetMixinFields3[1].Descriptor()
 	// usagereset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	usagereset.DefaultUpdatedAt = usageresetDescUpdatedAt.Default.(func() time.Time)
 	// usagereset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

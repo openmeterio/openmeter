@@ -28,6 +28,18 @@ func (_u *UsageResetUpdate) Where(ps ...predicate.UsageReset) *UsageResetUpdate 
 	return _u
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_u *UsageResetUpdate) SetAnnotations(v map[string]interface{}) *UsageResetUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *UsageResetUpdate) ClearAnnotations() *UsageResetUpdate {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *UsageResetUpdate) SetUpdatedAt(v time.Time) *UsageResetUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -115,6 +127,12 @@ func (_u *UsageResetUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 			}
 		}
 	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(usagereset.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(usagereset.FieldAnnotations, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(usagereset.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -142,6 +160,18 @@ type UsageResetUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *UsageResetMutation
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *UsageResetUpdateOne) SetAnnotations(v map[string]interface{}) *UsageResetUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *UsageResetUpdateOne) ClearAnnotations() *UsageResetUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -260,6 +290,12 @@ func (_u *UsageResetUpdateOne) sqlSave(ctx context.Context) (_node *UsageReset, 
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(usagereset.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(usagereset.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(usagereset.FieldUpdatedAt, field.TypeTime, value)

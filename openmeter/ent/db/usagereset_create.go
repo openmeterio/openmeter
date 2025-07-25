@@ -31,6 +31,12 @@ func (_c *UsageResetCreate) SetNamespace(v string) *UsageResetCreate {
 	return _c
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_c *UsageResetCreate) SetAnnotations(v map[string]interface{}) *UsageResetCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *UsageResetCreate) SetCreatedAt(v time.Time) *UsageResetCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -236,6 +242,10 @@ func (_c *UsageResetCreate) createSpec() (*UsageReset, *sqlgraph.CreateSpec) {
 		_spec.SetField(usagereset.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(usagereset.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(usagereset.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -328,6 +338,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetAnnotations sets the "annotations" field.
+func (u *UsageResetUpsert) SetAnnotations(v map[string]interface{}) *UsageResetUpsert {
+	u.Set(usagereset.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *UsageResetUpsert) UpdateAnnotations() *UsageResetUpsert {
+	u.SetExcluded(usagereset.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *UsageResetUpsert) ClearAnnotations() *UsageResetUpsert {
+	u.SetNull(usagereset.FieldAnnotations)
+	return u
+}
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *UsageResetUpsert) SetUpdatedAt(v time.Time) *UsageResetUpsert {
@@ -423,6 +451,27 @@ func (u *UsageResetUpsertOne) Update(set func(*UsageResetUpsert)) *UsageResetUps
 		set(&UsageResetUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *UsageResetUpsertOne) SetAnnotations(v map[string]interface{}) *UsageResetUpsertOne {
+	return u.Update(func(s *UsageResetUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *UsageResetUpsertOne) UpdateAnnotations() *UsageResetUpsertOne {
+	return u.Update(func(s *UsageResetUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *UsageResetUpsertOne) ClearAnnotations() *UsageResetUpsertOne {
+	return u.Update(func(s *UsageResetUpsert) {
+		s.ClearAnnotations()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -691,6 +740,27 @@ func (u *UsageResetUpsertBulk) Update(set func(*UsageResetUpsert)) *UsageResetUp
 		set(&UsageResetUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *UsageResetUpsertBulk) SetAnnotations(v map[string]interface{}) *UsageResetUpsertBulk {
+	return u.Update(func(s *UsageResetUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *UsageResetUpsertBulk) UpdateAnnotations() *UsageResetUpsertBulk {
+	return u.Update(func(s *UsageResetUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *UsageResetUpsertBulk) ClearAnnotations() *UsageResetUpsertBulk {
+	return u.Update(func(s *UsageResetUpsert) {
+		s.ClearAnnotations()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
