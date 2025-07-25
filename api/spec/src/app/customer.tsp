@@ -1,11 +1,6 @@
 import "./app.tsp";
 import "../types.tsp";
 
-using OpenMeter.App;
-
-using TypeSpec.Http;
-using TypeSpec.OpenAPI;
-
 namespace OpenMeter.App;
 
 /**

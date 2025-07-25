@@ -8382,6 +8382,130 @@ export const getCustomerEntitlementValueQueryParams = zod.object({
 })
 
 /**
+ * Get stripe app data for a customer.
+Only returns data if the customer billing profile is linked to a stripe app and customer.
+ * @summary Get customer stripe app data
+ */
+export const getCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+export const getCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo = 256
+
+export const getCustomerStripeAppDataParams = zod.object({
+  customerIdOrKey: zod.coerce
+    .string()
+    .regex(getCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(getCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
+})
+
+/**
+ * Upsert stripe app data for a customer.
+Only updates data if the customer billing profile is linked to a stripe app and customer.
+ * @summary Update customer stripe app data
+ */
+export const updateCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne =
+  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
+export const updateCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo = 256
+
+export const updateCustomerStripeAppDataParams = zod.object({
+  customerIdOrKey: zod.coerce
+    .string()
+    .regex(updateCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(updateCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
+})
+
+export const updateCustomerStripeAppDataBodyIdRegExp = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+
+export const updateCustomerStripeAppDataBody = zod
+  .object({
+    id: zod.coerce
+      .string()
+      .regex(updateCustomerStripeAppDataBodyIdRegExp)
+      .optional()
+      .describe(
+        'The app ID.\nIf not provided, it will use the global default for the app type.'
+      ),
+    stripeCustomerId: zod.coerce.string().describe('The Stripe customer ID.'),
+    stripeDefaultPaymentMethodId: zod.coerce
+      .string()
+      .optional()
+      .describe('The Stripe default payment method ID.'),
+    type: zod.enum(['stripe']).describe('The app name.'),
+  })
+  .describe('Stripe Customer App Data.')
+
+/**
+ * Create Stripe customer portal session.
+Only returns URL if the customer billing profile is linked to a stripe app and customer.
+
+Useful to redirect the customer to the Stripe customer portal to manage their payment methods,
+change their billing address and access their invoice history.
+ * @summary Create Stripe customer portal session
+ */
+export const createCustomerStripePortalSessionPathCustomerIdOrKeyRegExpOne =
+  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
+export const createCustomerStripePortalSessionPathCustomerIdOrKeyMaxTwo = 256
+
+export const createCustomerStripePortalSessionParams = zod.object({
+  customerIdOrKey: zod.coerce
+    .string()
+    .regex(createCustomerStripePortalSessionPathCustomerIdOrKeyRegExpOne)
+    .describe(
+      'ULID (Universally Unique Lexicographically Sortable Identifier).'
+    )
+    .or(
+      zod.coerce
+        .string()
+        .min(1)
+        .max(createCustomerStripePortalSessionPathCustomerIdOrKeyMaxTwo)
+        .describe('ExternalKey is a looser version of key.')
+    ),
+})
+
+export const createCustomerStripePortalSessionBody = zod
+  .object({
+    configuration: zod.coerce
+      .string()
+      .optional()
+      .describe(
+        'The ID of an existing configuration to use for this session,\ndescribing its functionality and features.\nIf not specified, the session uses the default configuration.\n\nSee https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-configuration'
+      ),
+    locale: zod.coerce
+      .string()
+      .optional()
+      .describe(
+        'The IETF language tag of the locale customer portal is displayed in.\nIf blank or auto, the customer’s preferred_locales or browser’s locale is used.\n\nSee: https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-locale'
+      ),
+    returnUrl: zod.coerce
+      .string()
+      .optional()
+      .describe(
+        'The URL to redirect the customer to after they have completed\ntheir requested actions.\n\nSee: https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-return_url'
+      ),
+  })
+  .describe('Stripe customer portal request params.')
+
+/**
  * Lists all subscriptions for a customer.
  * @summary List customer subscriptions
  */
