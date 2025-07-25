@@ -367,7 +367,7 @@ BEGIN
     -- Let's iterate through the entitlements in batches
     LOOP
         -- Let's update the total count on each iteration so we get any new items as well
-        total_count = (SELECT COUNT(*) FROM entitlements WHERE entitlement_type = 'metered');
+        total_count = (SELECT COUNT(*) FROM entitlements WHERE entitlement_type = 'metered' AND measure_usage_from IS NOT NULL);
 
         IF query_offset >= total_count THEN
             EXIT;

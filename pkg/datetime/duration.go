@@ -66,6 +66,10 @@ func (p ISODuration) Simplify(exact bool) ISODuration {
 	return ISODuration{p.Period.Simplify(exact)}
 }
 
+func (p ISODuration) Negate() ISODuration {
+	return ISODuration{p.Period.Negate()}
+}
+
 func (p ISODuration) Add(p2 ISODuration) (ISODuration, error) {
 	s2 := period.ISOString(p2.String())
 	per2, err := period.Parse(string(s2))
