@@ -69,7 +69,7 @@ func (r PatchRemoveItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subsc
 	if exists && currentPhase.PhaseKey == r.PhaseKey {
 		// If it's removed from the current phase, we should set its end time to the current time, instead of deleting it (as we cannot falsify history)
 
-		diff := datetime.Between(phaseStartTime, actx.CurrentTime)
+		diff := datetime.ISODurationBetween(phaseStartTime, actx.CurrentTime)
 
 		phase.ItemsByKey[r.ItemKey][len(phase.ItemsByKey[r.ItemKey])-1].ActiveToOverrideRelativeToPhaseStart = &diff
 	} else {

@@ -329,7 +329,7 @@ func (r *FlatFeeRateCard) Validate() error {
 		}
 
 		// Billing Cadence has to be at least 1 hour
-		if per, err := r.BillingCadence.Subtract(datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		if per, err := r.BillingCadence.Subtract(datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 			errs = append(errs, ErrBillingCadenceInvalidValue)
 		}
 	}
@@ -482,7 +482,7 @@ func (r *UsageBasedRateCard) Validate() error {
 	}
 
 	// Billing Cadence has to be at least 1 hour
-	if per, err := r.BillingCadence.Subtract(datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+	if per, err := r.BillingCadence.Subtract(datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 		errs = append(errs, ErrBillingCadenceInvalidValue)
 	}
 

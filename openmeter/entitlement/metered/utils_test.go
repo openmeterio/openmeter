@@ -140,7 +140,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 			Tracer:                 tracer,
 			Granularity:            time.Minute,
 			Publisher:              mockPublisher,
-			SnapshotGracePeriod:    datetime.MustParse(t, "P1W"),
+			SnapshotGracePeriod:    datetime.MustParseDuration(t, "P1W"),
 			TransactionManager:     transactionManager,
 		},
 	)

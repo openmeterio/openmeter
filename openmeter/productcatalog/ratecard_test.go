@@ -49,7 +49,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 							PaymentTerm: InArrearsPaymentTerm,
 						}),
 					},
-					BillingCadence: lo.ToPtr(datetime.MustParse(t, "P1M")),
+					BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 				},
 				ExpectedError: false,
 			},
@@ -95,7 +95,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 								PaymentTerm: PaymentTermType("invalid"),
 							}),
 					},
-					BillingCadence: lo.ToPtr(datetime.MustParse(t, "P0M")),
+					BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P0M")),
 				},
 				ExpectedError: true,
 			},
@@ -116,7 +116,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 							},
 						},
 					},
-					BillingCadence: lo.ToPtr(datetime.MustParse(t, "P1M")),
+					BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 				},
 				ExpectedError: false,
 			},
@@ -137,7 +137,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 							},
 						},
 					},
-					BillingCadence: lo.ToPtr(datetime.MustParse(t, "P1M")),
+					BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 				},
 				ExpectedError: true,
 			},
@@ -200,7 +200,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 								IssueAfterReset:         lo.ToPtr(500.0),
 								IssueAfterResetPriority: lo.ToPtr[uint8](1),
 								PreserveOverageAtReset:  nil,
-								UsagePeriod:             datetime.MustParse(t, "P1M"),
+								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 							}),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
@@ -216,7 +216,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 								},
 							}),
 					},
-					BillingCadence: datetime.MustParse(t, "P1M"),
+					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				},
 				ExpectedError: false,
 			},
@@ -241,7 +241,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 								IssueAfterReset:         lo.ToPtr(500.0),
 								IssueAfterResetPriority: lo.ToPtr[uint8](1),
 								PreserveOverageAtReset:  nil,
-								UsagePeriod:             datetime.MustParse(t, "P1M"),
+								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 							}),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
@@ -257,7 +257,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 								},
 							}),
 					},
-					BillingCadence: datetime.MustParse(t, "P0M"),
+					BillingCadence: datetime.MustParseDuration(t, "P0M"),
 				},
 				ExpectedError: true,
 			},
@@ -286,7 +286,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 							},
 						},
 					},
-					BillingCadence: datetime.MustParse(t, "P1M"),
+					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				},
 				ExpectedError: false,
 			},
@@ -311,7 +311,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 							},
 						},
 					},
-					BillingCadence: datetime.MustParse(t, "P1M"),
+					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				},
 				ExpectedError: true,
 			},
@@ -332,7 +332,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 							},
 						},
 					},
-					BillingCadence: datetime.MustParse(t, "P1M"),
+					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				},
 				ExpectedError: true,
 			},
@@ -397,7 +397,7 @@ func TestRateCardsEqual(t *testing.T) {
 									IssueAfterReset:         lo.ToPtr(500.0),
 									IssueAfterResetPriority: lo.ToPtr[uint8](1),
 									PreserveOverageAtReset:  nil,
-									UsagePeriod:             datetime.MustParse(t, "P1M"),
+									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
 							TaxConfig: &TaxConfig{
 								Stripe: &StripeTaxConfig{
@@ -421,7 +421,7 @@ func TestRateCardsEqual(t *testing.T) {
 								},
 							},
 						},
-						BillingCadence: datetime.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					},
 				},
 				Right: []RateCard{
@@ -444,7 +444,7 @@ func TestRateCardsEqual(t *testing.T) {
 									IssueAfterReset:         lo.ToPtr(500.0),
 									IssueAfterResetPriority: lo.ToPtr[uint8](1),
 									PreserveOverageAtReset:  nil,
-									UsagePeriod:             datetime.MustParse(t, "P1M"),
+									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
 							TaxConfig: &TaxConfig{
 								Stripe: &StripeTaxConfig{
@@ -468,7 +468,7 @@ func TestRateCardsEqual(t *testing.T) {
 								},
 							},
 						},
-						BillingCadence: datetime.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					},
 				},
 				ExpectedEqual: true,
@@ -495,7 +495,7 @@ func TestRateCardsEqual(t *testing.T) {
 									IssueAfterReset:         lo.ToPtr(500.0),
 									IssueAfterResetPriority: lo.ToPtr[uint8](1),
 									PreserveOverageAtReset:  nil,
-									UsagePeriod:             datetime.MustParse(t, "P1M"),
+									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
 							TaxConfig: &TaxConfig{
 								Stripe: &StripeTaxConfig{
@@ -511,7 +511,7 @@ func TestRateCardsEqual(t *testing.T) {
 									},
 								}),
 						},
-						BillingCadence: datetime.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					},
 				},
 				Right: []RateCard{
@@ -542,7 +542,7 @@ func TestRateCardsEqual(t *testing.T) {
 								PaymentTerm: InArrearsPaymentTerm,
 							}),
 						},
-						BillingCadence: lo.ToPtr(datetime.MustParse(t, "P1M")),
+						BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 					},
 				},
 				ExpectedEqual: false,
@@ -579,7 +579,7 @@ func TestRateCardsEqual(t *testing.T) {
 								},
 							},
 						},
-						BillingCadence: datetime.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					},
 				},
 				Right: []RateCard{
@@ -610,7 +610,7 @@ func TestRateCardsEqual(t *testing.T) {
 								},
 							},
 						},
-						BillingCadence: datetime.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					},
 				},
 				ExpectedEqual: true,
@@ -632,9 +632,9 @@ func TestRateCardsEqual(t *testing.T) {
 }
 
 func TestRateCards_BillingCadenceAligned(t *testing.T) {
-	p1m := datetime.MustParse(t, "P1M")
-	p3m := datetime.MustParse(t, "P3M")
-	p1y := datetime.MustParse(t, "P1Y")
+	p1m := datetime.MustParseDuration(t, "P1M")
+	p3m := datetime.MustParseDuration(t, "P3M")
+	p1y := datetime.MustParseDuration(t, "P1Y")
 
 	// Helper for creating price
 	price := func() *Price {
@@ -850,10 +850,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(500.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](1),
 							PreserveOverageAtReset:  lo.ToPtr(false),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
@@ -872,10 +872,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
 			wantErr: false,
 		},
@@ -898,10 +898,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(500.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](1),
 							PreserveOverageAtReset:  lo.ToPtr(false),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
@@ -923,10 +923,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
 			wantErr: true,
 		},
@@ -949,10 +949,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: lo.ToPtr(datetime.MustParse(t, "P1M")),
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
@@ -971,10 +971,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
 			wantErr: true,
 		},
@@ -997,10 +997,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: lo.ToPtr(datetime.MustParse(t, "P1M")),
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
@@ -1019,10 +1019,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
 			wantErr: true,
 		},
@@ -1045,10 +1045,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: lo.ToPtr(datetime.MustParse(t, "P3M")),
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P3M")),
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
@@ -1067,10 +1067,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
 			wantErr: true,
 		},
@@ -1093,10 +1093,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: lo.ToPtr(datetime.MustParse(t, "P1M")),
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
@@ -1113,7 +1113,7 @@ func TestRateCardsCompatible(t *testing.T) {
 							},
 						}),
 				},
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
 			wantErr: true,
 		},
@@ -1136,10 +1136,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P1M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 						}),
 				},
-				BillingCadence: lo.ToPtr(datetime.MustParse(t, "P1M")),
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 			},
 			vCard: &UsageBasedRateCard{
 				RateCardMeta: RateCardMeta{
@@ -1158,10 +1158,10 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterReset:         lo.ToPtr(1000.0),
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
-							UsagePeriod:             datetime.MustParse(t, "P3M"),
+							UsagePeriod:             datetime.MustParseDuration(t, "P3M"),
 						}),
 				},
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
 			wantErr: true,
 		},

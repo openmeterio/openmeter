@@ -97,7 +97,7 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 				}
 			} else {
 				// 3. If it's added to the current phase, and start time is not specified, it will be set for the current time, as you cannot change the past
-				diff := datetime.Between(phaseStartTime, actx.CurrentTime)
+				diff := datetime.ISODurationBetween(phaseStartTime, actx.CurrentTime)
 				a.CreateInput.ActiveFromOverrideRelativeToPhaseStart = &diff
 			}
 		} else if phaseStartTime.After(currentPhaseStartTime) {

@@ -552,7 +552,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 	}))
 
 	t.Run("Should not combine two subsequent identical items (present due to an edit) when changing the quantity after an addon is already purchased", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		twoMonths := testutils.GetISODuration(t, "P2M")
+		twoMonths := datetime.MustParseDuration(t, "P2M")
 
 		twoMonthsFromNow, _ := twoMonths.AddTo(now)
 
@@ -565,7 +565,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 					Key:            "test_plan",
 					Version:        1,
 					Currency:       currency.USD,
-					BillingCadence: datetime.MustParse(t, "P1M"),
+					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
 						Enabled: true,
 						Mode:    productcatalog.ProRatingModeProratePrices,

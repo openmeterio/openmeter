@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 func TestEdit(t *testing.T) {
@@ -164,7 +165,7 @@ func TestEdit(t *testing.T) {
 				require.True(t, st.After(clock.Now()))
 
 				// Let's make it start one month later
-				spec.Phases[pKey].StartAfter, err = spec.Phases[pKey].StartAfter.Add(testutils.GetISODuration(t, "P1M"))
+				spec.Phases[pKey].StartAfter, err = spec.Phases[pKey].StartAfter.Add(datetime.MustParseDuration(t, "P1M"))
 				require.Nil(t, err)
 
 				_, err = deps.Service.Update(ctx, sub.NamespacedID, spec)

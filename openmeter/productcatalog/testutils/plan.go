@@ -26,7 +26,7 @@ func NewTestPlan(t *testing.T, namespace string, phases ...productcatalog.Phase)
 				Description:    lo.ToPtr("Test plan"),
 				Metadata:       models.Metadata{"name": "test"},
 				Currency:       currency.USD,
-				BillingCadence: datetime.MustParse(t, "P1M"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,

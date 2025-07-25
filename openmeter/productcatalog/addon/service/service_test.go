@@ -15,13 +15,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
-	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var MonthPeriod = datetime.FromDuration(30 * 24 * time.Hour)
+var MonthPeriod = datetime.ISODurationFromDuration(30 * 24 * time.Hour)
 
 func TestAddonService(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -291,7 +290,7 @@ func TestAddonService(t *testing.T) {
 										PaymentTerm: productcatalog.DefaultPaymentTerm,
 									}),
 								},
-								BillingCadence: lo.ToPtr(testutils.GetISODuration(t, "P1W")),
+								BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1W")),
 							},
 							&productcatalog.FlatFeeRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
@@ -302,7 +301,7 @@ func TestAddonService(t *testing.T) {
 										PaymentTerm: productcatalog.DefaultPaymentTerm,
 									}),
 								},
-								BillingCadence: lo.ToPtr(testutils.GetISODuration(t, "P1M")),
+								BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 							},
 						},
 					}

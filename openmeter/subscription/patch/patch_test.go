@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -131,8 +132,8 @@ func TestRemoveAdd(t *testing.T) {
 		found := s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
 
 		assert.Len(t, found, 2)
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[0].ActiveToOverrideRelativeToPhaseStart)
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[1].ActiveFromOverrideRelativeToPhaseStart)
+		assert.Equal(t, lo.ToPtr(datetime.MustParseDuration(t, "PT86400S")), found[0].ActiveToOverrideRelativeToPhaseStart)
+		assert.Equal(t, lo.ToPtr(datetime.MustParseDuration(t, "PT86400S")), found[1].ActiveFromOverrideRelativeToPhaseStart)
 
 		// Now lets simulate some time passing
 		now = now.Add(time.Hour * 1)
@@ -148,11 +149,11 @@ func TestRemoveAdd(t *testing.T) {
 		found = s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
 
 		assert.Len(t, found, 3)
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[0].ActiveToOverrideRelativeToPhaseStart)
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[1].ActiveFromOverrideRelativeToPhaseStart)
+		assert.Equal(t, lo.ToPtr(datetime.MustParseDuration(t, "PT86400S")), found[0].ActiveToOverrideRelativeToPhaseStart)
+		assert.Equal(t, lo.ToPtr(datetime.MustParseDuration(t, "PT86400S")), found[1].ActiveFromOverrideRelativeToPhaseStart)
 		// 90000s = 25h = 1d + 1h
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT90000S")), found[1].ActiveToOverrideRelativeToPhaseStart)
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT90000S")), found[2].ActiveFromOverrideRelativeToPhaseStart)
+		assert.Equal(t, lo.ToPtr(datetime.MustParseDuration(t, "PT90000S")), found[1].ActiveToOverrideRelativeToPhaseStart)
+		assert.Equal(t, lo.ToPtr(datetime.MustParseDuration(t, "PT90000S")), found[2].ActiveFromOverrideRelativeToPhaseStart)
 	})
 }
 
