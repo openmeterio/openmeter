@@ -75,15 +75,15 @@ model StripeCustomerAppData {
  */
 @friendlyName("StripeCustomerAppDataBase")
 model StripeCustomerAppDataBase {
-    /**
+  /**
    * The Stripe customer ID.
    */
-    stripeCustomerId: string;
+  stripeCustomerId: string;
 
-    /**
-     * The Stripe default payment method ID.
-     */
-    stripeDefaultPaymentMethodId?: string;
+  /**
+   * The Stripe default payment method ID.
+   */
+  stripeDefaultPaymentMethodId?: string;
 }
 
 /**
