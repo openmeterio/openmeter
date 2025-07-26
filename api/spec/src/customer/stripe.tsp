@@ -18,7 +18,7 @@ namespace OpenMeter.Customer;
 interface CustomersStripe {
   /**
    * Get stripe app data for a customer.
-   * Only returns data if the customer billing profile is linked to a stripe app and customer.
+   * Only returns data if the customer billing profile is linked to a stripe app.
    */
   @get
   @operationId("getCustomerStripeAppData")
@@ -29,14 +29,14 @@ interface CustomersStripe {
 
   /**
    * Upsert stripe app data for a customer.
-   * Only updates data if the customer billing profile is linked to a stripe app and customer.
+   * Only updates data if the customer billing profile is linked to a stripe app.
    */
   @put
-  @operationId("updateCustomerStripeAppData")
-  @summary("Update customer stripe app data")
+  @operationId("upsertCustomerStripeAppData")
+  @summary("Upsert customer stripe app data")
   upsert(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @body appData: App.StripeCustomerAppData,
+    @body appData: App.StripeCustomerAppDataBase,
   ): App.StripeCustomerAppData | NotFoundError | CommonErrors;
 
   /**

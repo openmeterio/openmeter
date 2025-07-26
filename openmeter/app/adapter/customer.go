@@ -24,12 +24,18 @@ func (a *adapter) ListCustomerData(ctx context.Context, input app.ListCustomerIn
 		)
 	}
 
-	apps, err := a.ListApps(ctx, app.ListAppInput{
+	listInput := app.ListAppInput{
 		Page:       input.Page,
 		Namespace:  input.CustomerID.Namespace,
 		CustomerID: &input.CustomerID,
 		Type:       input.Type,
-	})
+	}
+
+	if input.AppID != nil {
+		listInput.AppIDs = []app.AppID{*input.AppID}
+	}
+
+	apps, err := a.ListApps(ctx, listInput)
 	if err != nil {
 		return pagination.PagedResponse[app.CustomerApp]{}, fmt.Errorf("failed to list apps: %w", err)
 	}

@@ -280,10 +280,7 @@ func (h *handler) getCustomerData(ctx context.Context, customerID customer.Custo
 		}
 
 		// Create customer data
-		stripeCustomerData := appstripeentity.CustomerData{
-			StripeCustomerID:             apiStripeCustomerData.StripeCustomerId,
-			StripeDefaultPaymentMethodID: apiStripeCustomerData.StripeDefaultPaymentMethodId,
-		}
+		stripeCustomerData := fromAPIAppStripeCustomerData(apiStripeCustomerData)
 
 		return resolvedApp, stripeCustomerData, nil
 	case string(app.AppTypeCustomInvoicing):
@@ -356,22 +353,21 @@ func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, erro
 	apiCustomerAppData := api.CustomerAppData{}
 	appId := a.App.GetID().ID
 
-	switch customerApp := a.CustomerData.(type) {
+	switch customerAppData := a.CustomerData.(type) {
 	case appstripeentity.CustomerData:
 		stripeApp, ok := a.App.(appstripeentityapp.App)
 		if !ok {
 			return apiCustomerAppData, fmt.Errorf("error casting app to stripe app")
 		}
 
-		apiStripeCustomerAppData := api.StripeCustomerAppData{
-			Id:                           &appId,
-			Type:                         api.StripeCustomerAppDataTypeStripe,
-			App:                          lo.ToPtr(mapStripeAppToAPI(stripeApp.Meta)),
-			StripeCustomerId:             customerApp.StripeCustomerID,
-			StripeDefaultPaymentMethodId: customerApp.StripeDefaultPaymentMethodID,
+		// Convert to API stripe customer app data
+		apiStripeCustomerAppData, err := h.toAPIStripeCustomerAppData(customerAppData, stripeApp)
+		if err != nil {
+			return apiCustomerAppData, fmt.Errorf("error converting to stripe customer app: %w", err)
 		}
 
-		err := apiCustomerAppData.FromStripeCustomerAppData(apiStripeCustomerAppData)
+		// Convert to API customer app data
+		err = apiCustomerAppData.FromStripeCustomerAppData(apiStripeCustomerAppData)
 		if err != nil {
 			return apiCustomerAppData, fmt.Errorf("error converting to stripe customer app: %w", err)
 		}

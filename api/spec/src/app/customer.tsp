@@ -61,22 +61,29 @@ model SandboxCustomerAppData {
 @friendlyName("StripeCustomerAppData")
 model StripeCustomerAppData {
   ...CustomerAppBase<Type.Stripe>;
+  ...StripeCustomerAppDataBase;
 
   /**
    * The installed stripe app this data belongs to.
    */
   @visibility(Lifecycle.Read)
   app?: StripeApp;
+}
 
-  /**
+/**
+ * Stripe Customer App Data Base.
+ */
+@friendlyName("StripeCustomerAppDataBase")
+model StripeCustomerAppDataBase {
+    /**
    * The Stripe customer ID.
    */
-  stripeCustomerId: string;
+    stripeCustomerId: string;
 
-  /**
-   * The Stripe default payment method ID.
-   */
-  stripeDefaultPaymentMethodId?: string;
+    /**
+     * The Stripe default payment method ID.
+     */
+    stripeDefaultPaymentMethodId?: string;
 }
 
 /**

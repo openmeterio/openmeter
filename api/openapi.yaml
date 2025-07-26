@@ -4399,7 +4399,7 @@ paths:
       summary: Get customer stripe app data
       description: |-
         Get stripe app data for a customer.
-        Only returns data if the customer billing profile is linked to a stripe app and customer.
+        Only returns data if the customer billing profile is linked to a stripe app.
       parameters:
         - name: customerIdOrKey
           in: path
@@ -4464,11 +4464,11 @@ paths:
       tags:
         - CustomersStripe
     put:
-      operationId: updateCustomerStripeAppData
-      summary: Update customer stripe app data
+      operationId: upsertCustomerStripeAppData
+      summary: Upsert customer stripe app data
       description: |-
         Upsert stripe app data for a customer.
-        Only updates data if the customer billing profile is linked to a stripe app and customer.
+        Only updates data if the customer billing profile is linked to a stripe app.
       parameters:
         - name: customerIdOrKey
           in: path
@@ -4537,7 +4537,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/StripeCustomerAppDataCreateOrUpdate'
+              $ref: '#/components/schemas/StripeCustomerAppDataBase'
   /api/v1/customers/{customerIdOrKey}/stripe/portal:
     post:
       operationId: createCustomerStripePortalSession
@@ -22225,51 +22225,33 @@ components:
             - stripe
           description: The app name.
           title: App Type
+        stripeCustomerId:
+          type: string
+          description: The Stripe customer ID.
+        stripeDefaultPaymentMethodId:
+          type: string
+          description: The Stripe default payment method ID.
         app:
           allOf:
             - $ref: '#/components/schemas/StripeApp'
           description: The installed stripe app this data belongs to.
           readOnly: true
-        stripeCustomerId:
-          type: string
-          description: The Stripe customer ID.
-        stripeDefaultPaymentMethodId:
-          type: string
-          description: The Stripe default payment method ID.
       description: Stripe Customer App Data.
       example:
         type: stripe
         stripeCustomerId: cus_xxxxxxxxxxxxxx
-    StripeCustomerAppDataCreateOrUpdate:
+    StripeCustomerAppDataBase:
       type: object
       required:
-        - type
         - stripeCustomerId
       properties:
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: |-
-            The app ID.
-            If not provided, it will use the global default for the app type.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          title: App ID
-        type:
-          type: string
-          enum:
-            - stripe
-          description: The app name.
-          title: App Type
         stripeCustomerId:
           type: string
           description: The Stripe customer ID.
         stripeDefaultPaymentMethodId:
           type: string
           description: The Stripe default payment method ID.
-      description: Stripe Customer App Data.
-      example:
-        type: stripe
-        stripeCustomerId: cus_xxxxxxxxxxxxxx
+      description: Stripe Customer App Data Base.
     StripeCustomerAppDataCreateOrUpdateItem:
       type: object
       required:

@@ -5,31 +5,39 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type ListCustomerInput struct {
 	pagination.Page
+	AppID      *AppID
 	CustomerID customer.CustomerID
 	Type       *AppType
 }
 
 func (a ListCustomerInput) Validate() error {
-	if err := a.Page.Validate(); err != nil {
-		return err
-	}
+	var errs []error
 
 	if err := a.CustomerID.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
+	}
+
+	if a.AppID != nil {
+		if err := a.AppID.Validate(); err != nil {
+			return err
+		}
 	}
 
 	if a.Type != nil {
 		if *a.Type == "" {
-			return fmt.Errorf("app type cannot be empty")
+			return models.NewGenericValidationError(
+				fmt.Errorf("app type cannot be empty"),
+			)
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type EnsureCustomerInput struct {

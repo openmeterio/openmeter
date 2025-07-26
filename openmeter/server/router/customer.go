@@ -80,13 +80,17 @@ func (a *Router) ListCustomerSubscriptions(w http.ResponseWriter, r *http.Reques
 // Get customer stripe app data
 // (GET /api/v1/customers/{customerIdOrKey}/stripe)
 func (a *Router) GetCustomerStripeAppData(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
-	unimplemented.GetCustomerStripeAppData(w, r, customerIdOrKey)
+	a.appHandler.GetCustomerStripeAppData().With(apphttpdriver.GetCustomerStripeAppDataParams{
+		CustomerIdOrKey: customerIdOrKey,
+	}).ServeHTTP(w, r)
 }
 
-// Update customer stripe app data
+// Upsert customer stripe app data
 // (PUT /api/v1/customers/{customerIdOrKey}/stripe)
-func (a *Router) UpdateCustomerStripeAppData(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
-	unimplemented.UpdateCustomerStripeAppData(w, r, customerIdOrKey)
+func (a *Router) UpsertCustomerStripeAppData(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
+	a.appHandler.UpsertCustomerStripeAppData().With(apphttpdriver.UpsertCustomerStripeAppDataParams{
+		CustomerIdOrKey: customerIdOrKey,
+	}).ServeHTTP(w, r)
 }
 
 // Create Stripe customer portal session
