@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/samber/lo"
 )
 
 var _ app.AppAdapter = (*adapter)(nil)
@@ -94,6 +95,15 @@ func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagina
 					appcustomerdb.CustomerID(params.CustomerID.ID),
 					appcustomerdb.DeletedAtIsNil(),
 				))
+			}
+
+			// Only list apps that has the given app IDs
+			if len(params.AppIDs) > 0 {
+				appIDs := lo.Map(params.AppIDs, func(appID app.AppID, _ int) string {
+					return appID.ID
+				})
+
+				query = query.Where(appdb.IDIn(appIDs...))
 			}
 
 			response := pagination.PagedResponse[app.App]{

@@ -150,6 +150,7 @@ type ListAppInput struct {
 	Namespace string
 	pagination.Page
 
+	AppIDs         []AppID
 	Type           *AppType
 	IncludeDeleted bool
 	// Only list apps that has data for the given customer
@@ -157,21 +158,45 @@ type ListAppInput struct {
 }
 
 func (i ListAppInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		errs = append(errs, models.NewGenericValidationError(
+			errors.New("namespace is required"),
+		))
 	}
 
 	if i.CustomerID != nil {
 		if err := i.CustomerID.Validate(); err != nil {
-			return fmt.Errorf("error validating customer ID: %w", err)
+			errs = append(errs, models.NewGenericValidationError(
+				fmt.Errorf("error validating customer id: %w", err),
+			))
 		}
 
 		if i.CustomerID.Namespace != i.Namespace {
-			return fmt.Errorf("customer ID namespace %s does not match app namespace %s", i.CustomerID.Namespace, i.Namespace)
+			errs = append(errs, models.NewGenericValidationError(
+				fmt.Errorf("customer id namespace %s does not match app namespace %s", i.CustomerID.Namespace, i.Namespace),
+			))
 		}
 	}
 
-	return nil
+	if len(i.AppIDs) > 0 {
+		for _, appID := range i.AppIDs {
+			if appID.Namespace != i.Namespace {
+				errs = append(errs, models.NewGenericValidationError(
+					fmt.Errorf("app id namespace %s does not match app namespace %s", appID.Namespace, i.Namespace),
+				))
+			}
+
+			if err := appID.Validate(); err != nil {
+				errs = append(errs, models.NewGenericValidationError(
+					fmt.Errorf("error validating app id: %w", err),
+				))
+			}
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 // UpdateAppStatusInput is the input for updating an app status

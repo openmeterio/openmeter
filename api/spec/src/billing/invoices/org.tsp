@@ -2,6 +2,8 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 
+import "../../customer";
+
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
@@ -70,7 +72,7 @@ model BillingInvoiceCustomerExtendedDetails {
    * Mapping to attribute metered usage to the customer
    */
   @summary("Usage Attribution")
-  usageAttribution: CustomerUsageAttribution;
+  usageAttribution: Customer.CustomerUsageAttribution;
 }
 
 /**

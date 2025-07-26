@@ -11,7 +11,7 @@ import "./filter.tsp";
 
 import "./app";
 import "./query.tsp";
-import "./customer.tsp";
+import "./customer";
 import "./events.tsp";
 import "./meters.tsp";
 import "./portal.tsp";

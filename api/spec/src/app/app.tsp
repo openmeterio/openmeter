@@ -10,8 +10,6 @@ import "./stripe.tsp";
 import "../types.tsp";
 import "../query.tsp";
 
-using OpenMeter.App;
-
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 

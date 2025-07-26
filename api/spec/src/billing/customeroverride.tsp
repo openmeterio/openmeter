@@ -185,7 +185,7 @@ model BillingProfileCustomerOverrideWithDetails {
   /**
    * The customer this override belongs to.
    */
-  customer?: Customer;
+  customer?: Customer.Customer;
 }
 
 /**
