@@ -76,3 +76,21 @@ func (a *Router) ListCustomerSubscriptions(w http.ResponseWriter, r *http.Reques
 		Params:          params,
 	}).ServeHTTP(w, r)
 }
+
+// Get customer stripe app data
+// (GET /api/v1/customers/{customerIdOrKey}/stripe)
+func (a *Router) GetCustomerStripeAppData(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
+	unimplemented.GetCustomerStripeAppData(w, r, customerIdOrKey)
+}
+
+// Update customer stripe app data
+// (PUT /api/v1/customers/{customerIdOrKey}/stripe)
+func (a *Router) UpdateCustomerStripeAppData(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
+	unimplemented.UpdateCustomerStripeAppData(w, r, customerIdOrKey)
+}
+
+// Create Stripe customer portal session
+// (POST /api/v1/customers/{customerIdOrKey}/stripe/portal)
+func (a *Router) CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
+	unimplemented.CreateCustomerStripePortalSession(w, r, customerIdOrKey)
+}
