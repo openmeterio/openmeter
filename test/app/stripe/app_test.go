@@ -58,6 +58,10 @@ func TestAppStripe(t *testing.T) {
 			testSuite.TestCreateCheckoutSession(ctx, t)
 		})
 
+		t.Run("TestCreatePortalSession", func(t *testing.T) {
+			testSuite.TestCreatePortalSession(ctx, t)
+		})
+
 		t.Run("TestUpdateAPIKey", func(t *testing.T) {
 			testSuite.TestUpdateAPIKey(ctx, t)
 		})

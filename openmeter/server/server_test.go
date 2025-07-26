@@ -976,6 +976,10 @@ func (n NoopAppStripeService) GetMaskedSecretAPIKey(ctx context.Context, secretA
 	return "", nil
 }
 
+func (n NoopAppStripeService) CreatePortalSession(ctx context.Context, input appstripeentity.CreateStripePortalSessionInput) (appstripeentity.StripePortalSession, error) {
+	return appstripeentity.StripePortalSession{}, nil
+}
+
 // Factory methods
 func (n NoopAppStripeService) NewApp(ctx context.Context, appBase app.AppBase) (app.App, error) {
 	return nil, nil

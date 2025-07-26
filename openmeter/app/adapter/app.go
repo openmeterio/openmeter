@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
@@ -13,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/samber/lo"
 )
 
 var _ app.AppAdapter = (*adapter)(nil)

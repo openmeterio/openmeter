@@ -13804,7 +13804,7 @@ components:
     CreateStripeCustomerPortalSessionParams:
       type: object
       properties:
-        configuration:
+        configurationId:
           type: string
           description: |-
             The ID of an existing configuration to use for this session,
@@ -21469,10 +21469,10 @@ components:
       type: object
       required:
         - id
-        - customer
-        - configuration
+        - stripeCustomerId
+        - configurationId
         - livemode
-        - created
+        - createdAt
         - returnUrl
         - locale
         - url
@@ -21483,13 +21483,10 @@ components:
             The ID of the customer portal session.
 
             See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id
-        customer:
+        stripeCustomerId:
           type: string
-          description: |-
-            The ID of the customer.
-
-            See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-customer
-        configuration:
+          description: The ID of the stripe customer.
+        configurationId:
           type: string
           description: |-
             Configuration used to customize the customer portal.
@@ -21501,7 +21498,7 @@ components:
             Livemode.
 
             See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode
-        created:
+        createdAt:
           type: string
           format: date-time
           description: |-

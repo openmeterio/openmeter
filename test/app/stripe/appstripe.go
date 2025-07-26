@@ -3,6 +3,7 @@ package appstripe
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -747,6 +748,67 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		CustomerID: &customerID,
 	})
 	require.NoError(t, err, "Create checkout session must not return error")
+}
+
+// TestCreatePortalSession tests stripe app behavior when creating a new checkout session
+func (s *AppHandlerTestSuite) TestCreatePortalSession(ctx context.Context, t *testing.T) {
+	testApp, testCustomer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
+
+	// Create portal session
+	appID := testApp.GetID()
+	customerID := testCustomer.GetID()
+	createdAt := time.Now()
+
+	// Mocks
+	s.Env.StripeAppClient().
+		On("CreatePortalSession", stripeclient.CreatePortalSessionInput{
+			StripeCustomerID: defaultStripeCustomerID,
+			ReturnURL:        lo.ToPtr("https://openmeter.io"),
+		}).
+		Return(stripeclient.PortalSession{
+			ID:               "ps_123",
+			StripeCustomerID: defaultStripeCustomerID,
+			Livemode:         true,
+			Locale:           "en",
+			ReturnURL:        "https://openmeter.io",
+			URL:              "https://portal.stripe.com/ps_123",
+			CreatedAt:        createdAt,
+		}, nil)
+
+	// TODO: do not share env between tests
+	defer s.Env.StripeAppClient().Restore()
+
+	portalSession, err := s.Env.AppStripe().CreatePortalSession(ctx, appstripeentity.CreateStripePortalSessionInput{
+		AppID:      appID,
+		CustomerID: customerID,
+		ReturnURL:  lo.ToPtr("https://openmeter.io"),
+	})
+
+	require.NoError(t, err, "Create portal session must not return error")
+
+	require.Equal(t, appstripeentity.StripePortalSession{
+		ID:               "ps_123",
+		StripeCustomerID: defaultStripeCustomerID,
+		Livemode:         true,
+		Locale:           "en",
+		ReturnURL:        "https://openmeter.io",
+		URL:              "https://portal.stripe.com/ps_123",
+		CreatedAt:        createdAt,
+	}, portalSession, "Create portal session must match")
+
+	// Test app 404 error
+	appIdNotFound := app.AppID{
+		Namespace: s.namespace,
+		ID:        "not_found",
+	}
+
+	_, err = s.Env.AppStripe().CreatePortalSession(ctx, appstripeentity.CreateStripePortalSessionInput{
+		AppID:      appIdNotFound,
+		CustomerID: customerID,
+	})
+
+	require.True(t, app.IsAppNotFoundError(err), "Create portal session must return app not found error")
 }
 
 // TestUpdateAPIKey tests stripe app behavior when updating the API key

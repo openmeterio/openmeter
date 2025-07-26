@@ -69,7 +69,7 @@ model CreateStripeCustomerPortalSessionParams {
    * See https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-configuration
    */
   @summary("Configuration")
-  configuration?: string;
+  configurationId?: string;
 
   /**
    * The IETF language tag of the locale customer portal is displayed in.
@@ -105,18 +105,16 @@ model StripeCustomerPortalSession {
   id: string;
 
   /**
-   * The ID of the customer.
-   *
-   * See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-customer
+   * The ID of the stripe customer.
    */
-  customer: string;
+  stripeCustomerId: string;
 
   /**
    * Configuration used to customize the customer portal.
    *
    * See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration
    */
-  configuration: string;
+  configurationId: string;
 
   /**
    * Livemode.
@@ -130,7 +128,7 @@ model StripeCustomerPortalSession {
    *
    * See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
    */
-  created: DateTime;
+  createdAt: DateTime;
 
   /**
    * Return URL.

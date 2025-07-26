@@ -96,5 +96,7 @@ func (a *Router) UpsertCustomerStripeAppData(w http.ResponseWriter, r *http.Requ
 // Create Stripe customer portal session
 // (POST /api/v1/customers/{customerIdOrKey}/stripe/portal)
 func (a *Router) CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
-	unimplemented.CreateCustomerStripePortalSession(w, r, customerIdOrKey)
+	a.appHandler.CreateStripeCustomerPortalSession().With(apphttpdriver.CreateStripeCustomerPortalSessionParams{
+		CustomerIdOrKey: customerIdOrKey,
+	}).ServeHTTP(w, r)
 }

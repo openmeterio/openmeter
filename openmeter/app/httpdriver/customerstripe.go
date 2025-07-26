@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
@@ -13,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 type (
@@ -183,4 +184,88 @@ func (h *handler) getAPIStripeCustomerAppData(ctx context.Context, customerID cu
 	}
 
 	return apiStripeCustomerAppData, nil
+}
+
+type (
+	CreateStripeCustomerPortalSessionResponse = api.StripeCustomerPortalSession
+	CreateStripeCustomerPortalSessionHandler  httptransport.HandlerWithArgs[CreateStripeCustomerPortalSessionRequest, CreateStripeCustomerPortalSessionResponse, CreateStripeCustomerPortalSessionParams]
+)
+
+type CreateStripeCustomerPortalSessionRequest struct {
+	customerId customer.CustomerID
+	params     api.CreateStripeCustomerPortalSessionParams
+}
+
+type CreateStripeCustomerPortalSessionParams struct {
+	CustomerIdOrKey string
+}
+
+// CreateStripeCustomerPortalSession returns a handler for creating a checkout session.
+func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortalSessionHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params CreateStripeCustomerPortalSessionParams) (CreateStripeCustomerPortalSessionRequest, error) {
+			// Parse request body
+			body := api.CreateStripeCustomerPortalSessionParams{}
+			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+				return CreateStripeCustomerPortalSessionRequest{}, fmt.Errorf("field to decode create app stripe checkout session request: %w", err)
+			}
+
+			// Resolve namespace
+			namespace, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return CreateStripeCustomerPortalSessionRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			// Get the customer
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   params.CustomerIdOrKey,
+					Namespace: namespace,
+				},
+			})
+			if err != nil {
+				return CreateStripeCustomerPortalSessionRequest{}, err
+			}
+
+			// Create request
+			req := CreateStripeCustomerPortalSessionRequest{
+				customerId: cus.GetID(),
+				params:     body,
+			}
+
+			return req, nil
+		},
+		func(ctx context.Context, request CreateStripeCustomerPortalSessionRequest) (CreateStripeCustomerPortalSessionResponse, error) {
+			// Resolve the customer app by billing profile
+			genericApp, err := h.resolveCustomerApp(ctx, request.customerId, app.AppTypeStripe, nil)
+			if err != nil {
+				return CreateStripeCustomerPortalSessionResponse{}, err
+			}
+
+			// Enforce stripe apptype, see app type filter above
+			stripeApp, ok := genericApp.(appstripeentityapp.App)
+			if !ok {
+				return CreateStripeCustomerPortalSessionResponse{}, fmt.Errorf("customer app is not a stripe app")
+			}
+
+			// Create the portal session
+			portalSession, err := h.stripeAppService.CreatePortalSession(ctx, appstripeentity.CreateStripePortalSessionInput{
+				AppID:           stripeApp.GetID(),
+				CustomerID:      request.customerId,
+				ConfigurationID: request.params.ConfigurationId,
+				ReturnURL:       request.params.ReturnUrl,
+				Locale:          request.params.Locale,
+			})
+			if err != nil {
+				return CreateStripeCustomerPortalSessionResponse{}, fmt.Errorf("failed to create portal session: %w", err)
+			}
+
+			return toAPIStripePortalSession(portalSession), nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[CreateStripeCustomerPortalSessionResponse](http.StatusCreated),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("createAppStripeCheckoutSession"),
+		)...,
+	)
 }

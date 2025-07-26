@@ -102,6 +102,11 @@ func (s *Service) HandleSetupIntentSucceeded(ctx context.Context, input appstrip
 	})
 }
 
+// CreatePortalSession creates a portal session for a customer.
+func (s *Service) CreatePortalSession(ctx context.Context, input appstripeentity.CreateStripePortalSessionInput) (appstripeentity.StripePortalSession, error) {
+	return s.adapter.CreatePortalSession(ctx, input)
+}
+
 func (s *Service) generateMaskedSecretAPIKey(secretAPIKey string) string {
 	return fmt.Sprintf("%s***%s", secretAPIKey[:8], secretAPIKey[len(secretAPIKey)-3:])
 }
