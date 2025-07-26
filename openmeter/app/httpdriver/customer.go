@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -328,7 +329,7 @@ func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.Cu
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error getting default profile: %w", err)
+		return nil, fmt.Errorf("error getting default billing profile: %w", err)
 	}
 
 	mergedProfile := customerOverride.MergedProfile
@@ -342,7 +343,9 @@ func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.Cu
 	} else if mergedProfile.Apps.Tax.GetType() == appType {
 		resolvedApp = mergedProfile.Apps.Tax
 	} else {
-		return nil, fmt.Errorf("no %s app found in default profile", appType)
+		return nil, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("no %s app found in default billing profile", appType),
+		)
 	}
 
 	return resolvedApp, nil
