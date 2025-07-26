@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	apphttphandler "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -117,7 +117,7 @@ func (h *handler) UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandl
 		},
 		func(ctx context.Context, req UpsertCustomerStripeAppDataRequest) (UpsertCustomerStripeAppDataResponse, error) {
 			// Resolve the customer app by billing profile
-			stripeApp, err := h.resolveCustomerApp(ctx, req.CustomerId, app.AppTypeStripe, nil)
+			stripeApp, err := h.resolveCustomerApp(ctx, req.CustomerId)
 			if err != nil {
 				return api.StripeCustomerAppData{}, err
 			}
@@ -144,7 +144,7 @@ func (h *handler) UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandl
 // getAPIStripeCustomerAppData returns the stripe customer app data for the given customer id.
 func (h *handler) getAPIStripeCustomerAppData(ctx context.Context, customerID customer.CustomerID) (api.StripeCustomerAppData, error) {
 	// Resolve the customer app by billing profile
-	genericApp, err := h.resolveCustomerApp(ctx, customerID, app.AppTypeStripe, nil)
+	genericApp, err := h.resolveCustomerApp(ctx, customerID)
 	if err != nil {
 		return GetCustomerStripeAppDataResponse{}, err
 	}
@@ -156,32 +156,16 @@ func (h *handler) getAPIStripeCustomerAppData(ctx context.Context, customerID cu
 	}
 
 	// List customer data for the specific stripe app
-	resp, err := h.service.ListCustomerData(ctx, app.ListCustomerInput{
-		AppID:      lo.ToPtr(stripeApp.GetID()),
+	customerData, err := h.service.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+		AppID:      stripeApp.GetID(),
 		CustomerID: customerID,
 	})
 	if err != nil {
 		return GetCustomerStripeAppDataResponse{}, fmt.Errorf("failed to get customer stripe app data: %w", err)
 	}
 
-	// We need to check length of array because we use the list method to get the customer data
-	if len(resp.Items) == 0 {
-		return GetCustomerStripeAppDataResponse{}, models.NewGenericNotFoundError(
-			fmt.Errorf("no customer stripe app data found"),
-		)
-	}
-
-	// Enforce stripe customer data type
-	stripeCustomerAppData, ok := resp.Items[0].CustomerData.(appstripeentity.CustomerData)
-	if !ok {
-		return GetCustomerStripeAppDataResponse{}, fmt.Errorf("customer app data is not a stripe app data: %w", err)
-	}
-
 	// Convert to API stripe customer app data
-	apiStripeCustomerAppData, err := h.toAPIStripeCustomerAppData(stripeCustomerAppData, stripeApp)
-	if err != nil {
-		return GetCustomerStripeAppDataResponse{}, fmt.Errorf("error converting to stripe customer app: %w", err)
-	}
+	apiStripeCustomerAppData := apphttphandler.ToAPIStripeCustomerAppData(customerData, stripeApp)
 
 	return apiStripeCustomerAppData, nil
 }
@@ -237,7 +221,7 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 		},
 		func(ctx context.Context, request CreateStripeCustomerPortalSessionRequest) (CreateStripeCustomerPortalSessionResponse, error) {
 			// Resolve the customer app by billing profile
-			genericApp, err := h.resolveCustomerApp(ctx, request.customerId, app.AppTypeStripe, nil)
+			genericApp, err := h.resolveCustomerApp(ctx, request.customerId)
 			if err != nil {
 				return CreateStripeCustomerPortalSessionResponse{}, err
 			}
@@ -249,7 +233,7 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 			}
 
 			// Create the portal session
-			portalSession, err := h.stripeAppService.CreatePortalSession(ctx, appstripeentity.CreateStripePortalSessionInput{
+			portalSession, err := h.service.CreatePortalSession(ctx, appstripeentity.CreateStripePortalSessionInput{
 				AppID:           stripeApp.GetID(),
 				CustomerID:      request.customerId,
 				ConfigurationID: request.params.ConfigurationId,
@@ -268,4 +252,39 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 			httptransport.WithOperationName("createAppStripeCheckoutSession"),
 		)...,
 	)
+}
+
+// resolveCustomerApp resolves a customer app based on the app type or app ID.
+func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.CustomerID) (app.App, error) {
+	var resolvedApp app.App
+	var err error
+
+	// Get the default profile for the customer
+	customerOverride, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: customerID,
+		Expand: billing.CustomerOverrideExpand{
+			Apps: true,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting default billing profile: %w", err)
+	}
+
+	mergedProfile := customerOverride.MergedProfile
+
+	// If one of them uses the app type, anothers shouldn't use the same app type with different ID
+	// this is why we can return the first app found for the app type
+	if mergedProfile.Apps.Invoicing.GetType() == app.AppTypeStripe {
+		resolvedApp = mergedProfile.Apps.Invoicing
+	} else if mergedProfile.Apps.Payment.GetType() == app.AppTypeStripe {
+		resolvedApp = mergedProfile.Apps.Payment
+	} else if mergedProfile.Apps.Tax.GetType() == app.AppTypeStripe {
+		resolvedApp = mergedProfile.Apps.Tax
+	} else {
+		return nil, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("no stripe app found in default billing profile"),
+		)
+	}
+
+	return resolvedApp, nil
 }

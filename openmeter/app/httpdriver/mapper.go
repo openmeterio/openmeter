@@ -153,14 +153,6 @@ func MapEventAppToAPI(event app.EventApp) (api.App, error) {
 	}
 }
 
-// fromAPIAppStripeCustomerDataBase maps an API stripe customer data base to an app stripe customer data
-func fromAPIAppStripeCustomerDataBase(apiStripeCustomerData api.StripeCustomerAppDataBase) appstripeentity.CustomerData {
-	return appstripeentity.CustomerData{
-		StripeCustomerID:             apiStripeCustomerData.StripeCustomerId,
-		StripeDefaultPaymentMethodID: apiStripeCustomerData.StripeDefaultPaymentMethodId,
-	}
-}
-
 // fromAPIAppStripeCustomerData maps an API stripe customer data to an app stripe customer data
 func fromAPIAppStripeCustomerData(apiStripeCustomerData api.StripeCustomerAppData) appstripeentity.CustomerData {
 	return appstripeentity.CustomerData{
@@ -169,30 +161,11 @@ func fromAPIAppStripeCustomerData(apiStripeCustomerData api.StripeCustomerAppDat
 	}
 }
 
-// toAPIStripePortalSession maps a StripePortalSession to an API StripePortalSession
-func toAPIStripePortalSession(portalSession appstripeentity.StripePortalSession) api.StripeCustomerPortalSession {
-	apiPortalSession := api.StripeCustomerPortalSession{
-		Id:               portalSession.ID,
-		StripeCustomerId: portalSession.StripeCustomerID,
-		ReturnUrl:        portalSession.ReturnURL,
-		Url:              portalSession.URL,
-		CreatedAt:        portalSession.CreatedAt,
-		Livemode:         portalSession.Livemode,
-		Locale:           portalSession.Locale,
-	}
-
-	if portalSession.Configuration != nil {
-		apiPortalSession.ConfigurationId = portalSession.Configuration.ID
-	}
-
-	return apiPortalSession
-}
-
 // customerAppToAPI converts a CustomerApp to an API CustomerAppData
-func (h *handler) toAPIStripeCustomerAppData(
+func ToAPIStripeCustomerAppData(
 	customerAppData appstripeentity.CustomerData,
 	stripeApp appstripeentityapp.App,
-) (api.StripeCustomerAppData, error) {
+) api.StripeCustomerAppData {
 	apiStripeCustomerAppData := api.StripeCustomerAppData{
 		Id:                           lo.ToPtr(stripeApp.GetID().ID),
 		Type:                         api.StripeCustomerAppDataTypeStripe,
@@ -201,5 +174,5 @@ func (h *handler) toAPIStripeCustomerAppData(
 		StripeDefaultPaymentMethodId: customerAppData.StripeDefaultPaymentMethodID,
 	}
 
-	return apiStripeCustomerAppData, nil
+	return apiStripeCustomerAppData
 }

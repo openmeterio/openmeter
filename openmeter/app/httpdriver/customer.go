@@ -364,13 +364,10 @@ func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, erro
 		}
 
 		// Convert to API stripe customer app data
-		apiStripeCustomerAppData, err := h.toAPIStripeCustomerAppData(customerAppData, stripeApp)
-		if err != nil {
-			return apiCustomerAppData, fmt.Errorf("error converting to stripe customer app: %w", err)
-		}
+		apiStripeCustomerAppData := ToAPIStripeCustomerAppData(customerAppData, stripeApp)
 
 		// Convert to API customer app data
-		err = apiCustomerAppData.FromStripeCustomerAppData(apiStripeCustomerAppData)
+		err := apiCustomerAppData.FromStripeCustomerAppData(apiStripeCustomerAppData)
 		if err != nil {
 			return apiCustomerAppData, fmt.Errorf("error converting to stripe customer app: %w", err)
 		}

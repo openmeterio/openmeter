@@ -31,13 +31,6 @@ type AppHandler interface {
 	UpsertCustomerData() UpsertCustomerDataHandler
 	DeleteCustomerData() DeleteCustomerDataHandler
 
-	// Customer Stripe Data handlers
-	GetCustomerStripeAppData() GetCustomerStripeAppDataHandler
-	UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandler
-
-	// Customer Stripe Portal handlers
-	CreateStripeCustomerPortalSession() CreateStripeCustomerPortalSessionHandler
-
 	// Marketplace handlers
 	ListMarketplaceListings() ListMarketplaceListingsHandler
 	GetMarketplaceListing() GetMarketplaceListingHandler
