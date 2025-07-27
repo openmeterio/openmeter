@@ -25,15 +25,15 @@ func (a ListCustomerInput) Validate() error {
 
 	if a.AppID != nil {
 		if err := a.AppID.Validate(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 
 	if a.Type != nil {
 		if *a.Type == "" {
-			return models.NewGenericValidationError(
+			errs = append(errs, models.NewGenericValidationError(
 				fmt.Errorf("app type cannot be empty"),
-			)
+			))
 		}
 	}
 

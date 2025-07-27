@@ -225,7 +225,7 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 		commonhttp.JSONResponseEncoderWithStatus[CreateStripeCustomerPortalSessionResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("createAppStripeCheckoutSession"),
+			httptransport.WithOperationName("createStripeCustomerPortalSession"),
 		)...,
 	)
 }
