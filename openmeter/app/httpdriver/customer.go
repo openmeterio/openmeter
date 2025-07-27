@@ -77,7 +77,7 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 			items := make([]api.CustomerAppData, 0, len(resp.Items))
 
 			for _, customerApp := range resp.Items {
-				item, err := h.customerAppToAPI(customerApp)
+				item, err := h.toAPICustomerAppData(customerApp)
 				if err != nil {
 					return ListCustomerDataResponse{}, fmt.Errorf("failed to cast app customer data: %w", err)
 				}
@@ -146,7 +146,7 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 		},
 		func(ctx context.Context, req UpsertCustomerDataRequest) (UpsertCustomerDataResponse, error) {
 			for _, apiCustomerData := range req.Data {
-				customerApp, customerData, err := h.getCustomerData(ctx, req.CustomerId, apiCustomerData)
+				customerApp, customerData, err := h.toCustomerData(ctx, req.CustomerId, apiCustomerData)
 				if err != nil {
 					return nil, err
 				}
@@ -238,8 +238,8 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 	)
 }
 
-// getCustomerData converts an API CustomerAppData to a list of CustomerData
-func (h *handler) getCustomerData(ctx context.Context, customerID customer.CustomerID, apiApp api.CustomerAppData) (app.App, app.CustomerData, error) {
+// toCustomerData converts an API CustomerAppData to a CustomerData model
+func (h *handler) toCustomerData(ctx context.Context, customerID customer.CustomerID, apiApp api.CustomerAppData) (app.App, app.CustomerData, error) {
 	// Get app type
 	appType, err := apiApp.Discriminator()
 	if err != nil {
@@ -351,8 +351,8 @@ func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.Cu
 	return resolvedApp, nil
 }
 
-// customerAppToAPI converts a CustomerApp to an API CustomerAppData
-func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, error) {
+// toAPICustomerAppData converts a CustomerApp to an API CustomerAppData
+func (h *handler) toAPICustomerAppData(a app.CustomerApp) (api.CustomerAppData, error) {
 	apiCustomerAppData := api.CustomerAppData{}
 	appId := a.App.GetID().ID
 
