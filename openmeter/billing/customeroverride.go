@@ -7,9 +7,11 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -169,6 +171,29 @@ type GetCustomerOverrideInput struct {
 
 func (g GetCustomerOverrideInput) Validate() error {
 	return g.Customer.Validate()
+}
+
+// GetCustomerAppInput is used to get a customer app from a customer override
+type GetCustomerAppInput struct {
+	CustomerID customer.CustomerID
+	AppType    app.AppType
+}
+
+// Validate validates the input
+func (g GetCustomerAppInput) Validate() error {
+	var errs []error
+
+	if err := g.CustomerID.Validate(); err != nil {
+		errs = append(errs, models.NewGenericPreConditionFailedError(err))
+	}
+
+	if g.AppType == "" {
+		errs = append(errs, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("app type is required")),
+		)
+	}
+
+	return errors.Join(errs...)
 }
 
 type DeleteCustomerOverrideInput struct {

@@ -438,6 +438,42 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 	require.Nil(s.T(), customerProfile.CustomerOverride.Collection.Interval)
 }
 
+func (s *CustomerOverrideTestSuite) TestGetCustomerApp() {
+	ns := "test-get-customer-app"
+	ctx := context.Background()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+
+	// Create a default profile
+	defaultProfileCreateInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	defaultProfileCreateInput.Namespace = ns
+
+	defaultProfile, err := s.BillingService.CreateProfile(ctx, defaultProfileCreateInput)
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), defaultProfile)
+
+	// Create a customer
+	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: ns,
+		CustomerMutate: customer.CustomerMutate{
+			Name: "Johny the Doe",
+		},
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), cust)
+
+	// Get the customer app
+	customerApp, err := s.BillingService.GetCustomerApp(ctx, billing.GetCustomerAppInput{
+		CustomerID: cust.GetID(),
+		AppType:    sandboxApp.GetType(),
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), customerApp)
+
+	// Then we get the customer app
+	require.Equal(s.T(), sandboxApp.GetID(), customerApp.GetID())
+}
+
 func (s *CustomerOverrideTestSuite) TestListCustomerOverrides() {
 	ns := "test-list-customer-overrides"
 	ctx := context.Background()

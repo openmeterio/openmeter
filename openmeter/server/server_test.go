@@ -1391,6 +1391,10 @@ func (n NoopBillingService) GetCustomerOverride(ctx context.Context, input billi
 	return billing.CustomerOverrideWithDetails{}, nil
 }
 
+func (n NoopBillingService) GetCustomerApp(ctx context.Context, input billing.GetCustomerAppInput) (app.App, error) {
+	return nil, nil
+}
+
 func (n NoopBillingService) ListCustomerOverrides(ctx context.Context, input billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {
 	return billing.ListCustomerOverridesResult{}, nil
 }

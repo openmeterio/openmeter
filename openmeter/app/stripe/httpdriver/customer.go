@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -117,7 +116,10 @@ func (h *handler) UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandl
 		},
 		func(ctx context.Context, req UpsertCustomerStripeAppDataRequest) (UpsertCustomerStripeAppDataResponse, error) {
 			// Resolve the customer app by billing profile
-			stripeApp, err := h.resolveCustomerApp(ctx, req.CustomerId)
+			stripeApp, err := h.billingService.GetCustomerApp(ctx, billing.GetCustomerAppInput{
+				CustomerID: req.CustomerId,
+				AppType:    app.AppTypeStripe,
+			})
 			if err != nil {
 				return api.StripeCustomerAppData{}, err
 			}
@@ -139,35 +141,6 @@ func (h *handler) UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandl
 			httptransport.WithOperationName("upsertCustomerStripeAppData"),
 		)...,
 	)
-}
-
-// getAPIStripeCustomerAppData returns the stripe customer app data for the given customer id.
-func (h *handler) getAPIStripeCustomerAppData(ctx context.Context, customerID customer.CustomerID) (api.StripeCustomerAppData, error) {
-	// Resolve the customer app by billing profile
-	genericApp, err := h.resolveCustomerApp(ctx, customerID)
-	if err != nil {
-		return GetCustomerStripeAppDataResponse{}, err
-	}
-
-	// Enforce stripe apptype, see app type filter above
-	stripeApp, ok := genericApp.(appstripeentityapp.App)
-	if !ok {
-		return GetCustomerStripeAppDataResponse{}, fmt.Errorf("customer app is not a stripe app")
-	}
-
-	// List customer data for the specific stripe app
-	customerData, err := h.service.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
-		AppID:      stripeApp.GetID(),
-		CustomerID: customerID,
-	})
-	if err != nil {
-		return GetCustomerStripeAppDataResponse{}, fmt.Errorf("failed to get customer stripe app data: %w", err)
-	}
-
-	// Convert to API stripe customer app data
-	apiStripeCustomerAppData := apphttphandler.ToAPIStripeCustomerAppData(customerData, stripeApp)
-
-	return apiStripeCustomerAppData, nil
 }
 
 type (
@@ -221,7 +194,10 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 		},
 		func(ctx context.Context, request CreateStripeCustomerPortalSessionRequest) (CreateStripeCustomerPortalSessionResponse, error) {
 			// Resolve the customer app by billing profile
-			genericApp, err := h.resolveCustomerApp(ctx, request.customerId)
+			genericApp, err := h.billingService.GetCustomerApp(ctx, billing.GetCustomerAppInput{
+				CustomerID: request.customerId,
+				AppType:    app.AppTypeStripe,
+			})
 			if err != nil {
 				return CreateStripeCustomerPortalSessionResponse{}, err
 			}
@@ -254,37 +230,34 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 	)
 }
 
-// resolveCustomerApp resolves a customer app based on the app type or app ID.
-func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.CustomerID) (app.App, error) {
-	var resolvedApp app.App
-	var err error
-
-	// Get the default profile for the customer
-	customerOverride, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-		Customer: customerID,
-		Expand: billing.CustomerOverrideExpand{
-			Apps: true,
-		},
+// getAPIStripeCustomerAppData returns the stripe customer app data for the given customer id.
+func (h *handler) getAPIStripeCustomerAppData(ctx context.Context, customerID customer.CustomerID) (api.StripeCustomerAppData, error) {
+	// Resolve the customer app by billing profile
+	genericApp, err := h.billingService.GetCustomerApp(ctx, billing.GetCustomerAppInput{
+		CustomerID: customerID,
+		AppType:    app.AppTypeStripe,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error getting default billing profile: %w", err)
+		return GetCustomerStripeAppDataResponse{}, err
 	}
 
-	mergedProfile := customerOverride.MergedProfile
-
-	// If one of them uses the app type, anothers shouldn't use the same app type with different ID
-	// this is why we can return the first app found for the app type
-	if mergedProfile.Apps.Invoicing.GetType() == app.AppTypeStripe {
-		resolvedApp = mergedProfile.Apps.Invoicing
-	} else if mergedProfile.Apps.Payment.GetType() == app.AppTypeStripe {
-		resolvedApp = mergedProfile.Apps.Payment
-	} else if mergedProfile.Apps.Tax.GetType() == app.AppTypeStripe {
-		resolvedApp = mergedProfile.Apps.Tax
-	} else {
-		return nil, models.NewGenericPreConditionFailedError(
-			fmt.Errorf("no stripe app found in default billing profile"),
-		)
+	// Enforce stripe apptype, see app type filter above
+	stripeApp, ok := genericApp.(appstripeentityapp.App)
+	if !ok {
+		return GetCustomerStripeAppDataResponse{}, fmt.Errorf("customer app is not a stripe app")
 	}
 
-	return resolvedApp, nil
+	// List customer data for the specific stripe app
+	customerData, err := h.service.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+		AppID:      stripeApp.GetID(),
+		CustomerID: customerID,
+	})
+	if err != nil {
+		return GetCustomerStripeAppDataResponse{}, fmt.Errorf("failed to get customer stripe app data: %w", err)
+	}
+
+	// Convert to API stripe customer app data
+	apiStripeCustomerAppData := apphttphandler.ToAPIStripeCustomerAppData(customerData, stripeApp)
+
+	return apiStripeCustomerAppData, nil
 }

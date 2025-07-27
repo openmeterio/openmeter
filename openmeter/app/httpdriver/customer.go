@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -321,31 +320,13 @@ func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.Cu
 		})
 	}
 
-	// Get the default profile for the customer
-	customerOverride, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-		Customer: customerID,
-		Expand: billing.CustomerOverrideExpand{
-			Apps: true,
-		},
+	// Get the customer app by type
+	resolvedApp, err = h.billingService.GetCustomerApp(ctx, billing.GetCustomerAppInput{
+		CustomerID: customerID,
+		AppType:    appType,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error getting default billing profile: %w", err)
-	}
-
-	mergedProfile := customerOverride.MergedProfile
-
-	// If one of them uses the app type, anothers shouldn't use the same app type with different ID
-	// this is why we can return the first app found for the app type
-	if mergedProfile.Apps.Invoicing.GetType() == appType {
-		resolvedApp = mergedProfile.Apps.Invoicing
-	} else if mergedProfile.Apps.Payment.GetType() == appType {
-		resolvedApp = mergedProfile.Apps.Payment
-	} else if mergedProfile.Apps.Tax.GetType() == appType {
-		resolvedApp = mergedProfile.Apps.Tax
-	} else {
-		return nil, models.NewGenericPreConditionFailedError(
-			fmt.Errorf("no %s app found in default billing profile", appType),
-		)
+		return nil, fmt.Errorf("error getting customer app: %w", err)
 	}
 
 	return resolvedApp, nil

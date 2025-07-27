@@ -37,6 +37,7 @@ type CustomerOverrideService interface {
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
 
 	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideInput) (CustomerOverrideWithDetails, error)
+	GetCustomerApp(ctx context.Context, input GetCustomerAppInput) (app.App, error)
 	ListCustomerOverrides(ctx context.Context, input ListCustomerOverridesInput) (ListCustomerOverridesResult, error)
 }
 
