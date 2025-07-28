@@ -173,3 +173,13 @@ func (c *StripeAppClientMock) RemoveInvoiceLines(ctx context.Context, input stri
 	args := c.Called(input)
 	return args.Error(0)
 }
+
+// Portal
+func (c *StripeAppClientMock) CreatePortalSession(ctx context.Context, input stripeclient.CreatePortalSessionInput) (stripeclient.PortalSession, error) {
+	if err := input.Validate(); err != nil {
+		return stripeclient.PortalSession{}, err
+	}
+
+	args := c.Called(input)
+	return args.Get(0).(stripeclient.PortalSession), args.Error(1)
+}

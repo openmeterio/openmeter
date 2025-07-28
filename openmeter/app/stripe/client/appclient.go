@@ -68,6 +68,7 @@ type StripeAppClient interface {
 	CreateCustomer(ctx context.Context, input CreateStripeCustomerInput) (StripeCustomer, error)
 	CreateCheckoutSession(ctx context.Context, input CreateCheckoutSessionInput) (StripeCheckoutSession, error)
 	GetPaymentMethod(ctx context.Context, stripePaymentMethodID string) (StripePaymentMethod, error)
+	CreatePortalSession(ctx context.Context, input CreatePortalSessionInput) (PortalSession, error)
 	// Invoice
 	GetInvoice(ctx context.Context, input GetInvoiceInput) (*stripe.Invoice, error)
 	CreateInvoice(ctx context.Context, input CreateInvoiceInput) (*stripe.Invoice, error)

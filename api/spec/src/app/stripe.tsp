@@ -6,10 +6,8 @@ import "@typespec/openapi3";
 import "./app.tsp";
 import "./capability.tsp";
 import "../errors.tsp";
-import "../customer.tsp";
+import "../customer";
 import "../types.tsp";
-
-using OpenMeter.App;
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -172,7 +170,7 @@ model CreateStripeCheckoutSessionRequest {
    * Provide a customer ID or key to use an existing OpenMeter customer.
    * or provide a customer object to create a new customer.
    */
-  customer: CustomerId | CustomerKey | TypeSpec.Rest.Resource.ResourceCreateModel<Customer>;
+  customer: CustomerId | CustomerKey | TypeSpec.Rest.Resource.ResourceCreateModel<Customer.Customer>;
 
   /**
    * Stripe customer ID.

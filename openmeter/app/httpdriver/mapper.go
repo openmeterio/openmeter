@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 )
 
@@ -150,4 +151,28 @@ func MapEventAppToAPI(event app.EventApp) (api.App, error) {
 	default:
 		return api.App{}, fmt.Errorf("unsupported app type: %s", event.GetType())
 	}
+}
+
+// fromAPIAppStripeCustomerData maps an API stripe customer data to an app stripe customer data
+func fromAPIAppStripeCustomerData(apiStripeCustomerData api.StripeCustomerAppData) appstripeentity.CustomerData {
+	return appstripeentity.CustomerData{
+		StripeCustomerID:             apiStripeCustomerData.StripeCustomerId,
+		StripeDefaultPaymentMethodID: apiStripeCustomerData.StripeDefaultPaymentMethodId,
+	}
+}
+
+// customerAppToAPI converts a CustomerApp to an API CustomerAppData
+func ToAPIStripeCustomerAppData(
+	customerAppData appstripeentity.CustomerData,
+	stripeApp appstripeentityapp.App,
+) api.StripeCustomerAppData {
+	apiStripeCustomerAppData := api.StripeCustomerAppData{
+		Id:                           lo.ToPtr(stripeApp.GetID().ID),
+		Type:                         api.StripeCustomerAppDataTypeStripe,
+		App:                          lo.ToPtr(mapStripeAppToAPI(stripeApp.Meta)),
+		StripeCustomerId:             customerAppData.StripeCustomerID,
+		StripeDefaultPaymentMethodId: customerAppData.StripeDefaultPaymentMethodID,
+	}
+
+	return apiStripeCustomerAppData
 }

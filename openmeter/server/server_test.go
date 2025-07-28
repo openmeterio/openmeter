@@ -976,6 +976,10 @@ func (n NoopAppStripeService) GetMaskedSecretAPIKey(ctx context.Context, secretA
 	return "", nil
 }
 
+func (n NoopAppStripeService) CreatePortalSession(ctx context.Context, input appstripeentity.CreateStripePortalSessionInput) (appstripeentity.StripePortalSession, error) {
+	return appstripeentity.StripePortalSession{}, nil
+}
+
 // Factory methods
 func (n NoopAppStripeService) NewApp(ctx context.Context, appBase app.AppBase) (app.App, error) {
 	return nil, nil
@@ -1385,6 +1389,10 @@ func (n NoopBillingService) DeleteCustomerOverride(ctx context.Context, input bi
 
 func (n NoopBillingService) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
 	return billing.CustomerOverrideWithDetails{}, nil
+}
+
+func (n NoopBillingService) GetCustomerApp(ctx context.Context, input billing.GetCustomerAppInput) (app.App, error) {
+	return nil, nil
 }
 
 func (n NoopBillingService) ListCustomerOverrides(ctx context.Context, input billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {

@@ -948,6 +948,56 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/customers/{customerIdOrKey}/stripe': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get customer stripe app data
+     * @description Get stripe app data for a customer.
+     *     Only returns data if the customer billing profile is linked to a stripe app and customer.
+     */
+    get: operations['getCustomerStripeAppData']
+    /**
+     * Update customer stripe app data
+     * @description Upsert stripe app data for a customer.
+     *     Only updates data if the customer billing profile is linked to a stripe app and customer.
+     */
+    put: operations['updateCustomerStripeAppData']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/customers/{customerIdOrKey}/stripe/portal': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Create Stripe customer portal session
+     * @description Create Stripe customer portal session.
+     *     Only returns URL if the customer billing profile is linked to a stripe app and customer.
+     *
+     *     Useful to redirect the customer to the Stripe customer portal to manage their payment methods,
+     *     change their billing address and access their invoice history.
+     */
+    post: operations['createCustomerStripePortalSession']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/customers/{customerIdOrKey}/subscriptions': {
     parameters: {
       query?: never
@@ -3412,6 +3462,34 @@ export interface components {
       successURL?: string
       /** @description Return URL. */
       returnURL?: string
+    }
+    /** @description Stripe customer portal request params. */
+    CreateStripeCustomerPortalSessionParams: {
+      /**
+       * Configuration
+       * @description The ID of an existing configuration to use for this session,
+       *     describing its functionality and features.
+       *     If not specified, the session uses the default configuration.
+       *
+       *     See https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-configuration
+       */
+      configuration?: string
+      /**
+       * Locale
+       * @description The IETF language tag of the locale customer portal is displayed in.
+       *     If blank or auto, the customer’s preferred_locales or browser’s locale is used.
+       *
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-locale
+       */
+      locale?: string
+      /**
+       * ReturnUrl
+       * @description The URL to redirect the customer to after they have completed
+       *     their requested actions.
+       *
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-return_url
+       */
+      returnUrl?: string
     }
     /** @description CreditNoteOriginalInvoiceRef is used to reference the original invoice that a credit note is based on. */
     CreditNoteOriginalInvoiceRef: {
@@ -9056,6 +9134,32 @@ export interface components {
      *       "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
      *     }
      */
+    StripeCustomerAppDataCreateOrUpdate: {
+      /**
+       * App ID
+       * @description The app ID.
+       *     If not provided, it will use the global default for the app type.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id?: string
+      /**
+       * App Type
+       * @description The app name.
+       * @enum {string}
+       */
+      type: 'stripe'
+      /** @description The Stripe customer ID. */
+      stripeCustomerId: string
+      /** @description The Stripe default payment method ID. */
+      stripeDefaultPaymentMethodId?: string
+    }
+    /**
+     * @description Stripe Customer App Data.
+     * @example {
+     *       "type": "stripe",
+     *       "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
+     *     }
+     */
     StripeCustomerAppDataCreateOrUpdateItem: {
       /**
        * App ID
@@ -9073,6 +9177,49 @@ export interface components {
       stripeCustomerId: string
       /** @description The Stripe default payment method ID. */
       stripeDefaultPaymentMethodId?: string
+    }
+    /** @description Stripe customer portal session.
+     *
+     *     See: https://docs.stripe.com/api/customer_portal/sessions/object */
+    StripeCustomerPortalSession: {
+      /** @description The ID of the customer portal session.
+       *
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id */
+      id: string
+      /** @description The ID of the customer.
+       *
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-customer */
+      customer: string
+      /** @description Configuration used to customize the customer portal.
+       *
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration */
+      configuration: string
+      /** @description Livemode.
+       *
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode */
+      livemode: boolean
+      /**
+       * Format: date-time
+       * @description Created at.
+       *
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      created: Date
+      /** @description Return URL.
+       *
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url */
+      returnUrl: string
+      /** @description Status.
+       *       /**
+       *     The IETF language tag of the locale customer portal is displayed in.
+       *
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale */
+      locale: string
+      /** @description /**
+       *     The ID of the customer.The URL to redirect the customer to after they have completed
+       *     their requested actions. */
+      url: string
     }
     /** @description The tax config for Stripe. */
     StripeTaxConfig: {
@@ -10500,6 +10647,8 @@ export interface components {
     'PlanOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'PlanOrderByOrdering.orderBy': components['schemas']['PlanOrderBy']
+    /** @description Filter customer data by app type. */
+    'listCustomerAppDataParams.type': components['schemas']['AppType']
     /** @description What parts of the customer output to expand */
     queryCustomerGet: components['schemas']['CustomerExpand'][]
     /** @description What parts of the list output to expand in listings */
@@ -10520,8 +10669,6 @@ export interface components {
     /** @description Filter customers by usage attribution subject.
      *     Case-insensitive partial match. */
     'queryCustomerList.subject': string
-    /** @description Filter customer data by app type. */
-    'queryCustomerList.type': components['schemas']['AppType']
     /** @description Include deleted meters. */
     'queryMeterList.includeDeleted': boolean
   }
@@ -10649,6 +10796,8 @@ export type CreateStripeCheckoutSessionRequestOptions =
   components['schemas']['CreateStripeCheckoutSessionRequestOptions']
 export type CreateStripeCheckoutSessionResult =
   components['schemas']['CreateStripeCheckoutSessionResult']
+export type CreateStripeCustomerPortalSessionParams =
+  components['schemas']['CreateStripeCustomerPortalSessionParams']
 export type CreditNoteOriginalInvoiceRef =
   components['schemas']['CreditNoteOriginalInvoiceRef']
 export type Currency = components['schemas']['Currency']
@@ -11022,8 +11171,12 @@ export type StripeCheckoutSessionMode =
   components['schemas']['StripeCheckoutSessionMode']
 export type StripeCustomerAppData =
   components['schemas']['StripeCustomerAppData']
+export type StripeCustomerAppDataCreateOrUpdate =
+  components['schemas']['StripeCustomerAppDataCreateOrUpdate']
 export type StripeCustomerAppDataCreateOrUpdateItem =
   components['schemas']['StripeCustomerAppDataCreateOrUpdateItem']
+export type StripeCustomerPortalSession =
+  components['schemas']['StripeCustomerPortalSession']
 export type StripeTaxConfig = components['schemas']['StripeTaxConfig']
 export type StripeWebhookEvent = components['schemas']['StripeWebhookEvent']
 export type StripeWebhookResponse =
@@ -11242,6 +11395,8 @@ export type ParameterPlanOrderByOrderingOrder =
   components['parameters']['PlanOrderByOrdering.order']
 export type ParameterPlanOrderByOrderingOrderBy =
   components['parameters']['PlanOrderByOrdering.orderBy']
+export type ParameterListCustomerAppDataParamsType =
+  components['parameters']['listCustomerAppDataParams.type']
 export type ParameterQueryCustomerGet =
   components['parameters']['queryCustomerGet']
 export type ParameterQueryCustomerListExpand =
@@ -11258,8 +11413,6 @@ export type ParameterQueryCustomerListPrimaryEmail =
   components['parameters']['queryCustomerList.primaryEmail']
 export type ParameterQueryCustomerListSubject =
   components['parameters']['queryCustomerList.subject']
-export type ParameterQueryCustomerListType =
-  components['parameters']['queryCustomerList.type']
 export type ParameterQueryMeterListIncludeDeleted =
   components['parameters']['queryMeterList.includeDeleted']
 export type $defs = Record<string, never>
@@ -15478,7 +15631,7 @@ export interface operations {
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description Filter customer data by app type. */
-        type?: components['parameters']['queryCustomerList.type']
+        type?: components['parameters']['listCustomerAppDataParams.type']
       }
       header?: never
       path: {
@@ -16654,6 +16807,296 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['EntitlementValue']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  getCustomerStripeAppData: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['StripeCustomerAppData']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  updateCustomerStripeAppData: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['StripeCustomerAppDataCreateOrUpdate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['StripeCustomerAppData']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  createCustomerStripePortalSession: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        customerIdOrKey: components['schemas']['ULIDOrExternalKey']
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateStripeCustomerPortalSessionParams']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['StripeCustomerPortalSession']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */

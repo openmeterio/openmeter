@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
@@ -94,6 +96,15 @@ func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagina
 					appcustomerdb.CustomerID(params.CustomerID.ID),
 					appcustomerdb.DeletedAtIsNil(),
 				))
+			}
+
+			// Only list apps that has the given app IDs
+			if len(params.AppIDs) > 0 {
+				appIDs := lo.Map(params.AppIDs, func(appID app.AppID, _ int) string {
+					return appID.ID
+				})
+
+				query = query.Where(appdb.IDIn(appIDs...))
 			}
 
 			response := pagination.PagedResponse[app.App]{

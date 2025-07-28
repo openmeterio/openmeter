@@ -6,9 +6,11 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -96,6 +98,60 @@ func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCust
 			Expand:     input.Expand,
 		})
 	})
+}
+
+// GetCustomerApp returns the app for a customer, it will return the first app found for the app type
+func (s *Service) GetCustomerApp(ctx context.Context, input billing.GetCustomerAppInput) (app.App, error) {
+	// Validate the input
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Get the default billingprofile for the customer
+	customerOverride, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: input.CustomerID,
+		Expand: billing.CustomerOverrideExpand{
+			Apps: true,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting customer billing profile: %w", err)
+	}
+
+	// Get the apps from the merged profile
+	invoicingApp := customerOverride.MergedProfile.Apps.Invoicing
+	paymentApp := customerOverride.MergedProfile.Apps.Payment
+	taxApp := customerOverride.MergedProfile.Apps.Tax
+
+	// Lookup if any of the apps matches the provided app type
+	var resolvedApp app.App
+
+	if invoicingApp.GetType() == input.AppType {
+		resolvedApp = invoicingApp
+	} else if paymentApp.GetType() == input.AppType {
+		resolvedApp = paymentApp
+	} else if taxApp.GetType() == input.AppType {
+		resolvedApp = taxApp
+	} else {
+		return nil, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("no %s app found in billing profile for customer %s", input.AppType, input.CustomerID.ID),
+		)
+	}
+
+	// For now enforce that the app type is the same for all apps
+	// TODO: Remove this once we support multiple app types per billing profile
+	if invoicingApp.GetType() != paymentApp.GetType() || invoicingApp.GetType() != taxApp.GetType() {
+		return nil, models.NewGenericPreConditionFailedError(
+			fmt.Errorf(
+				"app type is not the same for all apps: invoicing: %s, payment: %s, tax: %s",
+				invoicingApp.GetType(),
+				paymentApp.GetType(),
+				taxApp.GetType(),
+			),
+		)
+	}
+
+	return resolvedApp, nil
 }
 
 func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {

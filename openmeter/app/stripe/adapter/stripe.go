@@ -573,6 +573,61 @@ func (a adapter) GetStripeInvoice(ctx context.Context, input appstripeentity.Get
 	})
 }
 
+// CreatePortalSession creates a portal session for a customer.
+func (a adapter) CreatePortalSession(ctx context.Context, input appstripeentity.CreateStripePortalSessionInput) (appstripeentity.StripePortalSession, error) {
+	// Validate input
+	if err := input.Validate(); err != nil {
+		return appstripeentity.StripePortalSession{}, models.NewGenericValidationError(
+			fmt.Errorf("error validate input: %w", err),
+		)
+	}
+
+	// Get Stripe App client
+	_, stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID, "createPortalSession", "app_id", input.AppID.ID)
+	if err != nil {
+		return appstripeentity.StripePortalSession{}, fmt.Errorf("failed to get stripe app client: %w", err)
+	}
+
+	// Get the stripe app data
+	stripeCustomerData, err := a.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+		AppID:      input.AppID,
+		CustomerID: input.CustomerID,
+	})
+	if err != nil {
+		return appstripeentity.StripePortalSession{}, fmt.Errorf("failed to get stripe customer data: %w", err)
+	}
+
+	if stripeCustomerData.StripeCustomerID == "" {
+		return appstripeentity.StripePortalSession{}, app.NewAppCustomerPreConditionError(
+			input.AppID,
+			app.AppTypeStripe,
+			&input.CustomerID,
+			"stripe customer id is empty",
+		)
+	}
+
+	// Create the portal session
+	portalSession, err := stripeAppClient.CreatePortalSession(ctx, stripeclient.CreatePortalSessionInput{
+		StripeCustomerID: stripeCustomerData.StripeCustomerID,
+		ConfigurationID:  input.ConfigurationID,
+		ReturnURL:        input.ReturnURL,
+	})
+	if err != nil {
+		return appstripeentity.StripePortalSession{}, fmt.Errorf("failed to create portal session: %w", err)
+	}
+
+	return appstripeentity.StripePortalSession{
+		ID:               portalSession.ID,
+		Configuration:    portalSession.Configuration,
+		StripeCustomerID: stripeCustomerData.StripeCustomerID,
+		Livemode:         portalSession.Livemode,
+		Locale:           portalSession.Locale,
+		ReturnURL:        portalSession.ReturnURL,
+		URL:              portalSession.URL,
+		CreatedAt:        portalSession.CreatedAt,
+	}, nil
+}
+
 // getStripeAppClient returns a Stripe App Client based on App ID
 func (a adapter) getStripeAppClient(ctx context.Context, appID app.AppID, logOperation string, logFields ...any) (appstripeentity.AppData, stripeclient.StripeAppClient, error) {
 	// Validate app id

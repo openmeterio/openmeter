@@ -21,6 +21,13 @@ type AppStripeHandler interface {
 	AppStripeWebhook() AppStripeWebhookHandler
 	UpdateStripeAPIKey() UpdateStripeAPIKeyHandler
 	CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessionHandler
+
+	// Customer Stripe Data handlers
+	GetCustomerStripeAppData() GetCustomerStripeAppDataHandler
+	UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandler
+
+	// Customer Stripe Portal handlers
+	CreateStripeCustomerPortalSession() CreateStripeCustomerPortalSessionHandler
 }
 
 var _ Handler = (*handler)(nil)

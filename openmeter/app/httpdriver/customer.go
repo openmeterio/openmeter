@@ -76,7 +76,7 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 			items := make([]api.CustomerAppData, 0, len(resp.Items))
 
 			for _, customerApp := range resp.Items {
-				item, err := h.customerAppToAPI(customerApp)
+				item, err := h.toAPICustomerAppData(customerApp)
 				if err != nil {
 					return ListCustomerDataResponse{}, fmt.Errorf("failed to cast app customer data: %w", err)
 				}
@@ -145,7 +145,7 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 		},
 		func(ctx context.Context, req UpsertCustomerDataRequest) (UpsertCustomerDataResponse, error) {
 			for _, apiCustomerData := range req.Data {
-				customerApp, customerData, err := h.getCustomerData(ctx, req.CustomerId, apiCustomerData)
+				customerApp, customerData, err := h.toCustomerData(ctx, req.CustomerId, apiCustomerData)
 				if err != nil {
 					return nil, err
 				}
@@ -237,8 +237,8 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 	)
 }
 
-// getCustomerData converts an API CustomerAppData to a list of CustomerData
-func (h *handler) getCustomerData(ctx context.Context, customerID customer.CustomerID, apiApp api.CustomerAppData) (app.App, app.CustomerData, error) {
+// toCustomerData converts an API CustomerAppData to a CustomerData model
+func (h *handler) toCustomerData(ctx context.Context, customerID customer.CustomerID, apiApp api.CustomerAppData) (app.App, app.CustomerData, error) {
 	// Get app type
 	appType, err := apiApp.Discriminator()
 	if err != nil {
@@ -280,10 +280,7 @@ func (h *handler) getCustomerData(ctx context.Context, customerID customer.Custo
 		}
 
 		// Create customer data
-		stripeCustomerData := appstripeentity.CustomerData{
-			StripeCustomerID:             apiStripeCustomerData.StripeCustomerId,
-			StripeDefaultPaymentMethodID: apiStripeCustomerData.StripeDefaultPaymentMethodId,
-		}
+		stripeCustomerData := fromAPIAppStripeCustomerData(apiStripeCustomerData)
 
 		return resolvedApp, stripeCustomerData, nil
 	case string(app.AppTypeCustomInvoicing):
@@ -323,54 +320,34 @@ func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.Cu
 		})
 	}
 
-	// Get the default profile for the customer
-	customerOverride, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-		Customer: customerID,
-		Expand: billing.CustomerOverrideExpand{
-			Apps: true,
-		},
+	// Get the customer app by type
+	resolvedApp, err = h.billingService.GetCustomerApp(ctx, billing.GetCustomerAppInput{
+		CustomerID: customerID,
+		AppType:    appType,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error getting default profile: %w", err)
-	}
-
-	mergedProfile := customerOverride.MergedProfile
-
-	// If one of them uses the app type, anothers shouldn't use the same app type with different ID
-	// this is why we can return the first app found for the app type
-	if mergedProfile.Apps.Invoicing.GetType() == appType {
-		resolvedApp = mergedProfile.Apps.Invoicing
-	} else if mergedProfile.Apps.Payment.GetType() == appType {
-		resolvedApp = mergedProfile.Apps.Payment
-	} else if mergedProfile.Apps.Tax.GetType() == appType {
-		resolvedApp = mergedProfile.Apps.Tax
-	} else {
-		return nil, fmt.Errorf("no %s app found in default profile", appType)
+		return nil, fmt.Errorf("error getting customer app: %w", err)
 	}
 
 	return resolvedApp, nil
 }
 
-// customerAppToAPI converts a CustomerApp to an API CustomerAppData
-func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, error) {
+// toAPICustomerAppData converts a CustomerApp to an API CustomerAppData
+func (h *handler) toAPICustomerAppData(a app.CustomerApp) (api.CustomerAppData, error) {
 	apiCustomerAppData := api.CustomerAppData{}
 	appId := a.App.GetID().ID
 
-	switch customerApp := a.CustomerData.(type) {
+	switch customerAppData := a.CustomerData.(type) {
 	case appstripeentity.CustomerData:
 		stripeApp, ok := a.App.(appstripeentityapp.App)
 		if !ok {
 			return apiCustomerAppData, fmt.Errorf("error casting app to stripe app")
 		}
 
-		apiStripeCustomerAppData := api.StripeCustomerAppData{
-			Id:                           &appId,
-			Type:                         api.StripeCustomerAppDataTypeStripe,
-			App:                          lo.ToPtr(mapStripeAppToAPI(stripeApp.Meta)),
-			StripeCustomerId:             customerApp.StripeCustomerID,
-			StripeDefaultPaymentMethodId: customerApp.StripeDefaultPaymentMethodID,
-		}
+		// Convert to API stripe customer app data
+		apiStripeCustomerAppData := ToAPIStripeCustomerAppData(customerAppData, stripeApp)
 
+		// Convert to API customer app data
 		err := apiCustomerAppData.FromStripeCustomerAppData(apiStripeCustomerAppData)
 		if err != nil {
 			return apiCustomerAppData, fmt.Errorf("error converting to stripe customer app: %w", err)
