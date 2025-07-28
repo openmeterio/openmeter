@@ -40,7 +40,7 @@ func (p graduatedTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLin
 		TierCallbackFn: func(in tierCallbackInput) error {
 			tierIndex := in.TierIndex + 1
 
-			if in.Tier.UnitPrice != nil && in.Quantity.IsPositive() {
+			if in.Tier.UnitPrice != nil {
 				newLine := newDetailedLineInput{
 					Name:                   fmt.Sprintf("%s: usage price for tier %d", l.line.Name, tierIndex),
 					Quantity:               in.Quantity,

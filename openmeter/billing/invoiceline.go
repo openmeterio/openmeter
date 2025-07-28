@@ -529,8 +529,8 @@ func (i Line) ValidateFee() error {
 		errs = append(errs, errors.New("price should be positive or zero"))
 	}
 
-	if !i.FlatFee.Quantity.IsPositive() {
-		errs = append(errs, errors.New("quantity should be positive required"))
+	if i.FlatFee.Quantity.IsNegative() {
+		errs = append(errs, errors.New("quantity should be positive or zero"))
 	}
 
 	if !slices.Contains(FlatFeeCategory("").Values(), string(i.FlatFee.Category)) {
@@ -784,6 +784,12 @@ func (c *LineChildren) ReplaceByID(id string, newLine *Line) bool {
 	}
 
 	return false
+}
+
+func (c *LineChildren) GetByChildUniqueReferenceID(id string) *Line {
+	return lo.FindOrElse(c.Option.OrEmpty(), nil, func(line *Line) bool {
+		return lo.FromPtr(line.ChildUniqueReferenceID) == id
+	})
 }
 
 // ChildrenWithIDReuse returns a new LineChildren instance with the given lines. If the line has a child

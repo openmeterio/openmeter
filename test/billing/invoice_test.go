@@ -2398,14 +2398,15 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		}, tieredGraduated.Totals)
 
 		// Let's validate the output of the split itself
-		s.Len(tieredGraduated.Children.OrEmpty(), 1)
-		childLine := tieredGraduated.Children.OrEmpty()[0]
+		// Other line is a zero usage line
+		s.Len(tieredGraduated.Children.OrEmpty(), 2)
+		flatFeeLine := tieredGraduated.Children.GetByChildUniqueReferenceID("graduated-tiered-1-flat-price")
+		require.NotNil(s.T(), flatFeeLine)
 
 		requireTotals(s.T(), expectedTotals{
 			Amount: 100,
 			Total:  100,
-		}, childLine.Totals)
-		s.Equal(*childLine.ChildUniqueReferenceID, "graduated-tiered-1-flat-price")
+		}, flatFeeLine.Totals)
 	})
 
 	s.Run("create mid period invoice 2, no usage", func() {
@@ -2434,7 +2435,14 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		}, tieredGraduated.Totals)
 
 		// Let's validate the output of the split itself
-		s.Len(tieredGraduated.Children.OrEmpty(), 0)
+		s.Len(tieredGraduated.Children.OrEmpty(), 1)
+		usageBasedEmptyLine := tieredGraduated.Children.GetByChildUniqueReferenceID("graduated-tiered-1-price-usage")
+		require.NotNil(s.T(), usageBasedEmptyLine)
+
+		requireTotals(s.T(), expectedTotals{
+			Amount: 0,
+			Total:  0,
+		}, usageBasedEmptyLine.Totals)
 	})
 
 	s.Run("create new invoice, with usage", func() {

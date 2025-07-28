@@ -22,6 +22,9 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 				// 20/unit
 				Amount: alpacadecimal.NewFromFloat(100),
 			},
+			UnitPrice: &productcatalog.PriceTierUnitPrice{
+				Amount: alpacadecimal.NewFromFloat(0),
+			},
 		},
 		{
 			UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
@@ -68,7 +71,15 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 			usage: featureUsageResponse{
 				LinePeriodQty: alpacadecimal.NewFromFloat(0),
 			},
-			expect: newDetailedLinesInput{},
+			expect: newDetailedLinesInput{
+				{
+					Name:                   "feature: usage price for tier 1",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(0),
+					Quantity:               alpacadecimal.NewFromFloat(0),
+					ChildUniqueReferenceID: "graduated-tiered-1-price-usage",
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				},
+			},
 		})
 	})
 
@@ -83,6 +94,13 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 				LinePeriodQty: alpacadecimal.NewFromFloat(22),
 			},
 			expect: newDetailedLinesInput{
+				{
+					Name:                   "feature: usage price for tier 1",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(0),
+					Quantity:               alpacadecimal.NewFromFloat(5),
+					ChildUniqueReferenceID: "graduated-tiered-1-price-usage",
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				},
 				{
 					Name:                   "feature: flat price for tier 1",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
@@ -163,6 +181,13 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 			},
 			previousBilledAmount: alpacadecimal.NewFromFloat(100), // Due to flat fee of 100 for tier 1
 			expect: newDetailedLinesInput{
+				{
+					Name:                   "feature: usage price for tier 1",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(0),
+					Quantity:               alpacadecimal.NewFromFloat(0),
+					ChildUniqueReferenceID: "graduated-tiered-1-price-usage",
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				},
 				{
 					Name: "feature: minimum spend",
 					// We have a flat fee of 100 for tier 1, and given that it was invoiced as part of the previous split we need to remove
