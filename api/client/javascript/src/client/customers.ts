@@ -18,10 +18,12 @@ import type { Client } from 'openapi-fetch'
 export class Customers {
   public apps: CustomerApps
   public entitlements: CustomerEntitlements
+  public stripe: CustomerStripe
 
   constructor(private client: Client<paths, `${string}/${string}`>) {
     this.apps = new CustomerApps(client)
     this.entitlements = new CustomerEntitlements(client)
+    this.stripe = new CustomerStripe(client)
   }
 
   /**
@@ -184,7 +186,7 @@ export class Customers {
  * Manage customer apps.
  */
 export class CustomerApps {
-  constructor(private client: Client<paths, `${string}/${string}`>) {}
+  constructor(private client: Client<paths, `${string}/${string}`>) { }
 
   /**
    * Upsert customer app data
@@ -269,7 +271,7 @@ export class CustomerApps {
  * Manage customer Stripe data.
  */
 export class CustomerStripe {
-  constructor(private client: Client<paths, `${string}/${string}`>) {}
+  constructor(private client: Client<paths, `${string}/${string}`>) { }
 
   /**
    * Upsert customer stripe app data
@@ -356,7 +358,7 @@ export class CustomerStripe {
  * Customer Entitlements
  */
 export class CustomerEntitlements {
-  constructor(private client: Client<paths, `${string}/${string}`>) {}
+  constructor(private client: Client<paths, `${string}/${string}`>) { }
 
   /**
    * Get the value of an entitlement for a customer
