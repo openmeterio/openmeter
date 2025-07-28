@@ -15,22 +15,23 @@ type invoiceCalculatorsByType struct {
 
 var InvoiceCalculations = invoiceCalculatorsByType{
 	Invoice: []Calculation{
-		StandardInvoiceCollectionAt,
-		CalculateDraftUntil,
-		UpsertDiscountCorrelationIDs,
+		WithNoDependencies(StandardInvoiceCollectionAt),
+		WithNoDependencies(CalculateDraftUntil),
+		WithNoDependencies(CalculateDueAt),
+		WithNoDependencies(UpsertDiscountCorrelationIDs),
 		RecalculateDetailedLinesAndTotals,
 		CalculateInvoicePeriod,
 		SnapshotTaxConfigIntoLines,
 	},
 	GatheringInvoice: []Calculation{
-		UpsertDiscountCorrelationIDs,
-		GatheringInvoiceCollectionAt,
+		WithNoDependencies(UpsertDiscountCorrelationIDs),
+		WithNoDependencies(GatheringInvoiceCollectionAt),
 		CalculateInvoicePeriod,
 	},
 	// Calculations that should be running on a gathering invoice to populate line items
 	GatheringInvoiceWithLiveData: []Calculation{
-		UpsertDiscountCorrelationIDs,
-		GatheringInvoiceCollectionAt,
+		WithNoDependencies(UpsertDiscountCorrelationIDs),
+		WithNoDependencies(GatheringInvoiceCollectionAt),
 		RecalculateDetailedLinesAndTotals,
 		CalculateInvoicePeriod,
 		SnapshotTaxConfigIntoLines,
@@ -116,4 +117,10 @@ func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.Invo
 
 func (c *calculator) LineService() *lineservice.Service {
 	return c.lineService
+}
+
+func WithNoDependencies(cb func(inv *billing.Invoice) error) Calculation {
+	return func(inv *billing.Invoice, _ CalculatorDependencies) error {
+		return cb(inv)
+	}
 }
