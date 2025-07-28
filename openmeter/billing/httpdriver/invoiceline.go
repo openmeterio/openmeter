@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -555,11 +556,11 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Line, e
 
 			Status: billing.InvoiceLineStatusValid,
 			Period: billing.Period{
-				Start: line.Period.From,
-				End:   line.Period.To,
+				Start: line.Period.From.Truncate(streaming.MinWindowSizeDuration),
+				End:   line.Period.To.Truncate(streaming.MinWindowSizeDuration),
 			},
 
-			InvoiceAt:         line.InvoiceAt,
+			InvoiceAt:         line.InvoiceAt.Truncate(streaming.MinWindowSizeDuration),
 			TaxConfig:         rateCardParsed.TaxConfig,
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
@@ -601,10 +602,10 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 			Currency:  invoice.Currency,
 
 			Period: billing.Period{
-				Start: line.Period.From,
-				End:   line.Period.To,
+				Start: line.Period.From.Truncate(streaming.MinWindowSizeDuration),
+				End:   line.Period.To.Truncate(streaming.MinWindowSizeDuration),
 			},
-			InvoiceAt: line.InvoiceAt,
+			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinWindowSizeDuration),
 
 			TaxConfig:         rateCardParsed.TaxConfig,
 			RateCardDiscounts: rateCardParsed.Discounts,
@@ -644,9 +645,9 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 	existing.LineBase.Name = line.Name
 	existing.LineBase.Description = line.Description
 
-	existing.Period.Start = line.Period.From
-	existing.Period.End = line.Period.To
-	existing.InvoiceAt = line.InvoiceAt
+	existing.Period.Start = line.Period.From.Truncate(streaming.MinWindowSizeDuration)
+	existing.Period.End = line.Period.To.Truncate(streaming.MinWindowSizeDuration)
+	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinWindowSizeDuration)
 
 	existing.TaxConfig = rateCardParsed.TaxConfig
 	existing.UsageBased.Price = rateCardParsed.Price

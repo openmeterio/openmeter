@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -285,7 +286,7 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 			return fmt.Errorf("line[%s] is not a usage based line, cannot update", targetState.ID)
 		}
 
-		if !targetState.Period.Equal(existingLine.Period) {
+		if !targetState.Period.Truncate(streaming.MinWindowSizeDuration).Equal(existingLine.Period.Truncate(streaming.MinWindowSizeDuration)) {
 			// The period of the line has changed => we need to refetch the quantity
 			targetStateWithUpdatedQty, err := u.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
 				Invoice: &invoice,

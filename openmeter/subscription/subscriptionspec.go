@@ -779,8 +779,12 @@ func (s SubscriptionItemSpec) GetFullServicePeriodAt(
 	phaseCadence models.CadencedModel,
 	itemCadence models.CadencedModel,
 	at time.Time,
-	alignedBillingAnchor *time.Time,
+	alignedBillingAnchor time.Time,
 ) (timeutil.ClosedPeriod, error) {
+	if alignedBillingAnchor.IsZero() {
+		return timeutil.ClosedPeriod{}, fmt.Errorf("aligned billing anchor is zero")
+	}
+
 	if !s.RateCard.AsMeta().IsBillable() {
 		return timeutil.ClosedPeriod{}, fmt.Errorf("item is not billable")
 	}
@@ -811,9 +815,7 @@ func (s SubscriptionItemSpec) GetFullServicePeriodAt(
 		}, nil
 	}
 
-	billingAnchor := lo.FromPtrOr(alignedBillingAnchor, itemCadence.ActiveFrom)
-
-	rec, err := timeutil.RecurrenceFromISODuration(billingCadence, billingAnchor)
+	rec, err := timeutil.RecurrenceFromISODuration(billingCadence, alignedBillingAnchor)
 	if err != nil {
 		return timeutil.ClosedPeriod{}, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 	}

@@ -421,14 +421,14 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H2S")),
-					EndAfter:   lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H3S")),
+					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H2S")), // empty period
+					EndAfter:   lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H2S")),
 					Type:       productcatalog.UnitPriceType,
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H3S")),
+					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H2S")),
 					EndAfter:   lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H4S")),
 					Type:       productcatalog.UnitPriceType,
 				},
@@ -460,7 +460,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					ServicePeriod: billing.Period{
 						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
-						End:   s.mustParseTime("2021-01-02T20:00:00Z"),
+						End:   s.mustParseTime("2021-01-02T20:00:02Z"),
 					},
 					FullServicePeriod: billing.Period{
 						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
@@ -473,10 +473,26 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
-				// 0 length service period items are dropped
+				// 0 length service period v1 is dropped
 				{
 					ServicePeriod: billing.Period{
-						Start: s.mustParseTime("2021-01-02T20:00:00Z"),
+						Start: s.mustParseTime("2021-01-02T20:00:02Z"),
+						End:   s.mustParseTime("2021-01-02T20:00:04Z"),
+					},
+					FullServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					},
+					// billing period will follow the otherwise cadence
+					BillingPeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					},
+					Key: "subID/phase-test/item-key/v[2]/period[0]",
+				},
+				{
+					ServicePeriod: billing.Period{
+						Start: s.mustParseTime("2021-01-02T20:00:04Z"),
 						End:   s.mustParseTime("2021-01-03T00:00:00Z"),
 					},
 					FullServicePeriod: billing.Period{
@@ -1064,7 +1080,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 
 	for _, tc := range tcs {
 		s.Run(tc.name, func() {
-			subscriptionStart := s.mustParseTime("2021-01-01T00:00:00Z")
+			subscriptionStart := s.mustParseTime("2021-01-01T00:00:00.1234Z")
 
 			phase := subscription.SubscriptionPhaseView{
 				SubscriptionPhase: subscription.SubscriptionPhase{

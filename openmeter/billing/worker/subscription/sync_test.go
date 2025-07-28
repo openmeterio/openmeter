@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -139,7 +140,7 @@ func (s *SubscriptionHandlerTestSuite) mustParseTime(t string) time.Time {
 func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	ctx := s.Context
 	namespace := s.Namespace
-	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	start := s.mustParseTime("2024-01-01T00:00:00.123456Z")
 	clock.SetTime(start)
 	defer clock.ResetTime()
 	defer s.MockStreamingConnector.Reset()
@@ -372,7 +373,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	s.Run("subscription cancellation", func() {
 		clock.FreezeTime(s.mustParseTime("2024-02-20T00:00:00Z"))
 
-		cancelAt := s.mustParseTime("2024-03-01T00:00:00Z")
+		cancelAt := s.mustParseTime("2024-03-01T00:00:00.123456Z")
 		subs, err := s.SubscriptionService.Cancel(ctx, models.NamespacedID{
 			Namespace: namespace,
 			ID:        subsView.Subscription.ID,
@@ -409,9 +410,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		s.Equal(gatheringLine.Period, billing.Period{
 			Start: s.mustParseTime("2024-02-15T00:00:00Z"),
-			End:   cancelAt,
+			End:   cancelAt.Truncate(streaming.MinWindowSizeDuration),
 		})
-		s.Equal(gatheringLine.InvoiceAt, cancelAt)
+		s.Equal(gatheringLine.InvoiceAt, cancelAt.Truncate(streaming.MinWindowSizeDuration))
 
 		// split group
 		s.NotNil(gatheringLine.SplitLineHierarchy)

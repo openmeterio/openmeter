@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
@@ -394,6 +395,7 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 		}
 
 		// Should not happen as this line is never the first line
+		// TODO: harmonize truncation logic here!
 		if !line.ServicePeriod.Start.Equal(line.BillingPeriod.Start) || !line.FullServicePeriod.Start.Equal(line.BillingPeriod.Start) {
 			return nil, fmt.Errorf("line[%s] service period start does not match billing period start or full service period start", line.UniqueID)
 		}
@@ -763,7 +765,7 @@ func (h *Handler) getPatchesForExistingLine(existingLine *billing.Line, expected
 
 	if !isFlatFee(targetLine) {
 		// UBP Empty lines are not allowed, let's delete them instead
-		if targetLine.Period.Truncate(billing.DefaultMeterResolution).IsEmpty() {
+		if targetLine.Period.Truncate(streaming.MinWindowSizeDuration).IsEmpty() {
 			return []linePatch{
 				newDeleteLinePatch(existingLine.LineID(), existingLine.InvoiceID),
 			}, nil
@@ -887,7 +889,7 @@ func (h *Handler) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 
 			if !isFlatFee(updatedChild) {
 				// UBP Empty lines are not allowed, let's delete them instead
-				if updatedChild.Period.Truncate(billing.DefaultMeterResolution).IsEmpty() {
+				if updatedChild.Period.Truncate(streaming.MinWindowSizeDuration).IsEmpty() {
 					patches = append(patches, newDeleteLinePatch(child.Line.LineID(), child.Line.InvoiceID))
 					continue
 				}

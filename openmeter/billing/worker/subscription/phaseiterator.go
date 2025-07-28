@@ -15,6 +15,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -139,6 +140,8 @@ func (it *PhaseIterator) PhaseStart() time.Time {
 
 // GetMinimumBillableTime returns the minimum time that we can bill for the phase (e.g. the first time we would be
 // yielding a line item)
+//
+// The response always truncated to capture that billing has 1s resolution.
 func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 	minTime := timeInfinity
 	for _, itemsByKey := range it.phase.ItemsByKey {
@@ -149,7 +152,7 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 
 			if item.SubscriptionItem.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType {
 				if item.SubscriptionItem.ActiveFrom.Before(minTime) {
-					minTime = item.SubscriptionItem.ActiveFrom
+					minTime = item.SubscriptionItem.ActiveFrom.Truncate(streaming.MinWindowSizeDuration)
 				}
 			} else {
 				// Let's make sure that truncation won't filter out the item
@@ -166,7 +169,7 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 					period.End = *it.phaseCadence.ActiveTo
 				}
 
-				period = period.Truncate(billing.DefaultMeterResolution)
+				period = period.Truncate(streaming.MinWindowSizeDuration)
 				if period.IsEmpty() {
 					continue
 				}
@@ -190,6 +193,9 @@ func (it *PhaseIterator) Generate(ctx context.Context, iterationEnd time.Time) (
 	ctx, span := tracex.Start[[]subscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.Generate", trace.WithAttributes(
 		attribute.String("phase_key", it.phase.Spec.PhaseKey),
 	))
+
+	// Given we are truncating to 1s resolution, we need to make sure that iterationEnd contains the last second as a whole.
+	iterationEnd = iterationEnd.Truncate(streaming.MinWindowSizeDuration).Add(streaming.MinWindowSizeDuration - time.Nanosecond)
 
 	return span.Wrap(ctx, func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
 		return it.generateAligned(ctx, iterationEnd)
@@ -347,7 +353,7 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 			it.phaseCadence,
 			item.SubscriptionItem.CadencedModel,
 			at,
-			lo.ToPtr(it.sub.Spec.BillingAnchor),
+			it.sub.Spec.BillingAnchor,
 		)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to get full service period", slog.Any("error", err))
@@ -404,19 +410,23 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 
 func (it *PhaseIterator) truncateItemsIfNeeded(in []subscriptionItemWithPeriods) []subscriptionItemWithPeriods {
 	out := make([]subscriptionItemWithPeriods, 0, len(in))
-	// We need to sanitize the output to compensate for the 1min resolution of meters
+	// We need to sanitize the output to compensate for the 1second resolution of meters
 	for _, item := range in {
-		// We only need to sanitize the items that are not flat priced, flat prices can be handled in any resolution
-		if item.Spec.RateCard.AsMeta().Price != nil && item.Spec.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType {
-			out = append(out, item)
+		isFlatPrice := item.Spec.RateCard.AsMeta().Price != nil && item.Spec.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType
+
+		// We truncate the service period to the meter resolution
+		item.ServicePeriod = item.ServicePeriod.Truncate(streaming.MinWindowSizeDuration)
+
+		// We only allow empty service periods for flat prices.
+		if item.ServicePeriod.IsEmpty() && !isFlatPrice {
 			continue
 		}
 
-		// We truncate the service period to the meter resolution
-		item.ServicePeriod = item.ServicePeriod.Truncate(billing.DefaultMeterResolution)
-		if item.ServicePeriod.IsEmpty() {
-			continue
-		}
+		// Let's truncate the billing period and full service period so that when
+		// doing any calculations we don't have small rounding errors due to the iterator
+		// returning ns precision.
+		item.BillingPeriod = item.BillingPeriod.Truncate(streaming.MinWindowSizeDuration)
+		item.FullServicePeriod = item.FullServicePeriod.Truncate(streaming.MinWindowSizeDuration)
 
 		out = append(out, item)
 	}
@@ -440,7 +450,7 @@ func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.Subscripti
 		it.phaseCadence,
 		itemCadence,
 		itemCadence.ActiveFrom,
-		&billingPeriod.From, // we can just use the billing period start as that's already aligned
+		billingPeriod.From, // we can just use the billing period start as that's already aligned
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get full service period at %s: %w", item.SubscriptionItem.ActiveFrom, err)

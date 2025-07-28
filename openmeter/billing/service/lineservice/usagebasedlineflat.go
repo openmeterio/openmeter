@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 var _ Line = (*ubpFlatFeeLine)(nil)
@@ -41,6 +42,10 @@ func (l ubpFlatFeeLine) PrepareForCreate(context.Context) (Line, error) {
 
 		l.line.UsageBased.Price = productcatalog.NewPriceFrom(flatPrice)
 	}
+
+	// Let's apply the same truncation as the usage based line for consistency
+	l.line.Period = l.line.Period.Truncate(streaming.MinWindowSizeDuration)
+	l.line.InvoiceAt = l.line.InvoiceAt.Truncate(streaming.MinWindowSizeDuration)
 
 	return &l, nil
 }
