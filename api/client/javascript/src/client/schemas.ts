@@ -958,15 +958,15 @@ export interface paths {
     /**
      * Get customer stripe app data
      * @description Get stripe app data for a customer.
-     *     Only returns data if the customer billing profile is linked to a stripe app and customer.
+     *     Only returns data if the customer billing profile is linked to a stripe app.
      */
     get: operations['getCustomerStripeAppData']
     /**
-     * Update customer stripe app data
+     * Upsert customer stripe app data
      * @description Upsert stripe app data for a customer.
-     *     Only updates data if the customer billing profile is linked to a stripe app and customer.
+     *     Only updates data if the customer billing profile is linked to a stripe app.
      */
-    put: operations['updateCustomerStripeAppData']
+    put: operations['upsertCustomerStripeAppData']
     post?: never
     delete?: never
     options?: never
@@ -3473,7 +3473,7 @@ export interface components {
        *
        *     See https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-configuration
        */
-      configuration?: string
+      configurationId?: string
       /**
        * Locale
        * @description The IETF language tag of the locale customer portal is displayed in.
@@ -9120,34 +9120,15 @@ export interface components {
        * @enum {string}
        */
       type: 'stripe'
-      /** @description The installed stripe app this data belongs to. */
-      readonly app?: components['schemas']['StripeApp']
       /** @description The Stripe customer ID. */
       stripeCustomerId: string
       /** @description The Stripe default payment method ID. */
       stripeDefaultPaymentMethodId?: string
+      /** @description The installed stripe app this data belongs to. */
+      readonly app?: components['schemas']['StripeApp']
     }
-    /**
-     * @description Stripe Customer App Data.
-     * @example {
-     *       "type": "stripe",
-     *       "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
-     *     }
-     */
-    StripeCustomerAppDataCreateOrUpdate: {
-      /**
-       * App ID
-       * @description The app ID.
-       *     If not provided, it will use the global default for the app type.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      id?: string
-      /**
-       * App Type
-       * @description The app name.
-       * @enum {string}
-       */
-      type: 'stripe'
+    /** @description Stripe Customer App Data Base. */
+    StripeCustomerAppDataBase: {
       /** @description The Stripe customer ID. */
       stripeCustomerId: string
       /** @description The Stripe default payment method ID. */
@@ -9186,14 +9167,12 @@ export interface components {
        *
        *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id */
       id: string
-      /** @description The ID of the customer.
-       *
-       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-customer */
-      customer: string
+      /** @description The ID of the stripe customer. */
+      stripeCustomerId: string
       /** @description Configuration used to customize the customer portal.
        *
        *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration */
-      configuration: string
+      configurationId: string
       /** @description Livemode.
        *
        *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode */
@@ -9205,7 +9184,7 @@ export interface components {
        *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
        * @example 2023-01-01T01:01:01.001Z
        */
-      created: Date
+      createdAt: Date
       /** @description Return URL.
        *
        *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url */
@@ -11171,8 +11150,8 @@ export type StripeCheckoutSessionMode =
   components['schemas']['StripeCheckoutSessionMode']
 export type StripeCustomerAppData =
   components['schemas']['StripeCustomerAppData']
-export type StripeCustomerAppDataCreateOrUpdate =
-  components['schemas']['StripeCustomerAppDataCreateOrUpdate']
+export type StripeCustomerAppDataBase =
+  components['schemas']['StripeCustomerAppDataBase']
 export type StripeCustomerAppDataCreateOrUpdateItem =
   components['schemas']['StripeCustomerAppDataCreateOrUpdateItem']
 export type StripeCustomerPortalSession =
@@ -16977,7 +16956,7 @@ export interface operations {
       }
     }
   }
-  updateCustomerStripeAppData: {
+  upsertCustomerStripeAppData: {
     parameters: {
       query?: never
       header?: never
@@ -16988,7 +16967,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['StripeCustomerAppDataCreateOrUpdate']
+        'application/json': components['schemas']['StripeCustomerAppDataBase']
       }
     }
     responses: {

@@ -1,11 +1,13 @@
 import { transformResponse } from './utils.js'
 import type { RequestOptions } from './common.js'
 import type {
+  CreateStripeCustomerPortalSessionParams,
   CustomerAppData,
   CustomerCreate,
   CustomerReplaceUpdate,
   operations,
   paths,
+  StripeCustomerAppDataBase,
 } from './schemas.js'
 import type { Client } from 'openapi-fetch'
 
@@ -16,10 +18,12 @@ import type { Client } from 'openapi-fetch'
 export class Customers {
   public apps: CustomerApps
   public entitlements: CustomerEntitlements
+  public stripe: CustomerStripe
 
   constructor(private client: Client<paths, `${string}/${string}`>) {
     this.apps = new CustomerApps(client)
     this.entitlements = new CustomerEntitlements(client)
+    this.stripe = new CustomerStripe(client)
   }
 
   /**
@@ -152,6 +156,29 @@ export class Customers {
 
     return transformResponse(resp)
   }
+
+  /**
+   * List customer subscriptions
+   * @param customerIdOrKey - The ID or key of the customer
+   * @param query - The query parameters
+   * @param signal - An optional abort signal
+   * @returns The list of customer subscriptions
+   */
+  public async listSubscriptions(
+    customerIdOrKey: operations['listCustomerSubscriptions']['parameters']['path']['customerIdOrKey'],
+    query?: operations['listCustomerSubscriptions']['parameters']['query'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET(
+      '/api/v1/customers/{customerIdOrKey}/subscriptions',
+      {
+        params: { path: { customerIdOrKey }, query },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
 }
 
 /**
@@ -159,7 +186,7 @@ export class Customers {
  * Manage customer apps.
  */
 export class CustomerApps {
-  constructor(private client: Client<paths, `${string}/${string}`>) {}
+  constructor(private client: Client<paths, `${string}/${string}`>) { }
 
   /**
    * Upsert customer app data
@@ -237,23 +264,88 @@ export class CustomerApps {
 
     return transformResponse(resp)
   }
+}
+
+/**
+ * Customer Stripe
+ * Manage customer Stripe data.
+ */
+export class CustomerStripe {
+  constructor(private client: Client<paths, `${string}/${string}`>) { }
 
   /**
-   * List customer subscriptions
+   * Upsert customer stripe app data
+   * @param customerIdOrKey - The ID or Key of the customer
+   * @param appData - The app data to upsert
+   * @param signal - An optional abort signal
+   * @returns The upserted customer stripe app data
+   */
+  public async upsert(
+    customerIdOrKey: operations['upsertCustomerStripeAppData']['parameters']['path']['customerIdOrKey'],
+    stripeAppData: StripeCustomerAppDataBase,
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.PUT(
+      '/api/v1/customers/{customerIdOrKey}/stripe',
+      {
+        body: stripeAppData,
+        params: {
+          path: {
+            customerIdOrKey,
+          },
+        },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Get customer stripe app data
    * @param customerIdOrKey - The ID or key of the customer
    * @param query - The query parameters
    * @param signal - An optional abort signal
-   * @returns The list of customer subscriptions
+   * @returns The customer stripe app data
    */
-  public async listSubscriptions(
-    customerIdOrKey: operations['listCustomerSubscriptions']['parameters']['path']['customerIdOrKey'],
-    query?: operations['listCustomerSubscriptions']['parameters']['query'],
+  public async get(
+    customerIdOrKey: operations['getCustomerStripeAppData']['parameters']['path']['customerIdOrKey'],
     options?: RequestOptions
   ) {
     const resp = await this.client.GET(
-      '/api/v1/customers/{customerIdOrKey}/subscriptions',
+      '/api/v1/customers/{customerIdOrKey}/apps',
       {
-        params: { path: { customerIdOrKey }, query },
+        params: {
+          path: { customerIdOrKey },
+        },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Create a Stripe customer portal session
+   * @param customerIdOrKey - The ID or Key of the customer
+   * @param params - The parameters for creating a Stripe customer portal session
+   * @param signal - An optional abort signal
+   * @returns The Stripe customer portal session
+   */
+  public async createPortalSession(
+    customerIdOrKey: operations['createCustomerStripePortalSession']['parameters']['path']['customerIdOrKey'],
+    params: CreateStripeCustomerPortalSessionParams,
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.POST(
+      '/api/v1/customers/{customerIdOrKey}/stripe/portal',
+      {
+        body: params,
+        params: {
+          path: {
+            customerIdOrKey,
+          },
+        },
         ...options,
       }
     )
@@ -266,7 +358,7 @@ export class CustomerApps {
  * Customer Entitlements
  */
 export class CustomerEntitlements {
-  constructor(private client: Client<paths, `${string}/${string}`>) {}
+  constructor(private client: Client<paths, `${string}/${string}`>) { }
 
   /**
    * Get the value of an entitlement for a customer

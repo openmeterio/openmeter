@@ -8383,7 +8383,7 @@ export const getCustomerEntitlementValueQueryParams = zod.object({
 
 /**
  * Get stripe app data for a customer.
-Only returns data if the customer billing profile is linked to a stripe app and customer.
+Only returns data if the customer billing profile is linked to a stripe app.
  * @summary Get customer stripe app data
  */
 export const getCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne = new RegExp(
@@ -8409,17 +8409,17 @@ export const getCustomerStripeAppDataParams = zod.object({
 
 /**
  * Upsert stripe app data for a customer.
-Only updates data if the customer billing profile is linked to a stripe app and customer.
- * @summary Update customer stripe app data
+Only updates data if the customer billing profile is linked to a stripe app.
+ * @summary Upsert customer stripe app data
  */
-export const updateCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne =
+export const upsertCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const updateCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo = 256
+export const upsertCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo = 256
 
-export const updateCustomerStripeAppDataParams = zod.object({
+export const upsertCustomerStripeAppDataParams = zod.object({
   customerIdOrKey: zod.coerce
     .string()
-    .regex(updateCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne)
+    .regex(upsertCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne)
     .describe(
       'ULID (Universally Unique Lexicographically Sortable Identifier).'
     )
@@ -8427,32 +8427,20 @@ export const updateCustomerStripeAppDataParams = zod.object({
       zod.coerce
         .string()
         .min(1)
-        .max(updateCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo)
+        .max(upsertCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo)
         .describe('ExternalKey is a looser version of key.')
     ),
 })
 
-export const updateCustomerStripeAppDataBodyIdRegExp = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-
-export const updateCustomerStripeAppDataBody = zod
+export const upsertCustomerStripeAppDataBody = zod
   .object({
-    id: zod.coerce
-      .string()
-      .regex(updateCustomerStripeAppDataBodyIdRegExp)
-      .optional()
-      .describe(
-        'The app ID.\nIf not provided, it will use the global default for the app type.'
-      ),
     stripeCustomerId: zod.coerce.string().describe('The Stripe customer ID.'),
     stripeDefaultPaymentMethodId: zod.coerce
       .string()
       .optional()
       .describe('The Stripe default payment method ID.'),
-    type: zod.enum(['stripe']).describe('The app name.'),
   })
-  .describe('Stripe Customer App Data.')
+  .describe('Stripe Customer App Data Base.')
 
 /**
  * Create Stripe customer portal session.
@@ -8484,7 +8472,7 @@ export const createCustomerStripePortalSessionParams = zod.object({
 
 export const createCustomerStripePortalSessionBody = zod
   .object({
-    configuration: zod.coerce
+    configurationId: zod.coerce
       .string()
       .optional()
       .describe(
