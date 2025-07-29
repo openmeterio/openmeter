@@ -333,6 +333,15 @@ func (p CustomerProvisioner) ensureCustomer(ctx context.Context, sub *subject.Su
 	})
 }
 
+type InvalidPaymentAppError struct {
+	AppType app.AppType
+	AppID   app.AppID
+}
+
+func (e InvalidPaymentAppError) Error() string {
+	return fmt.Sprintf("invalid payment app type [app.type=%s app.id=%s]", e.AppType, e.AppID.ID)
+}
+
 func (p CustomerProvisioner) ensureStripeCustomer(ctx context.Context, customerID customer.CustomerID, stripeCustomerID string) error {
 	customerOverride, err := p.customerOverride.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: customerID,
@@ -353,8 +362,10 @@ func (p CustomerProvisioner) ensureStripeCustomer(ctx context.Context, customerI
 	}
 
 	if appPaymentType := profile.Apps.Payment.GetType(); appPaymentType != app.AppTypeStripe {
-		return fmt.Errorf("failed to setup stripe customer id for customer [namespace=%s customer.id=%s app.payment.type=%s]: payment app is not stripe",
-			customerID.Namespace, customerID.ID, appPaymentType)
+		return InvalidPaymentAppError{
+			AppType: appPaymentType,
+			AppID:   profile.Apps.Payment.GetID(),
+		}
 	}
 
 	err = profile.Apps.Payment.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
@@ -384,12 +395,20 @@ func (p CustomerProvisioner) Provision(ctx context.Context, sub *subject.Subject
 	}
 
 	if sub.StripeCustomerId != nil {
-		if err := p.ensureStripeCustomer(ctx, customerID, *sub.StripeCustomerId); err != nil {
-			return fmt.Errorf("failed to update stripe customer id for subject customer [namespace=%s subject.id=%s subject.key=%s customer.id=%s]: %w",
+		err = p.ensureStripeCustomer(ctx, customerID, *sub.StripeCustomerId)
+		if err != nil {
+			err = fmt.Errorf("failed to set stripe customer id for subject customer [namespace=%s subject.id=%s subject.key=%s customer.id=%s]: %w",
 				sub.Namespace, sub.Id, sub.Key, cus.ID, err)
-		}
 
-		return nil
+			// Ignore InvalidPaymentAppError by logging it on the warning level otherwise return the error.
+			var invalidErr InvalidPaymentAppError
+
+			if !errors.As(err, &invalidErr) {
+				return err
+			}
+
+			p.logger.Warn(err.Error())
+		}
 	}
 
 	return nil
