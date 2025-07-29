@@ -65,7 +65,7 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 		require.ErrorAsf(t, err, new(*models.GenericNotFoundError), "error must be not found error")
 		assert.Nilf(t, cus, "customer must be nil")
 
-		cus, err = provisioner.ensureCustomer(ctx, &sub)
+		cus, err = provisioner.EnsureCustomer(ctx, &sub)
 		require.NoError(t, err, "provisioning customer should not fail")
 		assert.NotNilf(t, cus, "customer must not be nil")
 
@@ -120,7 +120,7 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 			require.NoError(t, err, "updating customer should not fail")
 			assert.NotNilf(t, sub, "customer must not be nil")
 
-			cus, err = provisioner.ensureCustomer(ctx, &sub)
+			cus, err = provisioner.EnsureCustomer(ctx, &sub)
 			require.NoError(t, err, "provisioning customer should not fail")
 			assert.NotNilf(t, cus, "customer must not be nil")
 
@@ -175,7 +175,7 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 			require.NoError(t, err, "creating customer should not fail")
 			assert.NotNilf(t, cus, "customer must not be nil")
 
-			cus, err = provisioner.ensureCustomer(ctx, &sub)
+			cus, err = provisioner.EnsureCustomer(ctx, &sub)
 			require.NoError(t, err, "provisioning customer should not fail")
 			assert.NotNilf(t, cus, "customer must not be nil")
 
@@ -228,7 +228,7 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 			require.NoError(t, err, "creating customer should not fail")
 			assert.NotNilf(t, cus, "customer must not be nil")
 
-			cus, err = provisioner.ensureCustomer(ctx, &sub)
+			cus, err = provisioner.EnsureCustomer(ctx, &sub)
 			require.NoError(t, err, "provisioning customer should not fail")
 			assert.NotNilf(t, cus, "customer must not be nil")
 
