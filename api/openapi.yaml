@@ -4555,8 +4555,8 @@ paths:
           schema:
             $ref: '#/components/schemas/ULIDOrExternalKey'
       responses:
-        '200':
-          description: The request has succeeded.
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
           content:
             application/json:
               schema:
