@@ -3808,7 +3808,10 @@ export interface components {
       /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
     }
-    /** @description Create a custom subscription. */
+    /**
+     * Create custom
+     * @description Create a custom subscription.
+     */
     CustomSubscriptionCreate: {
       /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
@@ -8418,7 +8421,10 @@ export interface components {
        */
       billingAnchor?: Date
     }
-    /** @description Create subscription based on plan. */
+    /**
+     * Create from plan
+     * @description Create subscription based on plan.
+     */
     PlanSubscriptionCreate: {
       /** @description What alignment settings the subscription should have. */
       alignment?: components['schemas']['Alignment']

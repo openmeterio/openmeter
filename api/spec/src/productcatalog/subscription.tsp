@@ -355,6 +355,7 @@ union SubscriptionChange {
 /**
  * Create a custom subscription.
  */
+@summary("Create custom")
 @friendlyName("CustomSubscriptionCreate")
 model CustomSubscriptionCreate {
   ...OmitProperties<CustomSubscriptionChange, "timing" | "billingAnchor">;
@@ -417,6 +418,7 @@ model CustomPlanInput
  * Create subscription based on plan.
  */
 @friendlyName("PlanSubscriptionCreate")
+@summary("Create from plan")
 model PlanSubscriptionCreate {
   ...OmitProperties<PlanSubscriptionChange, "timing" | "billingAnchor">;
 
