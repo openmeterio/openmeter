@@ -53,7 +53,10 @@ interface CustomersStripe {
   createPortalSession(
     @path customerIdOrKey: ULIDOrExternalKey,
     @body params: CreateStripeCustomerPortalSessionParams,
-  ): StripeCustomerPortalSession | NotFoundError | CommonErrors;
+  ): {
+    @statusCode _: 201;
+    @body body: StripeCustomerPortalSession;
+  } | NotFoundError | CommonErrors;
 }
 
 /**
