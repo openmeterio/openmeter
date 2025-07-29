@@ -143,8 +143,9 @@ func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streamin
 		return nil, fmt.Errorf("streaming mock connector does not support filtering without from and to")
 	}
 
-	from := *params.From
-	to := *params.To
+	// Let's truncate the window size to the second, as clickhouse does not support sub-second precision
+	from := params.From.Truncate(streaming.MinWindowSizeDuration)
+	to := params.To.Truncate(streaming.MinWindowSizeDuration)
 
 	rows := make([]meter.MeterQueryRow, 0)
 
@@ -184,7 +185,7 @@ func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streamin
 		row := &rows[i]
 		var value float64
 
-		effectiveWindowSize := lo.FromPtrOr(params.WindowSize, meter.WindowSizeMinute)
+		effectiveWindowSize := lo.FromPtrOr(params.WindowSize, streaming.MinWindowSize)
 
 		for _, event := range events {
 			eventWindowStart, err := effectiveWindowSize.Truncate(event.Time)

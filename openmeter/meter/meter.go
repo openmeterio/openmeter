@@ -57,6 +57,9 @@ type WindowSize string
 
 // Note: keep values up to date in the meter package
 const (
+	// WindowSizeSecond is the size of the window in seconds, this is possible to use for streaming queries
+	// but not exposed to the metering API as this seems to be an overkill for most external use-cases.
+	WindowSizeSecond WindowSize = "SECOND"
 	WindowSizeMinute WindowSize = "MINUTE"
 	WindowSizeHour   WindowSize = "HOUR"
 	WindowSizeDay    WindowSize = "DAY"
@@ -66,6 +69,7 @@ const (
 // Values provides list valid values for Enum
 func (WindowSize) Values() (kinds []string) {
 	for _, s := range []WindowSize{
+		WindowSizeSecond,
 		WindowSizeMinute,
 		WindowSizeHour,
 		WindowSizeDay,
@@ -78,6 +82,8 @@ func (WindowSize) Values() (kinds []string) {
 
 func (w WindowSize) AddTo(t time.Time) (time.Time, error) {
 	switch w {
+	case WindowSizeSecond:
+		return t.Add(time.Second), nil
 	case WindowSizeMinute:
 		return t.Add(time.Minute), nil
 	case WindowSizeHour:
@@ -93,6 +99,8 @@ func (w WindowSize) AddTo(t time.Time) (time.Time, error) {
 
 func (w WindowSize) Truncate(t time.Time) (time.Time, error) {
 	switch w {
+	case WindowSizeSecond:
+		return t.Truncate(time.Second), nil
 	case WindowSizeMinute:
 		return t.Truncate(time.Minute), nil
 	case WindowSizeHour:
