@@ -68,7 +68,7 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 	}
 
 	// Let's make a clone of it
-	rateCardsClone := (rateCards.Clone())
+	rateCardsClone := rateCards.Clone()
 
 	for _, rateCard := range rateCardsClone {
 		fK := rateCard.AsMeta().FeatureKey
@@ -138,7 +138,7 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 				return models.NewGenericValidationError(fmt.Errorf("unsupported RateCard type: %s", rateCard.Type()))
 			}
 
-			if err := rateCard.Merge(rcNew); err != nil {
+			if err = rateCard.Merge(rcNew); err != nil {
 				return fmt.Errorf("failed to merge RateCard: %w", err)
 			}
 		} else if fID == nil && fK != nil {
@@ -172,7 +172,7 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 				return fmt.Errorf("unsupported RateCard type: %s", rateCard.Type())
 			}
 
-			if err := rateCard.Merge(rcNew); err != nil {
+			if err = rateCard.Merge(rcNew); err != nil {
 				return fmt.Errorf("failed to merge RateCard: %w", err)
 			}
 		}
@@ -273,7 +273,11 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 		logger.Debug("creating add-on")
 
 		if len(params.RateCards) > 0 {
-			if err := s.resolveFeatures(ctx, params.Namespace, &params.RateCards); err != nil {
+			if err = s.resolveFeatures(ctx, params.Namespace, &params.RateCards); err != nil {
+				if models.IsGenericNotFoundError(err) {
+					err = models.NewGenericValidationError(err)
+				}
+
 				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
 			}
 		}
@@ -421,6 +425,10 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 
 		if params.RateCards != nil && len(*params.RateCards) > 0 {
 			if err := s.resolveFeatures(ctx, params.Namespace, params.RateCards); err != nil {
+				if models.IsGenericNotFoundError(err) {
+					err = models.NewGenericValidationError(err)
+				}
+
 				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
 			}
 		}

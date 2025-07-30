@@ -164,7 +164,7 @@ var ErrRateCardDuplicatedKey = models.NewValidationIssue(
 	ErrCodeRateCardDuplicatedKey,
 	"duplicated key",
 	models.WithFieldString("key"),
-	models.WithWarningSeverity(),
+	models.WithCriticalSeverity(),
 )
 
 const ErrCodeRateCardEntitlementTemplateWithNoFeature models.ErrorCode = "entitlement_template_with_no_feature"
