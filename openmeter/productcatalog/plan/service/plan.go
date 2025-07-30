@@ -65,7 +65,7 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 	}
 
 	// Let's make a clone of it
-	rateCardsClone := (rateCards.Clone())
+	rateCardsClone := rateCards.Clone()
 
 	for _, rateCard := range rateCardsClone {
 		fK := rateCard.AsMeta().FeatureKey
@@ -135,13 +135,13 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 				return fmt.Errorf("unsupported RateCard type: %s", rateCard.Type())
 			}
 
-			if err := rateCard.Merge(rcNew); err != nil {
+			if err = rateCard.Merge(rcNew); err != nil {
 				return fmt.Errorf("failed to merge RateCard: %w", err)
 			}
 		} else if fID == nil && fK != nil {
 			// We need to populate FeatureID
 			if !featureByKeyOk {
-				return fmt.Errorf("feature with key %s not found", *fK)
+				return models.NewGenericNotFoundError(fmt.Errorf("feature with key %s not found", *fK))
 			}
 
 			// FIXME: merging like this is a pain, we should just use pointers...
@@ -169,7 +169,7 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 				return fmt.Errorf("unsupported RateCard type: %s", rateCard.Type())
 			}
 
-			if err := rateCard.Merge(rcNew); err != nil {
+			if err = rateCard.Merge(rcNew); err != nil {
 				return fmt.Errorf("failed to merge RateCard: %w", err)
 			}
 		}
@@ -226,7 +226,11 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 
 		if len(params.Phases) > 0 {
 			for _, phase := range params.Phases {
-				if err := s.resolveFeatures(ctx, params.Namespace, &phase.RateCards); err != nil {
+				if err = s.resolveFeatures(ctx, params.Namespace, &phase.RateCards); err != nil {
+					if models.IsGenericNotFoundError(err) {
+						err = models.NewGenericValidationError(err)
+					}
+
 					return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
 				}
 			}
@@ -366,6 +370,10 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		if params.Phases != nil && len(*params.Phases) > 0 {
 			for _, phase := range *params.Phases {
 				if err := s.resolveFeatures(ctx, params.Namespace, &phase.RateCards); err != nil {
+					if models.IsGenericNotFoundError(err) {
+						err = models.NewGenericValidationError(err)
+					}
+
 					return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
 				}
 			}
