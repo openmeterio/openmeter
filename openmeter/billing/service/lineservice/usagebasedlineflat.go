@@ -44,8 +44,8 @@ func (l ubpFlatFeeLine) PrepareForCreate(context.Context) (Line, error) {
 	}
 
 	// Let's apply the same truncation as the usage based line for consistency
-	l.line.Period = l.line.Period.Truncate(streaming.MinWindowSizeDuration)
-	l.line.InvoiceAt = l.line.InvoiceAt.Truncate(streaming.MinWindowSizeDuration)
+	l.line.Period = l.line.Period.Truncate(streaming.MinimumWindowSizeDuration)
+	l.line.InvoiceAt = l.line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
 	return &l, nil
 }

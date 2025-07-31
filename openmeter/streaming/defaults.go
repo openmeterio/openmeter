@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	// MinWindowSizeDuration is the minimum window size the aggregation can represent.
-	MinWindowSizeDuration = time.Second
-	// MinWindowSize is the minimum window size the aggregation can represent.
-	MinWindowSize = meter.WindowSizeSecond
+	// MinimumWindowSizeDuration is the minimum window size the aggregation can represent.
+	MinimumWindowSizeDuration = time.Second
+	// MinimumWindowSize is the minimum window size the aggregation can represent.
+	MinimumWindowSize = meter.WindowSizeSecond
 )

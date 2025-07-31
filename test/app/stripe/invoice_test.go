@@ -505,8 +505,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// TODO: do not share env between tests
 		defer s.StripeAppClient.Restore()
 
-		expectedPeriodStartUnix := periodStart.Truncate(streaming.MinWindowSizeDuration).Unix()
-		expectedPeriodEndUnix := periodEnd.Truncate(streaming.MinWindowSizeDuration).Unix()
+		expectedPeriodStartUnix := periodStart.Truncate(streaming.MinimumWindowSizeDuration).Unix()
+		expectedPeriodEndUnix := periodEnd.Truncate(streaming.MinimumWindowSizeDuration).Unix()
 
 		getLine := func(description string) *billing.Line {
 			for _, line := range invoice.GetLeafLinesWithConsolidatedTaxBehavior() {

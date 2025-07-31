@@ -1293,8 +1293,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 	periodStart := testutils.GetRFC3339Time(s.T(), "2024-09-02T12:13:14.1234Z")
 	periodEnd := testutils.GetRFC3339Time(s.T(), "2024-09-03T12:13:14.1234Z")
 
-	truncatedPeriodStart := periodStart.Truncate(streaming.MinWindowSizeDuration)
-	truncatedPeriodEnd := periodEnd.Truncate(streaming.MinWindowSizeDuration)
+	truncatedPeriodStart := periodStart.Truncate(streaming.MinimumWindowSizeDuration)
+	truncatedPeriodEnd := periodEnd.Truncate(streaming.MinimumWindowSizeDuration)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
@@ -1928,7 +1928,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			Start: truncatedPeriodStart.Add(time.Hour),
 			End:   truncatedPeriodStart.Add(2 * time.Hour),
 		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(streaming.MinWindowSizeDuration)), "second child should be issued at the end of parent's period")
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(streaming.MinimumWindowSizeDuration)), "second child should be issued at the end of parent's period")
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.Period.Equal(billing.Period{
 			Start: truncatedPeriodStart.Add(2 * time.Hour),
 			End:   truncatedPeriodEnd,
@@ -2504,8 +2504,8 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14.1234Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14.1234Z"))
 
-	truncatedPeriodStart := periodStart.Truncate(streaming.MinWindowSizeDuration)
-	truncatedPeriodEnd := periodEnd.Truncate(streaming.MinWindowSizeDuration)
+	truncatedPeriodStart := periodStart.Truncate(streaming.MinimumWindowSizeDuration)
+	truncatedPeriodEnd := periodEnd.Truncate(streaming.MinimumWindowSizeDuration)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 

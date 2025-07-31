@@ -44,8 +44,8 @@ type usageBasedLine struct {
 }
 
 func (l usageBasedLine) PrepareForCreate(context.Context) (Line, error) {
-	l.line.Period = l.line.Period.Truncate(streaming.MinWindowSizeDuration)
-	l.line.InvoiceAt = l.line.InvoiceAt.Truncate(streaming.MinWindowSizeDuration)
+	l.line.Period = l.line.Period.Truncate(streaming.MinimumWindowSizeDuration)
+	l.line.InvoiceAt = l.line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
 	return &l, nil
 }
@@ -65,7 +65,7 @@ func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.Inv
 		}
 	}
 
-	if l.line.LineBase.Period.Truncate(streaming.MinWindowSizeDuration).IsEmpty() {
+	if l.line.LineBase.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
 		return billing.ValidationError{
 			Err: billing.ErrInvoiceCreateUBPLinePeriodIsEmpty,
 		}
@@ -109,13 +109,13 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, in CanBeInvoicedA
 
 	meter := meterAndFactory.meter
 
-	asOfTruncated := in.AsOf.Truncate(streaming.MinWindowSizeDuration)
+	asOfTruncated := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
 
 	switch meter.Aggregation {
 	case meterpkg.MeterAggregationSum, meterpkg.MeterAggregationCount,
 		meterpkg.MeterAggregationMax, meterpkg.MeterAggregationUniqueCount:
 
-		periodStartTrucated := l.line.Period.Start.Truncate(streaming.MinWindowSizeDuration)
+		periodStartTrucated := l.line.Period.Start.Truncate(streaming.MinimumWindowSizeDuration)
 
 		if !periodStartTrucated.Before(asOfTruncated) {
 			return nil, nil
@@ -238,5 +238,5 @@ func formatMaximumSpendDiscountDescription(amount alpacadecimal.Decimal) *string
 }
 
 func (l usageBasedLine) IsPeriodEmptyConsideringTruncations() bool {
-	return l.Period().Truncate(streaming.MinWindowSizeDuration).IsEmpty()
+	return l.Period().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty()
 }

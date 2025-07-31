@@ -410,9 +410,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		s.Equal(gatheringLine.Period, billing.Period{
 			Start: s.mustParseTime("2024-02-15T00:00:00Z"),
-			End:   cancelAt.Truncate(streaming.MinWindowSizeDuration),
+			End:   cancelAt.Truncate(streaming.MinimumWindowSizeDuration),
 		})
-		s.Equal(gatheringLine.InvoiceAt, cancelAt.Truncate(streaming.MinWindowSizeDuration))
+		s.Equal(gatheringLine.InvoiceAt, cancelAt.Truncate(streaming.MinimumWindowSizeDuration))
 
 		// split group
 		s.NotNil(gatheringLine.SplitLineHierarchy)

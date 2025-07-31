@@ -286,7 +286,7 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 			return fmt.Errorf("line[%s] is not a usage based line, cannot update", targetState.ID)
 		}
 
-		if !targetState.Period.Truncate(streaming.MinWindowSizeDuration).Equal(existingLine.Period.Truncate(streaming.MinWindowSizeDuration)) {
+		if !targetState.Period.Truncate(streaming.MinimumWindowSizeDuration).Equal(existingLine.Period.Truncate(streaming.MinimumWindowSizeDuration)) {
 			// The period of the line has changed => we need to refetch the quantity
 			targetStateWithUpdatedQty, err := u.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
 				Invoice: &invoice,

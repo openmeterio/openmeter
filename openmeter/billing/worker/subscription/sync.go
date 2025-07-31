@@ -765,7 +765,7 @@ func (h *Handler) getPatchesForExistingLine(existingLine *billing.Line, expected
 
 	if !isFlatFee(targetLine) {
 		// UBP Empty lines are not allowed, let's delete them instead
-		if targetLine.Period.Truncate(streaming.MinWindowSizeDuration).IsEmpty() {
+		if targetLine.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
 			return []linePatch{
 				newDeleteLinePatch(existingLine.LineID(), existingLine.InvoiceID),
 			}, nil
@@ -889,7 +889,7 @@ func (h *Handler) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 
 			if !isFlatFee(updatedChild) {
 				// UBP Empty lines are not allowed, let's delete them instead
-				if updatedChild.Period.Truncate(streaming.MinWindowSizeDuration).IsEmpty() {
+				if updatedChild.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
 					patches = append(patches, newDeleteLinePatch(child.Line.LineID(), child.Line.InvoiceID))
 					continue
 				}

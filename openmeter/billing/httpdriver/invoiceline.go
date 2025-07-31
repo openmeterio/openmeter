@@ -556,11 +556,11 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Line, e
 
 			Status: billing.InvoiceLineStatusValid,
 			Period: billing.Period{
-				Start: line.Period.From.Truncate(streaming.MinWindowSizeDuration),
-				End:   line.Period.To.Truncate(streaming.MinWindowSizeDuration),
+				Start: line.Period.From.Truncate(streaming.MinimumWindowSizeDuration),
+				End:   line.Period.To.Truncate(streaming.MinimumWindowSizeDuration),
 			},
 
-			InvoiceAt:         line.InvoiceAt.Truncate(streaming.MinWindowSizeDuration),
+			InvoiceAt:         line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 			TaxConfig:         rateCardParsed.TaxConfig,
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
@@ -602,10 +602,10 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 			Currency:  invoice.Currency,
 
 			Period: billing.Period{
-				Start: line.Period.From.Truncate(streaming.MinWindowSizeDuration),
-				End:   line.Period.To.Truncate(streaming.MinWindowSizeDuration),
+				Start: line.Period.From.Truncate(streaming.MinimumWindowSizeDuration),
+				End:   line.Period.To.Truncate(streaming.MinimumWindowSizeDuration),
 			},
-			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinWindowSizeDuration),
+			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
 			TaxConfig:         rateCardParsed.TaxConfig,
 			RateCardDiscounts: rateCardParsed.Discounts,
@@ -645,9 +645,9 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 	existing.LineBase.Name = line.Name
 	existing.LineBase.Description = line.Description
 
-	existing.Period.Start = line.Period.From.Truncate(streaming.MinWindowSizeDuration)
-	existing.Period.End = line.Period.To.Truncate(streaming.MinWindowSizeDuration)
-	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinWindowSizeDuration)
+	existing.Period.Start = line.Period.From.Truncate(streaming.MinimumWindowSizeDuration)
+	existing.Period.End = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
+	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
 	existing.TaxConfig = rateCardParsed.TaxConfig
 	existing.UsageBased.Price = rateCardParsed.Price

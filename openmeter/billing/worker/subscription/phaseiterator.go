@@ -152,7 +152,7 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 
 			if item.SubscriptionItem.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType {
 				if item.SubscriptionItem.ActiveFrom.Before(minTime) {
-					minTime = item.SubscriptionItem.ActiveFrom.Truncate(streaming.MinWindowSizeDuration)
+					minTime = item.SubscriptionItem.ActiveFrom.Truncate(streaming.MinimumWindowSizeDuration)
 				}
 			} else {
 				// Let's make sure that truncation won't filter out the item
@@ -169,7 +169,7 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 					period.End = *it.phaseCadence.ActiveTo
 				}
 
-				period = period.Truncate(streaming.MinWindowSizeDuration)
+				period = period.Truncate(streaming.MinimumWindowSizeDuration)
 				if period.IsEmpty() {
 					continue
 				}
@@ -195,7 +195,7 @@ func (it *PhaseIterator) Generate(ctx context.Context, iterationEnd time.Time) (
 	))
 
 	// Given we are truncating to 1s resolution, we need to make sure that iterationEnd contains the last second as a whole.
-	iterationEnd = iterationEnd.Truncate(streaming.MinWindowSizeDuration).Add(streaming.MinWindowSizeDuration - time.Nanosecond)
+	iterationEnd = iterationEnd.Truncate(streaming.MinimumWindowSizeDuration).Add(streaming.MinimumWindowSizeDuration - time.Nanosecond)
 
 	return span.Wrap(ctx, func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
 		return it.generateAligned(ctx, iterationEnd)
@@ -415,7 +415,7 @@ func (it *PhaseIterator) truncateItemsIfNeeded(in []subscriptionItemWithPeriods)
 		isFlatPrice := item.Spec.RateCard.AsMeta().Price != nil && item.Spec.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType
 
 		// We truncate the service period to the meter resolution
-		item.ServicePeriod = item.ServicePeriod.Truncate(streaming.MinWindowSizeDuration)
+		item.ServicePeriod = item.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
 
 		// We only allow empty service periods for flat prices.
 		if item.ServicePeriod.IsEmpty() && !isFlatPrice {
@@ -425,8 +425,8 @@ func (it *PhaseIterator) truncateItemsIfNeeded(in []subscriptionItemWithPeriods)
 		// Let's truncate the billing period and full service period so that when
 		// doing any calculations we don't have small rounding errors due to the iterator
 		// returning ns precision.
-		item.BillingPeriod = item.BillingPeriod.Truncate(streaming.MinWindowSizeDuration)
-		item.FullServicePeriod = item.FullServicePeriod.Truncate(streaming.MinWindowSizeDuration)
+		item.BillingPeriod = item.BillingPeriod.Truncate(streaming.MinimumWindowSizeDuration)
+		item.FullServicePeriod = item.FullServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
 
 		out = append(out, item)
 	}
