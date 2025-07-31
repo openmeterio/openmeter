@@ -1,9 +1,7 @@
 package appservice
 
-type StripeLogAttributeName string
-
 const (
-	StripeInvoiceIDAttributeName StripeLogAttributeName = "stripe_invoice_id"
-	InvoiceIDAttributeName       StripeLogAttributeName = "invoice_id"
-	InvoiceStatusAttributeName   StripeLogAttributeName = "invoice_status"
+	StripeInvoiceIDAttributeName = "invoice.stripe_invoice_id"
+	InvoiceIDAttributeName       = "invoice.id"
+	InvoiceStatusAttributeName   = "invoice.status"
 )

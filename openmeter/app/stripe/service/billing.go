@@ -3,6 +3,7 @@ package appservice
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -29,8 +30,6 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 		return err
 	}
 
-	ctx = context.WithValue(ctx, StripeInvoiceIDAttributeName, input.Invoice.ID)
-
 	invoice, err := s.getInvoiceByStripeID(ctx, input.AppID, input.Invoice.ID)
 	if err != nil {
 		return err
@@ -40,18 +39,21 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 		return nil
 	}
 
-	ctx = context.WithValue(ctx, InvoiceIDAttributeName, invoice.ID)
-	ctx = context.WithValue(ctx, InvoiceStatusAttributeName, invoice.Status)
+	logger := s.logger.With(
+		slog.String(StripeInvoiceIDAttributeName, input.Invoice.ID),
+		slog.String(InvoiceIDAttributeName, invoice.ID),
+		slog.String(InvoiceStatusAttributeName, string(invoice.Status)),
+	)
 
 	if slices.Contains(input.TargetStatuses, invoice.Status) {
 		// No need to handle the event, the invoice is already in the target state
-		s.logger.InfoContext(ctx, "invoice is already in the target state, ignoring state event")
+		logger.InfoContext(ctx, "invoice is already in the target state, ignoring state event")
 		return nil
 	}
 
 	if invoice.Status.Matches(input.IgnoreInvoiceInStatus...) {
 		// No need to handle the event, the invoice is in a state that should be ignored
-		s.logger.InfoContext(ctx, "invoice is in a state that should be ignored, ignoring state event")
+		logger.InfoContext(ctx, "invoice is in a state that should be ignored, ignoring state event")
 		return nil
 	}
 
@@ -63,7 +65,7 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 			StripeInvoiceID: input.Invoice.ID,
 		})
 		if err != nil {
-			s.logger.Error("failed to get stripe invoice", "invoice_id", invoice.ID, "error", err)
+			logger.Error("failed to get stripe invoice", "error", err)
 			return err
 		}
 	}
@@ -71,11 +73,11 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 	if input.ShouldTriggerOnEvent != nil {
 		shouldTrigger, err := input.ShouldTriggerOnEvent(stripeInvoice)
 		if err != nil {
-			s.logger.Error("failed to determine if event should trigger", "error", err)
+			logger.Error("failed to determine if event should trigger", "error", err)
 		}
 
 		if !shouldTrigger {
-			s.logger.InfoContext(ctx, "event should not trigger invoice state transition, ignoring state event")
+			logger.InfoContext(ctx, "event should not trigger invoice state transition, ignoring state event")
 			return nil
 		}
 	}
@@ -84,7 +86,7 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 	if input.GetValidationErrors != nil {
 		stripeValidationErrors, err := input.GetValidationErrors(stripeInvoice)
 		if err != nil {
-			s.logger.Error("failed to get validation errors", "error", err)
+			logger.ErrorContext(ctx, "failed to get validation errors", slog.Any("error", err))
 			return err
 		}
 
@@ -108,11 +110,11 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 		Capability: app.CapabilityTypeCollectPayments,
 	})
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to trigger invoice failed trigger")
+		logger.ErrorContext(ctx, "failed to trigger invoice failed trigger")
 		return err
 	}
 
-	s.logger.InfoContext(ctx, "invoice state transition handled successfully", "trigger", input.Trigger)
+	logger.InfoContext(ctx, "invoice state transition handled successfully", "trigger", input.Trigger)
 
 	return nil
 }
@@ -122,8 +124,6 @@ func (s *Service) HandleInvoiceSentEvent(ctx context.Context, input appstripeent
 		return err
 	}
 
-	ctx = context.WithValue(ctx, StripeInvoiceIDAttributeName, input.Invoice.ID)
-
 	invoice, err := s.getInvoiceByStripeID(ctx, input.AppID, input.Invoice.ID)
 	if err != nil {
 		return err
@@ -132,9 +132,6 @@ func (s *Service) HandleInvoiceSentEvent(ctx context.Context, input appstripeent
 	if invoice == nil {
 		return nil
 	}
-
-	ctx = context.WithValue(ctx, InvoiceIDAttributeName, invoice.ID)
-	ctx = context.WithValue(ctx, InvoiceStatusAttributeName, invoice.Status)
 
 	return s.billingService.UpdateInvoiceFields(ctx, billing.UpdateInvoiceFieldsInput{
 		Invoice:          invoice.InvoiceID(),
