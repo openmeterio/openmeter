@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 var _ Line = (*usageBasedLine)(nil)
@@ -43,7 +44,8 @@ type usageBasedLine struct {
 }
 
 func (l usageBasedLine) PrepareForCreate(context.Context) (Line, error) {
-	l.line.Period = l.line.Period.Truncate(billing.DefaultMeterResolution)
+	l.line.Period = l.line.Period.Truncate(streaming.MinimumWindowSizeDuration)
+	l.line.InvoiceAt = l.line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
 	return &l, nil
 }
@@ -63,7 +65,7 @@ func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.Inv
 		}
 	}
 
-	if l.line.LineBase.Period.Truncate(billing.DefaultMeterResolution).IsEmpty() {
+	if l.line.LineBase.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
 		return billing.ValidationError{
 			Err: billing.ErrInvoiceCreateUBPLinePeriodIsEmpty,
 		}
@@ -107,13 +109,13 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, in CanBeInvoicedA
 
 	meter := meterAndFactory.meter
 
-	asOfTruncated := in.AsOf.Truncate(billing.DefaultMeterResolution)
+	asOfTruncated := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
 
 	switch meter.Aggregation {
 	case meterpkg.MeterAggregationSum, meterpkg.MeterAggregationCount,
 		meterpkg.MeterAggregationMax, meterpkg.MeterAggregationUniqueCount:
 
-		periodStartTrucated := l.line.Period.Start.Truncate(billing.DefaultMeterResolution)
+		periodStartTrucated := l.line.Period.Start.Truncate(streaming.MinimumWindowSizeDuration)
 
 		if !periodStartTrucated.Before(asOfTruncated) {
 			return nil, nil
@@ -236,5 +238,5 @@ func formatMaximumSpendDiscountDescription(amount alpacadecimal.Decimal) *string
 }
 
 func (l usageBasedLine) IsPeriodEmptyConsideringTruncations() bool {
-	return l.Period().Truncate(billing.DefaultMeterResolution).IsEmpty()
+	return l.Period().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty()
 }

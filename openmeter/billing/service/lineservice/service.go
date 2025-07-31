@@ -75,6 +75,7 @@ func (s *Service) FromEntity(line *billing.Line) (Line, error) {
 
 	switch line.Type {
 	case billing.InvoiceLineTypeFee:
+		// Warning: These are actually the detailed lines, but the billing refactor is not yet complete
 		return &feeLine{
 			lineBase: base,
 		}, nil

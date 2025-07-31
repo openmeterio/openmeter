@@ -26,6 +26,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -1288,8 +1290,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 	ctx := context.Background()
 	defer clock.ResetTime()
 
-	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
-	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
+	periodStart := testutils.GetRFC3339Time(s.T(), "2024-09-02T12:13:14.1234Z")
+	periodEnd := testutils.GetRFC3339Time(s.T(), "2024-09-03T12:13:14.1234Z")
+
+	truncatedPeriodStart := periodStart.Truncate(streaming.MinimumWindowSizeDuration)
+	truncatedPeriodEnd := periodEnd.Truncate(streaming.MinimumWindowSizeDuration)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
@@ -1521,15 +1526,15 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		// The flat fee line should not be truncated
 		require.Equal(s.T(),
 			billing.Period{
-				Start: periodStart,
-				End:   periodEnd,
+				Start: truncatedPeriodStart,
+				End:   truncatedPeriodEnd,
 			},
 			lines.flatFee.Period,
 			"period should not be truncated",
 		)
 		require.Equal(s.T(),
 			lines.flatFee.InvoiceAt,
-			periodEnd,
+			truncatedPeriodEnd,
 			"invoice at should be unchanged",
 		)
 
@@ -1537,8 +1542,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		for _, line := range []*billing.Line{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
 			require.Equal(s.T(),
 				billing.Period{
-					Start: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:00Z")),
-					End:   lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:00Z")),
+					Start: testutils.GetRFC3339Time(s.T(), "2024-09-02T12:13:14Z"),
+					End:   testutils.GetRFC3339Time(s.T(), "2024-09-03T12:13:14Z"),
 				},
 				line.Period,
 				"period should be truncated to 1 min resolution",
@@ -1546,17 +1551,16 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 			require.Equal(s.T(),
 				line.InvoiceAt,
-				periodEnd,
+				truncatedPeriodEnd,
 				"invoice at should be unchanged",
 			)
 		}
 	})
 
-	s.Run("create invoice with empty truncated periods", func() {
-		asOf := periodStart.Add(time.Second)
+	s.Run("create invoice with empty trucated periods", func() {
 		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
-			AsOf:     &asOf,
+			AsOf:     &periodStart,
 		})
 
 		require.ErrorIs(s.T(), err, billing.ErrInvoiceCreateNoLines)
@@ -1603,8 +1607,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		})
 
 		expectedPeriod := billing.Period{
-			Start: periodStart.Truncate(time.Minute),
-			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
+			Start: truncatedPeriodStart,
+			End:   truncatedPeriodStart.Add(time.Hour),
 		}
 		for _, line := range invoiceLines {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
@@ -1618,13 +1622,13 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.Equal(s.T(), flatPerUnit.UsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 2, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
-			Start: periodStart.Truncate(time.Minute),
-			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
+			Start: truncatedPeriodStart,
+			End:   truncatedPeriodStart.Add(time.Hour),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.InvoiceAt.Equal(periodStart.Add(time.Hour).Truncate(time.Minute)), "first child should be issued at the end of parent's period")
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.InvoiceAt.Equal(truncatedPeriodStart.Add(time.Hour)), "first child should be issued at the end of parent's period")
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.Period.Equal(billing.Period{
-			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
-			End:   periodEnd.Truncate(time.Minute),
+			Start: truncatedPeriodStart.Add(time.Hour),
+			End:   truncatedPeriodEnd,
 		}), "second child period should be until the end of parent's period")
 
 		// Let's validate detailed line items
@@ -1902,8 +1906,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		})
 
 		expectedPeriod := billing.Period{
-			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
-			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
+			Start: truncatedPeriodStart.Add(time.Hour),
+			End:   truncatedPeriodStart.Add(2 * time.Hour),
 		}
 		for _, line := range invoiceLines {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
@@ -1917,17 +1921,17 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.Period))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
-			Start: periodStart.Truncate(time.Minute),
-			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
+			Start: truncatedPeriodStart,
+			End:   truncatedPeriodStart.Add(time.Hour),
 		}), "first child period should be truncated")
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.Period.Equal(billing.Period{
-			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
-			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
+			Start: truncatedPeriodStart.Add(time.Hour),
+			End:   truncatedPeriodStart.Add(2 * time.Hour),
 		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(streaming.MinimumWindowSizeDuration)), "second child should be issued at the end of parent's period")
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.Period.Equal(billing.Period{
-			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
-			End:   periodEnd.Truncate(time.Minute),
+			Start: truncatedPeriodStart.Add(2 * time.Hour),
+			End:   truncatedPeriodEnd,
 		}), "third child period should be until the end of parent's period")
 
 		// Detailed lines
@@ -2079,7 +2083,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		})
 
 		// Usage
-		afterPreviousTest := periodStart.Add(3 * time.Hour)
+		afterPreviousTest := truncatedPeriodStart.Add(3 * time.Hour)
 		s.MockStreamingConnector.AddSimpleEvent("tiered-volume", 25, afterPreviousTest)
 		s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, afterPreviousTest)
 		s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 30, afterPreviousTest)
@@ -2124,8 +2128,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		})
 
 		expectedPeriod := billing.Period{
-			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
-			End:   periodEnd.Truncate(time.Minute),
+			Start: truncatedPeriodStart.Add(2 * time.Hour),
+			End:   truncatedPeriodEnd,
 		}
 		for _, line := range []*billing.Line{flatPerUnit, tieredGraduated} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
@@ -2141,17 +2145,17 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.Period))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
-			Start: periodStart.Truncate(time.Minute),
-			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
+			Start: truncatedPeriodStart,
+			End:   truncatedPeriodStart.Add(time.Hour),
 		}), "first child period should be truncated")
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.Period.Equal(billing.Period{
-			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
-			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
+			Start: truncatedPeriodStart.Add(time.Hour),
+			End:   truncatedPeriodStart.Add(2 * time.Hour),
 		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.InvoiceAt.Equal(truncatedPeriodStart.Add(2*time.Hour)), "second child should be issued at the end of parent's period")
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.Period.Equal(billing.Period{
-			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
-			End:   periodEnd.Truncate(time.Minute),
+			Start: truncatedPeriodStart.Add(2 * time.Hour),
+			End:   truncatedPeriodEnd,
 		}), "third child period should be until the end of parent's period")
 
 		// Invoice app testing: discounts
@@ -2497,8 +2501,11 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	namespace := "ns-ubp-invoicing-non-progressive"
 	ctx := context.Background()
 
-	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
-	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14.1234Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14.1234Z"))
+
+	truncatedPeriodStart := periodStart.Truncate(streaming.MinimumWindowSizeDuration)
+	truncatedPeriodEnd := periodEnd.Truncate(streaming.MinimumWindowSizeDuration)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
@@ -2750,27 +2757,12 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 			tieredVolume:    pendingLines.Lines[3],
 		}
 
-		// The flat fee line should not be truncated
-		require.Equal(s.T(),
-			billing.Period{
-				Start: periodStart,
-				End:   periodEnd,
-			},
-			lines.flatFee.Period,
-			"period should not be truncated",
-		)
-		require.Equal(s.T(),
-			lines.flatFee.InvoiceAt,
-			periodEnd,
-			"invoice at should be unchanged",
-		)
-
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
-		for _, line := range []*billing.Line{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
+		for _, line := range []*billing.Line{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume, lines.flatFee} {
 			require.Equal(s.T(),
 				billing.Period{
-					Start: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:00Z")),
-					End:   lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:00Z")),
+					Start: truncatedPeriodStart,
+					End:   truncatedPeriodEnd,
 				},
 				line.Period,
 				"period should be truncated to 1 min resolution",
@@ -2778,7 +2770,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 			require.Equal(s.T(),
 				line.InvoiceAt,
-				periodEnd,
+				truncatedPeriodEnd,
 				"invoice at should be unchanged",
 			)
 		}
@@ -2835,8 +2827,8 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		tieredVolume := s.lineByID(invoiceLines, lines.tieredVolume.ID)
 
 		expectedPeriod := billing.Period{
-			Start: periodStart.Truncate(time.Minute),
-			End:   periodEnd.Truncate(time.Minute),
+			Start: truncatedPeriodStart,
+			End:   truncatedPeriodEnd,
 		}
 		for _, line := range []*billing.Line{flatPerUnit, tieredGraduated, tieredVolume} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should not be changed for the line items")
@@ -2844,8 +2836,8 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 		require.Equal(s.T(),
 			billing.Period{
-				Start: periodStart,
-				End:   periodEnd,
+				Start: truncatedPeriodStart,
+				End:   truncatedPeriodEnd,
 			},
 			flatFee.Period,
 			"period should be unchanged",

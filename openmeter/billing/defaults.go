@@ -1,15 +1,9 @@
 package billing
 
 import (
-	"time"
-
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/datetime"
-)
-
-const (
-	DefaultMeterResolution = time.Minute
 )
 
 var DefaultWorkflowConfig = WorkflowConfig{

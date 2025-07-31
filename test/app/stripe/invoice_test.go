@@ -30,6 +30,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -504,8 +505,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// TODO: do not share env between tests
 		defer s.StripeAppClient.Restore()
 
-		expectedPeriodStart := time.Unix(int64(1725279180), 0)
-		expectedPeriodEnd := time.Unix(int64(1725365580), 0)
+		expectedPeriodStartUnix := periodStart.Truncate(streaming.MinimumWindowSizeDuration).Unix()
+		expectedPeriodEndUnix := periodEnd.Truncate(streaming.MinimumWindowSizeDuration).Unix()
 
 		getLine := func(description string) *billing.Line {
 			for _, line := range invoice.GetLeafLinesWithConsolidatedTaxBehavior() {
@@ -555,9 +556,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Description: lo.ToPtr("Fee"),
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 				Period: &stripe.InvoiceItemPeriodParams{
-					Start: lo.ToPtr(periodStart.Unix()),
-					// TODO: check time shift
-					End: lo.ToPtr(periodStart.Add(time.Hour * 24).Unix()),
+					Start: lo.ToPtr(expectedPeriodStartUnix),
+					End:   lo.ToPtr(expectedPeriodEndUnix),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("Fee"),
@@ -570,8 +570,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 
 				Period: &stripe.InvoiceItemPeriodParams{
-					Start: lo.ToPtr(expectedPeriodStart.Unix()),
-					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+					Start: lo.ToPtr(expectedPeriodStartUnix),
+					End:   lo.ToPtr(expectedPeriodEndUnix),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - AI Usecase: usage in period"),
@@ -583,8 +583,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Description: lo.ToPtr("UBP - FLAT per any usage"),
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 				Period: &stripe.InvoiceItemPeriodParams{
-					Start: lo.ToPtr(periodStart.Unix()),
-					End:   lo.ToPtr(periodEnd.Unix()),
+					Start: lo.ToPtr(expectedPeriodStartUnix),
+					End:   lo.ToPtr(expectedPeriodEndUnix),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - FLAT per any usage"),
@@ -596,8 +596,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Description: lo.ToPtr("UBP - FLAT per unit: usage in period (32.20 x $100)"),
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 				Period: &stripe.InvoiceItemPeriodParams{
-					Start: lo.ToPtr(expectedPeriodStart.Unix()),
-					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+					Start: lo.ToPtr(expectedPeriodStartUnix),
+					End:   lo.ToPtr(expectedPeriodEndUnix),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - FLAT per unit: usage in period"),
@@ -609,8 +609,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Description: lo.ToPtr("UBP - FLAT per unit: usage in period (Maximum spend discount for charges over 2000)"),
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 				Period: &stripe.InvoiceItemPeriodParams{
-					Start: lo.ToPtr(expectedPeriodStart.Unix()),
-					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+					Start: lo.ToPtr(expectedPeriodStartUnix),
+					End:   lo.ToPtr(expectedPeriodEndUnix),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getDiscountID("UBP - FLAT per unit: usage in period (Maximum spend discount for charges over 2000)"),
@@ -622,8 +622,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 1 (9.50 x $100)"),
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 				Period: &stripe.InvoiceItemPeriodParams{
-					Start: lo.ToPtr(expectedPeriodStart.Unix()),
-					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+					Start: lo.ToPtr(expectedPeriodStartUnix),
+					End:   lo.ToPtr(expectedPeriodEndUnix),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - Tiered graduated: usage price for tier 1"),
@@ -635,8 +635,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 2 (10.50 x $90)"),
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 				Period: &stripe.InvoiceItemPeriodParams{
-					Start: lo.ToPtr(expectedPeriodStart.Unix()),
-					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+					Start: lo.ToPtr(expectedPeriodStartUnix),
+					End:   lo.ToPtr(expectedPeriodEndUnix),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - Tiered graduated: usage price for tier 2"),
@@ -648,8 +648,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 3 (15.30 x $80)"),
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 				Period: &stripe.InvoiceItemPeriodParams{
-					Start: lo.ToPtr(expectedPeriodStart.Unix()),
-					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+					Start: lo.ToPtr(expectedPeriodStartUnix),
+					End:   lo.ToPtr(expectedPeriodEndUnix),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - Tiered graduated: usage price for tier 3"),
@@ -661,9 +661,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Description: lo.ToPtr("UBP - Tiered volume: minimum spend"),
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 				Period: &stripe.InvoiceItemPeriodParams{
-					// TODO: check rounding
-					Start: lo.ToPtr(periodStart.Truncate(time.Minute).Unix()),
-					End:   lo.ToPtr(periodEnd.Truncate(time.Minute).Unix()),
+					Start: lo.ToPtr(expectedPeriodStartUnix),
+					End:   lo.ToPtr(expectedPeriodEndUnix),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - Tiered volume: minimum spend"),
@@ -676,8 +675,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Customer:    lo.ToPtr(customerData.StripeCustomerID),
 				Period: &stripe.InvoiceItemPeriodParams{
 					// TODO: check rounding
-					Start: lo.ToPtr(periodStart.Truncate(time.Minute).Unix()),
-					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+					Start: lo.ToPtr(expectedPeriodStartUnix),
+					End:   lo.ToPtr(expectedPeriodEndUnix),
 				},
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - Tiered volume: unit price for tier 2"),
