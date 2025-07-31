@@ -34,8 +34,7 @@ func (c BillingConfiguration) Validate() error {
 }
 
 type BillingFeatureSwitchesConfiguration struct {
-	NamespaceLockdown         []string
-	UseUsageBasedFlatFeeLines bool
+	NamespaceLockdown []string
 }
 
 func (c BillingFeatureSwitchesConfiguration) Validate() error {

@@ -675,8 +675,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 				Start: s.mustParseTime("2024-01-01T00:00:00Z").AddDate(0, 0, line.Period.Start.Day()-1),
 				End:   s.mustParseTime("2024-01-01T00:00:00Z").AddDate(0, 0, line.Period.Start.Day()),
 			}, "failed for line %v", line.ID)
-			s.Equal(line.FlatFee.PerUnitAmount.InexactFloat64(), 5.0, "failed for line %v", line.ID)
-			s.Equal(line.FlatFee.Quantity.InexactFloat64(), 1.0, "failed for line %v", line.ID)
+			price, err := line.UsageBased.Price.AsFlat()
+			s.NoError(err)
+			s.Equal(price.Amount.InexactFloat64(), 5.0, "failed for line %v", line.ID)
+			s.Equal(price.PaymentTerm, productcatalog.InArrearsPaymentTerm, "failed for line %v", line.ID)
 		}
 	})
 
@@ -727,8 +729,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 			Start: s.mustParseTime("2024-01-01T00:00:00Z"),
 			End:   cancelAt,
 		})
-		s.Equal(9.0, flatFeeLine.FlatFee.PerUnitAmount.InexactFloat64())
-		s.Equal(1.0, flatFeeLine.FlatFee.Quantity.InexactFloat64())
+		price, err := flatFeeLine.UsageBased.Price.AsFlat()
+		s.NoError(err)
+		s.Equal(price.Amount.InexactFloat64(), 9.0, "failed for line %v", flatFeeLine.ID)
+		s.Equal(price.PaymentTerm, productcatalog.InArrearsPaymentTerm, "failed for line %v", flatFeeLine.ID)
 	})
 }
 
@@ -801,9 +805,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				PeriodMin: 0,
 				PeriodMax: 1, // as its in-advance, we'll generate the item for the next month too
 			},
-
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](10),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:40Z"),
@@ -913,8 +918,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](5),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -934,8 +941,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				PeriodMax: 1,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](10),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:40Z"),
@@ -1043,8 +1052,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](5),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -1063,8 +1074,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](10),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:40Z"),
@@ -1146,8 +1159,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](0.32), // 10 * 1 / 31
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(0.32), // 10 * 1 / 31
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -1167,8 +1182,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](19.35), // 20 * 30 / 31
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(19.35), // 20 * 30 / 31
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
@@ -1188,8 +1205,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 				PeriodMax: 1,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](20),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(20),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
@@ -1261,8 +1280,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](6),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -1306,8 +1327,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](9.68), // 10 * 30 / 31
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(9.68), // 10 * 30 / 31
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
@@ -1325,8 +1348,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				PeriodMax: 1,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](10),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
@@ -1354,8 +1379,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](0.19), // 6 * 1 / 31
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(0.19), // 6 * 1 / 31
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -1426,8 +1453,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](6),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -1471,8 +1500,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](9.68), // 10 * 30 / 31
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(9.68), // 10 * 30 / 31
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
@@ -1490,8 +1521,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				PeriodMax: 1,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](10),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
@@ -1519,8 +1552,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](6),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -1747,8 +1782,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](5),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -1766,8 +1803,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				PeriodMax: 7,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](8),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(8),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
@@ -1825,8 +1864,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				PeriodMax: 0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](5),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -1844,8 +1885,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				PeriodMax: 3,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](7),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(7),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
@@ -2249,8 +2292,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 				Version:  0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](5),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -2365,8 +2410,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
 				Version:  0,
 			},
 
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](5),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -3177,7 +3224,12 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 		EditFn: func(invoice *billing.Invoice) error {
 			line := s.getLineByChildID(*invoice, fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID))
 
-			line.FlatFee.PaymentTerm = productcatalog.InArrearsPaymentTerm
+			price, err := line.UsageBased.Price.AsFlat()
+			s.NoError(err)
+
+			price.PaymentTerm = productcatalog.InArrearsPaymentTerm
+			line.UsageBased.Price = productcatalog.NewPriceFrom(price)
+
 			line.Period = billing.Period{
 				Start: line.Period.Start.Add(time.Hour),
 				End:   line.Period.End.Add(time.Hour),
@@ -3510,6 +3562,19 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 			}
 		}
 
+		line.Children = line.Children.Map(func(child *billing.Line) *billing.Line {
+			child.FlatFee.ConfigID = ""
+			return child
+		})
+
+		return line
+	})
+
+	draftInvoiceAfterSync.Lines = draftInvoiceAfterSync.Lines.Map(func(line *billing.Line) *billing.Line {
+		line.Children = line.Children.Map(func(child *billing.Line) *billing.Line {
+			child.FlatFee.ConfigID = ""
+			return child
+		})
 		return line
 	})
 
@@ -3540,7 +3605,10 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	newLineReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[1]/period[0]", subsView.Subscription.ID)
 	updatedLine := s.getLineByChildID(gatheringInvoice, newLineReferenceID)
 	s.NotNil(updatedLine)
-	s.Equal(alpacadecimal.NewFromFloat(10), updatedLine.FlatFee.PerUnitAmount)
+
+	price, err := updatedLine.UsageBased.Price.AsFlat()
+	s.NoError(err)
+	s.Equal(alpacadecimal.NewFromFloat(10), price.Amount)
 }
 
 func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriodChanges() {
@@ -3901,8 +3969,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 				PhaseKey: "first-phase",
 				ItemKey:  "in-advance",
 			},
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](6),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -3980,8 +4050,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 				PhaseKey: "first-phase",
 				ItemKey:  "in-advance",
 			},
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](6),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
@@ -4094,8 +4166,10 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 				PeriodMax: 1,
 				Version:   0,
 			},
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](6),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
@@ -4113,8 +4187,10 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 				PhaseKey: "first-phase",
 				ItemKey:  "in-advance",
 			},
-			Qty:       mo.Some[float64](1),
-			UnitPrice: mo.Some[float64](6),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -4127,92 +4203,12 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 
 	// The advance fee should have 100% discount
 	line := instantInvoice.Lines.OrEmpty()[0]
-	s.Equal(float64(6), line.Discounts.Amount[0].Amount.InexactFloat64())
-}
+	lineChildren := line.Children.OrEmpty()
+	s.Len(lineChildren, 1)
 
-func (s *SubscriptionHandlerTestSuite) TestUseUsageBasedFlatFeeLinesCompatibility() {
-	ctx := s.Context
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	child := lineChildren[0]
 
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-advance",
-						Name: "in-advance",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(6),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
-					},
-					BillingCadence: datetime.MustParse(s.T(), "P1M"),
-				},
-			},
-		},
-	})
-
-	// Given:
-	// - a flat fee has been created as part of the synchronization
-	// When:
-	// - we enable the new feature flag
-	// Then
-	// - the resynchronization should not replace existing usage based lines
-	// - new lines syncronized should receive the usage based line approach
-
-	featureFlagSwitchoverAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	clock.FreezeTime(featureFlagSwitchoverAt)
-
-	// let provision the lines in the old way
-	s.Handler.featureFlags.UseUsageBasedFlatFeeLines = false
-	defer func() {
-		s.Handler.featureFlags.UseUsageBasedFlatFeeLines = false
-	}()
-
-	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, clock.Now()))
-
-	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", invoice)
-
-	lines := invoice.Lines.OrEmpty()
-	s.Len(lines, 2)
-	s.Equal(billing.InvoiceLineTypeFee, lines[0].Type)
-	s.Equal(float64(6), lines[0].FlatFee.PerUnitAmount.InexactFloat64())
-
-	// When we enable the new feature flag
-	s.Handler.featureFlags.UseUsageBasedFlatFeeLines = true
-
-	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, clock.Now()))
-
-	invoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", invoice)
-
-	// assert no change
-	lines = invoice.Lines.OrEmpty()
-	s.Len(lines, 2)
-	s.Equal(billing.InvoiceLineTypeFee, lines[0].Type)
-	s.Equal(float64(6), lines[0].FlatFee.PerUnitAmount.InexactFloat64())
-	firstSyncLineIDs := lo.Map(lines, func(line *billing.Line, _ int) string {
-		return line.ID
-	})
-
-	// The new line should usage based
-	clock.FreezeTime(s.mustParseTime("2024-03-01T00:00:00Z")) // so this matches up with the end of the last prev generated line (the first one) thats why the switchover happens as now we get to generate more lines
-
-	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, clock.Now()))
-	invoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice - mixed line setup", invoice)
-
-	linesByType := lo.GroupBy(invoice.Lines.OrEmpty(), func(line *billing.Line) billing.InvoiceLineType {
-		return line.Type
-	})
-
-	s.Len(linesByType[billing.InvoiceLineTypeFee], 2)
-	s.ElementsMatch(firstSyncLineIDs, lo.Map(linesByType[billing.InvoiceLineTypeFee], func(line *billing.Line, _ int) string {
-		return line.ID
-	}))
-	s.Len(linesByType[billing.InvoiceLineTypeUsageBased], 1)
+	s.Equal(float64(6), child.Discounts.Amount[0].Amount.InexactFloat64())
 }
 
 func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior() {
@@ -4328,8 +4324,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				PhaseKey: "first-phase",
 				ItemKey:  "in-advance",
 			},
-			Qty:       mo.Some(1.0),
-			UnitPrice: mo.Some(2.26),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(2.26),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -4343,8 +4341,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				PhaseKey: "first-phase",
 				ItemKey:  "in-arrears",
 			},
-			Qty:       mo.Some(1.0),
-			UnitPrice: mo.Some(2.26),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(2.26),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -4377,8 +4377,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Qty:       mo.Some(1.0),
-			UnitPrice: mo.Some(2.74),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(2.74),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
@@ -4394,8 +4396,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				PeriodMin: 1,
 				PeriodMax: 1,
 			},
-			Qty:       mo.Some(1.0),
-			UnitPrice: mo.Some(5.0),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
@@ -4411,8 +4415,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Qty:       mo.Some(1.0),
-			UnitPrice: mo.Some(2.74),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(2.74),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-15T00:00:00Z"),
@@ -4428,8 +4434,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				PeriodMin: 1,
 				PeriodMax: 1,
 			},
-			Qty:       mo.Some(1.0),
-			UnitPrice: mo.Some(5.0),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
@@ -4524,8 +4532,10 @@ func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithm
 				PhaseKey: "first-phase",
 				ItemKey:  "in-advance",
 			},
-			Qty:       mo.Some(1.0),
-			UnitPrice: mo.Some(6.0),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2025-01-31T00:00:00Z"),
@@ -4551,8 +4561,10 @@ func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithm
 				PeriodMin: 0,
 				PeriodMax: 1,
 			},
-			Qty:       mo.Some(1.0),
-			UnitPrice: mo.Some(6.0),
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2025-01-31T00:00:00Z"),
@@ -4577,7 +4589,6 @@ func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithm
 type expectedLine struct {
 	Matcher   lineMatcher
 	Qty       mo.Option[float64]
-	UnitPrice mo.Option[float64]
 	Price     mo.Option[*productcatalog.Price]
 	Periods   []billing.Period
 	InvoiceAt mo.Option[[]time.Time]
@@ -4608,26 +4619,13 @@ func (s *SubscriptionHandlerTestSuite) expectLines(invoice billing.Invoice, subs
 			s.NotNil(line)
 
 			if expectedLine.Qty.IsPresent() {
-				if line.Type == billing.InvoiceLineTypeFee {
-					if line.FlatFee == nil {
-						s.Failf("flat fee line not found", "line not found with child id %s", childID)
-					} else {
-						s.Equal(expectedLine.Qty.OrEmpty(), line.FlatFee.Quantity.InexactFloat64(), "%s: quantity", childID)
-					}
+				if line.UsageBased == nil {
+					s.Failf("usage based line not found", "line not found with child id %s", childID)
+				} else if line.UsageBased.Quantity == nil {
+					s.Failf("usage based line quantity not found", "line not found with child id %s", childID)
 				} else {
-					if line.UsageBased == nil {
-						s.Failf("usage based line not found", "line not found with child id %s", childID)
-					} else if line.UsageBased.Quantity == nil {
-						s.Failf("usage based line quantity not found", "line not found with child id %s", childID)
-					} else {
-						s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), "%s: quantity", childID)
-					}
+					s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), "%s: quantity", childID)
 				}
-			}
-
-			if expectedLine.UnitPrice.IsPresent() {
-				s.Equal(billing.InvoiceLineTypeFee, line.Type, "%s: line type", childID)
-				s.Equal(expectedLine.UnitPrice.OrEmpty(), line.FlatFee.PerUnitAmount.InexactFloat64(), "%s: unit price \n out: %+v", childID, line)
 			}
 
 			if expectedLine.Price.IsPresent() {
