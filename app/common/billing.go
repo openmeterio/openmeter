@@ -71,7 +71,7 @@ func BillingService(
 		return nil, err
 	}
 
-	handler, err := NewBillingSubscriptionHandler(logger, subscriptionServices, service, billingAdapter, tracer, fsConfig)
+	handler, err := NewBillingSubscriptionHandler(logger, subscriptionServices, service, billingAdapter, tracer)
 	if err != nil {
 		return nil, err
 	}
@@ -119,16 +119,11 @@ func NewBillingSubscriptionReconciler(logger *slog.Logger, subsServices Subscrip
 	})
 }
 
-func NewBillingSubscriptionHandler(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingService billing.Service, billingAdapter billing.Adapter, tracer trace.Tracer, config config.BillingFeatureSwitchesConfiguration) (*billingworkersubscription.Handler, error) {
-	featureFlags := billingworkersubscription.FeatureFlags{
-		UseUsageBasedFlatFeeLines: config.UseUsageBasedFlatFeeLines,
-	}
-
+func NewBillingSubscriptionHandler(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingService billing.Service, billingAdapter billing.Adapter, tracer trace.Tracer) (*billingworkersubscription.Handler, error) {
 	return billingworkersubscription.New(billingworkersubscription.Config{
 		SubscriptionService: subsServices.Service,
 		BillingService:      billingService,
 		TxCreator:           billingAdapter,
-		FeatureFlags:        featureFlags,
 		Logger:              logger,
 		Tracer:              tracer,
 	})

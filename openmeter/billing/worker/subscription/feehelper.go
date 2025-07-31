@@ -17,10 +17,6 @@ func isFlatFee(line *billing.Line) bool {
 		return false
 	}
 
-	if line.Type == billing.InvoiceLineTypeFee {
-		return true
-	}
-
 	if line.Type == billing.InvoiceLineTypeUsageBased &&
 		line.UsageBased != nil &&
 		line.UsageBased.Price != nil &&
@@ -36,27 +32,20 @@ func getFlatFeePerUnitAmount(line *billing.Line) (alpacadecimal.Decimal, error) 
 		return alpacadecimal.Zero, fmt.Errorf("line is nil")
 	}
 
-	switch line.Type {
-	case billing.InvoiceLineTypeFee:
-		if line.FlatFee == nil {
-			return alpacadecimal.Zero, fmt.Errorf("line misses flat fee metadata")
-		}
-
-		return line.FlatFee.PerUnitAmount, nil
-	case billing.InvoiceLineTypeUsageBased:
-		if line.UsageBased == nil || line.UsageBased.Price == nil {
-			return alpacadecimal.Zero, fmt.Errorf("line misses usage based metadata")
-		}
-
-		flatPrice, err := line.UsageBased.Price.AsFlat()
-		if err != nil {
-			return alpacadecimal.Zero, err
-		}
-
-		return flatPrice.Amount, nil
-	default:
-		return alpacadecimal.Zero, fmt.Errorf("line is not a (flat or usage based) fee line")
+	if line.Type != billing.InvoiceLineTypeUsageBased {
+		return alpacadecimal.Zero, fmt.Errorf("line is not a usage based line")
 	}
+
+	if line.UsageBased == nil || line.UsageBased.Price == nil {
+		return alpacadecimal.Zero, fmt.Errorf("line misses usage based metadata")
+	}
+
+	flatPrice, err := line.UsageBased.Price.AsFlat()
+	if err != nil {
+		return alpacadecimal.Zero, err
+	}
+
+	return flatPrice.Amount, nil
 }
 
 func setFlatFeePerUnitAmount(line *billing.Line, perUnitAmount alpacadecimal.Decimal) error {
@@ -64,30 +53,22 @@ func setFlatFeePerUnitAmount(line *billing.Line, perUnitAmount alpacadecimal.Dec
 		return fmt.Errorf("line is nil")
 	}
 
-	switch line.Type {
-	case billing.InvoiceLineTypeFee:
-		if line.FlatFee == nil {
-			return fmt.Errorf("line misses flat fee metadata")
-		}
-
-		line.FlatFee.PerUnitAmount = perUnitAmount
-		return nil
-	case billing.InvoiceLineTypeUsageBased:
-		if line.UsageBased == nil || line.UsageBased.Price == nil {
-			return fmt.Errorf("line misses usage based metadata")
-		}
-
-		flatPrice, err := line.UsageBased.Price.AsFlat()
-		if err != nil {
-			return err
-		}
-
-		flatPrice.Amount = perUnitAmount
-		line.UsageBased.Price = productcatalog.NewPriceFrom(flatPrice)
-		return nil
-	default:
-		return fmt.Errorf("line is not a (flat or usage based) fee line")
+	if line.Type != billing.InvoiceLineTypeUsageBased {
+		return fmt.Errorf("line is not a usage based line")
 	}
+
+	if line.UsageBased == nil || line.UsageBased.Price == nil {
+		return fmt.Errorf("line misses usage based metadata")
+	}
+
+	flatPrice, err := line.UsageBased.Price.AsFlat()
+	if err != nil {
+		return err
+	}
+
+	flatPrice.Amount = perUnitAmount
+	line.UsageBased.Price = productcatalog.NewPriceFrom(flatPrice)
+	return nil
 }
 
 type typeWithEqual[T any] interface {

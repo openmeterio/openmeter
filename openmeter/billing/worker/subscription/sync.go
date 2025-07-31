@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -32,7 +31,6 @@ const (
 type FeatureFlags struct {
 	EnableFlatFeeInAdvanceProrating bool
 	EnableFlatFeeInArrearsProrating bool
-	UseUsageBasedFlatFeeLines       bool
 }
 
 type Config struct {
@@ -617,20 +615,13 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			return nil, nil
 		}
 
-		if !h.featureFlags.UseUsageBasedFlatFeeLines {
-			line.Type = billing.InvoiceLineTypeFee
-			line.FlatFee = &billing.FlatFeeLine{
-				PerUnitAmount: perUnitAmount,
-				Quantity:      alpacadecimal.NewFromInt(1),
-				PaymentTerm:   price.PaymentTerm,
-				Category:      billing.FlatFeeCategoryRegular,
-			}
-		} else {
-			line.Type = billing.InvoiceLineTypeUsageBased
-			line.UsageBased = &billing.UsageBasedLine{
-				Price:      item.SubscriptionItem.RateCard.AsMeta().Price,
-				FeatureKey: lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().FeatureKey),
-			}
+		line.Type = billing.InvoiceLineTypeUsageBased
+		line.UsageBased = &billing.UsageBasedLine{
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      perUnitAmount,
+				PaymentTerm: price.PaymentTerm,
+			}),
+			FeatureKey: lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().FeatureKey),
 		}
 
 	default:
