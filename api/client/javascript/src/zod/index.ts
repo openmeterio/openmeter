@@ -130,13 +130,11 @@ export const createAddonBodyRateCardsItemFeatureKeyMax = 64
 export const createAddonBodyRateCardsItemFeatureKeyRegExp = new RegExp(
   '^[a-z0-9]+(?:_[a-z0-9]+)*$'
 )
-export const createAddonBodyRateCardsItemEntitlementTemplateIsSoftLimitDefault =
-  false
+export const createAddonBodyRateCardsItemEntitlementTemplateIsSoftLimitDefault = false
 export const createAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetMin = 0
 export const createAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefault = 1
 export const createAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetPriorityMax = 255
-export const createAddonBodyRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault =
-  false
+export const createAddonBodyRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault = false
 export const createAddonBodyRateCardsItemTaxConfigStripeCodeRegExp = new RegExp(
   '^txcd_\\d{8}$'
 )
@@ -158,13 +156,11 @@ export const createAddonBodyRateCardsItemFeatureKeyMaxOne = 64
 export const createAddonBodyRateCardsItemFeatureKeyRegExpOne = new RegExp(
   '^[a-z0-9]+(?:_[a-z0-9]+)*$'
 )
-export const createAddonBodyRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne =
-  false
+export const createAddonBodyRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne = false
 export const createAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetMinOne = 0
 export const createAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefaultOne = 1
 export const createAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetPriorityMaxOne = 255
-export const createAddonBodyRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne =
-  false
+export const createAddonBodyRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne = false
 export const createAddonBodyRateCardsItemTaxConfigStripeCodeRegExpOne =
   new RegExp('^txcd_\\d{8}$')
 export const createAddonBodyRateCardsItemPriceAmountRegExpThree = new RegExp(
@@ -258,7 +254,7 @@ export const createAddonBody = zod
     rateCards: zod
       .array(
         zod
-          .discriminatedUnion('type', [
+          .union([
             zod
               .object({
                 billingCadence: zod.coerce
@@ -314,7 +310,7 @@ export const createAddonBody = zod
                     'The discount of the rate card. For flat fee rate cards only percentage discounts are supported.\nOnly available when price is set.'
                   ),
                 entitlementTemplate: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         isSoftLimit: zod.coerce
@@ -562,7 +558,7 @@ export const createAddonBody = zod
                     'The discounts of the rate card.\n\nFlat fee rate cards only support percentage discounts.'
                   ),
                 entitlementTemplate: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         isSoftLimit: zod.coerce
@@ -685,7 +681,7 @@ export const createAddonBody = zod
                     'Human-readable name for the resource. Between 1 and 256 characters.'
                   ),
                 price: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         amount: zod.coerce
@@ -1031,13 +1027,11 @@ export const updateAddonBodyRateCardsItemFeatureKeyMax = 64
 export const updateAddonBodyRateCardsItemFeatureKeyRegExp = new RegExp(
   '^[a-z0-9]+(?:_[a-z0-9]+)*$'
 )
-export const updateAddonBodyRateCardsItemEntitlementTemplateIsSoftLimitDefault =
-  false
+export const updateAddonBodyRateCardsItemEntitlementTemplateIsSoftLimitDefault = false
 export const updateAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetMin = 0
 export const updateAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefault = 1
 export const updateAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetPriorityMax = 255
-export const updateAddonBodyRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault =
-  false
+export const updateAddonBodyRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault = false
 export const updateAddonBodyRateCardsItemTaxConfigStripeCodeRegExp = new RegExp(
   '^txcd_\\d{8}$'
 )
@@ -1059,13 +1053,11 @@ export const updateAddonBodyRateCardsItemFeatureKeyMaxOne = 64
 export const updateAddonBodyRateCardsItemFeatureKeyRegExpOne = new RegExp(
   '^[a-z0-9]+(?:_[a-z0-9]+)*$'
 )
-export const updateAddonBodyRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne =
-  false
+export const updateAddonBodyRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne = false
 export const updateAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetMinOne = 0
 export const updateAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefaultOne = 1
 export const updateAddonBodyRateCardsItemEntitlementTemplateIssueAfterResetPriorityMaxOne = 255
-export const updateAddonBodyRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne =
-  false
+export const updateAddonBodyRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne = false
 export const updateAddonBodyRateCardsItemTaxConfigStripeCodeRegExpOne =
   new RegExp('^txcd_\\d{8}$')
 export const updateAddonBodyRateCardsItemPriceAmountRegExpThree = new RegExp(
@@ -1144,7 +1136,7 @@ export const updateAddonBody = zod
     rateCards: zod
       .array(
         zod
-          .discriminatedUnion('type', [
+          .union([
             zod
               .object({
                 billingCadence: zod.coerce
@@ -1200,7 +1192,7 @@ export const updateAddonBody = zod
                     'The discount of the rate card. For flat fee rate cards only percentage discounts are supported.\nOnly available when price is set.'
                   ),
                 entitlementTemplate: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         isSoftLimit: zod.coerce
@@ -1448,7 +1440,7 @@ export const updateAddonBody = zod
                     'The discounts of the rate card.\n\nFlat fee rate cards only support percentage discounts.'
                   ),
                 entitlementTemplate: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         isSoftLimit: zod.coerce
@@ -1571,7 +1563,7 @@ export const updateAddonBody = zod
                     'Human-readable name for the resource. Between 1 and 256 characters.'
                   ),
                 price: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         amount: zod.coerce
@@ -2190,7 +2182,7 @@ export const updateAppBodyNameMaxTwo = 256
 export const updateAppBodyDescriptionMaxTwo = 1024
 
 export const updateAppBody = zod
-  .discriminatedUnion('type', [
+  .union([
     zod
       .object({
         description: zod.coerce
@@ -2357,8 +2349,7 @@ if they have customer orverrides or not.
  */
 export const listBillingProfileCustomerOverridesQueryBillingProfileItemRegExp =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const listBillingProfileCustomerOverridesQueryIncludeAllCustomersDefault =
-  true
+export const listBillingProfileCustomerOverridesQueryIncludeAllCustomersDefault = true
 export const listBillingProfileCustomerOverridesQueryCustomerIdItemRegExp =
   new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
 export const listBillingProfileCustomerOverridesQueryPageDefault = 1
@@ -2704,7 +2695,7 @@ export const createPendingInvoiceLineBody = zod
                 'Period of the line item applies to for revenue recognition pruposes.\n\nBilling always treats periods as start being inclusive and end being exclusive.'
               ),
             price: zod
-              .discriminatedUnion('type', [
+              .union([
                 zod
                   .object({
                     amount: zod.coerce
@@ -3029,7 +3020,7 @@ export const createPendingInvoiceLineBody = zod
                   .optional()
                   .describe('The feature the customer is entitled to use.'),
                 price: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         amount: zod.coerce
@@ -3597,7 +3588,7 @@ export const simulateInvoiceBody = zod
                 "The quantity of the item used before this line's period, if the line is billed progressively."
               ),
             price: zod
-              .discriminatedUnion('type', [
+              .union([
                 zod
                   .object({
                     amount: zod.coerce
@@ -3917,7 +3908,7 @@ export const simulateInvoiceBody = zod
                   .optional()
                   .describe('The feature the customer is entitled to use.'),
                 price: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         amount: zod.coerce
@@ -4788,7 +4779,7 @@ export const updateInvoiceBody = zod
                 'Period of the line item applies to for revenue recognition pruposes.\n\nBilling always treats periods as start being inclusive and end being exclusive.'
               ),
             price: zod
-              .discriminatedUnion('type', [
+              .union([
                 zod
                   .object({
                     amount: zod.coerce
@@ -5099,7 +5090,7 @@ export const updateInvoiceBody = zod
                   .optional()
                   .describe('The feature the customer is entitled to use.'),
                 price: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         amount: zod.coerce
@@ -5757,7 +5748,7 @@ export const voidInvoiceActionBody = zod
     action: zod
       .object({
         action: zod
-          .discriminatedUnion('type', [
+          .union([
             zod
               .object({
                 type: zod.enum(['discard']),
@@ -5803,7 +5794,7 @@ export const voidInvoiceActionBody = zod
             action: zod
               .object({
                 action: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         type: zod.enum(['discard']),
@@ -5923,8 +5914,7 @@ export const createBillingProfileBodyWorkflowCollectionIntervalDefault = 'PT1H'
 export const createBillingProfileBodyWorkflowInvoicingAutoAdvanceDefault = true
 export const createBillingProfileBodyWorkflowInvoicingDraftPeriodDefault = 'P0D'
 export const createBillingProfileBodyWorkflowInvoicingDueAfterDefault = 'P30D'
-export const createBillingProfileBodyWorkflowInvoicingProgressiveBillingDefault =
-  false
+export const createBillingProfileBodyWorkflowInvoicingProgressiveBillingDefault = false
 export const createBillingProfileBodyWorkflowInvoicingDefaultTaxConfigStripeCodeRegExp =
   new RegExp('^txcd_\\d{8}$')
 export const createBillingProfileBodyWorkflowPaymentCollectionMethodDefault =
@@ -6303,8 +6293,7 @@ export const updateBillingProfileBodyWorkflowCollectionIntervalDefault = 'PT1H'
 export const updateBillingProfileBodyWorkflowInvoicingAutoAdvanceDefault = true
 export const updateBillingProfileBodyWorkflowInvoicingDraftPeriodDefault = 'P0D'
 export const updateBillingProfileBodyWorkflowInvoicingDueAfterDefault = 'P30D'
-export const updateBillingProfileBodyWorkflowInvoicingProgressiveBillingDefault =
-  false
+export const updateBillingProfileBodyWorkflowInvoicingProgressiveBillingDefault = false
 export const updateBillingProfileBodyWorkflowInvoicingDefaultTaxConfigStripeCodeRegExp =
   new RegExp('^txcd_\\d{8}$')
 export const updateBillingProfileBodyWorkflowPaymentCollectionMethodDefault =
@@ -6767,25 +6756,20 @@ export const listCustomersQueryParams = zod.object({
  * Get a customer by ID or key.
  * @summary Get customer
  */
-export const getCustomerPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const getCustomerPathCustomerIdOrKeyMaxTwo = 256
-
 export const getCustomerParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(getCustomerPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(getCustomerPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(getCustomerPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(getCustomerPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 export const getCustomerQueryParams = zod.object({
@@ -6805,25 +6789,20 @@ export const getCustomerQueryParams = zod.object({
  * Update a customer by ID.
  * @summary Update customer
  */
-export const updateCustomerPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const updateCustomerPathCustomerIdOrKeyMaxTwo = 256
-
 export const updateCustomerParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(updateCustomerPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(updateCustomerPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(updateCustomerPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(updateCustomerPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 export const updateCustomerBodyNameMax = 256
@@ -6941,75 +6920,60 @@ export const updateCustomerBody = zod
  * Delete a customer by ID.
  * @summary Delete customer
  */
-export const deleteCustomerPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const deleteCustomerPathCustomerIdOrKeyMaxTwo = 256
-
 export const deleteCustomerParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(deleteCustomerPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(deleteCustomerPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(deleteCustomerPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(deleteCustomerPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 /**
  * Get the overall access of a customer.
  * @summary Get customer access
  */
-export const getCustomerAccessPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const getCustomerAccessPathCustomerIdOrKeyMaxTwo = 256
-
 export const getCustomerAccessParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(getCustomerAccessPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(getCustomerAccessPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(getCustomerAccessPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(getCustomerAccessPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 /**
  * List customers app data.
  * @summary List customer app data
  */
-export const listCustomerAppDataPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const listCustomerAppDataPathCustomerIdOrKeyMaxTwo = 256
-
 export const listCustomerAppDataParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(listCustomerAppDataPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(listCustomerAppDataPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(listCustomerAppDataPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(listCustomerAppDataPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 export const listCustomerAppDataQueryPageDefault = 1
@@ -7038,25 +7002,20 @@ export const listCustomerAppDataQueryParams = zod.object({
  * Upsert customer app data.
  * @summary Upsert customer app data
  */
-export const upsertCustomerAppDataPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const upsertCustomerAppDataPathCustomerIdOrKeyMaxTwo = 256
-
 export const upsertCustomerAppDataParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(upsertCustomerAppDataPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(upsertCustomerAppDataPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(upsertCustomerAppDataPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(upsertCustomerAppDataPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 export const upsertCustomerAppDataBodyIdRegExp = new RegExp(
@@ -7088,7 +7047,7 @@ export const upsertCustomerAppDataBodyIdRegExpTwo = new RegExp(
 )
 
 export const upsertCustomerAppDataBodyItem = zod
-  .discriminatedUnion('type', [
+  .union([
     zod
       .object({
         id: zod.coerce
@@ -7393,29 +7352,25 @@ export const upsertCustomerAppDataBody = zod.array(
  * Delete customer app data.
  * @summary Delete customer app data
  */
-export const deleteCustomerAppDataPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const deleteCustomerAppDataPathCustomerIdOrKeyMaxTwo = 256
 export const deleteCustomerAppDataPathAppIdRegExp = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
 
 export const deleteCustomerAppDataParams = zod.object({
   appId: zod.coerce.string().regex(deleteCustomerAppDataPathAppIdRegExp),
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(deleteCustomerAppDataPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(deleteCustomerAppDataPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(deleteCustomerAppDataPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(deleteCustomerAppDataPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 /**
@@ -7430,25 +7385,20 @@ A given customer can only have one active (non-deleted) entitlement per featureK
 Once an entitlement is created you cannot modify it, only delete it.
  * @summary Create a customer entitlement
  */
-export const createCustomerEntitlementPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const createCustomerEntitlementPathCustomerIdOrKeyMaxTwo = 256
-
 export const createCustomerEntitlementParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(createCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(createCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(createCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(createCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 export const createCustomerEntitlementBodyFeatureKeyMax = 64
@@ -7483,7 +7433,7 @@ export const createCustomerEntitlementBodyFeatureIdRegExpTwo = new RegExp(
 )
 
 export const createCustomerEntitlementBody = zod
-  .discriminatedUnion('type', [
+  .union([
     zod
       .object({
         featureId: zod.coerce
@@ -7528,15 +7478,16 @@ export const createCustomerEntitlementBody = zod
             'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.'
           ),
         measureUsageFrom: zod
-          .enum(['CURRENT_PERIOD_START', 'NOW'])
-          .describe('Start of measurement options')
-          .or(
+          .union([
+            zod
+              .enum(['CURRENT_PERIOD_START', 'NOW'])
+              .describe('Start of measurement options'),
             zod.coerce
               .date()
               .describe(
                 '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-              )
-          )
+              ),
+          ])
           .describe('Measure usage from')
           .optional()
           .describe(
@@ -7562,15 +7513,15 @@ export const createCustomerEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -7615,15 +7566,15 @@ export const createCustomerEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -7664,15 +7615,15 @@ export const createCustomerEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -7688,25 +7639,20 @@ export const createCustomerEntitlementBody = zod
  * List all entitlements for a customer. For checking entitlement access, use the /value endpoint instead.
  * @summary List customer entitlements
  */
-export const listCustomerEntitlementsPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const listCustomerEntitlementsPathCustomerIdOrKeyMaxTwo = 256
-
 export const listCustomerEntitlementsParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(listCustomerEntitlementsPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(listCustomerEntitlementsPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(listCustomerEntitlementsPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(listCustomerEntitlementsPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 export const listCustomerEntitlementsQueryIncludeDeletedDefault = false
@@ -7719,10 +7665,6 @@ export const listCustomerEntitlementsQueryParams = zod.object({
  * Get entitlement by feature key. For checking entitlement access, use the /value endpoint instead.
  * @summary Get customer entitlement
  */
-export const getCustomerEntitlementPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const getCustomerEntitlementPathCustomerIdOrKeyMaxTwo = 256
 export const getCustomerEntitlementPathFeatureKeyMax = 64
 
 export const getCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
@@ -7730,19 +7672,19 @@ export const getCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
 )
 
 export const getCustomerEntitlementParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(getCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(getCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(getCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(getCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
   featureKey: zod.coerce
     .string()
     .min(1)
@@ -7755,10 +7697,6 @@ export const getCustomerEntitlementParams = zod.object({
 As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
  * @summary Delete customer entitlement
  */
-export const deleteCustomerEntitlementPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const deleteCustomerEntitlementPathCustomerIdOrKeyMaxTwo = 256
 export const deleteCustomerEntitlementPathFeatureKeyMax = 64
 
 export const deleteCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
@@ -7766,19 +7704,19 @@ export const deleteCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
 )
 
 export const deleteCustomerEntitlementParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(deleteCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(deleteCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(deleteCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(deleteCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
   featureKey: zod.coerce
     .string()
     .min(1)
@@ -7790,9 +7728,6 @@ export const deleteCustomerEntitlementParams = zod.object({
  * List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
  * @summary List customer entitlement grants
  */
-export const listCustomerEntitlementGrantsPathCustomerIdOrKeyRegExpOne =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const listCustomerEntitlementGrantsPathCustomerIdOrKeyMaxTwo = 256
 export const listCustomerEntitlementGrantsPathFeatureKeyMax = 64
 
 export const listCustomerEntitlementGrantsPathFeatureKeyRegExp = new RegExp(
@@ -7800,19 +7735,19 @@ export const listCustomerEntitlementGrantsPathFeatureKeyRegExp = new RegExp(
 )
 
 export const listCustomerEntitlementGrantsParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(listCustomerEntitlementGrantsPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(listCustomerEntitlementGrantsPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(listCustomerEntitlementGrantsPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(listCustomerEntitlementGrantsPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
   featureKey: zod.coerce
     .string()
     .min(1)
@@ -7841,9 +7776,6 @@ Rollover settings define what happens to the remaining balance of a grant at a r
 Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
  * @summary Create customer entitlement grant
  */
-export const createCustomerEntitlementGrantPathCustomerIdOrKeyRegExpOne =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const createCustomerEntitlementGrantPathCustomerIdOrKeyMaxTwo = 256
 export const createCustomerEntitlementGrantPathFeatureKeyMax = 64
 
 export const createCustomerEntitlementGrantPathFeatureKeyRegExp = new RegExp(
@@ -7851,19 +7783,19 @@ export const createCustomerEntitlementGrantPathFeatureKeyRegExp = new RegExp(
 )
 
 export const createCustomerEntitlementGrantParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(createCustomerEntitlementGrantPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(createCustomerEntitlementGrantPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(createCustomerEntitlementGrantPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(createCustomerEntitlementGrantPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
   featureKey: zod.coerce
     .string()
     .min(1)
@@ -7932,15 +7864,15 @@ export const createCustomerEntitlementGrantBody = zod
           .date()
           .optional()
           .describe('A date-time anchor to base the recurring period on.'),
-        interval: zod.coerce
-          .string()
-          .or(
+        interval: zod
+          .union([
+            zod.coerce.string(),
             zod
               .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
               .describe(
                 'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-              )
-          )
+              ),
+          ])
           .describe('Period duration for the recurrence')
           .describe('The unit of time for the interval.'),
       })
@@ -7958,9 +7890,6 @@ BurndownHistory returns a continous history of segments, where the segments are 
 WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
  * @summary Get customer entitlement history
  */
-export const getCustomerEntitlementHistoryPathCustomerIdOrKeyRegExpOne =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const getCustomerEntitlementHistoryPathCustomerIdOrKeyMaxTwo = 256
 export const getCustomerEntitlementHistoryPathFeatureKeyMax = 64
 
 export const getCustomerEntitlementHistoryPathFeatureKeyRegExp = new RegExp(
@@ -7968,19 +7897,19 @@ export const getCustomerEntitlementHistoryPathFeatureKeyRegExp = new RegExp(
 )
 
 export const getCustomerEntitlementHistoryParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(getCustomerEntitlementHistoryPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(getCustomerEntitlementHistoryPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(getCustomerEntitlementHistoryPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(getCustomerEntitlementHistoryPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
   featureKey: zod.coerce
     .string()
     .min(1)
@@ -8018,9 +7947,6 @@ export const getCustomerEntitlementHistoryQueryParams = zod.object({
 This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
  * @summary Override customer entitlement
  */
-export const overrideCustomerEntitlementPathCustomerIdOrKeyRegExpOne =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const overrideCustomerEntitlementPathCustomerIdOrKeyMaxTwo = 256
 export const overrideCustomerEntitlementPathFeatureKeyMax = 64
 
 export const overrideCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
@@ -8028,19 +7954,19 @@ export const overrideCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
 )
 
 export const overrideCustomerEntitlementParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(overrideCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(overrideCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(overrideCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(overrideCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
   featureKey: zod.coerce
     .string()
     .min(1)
@@ -8061,8 +7987,7 @@ export const overrideCustomerEntitlementBodyIsUnlimitedDefault = false
 export const overrideCustomerEntitlementBodyIssueAfterResetMin = 0
 export const overrideCustomerEntitlementBodyIssueAfterResetPriorityDefault = 1
 export const overrideCustomerEntitlementBodyIssueAfterResetPriorityMax = 255
-export const overrideCustomerEntitlementBodyPreserveOverageAtResetDefault =
-  false
+export const overrideCustomerEntitlementBodyPreserveOverageAtResetDefault = false
 export const overrideCustomerEntitlementBodyFeatureKeyMaxOne = 64
 
 export const overrideCustomerEntitlementBodyFeatureKeyRegExpOne = new RegExp(
@@ -8081,7 +8006,7 @@ export const overrideCustomerEntitlementBodyFeatureIdRegExpTwo = new RegExp(
 )
 
 export const overrideCustomerEntitlementBody = zod
-  .discriminatedUnion('type', [
+  .union([
     zod
       .object({
         featureId: zod.coerce
@@ -8128,15 +8053,16 @@ export const overrideCustomerEntitlementBody = zod
             'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.'
           ),
         measureUsageFrom: zod
-          .enum(['CURRENT_PERIOD_START', 'NOW'])
-          .describe('Start of measurement options')
-          .or(
+          .union([
+            zod
+              .enum(['CURRENT_PERIOD_START', 'NOW'])
+              .describe('Start of measurement options'),
             zod.coerce
               .date()
               .describe(
                 '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-              )
-          )
+              ),
+          ])
           .describe('Measure usage from')
           .optional()
           .describe(
@@ -8162,15 +8088,15 @@ export const overrideCustomerEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -8215,15 +8141,15 @@ export const overrideCustomerEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -8264,15 +8190,15 @@ export const overrideCustomerEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -8290,9 +8216,6 @@ export const overrideCustomerEntitlementBody = zod
 Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
  * @summary Reset customer entitlement
  */
-export const resetCustomerEntitlementUsagePathCustomerIdOrKeyRegExpOne =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const resetCustomerEntitlementUsagePathCustomerIdOrKeyMaxTwo = 256
 export const resetCustomerEntitlementUsagePathFeatureKeyMax = 64
 
 export const resetCustomerEntitlementUsagePathFeatureKeyRegExp = new RegExp(
@@ -8300,19 +8223,19 @@ export const resetCustomerEntitlementUsagePathFeatureKeyRegExp = new RegExp(
 )
 
 export const resetCustomerEntitlementUsageParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(resetCustomerEntitlementUsagePathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(resetCustomerEntitlementUsagePathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(resetCustomerEntitlementUsagePathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(resetCustomerEntitlementUsagePathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
   featureKey: zod.coerce
     .string()
     .min(1)
@@ -8347,9 +8270,6 @@ export const resetCustomerEntitlementUsageBody = zod
  * Checks customer access to a given feature (by key). All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
  * @summary Get customer entitlement value
  */
-export const getCustomerEntitlementValuePathCustomerIdOrKeyRegExpOne =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const getCustomerEntitlementValuePathCustomerIdOrKeyMaxTwo = 256
 export const getCustomerEntitlementValuePathFeatureKeyMax = 64
 
 export const getCustomerEntitlementValuePathFeatureKeyRegExp = new RegExp(
@@ -8357,19 +8277,19 @@ export const getCustomerEntitlementValuePathFeatureKeyRegExp = new RegExp(
 )
 
 export const getCustomerEntitlementValueParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(getCustomerEntitlementValuePathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(getCustomerEntitlementValuePathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(getCustomerEntitlementValuePathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(getCustomerEntitlementValuePathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
   featureKey: zod.coerce
     .string()
     .min(1)
@@ -8386,25 +8306,20 @@ export const getCustomerEntitlementValueQueryParams = zod.object({
 Only returns data if the customer billing profile is linked to a stripe app.
  * @summary Get customer stripe app data
  */
-export const getCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const getCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo = 256
-
 export const getCustomerStripeAppDataParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(getCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(getCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(getCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(getCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 /**
@@ -8412,24 +8327,20 @@ export const getCustomerStripeAppDataParams = zod.object({
 Only updates data if the customer billing profile is linked to a stripe app.
  * @summary Upsert customer stripe app data
  */
-export const upsertCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const upsertCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo = 256
-
 export const upsertCustomerStripeAppDataParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(upsertCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(upsertCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(upsertCustomerStripeAppDataPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(upsertCustomerStripeAppDataPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 export const upsertCustomerStripeAppDataBody = zod
@@ -8450,24 +8361,20 @@ Useful to redirect the customer to the Stripe customer portal to manage their pa
 change their billing address and access their invoice history.
  * @summary Create Stripe customer portal session
  */
-export const createCustomerStripePortalSessionPathCustomerIdOrKeyRegExpOne =
-  new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$')
-export const createCustomerStripePortalSessionPathCustomerIdOrKeyMaxTwo = 256
-
 export const createCustomerStripePortalSessionParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(createCustomerStripePortalSessionPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(createCustomerStripePortalSessionPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(createCustomerStripePortalSessionPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(createCustomerStripePortalSessionPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 export const createCustomerStripePortalSessionBody = zod
@@ -8497,25 +8404,20 @@ export const createCustomerStripePortalSessionBody = zod
  * Lists all subscriptions for a customer.
  * @summary List customer subscriptions
  */
-export const listCustomerSubscriptionsPathCustomerIdOrKeyRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const listCustomerSubscriptionsPathCustomerIdOrKeyMaxTwo = 256
-
 export const listCustomerSubscriptionsParams = zod.object({
-  customerIdOrKey: zod.coerce
-    .string()
-    .regex(listCustomerSubscriptionsPathCustomerIdOrKeyRegExpOne)
-    .describe(
-      'ULID (Universally Unique Lexicographically Sortable Identifier).'
-    )
-    .or(
-      zod.coerce
-        .string()
-        .min(1)
-        .max(listCustomerSubscriptionsPathCustomerIdOrKeyMaxTwo)
-        .describe('ExternalKey is a looser version of key.')
-    ),
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(listCustomerSubscriptionsPathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(listCustomerSubscriptionsPathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
 })
 
 export const listCustomerSubscriptionsQueryPageDefault = 1
@@ -8680,59 +8582,60 @@ export const ingestEventsBodySpecversionDefault = '1.0'
 export const ingestEventsBodyItemSpecversionDefault = '1.0'
 
 export const ingestEventsBody = zod
-  .object({
-    data: zod
-      .record(zod.string(), zod.any())
-      .nullish()
+  .union([
+    zod
+      .object({
+        data: zod
+          .record(zod.string(), zod.any())
+          .nullish()
+          .describe(
+            'The event payload.\nOptional, if present it must be a JSON object.'
+          ),
+        datacontenttype: zod
+          .enum(['application/json'])
+          .nullish()
+          .describe(
+            'Content type of the CloudEvents data value. Only the value \"application/json\" is allowed over HTTP.'
+          ),
+        dataschema: zod.coerce
+          .string()
+          .url()
+          .min(1)
+          .nullish()
+          .describe('Identifies the schema that data adheres to.'),
+        id: zod.coerce.string().min(1).describe('Identifies the event.'),
+        source: zod.coerce
+          .string()
+          .min(1)
+          .describe('Identifies the context in which an event happened.'),
+        specversion: zod.coerce
+          .string()
+          .min(1)
+          .describe(
+            'The version of the CloudEvents specification which the event uses.'
+          ),
+        subject: zod.coerce
+          .string()
+          .min(1)
+          .describe(
+            'Describes the subject of the event in the context of the event producer (identified by source).'
+          ),
+        time: zod.coerce
+          .date()
+          .nullish()
+          .describe(
+            'Timestamp of when the occurrence happened. Must adhere to RFC 3339.'
+          ),
+        type: zod.coerce
+          .string()
+          .min(1)
+          .describe(
+            'Contains a value describing the type of event related to the originating occurrence.'
+          ),
+      })
       .describe(
-        'The event payload.\nOptional, if present it must be a JSON object.'
+        'CloudEvents Specification JSON Schema\n\nOptional properties are nullable according to the CloudEvents specification:\nOPTIONAL not omitted attributes MAY be represented as a null JSON value.'
       ),
-    datacontenttype: zod
-      .enum(['application/json'])
-      .nullish()
-      .describe(
-        'Content type of the CloudEvents data value. Only the value \"application/json\" is allowed over HTTP.'
-      ),
-    dataschema: zod.coerce
-      .string()
-      .url()
-      .min(1)
-      .nullish()
-      .describe('Identifies the schema that data adheres to.'),
-    id: zod.coerce.string().min(1).describe('Identifies the event.'),
-    source: zod.coerce
-      .string()
-      .min(1)
-      .describe('Identifies the context in which an event happened.'),
-    specversion: zod.coerce
-      .string()
-      .min(1)
-      .describe(
-        'The version of the CloudEvents specification which the event uses.'
-      ),
-    subject: zod.coerce
-      .string()
-      .min(1)
-      .describe(
-        'Describes the subject of the event in the context of the event producer (identified by source).'
-      ),
-    time: zod.coerce
-      .date()
-      .nullish()
-      .describe(
-        'Timestamp of when the occurrence happened. Must adhere to RFC 3339.'
-      ),
-    type: zod.coerce
-      .string()
-      .min(1)
-      .describe(
-        'Contains a value describing the type of event related to the originating occurrence.'
-      ),
-  })
-  .describe(
-    'CloudEvents Specification JSON Schema\n\nOptional properties are nullable according to the CloudEvents specification:\nOPTIONAL not omitted attributes MAY be represented as a null JSON value.'
-  )
-  .or(
     zod.array(
       zod
         .object({
@@ -8787,8 +8690,8 @@ export const ingestEventsBody = zod
         .describe(
           'CloudEvents Specification JSON Schema\n\nOptional properties are nullable according to the CloudEvents specification:\nOPTIONAL not omitted attributes MAY be represented as a null JSON value.'
         )
-    )
-  )
+    ),
+  ])
   .describe(
     'The body of the events request.\nEither a single event or a batch of events.'
   )
@@ -9861,7 +9764,7 @@ export const createNotificationRuleBodyChannelsItemRegExpThree = new RegExp(
 )
 
 export const createNotificationRuleBody = zod
-  .discriminatedUnion('type', [
+  .union([
     zod
       .object({
         channels: zod
@@ -10057,7 +9960,7 @@ export const updateNotificationRuleBodyChannelsItemRegExpThree = new RegExp(
 )
 
 export const updateNotificationRuleBody = zod
-  .discriminatedUnion('type', [
+  .union([
     zod
       .object({
         channels: zod
@@ -10388,13 +10291,11 @@ export const createPlanBodyPhasesItemRateCardsItemFeatureKeyMax = 64
 export const createPlanBodyPhasesItemRateCardsItemFeatureKeyRegExp = new RegExp(
   '^[a-z0-9]+(?:_[a-z0-9]+)*$'
 )
-export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefault =
-  false
+export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefault = false
 export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMin = 0
 export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefault = 1
 export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityMax = 255
-export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault =
-  false
+export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault = false
 export const createPlanBodyPhasesItemRateCardsItemTaxConfigStripeCodeRegExp =
   new RegExp('^txcd_\\d{8}$')
 export const createPlanBodyPhasesItemRateCardsItemPriceAmountRegExpOne =
@@ -10414,13 +10315,11 @@ export const createPlanBodyPhasesItemRateCardsItemFeatureKeyMaxOne = 64
 
 export const createPlanBodyPhasesItemRateCardsItemFeatureKeyRegExpOne =
   new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$')
-export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne =
-  false
+export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne = false
 export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMinOne = 0
 export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefaultOne = 1
 export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityMaxOne = 255
-export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne =
-  false
+export const createPlanBodyPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne = false
 export const createPlanBodyPhasesItemRateCardsItemTaxConfigStripeCodeRegExpOne =
   new RegExp('^txcd_\\d{8}$')
 export const createPlanBodyPhasesItemRateCardsItemPriceAmountRegExpThree =
@@ -10554,7 +10453,7 @@ export const createPlanBody = zod
             rateCards: zod
               .array(
                 zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         billingCadence: zod.coerce
@@ -10612,7 +10511,7 @@ export const createPlanBody = zod
                             'The discount of the rate card. For flat fee rate cards only percentage discounts are supported.\nOnly available when price is set.'
                           ),
                         entitlementTemplate: zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 isSoftLimit: zod.coerce
@@ -10878,7 +10777,7 @@ export const createPlanBody = zod
                             'The discounts of the rate card.\n\nFlat fee rate cards only support percentage discounts.'
                           ),
                         entitlementTemplate: zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 isSoftLimit: zod.coerce
@@ -11017,7 +10916,7 @@ export const createPlanBody = zod
                             'Human-readable name for the resource. Between 1 and 256 characters.'
                           ),
                         price: zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 amount: zod.coerce
@@ -11430,13 +11329,11 @@ export const updatePlanBodyPhasesItemRateCardsItemFeatureKeyMax = 64
 export const updatePlanBodyPhasesItemRateCardsItemFeatureKeyRegExp = new RegExp(
   '^[a-z0-9]+(?:_[a-z0-9]+)*$'
 )
-export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefault =
-  false
+export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefault = false
 export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMin = 0
 export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefault = 1
 export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityMax = 255
-export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault =
-  false
+export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault = false
 export const updatePlanBodyPhasesItemRateCardsItemTaxConfigStripeCodeRegExp =
   new RegExp('^txcd_\\d{8}$')
 export const updatePlanBodyPhasesItemRateCardsItemPriceAmountRegExpOne =
@@ -11456,13 +11353,11 @@ export const updatePlanBodyPhasesItemRateCardsItemFeatureKeyMaxOne = 64
 
 export const updatePlanBodyPhasesItemRateCardsItemFeatureKeyRegExpOne =
   new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$')
-export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne =
-  false
+export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne = false
 export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMinOne = 0
 export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefaultOne = 1
 export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityMaxOne = 255
-export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne =
-  false
+export const updatePlanBodyPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne = false
 export const updatePlanBodyPhasesItemRateCardsItemTaxConfigStripeCodeRegExpOne =
   new RegExp('^txcd_\\d{8}$')
 export const updatePlanBodyPhasesItemRateCardsItemPriceAmountRegExpThree =
@@ -11581,7 +11476,7 @@ export const updatePlanBody = zod
             rateCards: zod
               .array(
                 zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         billingCadence: zod.coerce
@@ -11639,7 +11534,7 @@ export const updatePlanBody = zod
                             'The discount of the rate card. For flat fee rate cards only percentage discounts are supported.\nOnly available when price is set.'
                           ),
                         entitlementTemplate: zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 isSoftLimit: zod.coerce
@@ -11905,7 +11800,7 @@ export const updatePlanBody = zod
                             'The discounts of the rate card.\n\nFlat fee rate cards only support percentage discounts.'
                           ),
                         entitlementTemplate: zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 isSoftLimit: zod.coerce
@@ -12044,7 +11939,7 @@ export const updatePlanBody = zod
                             'Human-readable name for the resource. Between 1 and 256 characters.'
                           ),
                         price: zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 amount: zod.coerce
@@ -12844,23 +12739,22 @@ export const createStripeCheckoutSessionBody = zod
       .optional()
       .describe('If not provided, the default Stripe app is used if any.'),
     customer: zod
-      .object({
-        id: zod.coerce
-          .string()
-          .regex(createStripeCheckoutSessionBodyCustomerIdRegExp)
-          .describe(
-            'ULID (Universally Unique Lexicographically Sortable Identifier).'
-          ),
-      })
-      .describe('Create Stripe checkout session with customer ID.')
-      .or(
+      .union([
+        zod
+          .object({
+            id: zod.coerce
+              .string()
+              .regex(createStripeCheckoutSessionBodyCustomerIdRegExp)
+              .describe(
+                'ULID (Universally Unique Lexicographically Sortable Identifier).'
+              ),
+          })
+          .describe('Create Stripe checkout session with customer ID.'),
         zod
           .object({
             key: zod.coerce.string(),
           })
-          .describe('Create Stripe checkout session with customer key.')
-      )
-      .or(
+          .describe('Create Stripe checkout session with customer key.'),
         zod
           .object({
             billingAddress: zod
@@ -12972,8 +12866,8 @@ export const createStripeCheckoutSessionBody = zod
               )
               .describe('Mapping to attribute metered usage to the customer'),
           })
-          .describe('Resource create operation model.')
-      )
+          .describe('Resource create operation model.'),
+      ])
       .describe(
         'Provide a customer ID or key to use an existing OpenMeter customer.\nor provide a customer object to create a new customer.'
       ),
@@ -13330,7 +13224,7 @@ export const createEntitlementBodyFeatureIdRegExpTwo = new RegExp(
 )
 
 export const createEntitlementBody = zod
-  .discriminatedUnion('type', [
+  .union([
     zod
       .object({
         featureId: zod.coerce
@@ -13375,15 +13269,16 @@ export const createEntitlementBody = zod
             'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.'
           ),
         measureUsageFrom: zod
-          .enum(['CURRENT_PERIOD_START', 'NOW'])
-          .describe('Start of measurement options')
-          .or(
+          .union([
+            zod
+              .enum(['CURRENT_PERIOD_START', 'NOW'])
+              .describe('Start of measurement options'),
             zod.coerce
               .date()
               .describe(
                 '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-              )
-          )
+              ),
+          ])
           .describe('Measure usage from')
           .optional()
           .describe(
@@ -13409,15 +13304,15 @@ export const createEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -13462,15 +13357,15 @@ export const createEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -13511,15 +13406,15 @@ export const createEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -13641,15 +13536,15 @@ export const createGrantBody = zod
           .date()
           .optional()
           .describe('A date-time anchor to base the recurring period on.'),
-        interval: zod.coerce
-          .string()
-          .or(
+        interval: zod
+          .union([
+            zod.coerce.string(),
             zod
               .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
               .describe(
                 'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-              )
-          )
+              ),
+          ])
           .describe('Period duration for the recurrence')
           .describe('The unit of time for the interval.'),
       })
@@ -13702,7 +13597,7 @@ export const overrideEntitlementBodyFeatureIdRegExpTwo = new RegExp(
 )
 
 export const overrideEntitlementBody = zod
-  .discriminatedUnion('type', [
+  .union([
     zod
       .object({
         featureId: zod.coerce
@@ -13747,15 +13642,16 @@ export const overrideEntitlementBody = zod
             'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.'
           ),
         measureUsageFrom: zod
-          .enum(['CURRENT_PERIOD_START', 'NOW'])
-          .describe('Start of measurement options')
-          .or(
+          .union([
+            zod
+              .enum(['CURRENT_PERIOD_START', 'NOW'])
+              .describe('Start of measurement options'),
             zod.coerce
               .date()
               .describe(
                 '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-              )
-          )
+              ),
+          ])
           .describe('Measure usage from')
           .optional()
           .describe(
@@ -13781,15 +13677,15 @@ export const overrideEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -13834,15 +13730,15 @@ export const overrideEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -13883,15 +13779,15 @@ export const overrideEntitlementBody = zod
               .date()
               .optional()
               .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod.coerce
-              .string()
-              .or(
+            interval: zod
+              .union([
+                zod.coerce.string(),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
                     'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  )
-              )
+                  ),
+              ])
               .describe('Period duration for the recurrence')
               .describe('The unit of time for the interval.'),
           })
@@ -14031,8 +13927,7 @@ export const createSubscriptionBodyCustomPlanCurrencyRegExpOne = new RegExp(
   '^[A-Z]{3}$'
 )
 export const createSubscriptionBodyCustomPlanCurrencyDefault = 'USD'
-export const createSubscriptionBodyCustomPlanProRatingConfigEnabledDefault =
-  true
+export const createSubscriptionBodyCustomPlanProRatingConfigEnabledDefault = true
 export const createSubscriptionBodyCustomPlanProRatingConfigModeDefault =
   'prorate_prices'
 export const createSubscriptionBodyCustomPlanProRatingConfigDefault = {
@@ -14056,13 +13951,11 @@ export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemFeatureKeyMa
 
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemFeatureKeyRegExp =
   new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$')
-export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefault =
-  false
+export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefault = false
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMin = 0
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefault = 1
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityMax = 255
-export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault =
-  false
+export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault = false
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemTaxConfigStripeCodeRegExp =
   new RegExp('^txcd_\\d{8}$')
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpOne =
@@ -14081,13 +13974,11 @@ export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemFeatureKeyMa
 
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemFeatureKeyRegExpOne =
   new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$')
-export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne =
-  false
+export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne = false
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMinOne = 0
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefaultOne = 1
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityMaxOne = 255
-export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne =
-  false
+export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne = false
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemTaxConfigStripeCodeRegExpOne =
   new RegExp('^txcd_\\d{8}$')
 export const createSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpThree =
@@ -14135,98 +14026,103 @@ export const createSubscriptionBodyCustomerIdRegExpOne = new RegExp(
 export const createSubscriptionBodyCustomerKeyMaxOne = 256
 
 export const createSubscriptionBody = zod
-  .object({
-    alignment: zod
+  .union([
+    zod
       .object({
-        billablesMustAlign: zod.coerce
-          .boolean()
+        alignment: zod
+          .object({
+            billablesMustAlign: zod.coerce
+              .boolean()
+              .optional()
+              .describe(
+                "Whether all Billable items and RateCards must align.\nAlignment means the Price's BillingCadence must align for both duration and anchor time."
+              ),
+          })
+          .describe('Alignment configuration for a plan or subscription.')
+          .optional()
+          .describe('What alignment settings the subscription should have.'),
+        billingAnchor: zod.coerce
+          .date()
           .optional()
           .describe(
-            "Whether all Billable items and RateCards must align.\nAlignment means the Price's BillingCadence must align for both duration and anchor time."
+            'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
           ),
-      })
-      .describe('Alignment configuration for a plan or subscription.')
-      .optional()
-      .describe('What alignment settings the subscription should have.'),
-    billingAnchor: zod.coerce
-      .date()
-      .optional()
-      .describe(
-        'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.'
-      ),
-    customerId: zod.coerce
-      .string()
-      .regex(createSubscriptionBodyCustomerIdRegExp)
-      .optional()
-      .describe(
-        'The ID of the customer. Provide either the key or ID. Has presedence over the key.'
-      ),
-    customerKey: zod.coerce
-      .string()
-      .min(1)
-      .max(createSubscriptionBodyCustomerKeyMax)
-      .optional()
-      .describe('The key of the customer. Provide either the key or ID.'),
-    description: zod.coerce
-      .string()
-      .optional()
-      .describe('Description for the Subscription.'),
-    metadata: zod
-      .record(zod.string(), zod.coerce.string())
-      .describe(
-        'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-      )
-      .optional()
-      .describe('Arbitrary metadata associated with the subscription.'),
-    name: zod.coerce
-      .string()
-      .optional()
-      .describe(
-        'The name of the Subscription. If not provided the plan name is used.'
-      ),
-    plan: zod
-      .object({
-        key: zod.coerce
+        customerId: zod.coerce
+          .string()
+          .regex(createSubscriptionBodyCustomerIdRegExp)
+          .optional()
+          .describe(
+            'The ID of the customer. Provide either the key or ID. Has presedence over the key.'
+          ),
+        customerKey: zod.coerce
           .string()
           .min(1)
-          .max(createSubscriptionBodyPlanKeyMax)
-          .regex(createSubscriptionBodyPlanKeyRegExp)
-          .describe('The plan key.'),
-        version: zod.coerce.number().optional().describe('The plan version.'),
-      })
-      .describe(
-        'References an exact plan defaulting to the current active version.'
-      )
-      .describe('The plan reference to change to.'),
-    startingPhase: zod.coerce
-      .string()
-      .min(1)
-      .optional()
-      .describe(
-        'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.'
-      ),
-    timing: zod
-      .enum(['immediate', 'next_billing_cycle'])
-      .describe(
-        'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
-      )
-      .or(
-        zod.coerce
-          .date()
+          .max(createSubscriptionBodyCustomerKeyMax)
+          .optional()
+          .describe('The key of the customer. Provide either the key or ID.'),
+        description: zod.coerce
+          .string()
+          .optional()
+          .describe('Description for the Subscription.'),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
           .describe(
-            '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
           )
-      )
-      .describe(
-        'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
-      )
-      .default(createSubscriptionBodyTimingDefault)
-      .describe(
-        'Timing configuration for the change, when the change should take effect.\nThe default is immediate.'
-      ),
-  })
-  .describe('Create subscription based on plan.')
-  .or(
+          .optional()
+          .describe('Arbitrary metadata associated with the subscription.'),
+        name: zod.coerce
+          .string()
+          .optional()
+          .describe(
+            'The name of the Subscription. If not provided the plan name is used.'
+          ),
+        plan: zod
+          .object({
+            key: zod.coerce
+              .string()
+              .min(1)
+              .max(createSubscriptionBodyPlanKeyMax)
+              .regex(createSubscriptionBodyPlanKeyRegExp)
+              .describe('The plan key.'),
+            version: zod.coerce
+              .number()
+              .optional()
+              .describe('The plan version.'),
+          })
+          .describe(
+            'References an exact plan defaulting to the current active version.'
+          )
+          .describe('The plan reference to change to.'),
+        startingPhase: zod.coerce
+          .string()
+          .min(1)
+          .optional()
+          .describe(
+            'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.'
+          ),
+        timing: zod
+          .union([
+            zod
+              .enum(['immediate', 'next_billing_cycle'])
+              .describe(
+                'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
+              ),
+            zod.coerce
+              .date()
+              .describe(
+                '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+              ),
+          ])
+          .describe(
+            'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
+          )
+          .default(createSubscriptionBodyTimingDefault)
+          .describe(
+            'Timing configuration for the change, when the change should take effect.\nThe default is immediate.'
+          ),
+      })
+      .describe('Create subscription based on plan.'),
     zod
       .object({
         billingAnchor: zod.coerce
@@ -14339,7 +14235,7 @@ export const createSubscriptionBody = zod
                     rateCards: zod
                       .array(
                         zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 billingCadence: zod.coerce
@@ -14399,7 +14295,7 @@ export const createSubscriptionBody = zod
                                     'The discount of the rate card. For flat fee rate cards only percentage discounts are supported.\nOnly available when price is set.'
                                   ),
                                 entitlementTemplate: zod
-                                  .discriminatedUnion('type', [
+                                  .union([
                                     zod
                                       .object({
                                         isSoftLimit: zod.coerce
@@ -14690,7 +14586,7 @@ export const createSubscriptionBody = zod
                                     'The discounts of the rate card.\n\nFlat fee rate cards only support percentage discounts.'
                                   ),
                                 entitlementTemplate: zod
-                                  .discriminatedUnion('type', [
+                                  .union([
                                     zod
                                       .object({
                                         isSoftLimit: zod.coerce
@@ -14844,7 +14740,7 @@ export const createSubscriptionBody = zod
                                     'Human-readable name for the resource. Between 1 and 256 characters.'
                                   ),
                                 price: zod
-                                  .discriminatedUnion('type', [
+                                  .union([
                                     zod
                                       .object({
                                         amount: zod.coerce
@@ -15226,17 +15122,18 @@ export const createSubscriptionBody = zod
             'The custom plan description which defines the Subscription.'
           ),
         timing: zod
-          .enum(['immediate', 'next_billing_cycle'])
-          .describe(
-            'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
-          )
-          .or(
+          .union([
+            zod
+              .enum(['immediate', 'next_billing_cycle'])
+              .describe(
+                'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
+              ),
             zod.coerce
               .date()
               .describe(
                 '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-              )
-          )
+              ),
+          ])
           .describe(
             'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
           )
@@ -15245,8 +15142,8 @@ export const createSubscriptionBody = zod
             'Timing configuration for the change, when the change should take effect.\nThe default is immediate.'
           ),
       })
-      .describe('Create a custom subscription.')
-  )
+      .describe('Create a custom subscription.'),
+  ])
   .describe('Create a subscription.')
 
 /**
@@ -15296,13 +15193,11 @@ export const editSubscriptionBodyCustomizationsItemRateCardFeatureKeyMax = 64
 
 export const editSubscriptionBodyCustomizationsItemRateCardFeatureKeyRegExp =
   new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$')
-export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIsSoftLimitDefault =
-  false
+export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIsSoftLimitDefault = false
 export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIssueAfterResetMin = 0
 export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIssueAfterResetPriorityDefault = 1
 export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIssueAfterResetPriorityMax = 255
-export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplatePreserveOverageAtResetDefault =
-  false
+export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplatePreserveOverageAtResetDefault = false
 export const editSubscriptionBodyCustomizationsItemRateCardTaxConfigStripeCodeRegExp =
   new RegExp('^txcd_\\d{8}$')
 export const editSubscriptionBodyCustomizationsItemRateCardPriceAmountRegExpOne =
@@ -15321,13 +15216,11 @@ export const editSubscriptionBodyCustomizationsItemRateCardFeatureKeyMaxOne = 64
 
 export const editSubscriptionBodyCustomizationsItemRateCardFeatureKeyRegExpOne =
   new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$')
-export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIsSoftLimitDefaultOne =
-  false
+export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIsSoftLimitDefaultOne = false
 export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIssueAfterResetMinOne = 0
 export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIssueAfterResetPriorityDefaultOne = 1
 export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplateIssueAfterResetPriorityMaxOne = 255
-export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplatePreserveOverageAtResetDefaultOne =
-  false
+export const editSubscriptionBodyCustomizationsItemRateCardEntitlementTemplatePreserveOverageAtResetDefaultOne = false
 export const editSubscriptionBodyCustomizationsItemRateCardTaxConfigStripeCodeRegExpOne =
   new RegExp('^txcd_\\d{8}$')
 export const editSubscriptionBodyCustomizationsItemRateCardPriceAmountRegExpThree =
@@ -15381,13 +15274,13 @@ export const editSubscriptionBody = zod
     customizations: zod
       .array(
         zod
-          .discriminatedUnion('op', [
+          .union([
             zod
               .object({
                 op: zod.enum(['add_item']),
                 phaseKey: zod.coerce.string(),
                 rateCard: zod
-                  .discriminatedUnion('type', [
+                  .union([
                     zod
                       .object({
                         billingCadence: zod.coerce
@@ -15445,7 +15338,7 @@ export const editSubscriptionBody = zod
                             'The discount of the rate card. For flat fee rate cards only percentage discounts are supported.\nOnly available when price is set.'
                           ),
                         entitlementTemplate: zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 isSoftLimit: zod.coerce
@@ -15717,7 +15610,7 @@ export const editSubscriptionBody = zod
                             'The discounts of the rate card.\n\nFlat fee rate cards only support percentage discounts.'
                           ),
                         entitlementTemplate: zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 isSoftLimit: zod.coerce
@@ -15860,7 +15753,7 @@ export const editSubscriptionBody = zod
                             'Human-readable name for the resource. Between 1 and 256 characters.'
                           ),
                         price: zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 amount: zod.coerce
@@ -16296,17 +16189,18 @@ export const editSubscriptionBody = zod
         'Batch processing commands for manipulating running subscriptions.\nThe key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.'
       ),
     timing: zod
-      .enum(['immediate', 'next_billing_cycle'])
-      .describe(
-        'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
-      )
-      .or(
+      .union([
+        zod
+          .enum(['immediate', 'next_billing_cycle'])
+          .describe(
+            'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
+          ),
         zod.coerce
           .date()
           .describe(
             '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          )
-      )
+          ),
+      ])
       .describe(
         'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
       )
@@ -16390,17 +16284,18 @@ export const createSubscriptionAddonBody = zod
         'The quantity of the add-on. Always 1 for single instance add-ons.'
       ),
     timing: zod
-      .enum(['immediate', 'next_billing_cycle'])
-      .describe(
-        'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
-      )
-      .or(
+      .union([
+        zod
+          .enum(['immediate', 'next_billing_cycle'])
+          .describe(
+            'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
+          ),
         zod.coerce
           .date()
           .describe(
             '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          )
-      )
+          ),
+      ])
       .describe(
         'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
       )
@@ -16500,17 +16395,18 @@ export const updateSubscriptionAddonBody = zod
         'The quantity of the add-on. Always 1 for single instance add-ons.'
       ),
     timing: zod
-      .enum(['immediate', 'next_billing_cycle'])
-      .describe(
-        'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
-      )
-      .or(
+      .union([
+        zod
+          .enum(['immediate', 'next_billing_cycle'])
+          .describe(
+            'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
+          ),
         zod.coerce
           .date()
           .describe(
             '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          )
-      )
+          ),
+      ])
       .describe(
         'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
       )
@@ -16538,17 +16434,18 @@ export const cancelSubscriptionParams = zod.object({
 
 export const cancelSubscriptionBody = zod.object({
   timing: zod
-    .enum(['immediate', 'next_billing_cycle'])
-    .describe(
-      'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
-    )
-    .or(
+    .union([
+      zod
+        .enum(['immediate', 'next_billing_cycle'])
+        .describe(
+          'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
+        ),
       zod.coerce
         .date()
         .describe(
           '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        )
-    )
+        ),
+    ])
     .describe(
       'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
     )
@@ -16586,8 +16483,7 @@ export const changeSubscriptionBodyCustomPlanCurrencyRegExpOne = new RegExp(
   '^[A-Z]{3}$'
 )
 export const changeSubscriptionBodyCustomPlanCurrencyDefault = 'USD'
-export const changeSubscriptionBodyCustomPlanProRatingConfigEnabledDefault =
-  true
+export const changeSubscriptionBodyCustomPlanProRatingConfigEnabledDefault = true
 export const changeSubscriptionBodyCustomPlanProRatingConfigModeDefault =
   'prorate_prices'
 export const changeSubscriptionBodyCustomPlanProRatingConfigDefault = {
@@ -16611,13 +16507,11 @@ export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemFeatureKeyMa
 
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemFeatureKeyRegExp =
   new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$')
-export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefault =
-  false
+export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefault = false
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMin = 0
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefault = 1
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityMax = 255
-export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault =
-  false
+export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefault = false
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemTaxConfigStripeCodeRegExp =
   new RegExp('^txcd_\\d{8}$')
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpOne =
@@ -16636,13 +16530,11 @@ export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemFeatureKeyMa
 
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemFeatureKeyRegExpOne =
   new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$')
-export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne =
-  false
+export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIsSoftLimitDefaultOne = false
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetMinOne = 0
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityDefaultOne = 1
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplateIssueAfterResetPriorityMaxOne = 255
-export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne =
-  false
+export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemEntitlementTemplatePreserveOverageAtResetDefaultOne = false
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemTaxConfigStripeCodeRegExpOne =
   new RegExp('^txcd_\\d{8}$')
 export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemPriceAmountRegExpThree =
@@ -16685,84 +16577,89 @@ export const changeSubscriptionBodyCustomPlanPhasesItemRateCardsItemDiscountsUsa
   new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$')
 
 export const changeSubscriptionBody = zod
-  .object({
-    alignment: zod
+  .union([
+    zod
       .object({
-        billablesMustAlign: zod.coerce
-          .boolean()
+        alignment: zod
+          .object({
+            billablesMustAlign: zod.coerce
+              .boolean()
+              .optional()
+              .describe(
+                "Whether all Billable items and RateCards must align.\nAlignment means the Price's BillingCadence must align for both duration and anchor time."
+              ),
+          })
+          .describe('Alignment configuration for a plan or subscription.')
+          .optional()
+          .describe('What alignment settings the subscription should have.'),
+        billingAnchor: zod.coerce
+          .date()
           .optional()
           .describe(
-            "Whether all Billable items and RateCards must align.\nAlignment means the Price's BillingCadence must align for both duration and anchor time."
+            'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.'
           ),
-      })
-      .describe('Alignment configuration for a plan or subscription.')
-      .optional()
-      .describe('What alignment settings the subscription should have.'),
-    billingAnchor: zod.coerce
-      .date()
-      .optional()
-      .describe(
-        'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.'
-      ),
-    description: zod.coerce
-      .string()
-      .optional()
-      .describe('Description for the Subscription.'),
-    metadata: zod
-      .record(zod.string(), zod.coerce.string())
-      .describe(
-        'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-      )
-      .optional()
-      .describe('Arbitrary metadata associated with the subscription.'),
-    name: zod.coerce
-      .string()
-      .optional()
-      .describe(
-        'The name of the Subscription. If not provided the plan name is used.'
-      ),
-    plan: zod
-      .object({
-        key: zod.coerce
+        description: zod.coerce
+          .string()
+          .optional()
+          .describe('Description for the Subscription.'),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+          )
+          .optional()
+          .describe('Arbitrary metadata associated with the subscription.'),
+        name: zod.coerce
+          .string()
+          .optional()
+          .describe(
+            'The name of the Subscription. If not provided the plan name is used.'
+          ),
+        plan: zod
+          .object({
+            key: zod.coerce
+              .string()
+              .min(1)
+              .max(changeSubscriptionBodyPlanKeyMax)
+              .regex(changeSubscriptionBodyPlanKeyRegExp)
+              .describe('The plan key.'),
+            version: zod.coerce
+              .number()
+              .optional()
+              .describe('The plan version.'),
+          })
+          .describe(
+            'References an exact plan defaulting to the current active version.'
+          )
+          .describe('The plan reference to change to.'),
+        startingPhase: zod.coerce
           .string()
           .min(1)
-          .max(changeSubscriptionBodyPlanKeyMax)
-          .regex(changeSubscriptionBodyPlanKeyRegExp)
-          .describe('The plan key.'),
-        version: zod.coerce.number().optional().describe('The plan version.'),
-      })
-      .describe(
-        'References an exact plan defaulting to the current active version.'
-      )
-      .describe('The plan reference to change to.'),
-    startingPhase: zod.coerce
-      .string()
-      .min(1)
-      .optional()
-      .describe(
-        'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.'
-      ),
-    timing: zod
-      .enum(['immediate', 'next_billing_cycle'])
-      .describe(
-        'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
-      )
-      .or(
-        zod.coerce
-          .date()
+          .optional()
           .describe(
-            '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+            'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.'
+          ),
+        timing: zod
+          .union([
+            zod
+              .enum(['immediate', 'next_billing_cycle'])
+              .describe(
+                'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
+              ),
+            zod.coerce
+              .date()
+              .describe(
+                '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+              ),
+          ])
+          .describe(
+            'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
           )
-      )
-      .describe(
-        'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
-      )
-      .describe(
-        'Timing configuration for the change, when the change should take effect.\nFor changing a subscription, the accepted values depend on the subscription configuration.'
-      ),
-  })
-  .describe('Change subscription based on plan.')
-  .or(
+          .describe(
+            'Timing configuration for the change, when the change should take effect.\nFor changing a subscription, the accepted values depend on the subscription configuration.'
+          ),
+      })
+      .describe('Change subscription based on plan.'),
     zod
       .object({
         billingAnchor: zod.coerce
@@ -16862,7 +16759,7 @@ export const changeSubscriptionBody = zod
                     rateCards: zod
                       .array(
                         zod
-                          .discriminatedUnion('type', [
+                          .union([
                             zod
                               .object({
                                 billingCadence: zod.coerce
@@ -16922,7 +16819,7 @@ export const changeSubscriptionBody = zod
                                     'The discount of the rate card. For flat fee rate cards only percentage discounts are supported.\nOnly available when price is set.'
                                   ),
                                 entitlementTemplate: zod
-                                  .discriminatedUnion('type', [
+                                  .union([
                                     zod
                                       .object({
                                         isSoftLimit: zod.coerce
@@ -17213,7 +17110,7 @@ export const changeSubscriptionBody = zod
                                     'The discounts of the rate card.\n\nFlat fee rate cards only support percentage discounts.'
                                   ),
                                 entitlementTemplate: zod
-                                  .discriminatedUnion('type', [
+                                  .union([
                                     zod
                                       .object({
                                         isSoftLimit: zod.coerce
@@ -17367,7 +17264,7 @@ export const changeSubscriptionBody = zod
                                     'Human-readable name for the resource. Between 1 and 256 characters.'
                                   ),
                                 price: zod
-                                  .discriminatedUnion('type', [
+                                  .union([
                                     zod
                                       .object({
                                         amount: zod.coerce
@@ -17749,17 +17646,18 @@ export const changeSubscriptionBody = zod
             'The custom plan description which defines the Subscription.'
           ),
         timing: zod
-          .enum(['immediate', 'next_billing_cycle'])
-          .describe(
-            'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
-          )
-          .or(
+          .union([
+            zod
+              .enum(['immediate', 'next_billing_cycle'])
+              .describe(
+                'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
+              ),
             zod.coerce
               .date()
               .describe(
                 '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-              )
-          )
+              ),
+          ])
           .describe(
             'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
           )
@@ -17767,8 +17665,8 @@ export const changeSubscriptionBody = zod
             'Timing configuration for the change, when the change should take effect.\nFor changing a subscription, the accepted values depend on the subscription configuration.'
           ),
       })
-      .describe('Change a custom subscription.')
-  )
+      .describe('Change a custom subscription.'),
+  ])
   .describe('Change a subscription.')
 
 /**
@@ -17811,17 +17709,18 @@ export const migrateSubscriptionBody = zod.object({
       'The version of the plan to migrate to.\nIf not provided, the subscription will migrate to the latest version of the current plan.'
     ),
   timing: zod
-    .enum(['immediate', 'next_billing_cycle'])
-    .describe(
-      'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
-    )
-    .or(
+    .union([
+      zod
+        .enum(['immediate', 'next_billing_cycle'])
+        .describe(
+          'Subscription edit timing.\nWhen immediate, the requested changes take effect immediately.\nWhen nextBillingCycle, the requested changes take effect at the next billing cycle.'
+        ),
       zod.coerce
         .date()
         .describe(
           '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        )
-    )
+        ),
+    ])
     .describe(
       'Subscription edit timing defined when the changes should take effect.\nIf the provided configuration is not supported by the subscription, an error will be returned.'
     )
