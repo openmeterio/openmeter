@@ -125,7 +125,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	_, err = service.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
-			Key:  lo.ToPtr(createdCustomer.ID),
+			Key:  lo.ToPtr(createdCustomer.ID), // Overlaps with id of existing customer
 			Name: TestName,
 			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-1"},
@@ -137,6 +137,24 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 		t,
 		models.IsGenericConflictError(err),
 		"Creating a customer with a key that overlaps with id must return conflict error",
+	)
+
+	// Test key overlaps with subject
+	_, err = service.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr(TestSubjectKeys[0]), // Overlaps with subject of existing customer
+			Name: TestName,
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"subject-1"},
+			},
+		},
+	})
+
+	require.True(
+		t,
+		models.IsGenericConflictError(err),
+		"Creating a customer with a key that overlaps with subject must return conflict error",
 	)
 }
 
@@ -200,6 +218,65 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 	require.Equal(t, &TestAddressPostalCode, updatedCustomer.BillingAddress.PostalCode, "Customer billing address postal code must match")
 	require.Equal(t, &TestAddressPhoneNumber, updatedCustomer.BillingAddress.PhoneNumber, "Customer billing address phone number must match")
 	require.Equal(t, &models.Metadata{"foo": "bar"}, updatedCustomer.Metadata, "Customer metadata must match")
+
+	// Create another customer with a different key and subject key to test conflicts
+	otherCustomerKey := "other-customer-key"
+	otherCustomerSubjectKey := "other-subject-key"
+
+	_, err = service.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr(otherCustomerKey),
+			Name: TestName,
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{otherCustomerSubjectKey},
+			},
+		},
+	})
+
+	require.NoError(t, err, "Creating customer must not return error")
+
+	// Test key overlaps with existing customer's key
+	_, err = service.UpdateCustomer(ctx, customer.UpdateCustomerInput{
+		CustomerID: customer.CustomerID{
+			Namespace: s.namespace,
+			ID:        originalCustomer.ID,
+		},
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr(otherCustomerKey), // Overlaps with key of existing customer
+			Name: TestName,
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: TestSubjectKeys,
+			},
+		},
+	})
+
+	require.True(
+		t,
+		models.IsGenericConflictError(err),
+		"Updating a customer with a key that overlaps with key must return conflict error",
+	)
+
+	// Test key overlaps with existing customer's subject
+	_, err = service.UpdateCustomer(ctx, customer.UpdateCustomerInput{
+		CustomerID: customer.CustomerID{
+			Namespace: s.namespace,
+			ID:        originalCustomer.ID,
+		},
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr(otherCustomerSubjectKey), // Overlaps with subject of existing customer
+			Name: TestName,
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: TestSubjectKeys,
+			},
+		},
+	})
+
+	require.True(
+		t,
+		models.IsGenericConflictError(err),
+		"Updating a customer with a key that overlaps with subject must return conflict error",
+	)
 }
 
 // If a customer has a subscription, UsageAttributions cannot be updated

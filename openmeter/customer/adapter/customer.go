@@ -152,6 +152,25 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 					}
 				}
 
+				// Check if the key is not a subject of another customer
+				if input.Key != nil {
+					conflictingCustomerIDs, err := repo.db.CustomerSubjects.Query().
+						Select(customersubjectsdb.FieldCustomerID).
+						Where(customersubjectsdb.Namespace(input.Namespace)).
+						Where(customersubjectsdb.SubjectKey(*input.Key)).
+						Where(customersubjectsdb.DeletedAtIsNil()).
+						All(ctx)
+					if err != nil {
+						return nil, fmt.Errorf("failed to check if key overlaps with subject: %w", err)
+					}
+
+					if len(conflictingCustomerIDs) > 0 {
+						return nil, models.NewGenericConflictError(
+							fmt.Errorf("key %s overlaps with subject of another customer: %s", *input.Key, conflictingCustomerIDs[0].CustomerID),
+						)
+					}
+				}
+
 				// Create the customer in the database
 				query := repo.db.Customer.Create().
 					SetNamespace(input.Namespace).
@@ -422,6 +441,26 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 					if count > 0 {
 						return nil, models.NewGenericConflictError(
 							fmt.Errorf("key %s overlaps with id of another customer", *input.Key),
+						)
+					}
+				}
+
+				// Check if the key is not a subject of another customer
+				if input.Key != nil {
+					conflictingCustomerIDs, err := repo.db.CustomerSubjects.Query().
+						Select(customersubjectsdb.FieldCustomerID).
+						Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
+						Where(customersubjectsdb.CustomerIDNEQ(input.CustomerID.ID)).
+						Where(customersubjectsdb.SubjectKey(*input.Key)).
+						Where(customersubjectsdb.DeletedAtIsNil()).
+						All(ctx)
+					if err != nil {
+						return nil, fmt.Errorf("failed to check if key overlaps with subject: %w", err)
+					}
+
+					if len(conflictingCustomerIDs) > 0 {
+						return nil, models.NewGenericConflictError(
+							fmt.Errorf("key %s overlaps with subject of another customer: %s", *input.Key, conflictingCustomerIDs[0].CustomerID),
 						)
 					}
 				}
