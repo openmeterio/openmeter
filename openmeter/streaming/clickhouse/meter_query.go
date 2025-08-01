@@ -202,6 +202,26 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 		// Add the case statements for each subject to customer ID mapping
 		for _, customer := range d.FilterCustomer {
+			// Add the customer ID to the case statement
+			str := fmt.Sprintf(
+				"WHEN %s = '%s' THEN '%s' ",
+				getColumn("subject"),
+				sqlbuilder.Escape(customer.ID),
+				sqlbuilder.Escape(customer.ID),
+			)
+			caseBuilder.WriteString(str)
+
+			// Add the customer key to the case statement
+			if customer.Key != nil {
+				str := fmt.Sprintf(
+					"WHEN %s = '%s' THEN '%s' ",
+					getColumn("subject"),
+					sqlbuilder.Escape(*customer.Key),
+					sqlbuilder.Escape(customer.ID),
+				)
+				caseBuilder.WriteString(str)
+			}
+
 			for _, subjectKey := range customer.UsageAttribution.SubjectKeys {
 				str := fmt.Sprintf(
 					"WHEN %s = '%s' THEN '%s' ",
@@ -309,6 +329,14 @@ func (d *queryMeter) subjectWhere(query *sqlbuilder.SelectBuilder) *sqlbuilder.S
 
 		for _, customer := range d.FilterCustomer {
 			subjects = append(subjects, customer.UsageAttribution.SubjectKeys...)
+
+			// Add the customer ID
+			subjects = append(subjects, customer.ID)
+
+			// Add the customer key if it's set
+			if customer.Key != nil {
+				subjects = append(subjects, *customer.Key)
+			}
 		}
 
 		query = query.Where(query.Or(slicesx.Map(subjects, mapFunc)...))
