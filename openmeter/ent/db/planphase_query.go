@@ -634,41 +634,41 @@ type PlanPhaseGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (ppgb *PlanPhaseGroupBy) Aggregate(fns ...AggregateFunc) *PlanPhaseGroupBy {
-	ppgb.fns = append(ppgb.fns, fns...)
-	return ppgb
+func (_g *PlanPhaseGroupBy) Aggregate(fns ...AggregateFunc) *PlanPhaseGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (ppgb *PlanPhaseGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ppgb.build.ctx, ent.OpQueryGroupBy)
-	if err := ppgb.build.prepareQuery(ctx); err != nil {
+func (_g *PlanPhaseGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*PlanPhaseQuery, *PlanPhaseGroupBy](ctx, ppgb.build, ppgb, ppgb.build.inters, v)
+	return scanWithInterceptors[*PlanPhaseQuery, *PlanPhaseGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (ppgb *PlanPhaseGroupBy) sqlScan(ctx context.Context, root *PlanPhaseQuery, v any) error {
+func (_g *PlanPhaseGroupBy) sqlScan(ctx context.Context, root *PlanPhaseQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(ppgb.fns))
-	for _, fn := range ppgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*ppgb.flds)+len(ppgb.fns))
-		for _, f := range *ppgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*ppgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := ppgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -682,27 +682,27 @@ type PlanPhaseSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (pps *PlanPhaseSelect) Aggregate(fns ...AggregateFunc) *PlanPhaseSelect {
-	pps.fns = append(pps.fns, fns...)
-	return pps
+func (_s *PlanPhaseSelect) Aggregate(fns ...AggregateFunc) *PlanPhaseSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (pps *PlanPhaseSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, pps.ctx, ent.OpQuerySelect)
-	if err := pps.prepareQuery(ctx); err != nil {
+func (_s *PlanPhaseSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*PlanPhaseQuery, *PlanPhaseSelect](ctx, pps.PlanPhaseQuery, pps, pps.inters, v)
+	return scanWithInterceptors[*PlanPhaseQuery, *PlanPhaseSelect](ctx, _s.PlanPhaseQuery, _s, _s.inters, v)
 }
 
-func (pps *PlanPhaseSelect) sqlScan(ctx context.Context, root *PlanPhaseQuery, v any) error {
+func (_s *PlanPhaseSelect) sqlScan(ctx context.Context, root *PlanPhaseQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(pps.fns))
-	for _, fn := range pps.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*pps.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -710,7 +710,7 @@ func (pps *PlanPhaseSelect) sqlScan(ctx context.Context, root *PlanPhaseQuery, v
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := pps.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

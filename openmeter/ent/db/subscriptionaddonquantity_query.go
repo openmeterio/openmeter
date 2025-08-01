@@ -559,41 +559,41 @@ type SubscriptionAddonQuantityGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (saqgb *SubscriptionAddonQuantityGroupBy) Aggregate(fns ...AggregateFunc) *SubscriptionAddonQuantityGroupBy {
-	saqgb.fns = append(saqgb.fns, fns...)
-	return saqgb
+func (_g *SubscriptionAddonQuantityGroupBy) Aggregate(fns ...AggregateFunc) *SubscriptionAddonQuantityGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (saqgb *SubscriptionAddonQuantityGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, saqgb.build.ctx, ent.OpQueryGroupBy)
-	if err := saqgb.build.prepareQuery(ctx); err != nil {
+func (_g *SubscriptionAddonQuantityGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*SubscriptionAddonQuantityQuery, *SubscriptionAddonQuantityGroupBy](ctx, saqgb.build, saqgb, saqgb.build.inters, v)
+	return scanWithInterceptors[*SubscriptionAddonQuantityQuery, *SubscriptionAddonQuantityGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (saqgb *SubscriptionAddonQuantityGroupBy) sqlScan(ctx context.Context, root *SubscriptionAddonQuantityQuery, v any) error {
+func (_g *SubscriptionAddonQuantityGroupBy) sqlScan(ctx context.Context, root *SubscriptionAddonQuantityQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(saqgb.fns))
-	for _, fn := range saqgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*saqgb.flds)+len(saqgb.fns))
-		for _, f := range *saqgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*saqgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := saqgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -607,27 +607,27 @@ type SubscriptionAddonQuantitySelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (saqs *SubscriptionAddonQuantitySelect) Aggregate(fns ...AggregateFunc) *SubscriptionAddonQuantitySelect {
-	saqs.fns = append(saqs.fns, fns...)
-	return saqs
+func (_s *SubscriptionAddonQuantitySelect) Aggregate(fns ...AggregateFunc) *SubscriptionAddonQuantitySelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (saqs *SubscriptionAddonQuantitySelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, saqs.ctx, ent.OpQuerySelect)
-	if err := saqs.prepareQuery(ctx); err != nil {
+func (_s *SubscriptionAddonQuantitySelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*SubscriptionAddonQuantityQuery, *SubscriptionAddonQuantitySelect](ctx, saqs.SubscriptionAddonQuantityQuery, saqs, saqs.inters, v)
+	return scanWithInterceptors[*SubscriptionAddonQuantityQuery, *SubscriptionAddonQuantitySelect](ctx, _s.SubscriptionAddonQuantityQuery, _s, _s.inters, v)
 }
 
-func (saqs *SubscriptionAddonQuantitySelect) sqlScan(ctx context.Context, root *SubscriptionAddonQuantityQuery, v any) error {
+func (_s *SubscriptionAddonQuantitySelect) sqlScan(ctx context.Context, root *SubscriptionAddonQuantityQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(saqs.fns))
-	for _, fn := range saqs.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*saqs.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -635,7 +635,7 @@ func (saqs *SubscriptionAddonQuantitySelect) sqlScan(ctx context.Context, root *
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := saqs.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

@@ -53,12 +53,14 @@ func (*Meter) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case dbmeter.FieldMetadata, dbmeter.FieldGroupBy:
+		case dbmeter.FieldGroupBy:
 			values[i] = new([]byte)
 		case dbmeter.FieldID, dbmeter.FieldNamespace, dbmeter.FieldName, dbmeter.FieldDescription, dbmeter.FieldKey, dbmeter.FieldEventType, dbmeter.FieldValueProperty, dbmeter.FieldAggregation:
 			values[i] = new(sql.NullString)
 		case dbmeter.FieldCreatedAt, dbmeter.FieldUpdatedAt, dbmeter.FieldDeletedAt, dbmeter.FieldEventFrom:
 			values[i] = new(sql.NullTime)
+		case dbmeter.FieldMetadata:
+			values[i] = dbmeter.ValueScanner.Metadata.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -87,12 +89,10 @@ func (_m *Meter) assignValues(columns []string, values []any) error {
 				_m.Namespace = value.String
 			}
 		case dbmeter.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := dbmeter.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case dbmeter.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

@@ -349,10 +349,14 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(addonratecard.FieldMetadata, field.TypeJSON, value)
+		vv, err := addonratecard.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(addonratecard.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(addonratecard.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(addonratecard.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(addonratecard.FieldUpdatedAt, field.TypeTime, value)
@@ -849,10 +853,14 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(addonratecard.FieldMetadata, field.TypeJSON, value)
+		vv, err := addonratecard.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(addonratecard.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(addonratecard.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(addonratecard.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(addonratecard.FieldUpdatedAt, field.TypeTime, value)

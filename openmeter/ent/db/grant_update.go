@@ -148,10 +148,14 @@ func (_u *GrantUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
+		vv, err := dbgrant.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(dbgrant.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbgrant.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbgrant.FieldUpdatedAt, field.TypeTime, value)
@@ -344,10 +348,14 @@ func (_u *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error)
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
+		vv, err := dbgrant.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(dbgrant.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbgrant.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbgrant.FieldUpdatedAt, field.TypeTime, value)

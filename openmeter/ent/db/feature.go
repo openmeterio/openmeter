@@ -89,12 +89,14 @@ func (*Feature) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case feature.FieldMetadata, feature.FieldMeterGroupByFilters:
+		case feature.FieldMeterGroupByFilters:
 			values[i] = new([]byte)
 		case feature.FieldID, feature.FieldNamespace, feature.FieldName, feature.FieldKey, feature.FieldMeterSlug:
 			values[i] = new(sql.NullString)
 		case feature.FieldCreatedAt, feature.FieldUpdatedAt, feature.FieldDeletedAt, feature.FieldArchivedAt:
 			values[i] = new(sql.NullTime)
+		case feature.FieldMetadata:
+			values[i] = feature.ValueScanner.Metadata.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -136,12 +138,10 @@ func (_m *Feature) assignValues(columns []string, values []any) error {
 				*_m.DeletedAt = value.Time
 			}
 		case feature.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := feature.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case feature.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {

@@ -382,7 +382,11 @@ func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpe
 		_node.Namespace = value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(addonratecard.FieldMetadata, field.TypeJSON, value)
+		vv, err := addonratecard.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(addonratecard.FieldMetadata, field.TypeString, vv)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {

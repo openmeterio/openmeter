@@ -3,7 +3,6 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -89,12 +88,12 @@ func (*SubscriptionAddon) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case subscriptionaddon.FieldMetadata:
-			values[i] = new([]byte)
 		case subscriptionaddon.FieldID, subscriptionaddon.FieldNamespace, subscriptionaddon.FieldAddonID, subscriptionaddon.FieldSubscriptionID:
 			values[i] = new(sql.NullString)
 		case subscriptionaddon.FieldCreatedAt, subscriptionaddon.FieldUpdatedAt, subscriptionaddon.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case subscriptionaddon.FieldMetadata:
+			values[i] = subscriptionaddon.ValueScanner.Metadata.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -123,12 +122,10 @@ func (_m *SubscriptionAddon) assignValues(columns []string, values []any) error 
 				_m.Namespace = value.String
 			}
 		case subscriptionaddon.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := subscriptionaddon.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case subscriptionaddon.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

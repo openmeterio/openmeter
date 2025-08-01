@@ -252,7 +252,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoice.FieldMetadata, billinginvoice.FieldCustomerUsageAttribution, billinginvoice.FieldStatusDetailsCache:
+		case billinginvoice.FieldCustomerUsageAttribution, billinginvoice.FieldStatusDetailsCache:
 			values[i] = new([]byte)
 		case billinginvoice.FieldAmount, billinginvoice.FieldTaxesTotal, billinginvoice.FieldTaxesInclusiveTotal, billinginvoice.FieldTaxesExclusiveTotal, billinginvoice.FieldChargesTotal, billinginvoice.FieldDiscountsTotal, billinginvoice.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
@@ -260,6 +260,8 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldSentToCustomerAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldQuantitySnapshotedAt, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd, billinginvoice.FieldCollectionAt:
 			values[i] = new(sql.NullTime)
+		case billinginvoice.FieldMetadata:
+			values[i] = billinginvoice.ValueScanner.Metadata.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -288,12 +290,10 @@ func (_m *BillingInvoice) assignValues(columns []string, values []any) error {
 				_m.Namespace = value.String
 			}
 		case billinginvoice.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := billinginvoice.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case billinginvoice.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

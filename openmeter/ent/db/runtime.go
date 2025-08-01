@@ -69,6 +69,9 @@ func init() {
 	addonDescNamespace := addonMixinFields0[1].Descriptor()
 	// addon.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	addon.NamespaceValidator = addonDescNamespace.Validators[0].(func(string) error)
+	// addonDescMetadata is the schema descriptor for metadata field.
+	addonDescMetadata := addonMixinFields0[2].Descriptor()
+	addon.ValueScanner.Metadata = addonDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// addonDescCreatedAt is the schema descriptor for created_at field.
 	addonDescCreatedAt := addonMixinFields0[3].Descriptor()
 	// addon.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -109,6 +112,9 @@ func init() {
 	addonratecardDescNamespace := addonratecardMixinFields0[1].Descriptor()
 	// addonratecard.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	addonratecard.NamespaceValidator = addonratecardDescNamespace.Validators[0].(func(string) error)
+	// addonratecardDescMetadata is the schema descriptor for metadata field.
+	addonratecardDescMetadata := addonratecardMixinFields0[2].Descriptor()
+	addonratecard.ValueScanner.Metadata = addonratecardDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// addonratecardDescCreatedAt is the schema descriptor for created_at field.
 	addonratecardDescCreatedAt := addonratecardMixinFields0[3].Descriptor()
 	// addonratecard.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -152,6 +158,9 @@ func init() {
 	dbappDescNamespace := dbappMixinFields0[1].Descriptor()
 	// dbapp.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	dbapp.NamespaceValidator = dbappDescNamespace.Validators[0].(func(string) error)
+	// dbappDescMetadata is the schema descriptor for metadata field.
+	dbappDescMetadata := dbappMixinFields0[2].Descriptor()
+	dbapp.ValueScanner.Metadata = dbappDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// dbappDescCreatedAt is the schema descriptor for created_at field.
 	dbappDescCreatedAt := dbappMixinFields0[3].Descriptor()
 	// dbapp.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -206,6 +215,8 @@ func init() {
 	_ = appcustominvoicingcustomerMixinFields0
 	appcustominvoicingcustomerMixinFields1 := appcustominvoicingcustomerMixin[1].Fields()
 	_ = appcustominvoicingcustomerMixinFields1
+	appcustominvoicingcustomerMixinFields2 := appcustominvoicingcustomerMixin[2].Fields()
+	_ = appcustominvoicingcustomerMixinFields2
 	appcustominvoicingcustomerFields := schema.AppCustomInvoicingCustomer{}.Fields()
 	_ = appcustominvoicingcustomerFields
 	// appcustominvoicingcustomerDescNamespace is the schema descriptor for namespace field.
@@ -222,6 +233,9 @@ func init() {
 	appcustominvoicingcustomer.DefaultUpdatedAt = appcustominvoicingcustomerDescUpdatedAt.Default.(func() time.Time)
 	// appcustominvoicingcustomer.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	appcustominvoicingcustomer.UpdateDefaultUpdatedAt = appcustominvoicingcustomerDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appcustominvoicingcustomerDescMetadata is the schema descriptor for metadata field.
+	appcustominvoicingcustomerDescMetadata := appcustominvoicingcustomerMixinFields2[0].Descriptor()
+	appcustominvoicingcustomer.ValueScanner.Metadata = appcustominvoicingcustomerDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// appcustominvoicingcustomerDescAppID is the schema descriptor for app_id field.
 	appcustominvoicingcustomerDescAppID := appcustominvoicingcustomerFields[0].Descriptor()
 	// appcustominvoicingcustomer.AppIDValidator is a validator for the "app_id" field. It is called by the builders before save.
@@ -403,6 +417,8 @@ func init() {
 	_ = billinginvoiceMixinFields0
 	billinginvoiceMixinFields1 := billinginvoiceMixin[1].Fields()
 	_ = billinginvoiceMixinFields1
+	billinginvoiceMixinFields2 := billinginvoiceMixin[2].Fields()
+	_ = billinginvoiceMixinFields2
 	billinginvoiceMixinFields3 := billinginvoiceMixin[3].Fields()
 	_ = billinginvoiceMixinFields3
 	billinginvoiceMixinFields4 := billinginvoiceMixin[4].Fields()
@@ -415,6 +431,9 @@ func init() {
 	billinginvoiceDescNamespace := billinginvoiceMixinFields1[0].Descriptor()
 	// billinginvoice.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billinginvoice.NamespaceValidator = billinginvoiceDescNamespace.Validators[0].(func(string) error)
+	// billinginvoiceDescMetadata is the schema descriptor for metadata field.
+	billinginvoiceDescMetadata := billinginvoiceMixinFields2[0].Descriptor()
+	billinginvoice.ValueScanner.Metadata = billinginvoiceDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// billinginvoiceDescCreatedAt is the schema descriptor for created_at field.
 	billinginvoiceDescCreatedAt := billinginvoiceMixinFields3[0].Descriptor()
 	// billinginvoice.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -505,16 +524,24 @@ func init() {
 	// billinginvoiceflatfeelineconfig.DefaultID holds the default value on creation for the id field.
 	billinginvoiceflatfeelineconfig.DefaultID = billinginvoiceflatfeelineconfigDescID.Default.(func() string)
 	billinginvoicelineMixin := schema.BillingInvoiceLine{}.Mixin()
+	billinginvoicelineMixinFields0 := billinginvoicelineMixin[0].Fields()
+	_ = billinginvoicelineMixinFields0
 	billinginvoicelineMixinFields1 := billinginvoicelineMixin[1].Fields()
 	_ = billinginvoicelineMixinFields1
 	billinginvoicelineMixinFields2 := billinginvoicelineMixin[2].Fields()
 	_ = billinginvoicelineMixinFields2
 	billinginvoicelineFields := schema.BillingInvoiceLine{}.Fields()
 	_ = billinginvoicelineFields
+	// billinginvoicelineDescAnnotations is the schema descriptor for annotations field.
+	billinginvoicelineDescAnnotations := billinginvoicelineMixinFields0[0].Descriptor()
+	billinginvoiceline.ValueScanner.Annotations = billinginvoicelineDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
 	// billinginvoicelineDescNamespace is the schema descriptor for namespace field.
 	billinginvoicelineDescNamespace := billinginvoicelineMixinFields1[1].Descriptor()
 	// billinginvoiceline.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billinginvoiceline.NamespaceValidator = billinginvoicelineDescNamespace.Validators[0].(func(string) error)
+	// billinginvoicelineDescMetadata is the schema descriptor for metadata field.
+	billinginvoicelineDescMetadata := billinginvoicelineMixinFields1[2].Descriptor()
+	billinginvoiceline.ValueScanner.Metadata = billinginvoicelineDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// billinginvoicelineDescCreatedAt is the schema descriptor for created_at field.
 	billinginvoicelineDescCreatedAt := billinginvoicelineMixinFields1[3].Descriptor()
 	// billinginvoiceline.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -607,6 +634,9 @@ func init() {
 	billinginvoicesplitlinegroupDescNamespace := billinginvoicesplitlinegroupMixinFields0[1].Descriptor()
 	// billinginvoicesplitlinegroup.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billinginvoicesplitlinegroup.NamespaceValidator = billinginvoicesplitlinegroupDescNamespace.Validators[0].(func(string) error)
+	// billinginvoicesplitlinegroupDescMetadata is the schema descriptor for metadata field.
+	billinginvoicesplitlinegroupDescMetadata := billinginvoicesplitlinegroupMixinFields0[2].Descriptor()
+	billinginvoicesplitlinegroup.ValueScanner.Metadata = billinginvoicesplitlinegroupDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// billinginvoicesplitlinegroupDescCreatedAt is the schema descriptor for created_at field.
 	billinginvoicesplitlinegroupDescCreatedAt := billinginvoicesplitlinegroupMixinFields0[3].Descriptor()
 	// billinginvoicesplitlinegroup.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -713,6 +743,9 @@ func init() {
 	billingprofileDescNamespace := billingprofileMixinFields0[1].Descriptor()
 	// billingprofile.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billingprofile.NamespaceValidator = billingprofileDescNamespace.Validators[0].(func(string) error)
+	// billingprofileDescMetadata is the schema descriptor for metadata field.
+	billingprofileDescMetadata := billingprofileMixinFields0[2].Descriptor()
+	billingprofile.ValueScanner.Metadata = billingprofileDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// billingprofileDescCreatedAt is the schema descriptor for created_at field.
 	billingprofileDescCreatedAt := billingprofileMixinFields0[3].Descriptor()
 	// billingprofile.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -806,12 +839,17 @@ func init() {
 	_ = customerMixinFields0
 	customerMixinFields1 := customerMixin[1].Fields()
 	_ = customerMixinFields1
+	customerMixinFields2 := customerMixin[2].Fields()
+	_ = customerMixinFields2
 	customerFields := schema.Customer{}.Fields()
 	_ = customerFields
 	// customerDescNamespace is the schema descriptor for namespace field.
 	customerDescNamespace := customerMixinFields0[1].Descriptor()
 	// customer.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	customer.NamespaceValidator = customerDescNamespace.Validators[0].(func(string) error)
+	// customerDescMetadata is the schema descriptor for metadata field.
+	customerDescMetadata := customerMixinFields0[2].Descriptor()
+	customer.ValueScanner.Metadata = customerDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// customerDescCreatedAt is the schema descriptor for created_at field.
 	customerDescCreatedAt := customerMixinFields0[3].Descriptor()
 	// customer.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -840,6 +878,9 @@ func init() {
 			return nil
 		}
 	}()
+	// customerDescAnnotations is the schema descriptor for annotations field.
+	customerDescAnnotations := customerMixinFields2[0].Descriptor()
+	customer.ValueScanner.Annotations = customerDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
 	// customerDescCurrency is the schema descriptor for currency field.
 	customerDescCurrency := customerFields[2].Descriptor()
 	// customer.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
@@ -888,6 +929,8 @@ func init() {
 	_ = entitlementMixinFields0
 	entitlementMixinFields1 := entitlementMixin[1].Fields()
 	_ = entitlementMixinFields1
+	entitlementMixinFields2 := entitlementMixin[2].Fields()
+	_ = entitlementMixinFields2
 	entitlementMixinFields3 := entitlementMixin[3].Fields()
 	_ = entitlementMixinFields3
 	entitlementFields := schema.Entitlement{}.Fields()
@@ -896,6 +939,9 @@ func init() {
 	entitlementDescNamespace := entitlementMixinFields1[0].Descriptor()
 	// entitlement.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	entitlement.NamespaceValidator = entitlementDescNamespace.Validators[0].(func(string) error)
+	// entitlementDescMetadata is the schema descriptor for metadata field.
+	entitlementDescMetadata := entitlementMixinFields2[0].Descriptor()
+	entitlement.ValueScanner.Metadata = entitlementDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// entitlementDescCreatedAt is the schema descriptor for created_at field.
 	entitlementDescCreatedAt := entitlementMixinFields3[0].Descriptor()
 	// entitlement.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -940,6 +986,8 @@ func init() {
 	_ = featureMixinFields0
 	featureMixinFields1 := featureMixin[1].Fields()
 	_ = featureMixinFields1
+	featureMixinFields2 := featureMixin[2].Fields()
+	_ = featureMixinFields2
 	featureFields := schema.Feature{}.Fields()
 	_ = featureFields
 	// featureDescCreatedAt is the schema descriptor for created_at field.
@@ -952,6 +1000,9 @@ func init() {
 	feature.DefaultUpdatedAt = featureDescUpdatedAt.Default.(func() time.Time)
 	// feature.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	feature.UpdateDefaultUpdatedAt = featureDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// featureDescMetadata is the schema descriptor for metadata field.
+	featureDescMetadata := featureMixinFields2[0].Descriptor()
+	feature.ValueScanner.Metadata = featureDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// featureDescNamespace is the schema descriptor for namespace field.
 	featureDescNamespace := featureFields[0].Descriptor()
 	// feature.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -973,6 +1024,8 @@ func init() {
 	_ = dbgrantMixinFields0
 	dbgrantMixinFields1 := dbgrantMixin[1].Fields()
 	_ = dbgrantMixinFields1
+	dbgrantMixinFields2 := dbgrantMixin[2].Fields()
+	_ = dbgrantMixinFields2
 	dbgrantMixinFields3 := dbgrantMixin[3].Fields()
 	_ = dbgrantMixinFields3
 	dbgrantFields := schema.Grant{}.Fields()
@@ -981,6 +1034,9 @@ func init() {
 	dbgrantDescNamespace := dbgrantMixinFields1[0].Descriptor()
 	// dbgrant.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	dbgrant.NamespaceValidator = dbgrantDescNamespace.Validators[0].(func(string) error)
+	// dbgrantDescMetadata is the schema descriptor for metadata field.
+	dbgrantDescMetadata := dbgrantMixinFields2[0].Descriptor()
+	dbgrant.ValueScanner.Metadata = dbgrantDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// dbgrantDescCreatedAt is the schema descriptor for created_at field.
 	dbgrantDescCreatedAt := dbgrantMixinFields3[0].Descriptor()
 	// dbgrant.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -1008,6 +1064,9 @@ func init() {
 	dbmeterDescNamespace := dbmeterMixinFields0[1].Descriptor()
 	// dbmeter.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	dbmeter.NamespaceValidator = dbmeterDescNamespace.Validators[0].(func(string) error)
+	// dbmeterDescMetadata is the schema descriptor for metadata field.
+	dbmeterDescMetadata := dbmeterMixinFields0[2].Descriptor()
+	dbmeter.ValueScanner.Metadata = dbmeterDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// dbmeterDescCreatedAt is the schema descriptor for created_at field.
 	dbmeterDescCreatedAt := dbmeterMixinFields0[3].Descriptor()
 	// dbmeter.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -1170,6 +1229,9 @@ func init() {
 	planDescNamespace := planMixinFields0[1].Descriptor()
 	// plan.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	plan.NamespaceValidator = planDescNamespace.Validators[0].(func(string) error)
+	// planDescMetadata is the schema descriptor for metadata field.
+	planDescMetadata := planMixinFields0[2].Descriptor()
+	plan.ValueScanner.Metadata = planDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// planDescCreatedAt is the schema descriptor for created_at field.
 	planDescCreatedAt := planMixinFields0[3].Descriptor()
 	// plan.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -1208,6 +1270,10 @@ func init() {
 	_ = planaddonMixinFields0
 	planaddonMixinFields1 := planaddonMixin[1].Fields()
 	_ = planaddonMixinFields1
+	planaddonMixinFields2 := planaddonMixin[2].Fields()
+	_ = planaddonMixinFields2
+	planaddonMixinFields3 := planaddonMixin[3].Fields()
+	_ = planaddonMixinFields3
 	planaddonMixinFields4 := planaddonMixin[4].Fields()
 	_ = planaddonMixinFields4
 	planaddonFields := schema.PlanAddon{}.Fields()
@@ -1216,6 +1282,12 @@ func init() {
 	planaddonDescNamespace := planaddonMixinFields1[0].Descriptor()
 	// planaddon.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	planaddon.NamespaceValidator = planaddonDescNamespace.Validators[0].(func(string) error)
+	// planaddonDescMetadata is the schema descriptor for metadata field.
+	planaddonDescMetadata := planaddonMixinFields2[0].Descriptor()
+	planaddon.ValueScanner.Metadata = planaddonDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
+	// planaddonDescAnnotations is the schema descriptor for annotations field.
+	planaddonDescAnnotations := planaddonMixinFields3[0].Descriptor()
+	planaddon.ValueScanner.Annotations = planaddonDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
 	// planaddonDescCreatedAt is the schema descriptor for created_at field.
 	planaddonDescCreatedAt := planaddonMixinFields4[0].Descriptor()
 	// planaddon.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -1247,6 +1319,9 @@ func init() {
 	planphaseDescNamespace := planphaseMixinFields0[1].Descriptor()
 	// planphase.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	planphase.NamespaceValidator = planphaseDescNamespace.Validators[0].(func(string) error)
+	// planphaseDescMetadata is the schema descriptor for metadata field.
+	planphaseDescMetadata := planphaseMixinFields0[2].Descriptor()
+	planphase.ValueScanner.Metadata = planphaseDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// planphaseDescCreatedAt is the schema descriptor for created_at field.
 	planphaseDescCreatedAt := planphaseMixinFields0[3].Descriptor()
 	// planphase.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -1278,6 +1353,9 @@ func init() {
 	planratecardDescNamespace := planratecardMixinFields0[1].Descriptor()
 	// planratecard.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	planratecard.NamespaceValidator = planratecardDescNamespace.Validators[0].(func(string) error)
+	// planratecardDescMetadata is the schema descriptor for metadata field.
+	planratecardDescMetadata := planratecardMixinFields0[2].Descriptor()
+	planratecard.ValueScanner.Metadata = planratecardDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// planratecardDescCreatedAt is the schema descriptor for created_at field.
 	planratecardDescCreatedAt := planratecardMixinFields0[3].Descriptor()
 	// planratecard.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -1348,6 +1426,8 @@ func init() {
 	_ = subscriptionMixinFields1
 	subscriptionMixinFields2 := subscriptionMixin[2].Fields()
 	_ = subscriptionMixinFields2
+	subscriptionMixinFields3 := subscriptionMixin[3].Fields()
+	_ = subscriptionMixinFields3
 	subscriptionFields := schema.Subscription{}.Fields()
 	_ = subscriptionFields
 	// subscriptionDescNamespace is the schema descriptor for namespace field.
@@ -1364,6 +1444,9 @@ func init() {
 	subscription.DefaultUpdatedAt = subscriptionDescUpdatedAt.Default.(func() time.Time)
 	// subscription.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	subscription.UpdateDefaultUpdatedAt = subscriptionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionDescMetadata is the schema descriptor for metadata field.
+	subscriptionDescMetadata := subscriptionMixinFields3[0].Descriptor()
+	subscription.ValueScanner.Metadata = subscriptionDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// subscriptionDescName is the schema descriptor for name field.
 	subscriptionDescName := subscriptionFields[0].Descriptor()
 	// subscription.DefaultName holds the default value on creation for the name field.
@@ -1407,6 +1490,8 @@ func init() {
 	_ = subscriptionaddonMixinFields0
 	subscriptionaddonMixinFields1 := subscriptionaddonMixin[1].Fields()
 	_ = subscriptionaddonMixinFields1
+	subscriptionaddonMixinFields2 := subscriptionaddonMixin[2].Fields()
+	_ = subscriptionaddonMixinFields2
 	subscriptionaddonMixinFields3 := subscriptionaddonMixin[3].Fields()
 	_ = subscriptionaddonMixinFields3
 	subscriptionaddonFields := schema.SubscriptionAddon{}.Fields()
@@ -1415,6 +1500,9 @@ func init() {
 	subscriptionaddonDescNamespace := subscriptionaddonMixinFields1[0].Descriptor()
 	// subscriptionaddon.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	subscriptionaddon.NamespaceValidator = subscriptionaddonDescNamespace.Validators[0].(func(string) error)
+	// subscriptionaddonDescMetadata is the schema descriptor for metadata field.
+	subscriptionaddonDescMetadata := subscriptionaddonMixinFields2[0].Descriptor()
+	subscriptionaddon.ValueScanner.Metadata = subscriptionaddonDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// subscriptionaddonDescCreatedAt is the schema descriptor for created_at field.
 	subscriptionaddonDescCreatedAt := subscriptionaddonMixinFields3[0].Descriptor()
 	// subscriptionaddon.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -1485,6 +1573,8 @@ func init() {
 	_ = subscriptionitemMixinFields1
 	subscriptionitemMixinFields2 := subscriptionitemMixin[2].Fields()
 	_ = subscriptionitemMixinFields2
+	subscriptionitemMixinFields3 := subscriptionitemMixin[3].Fields()
+	_ = subscriptionitemMixinFields3
 	subscriptionitemFields := schema.SubscriptionItem{}.Fields()
 	_ = subscriptionitemFields
 	// subscriptionitemDescNamespace is the schema descriptor for namespace field.
@@ -1501,6 +1591,9 @@ func init() {
 	subscriptionitem.DefaultUpdatedAt = subscriptionitemDescUpdatedAt.Default.(func() time.Time)
 	// subscriptionitem.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	subscriptionitem.UpdateDefaultUpdatedAt = subscriptionitemDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionitemDescMetadata is the schema descriptor for metadata field.
+	subscriptionitemDescMetadata := subscriptionitemMixinFields3[0].Descriptor()
+	subscriptionitem.ValueScanner.Metadata = subscriptionitemDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// subscriptionitemDescAnnotations is the schema descriptor for annotations field.
 	subscriptionitemDescAnnotations := subscriptionitemFields[0].Descriptor()
 	subscriptionitem.ValueScanner.Annotations = subscriptionitemDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
@@ -1539,6 +1632,8 @@ func init() {
 	_ = subscriptionphaseMixinFields1
 	subscriptionphaseMixinFields2 := subscriptionphaseMixin[2].Fields()
 	_ = subscriptionphaseMixinFields2
+	subscriptionphaseMixinFields3 := subscriptionphaseMixin[3].Fields()
+	_ = subscriptionphaseMixinFields3
 	subscriptionphaseFields := schema.SubscriptionPhase{}.Fields()
 	_ = subscriptionphaseFields
 	// subscriptionphaseDescNamespace is the schema descriptor for namespace field.
@@ -1555,6 +1650,9 @@ func init() {
 	subscriptionphase.DefaultUpdatedAt = subscriptionphaseDescUpdatedAt.Default.(func() time.Time)
 	// subscriptionphase.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	subscriptionphase.UpdateDefaultUpdatedAt = subscriptionphaseDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionphaseDescMetadata is the schema descriptor for metadata field.
+	subscriptionphaseDescMetadata := subscriptionphaseMixinFields3[0].Descriptor()
+	subscriptionphase.ValueScanner.Metadata = subscriptionphaseDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// subscriptionphaseDescSubscriptionID is the schema descriptor for subscription_id field.
 	subscriptionphaseDescSubscriptionID := subscriptionphaseFields[0].Descriptor()
 	// subscriptionphase.SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.

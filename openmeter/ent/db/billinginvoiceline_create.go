@@ -666,7 +666,11 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_spec.ID.Value = id
 	}
 	if value, ok := _c.mutation.Annotations(); ok {
-		_spec.SetField(billinginvoiceline.FieldAnnotations, field.TypeJSON, value)
+		vv, err := billinginvoiceline.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(billinginvoiceline.FieldAnnotations, field.TypeString, vv)
 		_node.Annotations = value
 	}
 	if value, ok := _c.mutation.Namespace(); ok {
@@ -674,7 +678,11 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_node.Namespace = value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(billinginvoiceline.FieldMetadata, field.TypeJSON, value)
+		vv, err := billinginvoiceline.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(billinginvoiceline.FieldMetadata, field.TypeString, vv)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {

@@ -139,7 +139,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case entitlement.FieldMetadata, entitlement.FieldConfig:
+		case entitlement.FieldConfig:
 			values[i] = new([]byte)
 		case entitlement.FieldIsSoftLimit, entitlement.FieldPreserveOverageAtReset:
 			values[i] = new(sql.NullBool)
@@ -151,6 +151,8 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldActiveFrom, entitlement.FieldActiveTo, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
 			values[i] = new(sql.NullTime)
+		case entitlement.FieldMetadata:
+			values[i] = entitlement.ValueScanner.Metadata.ScanValue()
 		case entitlement.FieldAnnotations:
 			values[i] = entitlement.ValueScanner.Annotations.ScanValue()
 		default:
@@ -181,12 +183,10 @@ func (_m *Entitlement) assignValues(columns []string, values []any) error {
 				_m.Namespace = value.String
 			}
 		case entitlement.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := entitlement.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case entitlement.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

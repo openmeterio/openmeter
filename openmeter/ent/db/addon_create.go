@@ -386,7 +386,11 @@ func (_c *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec, error) {
 		_node.Namespace = value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(addon.FieldMetadata, field.TypeJSON, value)
+		vv, err := addon.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(addon.FieldMetadata, field.TypeString, vv)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {

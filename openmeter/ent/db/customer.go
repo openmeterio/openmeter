@@ -3,7 +3,6 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -132,12 +131,14 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case customer.FieldMetadata, customer.FieldAnnotations:
-			values[i] = new([]byte)
 		case customer.FieldID, customer.FieldNamespace, customer.FieldName, customer.FieldDescription, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldKey, customer.FieldPrimaryEmail, customer.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case customer.FieldMetadata:
+			values[i] = customer.ValueScanner.Metadata.ScanValue()
+		case customer.FieldAnnotations:
+			values[i] = customer.ValueScanner.Annotations.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -166,12 +167,10 @@ func (_m *Customer) assignValues(columns []string, values []any) error {
 				_m.Namespace = value.String
 			}
 		case customer.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := customer.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case customer.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -255,12 +254,10 @@ func (_m *Customer) assignValues(columns []string, values []any) error {
 				*_m.BillingAddressPhoneNumber = value.String
 			}
 		case customer.FieldAnnotations:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field annotations", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
-					return fmt.Errorf("unmarshal field annotations: %w", err)
-				}
+			if value, err := customer.ValueScanner.Annotations.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Annotations = value
 			}
 		case customer.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {

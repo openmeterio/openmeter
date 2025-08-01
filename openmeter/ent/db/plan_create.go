@@ -390,7 +390,11 @@ func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec, error) {
 		_node.Namespace = value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(plan.FieldMetadata, field.TypeJSON, value)
+		vv, err := plan.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(plan.FieldMetadata, field.TypeString, vv)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {

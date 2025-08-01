@@ -250,10 +250,14 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_nod
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(billinginvoicesplitlinegroup.FieldMetadata, field.TypeJSON, value)
+		vv, err := billinginvoicesplitlinegroup.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(billinginvoicesplitlinegroup.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(billinginvoicesplitlinegroup.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldUpdatedAt, field.TypeTime, value)
@@ -615,10 +619,14 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(billinginvoicesplitlinegroup.FieldMetadata, field.TypeJSON, value)
+		vv, err := billinginvoicesplitlinegroup.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(billinginvoicesplitlinegroup.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(billinginvoicesplitlinegroup.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldUpdatedAt, field.TypeTime, value)

@@ -474,7 +474,11 @@ func (_c *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cre
 		_node.DeletedAt = &value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(subscriptionitem.FieldMetadata, field.TypeJSON, value)
+		vv, err := subscriptionitem.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(subscriptionitem.FieldMetadata, field.TypeString, vv)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.Annotations(); ok {

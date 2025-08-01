@@ -1338,41 +1338,41 @@ type BillingInvoiceLineGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (bilgb *BillingInvoiceLineGroupBy) Aggregate(fns ...AggregateFunc) *BillingInvoiceLineGroupBy {
-	bilgb.fns = append(bilgb.fns, fns...)
-	return bilgb
+func (_g *BillingInvoiceLineGroupBy) Aggregate(fns ...AggregateFunc) *BillingInvoiceLineGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bilgb *BillingInvoiceLineGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bilgb.build.ctx, ent.OpQueryGroupBy)
-	if err := bilgb.build.prepareQuery(ctx); err != nil {
+func (_g *BillingInvoiceLineGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingInvoiceLineQuery, *BillingInvoiceLineGroupBy](ctx, bilgb.build, bilgb, bilgb.build.inters, v)
+	return scanWithInterceptors[*BillingInvoiceLineQuery, *BillingInvoiceLineGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (bilgb *BillingInvoiceLineGroupBy) sqlScan(ctx context.Context, root *BillingInvoiceLineQuery, v any) error {
+func (_g *BillingInvoiceLineGroupBy) sqlScan(ctx context.Context, root *BillingInvoiceLineQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(bilgb.fns))
-	for _, fn := range bilgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*bilgb.flds)+len(bilgb.fns))
-		for _, f := range *bilgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*bilgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bilgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -1386,27 +1386,27 @@ type BillingInvoiceLineSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (bils *BillingInvoiceLineSelect) Aggregate(fns ...AggregateFunc) *BillingInvoiceLineSelect {
-	bils.fns = append(bils.fns, fns...)
-	return bils
+func (_s *BillingInvoiceLineSelect) Aggregate(fns ...AggregateFunc) *BillingInvoiceLineSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bils *BillingInvoiceLineSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bils.ctx, ent.OpQuerySelect)
-	if err := bils.prepareQuery(ctx); err != nil {
+func (_s *BillingInvoiceLineSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingInvoiceLineQuery, *BillingInvoiceLineSelect](ctx, bils.BillingInvoiceLineQuery, bils, bils.inters, v)
+	return scanWithInterceptors[*BillingInvoiceLineQuery, *BillingInvoiceLineSelect](ctx, _s.BillingInvoiceLineQuery, _s, _s.inters, v)
 }
 
-func (bils *BillingInvoiceLineSelect) sqlScan(ctx context.Context, root *BillingInvoiceLineQuery, v any) error {
+func (_s *BillingInvoiceLineSelect) sqlScan(ctx context.Context, root *BillingInvoiceLineQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(bils.fns))
-	for _, fn := range bils.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*bils.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -1414,7 +1414,7 @@ func (bils *BillingInvoiceLineSelect) sqlScan(ctx context.Context, root *Billing
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bils.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

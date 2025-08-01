@@ -634,41 +634,41 @@ type PlanAddonGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (pagb *PlanAddonGroupBy) Aggregate(fns ...AggregateFunc) *PlanAddonGroupBy {
-	pagb.fns = append(pagb.fns, fns...)
-	return pagb
+func (_g *PlanAddonGroupBy) Aggregate(fns ...AggregateFunc) *PlanAddonGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (pagb *PlanAddonGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, pagb.build.ctx, ent.OpQueryGroupBy)
-	if err := pagb.build.prepareQuery(ctx); err != nil {
+func (_g *PlanAddonGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*PlanAddonQuery, *PlanAddonGroupBy](ctx, pagb.build, pagb, pagb.build.inters, v)
+	return scanWithInterceptors[*PlanAddonQuery, *PlanAddonGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (pagb *PlanAddonGroupBy) sqlScan(ctx context.Context, root *PlanAddonQuery, v any) error {
+func (_g *PlanAddonGroupBy) sqlScan(ctx context.Context, root *PlanAddonQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(pagb.fns))
-	for _, fn := range pagb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*pagb.flds)+len(pagb.fns))
-		for _, f := range *pagb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*pagb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := pagb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -682,27 +682,27 @@ type PlanAddonSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (pas *PlanAddonSelect) Aggregate(fns ...AggregateFunc) *PlanAddonSelect {
-	pas.fns = append(pas.fns, fns...)
-	return pas
+func (_s *PlanAddonSelect) Aggregate(fns ...AggregateFunc) *PlanAddonSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (pas *PlanAddonSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, pas.ctx, ent.OpQuerySelect)
-	if err := pas.prepareQuery(ctx); err != nil {
+func (_s *PlanAddonSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*PlanAddonQuery, *PlanAddonSelect](ctx, pas.PlanAddonQuery, pas, pas.inters, v)
+	return scanWithInterceptors[*PlanAddonQuery, *PlanAddonSelect](ctx, _s.PlanAddonQuery, _s, _s.inters, v)
 }
 
-func (pas *PlanAddonSelect) sqlScan(ctx context.Context, root *PlanAddonQuery, v any) error {
+func (_s *PlanAddonSelect) sqlScan(ctx context.Context, root *PlanAddonQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(pas.fns))
-	for _, fn := range pas.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*pas.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -710,7 +710,7 @@ func (pas *PlanAddonSelect) sqlScan(ctx context.Context, root *PlanAddonQuery, v
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := pas.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

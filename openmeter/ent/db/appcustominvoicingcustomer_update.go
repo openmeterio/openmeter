@@ -140,10 +140,14 @@ func (_u *AppCustomInvoicingCustomerUpdate) sqlSave(ctx context.Context) (_node 
 		_spec.ClearField(appcustominvoicingcustomer.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(appcustominvoicingcustomer.FieldMetadata, field.TypeJSON, value)
+		vv, err := appcustominvoicingcustomer.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(appcustominvoicingcustomer.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(appcustominvoicingcustomer.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(appcustominvoicingcustomer.FieldMetadata, field.TypeString)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -307,10 +311,14 @@ func (_u *AppCustomInvoicingCustomerUpdateOne) sqlSave(ctx context.Context) (_no
 		_spec.ClearField(appcustominvoicingcustomer.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(appcustominvoicingcustomer.FieldMetadata, field.TypeJSON, value)
+		vv, err := appcustominvoicingcustomer.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(appcustominvoicingcustomer.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(appcustominvoicingcustomer.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(appcustominvoicingcustomer.FieldMetadata, field.TypeString)
 	}
 	_node = &AppCustomInvoicingCustomer{config: _u.config}
 	_spec.Assign = _node.assignValues
