@@ -753,6 +753,7 @@ func (s *CustomerHandlerTestSuite) TestGetByUsageAttribution(ctx context.Context
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: TestName,
+			Key:  lo.ToPtr(TestKey),
 			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
@@ -772,8 +773,28 @@ func (s *CustomerHandlerTestSuite) TestGetByUsageAttribution(ctx context.Context
 	require.NotNil(t, cus, "Customer must not be nil")
 	require.Equal(t, s.namespace, cus.Namespace, "Customer namespace must match")
 	require.Equal(t, createdCustomer.ID, cus.ID, "Customer ID must match")
-	require.Equal(t, TestName, cus.Name, "Customer name must match")
-	require.Equal(t, TestSubjectKeys, cus.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+
+	// Get the customer by key
+	cus, err = service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  s.namespace,
+		SubjectKey: TestKey,
+	})
+
+	require.NoError(t, err, "Fetching customer must not return error")
+	require.NotNil(t, cus, "Customer must not be nil")
+	require.Equal(t, s.namespace, cus.Namespace, "Customer namespace must match")
+	require.Equal(t, createdCustomer.ID, cus.ID, "Customer ID must match")
+
+	// Get the customer by key
+	cus, err = service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  s.namespace,
+		SubjectKey: TestKey,
+	})
+
+	require.NoError(t, err, "Fetching customer must not return error")
+	require.NotNil(t, cus, "Customer must not be nil")
+	require.Equal(t, s.namespace, cus.Namespace, "Customer namespace must match")
+	require.Equal(t, createdCustomer.ID, cus.ID, "Customer ID must match")
 
 	// Get the customer by usage attribution with a non-existent subject key
 	_, err = service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{

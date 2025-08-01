@@ -462,13 +462,20 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 
 		query := repo.db.Customer.Query().
 			Where(customerdb.Namespace(input.Namespace)).
-			Where(customerdb.HasSubjectsWith(
-				customersubjectsdb.SubjectKey(input.SubjectKey),
-				customersubjectsdb.Or(
-					customersubjectsdb.DeletedAtIsNil(),
-					customersubjectsdb.DeletedAtGT(now),
+			Where(
+				customerdb.Or(
+					// We lookup the customer by subject key in the subjects table
+					customerdb.HasSubjectsWith(
+						customersubjectsdb.SubjectKey(input.SubjectKey),
+						customersubjectsdb.Or(
+							customersubjectsdb.DeletedAtIsNil(),
+							customersubjectsdb.DeletedAtGT(now),
+						),
+					),
+					// Or else we lookup the customer by key in the customers table
+					customerdb.Key(input.SubjectKey),
 				),
-			)).
+			).
 			Where(customerdb.DeletedAtIsNil())
 		query = WithSubjects(query, now)
 		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
