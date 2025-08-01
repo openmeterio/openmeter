@@ -349,6 +349,18 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 			continue
 		}
 
+		// We are not correcting periods for lines that are already ignored
+		if existingCurrentLine, ok := existingLinesByUniqueID[line.UniqueID]; ok {
+			hasAnnotation, err := h.lineOrHierarchyHasSubscriptionSyncIgnoreAnnotation(existingCurrentLine)
+			if err != nil {
+				return nil, fmt.Errorf("checking if line has subscription sync ignore annotation: %w", err)
+			}
+
+			if hasAnnotation {
+				continue
+			}
+		}
+
 		previousPeriodUniqueID := strings.Join([]string{
 			subscriptionID,
 			line.PhaseKey,
@@ -363,27 +375,12 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 			continue
 		}
 
-		switch existingPreviousLine.Type() {
-		case billing.LineOrHierarchyTypeLine:
-			previousLine, err := existingPreviousLine.AsLine()
-			if err != nil {
-				return nil, fmt.Errorf("getting previous line: %w", err)
-			}
+		existingPreviousLineHasAnnotation, err := h.lineOrHierarchyHasSubscriptionSyncIgnoreAnnotation(existingPreviousLine)
+		if err != nil {
+			return nil, fmt.Errorf("checking if previous line has subscription sync ignore annotation: %w", err)
+		}
 
-			if !h.isLineInScopeForPeriodCorrection(previousLine) {
-				continue
-			}
-		case billing.LineOrHierarchyTypeHierarchy:
-			hierarchy, err := existingPreviousLine.AsHierarchy()
-			if err != nil {
-				return nil, fmt.Errorf("getting previous hierarchy: %w", err)
-			}
-
-			if !h.isHierarchyInScopeForPeriodCorrection(hierarchy) {
-				continue
-			}
-
-		default:
+		if !existingPreviousLineHasAnnotation {
 			continue
 		}
 
@@ -394,21 +391,46 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 			continue
 		}
 
-		// Should not happen as this line is never the first line
-		// TODO: harmonize truncation logic here!
-		if !line.ServicePeriod.Start.Equal(line.BillingPeriod.Start) || !line.FullServicePeriod.Start.Equal(line.BillingPeriod.Start) {
-			return nil, fmt.Errorf("line[%s] service period start does not match billing period start or full service period start", line.UniqueID)
+		if !line.ServicePeriod.Start.Equal(line.FullServicePeriod.Start) {
+			// These should match otherwise any pro-rating logic will be invalid (we are never truncating the start of the service period so this should never happen)
+			return nil, fmt.Errorf("line[%s] service period and full service period start does not match", line.UniqueID)
 		}
 
+		// We are not overriding the billing period start as that is only used to determine the invoiceAt for inAdvance items
 		inScopeLines[idx].ServicePeriod.Start = previousServicePeriod.End
-		inScopeLines[idx].BillingPeriod.Start = previousServicePeriod.End
 		inScopeLines[idx].FullServicePeriod.Start = previousServicePeriod.End
+
+		if line.FullServicePeriod.Start.Equal(line.BillingPeriod.Start) {
+			// If the billing period is not truncated, we can update the line's billing period start too
+			inScopeLines[idx].BillingPeriod.Start = previousServicePeriod.End
+		}
 	}
 
 	return inScopeLines, nil
 }
 
-func (h *Handler) isLineInScopeForPeriodCorrection(line *billing.Line) bool {
+func (h *Handler) lineOrHierarchyHasSubscriptionSyncIgnoreAnnotation(lineOrHierarchy billing.LineOrHierarchy) (bool, error) {
+	switch lineOrHierarchy.Type() {
+	case billing.LineOrHierarchyTypeLine:
+		previousLine, err := lineOrHierarchy.AsLine()
+		if err != nil {
+			return false, fmt.Errorf("getting previous line: %w", err)
+		}
+
+		return h.lineHasSubscriptionSyncIgnoreAnnotation(previousLine), nil
+	case billing.LineOrHierarchyTypeHierarchy:
+		hierarchy, err := lineOrHierarchy.AsHierarchy()
+		if err != nil {
+			return false, fmt.Errorf("getting previous hierarchy: %w", err)
+		}
+
+		return h.hierarchyHasSubscriptionSyncIgnoreAnnotation(hierarchy), nil
+	default:
+		return false, nil
+	}
+}
+
+func (h *Handler) lineHasSubscriptionSyncIgnoreAnnotation(line *billing.Line) bool {
 	if line.ManagedBy != billing.SubscriptionManagedLine {
 		// We only correct the period start for subscription managed lines, for manual edits
 		// we should not apply this logic, as the user might have created a setup where the period start
@@ -434,13 +456,13 @@ func (h *Handler) isLineInScopeForPeriodCorrection(line *billing.Line) bool {
 	return boolVal
 }
 
-func (h *Handler) isHierarchyInScopeForPeriodCorrection(hierarchy *billing.SplitLineHierarchy) bool {
+func (h *Handler) hierarchyHasSubscriptionSyncIgnoreAnnotation(hierarchy *billing.SplitLineHierarchy) bool {
 	servicePeriod := hierarchy.Group.ServicePeriod
 
 	// The correction can only happen if the last line the progressively billed group is in scope for the period correction
 	for _, line := range hierarchy.Lines {
 		if line.Line.Period.End.Equal(servicePeriod.End) {
-			return h.isLineInScopeForPeriodCorrection(line.Line)
+			return h.lineHasSubscriptionSyncIgnoreAnnotation(line.Line)
 		}
 	}
 
