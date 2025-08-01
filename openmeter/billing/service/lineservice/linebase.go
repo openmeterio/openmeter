@@ -109,7 +109,7 @@ func (l lineBase) Validate(ctx context.Context, invoice *billing.Invoice) error 
 	// Expanding the split lines are mandatory for the lineservice to work properly.
 	if l.line.SplitLineGroupID != nil && l.line.SplitLineHierarchy == nil {
 		return billing.ValidationError{
-			Err: fmt.Errorf("split line group[%s] has no hierarchy expanded hierarchy", *l.line.SplitLineGroupID),
+			Err: fmt.Errorf("split line group[%s] has no expanded hierarchy, while being part of a split line group", *l.line.SplitLineGroupID),
 		}
 	}
 
