@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
@@ -141,7 +142,12 @@ func NewDLQTelemetryMiddleware(opts NewDLQTelemetryOptions) (func(message.Handle
 				if opts.Router.IsClosed() {
 					opts.Logger.Warn("Message processing failed, router is closing", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
 				} else {
-					opts.Logger.Error("Failed to process message, message is going to DLQ", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
+					logger := opts.Logger.ErrorContext
+					if _, ok := lo.ErrorsAs[*WarningLogSeverityError](err); ok {
+						logger = opts.Logger.WarnContext
+					}
+
+					logger(msg.Context(), "Failed to process message, message is going to DLQ", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
 
 					meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
 						meterAttributeCEType,

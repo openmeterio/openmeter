@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
+	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
@@ -107,7 +108,10 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID pkgmo
 	}
 
 	if len(entitlements.Items) == 0 {
-		return nil, fmt.Errorf("entitlement not found: %s", entitlementID.ID)
+		// Given that rolled back transactions also fire events, we can expect that sometimes the entitlement is not found
+		// we still need to retry, as if the originating transaction is running for a while, the entitlement might
+		// appear after the transaction is committed.
+		return nil, router.NewWarningLogSeverityError(fmt.Errorf("entitlement not found: %s", entitlementID.ID))
 	}
 
 	if len(entitlements.Items) > 1 {
