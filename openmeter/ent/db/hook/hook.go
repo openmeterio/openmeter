@@ -153,6 +153,18 @@ func (f BillingInvoiceFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceMutation", m)
 }
 
+// The BillingInvoiceDetailedLineFunc type is an adapter to allow the use of ordinary
+// function as BillingInvoiceDetailedLine mutator.
+type BillingInvoiceDetailedLineFunc func(context.Context, *db.BillingInvoiceDetailedLineMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingInvoiceDetailedLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingInvoiceDetailedLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceDetailedLineMutation", m)
+}
+
 // The BillingInvoiceFlatFeeLineConfigFunc type is an adapter to allow the use of ordinary
 // function as BillingInvoiceFlatFeeLineConfig mutator.
 type BillingInvoiceFlatFeeLineConfigFunc func(context.Context, *db.BillingInvoiceFlatFeeLineConfigMutation) (db.Value, error)
