@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -33,6 +34,7 @@ type BillingInvoiceQuery struct {
 	withSourceBillingProfile           *BillingProfileQuery
 	withBillingWorkflowConfig          *BillingWorkflowConfigQuery
 	withBillingInvoiceLines            *BillingInvoiceLineQuery
+	withDetailedLines                  *BillingInvoiceDetailedLineQuery
 	withBillingInvoiceValidationIssues *BillingInvoiceValidationIssueQuery
 	withBillingInvoiceCustomer         *CustomerQuery
 	withTaxApp                         *AppQuery
@@ -134,6 +136,28 @@ func (_q *BillingInvoiceQuery) QueryBillingInvoiceLines() *BillingInvoiceLineQue
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceLinesTable, billinginvoice.BillingInvoiceLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryDetailedLines chains the current query on the "detailed_lines" edge.
+func (_q *BillingInvoiceQuery) QueryDetailedLines() *BillingInvoiceDetailedLineQuery {
+	query := (&BillingInvoiceDetailedLineClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
+			sqlgraph.To(billinginvoicedetailedline.Table, billinginvoicedetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.DetailedLinesTable, billinginvoice.DetailedLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -446,6 +470,7 @@ func (_q *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
 		withSourceBillingProfile:           _q.withSourceBillingProfile.Clone(),
 		withBillingWorkflowConfig:          _q.withBillingWorkflowConfig.Clone(),
 		withBillingInvoiceLines:            _q.withBillingInvoiceLines.Clone(),
+		withDetailedLines:                  _q.withDetailedLines.Clone(),
 		withBillingInvoiceValidationIssues: _q.withBillingInvoiceValidationIssues.Clone(),
 		withBillingInvoiceCustomer:         _q.withBillingInvoiceCustomer.Clone(),
 		withTaxApp:                         _q.withTaxApp.Clone(),
@@ -487,6 +512,17 @@ func (_q *BillingInvoiceQuery) WithBillingInvoiceLines(opts ...func(*BillingInvo
 		opt(query)
 	}
 	_q.withBillingInvoiceLines = query
+	return _q
+}
+
+// WithDetailedLines tells the query-builder to eager-load the nodes that are connected to
+// the "detailed_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceQuery) WithDetailedLines(opts ...func(*BillingInvoiceDetailedLineQuery)) *BillingInvoiceQuery {
+	query := (&BillingInvoiceDetailedLineClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withDetailedLines = query
 	return _q
 }
 
@@ -623,10 +659,11 @@ func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	var (
 		nodes       = []*BillingInvoice{}
 		_spec       = _q.querySpec()
-		loadedTypes = [8]bool{
+		loadedTypes = [9]bool{
 			_q.withSourceBillingProfile != nil,
 			_q.withBillingWorkflowConfig != nil,
 			_q.withBillingInvoiceLines != nil,
+			_q.withDetailedLines != nil,
 			_q.withBillingInvoiceValidationIssues != nil,
 			_q.withBillingInvoiceCustomer != nil,
 			_q.withTaxApp != nil,
@@ -672,6 +709,15 @@ func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 			func(n *BillingInvoice) { n.Edges.BillingInvoiceLines = []*BillingInvoiceLine{} },
 			func(n *BillingInvoice, e *BillingInvoiceLine) {
 				n.Edges.BillingInvoiceLines = append(n.Edges.BillingInvoiceLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withDetailedLines; query != nil {
+		if err := _q.loadDetailedLines(ctx, query, nodes,
+			func(n *BillingInvoice) { n.Edges.DetailedLines = []*BillingInvoiceDetailedLine{} },
+			func(n *BillingInvoice, e *BillingInvoiceDetailedLine) {
+				n.Edges.DetailedLines = append(n.Edges.DetailedLines, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -786,6 +832,36 @@ func (_q *BillingInvoiceQuery) loadBillingInvoiceLines(ctx context.Context, quer
 	}
 	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(billinginvoice.BillingInvoiceLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.InvoiceID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *BillingInvoiceQuery) loadDetailedLines(ctx context.Context, query *BillingInvoiceDetailedLineQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingInvoiceDetailedLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoice)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoicedetailedline.FieldInvoiceID)
+	}
+	query.Where(predicate.BillingInvoiceDetailedLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoice.DetailedLinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

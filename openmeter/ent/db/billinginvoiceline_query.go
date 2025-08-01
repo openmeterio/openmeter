@@ -14,7 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
@@ -35,10 +35,8 @@ type BillingInvoiceLineQuery struct {
 	predicates              []predicate.BillingInvoiceLine
 	withBillingInvoice      *BillingInvoiceQuery
 	withSplitLineGroup      *BillingInvoiceSplitLineGroupQuery
-	withFlatFeeLine         *BillingInvoiceFlatFeeLineConfigQuery
 	withUsageBasedLine      *BillingInvoiceUsageBasedLineConfigQuery
-	withParentLine          *BillingInvoiceLineQuery
-	withDetailedLines       *BillingInvoiceLineQuery
+	withDetailedLines       *BillingInvoiceDetailedLineQuery
 	withLineUsageDiscounts  *BillingInvoiceLineUsageDiscountQuery
 	withLineAmountDiscounts *BillingInvoiceLineDiscountQuery
 	withSubscription        *SubscriptionQuery
@@ -126,28 +124,6 @@ func (_q *BillingInvoiceLineQuery) QuerySplitLineGroup() *BillingInvoiceSplitLin
 	return query
 }
 
-// QueryFlatFeeLine chains the current query on the "flat_fee_line" edge.
-func (_q *BillingInvoiceLineQuery) QueryFlatFeeLine() *BillingInvoiceFlatFeeLineConfigQuery {
-	query := (&BillingInvoiceFlatFeeLineConfigClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
-			sqlgraph.To(billinginvoiceflatfeelineconfig.Table, billinginvoiceflatfeelineconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, billinginvoiceline.FlatFeeLineTable, billinginvoiceline.FlatFeeLineColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
 // QueryUsageBasedLine chains the current query on the "usage_based_line" edge.
 func (_q *BillingInvoiceLineQuery) QueryUsageBasedLine() *BillingInvoiceUsageBasedLineConfigQuery {
 	query := (&BillingInvoiceUsageBasedLineConfigClient{config: _q.config}).Query()
@@ -170,31 +146,9 @@ func (_q *BillingInvoiceLineQuery) QueryUsageBasedLine() *BillingInvoiceUsageBas
 	return query
 }
 
-// QueryParentLine chains the current query on the "parent_line" edge.
-func (_q *BillingInvoiceLineQuery) QueryParentLine() *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
-			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.ParentLineTable, billinginvoiceline.ParentLineColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
 // QueryDetailedLines chains the current query on the "detailed_lines" edge.
-func (_q *BillingInvoiceLineQuery) QueryDetailedLines() *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
+func (_q *BillingInvoiceLineQuery) QueryDetailedLines() *BillingInvoiceDetailedLineQuery {
+	query := (&BillingInvoiceDetailedLineClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -205,7 +159,7 @@ func (_q *BillingInvoiceLineQuery) QueryDetailedLines() *BillingInvoiceLineQuery
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
-			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.To(billinginvoicedetailedline.Table, billinginvoicedetailedline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.DetailedLinesTable, billinginvoiceline.DetailedLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
@@ -518,9 +472,7 @@ func (_q *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		predicates:              append([]predicate.BillingInvoiceLine{}, _q.predicates...),
 		withBillingInvoice:      _q.withBillingInvoice.Clone(),
 		withSplitLineGroup:      _q.withSplitLineGroup.Clone(),
-		withFlatFeeLine:         _q.withFlatFeeLine.Clone(),
 		withUsageBasedLine:      _q.withUsageBasedLine.Clone(),
-		withParentLine:          _q.withParentLine.Clone(),
 		withDetailedLines:       _q.withDetailedLines.Clone(),
 		withLineUsageDiscounts:  _q.withLineUsageDiscounts.Clone(),
 		withLineAmountDiscounts: _q.withLineAmountDiscounts.Clone(),
@@ -555,17 +507,6 @@ func (_q *BillingInvoiceLineQuery) WithSplitLineGroup(opts ...func(*BillingInvoi
 	return _q
 }
 
-// WithFlatFeeLine tells the query-builder to eager-load the nodes that are connected to
-// the "flat_fee_line" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *BillingInvoiceLineQuery) WithFlatFeeLine(opts ...func(*BillingInvoiceFlatFeeLineConfigQuery)) *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceFlatFeeLineConfigClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withFlatFeeLine = query
-	return _q
-}
-
 // WithUsageBasedLine tells the query-builder to eager-load the nodes that are connected to
 // the "usage_based_line" edge. The optional arguments are used to configure the query builder of the edge.
 func (_q *BillingInvoiceLineQuery) WithUsageBasedLine(opts ...func(*BillingInvoiceUsageBasedLineConfigQuery)) *BillingInvoiceLineQuery {
@@ -577,21 +518,10 @@ func (_q *BillingInvoiceLineQuery) WithUsageBasedLine(opts ...func(*BillingInvoi
 	return _q
 }
 
-// WithParentLine tells the query-builder to eager-load the nodes that are connected to
-// the "parent_line" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *BillingInvoiceLineQuery) WithParentLine(opts ...func(*BillingInvoiceLineQuery)) *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withParentLine = query
-	return _q
-}
-
 // WithDetailedLines tells the query-builder to eager-load the nodes that are connected to
 // the "detailed_lines" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *BillingInvoiceLineQuery) WithDetailedLines(opts ...func(*BillingInvoiceLineQuery)) *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
+func (_q *BillingInvoiceLineQuery) WithDetailedLines(opts ...func(*BillingInvoiceDetailedLineQuery)) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceDetailedLineClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -733,12 +663,10 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [11]bool{
+		loadedTypes = [9]bool{
 			_q.withBillingInvoice != nil,
 			_q.withSplitLineGroup != nil,
-			_q.withFlatFeeLine != nil,
 			_q.withUsageBasedLine != nil,
-			_q.withParentLine != nil,
 			_q.withDetailedLines != nil,
 			_q.withLineUsageDiscounts != nil,
 			_q.withLineAmountDiscounts != nil,
@@ -747,7 +675,7 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			_q.withSubscriptionItem != nil,
 		}
 	)
-	if _q.withFlatFeeLine != nil || _q.withUsageBasedLine != nil {
+	if _q.withUsageBasedLine != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -786,28 +714,16 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			return nil, err
 		}
 	}
-	if query := _q.withFlatFeeLine; query != nil {
-		if err := _q.loadFlatFeeLine(ctx, query, nodes, nil,
-			func(n *BillingInvoiceLine, e *BillingInvoiceFlatFeeLineConfig) { n.Edges.FlatFeeLine = e }); err != nil {
-			return nil, err
-		}
-	}
 	if query := _q.withUsageBasedLine; query != nil {
 		if err := _q.loadUsageBasedLine(ctx, query, nodes, nil,
 			func(n *BillingInvoiceLine, e *BillingInvoiceUsageBasedLineConfig) { n.Edges.UsageBasedLine = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := _q.withParentLine; query != nil {
-		if err := _q.loadParentLine(ctx, query, nodes, nil,
-			func(n *BillingInvoiceLine, e *BillingInvoiceLine) { n.Edges.ParentLine = e }); err != nil {
-			return nil, err
-		}
-	}
 	if query := _q.withDetailedLines; query != nil {
 		if err := _q.loadDetailedLines(ctx, query, nodes,
-			func(n *BillingInvoiceLine) { n.Edges.DetailedLines = []*BillingInvoiceLine{} },
-			func(n *BillingInvoiceLine, e *BillingInvoiceLine) {
+			func(n *BillingInvoiceLine) { n.Edges.DetailedLines = []*BillingInvoiceDetailedLine{} },
+			func(n *BillingInvoiceLine, e *BillingInvoiceDetailedLine) {
 				n.Edges.DetailedLines = append(n.Edges.DetailedLines, e)
 			}); err != nil {
 			return nil, err
@@ -913,38 +829,6 @@ func (_q *BillingInvoiceLineQuery) loadSplitLineGroup(ctx context.Context, query
 	}
 	return nil
 }
-func (_q *BillingInvoiceLineQuery) loadFlatFeeLine(ctx context.Context, query *BillingInvoiceFlatFeeLineConfigQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceFlatFeeLineConfig)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*BillingInvoiceLine)
-	for i := range nodes {
-		if nodes[i].fee_line_config_id == nil {
-			continue
-		}
-		fk := *nodes[i].fee_line_config_id
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(billinginvoiceflatfeelineconfig.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "fee_line_config_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
 func (_q *BillingInvoiceLineQuery) loadUsageBasedLine(ctx context.Context, query *BillingInvoiceUsageBasedLineConfigQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceUsageBasedLineConfig)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingInvoiceLine)
@@ -977,39 +861,7 @@ func (_q *BillingInvoiceLineQuery) loadUsageBasedLine(ctx context.Context, query
 	}
 	return nil
 }
-func (_q *BillingInvoiceLineQuery) loadParentLine(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceLine)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*BillingInvoiceLine)
-	for i := range nodes {
-		if nodes[i].ParentLineID == nil {
-			continue
-		}
-		fk := *nodes[i].ParentLineID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(billinginvoiceline.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "parent_line_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (_q *BillingInvoiceLineQuery) loadDetailedLines(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceLine)) error {
+func (_q *BillingInvoiceLineQuery) loadDetailedLines(ctx context.Context, query *BillingInvoiceDetailedLineQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceDetailedLine)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*BillingInvoiceLine)
 	for i := range nodes {
@@ -1019,11 +871,10 @@ func (_q *BillingInvoiceLineQuery) loadDetailedLines(ctx context.Context, query 
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(billinginvoiceline.FieldParentLineID)
+		query.ctx.AppendFieldOnce(billinginvoicedetailedline.FieldParentLineID)
 	}
-	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
+	query.Where(predicate.BillingInvoiceDetailedLine(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(billinginvoiceline.DetailedLinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
@@ -1032,12 +883,9 @@ func (_q *BillingInvoiceLineQuery) loadDetailedLines(ctx context.Context, query 
 	}
 	for _, n := range neighbors {
 		fk := n.ParentLineID
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "parent_line_id" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "parent_line_id" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "parent_line_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -1233,9 +1081,6 @@ func (_q *BillingInvoiceLineQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withSplitLineGroup != nil {
 			_spec.Node.AddColumnOnce(billinginvoiceline.FieldSplitLineGroupID)
-		}
-		if _q.withParentLine != nil {
-			_spec.Node.AddColumnOnce(billinginvoiceline.FieldParentLineID)
 		}
 		if _q.withSubscription != nil {
 			_spec.Node.AddColumnOnce(billinginvoiceline.FieldSubscriptionID)

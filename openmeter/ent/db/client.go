@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
@@ -91,6 +92,8 @@ type Client struct {
 	BillingCustomerOverride *BillingCustomerOverrideClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
 	BillingInvoice *BillingInvoiceClient
+	// BillingInvoiceDetailedLine is the client for interacting with the BillingInvoiceDetailedLine builders.
+	BillingInvoiceDetailedLine *BillingInvoiceDetailedLineClient
 	// BillingInvoiceFlatFeeLineConfig is the client for interacting with the BillingInvoiceFlatFeeLineConfig builders.
 	BillingInvoiceFlatFeeLineConfig *BillingInvoiceFlatFeeLineConfigClient
 	// BillingInvoiceLine is the client for interacting with the BillingInvoiceLine builders.
@@ -176,6 +179,7 @@ func (c *Client) init() {
 	c.BillingCustomerLock = NewBillingCustomerLockClient(c.config)
 	c.BillingCustomerOverride = NewBillingCustomerOverrideClient(c.config)
 	c.BillingInvoice = NewBillingInvoiceClient(c.config)
+	c.BillingInvoiceDetailedLine = NewBillingInvoiceDetailedLineClient(c.config)
 	c.BillingInvoiceFlatFeeLineConfig = NewBillingInvoiceFlatFeeLineConfigClient(c.config)
 	c.BillingInvoiceLine = NewBillingInvoiceLineClient(c.config)
 	c.BillingInvoiceLineDiscount = NewBillingInvoiceLineDiscountClient(c.config)
@@ -311,6 +315,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
 		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
 		BillingInvoice:                     NewBillingInvoiceClient(cfg),
+		BillingInvoiceDetailedLine:         NewBillingInvoiceDetailedLineClient(cfg),
 		BillingInvoiceFlatFeeLineConfig:    NewBillingInvoiceFlatFeeLineConfigClient(cfg),
 		BillingInvoiceLine:                 NewBillingInvoiceLineClient(cfg),
 		BillingInvoiceLineDiscount:         NewBillingInvoiceLineDiscountClient(cfg),
@@ -373,6 +378,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
 		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
 		BillingInvoice:                     NewBillingInvoiceClient(cfg),
+		BillingInvoiceDetailedLine:         NewBillingInvoiceDetailedLineClient(cfg),
 		BillingInvoiceFlatFeeLineConfig:    NewBillingInvoiceFlatFeeLineConfigClient(cfg),
 		BillingInvoiceLine:                 NewBillingInvoiceLineClient(cfg),
 		BillingInvoiceLineDiscount:         NewBillingInvoiceLineDiscountClient(cfg),
@@ -436,7 +442,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.Addon, c.AddonRateCard, c.App, c.AppCustomInvoicing,
 		c.AppCustomInvoicingCustomer, c.AppCustomer, c.AppStripe, c.AppStripeCustomer,
 		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
-		c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
+		c.BillingInvoice, c.BillingInvoiceDetailedLine,
+		c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
 		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
 		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
@@ -458,7 +465,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.Addon, c.AddonRateCard, c.App, c.AppCustomInvoicing,
 		c.AppCustomInvoicingCustomer, c.AppCustomer, c.AppStripe, c.AppStripeCustomer,
 		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
-		c.BillingInvoice, c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
+		c.BillingInvoice, c.BillingInvoiceDetailedLine,
+		c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
 		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
 		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
@@ -500,6 +508,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillingCustomerOverride.mutate(ctx, m)
 	case *BillingInvoiceMutation:
 		return c.BillingInvoice.mutate(ctx, m)
+	case *BillingInvoiceDetailedLineMutation:
+		return c.BillingInvoiceDetailedLine.mutate(ctx, m)
 	case *BillingInvoiceFlatFeeLineConfigMutation:
 		return c.BillingInvoiceFlatFeeLineConfig.mutate(ctx, m)
 	case *BillingInvoiceLineMutation:
@@ -2586,6 +2596,22 @@ func (c *BillingInvoiceClient) QueryBillingInvoiceLines(_m *BillingInvoice) *Bil
 	return query
 }
 
+// QueryDetailedLines queries the detailed_lines edge of a BillingInvoice.
+func (c *BillingInvoiceClient) QueryDetailedLines(_m *BillingInvoice) *BillingInvoiceDetailedLineQuery {
+	query := (&BillingInvoiceDetailedLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
+			sqlgraph.To(billinginvoicedetailedline.Table, billinginvoicedetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.DetailedLinesTable, billinginvoice.DetailedLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryBillingInvoiceValidationIssues queries the billing_invoice_validation_issues edge of a BillingInvoice.
 func (c *BillingInvoiceClient) QueryBillingInvoiceValidationIssues(_m *BillingInvoice) *BillingInvoiceValidationIssueQuery {
 	query := (&BillingInvoiceValidationIssueClient{config: c.config}).Query()
@@ -2688,6 +2714,171 @@ func (c *BillingInvoiceClient) mutate(ctx context.Context, m *BillingInvoiceMuta
 		return (&BillingInvoiceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown BillingInvoice mutation op: %q", m.Op())
+	}
+}
+
+// BillingInvoiceDetailedLineClient is a client for the BillingInvoiceDetailedLine schema.
+type BillingInvoiceDetailedLineClient struct {
+	config
+}
+
+// NewBillingInvoiceDetailedLineClient returns a client for the BillingInvoiceDetailedLine from the given config.
+func NewBillingInvoiceDetailedLineClient(c config) *BillingInvoiceDetailedLineClient {
+	return &BillingInvoiceDetailedLineClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billinginvoicedetailedline.Hooks(f(g(h())))`.
+func (c *BillingInvoiceDetailedLineClient) Use(hooks ...Hook) {
+	c.hooks.BillingInvoiceDetailedLine = append(c.hooks.BillingInvoiceDetailedLine, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billinginvoicedetailedline.Intercept(f(g(h())))`.
+func (c *BillingInvoiceDetailedLineClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingInvoiceDetailedLine = append(c.inters.BillingInvoiceDetailedLine, interceptors...)
+}
+
+// Create returns a builder for creating a BillingInvoiceDetailedLine entity.
+func (c *BillingInvoiceDetailedLineClient) Create() *BillingInvoiceDetailedLineCreate {
+	mutation := newBillingInvoiceDetailedLineMutation(c.config, OpCreate)
+	return &BillingInvoiceDetailedLineCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingInvoiceDetailedLine entities.
+func (c *BillingInvoiceDetailedLineClient) CreateBulk(builders ...*BillingInvoiceDetailedLineCreate) *BillingInvoiceDetailedLineCreateBulk {
+	return &BillingInvoiceDetailedLineCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingInvoiceDetailedLineClient) MapCreateBulk(slice any, setFunc func(*BillingInvoiceDetailedLineCreate, int)) *BillingInvoiceDetailedLineCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingInvoiceDetailedLineCreateBulk{err: fmt.Errorf("calling to BillingInvoiceDetailedLineClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingInvoiceDetailedLineCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingInvoiceDetailedLineCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingInvoiceDetailedLine.
+func (c *BillingInvoiceDetailedLineClient) Update() *BillingInvoiceDetailedLineUpdate {
+	mutation := newBillingInvoiceDetailedLineMutation(c.config, OpUpdate)
+	return &BillingInvoiceDetailedLineUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingInvoiceDetailedLineClient) UpdateOne(_m *BillingInvoiceDetailedLine) *BillingInvoiceDetailedLineUpdateOne {
+	mutation := newBillingInvoiceDetailedLineMutation(c.config, OpUpdateOne, withBillingInvoiceDetailedLine(_m))
+	return &BillingInvoiceDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingInvoiceDetailedLineClient) UpdateOneID(id string) *BillingInvoiceDetailedLineUpdateOne {
+	mutation := newBillingInvoiceDetailedLineMutation(c.config, OpUpdateOne, withBillingInvoiceDetailedLineID(id))
+	return &BillingInvoiceDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingInvoiceDetailedLine.
+func (c *BillingInvoiceDetailedLineClient) Delete() *BillingInvoiceDetailedLineDelete {
+	mutation := newBillingInvoiceDetailedLineMutation(c.config, OpDelete)
+	return &BillingInvoiceDetailedLineDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingInvoiceDetailedLineClient) DeleteOne(_m *BillingInvoiceDetailedLine) *BillingInvoiceDetailedLineDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingInvoiceDetailedLineClient) DeleteOneID(id string) *BillingInvoiceDetailedLineDeleteOne {
+	builder := c.Delete().Where(billinginvoicedetailedline.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingInvoiceDetailedLineDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingInvoiceDetailedLine.
+func (c *BillingInvoiceDetailedLineClient) Query() *BillingInvoiceDetailedLineQuery {
+	return &BillingInvoiceDetailedLineQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingInvoiceDetailedLine},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingInvoiceDetailedLine entity by its id.
+func (c *BillingInvoiceDetailedLineClient) Get(ctx context.Context, id string) (*BillingInvoiceDetailedLine, error) {
+	return c.Query().Where(billinginvoicedetailedline.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingInvoiceDetailedLineClient) GetX(ctx context.Context, id string) *BillingInvoiceDetailedLine {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryInvoice queries the invoice edge of a BillingInvoiceDetailedLine.
+func (c *BillingInvoiceDetailedLineClient) QueryInvoice(_m *BillingInvoiceDetailedLine) *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicedetailedline.Table, billinginvoicedetailedline.FieldID, id),
+			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicedetailedline.InvoiceTable, billinginvoicedetailedline.InvoiceColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryParentLine queries the parent_line edge of a BillingInvoiceDetailedLine.
+func (c *BillingInvoiceDetailedLineClient) QueryParentLine(_m *BillingInvoiceDetailedLine) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicedetailedline.Table, billinginvoicedetailedline.FieldID, id),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicedetailedline.ParentLineTable, billinginvoicedetailedline.ParentLineColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingInvoiceDetailedLineClient) Hooks() []Hook {
+	return c.hooks.BillingInvoiceDetailedLine
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingInvoiceDetailedLineClient) Interceptors() []Interceptor {
+	return c.inters.BillingInvoiceDetailedLine
+}
+
+func (c *BillingInvoiceDetailedLineClient) mutate(ctx context.Context, m *BillingInvoiceDetailedLineMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingInvoiceDetailedLineCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingInvoiceDetailedLineUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingInvoiceDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingInvoiceDetailedLineDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingInvoiceDetailedLine mutation op: %q", m.Op())
 	}
 }
 
@@ -2964,22 +3155,6 @@ func (c *BillingInvoiceLineClient) QuerySplitLineGroup(_m *BillingInvoiceLine) *
 	return query
 }
 
-// QueryFlatFeeLine queries the flat_fee_line edge of a BillingInvoiceLine.
-func (c *BillingInvoiceLineClient) QueryFlatFeeLine(_m *BillingInvoiceLine) *BillingInvoiceFlatFeeLineConfigQuery {
-	query := (&BillingInvoiceFlatFeeLineConfigClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
-			sqlgraph.To(billinginvoiceflatfeelineconfig.Table, billinginvoiceflatfeelineconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, billinginvoiceline.FlatFeeLineTable, billinginvoiceline.FlatFeeLineColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryUsageBasedLine queries the usage_based_line edge of a BillingInvoiceLine.
 func (c *BillingInvoiceLineClient) QueryUsageBasedLine(_m *BillingInvoiceLine) *BillingInvoiceUsageBasedLineConfigQuery {
 	query := (&BillingInvoiceUsageBasedLineConfigClient{config: c.config}).Query()
@@ -2996,30 +3171,14 @@ func (c *BillingInvoiceLineClient) QueryUsageBasedLine(_m *BillingInvoiceLine) *
 	return query
 }
 
-// QueryParentLine queries the parent_line edge of a BillingInvoiceLine.
-func (c *BillingInvoiceLineClient) QueryParentLine(_m *BillingInvoiceLine) *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceLineClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
-			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.ParentLineTable, billinginvoiceline.ParentLineColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryDetailedLines queries the detailed_lines edge of a BillingInvoiceLine.
-func (c *BillingInvoiceLineClient) QueryDetailedLines(_m *BillingInvoiceLine) *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceLineClient{config: c.config}).Query()
+func (c *BillingInvoiceLineClient) QueryDetailedLines(_m *BillingInvoiceLine) *BillingInvoiceDetailedLineQuery {
+	query := (&BillingInvoiceDetailedLineClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
-			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.To(billinginvoicedetailedline.Table, billinginvoicedetailedline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.DetailedLinesTable, billinginvoiceline.DetailedLinesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
@@ -8020,29 +8179,31 @@ type (
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
 		AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
 		BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
-		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
-		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
-		BillingInvoiceSplitLineGroup, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingProfile, BillingSequenceNumbers,
-		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
-		Meter, NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity, SubscriptionItem,
-		SubscriptionPhase, UsageReset []ent.Hook
+		BillingInvoiceDetailedLine, BillingInvoiceFlatFeeLineConfig,
+		BillingInvoiceLine, BillingInvoiceLineDiscount,
+		BillingInvoiceLineUsageDiscount, BillingInvoiceSplitLineGroup,
+		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
+		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
+		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
+		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
+		UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
 		AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
 		BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
-		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
-		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
-		BillingInvoiceSplitLineGroup, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingProfile, BillingSequenceNumbers,
-		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
-		Meter, NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity, SubscriptionItem,
-		SubscriptionPhase, UsageReset []ent.Interceptor
+		BillingInvoiceDetailedLine, BillingInvoiceFlatFeeLineConfig,
+		BillingInvoiceLine, BillingInvoiceLineDiscount,
+		BillingInvoiceLineUsageDiscount, BillingInvoiceSplitLineGroup,
+		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
+		BillingProfile, BillingSequenceNumbers, BillingWorkflowConfig, Customer,
+		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
+		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionItem, SubscriptionPhase,
+		UsageReset []ent.Interceptor
 	}
 )
 
