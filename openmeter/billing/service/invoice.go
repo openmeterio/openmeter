@@ -351,7 +351,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				// to either pass in the invoice or the ID
 				savedInvoice, err := s.updateInvoice(ctx, invoice)
 				if err != nil {
-					return nil, fmt.Errorf("updating invoice: %w", err)
+					return nil, fmt.Errorf("updating invoice[%s]: %w", invoice.ID, err)
 				}
 
 				createdInvoices = append(createdInvoices, savedInvoice)
@@ -464,7 +464,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 						sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 						if err != nil {
-							return fmt.Errorf("updating invoice: %w", err)
+							return fmt.Errorf("updating invoice[%s]: %w", sm.Invoice.ID, err)
 						}
 
 						return nil
@@ -706,7 +706,7 @@ func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceIn
 		}
 
 		if _, err := s.updateInvoice(ctx, invoice); err != nil {
-			return billing.Invoice{}, fmt.Errorf("updating invoice: %w", err)
+			return billing.Invoice{}, fmt.Errorf("updating invoice[%s]: %w", invoice.ID, err)
 		}
 
 		return s.executeTriggerOnInvoice(ctx, input, billing.TriggerRetry)
@@ -788,7 +788,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 					// This forces line ID generation for new or added lines
 					sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 					if err != nil {
-						return fmt.Errorf("updating invoice: %w", err)
+						return fmt.Errorf("updating invoice[%s]: %w", sm.Invoice.ID, err)
 					}
 				}
 
@@ -802,7 +802,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 
 					sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 					if err != nil {
-						return fmt.Errorf("updating invoice: %w", err)
+						return fmt.Errorf("updating invoice[%s]: %w", sm.Invoice.ID, err)
 					}
 
 					return nil
@@ -814,7 +814,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 
 				sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 				if err != nil {
-					return fmt.Errorf("updating invoice: %w", err)
+					return fmt.Errorf("updating invoice[%s]: %w", sm.Invoice.ID, err)
 				}
 
 				return nil
@@ -936,7 +936,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 
 			invoice, err = s.updateInvoice(ctx, invoice)
 			if err != nil {
-				return billing.Invoice{}, fmt.Errorf("updating invoice: %w", err)
+				return billing.Invoice{}, fmt.Errorf("updating invoice[%s]: %w", invoice.ID, err)
 			}
 
 			// Auto delete the invoice if it has no lines, this needs to happen here, as we are in a
@@ -1212,7 +1212,7 @@ func (s *Service) UpsertValidationIssues(ctx context.Context, input billing.Upse
 
 		_, err := s.updateInvoice(ctx, invoice)
 		if err != nil {
-			return fmt.Errorf("updating invoice: %w", err)
+			return fmt.Errorf("updating invoice[%s]: %w", invoice.ID, err)
 		}
 
 		return nil
@@ -1240,7 +1240,7 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 
 			invoice, err = s.updateInvoice(ctx, invoice)
 			if err != nil {
-				return fmt.Errorf("updating invoice: %w", err)
+				return fmt.Errorf("updating invoice[%s]: %w", invoice.ID, err)
 			}
 
 			if invoice.Lines.NonDeletedLineCount() == 0 {

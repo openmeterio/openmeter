@@ -212,7 +212,7 @@ func (u *InvoiceUpdater) updateMutableInvoice(ctx context.Context, invoice billi
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("updating invoice: %w", err)
+		return fmt.Errorf("updating invoice[%s]: %w", invoice.ID, err)
 	}
 
 	if updatedInvoice.Lines.NonDeletedLineCount() == 0 {
