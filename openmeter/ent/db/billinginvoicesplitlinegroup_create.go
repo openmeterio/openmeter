@@ -401,7 +401,11 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 		_node.Namespace = value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(billinginvoicesplitlinegroup.FieldMetadata, field.TypeJSON, value)
+		vv, err := billinginvoicesplitlinegroup.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(billinginvoicesplitlinegroup.FieldMetadata, field.TypeString, vv)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
@@ -88,6 +89,10 @@ var (
 	EventTypeValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all Meter fields.
+	ValueScanner struct {
+		Metadata field.TypeValueScanner[map[string]string]
+	}
 )
 
 // AggregationValidator is a validator for the "aggregation" field enum values. It is called by the builders before save.
@@ -111,6 +116,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByNamespace orders the results by the namespace field.
 func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
+}
+
+// ByMetadata orders the results by the metadata field.
+func ByMetadata(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMetadata, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

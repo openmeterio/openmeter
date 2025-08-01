@@ -480,41 +480,41 @@ type BillingSequenceNumbersGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (bsngb *BillingSequenceNumbersGroupBy) Aggregate(fns ...AggregateFunc) *BillingSequenceNumbersGroupBy {
-	bsngb.fns = append(bsngb.fns, fns...)
-	return bsngb
+func (_g *BillingSequenceNumbersGroupBy) Aggregate(fns ...AggregateFunc) *BillingSequenceNumbersGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bsngb *BillingSequenceNumbersGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bsngb.build.ctx, ent.OpQueryGroupBy)
-	if err := bsngb.build.prepareQuery(ctx); err != nil {
+func (_g *BillingSequenceNumbersGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingSequenceNumbersQuery, *BillingSequenceNumbersGroupBy](ctx, bsngb.build, bsngb, bsngb.build.inters, v)
+	return scanWithInterceptors[*BillingSequenceNumbersQuery, *BillingSequenceNumbersGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (bsngb *BillingSequenceNumbersGroupBy) sqlScan(ctx context.Context, root *BillingSequenceNumbersQuery, v any) error {
+func (_g *BillingSequenceNumbersGroupBy) sqlScan(ctx context.Context, root *BillingSequenceNumbersQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(bsngb.fns))
-	for _, fn := range bsngb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*bsngb.flds)+len(bsngb.fns))
-		for _, f := range *bsngb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*bsngb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bsngb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -528,27 +528,27 @@ type BillingSequenceNumbersSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (bsns *BillingSequenceNumbersSelect) Aggregate(fns ...AggregateFunc) *BillingSequenceNumbersSelect {
-	bsns.fns = append(bsns.fns, fns...)
-	return bsns
+func (_s *BillingSequenceNumbersSelect) Aggregate(fns ...AggregateFunc) *BillingSequenceNumbersSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bsns *BillingSequenceNumbersSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bsns.ctx, ent.OpQuerySelect)
-	if err := bsns.prepareQuery(ctx); err != nil {
+func (_s *BillingSequenceNumbersSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingSequenceNumbersQuery, *BillingSequenceNumbersSelect](ctx, bsns.BillingSequenceNumbersQuery, bsns, bsns.inters, v)
+	return scanWithInterceptors[*BillingSequenceNumbersQuery, *BillingSequenceNumbersSelect](ctx, _s.BillingSequenceNumbersQuery, _s, _s.inters, v)
 }
 
-func (bsns *BillingSequenceNumbersSelect) sqlScan(ctx context.Context, root *BillingSequenceNumbersQuery, v any) error {
+func (_s *BillingSequenceNumbersSelect) sqlScan(ctx context.Context, root *BillingSequenceNumbersQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(bsns.fns))
-	for _, fn := range bsns.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*bsns.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -556,7 +556,7 @@ func (bsns *BillingSequenceNumbersSelect) sqlScan(ctx context.Context, root *Bil
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bsns.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

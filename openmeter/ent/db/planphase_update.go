@@ -272,10 +272,14 @@ func (_u *PlanPhaseUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(planphase.FieldMetadata, field.TypeJSON, value)
+		vv, err := planphase.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(planphase.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(planphase.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(planphase.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planphase.FieldUpdatedAt, field.TypeTime, value)
@@ -672,10 +676,14 @@ func (_u *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, er
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(planphase.FieldMetadata, field.TypeJSON, value)
+		vv, err := planphase.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(planphase.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(planphase.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(planphase.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planphase.FieldUpdatedAt, field.TypeTime, value)

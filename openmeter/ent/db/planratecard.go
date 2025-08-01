@@ -3,7 +3,6 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -100,12 +99,12 @@ func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case planratecard.FieldMetadata:
-			values[i] = new([]byte)
 		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldBillingCadence, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case planratecard.FieldCreatedAt, planratecard.FieldUpdatedAt, planratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case planratecard.FieldMetadata:
+			values[i] = planratecard.ValueScanner.Metadata.ScanValue()
 		case planratecard.FieldEntitlementTemplate:
 			values[i] = planratecard.ValueScanner.EntitlementTemplate.ScanValue()
 		case planratecard.FieldTaxConfig:
@@ -142,12 +141,10 @@ func (_m *PlanRateCard) assignValues(columns []string, values []any) error {
 				_m.Namespace = value.String
 			}
 		case planratecard.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := planratecard.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case planratecard.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

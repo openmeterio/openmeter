@@ -184,16 +184,24 @@ func (_u *PlanAddonUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(planaddon.FieldMetadata, field.TypeJSON, value)
+		vv, err := planaddon.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(planaddon.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(planaddon.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(planaddon.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
-		_spec.SetField(planaddon.FieldAnnotations, field.TypeJSON, value)
+		vv, err := planaddon.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(planaddon.FieldAnnotations, field.TypeString, vv)
 	}
 	if _u.mutation.AnnotationsCleared() {
-		_spec.ClearField(planaddon.FieldAnnotations, field.TypeJSON)
+		_spec.ClearField(planaddon.FieldAnnotations, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planaddon.FieldUpdatedAt, field.TypeTime, value)
@@ -422,16 +430,24 @@ func (_u *PlanAddonUpdateOne) sqlSave(ctx context.Context) (_node *PlanAddon, er
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(planaddon.FieldMetadata, field.TypeJSON, value)
+		vv, err := planaddon.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(planaddon.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(planaddon.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(planaddon.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
-		_spec.SetField(planaddon.FieldAnnotations, field.TypeJSON, value)
+		vv, err := planaddon.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(planaddon.FieldAnnotations, field.TypeString, vv)
 	}
 	if _u.mutation.AnnotationsCleared() {
-		_spec.ClearField(planaddon.FieldAnnotations, field.TypeJSON)
+		_spec.ClearField(planaddon.FieldAnnotations, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planaddon.FieldUpdatedAt, field.TypeTime, value)

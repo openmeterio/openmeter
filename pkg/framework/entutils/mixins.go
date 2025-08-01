@@ -145,7 +145,9 @@ type MetadataMixin struct {
 // Fields of the IDMixin.
 func (MetadataMixin) Fields() []ent.Field {
 	return []ent.Field{
-		field.JSON("metadata", map[string]string{}).
+		field.String("metadata").
+			GoType(map[string]string{}).
+			ValueScanner(JSONStringToMapValueScanner[string, string]()).
 			Optional().
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
@@ -161,7 +163,9 @@ type AnnotationsMixin struct {
 // Fields of the IDMixin.
 func (AnnotationsMixin) Fields() []ent.Field {
 	return []ent.Field{
-		field.JSON("annotations", models.Annotations{}).
+		field.String("annotations").
+			GoType(models.Annotations{}).
+			ValueScanner(JSONStringToMapValueScanner[string, interface{}]()).
 			Optional().
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",

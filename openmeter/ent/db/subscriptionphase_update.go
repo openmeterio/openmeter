@@ -314,10 +314,14 @@ func (_u *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (_node int, err 
 		_spec.ClearField(subscriptionphase.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(subscriptionphase.FieldMetadata, field.TypeJSON, value)
+		vv, err := subscriptionphase.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(subscriptionphase.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(subscriptionphase.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(subscriptionphase.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(subscriptionphase.FieldName, field.TypeString, value)
@@ -805,10 +809,14 @@ func (_u *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Subsc
 		_spec.ClearField(subscriptionphase.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(subscriptionphase.FieldMetadata, field.TypeJSON, value)
+		vv, err := subscriptionphase.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(subscriptionphase.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(subscriptionphase.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(subscriptionphase.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(subscriptionphase.FieldName, field.TypeString, value)

@@ -443,7 +443,11 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec,
 		_node.DeletedAt = &value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(subscription.FieldMetadata, field.TypeJSON, value)
+		vv, err := subscription.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(subscription.FieldMetadata, field.TypeString, vv)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.ActiveFrom(); ok {

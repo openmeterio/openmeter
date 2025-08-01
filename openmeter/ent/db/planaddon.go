@@ -3,7 +3,6 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -84,14 +83,16 @@ func (*PlanAddon) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case planaddon.FieldMetadata, planaddon.FieldAnnotations:
-			values[i] = new([]byte)
 		case planaddon.FieldMaxQuantity:
 			values[i] = new(sql.NullInt64)
 		case planaddon.FieldID, planaddon.FieldNamespace, planaddon.FieldPlanID, planaddon.FieldAddonID, planaddon.FieldFromPlanPhase:
 			values[i] = new(sql.NullString)
 		case planaddon.FieldCreatedAt, planaddon.FieldUpdatedAt, planaddon.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case planaddon.FieldMetadata:
+			values[i] = planaddon.ValueScanner.Metadata.ScanValue()
+		case planaddon.FieldAnnotations:
+			values[i] = planaddon.ValueScanner.Annotations.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -120,20 +121,16 @@ func (_m *PlanAddon) assignValues(columns []string, values []any) error {
 				_m.Namespace = value.String
 			}
 		case planaddon.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := planaddon.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case planaddon.FieldAnnotations:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field annotations", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
-					return fmt.Errorf("unmarshal field annotations: %w", err)
-				}
+			if value, err := planaddon.ValueScanner.Annotations.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Annotations = value
 			}
 		case planaddon.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

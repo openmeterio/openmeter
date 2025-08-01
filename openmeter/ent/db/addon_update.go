@@ -368,10 +368,14 @@ func (_u *AddonUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(addon.FieldMetadata, field.TypeJSON, value)
+		vv, err := addon.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(addon.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(addon.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(addon.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(addon.FieldUpdatedAt, field.TypeTime, value)
@@ -943,10 +947,14 @@ func (_u *AddonUpdateOne) sqlSave(ctx context.Context) (_node *Addon, err error)
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(addon.FieldMetadata, field.TypeJSON, value)
+		vv, err := addon.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(addon.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(addon.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(addon.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(addon.FieldUpdatedAt, field.TypeTime, value)

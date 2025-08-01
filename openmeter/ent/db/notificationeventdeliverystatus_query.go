@@ -592,41 +592,41 @@ type NotificationEventDeliveryStatusGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (nedsgb *NotificationEventDeliveryStatusGroupBy) Aggregate(fns ...AggregateFunc) *NotificationEventDeliveryStatusGroupBy {
-	nedsgb.fns = append(nedsgb.fns, fns...)
-	return nedsgb
+func (_g *NotificationEventDeliveryStatusGroupBy) Aggregate(fns ...AggregateFunc) *NotificationEventDeliveryStatusGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (nedsgb *NotificationEventDeliveryStatusGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, nedsgb.build.ctx, ent.OpQueryGroupBy)
-	if err := nedsgb.build.prepareQuery(ctx); err != nil {
+func (_g *NotificationEventDeliveryStatusGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*NotificationEventDeliveryStatusQuery, *NotificationEventDeliveryStatusGroupBy](ctx, nedsgb.build, nedsgb, nedsgb.build.inters, v)
+	return scanWithInterceptors[*NotificationEventDeliveryStatusQuery, *NotificationEventDeliveryStatusGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (nedsgb *NotificationEventDeliveryStatusGroupBy) sqlScan(ctx context.Context, root *NotificationEventDeliveryStatusQuery, v any) error {
+func (_g *NotificationEventDeliveryStatusGroupBy) sqlScan(ctx context.Context, root *NotificationEventDeliveryStatusQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(nedsgb.fns))
-	for _, fn := range nedsgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*nedsgb.flds)+len(nedsgb.fns))
-		for _, f := range *nedsgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*nedsgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := nedsgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -640,27 +640,27 @@ type NotificationEventDeliveryStatusSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (nedss *NotificationEventDeliveryStatusSelect) Aggregate(fns ...AggregateFunc) *NotificationEventDeliveryStatusSelect {
-	nedss.fns = append(nedss.fns, fns...)
-	return nedss
+func (_s *NotificationEventDeliveryStatusSelect) Aggregate(fns ...AggregateFunc) *NotificationEventDeliveryStatusSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (nedss *NotificationEventDeliveryStatusSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, nedss.ctx, ent.OpQuerySelect)
-	if err := nedss.prepareQuery(ctx); err != nil {
+func (_s *NotificationEventDeliveryStatusSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*NotificationEventDeliveryStatusQuery, *NotificationEventDeliveryStatusSelect](ctx, nedss.NotificationEventDeliveryStatusQuery, nedss, nedss.inters, v)
+	return scanWithInterceptors[*NotificationEventDeliveryStatusQuery, *NotificationEventDeliveryStatusSelect](ctx, _s.NotificationEventDeliveryStatusQuery, _s, _s.inters, v)
 }
 
-func (nedss *NotificationEventDeliveryStatusSelect) sqlScan(ctx context.Context, root *NotificationEventDeliveryStatusQuery, v any) error {
+func (_s *NotificationEventDeliveryStatusSelect) sqlScan(ctx context.Context, root *NotificationEventDeliveryStatusQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(nedss.fns))
-	for _, fn := range nedss.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*nedss.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -668,7 +668,7 @@ func (nedss *NotificationEventDeliveryStatusSelect) sqlScan(ctx context.Context,
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := nedss.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
