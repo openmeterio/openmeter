@@ -22,7 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var MonthPeriod = datetime.FromDuration(30 * 24 * time.Hour)
+var MonthPeriod = datetime.ISODurationFromDuration(30 * 24 * time.Hour)
 
 func TestPostgresAdapter(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())

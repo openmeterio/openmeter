@@ -19,7 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var MonthPeriod = datetime.NewPeriod(0, 1, 0, 0, 0, 0, 0)
+var MonthPeriod = datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0)
 
 var planPhases = []productcatalog.Phase{
 	{

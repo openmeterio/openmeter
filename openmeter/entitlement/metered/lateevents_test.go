@@ -167,7 +167,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 				Tracer:                 tracer,
 				Granularity:            time.Minute,
 				Publisher:              mockPublisher,
-				SnapshotGracePeriod:    datetime.MustParse(t, "P1W"),
+				SnapshotGracePeriod:    datetime.MustParseDuration(t, "P1W"),
 				TransactionManager:     transactionManager,
 			},
 		)

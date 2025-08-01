@@ -202,7 +202,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 // setItemRelativeCadence sets the cadence of an item to match target
 func (d *diffable) setItemRelativeCadence(item *subscription.SubscriptionItemSpec, phaseCadence models.CadencedModel, target timeutil.OpenPeriod) {
 	if target.From != nil {
-		diff := datetime.Between(phaseCadence.ActiveFrom, *target.From)
+		diff := datetime.ISODurationBetween(phaseCadence.ActiveFrom, *target.From)
 
 		if !diff.IsZero() {
 			item.ActiveFromOverrideRelativeToPhaseStart = &diff
@@ -210,7 +210,7 @@ func (d *diffable) setItemRelativeCadence(item *subscription.SubscriptionItemSpe
 	}
 
 	if target.To != nil {
-		diff := datetime.Between(phaseCadence.ActiveFrom, *target.To)
+		diff := datetime.ISODurationBetween(phaseCadence.ActiveFrom, *target.To)
 
 		if phaseCadence.ActiveTo == nil || !target.To.Equal(*phaseCadence.ActiveTo) {
 			item.ActiveToOverrideRelativeToPhaseStart = &diff

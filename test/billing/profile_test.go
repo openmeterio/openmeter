@@ -260,12 +260,12 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
 				Alignment: billing.AlignmentKindSubscription,
-				Interval:  datetime.MustParse(t, "PT30M"),
+				Interval:  datetime.MustParseDuration(t, "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
-				DraftPeriod: datetime.MustParse(t, "PT1H"),
-				DueAfter:    datetime.MustParse(t, "PT24H"),
+				DraftPeriod: datetime.MustParseDuration(t, "PT1H"),
+				DueAfter:    datetime.MustParseDuration(t, "PT24H"),
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodSendInvoice,
@@ -357,12 +357,12 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
 				Alignment: billing.AlignmentKindSubscription,
-				Interval:  datetime.MustParse(s.T(), "PT30M"),
+				Interval:  datetime.MustParseDuration(s.T(), "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
-				DraftPeriod: datetime.MustParse(s.T(), "PT1H"),
-				DueAfter:    datetime.MustParse(s.T(), "PT24H"),
+				DraftPeriod: datetime.MustParseDuration(s.T(), "PT1H"),
+				DueAfter:    datetime.MustParseDuration(s.T(), "PT24H"),
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodSendInvoice,
@@ -412,12 +412,12 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 			WorkflowConfig: billing.WorkflowConfig{
 				Collection: billing.CollectionConfig{
 					Alignment: billing.AlignmentKindSubscription,
-					Interval:  datetime.MustParse(s.T(), "PT30M"),
+					Interval:  datetime.MustParseDuration(s.T(), "PT30M"),
 				},
 				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
-					DraftPeriod: datetime.MustParse(s.T(), "PT2H"),
-					DueAfter:    datetime.MustParse(s.T(), "PT48H"),
+					DraftPeriod: datetime.MustParseDuration(s.T(), "PT2H"),
+					DueAfter:    datetime.MustParseDuration(s.T(), "PT48H"),
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,

@@ -78,7 +78,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 		{
 			name:                  "aligned empty",
 			items:                 []subscriptionItemViewMock{},
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1M"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 			end:                   s.mustParseTime("2021-01-01T00:00:00Z"),
 			expected:              []expectedIterations{},
 		},
@@ -91,7 +91,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			expected: []expectedIterations{
 				{
 					ServicePeriod: billing.Period{
@@ -138,7 +138,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			expected: []expectedIterations{
 				{
 					ServicePeriod: billing.Period{
@@ -181,7 +181,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			expected: []expectedIterations{
 				{
 					ServicePeriod: billing.Period{
@@ -229,7 +229,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 			end:                   s.mustParseTime("2021-01-04T00:00:00Z"),
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			expected: []expectedIterations{
 				// 1d cadence
 				{
@@ -302,15 +302,15 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					Key:      "item-key",
 					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1D")),
+					EndAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1D")),
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1D")),
+					StartAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1D")),
 				},
 			},
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
@@ -351,15 +351,15 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					Key:      "item-key",
 					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H")),
+					EndAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H")),
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H")),
+					StartAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H")),
 				},
 			},
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
@@ -415,31 +415,31 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					Key:      "item-key",
 					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H2S")),
+					EndAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H2S")),
 					Type:     productcatalog.UnitPriceType,
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H2S")), // empty period
-					EndAfter:   lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H2S")),
+					StartAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H2S")), // empty period
+					EndAfter:   lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H2S")),
 					Type:       productcatalog.UnitPriceType,
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H2S")),
-					EndAfter:   lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H4S")),
+					StartAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H2S")),
+					EndAfter:   lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H4S")),
 					Type:       productcatalog.UnitPriceType,
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H4S")),
+					StartAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H4S")),
 					Type:       productcatalog.UnitPriceType,
 				},
 			},
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
@@ -516,7 +516,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Type:    productcatalog.FlatPriceType,
 				},
 			},
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			expected: []expectedIterations{
 				{
@@ -575,7 +575,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Type: productcatalog.FlatPriceType,
 				},
 			},
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1M"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			// If PhaseEnd is defined, and before the otherwise end of the billing cadence, that should be the end of the periods for the one-time item
 			phaseEnd: lo.ToPtr(s.mustParseTime("2021-01-05T00:00:00Z")),
@@ -605,13 +605,13 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Key:      "item-key",
 					Type:     productcatalog.FlatPriceType,
 					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H")),
+					EndAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H")),
 				},
 				{
 					Key:        "item-key",
 					Type:       productcatalog.FlatPriceType,
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H")),
+					StartAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H")),
 				},
 				// In Arrears
 				{
@@ -621,7 +621,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			expected: []expectedIterations{
 				// In Advance
 				{
@@ -727,7 +727,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1M"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 			expected: []expectedIterations{
 				{
 					// If there is no phase end, the service period will be an instant
@@ -758,7 +758,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			},
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
 			phaseEnd:              lo.ToPtr(s.mustParseTime("2021-02-05T00:00:00Z")),
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1M"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 			expected: []expectedIterations{
 				{
 					// If there is a foreseeable phase end, the service period will account for the entire phase
@@ -794,7 +794,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 			end:                   s.mustParseTime("2021-01-04T00:00:00Z"),
-			alignedBillingCadence: datetime.MustParse(s.T(), "P3D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P3D"),
 			expected: []expectedIterations{
 				// In Advance
 				{
@@ -944,18 +944,18 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Key:        "item-key",
 					Type:       productcatalog.FlatPriceType,
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P30D")),
+					StartAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P30D")),
 				},
 			},
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1D"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
 			expected:              []expectedIterations{},
 		},
 		{
 			name:                  "aligned subscription item crosses subs cancellation date (also phase end date)",
 			subscriptionEnd:       lo.ToPtr(s.mustParseTime("2021-01-03T00:00:00Z")),
 			end:                   s.mustParseTime("2021-01-03T00:00:00Z"),
-			alignedBillingCadence: datetime.MustParse(s.T(), "P1M"),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 			items: []subscriptionItemViewMock{
 				{
 					Key:     "item-key",
@@ -994,18 +994,18 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Key:      "item-key",
 					Type:     productcatalog.FlatPriceType,
 					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H")),
+					EndAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H")),
 				},
 				{
 					Key:        "item-key",
 					Type:       productcatalog.FlatPriceType,
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datetime.MustParse(s.T(), "P1DT20H")),
+					StartAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1DT20H")),
 				},
 			},
 			end:                                      s.mustParseTime("2021-01-03T00:00:00Z"),
-			alignedBillingCadence:                    datetime.MustParse(s.T(), "P1D"),
-			billingAnchorRelativeToSubscriptionStart: datetime.MustParse(s.T(), "-PT1H"),
+			alignedBillingCadence:                    datetime.MustParseDuration(s.T(), "P1D"),
+			billingAnchorRelativeToSubscriptionStart: datetime.MustParseDuration(s.T(), "-PT1H"),
 			// We expect the full service periods to be shifted
 			expected: []expectedIterations{
 				{
@@ -1112,7 +1112,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				var bc *datetime.ISODuration
 
 				if item.Cadence != "" {
-					bc = lo.ToPtr(datetime.MustParse(s.T(), item.Cadence))
+					bc = lo.ToPtr(datetime.MustParseDuration(s.T(), item.Cadence))
 				}
 
 				switch item.Type {

@@ -54,7 +54,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 				Name:           "Test Plan",
 				Key:            "test_plan",
 				Currency:       "USD",
-				BillingCadence: datetime.MustParse(t, "P1M"), // Let's do monthly billing
+				BillingCadence: datetime.MustParseDuration(t, "P1M"), // Let's do monthly billing
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -84,11 +84,11 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 									},
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-									UsagePeriod:     testutils.GetISODuration(t, "P1M"), // compatible with the billing cadence
+									UsagePeriod:     datetime.MustParseDuration(t, "P1M"), // compatible with the billing cadence
 									IssueAfterReset: lo.ToPtr(10.0),
 								}),
 							},
-							BillingCadence: testutils.GetISODuration(t, "P1M"),
+							BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						},
 						// Let's have an in-advance monthly ratecard
 						&productcatalog.FlatFeeRateCard{
@@ -107,7 +107,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 									},
 								},
 							},
-							BillingCadence: lo.ToPtr(testutils.GetISODuration(t, "P1M")),
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 						},
 						// Let's have an in arrears daily ratecard
 						&productcatalog.UsageBasedRateCard{
@@ -125,11 +125,11 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 									},
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-									UsagePeriod:     testutils.GetISODuration(t, "P1D"), // compatible with the billing cadence
+									UsagePeriod:     datetime.MustParseDuration(t, "P1D"), // compatible with the billing cadence
 									IssueAfterReset: lo.ToPtr(10.0),
 								}),
 							},
-							BillingCadence: testutils.GetISODuration(t, "P1D"),
+							BillingCadence: datetime.MustParseDuration(t, "P1D"),
 						},
 					},
 				},
@@ -197,13 +197,13 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 	t.Run("entitlements", func(t *testing.T) {
 		// Let's check the UsagePeriods are aligned
 		ent1 := view.Phases[0].ItemsByKey[feats[0].Key][0].Entitlement
-		require.Equal(t, testutils.GetISODuration(t, "P1M"), ent1.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.ISODuration)
+		require.Equal(t, datetime.MustParseDuration(t, "P1M"), ent1.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.ISODuration)
 
 		require.Equal(t, firstOfMonth, ent1.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Anchor)
 		require.Equal(t, startOfSub, ent1.Entitlement.MeasureUsageFrom.UTC())
 
 		ent2 := view.Phases[0].ItemsByKey[feats[2].Key][0].Entitlement
-		require.Equal(t, testutils.GetISODuration(t, "P1D"), ent2.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.ISODuration)
+		require.Equal(t, datetime.MustParseDuration(t, "P1D"), ent2.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.ISODuration)
 
 		require.Equal(t, firstOfMonth, ent2.Entitlement.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Anchor)
 		require.Equal(t, startOfSub, ent2.Entitlement.MeasureUsageFrom.UTC())
