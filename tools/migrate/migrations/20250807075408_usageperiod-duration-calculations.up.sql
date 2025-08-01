@@ -466,7 +466,10 @@ SELECT om_func_update_usage_period_durations_batch(2000, NOW());
 
 UPDATE billing_invoice_lines
 SET
-    annotations = COALESCE(annotations, '{}'::jsonb) || jsonb_build_object('billing.subscription.sync.ignore', true)
+    annotations = CASE
+        WHEN annotations IS NULL OR annotations = 'null'::jsonb THEN '{}'::jsonb
+        ELSE annotations
+    END || jsonb_build_object('billing.subscription.sync.ignore', true)
 WHERE
     -- Line type usage based
     "type" = 'usage_based'
