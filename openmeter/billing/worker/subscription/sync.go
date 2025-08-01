@@ -394,14 +394,13 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 			continue
 		}
 
-		// Should not happen as this line is never the first line
-		// TODO: harmonize truncation logic here!
-		if !line.ServicePeriod.Start.Equal(line.BillingPeriod.Start) || !line.FullServicePeriod.Start.Equal(line.BillingPeriod.Start) {
-			return nil, fmt.Errorf("line[%s] service period start does not match billing period start or full service period start", line.UniqueID)
+		if !line.ServicePeriod.Start.Equal(line.FullServicePeriod.Start) {
+			// These should match otherwise any pro-rating logic will be invalid (we are never truncating the start of the service period so this should never happen)
+			return nil, fmt.Errorf("line[%s] service period and full service period start does not match", line.UniqueID)
 		}
 
+		// We are not overriding the billing period start as that is only used to determine the invoiceAt for inAdvance items
 		inScopeLines[idx].ServicePeriod.Start = previousServicePeriod.End
-		inScopeLines[idx].BillingPeriod.Start = previousServicePeriod.End
 		inScopeLines[idx].FullServicePeriod.Start = previousServicePeriod.End
 	}
 
