@@ -290,8 +290,8 @@ func TestQueryMeter(t *testing.T) {
 				},
 				GroupBy: []string{"customer_id"},
 			},
-			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, CASE WHEN om_events.subject = 'subject1' THEN 'customer1' WHEN om_events.subject = 'subject2' THEN 'customer2' ELSE '' END AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ?) GROUP BY customer_id",
-			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "subject2"},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, CASE WHEN om_events.subject = 'customer1' THEN 'customer1' WHEN om_events.subject = 'subject1' THEN 'customer1' WHEN om_events.subject = 'customer2' THEN 'customer2' WHEN om_events.subject = 'subject2' THEN 'customer2' ELSE '' END AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ? OR om_events.subject = ? OR om_events.subject = ?) GROUP BY customer_id",
+			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "customer1", "subject2", "customer2"},
 		},
 		{ // Filter by both customer and subject
 			query: queryMeter{
@@ -320,8 +320,8 @@ func TestQueryMeter(t *testing.T) {
 				FilterSubject: []string{"subject1"},
 				GroupBy:       []string{"customer_id"},
 			},
-			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, CASE WHEN om_events.subject = 'subject1' THEN 'customer1' WHEN om_events.subject = 'subject2' THEN 'customer1' ELSE '' END AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ?) AND (om_events.subject = ?) GROUP BY customer_id",
-			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "subject2", "subject1"},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, CASE WHEN om_events.subject = 'customer1' THEN 'customer1' WHEN om_events.subject = 'subject1' THEN 'customer1' WHEN om_events.subject = 'subject2' THEN 'customer1' ELSE '' END AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ? OR om_events.subject = ?) AND (om_events.subject = ?) GROUP BY customer_id",
+			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "subject2", "customer1", "subject1"},
 		},
 		{ // Aggregate data with filtering for a single group and single value
 			query: queryMeter{
