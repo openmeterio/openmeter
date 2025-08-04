@@ -173,6 +173,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Create the invoice in Stripe
 	createInvoiceParams := stripeclient.CreateInvoiceInput{
+		AppID:                        a.GetID(),
+		CustomerID:                   customerID,
 		InvoiceID:                    invoice.ID,
 		AutomaticTaxEnabled:          invoice.Workflow.Config.Tax.Enabled,
 		CollectionMethod:             invoice.Workflow.Config.Payment.CollectionMethod,

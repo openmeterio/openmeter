@@ -484,6 +484,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// Mock the stripe client to return the created invoice.
 		s.StripeAppClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
+				AppID:               app.GetID(),
+				CustomerID:          customerEntity.GetID(),
 				InvoiceID:           invoice.ID,
 				AutomaticTaxEnabled: true,
 				CollectionMethod:    billing.CollectionMethodChargeAutomatically,
@@ -1145,6 +1147,8 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	// Assert the args of the create invoice call
 	// We have to do it after the call because the invoice ID is not known at the time of setting up the mock
 	stripeAppCreateInvoiceMock.Arguments.Assert(s.T(), stripeclient.CreateInvoiceInput{
+		AppID:               app.GetID(),
+		CustomerID:          customerEntity.GetID(),
 		InvoiceID:           invoice.ID,
 		AutomaticTaxEnabled: true,
 		CollectionMethod:    billing.CollectionMethodChargeAutomatically,

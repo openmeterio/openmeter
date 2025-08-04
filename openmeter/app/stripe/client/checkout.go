@@ -28,9 +28,9 @@ func (c *stripeAppClient) CreateCheckoutSession(ctx context.Context, input Creat
 		metadata = map[string]string{}
 	}
 
-	metadata[SetupIntentDataMetadataNamespace] = input.AppID.Namespace
-	metadata[SetupIntentDataMetadataAppID] = input.AppID.ID
-	metadata[SetupIntentDataMetadataCustomerID] = input.CustomerID.ID
+	metadata[StripeMetadataNamespace] = input.AppID.Namespace
+	metadata[StripeMetadataAppID] = input.AppID.ID
+	metadata[StripeMetadataCustomerID] = input.CustomerID.ID
 
 	// Create checkout session
 	params := &stripe.CheckoutSessionParams{

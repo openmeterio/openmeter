@@ -8,8 +8,11 @@ import (
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
 
+	app "github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // CreateInvoice creates a new invoice for a customer in Stripe.
@@ -30,6 +33,12 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		// Tax settings
 		AutomaticTax: &stripe.InvoiceAutomaticTaxParams{
 			Enabled: lo.ToPtr(input.AutomaticTaxEnabled),
+		},
+		Metadata: map[string]string{
+			StripeMetadataNamespace:  input.AppID.Namespace,
+			StripeMetadataAppID:      input.AppID.ID,
+			StripeMetadataCustomerID: input.CustomerID.ID,
+			StripeMetadataInvoiceID:  input.InvoiceID,
 		},
 	}
 
@@ -101,6 +110,8 @@ func (c *stripeAppClient) GetInvoice(ctx context.Context, input GetInvoiceInput)
 
 // CreateInvoiceInput is the input for creating a new invoice in Stripe.
 type CreateInvoiceInput struct {
+	AppID                        app.AppID
+	CustomerID                   customer.CustomerID
 	InvoiceID                    string
 	AutomaticTaxEnabled          bool
 	CollectionMethod             billing.CollectionMethod
@@ -112,32 +123,46 @@ type CreateInvoiceInput struct {
 }
 
 func (i CreateInvoiceInput) Validate() error {
+	var errs []error
+
+	if err := i.AppID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid app id: %w", err))
+	}
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid customer id: %w", err))
+	}
+
 	if i.InvoiceID == "" {
-		return errors.New("invoice id is required")
+		errs = append(errs, errors.New("invoice id is required"))
 	}
 
 	if i.CollectionMethod == "" {
-		return errors.New("collection method is required")
+		errs = append(errs, errors.New("collection method is required"))
 	}
 
 	if i.Currency == "" {
-		return errors.New("currency is required")
+		errs = append(errs, errors.New("currency is required"))
 	}
 
 	if i.CollectionMethod == billing.CollectionMethodChargeAutomatically && i.DaysUntilDue != nil {
-		return errors.New("days until due cannot be set when charging automatically")
+		errs = append(errs, errors.New("days until due cannot be set when charging automatically"))
 	}
 
 	if i.CollectionMethod == billing.CollectionMethodSendInvoice && i.DaysUntilDue == nil {
-		return errors.New("days until due is required when sending an invoice")
+		errs = append(errs, errors.New("days until due is required when sending an invoice"))
 	}
 
 	if i.StripeCustomerID == "" {
-		return errors.New("stripe customer id is required")
+		errs = append(errs, errors.New("stripe customer id is required"))
 	}
 
 	if i.StatementDescriptor != nil && *i.StatementDescriptor == "" {
-		return errors.New("statement descriptor cannot be empty")
+		errs = append(errs, errors.New("statement descriptor cannot be empty"))
+	}
+
+	if len(errs) > 0 {
+		return models.NewGenericValidationError(errors.Join(errs...))
 	}
 
 	return nil
