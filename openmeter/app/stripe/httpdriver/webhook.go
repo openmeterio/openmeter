@@ -91,7 +91,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				}
 
 				// Validate the payment intent metadata
-				metadataAppId, hasMetadataAppId := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataAppID]
+				metadataAppId, hasMetadataAppId := paymentIntent.Metadata[stripeclient.StripeMetadataAppID]
 
 				// If the event has not app metadata it's not initiated by an OpenMeter app and we ignore it.
 				// This can be the case when someone manually creates a payment intent.
@@ -118,7 +118,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 
 				// Validate the namespace
 				// At this point we know that the event is for this specific app so require the namespace.
-				metadataNamespace, hasMetadataNamespace := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataNamespace]
+				metadataNamespace, hasMetadataNamespace := paymentIntent.Metadata[stripeclient.StripeMetadataNamespace]
 				if !hasMetadataNamespace {
 					return AppStripeWebhookResponse{}, models.NewGenericValidationError(
 						fmt.Errorf("namespace metadata is required for app: %s in event: %s", request.AppID.ID, request.Event.ID),

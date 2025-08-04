@@ -111,8 +111,8 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 		URL:         lo.ToPtr(webhookURL),
 		Description: lo.ToPtr("OpenMeter Stripe Webhook, do not delete or modify manually"),
 		Metadata: map[string]string{
-			SetupIntentDataMetadataNamespace: input.AppID.Namespace,
-			SetupIntentDataMetadataAppID:     input.AppID.ID,
+			StripeMetadataNamespace: input.AppID.Namespace,
+			StripeMetadataAppID:     input.AppID.ID,
 		},
 		// We set the API version to a specific date to ensure that
 		// the webhook is compatible with the Stripe client's API version.

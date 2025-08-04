@@ -66,8 +66,8 @@ func (c *stripeAppClient) CreateCustomer(ctx context.Context, input CreateStripe
 		Name:  input.Name,
 		Email: input.Email,
 		Metadata: map[string]string{
-			SetupIntentDataMetadataNamespace:  input.AppID.Namespace,
-			SetupIntentDataMetadataCustomerID: input.CustomerID.ID,
+			StripeMetadataNamespace:  input.AppID.Namespace,
+			StripeMetadataCustomerID: input.CustomerID.ID,
 		},
 	})
 	if err != nil {
