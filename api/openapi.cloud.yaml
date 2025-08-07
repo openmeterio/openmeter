@@ -3609,6 +3609,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
+      x-internal: true
     get:
       operationId: listCustomerEntitlements
       summary: List customer entitlements
@@ -3681,6 +3682,7 @@ paths:
       tags:
         - Entitlements
         - Customers
+      x-internal: true
   /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}:
     get:
       operationId: getCustomerEntitlement
@@ -3758,6 +3760,7 @@ paths:
       tags:
         - Entitlements
         - Customers
+      x-internal: true
     delete:
       operationId: deleteCustomerEntitlement
       summary: Delete customer entitlement
@@ -3832,6 +3835,7 @@ paths:
       tags:
         - Entitlements
         - Customers
+      x-internal: true
   /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/grants:
     get:
       operationId: listCustomerEntitlementGrants
@@ -3921,6 +3925,7 @@ paths:
       tags:
         - Entitlements
         - Customers
+      x-internal: true
     post:
       operationId: createCustomerEntitlementGrant
       summary: Create customer entitlement grant
@@ -4014,6 +4019,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementGrantCreateInput'
+      x-internal: true
   /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/history:
     get:
       operationId: getCustomerEntitlementHistory
@@ -4133,6 +4139,7 @@ paths:
       tags:
         - Entitlements
         - Customers
+      x-internal: true
   /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/override:
     put:
       operationId: overrideCustomerEntitlement
@@ -4225,6 +4232,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
+      x-internal: true
   /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/reset:
     post:
       operationId: resetCustomerEntitlementUsage
@@ -4307,6 +4315,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResetEntitlementUsageInput'
+      x-internal: true
   /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/value:
     get:
       operationId: getCustomerEntitlementValue

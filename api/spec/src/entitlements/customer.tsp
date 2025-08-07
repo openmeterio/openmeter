@@ -41,6 +41,7 @@ interface CustomerEntitlements {
   @post
   @summary("Create a customer entitlement")
   @operationId("createCustomerEntitlement")
+  @extension("x-internal", true)
   post(
     @path customerIdOrKey: ULIDOrExternalKey,
     @body entitlement: EntitlementCreateInputs,
@@ -55,6 +56,7 @@ interface CustomerEntitlements {
   @get
   @operationId("listCustomerEntitlements")
   @summary("List customer entitlements")
+  @extension("x-internal", true)
   list(
     @path customerIdOrKey: ULIDOrExternalKey,
     @query includeDeleted?: boolean = false,
@@ -67,6 +69,7 @@ interface CustomerEntitlements {
   @operationId("getCustomerEntitlement")
   @summary("Get customer entitlement")
   @route("/{featureKey}")
+  @extension("x-internal", true)
   get(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path featureKey: Key,
@@ -80,6 +83,7 @@ interface CustomerEntitlements {
   @operationId("deleteCustomerEntitlement")
   @summary("Delete customer entitlement")
   @route("/{featureKey}")
+  @extension("x-internal", true)
   delete(@path customerIdOrKey: ULIDOrExternalKey, @path featureKey: Key): {
     @statusCode _: 204;
   } | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
@@ -93,6 +97,7 @@ interface CustomerEntitlements {
   @operationId("overrideCustomerEntitlement")
   @route("/{featureKey}/override")
   @summary("Override customer entitlement")
+  @extension("x-internal", true)
   override(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path featureKey: Key,
@@ -118,6 +123,7 @@ interface CustomerEntitlement {
   @operationId("listCustomerEntitlementGrants")
   @route("/grants")
   @summary("List customer entitlement grants")
+  @extension("x-internal", true)
   getGrants(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path featureKey: Key,
@@ -142,6 +148,7 @@ interface CustomerEntitlement {
   @operationId("createCustomerEntitlementGrant")
   @route("/grants")
   @summary("Create customer entitlement grant")
+  @extension("x-internal", true)
   createCustomerEntitlementGrant(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path featureKey: Key,
@@ -175,6 +182,7 @@ interface CustomerEntitlement {
   @operationId("getCustomerEntitlementHistory")
   @route("/history")
   @summary("Get customer entitlement history")
+  @extension("x-internal", true)
   getCustomerEntitlementHistory(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path featureKey: Key,
@@ -210,6 +218,7 @@ interface CustomerEntitlement {
   @operationId("resetCustomerEntitlementUsage")
   @route("/reset")
   @summary("Reset customer entitlement")
+  @extension("x-internal", true)
   resetCustomerEntitlement(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path featureKey: Key,
