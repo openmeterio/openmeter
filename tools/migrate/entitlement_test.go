@@ -1069,7 +1069,7 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 		runner{
 			stops: stops{
 				{
-					version:   20250723122351,
+					version:   20250807075408,
 					direction: directionUp,
 					action: func(t *testing.T, db *sql.DB) {
 						// Let's fuzz it a bit
@@ -1092,7 +1092,7 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 		runner{
 			stops: stops{
 				{
-					version:   20250723122351,
+					version:   20250807075408,
 					direction: directionUp,
 					action: func(t *testing.T, db *sql.DB) {
 						// Should add dates exactly as go's add_date
@@ -1174,7 +1174,7 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 		runner{
 			stops: stops{
 				{
-					version:   20250723122351,
+					version:   20250807075408,
 					direction: directionUp,
 					action: func(t *testing.T, db *sql.DB) {
 						// Test if before cutoff
@@ -1301,8 +1301,8 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 		runner{
 			stops: stops{
 				{
-					// before version:   20250723122351,
-					version:   20250703081943,
+					// before version:   20250807075408,
+					version:   20250731160524,
 					direction: directionUp,
 					// Let's do setup
 					action: func(t *testing.T, db *sql.DB) {
@@ -1551,7 +1551,7 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 					},
 				},
 				{
-					version:   20250723122351,
+					version:   20250807075408,
 					direction: directionUp,
 					// Let's do assertions
 					action: func(t *testing.T, db *sql.DB) {
@@ -1839,8 +1839,8 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 			stops: stops{
 				// Let's start with setup
 				{
-					// before version:   20250723122351,
-					version:   20250703081943,
+					// before version:   20250807075408,
+					version:   20250731160524,
 					direction: directionUp,
 					// Let's do setup
 					action: func(t *testing.T, db *sql.DB) {
@@ -1905,7 +1905,7 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 				},
 				// And now do assertions
 				// {
-				// 	version:   20250723122351,
+				// 	version:   20250807075408,
 				// 	direction: directionUp,
 				// 	// Let's do assertions
 				// 	action: func(t *testing.T, db *sql.DB) {
