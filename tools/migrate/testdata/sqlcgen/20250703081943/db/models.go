@@ -729,6 +729,7 @@ type SubscriptionPhase struct {
 type UsageReset struct {
 	ID                  string
 	Namespace           string
+	Annotations			pqtype.NullRawMessage
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	DeletedAt           sql.NullTime

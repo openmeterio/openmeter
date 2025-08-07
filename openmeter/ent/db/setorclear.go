@@ -3065,6 +3065,20 @@ func (u *SubscriptionPhaseUpdateOne) SetOrClearSortHint(value *uint8) *Subscript
 	return u.SetSortHint(*value)
 }
 
+func (u *UsageResetUpdate) SetOrClearAnnotations(value *map[string]interface{}) *UsageResetUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *UsageResetUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *UsageResetUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *UsageResetUpdate) SetOrClearDeletedAt(value *time.Time) *UsageResetUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

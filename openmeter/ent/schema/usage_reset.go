@@ -19,6 +19,7 @@ func (UsageReset) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
+		entutils.AnnotationsMixin{},
 		entutils.TimeMixin{},
 	}
 }
