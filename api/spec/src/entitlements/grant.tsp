@@ -215,5 +215,5 @@ model ExpirationPeriod {
   @example(12)
   @minValue(1)
   @maxValue(1000)
-  count: integer;
+  count: uint32;
 }

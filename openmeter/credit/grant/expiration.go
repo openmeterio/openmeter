@@ -5,7 +5,7 @@ import "time"
 // ExpirationPeriod of a credit grant.
 type ExpirationPeriod struct {
 	// Count The expiration period count like 12 months.
-	Count int `json:"count,omitempty"`
+	Count uint32 `json:"count,omitempty"`
 
 	// Duration The expiration period duration like month.
 	Duration ExpirationPeriodDuration `json:"duration,omitempty"`
@@ -16,13 +16,13 @@ func (c ExpirationPeriod) GetExpiration(t time.Time) time.Time {
 	case ExpirationPeriodDurationHour:
 		return t.Add(time.Hour * time.Duration(c.Count))
 	case ExpirationPeriodDurationDay:
-		return t.AddDate(0, 0, c.Count)
+		return t.AddDate(0, 0, int(c.Count))
 	case ExpirationPeriodDurationWeek:
-		return t.AddDate(0, 0, c.Count*7)
+		return t.AddDate(0, 0, int(c.Count*7))
 	case ExpirationPeriodDurationMonth:
-		return t.AddDate(0, c.Count, 0)
+		return t.AddDate(0, int(c.Count), 0)
 	case ExpirationPeriodDurationYear:
-		return t.AddDate(c.Count, 0, 0)
+		return t.AddDate(int(c.Count), 0, 0)
 	default:
 		return time.Time{}
 	}
