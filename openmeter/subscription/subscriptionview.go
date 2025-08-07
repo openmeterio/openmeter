@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type SubscriptionView struct {
@@ -191,27 +189,6 @@ func (s *SubscriptionItemView) Validate() error {
 			// FIXME: instead of this defaulting behavior we should align the types so that MeteredEntitlementTemplate has the same required fields as MeteredEntitlement
 			if !reflect.DeepEqual(lo.CoalesceOrEmpty(e.PreserveOverageAtReset, lo.ToPtr(false)), &mEnt.PreserveOverageAtReset) {
 				return fmt.Errorf("entitlement %s preserveOverageAtReset does not match template preserveOverageAtReset", s.Entitlement.Entitlement.ID)
-			}
-
-			// Let's validate that the usage periods are the same between item and entitlement
-			// We only validate for the first period / recurrence as otherwise resets would break the comparison
-			mEntUpInp := mEnt.UsagePeriod.GetOriginalValueAsUsagePeriodInput()
-
-			if mEntUpInp == nil {
-				return fmt.Errorf("entitlement %s usagePeriod is nil", s.Entitlement.Entitlement.ID)
-			}
-
-			upRec, err := timeutil.RecurrenceFromISODuration(&e.UsagePeriod, mEntUpInp.GetValue().Anchor)
-			if err != nil {
-				return fmt.Errorf("failed to convert Item %s EntitlementTemplate UsagePeriod ISO duration to Recurrence: %w", s.SubscriptionItem.Key, err)
-			}
-
-			itemEntUpInp := timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
-				return mEntUpInp.GetTime()
-			})(upRec)
-
-			if !itemEntUpInp.Equal(*mEntUpInp) {
-				return fmt.Errorf("entitlement %s usagePeriod does not match template usagePeriod", s.Entitlement.Entitlement.ID)
 			}
 
 		default:
