@@ -174,7 +174,7 @@ func Test_Fuzzing(t *testing.T) {
 						EffectiveAt: gofakeit.DateRange(start, end).Truncate(granularity),
 						Expiration: grant.ExpirationPeriod{
 							Duration: grant.ExpirationPeriodDurationDay,
-							Count:    gofakeit.Uint8(),
+							Count:    gofakeit.Uint32(),
 						},
 					}
 
@@ -264,7 +264,7 @@ func Test_Fuzzing(t *testing.T) {
 						EffectiveAt: gofakeit.DateRange(start, end).Truncate(granularity),
 						Expiration: grant.ExpirationPeriod{
 							Duration: grant.ExpirationPeriodDurationDay,
-							Count:    gofakeit.Uint8(),
+							Count:    gofakeit.Uint32(),
 						},
 					}
 

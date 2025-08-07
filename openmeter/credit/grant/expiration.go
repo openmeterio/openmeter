@@ -5,7 +5,7 @@ import "time"
 // ExpirationPeriod of a credit grant.
 type ExpirationPeriod struct {
 	// Count The expiration period count like 12 months.
-	Count uint8 `json:"count,omitempty"`
+	Count uint32 `json:"count,omitempty"`
 
 	// Duration The expiration period duration like month.
 	Duration ExpirationPeriodDuration `json:"duration,omitempty"`

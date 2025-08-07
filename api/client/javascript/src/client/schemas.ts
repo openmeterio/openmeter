@@ -5080,6 +5080,7 @@ export interface components {
       /** @description The unit of time for the expiration period. */
       duration: components['schemas']['ExpirationDuration']
       /**
+       * Format: uint32
        * @description The number of time units in the expiration period.
        * @example 12
        */
