@@ -7805,6 +7805,7 @@ export const createCustomerEntitlementGrantParams = zod.object({
 
 export const createCustomerEntitlementGrantBodyAmountMin = 0
 export const createCustomerEntitlementGrantBodyPriorityMax = 255
+export const createCustomerEntitlementGrantBodyExpirationCountMax = 1000
 export const createCustomerEntitlementGrantBodyMaxRolloverAmountDefault = 0
 export const createCustomerEntitlementGrantBodyMinRolloverAmountDefault = 0
 
@@ -7823,6 +7824,8 @@ export const createCustomerEntitlementGrantBody = zod
       .object({
         count: zod.coerce
           .number()
+          .min(1)
+          .max(createCustomerEntitlementGrantBodyExpirationCountMax)
           .describe('The number of time units in the expiration period.'),
         duration: zod
           .enum(['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'])
@@ -13477,6 +13480,7 @@ export const createGrantParams = zod.object({
 
 export const createGrantBodyAmountMin = 0
 export const createGrantBodyPriorityMax = 255
+export const createGrantBodyExpirationCountMax = 1000
 export const createGrantBodyMaxRolloverAmountDefault = 0
 export const createGrantBodyMinRolloverAmountDefault = 0
 
@@ -13495,6 +13499,8 @@ export const createGrantBody = zod
       .object({
         count: zod.coerce
           .number()
+          .min(1)
+          .max(createGrantBodyExpirationCountMax)
           .describe('The number of time units in the expiration period.'),
         duration: zod
           .enum(['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'])

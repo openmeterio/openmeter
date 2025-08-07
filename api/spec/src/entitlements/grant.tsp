@@ -213,5 +213,7 @@ model ExpirationPeriod {
    * The number of time units in the expiration period.
    */
   @example(12)
+  @minValue(1)
+  @maxValue(1000)
   count: integer;
 }
