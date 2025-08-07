@@ -4,6 +4,7 @@ package migrate
 import (
 	"embed"
 	"io/fs"
+	"log/slog"
 	"net/url"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -18,6 +19,24 @@ const (
 )
 
 type Migrate = migrate.Migrate
+
+type logger struct {
+	log *slog.Logger
+}
+
+var _ migrate.Logger = &logger{}
+
+func (l *logger) Printf(format string, v ...interface{}) {
+	l.log.Info(format, v...)
+}
+
+func (l *logger) Verbose() bool {
+	return true
+}
+
+func NewLogger(log *slog.Logger) migrate.Logger {
+	return &logger{log: log}
+}
 
 //go:embed migrations
 var OMMigrations embed.FS

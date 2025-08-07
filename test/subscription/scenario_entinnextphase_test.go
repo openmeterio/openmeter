@@ -49,7 +49,7 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 				Name:           "Test Plan",
 				Key:            "test_plan",
 				Currency:       "USD",
-				BillingCadence: datetime.MustParse(t, "P1M"), // Let's do monthly billing
+				BillingCadence: datetime.MustParseDuration(t, "P1M"), // Let's do monthly billing
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
@@ -60,7 +60,7 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 					PhaseMeta: productcatalog.PhaseMeta{
 						Key:      "first",
 						Name:     "First Phase",
-						Duration: lo.ToPtr(testutils.GetISODuration(t, "P1W")),
+						Duration: lo.ToPtr(datetime.MustParseDuration(t, "P1W")),
 					},
 					RateCards: productcatalog.RateCards{
 						// Let's have an in-arrears monthly entitlement ratecard
@@ -76,11 +76,11 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 									},
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-									UsagePeriod:     testutils.GetISODuration(t, "P1M"), // compatible with the billing cadence
+									UsagePeriod:     datetime.MustParseDuration(t, "P1M"), // compatible with the billing cadence
 									IssueAfterReset: lo.ToPtr(10.0),
 								}),
 							},
-							BillingCadence: testutils.GetISODuration(t, "P1M"),
+							BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						},
 					},
 				},
@@ -106,11 +106,11 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 									},
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-									UsagePeriod:     testutils.GetISODuration(t, "P1M"), // compatible with the billing cadence
+									UsagePeriod:     datetime.MustParseDuration(t, "P1M"), // compatible with the billing cadence
 									IssueAfterReset: lo.ToPtr(100.0),
 								}),
 							},
-							BillingCadence: testutils.GetISODuration(t, "P1M"),
+							BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						},
 					},
 				},

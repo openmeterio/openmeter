@@ -103,7 +103,7 @@ func (u UsagePeriod) Validate() error {
 		errs = append(errs, errors.New("UsagePeriod must have at least one recurrence"))
 	}
 
-	hour := datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)
+	hour := datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)
 	for i := range u.recs.GetTimes() {
 		rec := u.recs.GetAt(i).GetValue()
 

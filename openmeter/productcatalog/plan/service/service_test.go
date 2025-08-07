@@ -18,16 +18,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
-	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func TestPlanService(t *testing.T) {
-	MonthPeriod := datetime.MustParse(t, "P1M")
-	TwoMonthPeriod := datetime.MustParse(t, "P2M")
-	SixMonthPeriod := datetime.MustParse(t, "P6M")
+	MonthPeriod := datetime.MustParseDuration(t, "P1M")
+	TwoMonthPeriod := datetime.MustParseDuration(t, "P2M")
+	SixMonthPeriod := datetime.MustParseDuration(t, "P6M")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -601,7 +600,7 @@ func TestPlanService(t *testing.T) {
 											PaymentTerm: productcatalog.DefaultPaymentTerm,
 										}),
 									},
-									BillingCadence: lo.ToPtr(testutils.GetISODuration(t, "P1W")),
+									BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1W")),
 								},
 								&productcatalog.FlatFeeRateCard{
 									RateCardMeta: productcatalog.RateCardMeta{
@@ -612,7 +611,7 @@ func TestPlanService(t *testing.T) {
 											PaymentTerm: productcatalog.DefaultPaymentTerm,
 										}),
 									},
-									BillingCadence: lo.ToPtr(testutils.GetISODuration(t, "P1M")),
+									BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 								},
 							},
 						})),

@@ -17,7 +17,7 @@ import (
 
 func TestPlanSerialization(t *testing.T) {
 	now := time.Now().UTC()
-	duration := datetime.NewPeriod(0, 1, 0, 0, 0, 0, 0) // P1M
+	duration := datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0) // P1M
 
 	plan := Plan{
 		NamespacedID: models.NamespacedID{
@@ -34,7 +34,7 @@ func TestPlanSerialization(t *testing.T) {
 			Metadata: models.Metadata{
 				"key1": "value1",
 			},
-			BillingCadence: datetime.MustParse(t, "P1M"),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			ProRatingConfig: productcatalog.ProRatingConfig{
 				Enabled: true,
 				Mode:    productcatalog.ProRatingModeProratePrices,

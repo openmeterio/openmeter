@@ -74,7 +74,7 @@ func (p PhaseMeta) Validate() error {
 		}
 
 		// The duration must be at least 1 hour.
-		if per, err := p.Duration.Subtract(datetime.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		if per, err := p.Duration.Subtract(datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 			errs = append(errs, ErrPlanPhaseDurationLessThenAnHour)
 		}
 	}

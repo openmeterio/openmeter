@@ -571,10 +571,56 @@ func TestOpenPeriod(t *testing.T) {
 				expected: false,
 			},
 			{
+				name:     "identical period is a superset of itself",
+				period1:  OpenPeriod{From: &before, To: &after},
+				period2:  OpenPeriod{From: &before, To: &after},
+				expected: true,
+			},
+			{
+				name:     "identical period is a superset of itself (when open ended)",
+				period1:  OpenPeriod{From: &before, To: nil},
+				period2:  OpenPeriod{From: &before, To: nil},
+				expected: true,
+			},
+			{
 				name:     "period with closed start does not contain period with open start",
 				period1:  OpenPeriod{From: &now, To: &after},
 				period2:  OpenPeriod{From: nil, To: &now},
 				expected: false,
+			},
+			{
+				name: "identical periods with different monotonic clocks should be supersets",
+				period1: func() OpenPeriod {
+					// Create a base time
+					baseTime := time.Date(2025, 4, 1, 0, 0, 1, 0, time.UTC)
+					// Add current monotonic time to get a time with monotonic clock
+					now := time.Now()
+					t := baseTime.Add(now.Sub(now.Truncate(0)))
+					return OpenPeriod{From: &t, To: nil}
+				}(),
+				period2: func() OpenPeriod {
+					// Create the same instant but without monotonic clock
+					t, _ := time.Parse(time.RFC3339, "2025-04-01T00:00:01Z")
+					return OpenPeriod{From: &t, To: nil}
+				}(),
+				expected: true,
+			},
+			{
+				name: "identical periods with different monotonic clocks should be supersets - inverse order",
+				period1: func() OpenPeriod {
+					// Simulate the exact time from the user's issue
+					// This should have wall: 0 (no monotonic clock)
+					t, _ := time.Parse(time.RFC3339, "2025-04-01T00:00:01Z")
+					return OpenPeriod{From: &t, To: nil}
+				}(),
+				period2: func() OpenPeriod {
+					// This should have a monotonic clock reading (wall: some value)
+					baseTime := time.Date(2025, 4, 1, 0, 0, 1, 0, time.UTC)
+					now := time.Now()
+					t := baseTime.Add(now.Sub(now.Truncate(0)))
+					return OpenPeriod{From: &t, To: nil}
+				}(),
+				expected: true, // Current implementation correctly handles monotonic clocks
 			},
 		}
 
@@ -582,7 +628,7 @@ func TestOpenPeriod(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				result := tt.period1.IsSupersetOf(tt.period2)
 				if result != tt.expected {
-					t.Errorf("IsSupersetOf() = %v, want %v", result, tt.expected)
+					t.Errorf("%s: IsSupersetOf() = %v, want %v, period1: %v, period2: %v", tt.name, result, tt.expected, tt.period1, tt.period2)
 				}
 			})
 		}

@@ -173,10 +173,10 @@ type RecurrenceInterval struct {
 }
 
 var (
-	RecurrencePeriodDaily RecurrenceInterval = RecurrenceInterval{datetime.NewPeriod(0, 0, 0, 1, 0, 0, 0)}
-	RecurrencePeriodWeek  RecurrenceInterval = RecurrenceInterval{datetime.NewPeriod(0, 0, 1, 0, 0, 0, 0)}
-	RecurrencePeriodMonth RecurrenceInterval = RecurrenceInterval{datetime.NewPeriod(0, 1, 0, 0, 0, 0, 0)}
-	RecurrencePeriodYear  RecurrenceInterval = RecurrenceInterval{datetime.NewPeriod(1, 0, 0, 0, 0, 0, 0)}
+	RecurrencePeriodDaily RecurrenceInterval = RecurrenceInterval{datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0)}
+	RecurrencePeriodWeek  RecurrenceInterval = RecurrenceInterval{datetime.NewISODuration(0, 0, 1, 0, 0, 0, 0)}
+	RecurrencePeriodMonth RecurrenceInterval = RecurrenceInterval{datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0)}
+	RecurrencePeriodYear  RecurrenceInterval = RecurrenceInterval{datetime.NewISODuration(1, 0, 0, 0, 0, 0, 0)}
 )
 
 func RecurrenceFromISODuration(p *datetime.ISODuration, anchor time.Time) (Recurrence, error) {

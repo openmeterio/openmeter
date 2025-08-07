@@ -16,9 +16,9 @@ import (
 
 func TestPlanAddon_ValidationErrors(t *testing.T) {
 	var (
-		trialPeriod      = datetime.MustParse(t, "P14D")
-		oneMonthPeriod   = datetime.MustParse(t, "P1M")
-		threeMonthPeriod = datetime.MustParse(t, "P3M")
+		trialPeriod      = datetime.MustParseDuration(t, "P14D")
+		oneMonthPeriod   = datetime.MustParseDuration(t, "P1M")
+		threeMonthPeriod = datetime.MustParseDuration(t, "P3M")
 	)
 
 	tests := []struct {
@@ -44,7 +44,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Version:        1,
 						Name:           "Pro",
 						Currency:       currency.USD,
-						BillingCadence: datetime.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
 							Mode:    ProRatingModeProratePrices,
@@ -209,7 +209,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Version:        2,
 						Name:           "Pro",
 						Currency:       currency.USD,
-						BillingCadence: datetime.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
 							Mode:    ProRatingModeProratePrices,
@@ -401,7 +401,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Version:        2,
 						Name:           "Pro",
 						Currency:       currency.USD,
-						BillingCadence: datetime.MustParse(t, "P1M"),
+						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
 							Mode:    ProRatingModeProratePrices,

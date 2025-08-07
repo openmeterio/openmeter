@@ -43,7 +43,7 @@ func (s *CollectionTestSuite) setupNS(ctx context.Context, namespace string) col
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(),
 		WithProgressiveBilling(),
-		WithCollectionInterval(datetime.MustParse(s.T(), "PT1H")),
+		WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
 	)
 
 	return collectionNSResult{

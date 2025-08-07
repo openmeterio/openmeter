@@ -240,7 +240,7 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 			Granularity:            time.Minute,
 			Publisher:              mockPublisher,
 			TransactionManager:     transactionManager,
-			SnapshotGracePeriod:    datetime.MustParse(t, "P1W"),
+			SnapshotGracePeriod:    datetime.MustParseDuration(t, "P1W"),
 		},
 	)
 
