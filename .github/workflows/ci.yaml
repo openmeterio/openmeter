@@ -147,10 +147,9 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Nix
-        uses: cachix/install-nix-action@3715ab1a11cac9e991980d7b4a28d80c7ebdd8f9 # v27
+        uses: nixbuild/nix-quick-install-action@v31
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare Nix shell
         run: nix develop --impure .#ci
