@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 )
@@ -210,6 +211,7 @@ func TestDefaultRouter(t *testing.T) {
 			options.Publisher = inMemoryPubSub
 			options.Logger = slog.Default()
 			options.MetricMeter = sdkmetric.NewMeterProvider().Meter("router_test")
+			options.Tracer = sdktrace.NewTracerProvider().Tracer("router_test")
 
 			options.Config.DLQ.Topic = "test-dlq"
 			options.Config.ConsumerGroupName = "test-group"
@@ -253,7 +255,7 @@ func TestDefaultRouter(t *testing.T) {
 
 			assert.NoError(t, inMemoryPubSub.Publish(topicName, msg))
 
-			if !assert.NoError(t, done.Wait(20000*time.Second)) {
+			if !assert.NoError(t, done.Wait(120*time.Second)) {
 				assert.FailNow(t, "timeout during test execution")
 			}
 
