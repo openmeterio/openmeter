@@ -157,7 +157,7 @@ func NewDLQTelemetryMiddleware(opts NewDLQTelemetryOptions) (func(message.Handle
 				attribute.String("message.payload", string(msg.Payload)),
 			))
 
-			resMsg, err := span.Wrap(ctx, func(ctx context.Context) ([]*message.Message, error) {
+			resMsg, _ := span.Wrap(ctx, func(ctx context.Context) ([]*message.Message, error) {
 				// Let's propagate message context to the handler
 				origCtx := msg.Context()
 				msg.SetContext(ctx)
@@ -165,9 +165,8 @@ func NewDLQTelemetryMiddleware(opts NewDLQTelemetryOptions) (func(message.Handle
 
 				resMsg, err := h(msg)
 				if err != nil {
-					// Context might be canceled here, so we cannot rely on log.WarnContext/ErrorContext
 					if opts.Router.IsClosed() {
-						opts.Logger.Warn("Message processing failed, router is closing", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
+						opts.Logger.WarnContext(msg.Context(), "Message processing failed, router is closing", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
 					} else {
 						logger := opts.Logger.ErrorContext
 						if _, ok := lo.ErrorsAs[*WarningLogSeverityError](err); ok {
