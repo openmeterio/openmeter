@@ -41,6 +41,13 @@
         }
         pagedResponse.TotalCount = count
 
+        // If there are no items, return the empty response early
+        if count == 0 {
+            // Items should be [] not null.
+            pagedResponse.Items = make([]*{{ $n.Name }}, 0)
+            return pagedResponse, nil
+        }
+
         // If page is its 0 value then return all the items
         if page.IsZero() {
             offset = 0
