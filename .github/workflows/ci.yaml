@@ -150,6 +150,21 @@ jobs:
         uses: nixbuild/nix-quick-install-action@v31
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: ${{ runner.os }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 5G
+          purge: true
+          purge-prefixes: nix-${{ runner.os }}-
+          purge-created: 1d
+          purge-last-accessed: 1d
+          purge-primary-key: never
 
       - name: Prepare Nix shell
         run: nix develop --impure .#ci
