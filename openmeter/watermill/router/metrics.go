@@ -158,32 +158,34 @@ func NewDLQTelemetryMiddleware(opts NewDLQTelemetryOptions) (func(message.Handle
 			))
 
 			resMsg, err := span.Wrap(ctx, func(ctx context.Context) ([]*message.Message, error) {
-				return h(msg)
-			})
-			if err != nil {
-				// Context might be canceled here, so we cannot rely on log.WarnContext/ErrorContext
-				if opts.Router.IsClosed() {
-					opts.Logger.Warn("Message processing failed, router is closing", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
-				} else {
-					logger := opts.Logger.ErrorContext
-					if _, ok := lo.ErrorsAs[*WarningLogSeverityError](err); ok {
-						logger = opts.Logger.WarnContext
+				resMsg, err := h(msg)
+				if err != nil {
+					// Context might be canceled here, so we cannot rely on log.WarnContext/ErrorContext
+					if opts.Router.IsClosed() {
+						opts.Logger.Warn("Message processing failed, router is closing", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
+					} else {
+						logger := opts.Logger.ErrorContext
+						if _, ok := lo.ErrorsAs[*WarningLogSeverityError](err); ok {
+							logger = opts.Logger.WarnContext
+						}
+
+						logger(msg.Context(), "Failed to process message, message is going to DLQ", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
+
+						meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
+							meterAttributeCEType,
+							meterAttributeStatusFailed,
+						))
+						meterMessageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributes(
+							meterAttributeCEType,
+							meterAttributeStatusFailed,
+						))
 					}
 
-					logger(msg.Context(), "Failed to process message, message is going to DLQ", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
-
-					meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
-						meterAttributeCEType,
-						meterAttributeStatusFailed,
-					))
-					meterMessageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributes(
-						meterAttributeCEType,
-						meterAttributeStatusFailed,
-					))
+					return resMsg, err
 				}
 
 				return resMsg, err
-			}
+			})
 
 			meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
 				meterAttributeCEType,
