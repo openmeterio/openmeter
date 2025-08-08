@@ -38,6 +38,11 @@ func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -85,6 +90,11 @@ func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -134,6 +144,11 @@ func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (paginat
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -181,6 +196,11 @@ func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -230,6 +250,11 @@ func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pa
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -277,6 +302,11 @@ func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) 
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -326,6 +356,11 @@ func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -373,6 +408,11 @@ func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -422,6 +462,11 @@ func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -469,6 +514,11 @@ func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page paginatio
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -518,6 +568,11 @@ func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagin
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -565,6 +620,11 @@ func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Pag
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -614,6 +674,11 @@ func (_m *BillingInvoiceFlatFeeLineConfigQuery) Paginate(ctx context.Context, pa
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -661,6 +726,11 @@ func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -710,6 +780,11 @@ func (_m *BillingInvoiceLineDiscountQuery) Paginate(ctx context.Context, page pa
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -757,6 +832,11 @@ func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, pa
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -806,6 +886,11 @@ func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page 
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -853,6 +938,11 @@ func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context,
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -902,6 +992,11 @@ func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -949,6 +1044,11 @@ func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Pag
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -998,6 +1098,11 @@ func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagina
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -1045,6 +1150,11 @@ func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page paginat
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -1094,6 +1204,11 @@ func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pa
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -1141,6 +1256,11 @@ func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.P
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -1190,6 +1310,11 @@ func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) 
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -1237,6 +1362,11 @@ func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -1286,6 +1416,11 @@ func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -1333,6 +1468,11 @@ func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -1382,6 +1522,11 @@ func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page paginatio
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -1429,6 +1574,11 @@ func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -1478,6 +1628,11 @@ func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, pa
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -1525,6 +1680,11 @@ func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.P
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -1574,6 +1734,11 @@ func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagina
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -1621,6 +1786,11 @@ func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (p
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -1670,6 +1840,11 @@ func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -1717,6 +1892,11 @@ func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page)
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -1766,6 +1946,11 @@ func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -1813,6 +1998,11 @@ func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page)
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -1862,6 +2052,11 @@ func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -1909,6 +2104,11 @@ func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pag
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
@@ -1958,6 +2158,11 @@ func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.P
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -2006,6 +2211,11 @@ func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.
 	}
 	pagedResponse.TotalCount = count
 
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
+
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
 		offset = 0
@@ -2053,6 +2263,11 @@ func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		return pagedResponse, nil
+	}
 
 	// If page is its 0 value then return all the items
 	if page.IsZero() {
