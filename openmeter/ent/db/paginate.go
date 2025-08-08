@@ -40,6 +40,8 @@ func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*Addon, 0)
 		return pagedResponse, nil
 	}
 
@@ -93,6 +95,8 @@ func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*AddonRateCard, 0)
 		return pagedResponse, nil
 	}
 
@@ -146,6 +150,8 @@ func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (paginat
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*App, 0)
 		return pagedResponse, nil
 	}
 
@@ -199,6 +205,8 @@ func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*AppCustomInvoicing, 0)
 		return pagedResponse, nil
 	}
 
@@ -252,6 +260,8 @@ func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pa
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*AppCustomInvoicingCustomer, 0)
 		return pagedResponse, nil
 	}
 
@@ -305,6 +315,8 @@ func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) 
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*AppCustomer, 0)
 		return pagedResponse, nil
 	}
 
@@ -358,6 +370,8 @@ func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (p
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*AppStripe, 0)
 		return pagedResponse, nil
 	}
 
@@ -411,6 +425,8 @@ func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*AppStripeCustomer, 0)
 		return pagedResponse, nil
 	}
 
@@ -464,6 +480,8 @@ func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BalanceSnapshot, 0)
 		return pagedResponse, nil
 	}
 
@@ -517,6 +535,8 @@ func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page paginatio
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingCustomerLock, 0)
 		return pagedResponse, nil
 	}
 
@@ -570,6 +590,8 @@ func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagin
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingCustomerOverride, 0)
 		return pagedResponse, nil
 	}
 
@@ -623,6 +645,8 @@ func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Pag
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingInvoice, 0)
 		return pagedResponse, nil
 	}
 
@@ -676,6 +700,8 @@ func (_m *BillingInvoiceFlatFeeLineConfigQuery) Paginate(ctx context.Context, pa
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingInvoiceFlatFeeLineConfig, 0)
 		return pagedResponse, nil
 	}
 
@@ -729,6 +755,8 @@ func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingInvoiceLine, 0)
 		return pagedResponse, nil
 	}
 
@@ -782,6 +810,8 @@ func (_m *BillingInvoiceLineDiscountQuery) Paginate(ctx context.Context, page pa
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingInvoiceLineDiscount, 0)
 		return pagedResponse, nil
 	}
 
@@ -835,6 +865,8 @@ func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, pa
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingInvoiceLineUsageDiscount, 0)
 		return pagedResponse, nil
 	}
 
@@ -888,6 +920,8 @@ func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page 
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingInvoiceSplitLineGroup, 0)
 		return pagedResponse, nil
 	}
 
@@ -941,6 +975,8 @@ func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context,
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingInvoiceUsageBasedLineConfig, 0)
 		return pagedResponse, nil
 	}
 
@@ -994,6 +1030,8 @@ func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingInvoiceValidationIssue, 0)
 		return pagedResponse, nil
 	}
 
@@ -1047,6 +1085,8 @@ func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Pag
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingProfile, 0)
 		return pagedResponse, nil
 	}
 
@@ -1100,6 +1140,8 @@ func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagina
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingSequenceNumbers, 0)
 		return pagedResponse, nil
 	}
 
@@ -1153,6 +1195,8 @@ func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page paginat
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingWorkflowConfig, 0)
 		return pagedResponse, nil
 	}
 
@@ -1206,6 +1250,8 @@ func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pa
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*Customer, 0)
 		return pagedResponse, nil
 	}
 
@@ -1259,6 +1305,8 @@ func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.P
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*CustomerSubjects, 0)
 		return pagedResponse, nil
 	}
 
@@ -1312,6 +1360,8 @@ func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) 
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*Entitlement, 0)
 		return pagedResponse, nil
 	}
 
@@ -1365,6 +1415,8 @@ func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*Feature, 0)
 		return pagedResponse, nil
 	}
 
@@ -1418,6 +1470,8 @@ func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*Grant, 0)
 		return pagedResponse, nil
 	}
 
@@ -1471,6 +1525,8 @@ func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*Meter, 0)
 		return pagedResponse, nil
 	}
 
@@ -1524,6 +1580,8 @@ func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page paginatio
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*NotificationChannel, 0)
 		return pagedResponse, nil
 	}
 
@@ -1577,6 +1635,8 @@ func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*NotificationEvent, 0)
 		return pagedResponse, nil
 	}
 
@@ -1630,6 +1690,8 @@ func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, pa
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*NotificationEventDeliveryStatus, 0)
 		return pagedResponse, nil
 	}
 
@@ -1683,6 +1745,8 @@ func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.P
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*NotificationRule, 0)
 		return pagedResponse, nil
 	}
 
@@ -1736,6 +1800,8 @@ func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagina
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*Plan, 0)
 		return pagedResponse, nil
 	}
 
@@ -1789,6 +1855,8 @@ func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (p
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*PlanAddon, 0)
 		return pagedResponse, nil
 	}
 
@@ -1842,6 +1910,8 @@ func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (p
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*PlanPhase, 0)
 		return pagedResponse, nil
 	}
 
@@ -1895,6 +1965,8 @@ func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page)
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*PlanRateCard, 0)
 		return pagedResponse, nil
 	}
 
@@ -1948,6 +2020,8 @@ func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*Subject, 0)
 		return pagedResponse, nil
 	}
 
@@ -2001,6 +2075,8 @@ func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page)
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*Subscription, 0)
 		return pagedResponse, nil
 	}
 
@@ -2054,6 +2130,8 @@ func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*SubscriptionAddon, 0)
 		return pagedResponse, nil
 	}
 
@@ -2107,6 +2185,8 @@ func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pag
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*SubscriptionAddonQuantity, 0)
 		return pagedResponse, nil
 	}
 
@@ -2160,6 +2240,8 @@ func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.P
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*SubscriptionItem, 0)
 		return pagedResponse, nil
 	}
 
@@ -2213,6 +2295,8 @@ func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*SubscriptionPhase, 0)
 		return pagedResponse, nil
 	}
 
@@ -2266,6 +2350,8 @@ func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*UsageReset, 0)
 		return pagedResponse, nil
 	}
 

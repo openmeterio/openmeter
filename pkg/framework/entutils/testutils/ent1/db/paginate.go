@@ -40,6 +40,8 @@ func (_m *Example1Query) Paginate(ctx context.Context, page pagination.Page) (pa
 
 	// If there are no items, return the empty response early
 	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*Example1, 0)
 		return pagedResponse, nil
 	}
 
