@@ -108,8 +108,14 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 		middleware.Recoverer,
 	)
 
+	// Note: The Retry middleware executes retries MaxRetries + 1 times, so let's fix it here
+	maxRetries := opts.Config.Retry.MaxRetries
+	if maxRetries > 0 {
+		maxRetries = maxRetries - 1
+	}
+
 	router.AddMiddleware(middleware.Retry{
-		MaxRetries:      opts.Config.Retry.MaxRetries,
+		MaxRetries:      maxRetries,
 		InitialInterval: opts.Config.Retry.InitialInterval,
 		MaxInterval:     opts.Config.Retry.MaxInterval,
 		MaxElapsedTime:  opts.Config.Retry.MaxElapsedTime,

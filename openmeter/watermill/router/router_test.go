@@ -255,7 +255,7 @@ func TestDefaultRouter(t *testing.T) {
 
 			assert.NoError(t, inMemoryPubSub.Publish(topicName, msg))
 
-			if !assert.NoError(t, done.Wait(20000*time.Second)) {
+			if !assert.NoError(t, done.Wait(120*time.Second)) {
 				assert.FailNow(t, "timeout during test execution")
 			}
 
