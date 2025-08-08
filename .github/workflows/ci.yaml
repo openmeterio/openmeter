@@ -165,13 +165,13 @@ jobs:
           purge-created: 1d
           purge-last-accessed: 1d
           purge-primary-key: never
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Restore .devenv if exists
         uses: actions/cache@v4
         with:
           path: .devenv
           key: nix-devenv-${{ runner.os }}-${{ hashFiles('flake.*') }}
-
 
       - name: Prepare Nix shell
         run: nix develop --impure .#ci
