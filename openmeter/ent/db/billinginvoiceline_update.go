@@ -825,16 +825,24 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 		}
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
-		_spec.SetField(billinginvoiceline.FieldAnnotations, field.TypeJSON, value)
+		vv, err := billinginvoiceline.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(billinginvoiceline.FieldAnnotations, field.TypeString, vv)
 	}
 	if _u.mutation.AnnotationsCleared() {
-		_spec.ClearField(billinginvoiceline.FieldAnnotations, field.TypeJSON)
+		_spec.ClearField(billinginvoiceline.FieldAnnotations, field.TypeString)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(billinginvoiceline.FieldMetadata, field.TypeJSON, value)
+		vv, err := billinginvoiceline.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(billinginvoiceline.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(billinginvoiceline.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(billinginvoiceline.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldUpdatedAt, field.TypeTime, value)
@@ -2132,16 +2140,24 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 		}
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
-		_spec.SetField(billinginvoiceline.FieldAnnotations, field.TypeJSON, value)
+		vv, err := billinginvoiceline.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(billinginvoiceline.FieldAnnotations, field.TypeString, vv)
 	}
 	if _u.mutation.AnnotationsCleared() {
-		_spec.ClearField(billinginvoiceline.FieldAnnotations, field.TypeJSON)
+		_spec.ClearField(billinginvoiceline.FieldAnnotations, field.TypeString)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(billinginvoiceline.FieldMetadata, field.TypeJSON, value)
+		vv, err := billinginvoiceline.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(billinginvoiceline.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(billinginvoiceline.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(billinginvoiceline.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldUpdatedAt, field.TypeTime, value)

@@ -633,41 +633,41 @@ type AppCustomInvoicingGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (acigb *AppCustomInvoicingGroupBy) Aggregate(fns ...AggregateFunc) *AppCustomInvoicingGroupBy {
-	acigb.fns = append(acigb.fns, fns...)
-	return acigb
+func (_g *AppCustomInvoicingGroupBy) Aggregate(fns ...AggregateFunc) *AppCustomInvoicingGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (acigb *AppCustomInvoicingGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, acigb.build.ctx, ent.OpQueryGroupBy)
-	if err := acigb.build.prepareQuery(ctx); err != nil {
+func (_g *AppCustomInvoicingGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AppCustomInvoicingQuery, *AppCustomInvoicingGroupBy](ctx, acigb.build, acigb, acigb.build.inters, v)
+	return scanWithInterceptors[*AppCustomInvoicingQuery, *AppCustomInvoicingGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (acigb *AppCustomInvoicingGroupBy) sqlScan(ctx context.Context, root *AppCustomInvoicingQuery, v any) error {
+func (_g *AppCustomInvoicingGroupBy) sqlScan(ctx context.Context, root *AppCustomInvoicingQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(acigb.fns))
-	for _, fn := range acigb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*acigb.flds)+len(acigb.fns))
-		for _, f := range *acigb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*acigb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := acigb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -681,27 +681,27 @@ type AppCustomInvoicingSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (acis *AppCustomInvoicingSelect) Aggregate(fns ...AggregateFunc) *AppCustomInvoicingSelect {
-	acis.fns = append(acis.fns, fns...)
-	return acis
+func (_s *AppCustomInvoicingSelect) Aggregate(fns ...AggregateFunc) *AppCustomInvoicingSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (acis *AppCustomInvoicingSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, acis.ctx, ent.OpQuerySelect)
-	if err := acis.prepareQuery(ctx); err != nil {
+func (_s *AppCustomInvoicingSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AppCustomInvoicingQuery, *AppCustomInvoicingSelect](ctx, acis.AppCustomInvoicingQuery, acis, acis.inters, v)
+	return scanWithInterceptors[*AppCustomInvoicingQuery, *AppCustomInvoicingSelect](ctx, _s.AppCustomInvoicingQuery, _s, _s.inters, v)
 }
 
-func (acis *AppCustomInvoicingSelect) sqlScan(ctx context.Context, root *AppCustomInvoicingQuery, v any) error {
+func (_s *AppCustomInvoicingSelect) sqlScan(ctx context.Context, root *AppCustomInvoicingQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(acis.fns))
-	for _, fn := range acis.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*acis.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -709,7 +709,7 @@ func (acis *AppCustomInvoicingSelect) sqlScan(ctx context.Context, root *AppCust
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := acis.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

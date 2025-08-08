@@ -637,41 +637,41 @@ type BillingCustomerOverrideGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (bcogb *BillingCustomerOverrideGroupBy) Aggregate(fns ...AggregateFunc) *BillingCustomerOverrideGroupBy {
-	bcogb.fns = append(bcogb.fns, fns...)
-	return bcogb
+func (_g *BillingCustomerOverrideGroupBy) Aggregate(fns ...AggregateFunc) *BillingCustomerOverrideGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bcogb *BillingCustomerOverrideGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bcogb.build.ctx, ent.OpQueryGroupBy)
-	if err := bcogb.build.prepareQuery(ctx); err != nil {
+func (_g *BillingCustomerOverrideGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingCustomerOverrideQuery, *BillingCustomerOverrideGroupBy](ctx, bcogb.build, bcogb, bcogb.build.inters, v)
+	return scanWithInterceptors[*BillingCustomerOverrideQuery, *BillingCustomerOverrideGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (bcogb *BillingCustomerOverrideGroupBy) sqlScan(ctx context.Context, root *BillingCustomerOverrideQuery, v any) error {
+func (_g *BillingCustomerOverrideGroupBy) sqlScan(ctx context.Context, root *BillingCustomerOverrideQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(bcogb.fns))
-	for _, fn := range bcogb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*bcogb.flds)+len(bcogb.fns))
-		for _, f := range *bcogb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*bcogb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bcogb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -685,27 +685,27 @@ type BillingCustomerOverrideSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (bcos *BillingCustomerOverrideSelect) Aggregate(fns ...AggregateFunc) *BillingCustomerOverrideSelect {
-	bcos.fns = append(bcos.fns, fns...)
-	return bcos
+func (_s *BillingCustomerOverrideSelect) Aggregate(fns ...AggregateFunc) *BillingCustomerOverrideSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bcos *BillingCustomerOverrideSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bcos.ctx, ent.OpQuerySelect)
-	if err := bcos.prepareQuery(ctx); err != nil {
+func (_s *BillingCustomerOverrideSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingCustomerOverrideQuery, *BillingCustomerOverrideSelect](ctx, bcos.BillingCustomerOverrideQuery, bcos, bcos.inters, v)
+	return scanWithInterceptors[*BillingCustomerOverrideQuery, *BillingCustomerOverrideSelect](ctx, _s.BillingCustomerOverrideQuery, _s, _s.inters, v)
 }
 
-func (bcos *BillingCustomerOverrideSelect) sqlScan(ctx context.Context, root *BillingCustomerOverrideQuery, v any) error {
+func (_s *BillingCustomerOverrideSelect) sqlScan(ctx context.Context, root *BillingCustomerOverrideQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(bcos.fns))
-	for _, fn := range bcos.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*bcos.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -713,7 +713,7 @@ func (bcos *BillingCustomerOverrideSelect) sqlScan(ctx context.Context, root *Bi
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bcos.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

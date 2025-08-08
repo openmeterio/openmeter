@@ -557,10 +557,14 @@ func (_u *CustomerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(customer.FieldMetadata, field.TypeJSON, value)
+		vv, err := customer.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(customer.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(customer.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(customer.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(customer.FieldUpdatedAt, field.TypeTime, value)
@@ -623,10 +627,14 @@ func (_u *CustomerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		_spec.ClearField(customer.FieldBillingAddressPhoneNumber, field.TypeString)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
-		_spec.SetField(customer.FieldAnnotations, field.TypeJSON, value)
+		vv, err := customer.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(customer.FieldAnnotations, field.TypeString, vv)
 	}
 	if _u.mutation.AnnotationsCleared() {
-		_spec.ClearField(customer.FieldAnnotations, field.TypeJSON)
+		_spec.ClearField(customer.FieldAnnotations, field.TypeString)
 	}
 	if value, ok := _u.mutation.Key(); ok {
 		_spec.SetField(customer.FieldKey, field.TypeString, value)
@@ -1427,10 +1435,14 @@ func (_u *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err 
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(customer.FieldMetadata, field.TypeJSON, value)
+		vv, err := customer.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(customer.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(customer.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(customer.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(customer.FieldUpdatedAt, field.TypeTime, value)
@@ -1493,10 +1505,14 @@ func (_u *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err 
 		_spec.ClearField(customer.FieldBillingAddressPhoneNumber, field.TypeString)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
-		_spec.SetField(customer.FieldAnnotations, field.TypeJSON, value)
+		vv, err := customer.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(customer.FieldAnnotations, field.TypeString, vv)
 	}
 	if _u.mutation.AnnotationsCleared() {
-		_spec.ClearField(customer.FieldAnnotations, field.TypeJSON)
+		_spec.ClearField(customer.FieldAnnotations, field.TypeString)
 	}
 	if value, ok := _u.mutation.Key(); ok {
 		_spec.SetField(customer.FieldKey, field.TypeString, value)

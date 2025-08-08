@@ -258,7 +258,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billinginvoiceline.FieldQuantity:
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
-		case billinginvoiceline.FieldAnnotations, billinginvoiceline.FieldMetadata, billinginvoiceline.FieldTaxConfig:
+		case billinginvoiceline.FieldTaxConfig:
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
@@ -266,6 +266,10 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
+		case billinginvoiceline.FieldAnnotations:
+			values[i] = billinginvoiceline.ValueScanner.Annotations.ScanValue()
+		case billinginvoiceline.FieldMetadata:
+			values[i] = billinginvoiceline.ValueScanner.Metadata.ScanValue()
 		case billinginvoiceline.FieldRatecardDiscounts:
 			values[i] = billinginvoiceline.ValueScanner.RatecardDiscounts.ScanValue()
 		case billinginvoiceline.ForeignKeys[0]: // fee_line_config_id
@@ -294,12 +298,10 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				_m.ID = value.String
 			}
 		case billinginvoiceline.FieldAnnotations:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field annotations", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
-					return fmt.Errorf("unmarshal field annotations: %w", err)
-				}
+			if value, err := billinginvoiceline.ValueScanner.Annotations.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Annotations = value
 			}
 		case billinginvoiceline.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -308,12 +310,10 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				_m.Namespace = value.String
 			}
 		case billinginvoiceline.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := billinginvoiceline.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case billinginvoiceline.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

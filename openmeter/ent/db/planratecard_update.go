@@ -349,10 +349,14 @@ func (_u *PlanRateCardUpdate) sqlSave(ctx context.Context) (_node int, err error
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(planratecard.FieldMetadata, field.TypeJSON, value)
+		vv, err := planratecard.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(planratecard.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(planratecard.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(planratecard.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planratecard.FieldUpdatedAt, field.TypeTime, value)
@@ -849,10 +853,14 @@ func (_u *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRateCa
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(planratecard.FieldMetadata, field.TypeJSON, value)
+		vv, err := planratecard.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(planratecard.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(planratecard.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(planratecard.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(planratecard.FieldUpdatedAt, field.TypeTime, value)

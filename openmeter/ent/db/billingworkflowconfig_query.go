@@ -625,41 +625,41 @@ type BillingWorkflowConfigGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (bwcgb *BillingWorkflowConfigGroupBy) Aggregate(fns ...AggregateFunc) *BillingWorkflowConfigGroupBy {
-	bwcgb.fns = append(bwcgb.fns, fns...)
-	return bwcgb
+func (_g *BillingWorkflowConfigGroupBy) Aggregate(fns ...AggregateFunc) *BillingWorkflowConfigGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bwcgb *BillingWorkflowConfigGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bwcgb.build.ctx, ent.OpQueryGroupBy)
-	if err := bwcgb.build.prepareQuery(ctx); err != nil {
+func (_g *BillingWorkflowConfigGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingWorkflowConfigQuery, *BillingWorkflowConfigGroupBy](ctx, bwcgb.build, bwcgb, bwcgb.build.inters, v)
+	return scanWithInterceptors[*BillingWorkflowConfigQuery, *BillingWorkflowConfigGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (bwcgb *BillingWorkflowConfigGroupBy) sqlScan(ctx context.Context, root *BillingWorkflowConfigQuery, v any) error {
+func (_g *BillingWorkflowConfigGroupBy) sqlScan(ctx context.Context, root *BillingWorkflowConfigQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(bwcgb.fns))
-	for _, fn := range bwcgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*bwcgb.flds)+len(bwcgb.fns))
-		for _, f := range *bwcgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*bwcgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bwcgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -673,27 +673,27 @@ type BillingWorkflowConfigSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (bwcs *BillingWorkflowConfigSelect) Aggregate(fns ...AggregateFunc) *BillingWorkflowConfigSelect {
-	bwcs.fns = append(bwcs.fns, fns...)
-	return bwcs
+func (_s *BillingWorkflowConfigSelect) Aggregate(fns ...AggregateFunc) *BillingWorkflowConfigSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bwcs *BillingWorkflowConfigSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bwcs.ctx, ent.OpQuerySelect)
-	if err := bwcs.prepareQuery(ctx); err != nil {
+func (_s *BillingWorkflowConfigSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingWorkflowConfigQuery, *BillingWorkflowConfigSelect](ctx, bwcs.BillingWorkflowConfigQuery, bwcs, bwcs.inters, v)
+	return scanWithInterceptors[*BillingWorkflowConfigQuery, *BillingWorkflowConfigSelect](ctx, _s.BillingWorkflowConfigQuery, _s, _s.inters, v)
 }
 
-func (bwcs *BillingWorkflowConfigSelect) sqlScan(ctx context.Context, root *BillingWorkflowConfigQuery, v any) error {
+func (_s *BillingWorkflowConfigSelect) sqlScan(ctx context.Context, root *BillingWorkflowConfigQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(bwcs.fns))
-	for _, fn := range bwcs.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*bwcs.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -701,7 +701,7 @@ func (bwcs *BillingWorkflowConfigSelect) sqlScan(ctx context.Context, root *Bill
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bwcs.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

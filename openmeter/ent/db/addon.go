@@ -3,7 +3,6 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -98,14 +97,14 @@ func (*Addon) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case addon.FieldMetadata:
-			values[i] = new([]byte)
 		case addon.FieldVersion:
 			values[i] = new(sql.NullInt64)
 		case addon.FieldID, addon.FieldNamespace, addon.FieldName, addon.FieldDescription, addon.FieldKey, addon.FieldCurrency, addon.FieldInstanceType:
 			values[i] = new(sql.NullString)
 		case addon.FieldCreatedAt, addon.FieldUpdatedAt, addon.FieldDeletedAt, addon.FieldEffectiveFrom, addon.FieldEffectiveTo:
 			values[i] = new(sql.NullTime)
+		case addon.FieldMetadata:
+			values[i] = addon.ValueScanner.Metadata.ScanValue()
 		case addon.FieldAnnotations:
 			values[i] = addon.ValueScanner.Annotations.ScanValue()
 		default:
@@ -136,12 +135,10 @@ func (_m *Addon) assignValues(columns []string, values []any) error {
 				_m.Namespace = value.String
 			}
 		case addon.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := addon.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case addon.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

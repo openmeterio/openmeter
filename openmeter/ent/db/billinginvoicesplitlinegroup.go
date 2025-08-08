@@ -128,12 +128,14 @@ func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error)
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoicesplitlinegroup.FieldMetadata, billinginvoicesplitlinegroup.FieldTaxConfig:
+		case billinginvoicesplitlinegroup.FieldTaxConfig:
 			values[i] = new([]byte)
 		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldFeatureKey, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID:
 			values[i] = new(sql.NullString)
 		case billinginvoicesplitlinegroup.FieldCreatedAt, billinginvoicesplitlinegroup.FieldUpdatedAt, billinginvoicesplitlinegroup.FieldDeletedAt, billinginvoicesplitlinegroup.FieldServicePeriodStart, billinginvoicesplitlinegroup.FieldServicePeriodEnd:
 			values[i] = new(sql.NullTime)
+		case billinginvoicesplitlinegroup.FieldMetadata:
+			values[i] = billinginvoicesplitlinegroup.ValueScanner.Metadata.ScanValue()
 		case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 			values[i] = billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts.ScanValue()
 		case billinginvoicesplitlinegroup.FieldPrice:
@@ -166,12 +168,10 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 				_m.Namespace = value.String
 			}
 		case billinginvoicesplitlinegroup.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := billinginvoicesplitlinegroup.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case billinginvoicesplitlinegroup.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

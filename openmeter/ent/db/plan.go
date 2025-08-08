@@ -3,7 +3,6 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -99,14 +98,14 @@ func (*Plan) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case plan.FieldMetadata:
-			values[i] = new([]byte)
 		case plan.FieldVersion:
 			values[i] = new(sql.NullInt64)
 		case plan.FieldID, plan.FieldNamespace, plan.FieldName, plan.FieldDescription, plan.FieldKey, plan.FieldCurrency, plan.FieldBillingCadence:
 			values[i] = new(sql.NullString)
 		case plan.FieldCreatedAt, plan.FieldUpdatedAt, plan.FieldDeletedAt, plan.FieldEffectiveFrom, plan.FieldEffectiveTo:
 			values[i] = new(sql.NullTime)
+		case plan.FieldMetadata:
+			values[i] = plan.ValueScanner.Metadata.ScanValue()
 		case plan.FieldProRatingConfig:
 			values[i] = plan.ValueScanner.ProRatingConfig.ScanValue()
 		default:
@@ -137,12 +136,10 @@ func (_m *Plan) assignValues(columns []string, values []any) error {
 				_m.Namespace = value.String
 			}
 		case plan.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := plan.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case plan.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

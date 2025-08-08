@@ -709,41 +709,41 @@ type AddonGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (agb *AddonGroupBy) Aggregate(fns ...AggregateFunc) *AddonGroupBy {
-	agb.fns = append(agb.fns, fns...)
-	return agb
+func (_g *AddonGroupBy) Aggregate(fns ...AggregateFunc) *AddonGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (agb *AddonGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, agb.build.ctx, ent.OpQueryGroupBy)
-	if err := agb.build.prepareQuery(ctx); err != nil {
+func (_g *AddonGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AddonQuery, *AddonGroupBy](ctx, agb.build, agb, agb.build.inters, v)
+	return scanWithInterceptors[*AddonQuery, *AddonGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (agb *AddonGroupBy) sqlScan(ctx context.Context, root *AddonQuery, v any) error {
+func (_g *AddonGroupBy) sqlScan(ctx context.Context, root *AddonQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(agb.fns))
-	for _, fn := range agb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*agb.flds)+len(agb.fns))
-		for _, f := range *agb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*agb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := agb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -757,27 +757,27 @@ type AddonSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (as *AddonSelect) Aggregate(fns ...AggregateFunc) *AddonSelect {
-	as.fns = append(as.fns, fns...)
-	return as
+func (_s *AddonSelect) Aggregate(fns ...AggregateFunc) *AddonSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (as *AddonSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, as.ctx, ent.OpQuerySelect)
-	if err := as.prepareQuery(ctx); err != nil {
+func (_s *AddonSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AddonQuery, *AddonSelect](ctx, as.AddonQuery, as, as.inters, v)
+	return scanWithInterceptors[*AddonQuery, *AddonSelect](ctx, _s.AddonQuery, _s, _s.inters, v)
 }
 
-func (as *AddonSelect) sqlScan(ctx context.Context, root *AddonQuery, v any) error {
+func (_s *AddonSelect) sqlScan(ctx context.Context, root *AddonQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(as.fns))
-	for _, fn := range as.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*as.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -785,7 +785,7 @@ func (as *AddonSelect) sqlScan(ctx context.Context, root *AddonQuery, v any) err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := as.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

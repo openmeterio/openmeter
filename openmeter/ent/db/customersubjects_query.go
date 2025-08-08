@@ -559,41 +559,41 @@ type CustomerSubjectsGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (csgb *CustomerSubjectsGroupBy) Aggregate(fns ...AggregateFunc) *CustomerSubjectsGroupBy {
-	csgb.fns = append(csgb.fns, fns...)
-	return csgb
+func (_g *CustomerSubjectsGroupBy) Aggregate(fns ...AggregateFunc) *CustomerSubjectsGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (csgb *CustomerSubjectsGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, csgb.build.ctx, ent.OpQueryGroupBy)
-	if err := csgb.build.prepareQuery(ctx); err != nil {
+func (_g *CustomerSubjectsGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*CustomerSubjectsQuery, *CustomerSubjectsGroupBy](ctx, csgb.build, csgb, csgb.build.inters, v)
+	return scanWithInterceptors[*CustomerSubjectsQuery, *CustomerSubjectsGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (csgb *CustomerSubjectsGroupBy) sqlScan(ctx context.Context, root *CustomerSubjectsQuery, v any) error {
+func (_g *CustomerSubjectsGroupBy) sqlScan(ctx context.Context, root *CustomerSubjectsQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(csgb.fns))
-	for _, fn := range csgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*csgb.flds)+len(csgb.fns))
-		for _, f := range *csgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*csgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := csgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -607,27 +607,27 @@ type CustomerSubjectsSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (css *CustomerSubjectsSelect) Aggregate(fns ...AggregateFunc) *CustomerSubjectsSelect {
-	css.fns = append(css.fns, fns...)
-	return css
+func (_s *CustomerSubjectsSelect) Aggregate(fns ...AggregateFunc) *CustomerSubjectsSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (css *CustomerSubjectsSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, css.ctx, ent.OpQuerySelect)
-	if err := css.prepareQuery(ctx); err != nil {
+func (_s *CustomerSubjectsSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*CustomerSubjectsQuery, *CustomerSubjectsSelect](ctx, css.CustomerSubjectsQuery, css, css.inters, v)
+	return scanWithInterceptors[*CustomerSubjectsQuery, *CustomerSubjectsSelect](ctx, _s.CustomerSubjectsQuery, _s, _s.inters, v)
 }
 
-func (css *CustomerSubjectsSelect) sqlScan(ctx context.Context, root *CustomerSubjectsQuery, v any) error {
+func (_s *CustomerSubjectsSelect) sqlScan(ctx context.Context, root *CustomerSubjectsQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(css.fns))
-	for _, fn := range css.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*css.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -635,7 +635,7 @@ func (css *CustomerSubjectsSelect) sqlScan(ctx context.Context, root *CustomerSu
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := css.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

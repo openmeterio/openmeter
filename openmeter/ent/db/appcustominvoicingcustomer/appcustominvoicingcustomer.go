@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 )
 
 const (
@@ -85,6 +86,10 @@ var (
 	AppIDValidator func(string) error
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
+	// ValueScanner of all AppCustomInvoicingCustomer fields.
+	ValueScanner struct {
+		Metadata field.TypeValueScanner[map[string]string]
+	}
 )
 
 // OrderOption defines the ordering options for the AppCustomInvoicingCustomer queries.
@@ -113,6 +118,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByMetadata orders the results by the metadata field.
+func ByMetadata(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMetadata, opts...).ToFunc()
 }
 
 // ByAppID orders the results by the app_id field.

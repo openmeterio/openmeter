@@ -421,10 +421,14 @@ func (_u *AppUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
+		vv, err := dbapp.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(dbapp.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(dbapp.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbapp.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)
@@ -1201,10 +1205,14 @@ func (_u *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
+		vv, err := dbapp.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(dbapp.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(dbapp.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbapp.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)

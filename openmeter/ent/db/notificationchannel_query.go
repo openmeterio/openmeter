@@ -590,41 +590,41 @@ type NotificationChannelGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (ncgb *NotificationChannelGroupBy) Aggregate(fns ...AggregateFunc) *NotificationChannelGroupBy {
-	ncgb.fns = append(ncgb.fns, fns...)
-	return ncgb
+func (_g *NotificationChannelGroupBy) Aggregate(fns ...AggregateFunc) *NotificationChannelGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (ncgb *NotificationChannelGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ncgb.build.ctx, ent.OpQueryGroupBy)
-	if err := ncgb.build.prepareQuery(ctx); err != nil {
+func (_g *NotificationChannelGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*NotificationChannelQuery, *NotificationChannelGroupBy](ctx, ncgb.build, ncgb, ncgb.build.inters, v)
+	return scanWithInterceptors[*NotificationChannelQuery, *NotificationChannelGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (ncgb *NotificationChannelGroupBy) sqlScan(ctx context.Context, root *NotificationChannelQuery, v any) error {
+func (_g *NotificationChannelGroupBy) sqlScan(ctx context.Context, root *NotificationChannelQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(ncgb.fns))
-	for _, fn := range ncgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*ncgb.flds)+len(ncgb.fns))
-		for _, f := range *ncgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*ncgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := ncgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -638,27 +638,27 @@ type NotificationChannelSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (ncs *NotificationChannelSelect) Aggregate(fns ...AggregateFunc) *NotificationChannelSelect {
-	ncs.fns = append(ncs.fns, fns...)
-	return ncs
+func (_s *NotificationChannelSelect) Aggregate(fns ...AggregateFunc) *NotificationChannelSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (ncs *NotificationChannelSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ncs.ctx, ent.OpQuerySelect)
-	if err := ncs.prepareQuery(ctx); err != nil {
+func (_s *NotificationChannelSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*NotificationChannelQuery, *NotificationChannelSelect](ctx, ncs.NotificationChannelQuery, ncs, ncs.inters, v)
+	return scanWithInterceptors[*NotificationChannelQuery, *NotificationChannelSelect](ctx, _s.NotificationChannelQuery, _s, _s.inters, v)
 }
 
-func (ncs *NotificationChannelSelect) sqlScan(ctx context.Context, root *NotificationChannelQuery, v any) error {
+func (_s *NotificationChannelSelect) sqlScan(ctx context.Context, root *NotificationChannelQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(ncs.fns))
-	for _, fn := range ncs.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*ncs.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -666,7 +666,7 @@ func (ncs *NotificationChannelSelect) sqlScan(ctx context.Context, root *Notific
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := ncs.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

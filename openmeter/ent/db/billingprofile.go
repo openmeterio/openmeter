@@ -3,7 +3,6 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -155,14 +154,14 @@ func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billingprofile.FieldMetadata:
-			values[i] = new([]byte)
 		case billingprofile.FieldDefault:
 			values[i] = new(sql.NullBool)
 		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldName, billingprofile.FieldDescription, billingprofile.FieldSupplierAddressCountry, billingprofile.FieldSupplierAddressPostalCode, billingprofile.FieldSupplierAddressState, billingprofile.FieldSupplierAddressCity, billingprofile.FieldSupplierAddressLine1, billingprofile.FieldSupplierAddressLine2, billingprofile.FieldSupplierAddressPhoneNumber, billingprofile.FieldTaxAppID, billingprofile.FieldInvoicingAppID, billingprofile.FieldPaymentAppID, billingprofile.FieldWorkflowConfigID, billingprofile.FieldSupplierName, billingprofile.FieldSupplierTaxCode:
 			values[i] = new(sql.NullString)
 		case billingprofile.FieldCreatedAt, billingprofile.FieldUpdatedAt, billingprofile.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case billingprofile.FieldMetadata:
+			values[i] = billingprofile.ValueScanner.Metadata.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -191,12 +190,10 @@ func (_m *BillingProfile) assignValues(columns []string, values []any) error {
 				_m.Namespace = value.String
 			}
 		case billingprofile.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := billingprofile.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case billingprofile.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

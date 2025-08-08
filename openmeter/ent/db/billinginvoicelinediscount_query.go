@@ -559,41 +559,41 @@ type BillingInvoiceLineDiscountGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (bildgb *BillingInvoiceLineDiscountGroupBy) Aggregate(fns ...AggregateFunc) *BillingInvoiceLineDiscountGroupBy {
-	bildgb.fns = append(bildgb.fns, fns...)
-	return bildgb
+func (_g *BillingInvoiceLineDiscountGroupBy) Aggregate(fns ...AggregateFunc) *BillingInvoiceLineDiscountGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bildgb *BillingInvoiceLineDiscountGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bildgb.build.ctx, ent.OpQueryGroupBy)
-	if err := bildgb.build.prepareQuery(ctx); err != nil {
+func (_g *BillingInvoiceLineDiscountGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingInvoiceLineDiscountQuery, *BillingInvoiceLineDiscountGroupBy](ctx, bildgb.build, bildgb, bildgb.build.inters, v)
+	return scanWithInterceptors[*BillingInvoiceLineDiscountQuery, *BillingInvoiceLineDiscountGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (bildgb *BillingInvoiceLineDiscountGroupBy) sqlScan(ctx context.Context, root *BillingInvoiceLineDiscountQuery, v any) error {
+func (_g *BillingInvoiceLineDiscountGroupBy) sqlScan(ctx context.Context, root *BillingInvoiceLineDiscountQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(bildgb.fns))
-	for _, fn := range bildgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*bildgb.flds)+len(bildgb.fns))
-		for _, f := range *bildgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*bildgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bildgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -607,27 +607,27 @@ type BillingInvoiceLineDiscountSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (bilds *BillingInvoiceLineDiscountSelect) Aggregate(fns ...AggregateFunc) *BillingInvoiceLineDiscountSelect {
-	bilds.fns = append(bilds.fns, fns...)
-	return bilds
+func (_s *BillingInvoiceLineDiscountSelect) Aggregate(fns ...AggregateFunc) *BillingInvoiceLineDiscountSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bilds *BillingInvoiceLineDiscountSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bilds.ctx, ent.OpQuerySelect)
-	if err := bilds.prepareQuery(ctx); err != nil {
+func (_s *BillingInvoiceLineDiscountSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingInvoiceLineDiscountQuery, *BillingInvoiceLineDiscountSelect](ctx, bilds.BillingInvoiceLineDiscountQuery, bilds, bilds.inters, v)
+	return scanWithInterceptors[*BillingInvoiceLineDiscountQuery, *BillingInvoiceLineDiscountSelect](ctx, _s.BillingInvoiceLineDiscountQuery, _s, _s.inters, v)
 }
 
-func (bilds *BillingInvoiceLineDiscountSelect) sqlScan(ctx context.Context, root *BillingInvoiceLineDiscountQuery, v any) error {
+func (_s *BillingInvoiceLineDiscountSelect) sqlScan(ctx context.Context, root *BillingInvoiceLineDiscountQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(bilds.fns))
-	for _, fn := range bilds.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*bilds.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -635,7 +635,7 @@ func (bilds *BillingInvoiceLineDiscountSelect) sqlScan(ctx context.Context, root
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bilds.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

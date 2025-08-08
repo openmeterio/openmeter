@@ -3,7 +3,6 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -78,14 +77,14 @@ func (*AppCustomInvoicingCustomer) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case appcustominvoicingcustomer.FieldMetadata:
-			values[i] = new([]byte)
 		case appcustominvoicingcustomer.FieldID:
 			values[i] = new(sql.NullInt64)
 		case appcustominvoicingcustomer.FieldNamespace, appcustominvoicingcustomer.FieldAppID, appcustominvoicingcustomer.FieldCustomerID:
 			values[i] = new(sql.NullString)
 		case appcustominvoicingcustomer.FieldCreatedAt, appcustominvoicingcustomer.FieldUpdatedAt, appcustominvoicingcustomer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case appcustominvoicingcustomer.FieldMetadata:
+			values[i] = appcustominvoicingcustomer.ValueScanner.Metadata.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -133,12 +132,10 @@ func (_m *AppCustomInvoicingCustomer) assignValues(columns []string, values []an
 				*_m.DeletedAt = value.Time
 			}
 		case appcustominvoicingcustomer.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := appcustominvoicingcustomer.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case appcustominvoicingcustomer.FieldAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
