@@ -8,6 +8,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 )
@@ -17,6 +18,7 @@ type Options struct {
 	Publisher   message.Publisher
 	Logger      *slog.Logger
 	MetricMeter metric.Meter
+	Tracer      trace.Tracer
 
 	Config config.ConsumerConfiguration
 }
@@ -40,6 +42,10 @@ func (o *Options) Validate() error {
 
 	if o.MetricMeter == nil {
 		return errors.New("metric meter is required")
+	}
+
+	if o.Tracer == nil {
+		return errors.New("tracer is required")
 	}
 
 	return nil
@@ -89,6 +95,7 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 		Prefix:      "consumer",
 		Logger:      opts.Logger,
 		Router:      router,
+		Tracer:      opts.Tracer,
 	})
 	if err != nil {
 		return nil, err

@@ -1,6 +1,8 @@
 package router
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,8 +12,10 @@ import (
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
+	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 )
 
 const (
@@ -89,6 +93,7 @@ type NewDLQTelemetryOptions struct {
 	Prefix      string
 	Logger      *slog.Logger
 	Router      *message.Router
+	Tracer      trace.Tracer
 }
 
 func (o *NewDLQTelemetryOptions) Validate() error {
@@ -104,6 +109,10 @@ func (o *NewDLQTelemetryOptions) Validate() error {
 
 	if o.Router == nil {
 		errs = append(errs, errors.New("router is required"))
+	}
+
+	if o.Tracer == nil {
+		errs = append(errs, errors.New("tracer is required"))
 	}
 
 	return errors.Join(errs...)
@@ -136,18 +145,32 @@ func NewDLQTelemetryMiddleware(opts NewDLQTelemetryOptions) (func(message.Handle
 
 			meterAttributeCEType := metricAttributeTypeFromMessage(msg)
 
-			resMsg, err := h(msg)
+			metadataAsString, err := json.Marshal(msg.Metadata)
+			if err != nil {
+				opts.Logger.Error("Failed to marshal message metadata", "error", err)
+				metadataAsString = []byte("failed-to-marshal-metadata")
+			}
+
+			ctx, span := tracex.Start[[]*message.Message](msg.Context(), opts.Tracer, "watermill.router.full_message_processing", trace.WithAttributes(
+				meterAttributeCEType,
+				attribute.String("message.metadata", string(metadataAsString)),
+				attribute.String("message.payload", string(msg.Payload)),
+			))
+
+			resMsg, err := span.Wrap(ctx, func(ctx context.Context) ([]*message.Message, error) {
+				return h(msg)
+			})
 			if err != nil {
 				// Context might be canceled here, so we cannot rely on log.WarnContext/ErrorContext
 				if opts.Router.IsClosed() {
-					opts.Logger.Warn("Message processing failed, router is closing", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
+					opts.Logger.Warn("Message processing failed, router is closing", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
 				} else {
 					logger := opts.Logger.ErrorContext
 					if _, ok := lo.ErrorsAs[*WarningLogSeverityError](err); ok {
 						logger = opts.Logger.WarnContext
 					}
 
-					logger(msg.Context(), "Failed to process message, message is going to DLQ", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
+					logger(msg.Context(), "Failed to process message, message is going to DLQ", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
 
 					meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
 						meterAttributeCEType,
@@ -182,5 +205,5 @@ func metricAttributeTypeFromMessage(msg *message.Message) attribute.KeyValue {
 		ce_type = unkonwnEventType
 	}
 
-	return attribute.String("ce_type", ce_type)
+	return attribute.String("message.event_type", ce_type)
 }

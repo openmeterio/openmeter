@@ -106,6 +106,7 @@ func main() {
 			Publisher:   app.MessagePublisher,
 			Logger:      logger,
 			MetricMeter: app.Meter,
+			Tracer:      app.Tracer,
 
 			Config: conf.Notification.Consumer,
 		},

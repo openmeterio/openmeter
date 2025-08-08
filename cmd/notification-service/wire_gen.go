@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 )
 
@@ -134,6 +135,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	service := common.NewMeterService(adapter)
 	featureConnector := common.NewFeatureConnector(logger, client, service, eventbusPublisher)
+	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
 		cleanup6()
@@ -179,7 +181,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
 	if err != nil {
 		cleanup7()
@@ -250,6 +251,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Logger:             logger,
 		MessagePublisher:   publisher,
 		Meter:              meter,
+		Tracer:             tracer,
 		Metadata:           commonMetadata,
 		MeterService:       service,
 		Notification:       notificationService,
@@ -281,6 +283,7 @@ type Application struct {
 	Logger             *slog.Logger
 	MessagePublisher   message.Publisher
 	Meter              metric.Meter
+	Tracer             trace.Tracer
 	Metadata           common.Metadata
 	MeterService       meter.Service
 	Notification       notification.Service
