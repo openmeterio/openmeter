@@ -185,6 +185,25 @@ jobs:
       - name: Check commit messages
         run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
+  commit-hooks-docker:
+    name: Commit hooks (Docker)
+    runs-on: depot-ubuntu-latest-4
+    container:
+      image: turip/test:om-nixbuild
+      # TODO: Volumes for performance
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Pre-commit hooks
+        run: nix develop --impure .#ci -c pre-commit run -a
+
+      - name: Check commit messages
+        run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
+
   dev:
     name: Developer environment
     runs-on: ubuntu-latest
