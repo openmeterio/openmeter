@@ -47,7 +47,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Restore .devenv if exists # TODO: Only save on main and restore on other branches
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: .devenv
           key: nix-devenv-${{ runner.os }}
@@ -86,6 +86,7 @@ jobs:
       - name: Build Sink Worker
         run: nix develop --impure .#ci -c make build-sink-worker
 
+      # TODO: Temp for testing
       - uses: actions/cache/save@v4
         id: cache-devenv
         with:
