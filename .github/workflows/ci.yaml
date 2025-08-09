@@ -105,14 +105,20 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: depot-ubuntu-latest-8,dagger=${{ env.DAGGER_VERSION }}
+    runs-on: depot-ubuntu-latest-8
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - run: dagger call lint all
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@e47aba410ef9bb9ed81a4d2a97df31061e5e842e # v8.0.0
+        with:
+          verb: call
+          args: lint all
+          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
+          version: ${{ env.DAGGER_VERSION }}
 
       - name: Export Dagger Engine logs
         id: export-dagger-engine-logs
@@ -182,8 +188,8 @@ jobs:
   commit-hooks-docker:
     name: Commit hooks (Docker)
     runs-on: depot-ubuntu-latest-4
-    container:
-      image: turip/test:om-nixbuild
+    #container:
+    #  image: turip/test:om-nixbuild
       # TODO: Volumes for performance
 
     steps:
@@ -191,12 +197,17 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+      
+      - run: id
 
-      - name: Pre-commit hooks
-        run: nix develop --impure .#ci -c pre-commit run -a
-
-      - name: Check commit messages
-        run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
+      - name: Validate commit hooks
+        uses: addnab/docker-run-action@v3
+        with:
+            image: turip/test:om-nixbuild
+            options: -v ${{ github.workspace }}:/tmp/build
+            run: |
+              nix develop --impure .#ci -c pre-commit run -a
+              nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
   dev:
     name: Developer environment
