@@ -71,6 +71,9 @@ jobs:
       - name: Validate commit messages (manual)
         run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
+      - name: go mod Download
+        run: nix develop --impure .#ci -c go mod download
+
       - name: Lint
         run: nix develop --impure .#ci -c golangci-lint run -v
 
