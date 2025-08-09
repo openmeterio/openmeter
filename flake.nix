@@ -22,7 +22,6 @@
           overlays = [
             (final: prev: {
               dagger = inputs'.dagger.packages.dagger;
-              licensei = self'.packages.licensei;
               atlasx = self'.packages.atlasx;
             })
           ];
@@ -116,7 +115,6 @@
               semver-tool
 
               dagger
-              licensei
 
               go-migrate
 
@@ -154,28 +152,6 @@
         };
 
         packages = {
-          licensei = pkgs.buildGoModule rec {
-            pname = "licensei";
-            version = "0.8.0";
-
-            src = pkgs.fetchFromGitHub {
-              owner = "goph";
-              repo = "licensei";
-              rev = "v${version}";
-              sha256 = "sha256-Pvjmvfk0zkY2uSyLwAtzWNn5hqKImztkf8S6OhX8XoM=";
-            };
-
-            vendorHash = "sha256-ZIpZ2tPLHwfWiBywN00lPI1R7u7lseENIiybL3+9xG8=";
-
-            subPackages = [ "cmd/licensei" ];
-
-            ldflags = [
-              "-w"
-              "-s"
-              "-X main.version=v${version}"
-            ];
-          };
-
           atlasx =
             let
               systemMappings = {
