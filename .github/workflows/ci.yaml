@@ -204,7 +204,7 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
             image: turip/test:om-nixbuild
-            options: -v ${{ github.workspace }}:/tmp/build
+            options: -v ${{ github.workspace }}:/tmp/build -u 1001
             run: |
               nix develop --impure .#ci -c pre-commit run -a
               nix develop --impure .#ci -c pre-commit run --hook-stage manual
