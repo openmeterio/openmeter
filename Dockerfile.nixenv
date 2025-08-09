@@ -1,0 +1,10 @@
+FROM nixos/nix
+
+RUN nix-channel --update
+
+COPY nix-config.cfg /etc/nix/nix.conf
+
+COPY . /tmp/build
+WORKDIR /tmp/build
+
+RUN nix develop --impure .#ci
