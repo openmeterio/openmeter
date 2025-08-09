@@ -86,7 +86,8 @@ jobs:
       - name: Build Sink Worker
         run: nix develop --impure .#ci -c make build-sink-worker
 
-      # TODO: Temp for testing
+      # TODO: Temp for testing, cannot overwrite cache key (github would expire caches)
+      # warning: max cache size is 10GB LRU style
       - uses: actions/cache/save@v4
         id: cache-devenv
         with:
