@@ -4,9 +4,12 @@ RUN nix-channel --update
 
 COPY nix-config.cfg /etc/nix/nix.conf
 
-COPY . /tmp/build
+COPY flake.nix flake.lock /tmp/build/
+
 WORKDIR /tmp/build
 
-RUN nix develop --impure .#ci
+RUN nix develop --impure .#ci && rm -rf /tmp/build/*
 
 CMD ["/bin/bash", "-c", "sleep infinity"]
+
+LABEL org.opencontainers.image.source=https://github.com/turip/test
