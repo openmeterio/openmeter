@@ -15,8 +15,8 @@ jobs:
   build:
     name: Build
     runs-on: depot-ubuntu-latest-8
-    env:
-      GOCACHE: ${{ github.workspace }}/.devenv/go-cache
+    #env:
+      # GOCACHE: ${{ github.workspace }}/.devenv/gocache
 
     steps:
       - name: Checkout repository
@@ -76,6 +76,8 @@ jobs:
 
       - name: Lint
         run: nix develop --impure .#ci -c golangci-lint run -v
+        env:
+          GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/golangci-lint-cache
 
       - name: Build Server
         run: nix develop --impure .#ci -c make build-server
