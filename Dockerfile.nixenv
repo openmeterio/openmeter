@@ -8,3 +8,5 @@ COPY . /tmp/build
 WORKDIR /tmp/build
 
 RUN nix develop --impure .#ci
+
+CMD ["/bin/bash", "-c", "sleep infinity"]

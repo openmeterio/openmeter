@@ -189,7 +189,7 @@ jobs:
     name: Commit hooks (Docker)
     runs-on: depot-ubuntu-latest-4
     container:
-      image: turip/test:om-nixbuild
+      image: ghcr.io/turip/test:om-nixbuild
       # TODO: Volumes for performance
 
     steps:
