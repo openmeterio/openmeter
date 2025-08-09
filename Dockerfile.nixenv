@@ -10,6 +10,6 @@ WORKDIR /tmp/build
 
 RUN nix develop --impure .#ci && rm -rf /tmp/build/*
 
-CMD ["/bin/bash", "-c", "sleep infinity"]
+CMD ["/nix/var/nix/profiles/default/bin/sh", "-c", "sleep infinity"]
 
 LABEL org.opencontainers.image.source=https://github.com/turip/test
