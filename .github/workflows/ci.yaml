@@ -84,7 +84,6 @@ jobs:
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-pr
             ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
             ${{ runner.os }}-openmeter-nix-build-main-
