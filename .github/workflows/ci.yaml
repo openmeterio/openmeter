@@ -11,8 +11,8 @@ permissions:
 env:
   DAGGER_VERSION: 0.18.6
   # For testing purposes, feel free to set this to true
-  #SHOULD_SAVE_CACHE: ${{ github.ref_name == 'main' }}
-  SHOULD_SAVE_CACHE: true
+  SHOULD_SAVE_CACHE: ${{ github.ref_name == 'main' }}
+  #SHOULD_SAVE_CACHE: true
 
 
 jobs:
