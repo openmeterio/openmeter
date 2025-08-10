@@ -14,7 +14,7 @@ env:
 jobs:
   e2e-depot-dagger:
     name: E2E Depot+Dagger
-    runs-on: depot-ubuntu-latest-8 # ,dagger=0.18.14"
+    runs-on: "depot-ubuntu-latest-8,dagger=0.18.14"
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
