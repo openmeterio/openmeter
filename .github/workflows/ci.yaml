@@ -32,25 +32,26 @@ jobs:
             keep-outputs = true
 
       # maybe: https://github.com/qoomon/actions--parallel-steps/tree/main/act-interceptor
-      - name: Restore and save Nix store
+      - name: Restore and save Nix store if needed
         uses: nix-community/cache-nix-action@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
-      #  if: github.ref_name == 'main' # only save when pushing to main
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           save: 'true'
-          purge: 'true'
-          gc-max-store-size: 32G
-          purge-prefixes: ${{ runner.os }}-openmeter-nix-build-
-          purge-created: 1d
-          purge-last-accessed: 1d
-          purge-primary-key: never
-          token: ${{ secrets.GITHUB_TOKEN }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Restore .devenv if exists # TODO: Only save on main and restore on other branches
-        uses: actions/cache/restore@v4
+      - name: Restore .devenv if exists
+        uses: actions/cache@v4
         with:
           path: .devenv
-          key: nix-devenv-${{ runner.os }}-v2
+          key: nix-devenv-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
+          # Prefer to restore the branch cache over the main cache
+          restore-keys: |
+            nix-devenv-${{ runner.os }}-${{ github.ref_name }}-
+            nix-devenv-${{ runner.os }}-main-
+            nix-devenv-${{ runner.os }}-
 
       #- name: Restore Nix store
       #  uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
@@ -85,23 +86,6 @@ jobs:
 
       - name: Build Sink Worker
         run: nix develop --impure .#ci -c make build-sink-worker
-
-      - name: Delete go build cache
-        run: |
-          set -x
-          curl \
-            -X DELETE \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: token ${{ github.token }}" \
-            https://api.github.com/repos/${{ github.repository }}/actions/caches?key=nix-devenv-${{ runner.os }}-v2
-
-      # TODO: Temp for testing, cannot overwrite cache key (github would expire caches)
-      # warning: max cache size is 10GB LRU style
-      - uses: actions/cache/save@v4
-        id: cache-devenv
-        with:
-          path: .devenv
-          key: nix-devenv-${{ runner.os }}-v2
 
   test:
     name: Test
