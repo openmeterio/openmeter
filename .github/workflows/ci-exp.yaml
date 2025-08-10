@@ -12,8 +12,8 @@ env:
   DAGGER_VERSION: 0.18.14
 
 jobs:
-  e2e:
-    name: E2E
+  e2e-depot-dagger:
+    name: E2E (Depot+Dagger)
     runs-on: "depot-ubuntu-latest-16,dagger=0.18.14"
 
     steps:
