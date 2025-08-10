@@ -105,7 +105,9 @@ jobs:
 
       - name: Prepare Nix shell/dev
         run: nix develop --impure .#ci
-        working-directory: .
+
+      - name: Prepare Nix shell/dev
+        run: nix develop --impure .#ci -c go env
 
       - name: Validate pre-commit hooks
         run: nix develop --impure .#ci -c pre-commit run -a
