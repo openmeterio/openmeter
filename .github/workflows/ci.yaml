@@ -11,21 +11,59 @@ permissions:
 env:
   DAGGER_VERSION: 0.18.6
   # For testing purposes, feel free to set this to true
-  SHOULD_SAVE_CACHE: ${{ github.ref_name == 'main' }}
-  #SHOULD_SAVE_CACHE: true
+  #SHOULD_SAVE_CACHE: ${{ github.ref_name == 'main' }}
+  SHOULD_SAVE_CACHE: true
 
+  # Let's make sure we put all go caches in the same place
+  GO_STATE_PREFIX: .devenv/go
+  GOCACHE: ${{ github.workspace }}/${{ env.GO_STATE_PREFIX }}/cache
+  GOLANGCI_LINT_CACHE: ${{ github.workspace }}/${{ env.GO_STATE_PREFIX }}/golangci-lint-cache
+  GOPATH: ${{ github.workspace }}/${{ env.GO_STATE_PREFIX }}/path
 
 jobs:
   cache-rebuild:
     name: Rebuild caches
     runs-on: depot-ubuntu-latest-8
-#    if: env.SHOULD_SAVE_CACHE == 'true'
+    if: env.SHOULD_SAVE_CACHE == 'true'
 
     steps:
-      - name: Rebuild caches
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@63ca48f939ee3b8d835f4126562537df0fee5b91 # v32
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Build nix environment
         run: |
-          echo "Rebuilding caches"
-          echo "SHOULD_SAVE_CACHE: ${{ env.SHOULD_SAVE_CACHE }}"
+          nix flake check --impure
+          nix develop --impure .#ci
+
+      - name: Save Nix store cache
+        uses: nix-community/cache-nix-action/save@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          save: 'true'
+
+      - name: Populate go caches - go mod download
+        run: nix develop --impure .#ci -c go mod download
+
+      - name: Populate go caches - lint
+        run: nix develop --impure .#ci -c golangci-lint run -v
+
+      - name: Populate go caches - build
+        run: nix develop --impure .#ci -c make -j 10 build-server build-sink-worker build-benthos-collector build-balance-worker build-billing-worker build-notification-service
+
+      - name: Save go caches
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.GO_STATE_PREFIX }}
+          key: ${{ runner.os }}-openmeter-go-cache-${{ github.ref_name }}-${{ github.sha }}
 
   build:
     name: Build
@@ -47,20 +85,20 @@ jobs:
             keep-outputs = true
 
       # maybe: https://github.com/qoomon/actions--parallel-steps/tree/main/act-interceptor
-      - name: Restore and save Nix store if needed
-        uses: nix-community/cache-nix-action@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          save: 'true'
           restore-prefixes-first-match: |
             ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
       - name: Restore .devenv if exists
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: .devenv
+          path: ${{ env.GO_STATE_PREFIX }}
           key: nix-devenv-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
