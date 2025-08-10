@@ -161,6 +161,18 @@ jobs:
             engine.stderr.log
           retention-days: 14
 
+  test-depot-dagger:
+    name: Test Depot+Dagger
+    runs-on: "depot-ubuntu-latest-8,dagger=0.18.14"
+
+    steps:
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run pipeline
+        run: dagger call test
+
   migrations:
     name: Migration Checks
     runs-on: depot-ubuntu-latest-8
