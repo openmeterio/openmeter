@@ -25,7 +25,7 @@ jobs:
   cache-rebuild:
     name: Rebuild GitHub Actions Caches
     runs-on: depot-ubuntu-latest-8
-    # To test e2e feel free to uncomment this for a branch, then a branch specific cache will be created
+    # To test e2e feel free to comment this out for a branch, then a branch specific cache will be created
     # if: github.ref_name == 'main'
 
     steps:
