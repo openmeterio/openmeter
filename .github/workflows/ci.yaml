@@ -93,7 +93,7 @@ jobs:
             -X DELETE \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ github.token }}" \
-            https://api.github.com/repos/${{ github.repository }}/actions/caches/nix-devenv-${{ runner.os }}-v2
+            https://api.github.com/repos/${{ github.repository }}/actions/caches?key=nix-devenv-${{ runner.os }}-v2
 
       # TODO: Temp for testing, cannot overwrite cache key (github would expire caches)
       # warning: max cache size is 10GB LRU style
