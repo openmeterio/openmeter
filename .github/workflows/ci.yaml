@@ -198,7 +198,7 @@ jobs:
 
       - name: Run tests
         run: |
-          nix develop --impure .#ci -c go test -p 128 --parallel 16 ./...
+          nix develop --impure .#ci -c go clean -testcache && go test -p 128 --parallel 16 ./...
 
       - name: Stop Dependencies
         if: always()
