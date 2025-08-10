@@ -15,10 +15,11 @@ env:
   SHOULD_SAVE_CACHE: true
 
   # Let's make sure we put all go caches in the same place
-  GO_STATE_PREFIX: .devenv/go
-  GOCACHE: ${{ github.workspace }}/${{ env.GO_STATE_PREFIX }}/cache
-  GOLANGCI_LINT_CACHE: ${{ github.workspace }}/${{ env.GO_STATE_PREFIX }}/golangci-lint-cache
-  GOPATH: ${{ github.workspace }}/${{ env.GO_STATE_PREFIX }}/path
+  GO_STATE_PREFIX: .devenv/state/go
+  GOCACHE: ${{ github.workspace }}/.devenv/state/go/cache
+  GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/state/go/golangci-lint-cache
+  GOPATH: ${{ github.workspace }}/.devenv/state/go
+
 
 jobs:
   cache-rebuild:
@@ -68,8 +69,6 @@ jobs:
   build:
     name: Build
     runs-on: depot-ubuntu-latest-8
-    env:
-      GOCACHE: ${{ github.workspace }}/.devenv/gocache
 
     steps:
       - name: Checkout repository
