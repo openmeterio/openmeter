@@ -10,8 +10,23 @@ permissions:
 
 env:
   DAGGER_VERSION: 0.18.6
+  # For testing purposes, feel free to set this to true
+  #SHOULD_SAVE_CACHE: ${{ github.ref_name == 'main' }}
+  SHOULD_SAVE_CACHE: true
+
 
 jobs:
+  cache-rebuild:
+    name: Rebuild caches
+    runs-on: depot-ubuntu-latest-8
+#    if: env.SHOULD_SAVE_CACHE == 'true'
+
+    steps:
+      - name: Rebuild caches
+        run: |
+          echo "Rebuilding caches"
+          echo "SHOULD_SAVE_CACHE: ${{ env.SHOULD_SAVE_CACHE }}"
+
   build:
     name: Build
     runs-on: depot-ubuntu-latest-8
