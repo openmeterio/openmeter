@@ -13,9 +13,12 @@ env:
 
   # Let's make sure we put all go caches in the same place
   CI_GO_STATE_PREFIX: .devenv/state/go
+
+  # Go caches
   GOCACHE: ${{ github.workspace }}/.devenv/state/go/cache
   GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/state/go/golangci-lint-cache
-  GOPATH: ${{ github.workspace }}/.devenv/state/go
+  GOPATH: ${{ github.workspace }}/.devenv/state/go/path
+  GOMODCACHE: ${{ github.workspace }}/.devenv/state/go/path/pkg/mod
 
 
 jobs:
