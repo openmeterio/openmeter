@@ -11,15 +11,9 @@ permissions:
 env:
   DAGGER_VERSION: 0.18.6
 
-  # Let's make sure we put all go caches in the same place
-  CI_GO_STATE_PREFIX: .devenv/state/go
-
   # Go caches
-  GOCACHE: ${{ github.workspace }}/.devenv/state/go/cache
-  GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/state/go/golangci-lint-cache
-  GOPATH: ${{ github.workspace }}/.devenv/state/go/path
-  GOMODCACHE: ${{ github.workspace }}/.devenv/state/go/path/pkg/mod
-
+  GOCACHE: ${{ github.workspace }}/.devenv/go-cache
+  GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/go-ci-lint-cache
 
 jobs:
   cache-rebuild:
@@ -64,7 +58,7 @@ jobs:
       - name: Save go caches
         uses: actions/cache/save@v4
         with:
-          path: ${{ env.CI_GO_STATE_PREFIX }}
+          path: .devenv
           key: ${{ runner.os }}-openmeter-go-cache-${{ github.ref_name }}-${{ github.sha }}
 
   build:
@@ -98,7 +92,7 @@ jobs:
       - name: Restore .devenv if exists
         uses: actions/cache/restore@v4
         with:
-          path: ${{ env.CI_GO_STATE_PREFIX }}
+          path: .devenv
           key: ${{ runner.os }}-openmeter-go-cache-${{ github.ref_name }}-${{ github.sha }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
