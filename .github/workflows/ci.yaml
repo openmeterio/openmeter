@@ -165,7 +165,30 @@ jobs:
 
   test-nix:
     name: Test Nix
-    runs-on: depot-ubuntu-latest-32
+    runs-on: depot-ubuntu-latest-8
+
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres:14-alpine
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: md5
+
+        volumes:
+        - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+        ports: ["5432:5432"]
+
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout repository
@@ -191,20 +214,20 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Start Dependencies
-        run: |
-          docker compose up postgres svix redis -d
-          ./wait-for-healthy.sh postgres svix redis
-
+     # - name: Start Dependencies
+     #   run: |
+     #     docker compose up postgres svix redis -d
+     #     ./wait-for-healthy.sh postgres svix redis
+#
       - name: Run tests
         # count=1 is needed to force retest
         run: |
           nix develop --impure .#ci -c go test -p 128 --parallel 16 -count=1 ./...
-
-      - name: Stop Dependencies
-        if: always()
-        run: |
-          docker compose down -v
+#
+    #  - name: Stop Dependencies
+    #    if: always()
+    #    run: |
+    #      docker compose down -v
 
   test-depot-dagger:
     name: Test Depot+Dagger
