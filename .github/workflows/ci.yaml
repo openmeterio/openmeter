@@ -196,9 +196,14 @@ jobs:
           docker compose up postgres svix redis -d
           ./wait-for-healthy.sh postgres svix redis
 
+      - name: Prepare environment
+        run: |
+          nix develop --impure .#ci -c go clean -testcache
+          nix develop --impure .#ci -c go mod download
+
       - name: Run tests
         run: |
-          nix develop --impure .#ci -c go clean -testcache && go test -p 128 --parallel 16 ./...
+          nix develop --impure .#ci -c go test -p 128 --parallel 16 ./...
 
       - name: Stop Dependencies
         if: always()
