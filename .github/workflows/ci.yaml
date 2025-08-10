@@ -89,16 +89,16 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Restore .devenv if exists
-        uses: actions/cache/restore@v4
-        with:
-          path: .devenv
-          key: ${{ runner.os }}-openmeter-go-cache-${{ github.ref_name }}-${{ github.sha }}
-          # Prefer to restore the branch cache over the main cache
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-cache-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-cache-main-
-            ${{ runner.os }}-openmeter-go-cache-
+      #- name: Restore .devenv if exists
+      #  uses: actions/cache/restore@v4
+      #  with:
+      #    path: .devenv
+      #    key: ${{ runner.os }}-openmeter-go-cache-${{ github.ref_name }}-${{ github.sha }}
+      #    # Prefer to restore the branch cache over the main cache
+      #    restore-keys: |
+      #      ${{ runner.os }}-openmeter-go-cache-${{ github.ref_name }}-
+      #      ${{ runner.os }}-openmeter-go-cache-main-
+      #      ${{ runner.os }}-openmeter-go-cache-
 
       - name: Check nix flake
         run: nix flake check --impure
@@ -120,6 +120,7 @@ jobs:
         run: nix develop --impure .#ci -c golangci-lint run -v
         env: # TODO: seperate cache for lint later
           GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/golangci-lint-cache
+          # GOCACHEPROG: "depot gocache"
 
       - name: Build Server
         run: nix develop --impure .#ci -c make build-server
