@@ -202,6 +202,8 @@ jobs:
           nix develop --impure .#ci -c go mod download
 
       - name: Run tests
+        env:
+          GOCACHEPROG: ''
         run: |
           nix develop --impure .#ci -c go test -p 128 --parallel 16 ./...
 
