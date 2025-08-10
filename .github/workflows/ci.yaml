@@ -163,6 +163,68 @@ jobs:
             engine.stderr.log
           retention-days: 14
 
+  test-nix:
+    name: Test Nix
+    runs-on: depot-ubuntu-latest-8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@63ca48f939ee3b8d835f4126562537df0fee5b91 # v32
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      # maybe: https://github.com/qoomon/actions--parallel-steps/tree/main/act-interceptor
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Start Dependencies
+        run:
+          docker compose up postgres svix redis -d --wait
+          sleep 10
+
+
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@e47aba410ef9bb9ed81a4d2a97df31061e5e842e # v8.0.0
+        with:
+          verb: call
+          args: test
+          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
+          version: ${{ env.DAGGER_VERSION }}
+
+      - name: Export Dagger Engine logs
+        id: export-dagger-engine-logs
+        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.stdout.log 2> engine.stderr.log
+        if: always()
+        continue-on-error: true
+
+      - name: Upload Dagger Engine logs as artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always() && steps.export-dagger-engine-logs.outcome == 'success'
+        with:
+          name: "[${{ github.job }}] Dagger Engine logs"
+          path: |
+            engine.stdout.log
+            engine.stderr.log
+          retention-days: 14
+
   test-depot-dagger:
     name: Test Depot+Dagger
     runs-on: "depot-ubuntu-latest-8,dagger=0.18.14"
