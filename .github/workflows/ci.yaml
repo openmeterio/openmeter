@@ -20,7 +20,7 @@ env:
 
 jobs:
   cache-rebuild:
-    name: Rebuild caches
+    name: Rebuild GitHub Actions Caches
     runs-on: depot-ubuntu-latest-8
     # To test e2e feel free to uncomment this for a branch, then a branch specific cache will be created
     # if: github.ref_name == 'main'
@@ -96,12 +96,12 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.CI_GO_STATE_PREFIX }}
-          key: nix-devenv-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
+          key: ${{ runner.os }}-openmeter-go-cache-${{ github.ref_name }}-${{ github.sha }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
-            nix-devenv-${{ runner.os }}-${{ github.ref_name }}-
-            nix-devenv-${{ runner.os }}-main-
-            nix-devenv-${{ runner.os }}-
+            ${{ runner.os }}-openmeter-go-cache-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-cache-main-
+            ${{ runner.os }}-openmeter-go-cache-
 
       - name: Check nix flake
         run: nix flake check --impure
