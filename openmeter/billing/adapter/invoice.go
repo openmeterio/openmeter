@@ -497,8 +497,13 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		// Customer
 		updateQuery = updateQuery.
 			// CustomerID is immutable
-			SetNillableCustomerKey(in.Customer.Key).
 			SetCustomerName(in.Customer.Name)
+
+		if in.Customer.Key != nil {
+			updateQuery = updateQuery.SetCustomerKey(*in.Customer.Key)
+		} else {
+			updateQuery = updateQuery.ClearCustomerKey()
+		}
 
 		if in.Customer.BillingAddress != nil {
 			updateQuery = updateQuery.
