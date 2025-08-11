@@ -121,7 +121,7 @@ model ListCustomersParams {
 
   /**
    * Filter customers by key.
-   * Case-sensitive exact match.
+   * Case-insensitive partial match.
    */
   @query
   key?: string;
