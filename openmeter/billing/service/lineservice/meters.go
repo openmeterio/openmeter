@@ -8,7 +8,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -56,7 +55,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 	}
 
 	meterQueryParams := streaming.QueryParams{
-		FilterCustomer: []customer.MeterCustomer{in.Customer},
+		FilterCustomer: []streaming.Customer{in.Customer},
 		From:           &in.Line.Period.Start,
 		To:             &in.Line.Period.End,
 	}

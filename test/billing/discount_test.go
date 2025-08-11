@@ -85,7 +85,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	s.Run("Creating new pending lines with discounts sets the correlationID", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetCustomerID(),
+				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
 				Lines: []*billing.Line{
 					{
@@ -134,7 +134,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
 		// between the split lines.
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetCustomerID(),
+			Customer: customerEntity.GetID(),
 		})
 		s.NoError(err)
 		s.Len(invoices, 1)
@@ -280,7 +280,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetCustomerID(),
+			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
 				{
@@ -326,7 +326,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
 		// between the split lines.
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetCustomerID(),
+			Customer: customerEntity.GetID(),
 			AsOf:     lo.ToPtr(invoice1AsOf),
 		})
 		s.NoError(err)
@@ -367,7 +367,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
 		// between the split lines.
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetCustomerID(),
+			Customer: customerEntity.GetID(),
 			AsOf:     lo.ToPtr(invoice2AsOf),
 		})
 		s.NoError(err)
@@ -411,7 +411,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
 		// between the split lines.
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetCustomerID(),
+			Customer: customerEntity.GetID(),
 			AsOf:     lo.ToPtr(invoice3AsOf),
 		})
 		s.NoError(err)

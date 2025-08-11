@@ -479,7 +479,7 @@ func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscr
 	// Let's set the customer's currency to the subscription currency for paid subscriptions (if not already set)
 	if cust.Currency == nil && currentSpec.HasBillables() {
 		if _, err := s.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
-			CustomerID: cust.GetCustomerID(),
+			CustomerID: cust.GetID(),
 			CustomerMutate: customer.CustomerMutate{
 				Name:             cust.Name,
 				Key:              cust.Key,

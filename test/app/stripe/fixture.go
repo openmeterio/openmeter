@@ -122,7 +122,7 @@ func (s *Fixture) setupAppCustomerData(ctx context.Context, customerApp app.App,
 	defer s.stripeAppClient.Restore()
 
 	err := customerApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
-		CustomerID: customer.GetCustomerID(),
+		CustomerID: customer.GetID(),
 		Data:       data,
 	})
 	if err != nil {

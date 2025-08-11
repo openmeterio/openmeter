@@ -333,7 +333,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: in.Customer.GetCustomerID(),
+			Customer: in.Customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
 				{

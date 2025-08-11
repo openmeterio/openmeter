@@ -13,8 +13,8 @@ import (
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -23,7 +23,7 @@ type queryMeter struct {
 	EventsTableName string
 	Namespace       string
 	Meter           meterpkg.Meter
-	FilterCustomer  []customer.MeterCustomer
+	FilterCustomer  []streaming.Customer
 	FilterSubject   []string
 	FilterGroupBy   map[string][]string
 	From            *time.Time
@@ -207,7 +207,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 					"WHEN %s = '%s' THEN '%s' ",
 					getColumn("subject"),
 					sqlbuilder.Escape(subjectKey),
-					sqlbuilder.Escape(customer.GetID()),
+					sqlbuilder.Escape(customer.GetUsageAttribution().ID),
 				)
 				caseBuilder.WriteString(str)
 			}

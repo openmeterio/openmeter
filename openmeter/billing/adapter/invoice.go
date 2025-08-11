@@ -298,12 +298,14 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetCurrency(input.Currency).
 			SetStatus(input.Status).
 			SetSourceBillingProfileID(input.Profile.ID).
-			SetCustomerID(input.Customer.ID).
 			SetType(input.Type).
 			SetNumber(input.Number).
 			SetNillableDescription(input.Description).
 			SetNillableDueAt(input.DueAt).
 			SetNillableIssuedAt(lo.EmptyableToPtr(input.IssuedAt)).
+			// Customer snapshot about usage attribution fields
+			SetCustomerID(input.Customer.ID).
+			SetNillableCustomerKey(input.Customer.Key).
 			SetCustomerUsageAttribution(&billing.VersionedCustomerUsageAttribution{
 				Type:                     billing.CustomerUsageAttributionTypeVersion,
 				CustomerUsageAttribution: input.Customer.UsageAttribution,

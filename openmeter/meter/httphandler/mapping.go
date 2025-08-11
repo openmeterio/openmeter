@@ -141,7 +141,7 @@ func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, r
 			return params, fmt.Errorf("failed to get filter customer: %w", err)
 		}
 
-		params.FilterCustomer = lo.Map(filterCustomer, func(c customer.Customer, _ int) customer.MeterCustomer {
+		params.FilterCustomer = lo.Map(filterCustomer, func(c customer.Customer, _ int) streaming.Customer {
 			return c
 		})
 

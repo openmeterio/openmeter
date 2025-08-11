@@ -76,7 +76,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 	var gatheringInvoiceID billing.InvoiceID
 	s.Run("validate collection_at calculation", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: customer.GetCustomerID(),
+			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
 				{
@@ -167,7 +167,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 	clock.SetTime(period2End.Add(time.Minute * 30))
 	s.Run("validate collection_at for pending invoice", func() {
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customer.GetCustomerID(),
+			Customer: customer.GetID(),
 		})
 		s.NoError(err)
 		s.Len(invoices, 1)
@@ -278,7 +278,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 
 			// Given
 			pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-				Customer: customer.GetCustomerID(),
+				Customer: customer.GetID(),
 				Currency: currencyx.Code(currency.USD),
 				Lines:    []*billing.Line{tc.line},
 			})
@@ -289,7 +289,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 			// When
 			clock.SetTime(periodStart.Add(time.Hour * 1))
 			invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-				Customer: customer.GetCustomerID(),
+				Customer: customer.GetID(),
 			})
 			s.NoError(err)
 			s.Len(invoices, 1)
@@ -332,7 +332,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	defer s.MockStreamingConnector.Reset()
 
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetCustomerID(),
+		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
 			{
@@ -356,7 +356,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 
 	clock.SetTime(periodEnd.Add(time.Hour * 1))
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.GetCustomerID(),
+		Customer: customer.GetID(),
 	})
 	s.NoError(err)
 	s.Len(invoices, 1)
@@ -433,7 +433,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	defer s.MockStreamingConnector.Reset()
 
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetCustomerID(),
+		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
 			{
@@ -457,7 +457,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 
 	clock.SetTime(periodEnd.Add(time.Hour * 1))
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.GetCustomerID(),
+		Customer: customer.GetID(),
 	})
 	s.NoError(err)
 	s.Len(invoices, 1)

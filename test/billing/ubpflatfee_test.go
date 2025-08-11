@@ -56,7 +56,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		})
 
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetCustomerID(),
+			Customer: cust.GetID(),
 			Currency: "USD",
 			Lines: []*billing.Line{
 				lineIn,
@@ -86,7 +86,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 	// Then the line should not be created
 	s.Run("should not create a progressively billed line", func() {
 		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer:                   cust.GetCustomerID(),
+			Customer:                   cust.GetID(),
 			ProgressiveBillingOverride: lo.ToPtr(true),
 		})
 		s.Error(err)
@@ -100,7 +100,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		clock.SetTime(period.End)
 
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: cust.GetCustomerID(),
+			Customer: cust.GetID(),
 		})
 		s.NoError(err)
 
@@ -156,7 +156,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	}
 
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetCustomerID(),
+		Customer: cust.GetID(),
 		Currency: "USD",
 		Lines: []*billing.Line{
 			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -182,7 +182,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	clock.SetTime(period.End)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: cust.GetCustomerID(),
+		Customer: cust.GetID(),
 	})
 	s.NoError(err)
 
@@ -236,7 +236,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 
 	s.Run("should not create line with usage discount", func() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetCustomerID(),
+			Customer: cust.GetID(),
 			Currency: "USD",
 			Lines: []*billing.Line{
 				billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -262,7 +262,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 
 	s.Run("empty period is allowed", func() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetCustomerID(),
+			Customer: cust.GetID(),
 			Currency: "USD",
 			Lines: []*billing.Line{
 				billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{

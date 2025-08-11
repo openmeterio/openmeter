@@ -498,7 +498,7 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 	// Test no gathering invoice state
 	s.Run("no gathering invoice", func() {
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customer.GetCustomerID(),
+			Customer: customer.GetID(),
 		})
 		s.Error(err)
 		s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
@@ -517,7 +517,7 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 	defer clock.ResetTime()
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetCustomerID(),
+		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
 			{
@@ -544,7 +544,7 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 	s.Len(pendingLines.Lines, 1)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.GetCustomerID(),
+		Customer: customer.GetID(),
 	})
 	s.Error(err)
 	s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
@@ -1262,7 +1262,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 	clock.FreezeTime(s.mustParseTime("2024-01-02T00:00:00Z"))
 
 	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetCustomerID(),
+		Customer: s.Customer.GetID(),
 		AsOf:     lo.ToPtr(clock.Now()),
 	})
 	s.NoError(err)
@@ -1431,7 +1431,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 	clock.FreezeTime(s.mustParseTime("2024-01-02T00:00:00Z"))
 
 	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetCustomerID(),
+		Customer: s.Customer.GetID(),
 		AsOf:     lo.ToPtr(clock.Now()),
 	})
 	s.NoError(err)
@@ -2605,7 +2605,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 	// Some time has passed, we're syncing the draft invoice
 	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
 	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetCustomerID(),
+		Customer: s.Customer.GetID(),
 	})
 	s.NoError(err)
 	s.Len(draftInvoices, 1)
@@ -2814,7 +2814,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 
 	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
 	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetCustomerID(),
+		Customer: s.Customer.GetID(),
 	})
 	s.NoError(err)
 	s.Len(draftInvoices, 1)
@@ -2970,7 +2970,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	// invoice 1: issued invoice creation
 	clock.FreezeTime(s.mustParseTime("2024-01-15T00:00:00Z"))
 	draftInvoices1, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetCustomerID(),
+		Customer: s.Customer.GetID(),
 		AsOf:     lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z")),
 	})
 	s.NoError(err)
@@ -3007,7 +3007,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	// invoice 2: draft invoice creation
 	draftInvoices2, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetCustomerID(),
+		Customer: s.Customer.GetID(),
 		AsOf:     lo.ToPtr(s.mustParseTime("2024-01-18T00:00:00Z")),
 	})
 	s.NoError(err)
@@ -3297,7 +3297,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 
 	clock.FreezeTime(s.mustParseTime("2024-01-15T00:00:00Z"))
 	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetCustomerID(),
+		Customer: s.Customer.GetID(),
 	})
 	s.NoError(err)
 	s.Len(draftInvoices, 1)
@@ -3467,7 +3467,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 
 	// Let's assert we have one line on the draft invoice
 	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetCustomerID(),
+		Customer: s.Customer.GetID(),
 	})
 	s.NoError(err)
 	s.Len(draftInvoices, 1)
@@ -3753,7 +3753,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 
 	clock.FreezeTime(s.mustParseTime("2024-01-15T00:00:00Z"))
 	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetCustomerID(),
+		Customer: s.Customer.GetID(),
 	})
 	s.NoError(err)
 	s.Len(draftInvoices, 1)

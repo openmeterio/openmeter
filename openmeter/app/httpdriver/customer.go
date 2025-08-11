@@ -52,7 +52,7 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 			}
 
 			req := ListCustomerDataRequest{
-				CustomerID: cus.GetCustomerID(),
+				CustomerID: cus.GetID(),
 
 				// Pagination
 				Page: pagination.Page{
@@ -139,7 +139,7 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 			}
 
 			return UpsertCustomerDataRequest{
-				CustomerId: cus.GetCustomerID(),
+				CustomerId: cus.GetID(),
 				Data:       body,
 			}, nil
 		},
@@ -205,7 +205,7 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 			}
 
 			return DeleteCustomerDataRequest{
-				CustomerID: cus.GetCustomerID(),
+				CustomerID: cus.GetID(),
 				AppID: app.AppID{
 					Namespace: ns,
 					ID:        params.AppId,

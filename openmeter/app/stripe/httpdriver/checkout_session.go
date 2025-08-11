@@ -90,7 +90,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 					return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("failed to get customer by key: %w", err)
 				}
 
-				customerId = lo.ToPtr(cus.GetCustomerID())
+				customerId = lo.ToPtr(cus.GetID())
 			}
 
 			// Create request

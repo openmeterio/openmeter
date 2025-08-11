@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -264,7 +265,7 @@ func TestQueryMeter(t *testing.T) {
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
 				},
-				FilterCustomer: []customer.MeterCustomer{
+				FilterCustomer: []streaming.Customer{
 					customer.Customer{
 						ManagedResource: models.ManagedResource{
 							NamespacedModel: models.NamespacedModel{
@@ -304,7 +305,7 @@ func TestQueryMeter(t *testing.T) {
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
 				},
-				FilterCustomer: []customer.MeterCustomer{
+				FilterCustomer: []streaming.Customer{
 					customer.Customer{
 						ManagedResource: models.ManagedResource{
 							NamespacedModel: models.NamespacedModel{

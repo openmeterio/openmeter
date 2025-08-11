@@ -5,20 +5,14 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-// MeterCustomer is a customer that can be used in a meter query
-type MeterCustomer interface {
-	GetID() string
-	GetKey() *string
-	GetUsageAttribution() CustomerUsageAttribution
-}
-
-var _ MeterCustomer = &Customer{}
+var _ streaming.Customer = &Customer{}
 
 // Customer represents a customer
 type Customer struct {
@@ -33,28 +27,20 @@ type Customer struct {
 	Annotation       *models.Annotations      `json:"annotations,omitempty"`
 }
 
-// GetID returns the customer id
-// implementing the customer.MeterCustomer interface
-func (c Customer) GetID() string {
-	return c.ID
-}
-
-// GetKey returns the customer key
-// implementing the customer.MeterCustomer interface
-func (c Customer) GetKey() *string {
-	return c.Key
-}
-
 // GetUsageAttribution returns the customer usage attribution
-// implementing the customer.MeterCustomer interface
-func (c Customer) GetUsageAttribution() CustomerUsageAttribution {
-	return c.UsageAttribution
+// implementing the streaming.CustomerUsageAttribution interface
+func (c Customer) GetUsageAttribution() streaming.CustomerUsageAttribution {
+	return streaming.CustomerUsageAttribution{
+		ID:          c.ID,
+		Key:         c.Key,
+		SubjectKeys: c.UsageAttribution.SubjectKeys,
+	}
 }
 
-// GetCustomerID returns the customer id
+// GetID returns the customer id
 // This is a convenience method to get the customer id as a CustomerID
 // It is used to avoid having to create a CustomerID struct in the codebase
-func (c Customer) GetCustomerID() CustomerID {
+func (c Customer) GetID() CustomerID {
 	return CustomerID{
 		Namespace: c.Namespace,
 		ID:        c.ID,

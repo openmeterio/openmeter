@@ -164,7 +164,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 	s.Run("gathering invoice can be created", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetCustomerID(),
+				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
 				Lines: []*billing.Line{
 					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -221,7 +221,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 	s.Run("invoice can be created and will end up in draft.syncing state", func() {
 		invoices, err := s.BillingService.InvoicePendingLines(ctx,
 			billing.InvoicePendingLinesInput{
-				Customer: customerEntity.GetCustomerID(),
+				Customer: customerEntity.GetID(),
 				AsOf:     lo.ToPtr(issueAt),
 			})
 		s.NoError(err, "failed to invoice pending lines")
@@ -332,7 +332,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 	s.Run("gathering invoice can be created", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetCustomerID(),
+				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
 				Lines: []*billing.Line{
 					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -359,7 +359,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 	s.Run("invoice can be created and will end up in draft.syncing state", func() {
 		invoices, err := s.BillingService.InvoicePendingLines(ctx,
 			billing.InvoicePendingLinesInput{
-				Customer: customerEntity.GetCustomerID(),
+				Customer: customerEntity.GetID(),
 				AsOf:     lo.ToPtr(issueAt),
 			})
 		s.NoError(err, "failed to invoice pending lines")

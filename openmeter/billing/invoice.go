@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -569,9 +570,9 @@ type (
 	}
 )
 
-// InvoiceCustomer implements the customer.MeterCustomer interface
+// InvoiceCustomer implements the streaming.CustomerUsageAttribution interface
 // This is used to query the usage of a customer in a meter query
-var _ customer.MeterCustomer = &InvoiceCustomer{}
+var _ streaming.Customer = &InvoiceCustomer{}
 
 // NewInvoiceCustomer creates a new InvoiceCustomer from a customer.Customer
 func NewInvoiceCustomer(customer customer.Customer) InvoiceCustomer {
@@ -595,22 +596,14 @@ type InvoiceCustomer struct {
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
 }
 
-// GetID returns the customer id
-// implementing the customer.MeterCustomer interface
-func (i InvoiceCustomer) GetID() string {
-	return i.CustomerID
-}
-
-// GetKey returns the customer key
-// implementing the customer.MeterCustomer interface
-func (i InvoiceCustomer) GetKey() *string {
-	return i.Key
-}
-
 // GetUsageAttribution returns the customer usage attribution
-// implementing the customer.MeterCustomer interface
-func (i InvoiceCustomer) GetUsageAttribution() CustomerUsageAttribution {
-	return i.UsageAttribution
+// implementing the streaming.CustomerUsageAttribution interface
+func (c InvoiceCustomer) GetUsageAttribution() streaming.CustomerUsageAttribution {
+	return streaming.CustomerUsageAttribution{
+		ID:          c.CustomerID,
+		Key:         c.Key,
+		SubjectKeys: c.UsageAttribution.SubjectKeys,
+	}
 }
 
 // Validate validates the invoice customer

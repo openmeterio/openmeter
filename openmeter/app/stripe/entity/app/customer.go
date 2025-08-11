@@ -18,7 +18,7 @@ var _ customerapp.App = (*App)(nil)
 
 // ValidateCustomer validates if the app can run for the given customer
 func (a App) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
-	return a.ValidateCustomerByID(ctx, customer.GetCustomerID(), capabilities)
+	return a.ValidateCustomerByID(ctx, customer.GetID(), capabilities)
 }
 
 // ValidateCustomerByID validates if the app can run for the given customer ID

@@ -52,7 +52,7 @@ func (h *handler) GetCustomerStripeAppData() GetCustomerStripeAppDataHandler {
 
 			// Construct the request
 			req := GetCustomerStripeAppDataRequest{
-				CustomerID: cus.GetCustomerID(),
+				CustomerID: cus.GetID(),
 			}
 
 			return req, nil
@@ -110,7 +110,7 @@ func (h *handler) UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandl
 			}
 
 			return UpsertCustomerStripeAppDataRequest{
-				CustomerId: cus.GetCustomerID(),
+				CustomerId: cus.GetID(),
 				Data:       body,
 			}, nil
 		},
@@ -186,7 +186,7 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 
 			// Create request
 			req := CreateStripeCustomerPortalSessionRequest{
-				customerId: cus.GetCustomerID(),
+				customerId: cus.GetID(),
 				params:     body,
 			}
 

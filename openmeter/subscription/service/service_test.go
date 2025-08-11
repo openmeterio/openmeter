@@ -99,7 +99,7 @@ func TestCreation(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_, err := deps.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
-			CustomerID: cust.GetCustomerID(),
+			CustomerID: cust.GetID(),
 			CustomerMutate: customer.CustomerMutate{
 				Name:             cust.Name,
 				Description:      cust.Description,
@@ -144,7 +144,7 @@ func TestCreation(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_, err := deps.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
-			CustomerID: cust.GetCustomerID(),
+			CustomerID: cust.GetID(),
 			CustomerMutate: customer.CustomerMutate{
 				Name:             cust.Name,
 				Description:      cust.Description,
