@@ -7402,902 +7402,6 @@ export const deleteCustomerAppDataParams = zod.object({
 })
 
 /**
- * OpenMeter has three types of entitlements: metered, boolean, and static. The type property determines the type of entitlement. The underlying feature has to be compatible with the entitlement type specified in the request (e.g., a metered entitlement needs a feature associated with a meter).
-
-- Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
-- Static entitlements let you pass along a configuration while granting access, e.g. "Using this feature with X Y settings" (passed in the config).
-- Metered entitlements have many use cases, from setting up usage-based access to implementing complex credit systems.  Example: The customer can use 10000 AI tokens during the usage period of the entitlement.
-
-A given customer can only have one active (non-deleted) entitlement per featureKey. If you try to create a new entitlement for a featureKey that already has an active entitlement, the request will fail with a 409 error.
-
-Once an entitlement is created you cannot modify it, only delete it.
- * @summary Create a customer entitlement
- */
-export const createCustomerEntitlementParams = zod.object({
-  customerIdOrKey: zod.union([
-    zod.coerce
-      .string()
-      .regex(createCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
-      .describe(
-        'ULID (Universally Unique Lexicographically Sortable Identifier).'
-      ),
-    zod.coerce
-      .string()
-      .min(1)
-      .max(createCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
-      .describe('ExternalKey is a looser version of key.'),
-  ]),
-})
-
-export const createCustomerEntitlementBodyFeatureKeyMax = 64
-
-export const createCustomerEntitlementBodyFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-export const createCustomerEntitlementBodyFeatureIdRegExp = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const createCustomerEntitlementBodyIsSoftLimitDefault = false
-export const createCustomerEntitlementBodyIsUnlimitedDefault = false
-export const createCustomerEntitlementBodyIssueAfterResetMin = 0
-export const createCustomerEntitlementBodyIssueAfterResetPriorityDefault = 1
-export const createCustomerEntitlementBodyIssueAfterResetPriorityMax = 255
-export const createCustomerEntitlementBodyPreserveOverageAtResetDefault = false
-export const createCustomerEntitlementBodyFeatureKeyMaxOne = 64
-
-export const createCustomerEntitlementBodyFeatureKeyRegExpOne = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-export const createCustomerEntitlementBodyFeatureIdRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const createCustomerEntitlementBodyFeatureKeyMaxTwo = 64
-
-export const createCustomerEntitlementBodyFeatureKeyRegExpTwo = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-export const createCustomerEntitlementBodyFeatureIdRegExpTwo = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-
-export const createCustomerEntitlementBody = zod
-  .union([
-    zod
-      .object({
-        featureId: zod.coerce
-          .string()
-          .regex(createCustomerEntitlementBodyFeatureIdRegExp)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        featureKey: zod.coerce
-          .string()
-          .min(1)
-          .max(createCustomerEntitlementBodyFeatureKeyMax)
-          .regex(createCustomerEntitlementBodyFeatureKeyRegExp)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        isSoftLimit: zod.coerce
-          .boolean()
-          .optional()
-          .describe(
-            'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
-          ),
-        issueAfterReset: zod.coerce
-          .number()
-          .min(createCustomerEntitlementBodyIssueAfterResetMin)
-          .optional()
-          .describe(
-            'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
-          ),
-        issueAfterResetPriority: zod.coerce
-          .number()
-          .min(1)
-          .max(createCustomerEntitlementBodyIssueAfterResetPriorityMax)
-          .default(createCustomerEntitlementBodyIssueAfterResetPriorityDefault)
-          .describe('Defines the grant priority for the default grant.'),
-        isUnlimited: zod.coerce
-          .boolean()
-          .optional()
-          .describe(
-            'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.'
-          ),
-        measureUsageFrom: zod
-          .union([
-            zod
-              .enum(['CURRENT_PERIOD_START', 'NOW'])
-              .describe('Start of measurement options'),
-            zod.coerce
-              .date()
-              .describe(
-                '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-              ),
-          ])
-          .describe('Measure usage from')
-          .optional()
-          .describe(
-            'Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time.'
-          ),
-        metadata: zod
-          .record(zod.string(), zod.coerce.string())
-          .describe(
-            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-          )
-          .optional()
-          .describe('Additional metadata for the feature.'),
-        preserveOverageAtReset: zod.coerce
-          .boolean()
-          .optional()
-          .describe(
-            'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
-          ),
-        type: zod.enum(['metered']),
-        usagePeriod: zod
-          .object({
-            anchor: zod.coerce
-              .date()
-              .optional()
-              .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
-              .union([
-                zod.coerce.string(),
-                zod
-                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
-                  .describe(
-                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  ),
-              ])
-              .describe('Period duration for the recurrence')
-              .describe('The unit of time for the interval.'),
-          })
-          .describe('Recurring period with an interval and an anchor.')
-          .describe('The usage period associated with the entitlement.'),
-      })
-      .describe('Create inpurs for metered entitlement'),
-    zod
-      .object({
-        config: zod.coerce
-          .string()
-          .describe(
-            'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
-          ),
-        featureId: zod.coerce
-          .string()
-          .regex(createCustomerEntitlementBodyFeatureIdRegExpOne)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        featureKey: zod.coerce
-          .string()
-          .min(1)
-          .max(createCustomerEntitlementBodyFeatureKeyMaxOne)
-          .regex(createCustomerEntitlementBodyFeatureKeyRegExpOne)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        metadata: zod
-          .record(zod.string(), zod.coerce.string())
-          .describe(
-            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-          )
-          .optional()
-          .describe('Additional metadata for the feature.'),
-        type: zod.enum(['static']),
-        usagePeriod: zod
-          .object({
-            anchor: zod.coerce
-              .date()
-              .optional()
-              .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
-              .union([
-                zod.coerce.string(),
-                zod
-                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
-                  .describe(
-                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  ),
-              ])
-              .describe('Period duration for the recurrence')
-              .describe('The unit of time for the interval.'),
-          })
-          .describe('Recurring period with an interval and an anchor.')
-          .optional()
-          .describe('The usage period associated with the entitlement.'),
-      })
-      .describe('Create inputs for static entitlement'),
-    zod
-      .object({
-        featureId: zod.coerce
-          .string()
-          .regex(createCustomerEntitlementBodyFeatureIdRegExpTwo)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        featureKey: zod.coerce
-          .string()
-          .min(1)
-          .max(createCustomerEntitlementBodyFeatureKeyMaxTwo)
-          .regex(createCustomerEntitlementBodyFeatureKeyRegExpTwo)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        metadata: zod
-          .record(zod.string(), zod.coerce.string())
-          .describe(
-            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-          )
-          .optional()
-          .describe('Additional metadata for the feature.'),
-        type: zod.enum(['boolean']),
-        usagePeriod: zod
-          .object({
-            anchor: zod.coerce
-              .date()
-              .optional()
-              .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
-              .union([
-                zod.coerce.string(),
-                zod
-                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
-                  .describe(
-                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  ),
-              ])
-              .describe('Period duration for the recurrence')
-              .describe('The unit of time for the interval.'),
-          })
-          .describe('Recurring period with an interval and an anchor.')
-          .optional()
-          .describe('The usage period associated with the entitlement.'),
-      })
-      .describe('Create inputs for boolean entitlement'),
-  ])
-  .describe('Create inputs for entitlement')
-
-/**
- * List all entitlements for a customer. For checking entitlement access, use the /value endpoint instead.
- * @summary List customer entitlements
- */
-export const listCustomerEntitlementsParams = zod.object({
-  customerIdOrKey: zod.union([
-    zod.coerce
-      .string()
-      .regex(listCustomerEntitlementsPathCustomerIdOrKeyRegExpOne)
-      .describe(
-        'ULID (Universally Unique Lexicographically Sortable Identifier).'
-      ),
-    zod.coerce
-      .string()
-      .min(1)
-      .max(listCustomerEntitlementsPathCustomerIdOrKeyMaxTwo)
-      .describe('ExternalKey is a looser version of key.'),
-  ]),
-})
-
-export const listCustomerEntitlementsQueryIncludeDeletedDefault = false
-
-export const listCustomerEntitlementsQueryParams = zod.object({
-  includeDeleted: zod.coerce.boolean().optional(),
-})
-
-/**
- * Get entitlement by feature key. For checking entitlement access, use the /value endpoint instead.
- * @summary Get customer entitlement
- */
-export const getCustomerEntitlementPathFeatureKeyMax = 64
-
-export const getCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-
-export const getCustomerEntitlementParams = zod.object({
-  customerIdOrKey: zod.union([
-    zod.coerce
-      .string()
-      .regex(getCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
-      .describe(
-        'ULID (Universally Unique Lexicographically Sortable Identifier).'
-      ),
-    zod.coerce
-      .string()
-      .min(1)
-      .max(getCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
-      .describe('ExternalKey is a looser version of key.'),
-  ]),
-  featureKey: zod.coerce
-    .string()
-    .min(1)
-    .max(getCustomerEntitlementPathFeatureKeyMax)
-    .regex(getCustomerEntitlementPathFeatureKeyRegExp),
-})
-
-/**
- * Deleting an entitlement revokes access to the associated feature. As a single customer can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
-As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
- * @summary Delete customer entitlement
- */
-export const deleteCustomerEntitlementPathFeatureKeyMax = 64
-
-export const deleteCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-
-export const deleteCustomerEntitlementParams = zod.object({
-  customerIdOrKey: zod.union([
-    zod.coerce
-      .string()
-      .regex(deleteCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
-      .describe(
-        'ULID (Universally Unique Lexicographically Sortable Identifier).'
-      ),
-    zod.coerce
-      .string()
-      .min(1)
-      .max(deleteCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
-      .describe('ExternalKey is a looser version of key.'),
-  ]),
-  featureKey: zod.coerce
-    .string()
-    .min(1)
-    .max(deleteCustomerEntitlementPathFeatureKeyMax)
-    .regex(deleteCustomerEntitlementPathFeatureKeyRegExp),
-})
-
-/**
- * List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
- * @summary List customer entitlement grants
- */
-export const listCustomerEntitlementGrantsPathFeatureKeyMax = 64
-
-export const listCustomerEntitlementGrantsPathFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-
-export const listCustomerEntitlementGrantsParams = zod.object({
-  customerIdOrKey: zod.union([
-    zod.coerce
-      .string()
-      .regex(listCustomerEntitlementGrantsPathCustomerIdOrKeyRegExpOne)
-      .describe(
-        'ULID (Universally Unique Lexicographically Sortable Identifier).'
-      ),
-    zod.coerce
-      .string()
-      .min(1)
-      .max(listCustomerEntitlementGrantsPathCustomerIdOrKeyMaxTwo)
-      .describe('ExternalKey is a looser version of key.'),
-  ]),
-  featureKey: zod.coerce
-    .string()
-    .min(1)
-    .max(listCustomerEntitlementGrantsPathFeatureKeyMax)
-    .regex(listCustomerEntitlementGrantsPathFeatureKeyRegExp),
-})
-
-export const listCustomerEntitlementGrantsQueryIncludeDeletedDefault = false
-
-export const listCustomerEntitlementGrantsQueryParams = zod.object({
-  includeDeleted: zod.coerce.boolean().optional(),
-  orderBy: zod.enum(['id', 'createdAt', 'updatedAt']).optional(),
-})
-
-/**
- * Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
-
-A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
-
-Grants have a priority setting that determines their order of use. Lower numbers have higher priority, with 0 being the highest priority.
-
-Grants can have a recurrence setting intended to automate the manual reissuing of grants. For example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover settings).
-
-Rollover settings define what happens to the remaining balance of a grant at a reset. Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
-
-Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
- * @summary Create customer entitlement grant
- */
-export const createCustomerEntitlementGrantPathFeatureKeyMax = 64
-
-export const createCustomerEntitlementGrantPathFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-
-export const createCustomerEntitlementGrantParams = zod.object({
-  customerIdOrKey: zod.union([
-    zod.coerce
-      .string()
-      .regex(createCustomerEntitlementGrantPathCustomerIdOrKeyRegExpOne)
-      .describe(
-        'ULID (Universally Unique Lexicographically Sortable Identifier).'
-      ),
-    zod.coerce
-      .string()
-      .min(1)
-      .max(createCustomerEntitlementGrantPathCustomerIdOrKeyMaxTwo)
-      .describe('ExternalKey is a looser version of key.'),
-  ]),
-  featureKey: zod.coerce
-    .string()
-    .min(1)
-    .max(createCustomerEntitlementGrantPathFeatureKeyMax)
-    .regex(createCustomerEntitlementGrantPathFeatureKeyRegExp),
-})
-
-export const createCustomerEntitlementGrantBodyAmountMin = 0
-export const createCustomerEntitlementGrantBodyPriorityMax = 255
-export const createCustomerEntitlementGrantBodyExpirationCountMax = 1000
-export const createCustomerEntitlementGrantBodyMaxRolloverAmountDefault = 0
-export const createCustomerEntitlementGrantBodyMinRolloverAmountDefault = 0
-
-export const createCustomerEntitlementGrantBody = zod
-  .object({
-    amount: zod.coerce
-      .number()
-      .min(createCustomerEntitlementGrantBodyAmountMin)
-      .describe('The amount to grant. Should be a positive number.'),
-    effectiveAt: zod.coerce
-      .date()
-      .describe(
-        'Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).'
-      ),
-    expiration: zod
-      .object({
-        count: zod.coerce
-          .number()
-          .min(1)
-          .max(createCustomerEntitlementGrantBodyExpirationCountMax)
-          .describe('The number of time units in the expiration period.'),
-        duration: zod
-          .enum(['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'])
-          .describe('The expiration duration enum')
-          .describe('The unit of time for the expiration period.'),
-      })
-      .describe('The grant expiration definition')
-      .describe('The grant expiration definition'),
-    maxRolloverAmount: zod.coerce
-      .number()
-      .optional()
-      .describe(
-        'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
-      ),
-    metadata: zod
-      .record(zod.string(), zod.coerce.string())
-      .describe(
-        'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-      )
-      .optional()
-      .describe('The grant metadata.'),
-    minRolloverAmount: zod.coerce
-      .number()
-      .optional()
-      .describe(
-        'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
-      ),
-    priority: zod.coerce
-      .number()
-      .min(1)
-      .max(createCustomerEntitlementGrantBodyPriorityMax)
-      .optional()
-      .describe(
-        'The priority of the grant. Grants with higher priority are applied first.\nPriority is a positive decimal numbers. With lower numbers indicating higher importance.\nFor example, a priority of 1 is more urgent than a priority of 2.\nWhen there are several grants available for the same subject, the system selects the grant with the highest priority.\nIn cases where grants share the same priority level, the grant closest to its expiration will be used first.\nIn the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.'
-      ),
-    recurrence: zod
-      .object({
-        anchor: zod.coerce
-          .date()
-          .optional()
-          .describe('A date-time anchor to base the recurring period on.'),
-        interval: zod
-          .union([
-            zod.coerce.string(),
-            zod
-              .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
-              .describe(
-                'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-              ),
-          ])
-          .describe('Period duration for the recurrence')
-          .describe('The unit of time for the interval.'),
-      })
-      .describe('Recurring period with an interval and an anchor.')
-      .optional()
-      .describe('The subject of the grant.'),
-  })
-  .describe('The grant creation input.')
-
-/**
- * Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
-
-BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
-
-WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
- * @summary Get customer entitlement history
- */
-export const getCustomerEntitlementHistoryPathFeatureKeyMax = 64
-
-export const getCustomerEntitlementHistoryPathFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-
-export const getCustomerEntitlementHistoryParams = zod.object({
-  customerIdOrKey: zod.union([
-    zod.coerce
-      .string()
-      .regex(getCustomerEntitlementHistoryPathCustomerIdOrKeyRegExpOne)
-      .describe(
-        'ULID (Universally Unique Lexicographically Sortable Identifier).'
-      ),
-    zod.coerce
-      .string()
-      .min(1)
-      .max(getCustomerEntitlementHistoryPathCustomerIdOrKeyMaxTwo)
-      .describe('ExternalKey is a looser version of key.'),
-  ]),
-  featureKey: zod.coerce
-    .string()
-    .min(1)
-    .max(getCustomerEntitlementHistoryPathFeatureKeyMax)
-    .regex(getCustomerEntitlementHistoryPathFeatureKeyRegExp),
-})
-
-export const getCustomerEntitlementHistoryQueryWindowTimeZoneDefault = 'UTC'
-
-export const getCustomerEntitlementHistoryQueryParams = zod.object({
-  from: zod.coerce
-    .date()
-    .optional()
-    .describe(
-      'Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to the last reset. Gets truncated to the granularity of the underlying meter.'
-    ),
-  to: zod.coerce
-    .date()
-    .optional()
-    .describe(
-      'End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.\nIf not now then gets truncated to the granularity of the underlying meter.'
-    ),
-  windowSize: zod
-    .enum(['MINUTE', 'HOUR', 'DAY', 'MONTH'])
-    .describe('Windowsize'),
-  windowTimeZone: zod.coerce
-    .string()
-    .default(getCustomerEntitlementHistoryQueryWindowTimeZoneDefault)
-    .describe('The timezone used when calculating the windows.'),
-})
-
-/**
- * Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided customer-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
-
-This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
- * @summary Override customer entitlement
- */
-export const overrideCustomerEntitlementPathFeatureKeyMax = 64
-
-export const overrideCustomerEntitlementPathFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-
-export const overrideCustomerEntitlementParams = zod.object({
-  customerIdOrKey: zod.union([
-    zod.coerce
-      .string()
-      .regex(overrideCustomerEntitlementPathCustomerIdOrKeyRegExpOne)
-      .describe(
-        'ULID (Universally Unique Lexicographically Sortable Identifier).'
-      ),
-    zod.coerce
-      .string()
-      .min(1)
-      .max(overrideCustomerEntitlementPathCustomerIdOrKeyMaxTwo)
-      .describe('ExternalKey is a looser version of key.'),
-  ]),
-  featureKey: zod.coerce
-    .string()
-    .min(1)
-    .max(overrideCustomerEntitlementPathFeatureKeyMax)
-    .regex(overrideCustomerEntitlementPathFeatureKeyRegExp),
-})
-
-export const overrideCustomerEntitlementBodyFeatureKeyMax = 64
-
-export const overrideCustomerEntitlementBodyFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-export const overrideCustomerEntitlementBodyFeatureIdRegExp = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const overrideCustomerEntitlementBodyIsSoftLimitDefault = false
-export const overrideCustomerEntitlementBodyIsUnlimitedDefault = false
-export const overrideCustomerEntitlementBodyIssueAfterResetMin = 0
-export const overrideCustomerEntitlementBodyIssueAfterResetPriorityDefault = 1
-export const overrideCustomerEntitlementBodyIssueAfterResetPriorityMax = 255
-export const overrideCustomerEntitlementBodyPreserveOverageAtResetDefault = false
-export const overrideCustomerEntitlementBodyFeatureKeyMaxOne = 64
-
-export const overrideCustomerEntitlementBodyFeatureKeyRegExpOne = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-export const overrideCustomerEntitlementBodyFeatureIdRegExpOne = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-export const overrideCustomerEntitlementBodyFeatureKeyMaxTwo = 64
-
-export const overrideCustomerEntitlementBodyFeatureKeyRegExpTwo = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-export const overrideCustomerEntitlementBodyFeatureIdRegExpTwo = new RegExp(
-  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
-)
-
-export const overrideCustomerEntitlementBody = zod
-  .union([
-    zod
-      .object({
-        featureId: zod.coerce
-          .string()
-          .regex(overrideCustomerEntitlementBodyFeatureIdRegExp)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        featureKey: zod.coerce
-          .string()
-          .min(1)
-          .max(overrideCustomerEntitlementBodyFeatureKeyMax)
-          .regex(overrideCustomerEntitlementBodyFeatureKeyRegExp)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        isSoftLimit: zod.coerce
-          .boolean()
-          .optional()
-          .describe(
-            'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
-          ),
-        issueAfterReset: zod.coerce
-          .number()
-          .min(overrideCustomerEntitlementBodyIssueAfterResetMin)
-          .optional()
-          .describe(
-            'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
-          ),
-        issueAfterResetPriority: zod.coerce
-          .number()
-          .min(1)
-          .max(overrideCustomerEntitlementBodyIssueAfterResetPriorityMax)
-          .default(
-            overrideCustomerEntitlementBodyIssueAfterResetPriorityDefault
-          )
-          .describe('Defines the grant priority for the default grant.'),
-        isUnlimited: zod.coerce
-          .boolean()
-          .optional()
-          .describe(
-            'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.'
-          ),
-        measureUsageFrom: zod
-          .union([
-            zod
-              .enum(['CURRENT_PERIOD_START', 'NOW'])
-              .describe('Start of measurement options'),
-            zod.coerce
-              .date()
-              .describe(
-                '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-              ),
-          ])
-          .describe('Measure usage from')
-          .optional()
-          .describe(
-            'Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time.'
-          ),
-        metadata: zod
-          .record(zod.string(), zod.coerce.string())
-          .describe(
-            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-          )
-          .optional()
-          .describe('Additional metadata for the feature.'),
-        preserveOverageAtReset: zod.coerce
-          .boolean()
-          .optional()
-          .describe(
-            'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
-          ),
-        type: zod.enum(['metered']),
-        usagePeriod: zod
-          .object({
-            anchor: zod.coerce
-              .date()
-              .optional()
-              .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
-              .union([
-                zod.coerce.string(),
-                zod
-                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
-                  .describe(
-                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  ),
-              ])
-              .describe('Period duration for the recurrence')
-              .describe('The unit of time for the interval.'),
-          })
-          .describe('Recurring period with an interval and an anchor.')
-          .describe('The usage period associated with the entitlement.'),
-      })
-      .describe('Create inpurs for metered entitlement'),
-    zod
-      .object({
-        config: zod.coerce
-          .string()
-          .describe(
-            'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
-          ),
-        featureId: zod.coerce
-          .string()
-          .regex(overrideCustomerEntitlementBodyFeatureIdRegExpOne)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        featureKey: zod.coerce
-          .string()
-          .min(1)
-          .max(overrideCustomerEntitlementBodyFeatureKeyMaxOne)
-          .regex(overrideCustomerEntitlementBodyFeatureKeyRegExpOne)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        metadata: zod
-          .record(zod.string(), zod.coerce.string())
-          .describe(
-            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-          )
-          .optional()
-          .describe('Additional metadata for the feature.'),
-        type: zod.enum(['static']),
-        usagePeriod: zod
-          .object({
-            anchor: zod.coerce
-              .date()
-              .optional()
-              .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
-              .union([
-                zod.coerce.string(),
-                zod
-                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
-                  .describe(
-                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  ),
-              ])
-              .describe('Period duration for the recurrence')
-              .describe('The unit of time for the interval.'),
-          })
-          .describe('Recurring period with an interval and an anchor.')
-          .optional()
-          .describe('The usage period associated with the entitlement.'),
-      })
-      .describe('Create inputs for static entitlement'),
-    zod
-      .object({
-        featureId: zod.coerce
-          .string()
-          .regex(overrideCustomerEntitlementBodyFeatureIdRegExpTwo)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        featureKey: zod.coerce
-          .string()
-          .min(1)
-          .max(overrideCustomerEntitlementBodyFeatureKeyMaxTwo)
-          .regex(overrideCustomerEntitlementBodyFeatureKeyRegExpTwo)
-          .optional()
-          .describe(
-            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
-          ),
-        metadata: zod
-          .record(zod.string(), zod.coerce.string())
-          .describe(
-            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
-          )
-          .optional()
-          .describe('Additional metadata for the feature.'),
-        type: zod.enum(['boolean']),
-        usagePeriod: zod
-          .object({
-            anchor: zod.coerce
-              .date()
-              .optional()
-              .describe('A date-time anchor to base the recurring period on.'),
-            interval: zod
-              .union([
-                zod.coerce.string(),
-                zod
-                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
-                  .describe(
-                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
-                  ),
-              ])
-              .describe('Period duration for the recurrence')
-              .describe('The unit of time for the interval.'),
-          })
-          .describe('Recurring period with an interval and an anchor.')
-          .optional()
-          .describe('The usage period associated with the entitlement.'),
-      })
-      .describe('Create inputs for boolean entitlement'),
-  ])
-  .describe('Create inputs for entitlement')
-
-/**
- * Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the customers billing period to enforce usage based on their subscription.
-
-Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
- * @summary Reset customer entitlement
- */
-export const resetCustomerEntitlementUsagePathFeatureKeyMax = 64
-
-export const resetCustomerEntitlementUsagePathFeatureKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
-
-export const resetCustomerEntitlementUsageParams = zod.object({
-  customerIdOrKey: zod.union([
-    zod.coerce
-      .string()
-      .regex(resetCustomerEntitlementUsagePathCustomerIdOrKeyRegExpOne)
-      .describe(
-        'ULID (Universally Unique Lexicographically Sortable Identifier).'
-      ),
-    zod.coerce
-      .string()
-      .min(1)
-      .max(resetCustomerEntitlementUsagePathCustomerIdOrKeyMaxTwo)
-      .describe('ExternalKey is a looser version of key.'),
-  ]),
-  featureKey: zod.coerce
-    .string()
-    .min(1)
-    .max(resetCustomerEntitlementUsagePathFeatureKeyMax)
-    .regex(resetCustomerEntitlementUsagePathFeatureKeyRegExp),
-})
-
-export const resetCustomerEntitlementUsageBody = zod
-  .object({
-    effectiveAt: zod.coerce
-      .date()
-      .optional()
-      .describe(
-        'The time at which the reset takes effect, defaults to now. The reset cannot be in the future. The provided value is truncated to the minute due to how historical meter data is stored.'
-      ),
-    preserveOverage: zod.coerce
-      .boolean()
-      .optional()
-      .describe(
-        "Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.\n- If true, the overage is preserved.\n- If false, the overage is forgiven."
-      ),
-    retainAnchor: zod.coerce
-      .boolean()
-      .optional()
-      .describe(
-        'Determines whether the usage period anchor is retained or reset to the effectiveAt time.\n- If true, the usage period anchor is retained.\n- If false, the usage period anchor is reset to the effectiveAt time.'
-      ),
-  })
-  .describe('Reset parameters')
-
-/**
  * Checks customer access to a given feature (by key). All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
  * @summary Get customer entitlement value
  */
@@ -17820,6 +16924,1017 @@ export const unscheduleCancelationParams = zod.object({
 })
 
 /**
+ * OpenMeter has three types of entitlements: metered, boolean, and static. The type property determines the type of entitlement. The underlying feature has to be compatible with the entitlement type specified in the request (e.g., a metered entitlement needs a feature associated with a meter).
+
+- Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
+- Static entitlements let you pass along a configuration while granting access, e.g. "Using this feature with X Y settings" (passed in the config).
+- Metered entitlements have many use cases, from setting up usage-based access to implementing complex credit systems.  Example: The customer can use 10000 AI tokens during the usage period of the entitlement.
+
+A given customer can only have one active (non-deleted) entitlement per featureKey. If you try to create a new entitlement for a featureKey that already has an active entitlement, the request will fail with a 409 error.
+
+Once an entitlement is created you cannot modify it, only delete it.
+ * @summary Create a customer entitlement
+ */
+export const createCustomerEntitlementV2Params = zod.object({
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(createCustomerEntitlementV2PathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(createCustomerEntitlementV2PathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+})
+
+export const createCustomerEntitlementV2BodyFeatureKeyMax = 64
+
+export const createCustomerEntitlementV2BodyFeatureKeyRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
+export const createCustomerEntitlementV2BodyFeatureIdRegExp = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+export const createCustomerEntitlementV2BodyIsSoftLimitDefault = false
+export const createCustomerEntitlementV2BodyIsUnlimitedDefault = false
+export const createCustomerEntitlementV2BodyIssueAfterResetMin = 0
+export const createCustomerEntitlementV2BodyIssueAfterResetPriorityDefault = 1
+export const createCustomerEntitlementV2BodyIssueAfterResetPriorityMax = 255
+export const createCustomerEntitlementV2BodyPreserveOverageAtResetDefault = false
+export const createCustomerEntitlementV2BodyFeatureKeyMaxOne = 64
+
+export const createCustomerEntitlementV2BodyFeatureKeyRegExpOne = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
+export const createCustomerEntitlementV2BodyFeatureIdRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+export const createCustomerEntitlementV2BodyFeatureKeyMaxTwo = 64
+
+export const createCustomerEntitlementV2BodyFeatureKeyRegExpTwo = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
+export const createCustomerEntitlementV2BodyFeatureIdRegExpTwo = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+
+export const createCustomerEntitlementV2Body = zod
+  .union([
+    zod
+      .object({
+        featureId: zod.coerce
+          .string()
+          .regex(createCustomerEntitlementV2BodyFeatureIdRegExp)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        featureKey: zod.coerce
+          .string()
+          .min(1)
+          .max(createCustomerEntitlementV2BodyFeatureKeyMax)
+          .regex(createCustomerEntitlementV2BodyFeatureKeyRegExp)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        isSoftLimit: zod.coerce
+          .boolean()
+          .optional()
+          .describe(
+            'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
+          ),
+        issueAfterReset: zod.coerce
+          .number()
+          .min(createCustomerEntitlementV2BodyIssueAfterResetMin)
+          .optional()
+          .describe(
+            'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
+          ),
+        issueAfterResetPriority: zod.coerce
+          .number()
+          .min(1)
+          .max(createCustomerEntitlementV2BodyIssueAfterResetPriorityMax)
+          .default(
+            createCustomerEntitlementV2BodyIssueAfterResetPriorityDefault
+          )
+          .describe('Defines the grant priority for the default grant.'),
+        isUnlimited: zod.coerce
+          .boolean()
+          .optional()
+          .describe(
+            'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.'
+          ),
+        measureUsageFrom: zod
+          .union([
+            zod
+              .enum(['CURRENT_PERIOD_START', 'NOW'])
+              .describe('Start of measurement options'),
+            zod.coerce
+              .date()
+              .describe(
+                '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+              ),
+          ])
+          .describe('Measure usage from')
+          .optional()
+          .describe(
+            'Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time.'
+          ),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+          )
+          .optional()
+          .describe('Additional metadata for the feature.'),
+        preserveOverageAtReset: zod.coerce
+          .boolean()
+          .optional()
+          .describe(
+            'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
+          ),
+        type: zod.enum(['metered']),
+        usagePeriod: zod
+          .object({
+            anchor: zod.coerce
+              .date()
+              .optional()
+              .describe('A date-time anchor to base the recurring period on.'),
+            interval: zod
+              .union([
+                zod.coerce.string(),
+                zod
+                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+                  .describe(
+                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
+                  ),
+              ])
+              .describe('Period duration for the recurrence')
+              .describe('The unit of time for the interval.'),
+          })
+          .describe('Recurring period with an interval and an anchor.')
+          .describe('The usage period associated with the entitlement.'),
+      })
+      .describe('Create inpurs for metered entitlement'),
+    zod
+      .object({
+        config: zod.coerce
+          .string()
+          .describe(
+            'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
+          ),
+        featureId: zod.coerce
+          .string()
+          .regex(createCustomerEntitlementV2BodyFeatureIdRegExpOne)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        featureKey: zod.coerce
+          .string()
+          .min(1)
+          .max(createCustomerEntitlementV2BodyFeatureKeyMaxOne)
+          .regex(createCustomerEntitlementV2BodyFeatureKeyRegExpOne)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+          )
+          .optional()
+          .describe('Additional metadata for the feature.'),
+        type: zod.enum(['static']),
+        usagePeriod: zod
+          .object({
+            anchor: zod.coerce
+              .date()
+              .optional()
+              .describe('A date-time anchor to base the recurring period on.'),
+            interval: zod
+              .union([
+                zod.coerce.string(),
+                zod
+                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+                  .describe(
+                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
+                  ),
+              ])
+              .describe('Period duration for the recurrence')
+              .describe('The unit of time for the interval.'),
+          })
+          .describe('Recurring period with an interval and an anchor.')
+          .optional()
+          .describe('The usage period associated with the entitlement.'),
+      })
+      .describe('Create inputs for static entitlement'),
+    zod
+      .object({
+        featureId: zod.coerce
+          .string()
+          .regex(createCustomerEntitlementV2BodyFeatureIdRegExpTwo)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        featureKey: zod.coerce
+          .string()
+          .min(1)
+          .max(createCustomerEntitlementV2BodyFeatureKeyMaxTwo)
+          .regex(createCustomerEntitlementV2BodyFeatureKeyRegExpTwo)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+          )
+          .optional()
+          .describe('Additional metadata for the feature.'),
+        type: zod.enum(['boolean']),
+        usagePeriod: zod
+          .object({
+            anchor: zod.coerce
+              .date()
+              .optional()
+              .describe('A date-time anchor to base the recurring period on.'),
+            interval: zod
+              .union([
+                zod.coerce.string(),
+                zod
+                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+                  .describe(
+                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
+                  ),
+              ])
+              .describe('Period duration for the recurrence')
+              .describe('The unit of time for the interval.'),
+          })
+          .describe('Recurring period with an interval and an anchor.')
+          .optional()
+          .describe('The usage period associated with the entitlement.'),
+      })
+      .describe('Create inputs for boolean entitlement'),
+  ])
+  .describe('Create inputs for entitlement')
+
+/**
+ * List all entitlements for a customer. For checking entitlement access, use the /value endpoint instead.
+ * @summary List customer entitlements
+ */
+export const listCustomerEntitlementsV2Params = zod.object({
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(listCustomerEntitlementsV2PathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(listCustomerEntitlementsV2PathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+})
+
+export const listCustomerEntitlementsV2QueryIncludeDeletedDefault = false
+export const listCustomerEntitlementsV2QueryPageDefault = 1
+export const listCustomerEntitlementsV2QueryPageSizeDefault = 100
+export const listCustomerEntitlementsV2QueryPageSizeMax = 1000
+export const listCustomerEntitlementsV2QueryOffsetDefault = 0
+export const listCustomerEntitlementsV2QueryOffsetMin = 0
+export const listCustomerEntitlementsV2QueryLimitDefault = 100
+export const listCustomerEntitlementsV2QueryLimitMax = 1000
+
+export const listCustomerEntitlementsV2QueryParams = zod.object({
+  includeDeleted: zod.coerce.boolean().optional(),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listCustomerEntitlementsV2QueryLimitMax)
+    .default(listCustomerEntitlementsV2QueryLimitDefault)
+    .describe('Number of items to return.\n\nDefault is 100.'),
+  offset: zod.coerce
+    .number()
+    .min(listCustomerEntitlementsV2QueryOffsetMin)
+    .optional()
+    .describe('Number of items to skip.\n\nDefault is 0.'),
+  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  orderBy: zod
+    .enum(['createdAt', 'updatedAt'])
+    .optional()
+    .describe('The order by field.'),
+  page: zod.coerce
+    .number()
+    .min(1)
+    .default(listCustomerEntitlementsV2QueryPageDefault)
+    .describe('Page index.\n\nDefault is 1.'),
+  pageSize: zod.coerce
+    .number()
+    .min(1)
+    .max(listCustomerEntitlementsV2QueryPageSizeMax)
+    .default(listCustomerEntitlementsV2QueryPageSizeDefault)
+    .describe('The maximum number of items per page.\n\nDefault is 100.'),
+})
+
+/**
+ * Get entitlement by feature key. For checking entitlement access, use the /value endpoint instead.
+ * @summary Get customer entitlement
+ */
+export const getCustomerEntitlementV2PathEntitlementIdOrFeatureKeyMax = 64
+
+export const getCustomerEntitlementV2PathEntitlementIdOrFeatureKeyRegExp =
+  new RegExp(
+    '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+  )
+
+export const getCustomerEntitlementV2Params = zod.object({
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(getCustomerEntitlementV2PathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(getCustomerEntitlementV2PathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+  entitlementIdOrFeatureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(getCustomerEntitlementV2PathEntitlementIdOrFeatureKeyMax)
+    .regex(getCustomerEntitlementV2PathEntitlementIdOrFeatureKeyRegExp),
+})
+
+/**
+ * Deleting an entitlement revokes access to the associated feature. As a single customer can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
+As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
+ * @summary Delete customer entitlement
+ */
+export const deleteCustomerEntitlementV2PathEntitlementIdOrFeatureKeyMax = 64
+
+export const deleteCustomerEntitlementV2PathEntitlementIdOrFeatureKeyRegExp =
+  new RegExp(
+    '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+  )
+
+export const deleteCustomerEntitlementV2Params = zod.object({
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(deleteCustomerEntitlementV2PathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(deleteCustomerEntitlementV2PathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+  entitlementIdOrFeatureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(deleteCustomerEntitlementV2PathEntitlementIdOrFeatureKeyMax)
+    .regex(deleteCustomerEntitlementV2PathEntitlementIdOrFeatureKeyRegExp),
+})
+
+/**
+ * List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
+ * @summary List customer entitlement grants
+ */
+export const listCustomerEntitlementGrantsV2PathEntitlementIdOrFeatureKeyMax = 64
+
+export const listCustomerEntitlementGrantsV2PathEntitlementIdOrFeatureKeyRegExp =
+  new RegExp(
+    '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+  )
+
+export const listCustomerEntitlementGrantsV2Params = zod.object({
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(listCustomerEntitlementGrantsV2PathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(listCustomerEntitlementGrantsV2PathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+  entitlementIdOrFeatureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(listCustomerEntitlementGrantsV2PathEntitlementIdOrFeatureKeyMax)
+    .regex(listCustomerEntitlementGrantsV2PathEntitlementIdOrFeatureKeyRegExp),
+})
+
+export const listCustomerEntitlementGrantsV2QueryIncludeDeletedDefault = false
+export const listCustomerEntitlementGrantsV2QueryPageDefault = 1
+export const listCustomerEntitlementGrantsV2QueryPageSizeDefault = 100
+export const listCustomerEntitlementGrantsV2QueryPageSizeMax = 1000
+export const listCustomerEntitlementGrantsV2QueryOffsetDefault = 0
+export const listCustomerEntitlementGrantsV2QueryOffsetMin = 0
+export const listCustomerEntitlementGrantsV2QueryLimitDefault = 100
+export const listCustomerEntitlementGrantsV2QueryLimitMax = 1000
+
+export const listCustomerEntitlementGrantsV2QueryParams = zod.object({
+  includeDeleted: zod.coerce.boolean().optional(),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listCustomerEntitlementGrantsV2QueryLimitMax)
+    .default(listCustomerEntitlementGrantsV2QueryLimitDefault)
+    .describe('Number of items to return.\n\nDefault is 100.'),
+  offset: zod.coerce
+    .number()
+    .min(listCustomerEntitlementGrantsV2QueryOffsetMin)
+    .optional()
+    .describe('Number of items to skip.\n\nDefault is 0.'),
+  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  orderBy: zod
+    .enum(['id', 'createdAt', 'updatedAt'])
+    .optional()
+    .describe('The order by field.'),
+  page: zod.coerce
+    .number()
+    .min(1)
+    .default(listCustomerEntitlementGrantsV2QueryPageDefault)
+    .describe('Page index.\n\nDefault is 1.'),
+  pageSize: zod.coerce
+    .number()
+    .min(1)
+    .max(listCustomerEntitlementGrantsV2QueryPageSizeMax)
+    .default(listCustomerEntitlementGrantsV2QueryPageSizeDefault)
+    .describe('The maximum number of items per page.\n\nDefault is 100.'),
+})
+
+/**
+ * Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
+
+A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
+
+Grants have a priority setting that determines their order of use. Lower numbers have higher priority, with 0 being the highest priority.
+
+Grants can have a recurrence setting intended to automate the manual reissuing of grants. For example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover settings).
+
+Rollover settings define what happens to the remaining balance of a grant at a reset. Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+
+Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
+ * @summary Create customer entitlement grant
+ */
+export const createCustomerEntitlementGrantV2PathEntitlementIdOrFeatureKeyMax = 64
+
+export const createCustomerEntitlementGrantV2PathEntitlementIdOrFeatureKeyRegExp =
+  new RegExp(
+    '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+  )
+
+export const createCustomerEntitlementGrantV2Params = zod.object({
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(createCustomerEntitlementGrantV2PathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(createCustomerEntitlementGrantV2PathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+  entitlementIdOrFeatureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(createCustomerEntitlementGrantV2PathEntitlementIdOrFeatureKeyMax)
+    .regex(createCustomerEntitlementGrantV2PathEntitlementIdOrFeatureKeyRegExp),
+})
+
+export const createCustomerEntitlementGrantV2BodyAmountMin = 0
+export const createCustomerEntitlementGrantV2BodyPriorityMax = 255
+export const createCustomerEntitlementGrantV2BodyExpirationCountMax = 1000
+export const createCustomerEntitlementGrantV2BodyMaxRolloverAmountDefault = 0
+export const createCustomerEntitlementGrantV2BodyMinRolloverAmountDefault = 0
+
+export const createCustomerEntitlementGrantV2Body = zod
+  .object({
+    amount: zod.coerce
+      .number()
+      .min(createCustomerEntitlementGrantV2BodyAmountMin)
+      .describe('The amount to grant. Should be a positive number.'),
+    effectiveAt: zod.coerce
+      .date()
+      .describe(
+        'Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).'
+      ),
+    expiration: zod
+      .object({
+        count: zod.coerce
+          .number()
+          .min(1)
+          .max(createCustomerEntitlementGrantV2BodyExpirationCountMax)
+          .describe('The number of time units in the expiration period.'),
+        duration: zod
+          .enum(['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'])
+          .describe('The expiration duration enum')
+          .describe('The unit of time for the expiration period.'),
+      })
+      .describe('The grant expiration definition')
+      .describe('The grant expiration definition'),
+    maxRolloverAmount: zod.coerce
+      .number()
+      .optional()
+      .describe(
+        'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
+      ),
+    metadata: zod
+      .record(zod.string(), zod.coerce.string())
+      .describe(
+        'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+      )
+      .optional()
+      .describe('The grant metadata.'),
+    minRolloverAmount: zod.coerce
+      .number()
+      .optional()
+      .describe(
+        'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
+      ),
+    priority: zod.coerce
+      .number()
+      .min(1)
+      .max(createCustomerEntitlementGrantV2BodyPriorityMax)
+      .optional()
+      .describe(
+        'The priority of the grant. Grants with higher priority are applied first.\nPriority is a positive decimal numbers. With lower numbers indicating higher importance.\nFor example, a priority of 1 is more urgent than a priority of 2.\nWhen there are several grants available for the same subject, the system selects the grant with the highest priority.\nIn cases where grants share the same priority level, the grant closest to its expiration will be used first.\nIn the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.'
+      ),
+    recurrence: zod
+      .object({
+        anchor: zod.coerce
+          .date()
+          .optional()
+          .describe('A date-time anchor to base the recurring period on.'),
+        interval: zod
+          .union([
+            zod.coerce.string(),
+            zod
+              .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+              .describe(
+                'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
+              ),
+          ])
+          .describe('Period duration for the recurrence')
+          .describe('The unit of time for the interval.'),
+      })
+      .describe('Recurring period with an interval and an anchor.')
+      .optional()
+      .describe('The subject of the grant.'),
+  })
+  .describe('The grant creation input.')
+
+/**
+ * Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
+
+BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
+
+WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
+ * @summary Get customer entitlement history
+ */
+export const getCustomerEntitlementHistoryV2PathEntitlementIdOrFeatureKeyMax = 64
+
+export const getCustomerEntitlementHistoryV2PathEntitlementIdOrFeatureKeyRegExp =
+  new RegExp(
+    '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+  )
+
+export const getCustomerEntitlementHistoryV2Params = zod.object({
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(getCustomerEntitlementHistoryV2PathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(getCustomerEntitlementHistoryV2PathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+  entitlementIdOrFeatureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(getCustomerEntitlementHistoryV2PathEntitlementIdOrFeatureKeyMax)
+    .regex(getCustomerEntitlementHistoryV2PathEntitlementIdOrFeatureKeyRegExp),
+})
+
+export const getCustomerEntitlementHistoryV2QueryWindowTimeZoneDefault = 'UTC'
+
+export const getCustomerEntitlementHistoryV2QueryParams = zod.object({
+  from: zod.coerce
+    .date()
+    .optional()
+    .describe(
+      'Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to the last reset. Gets truncated to the granularity of the underlying meter.'
+    ),
+  to: zod.coerce
+    .date()
+    .optional()
+    .describe(
+      'End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.\nIf not now then gets truncated to the granularity of the underlying meter.'
+    ),
+  windowSize: zod
+    .enum(['MINUTE', 'HOUR', 'DAY', 'MONTH'])
+    .describe('Windowsize'),
+  windowTimeZone: zod.coerce
+    .string()
+    .default(getCustomerEntitlementHistoryV2QueryWindowTimeZoneDefault)
+    .describe('The timezone used when calculating the windows.'),
+})
+
+/**
+ * Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided customer-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
+
+This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
+ * @summary Override customer entitlement
+ */
+export const overrideCustomerEntitlementV2Params = zod.object({
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(overrideCustomerEntitlementV2PathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(overrideCustomerEntitlementV2PathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+  entitlementIdOrFeatureKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(
+        overrideCustomerEntitlementV2PathEntitlementIdOrFeatureKeyRegExpOne
+      )
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(overrideCustomerEntitlementV2PathEntitlementIdOrFeatureKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+})
+
+export const overrideCustomerEntitlementV2BodyFeatureKeyMax = 64
+
+export const overrideCustomerEntitlementV2BodyFeatureKeyRegExp = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
+export const overrideCustomerEntitlementV2BodyFeatureIdRegExp = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+export const overrideCustomerEntitlementV2BodyIsSoftLimitDefault = false
+export const overrideCustomerEntitlementV2BodyIsUnlimitedDefault = false
+export const overrideCustomerEntitlementV2BodyIssueAfterResetMin = 0
+export const overrideCustomerEntitlementV2BodyIssueAfterResetPriorityDefault = 1
+export const overrideCustomerEntitlementV2BodyIssueAfterResetPriorityMax = 255
+export const overrideCustomerEntitlementV2BodyPreserveOverageAtResetDefault = false
+export const overrideCustomerEntitlementV2BodyFeatureKeyMaxOne = 64
+
+export const overrideCustomerEntitlementV2BodyFeatureKeyRegExpOne = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
+export const overrideCustomerEntitlementV2BodyFeatureIdRegExpOne = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+export const overrideCustomerEntitlementV2BodyFeatureKeyMaxTwo = 64
+
+export const overrideCustomerEntitlementV2BodyFeatureKeyRegExpTwo = new RegExp(
+  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
+)
+export const overrideCustomerEntitlementV2BodyFeatureIdRegExpTwo = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+
+export const overrideCustomerEntitlementV2Body = zod
+  .union([
+    zod
+      .object({
+        featureId: zod.coerce
+          .string()
+          .regex(overrideCustomerEntitlementV2BodyFeatureIdRegExp)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        featureKey: zod.coerce
+          .string()
+          .min(1)
+          .max(overrideCustomerEntitlementV2BodyFeatureKeyMax)
+          .regex(overrideCustomerEntitlementV2BodyFeatureKeyRegExp)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        isSoftLimit: zod.coerce
+          .boolean()
+          .optional()
+          .describe(
+            'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
+          ),
+        issueAfterReset: zod.coerce
+          .number()
+          .min(overrideCustomerEntitlementV2BodyIssueAfterResetMin)
+          .optional()
+          .describe(
+            'You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.\nIf an amount is specified here, a grant will be created alongside the entitlement with the specified amount.\nThat grant will have it\'s rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.\nManually creating such a grant would mean having the \"amount\", \"minRolloverAmount\", and \"maxRolloverAmount\" fields all be the same.'
+          ),
+        issueAfterResetPriority: zod.coerce
+          .number()
+          .min(1)
+          .max(overrideCustomerEntitlementV2BodyIssueAfterResetPriorityMax)
+          .default(
+            overrideCustomerEntitlementV2BodyIssueAfterResetPriorityDefault
+          )
+          .describe('Defines the grant priority for the default grant.'),
+        isUnlimited: zod.coerce
+          .boolean()
+          .optional()
+          .describe(
+            'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.'
+          ),
+        measureUsageFrom: zod
+          .union([
+            zod
+              .enum(['CURRENT_PERIOD_START', 'NOW'])
+              .describe('Start of measurement options'),
+            zod.coerce
+              .date()
+              .describe(
+                '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+              ),
+          ])
+          .describe('Measure usage from')
+          .optional()
+          .describe(
+            'Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time.'
+          ),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+          )
+          .optional()
+          .describe('Additional metadata for the feature.'),
+        preserveOverageAtReset: zod.coerce
+          .boolean()
+          .optional()
+          .describe(
+            'If true, the overage is preserved at reset. If false, the usage is reset to 0.'
+          ),
+        type: zod.enum(['metered']),
+        usagePeriod: zod
+          .object({
+            anchor: zod.coerce
+              .date()
+              .optional()
+              .describe('A date-time anchor to base the recurring period on.'),
+            interval: zod
+              .union([
+                zod.coerce.string(),
+                zod
+                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+                  .describe(
+                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
+                  ),
+              ])
+              .describe('Period duration for the recurrence')
+              .describe('The unit of time for the interval.'),
+          })
+          .describe('Recurring period with an interval and an anchor.')
+          .describe('The usage period associated with the entitlement.'),
+      })
+      .describe('Create inpurs for metered entitlement'),
+    zod
+      .object({
+        config: zod.coerce
+          .string()
+          .describe(
+            'The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.'
+          ),
+        featureId: zod.coerce
+          .string()
+          .regex(overrideCustomerEntitlementV2BodyFeatureIdRegExpOne)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        featureKey: zod.coerce
+          .string()
+          .min(1)
+          .max(overrideCustomerEntitlementV2BodyFeatureKeyMaxOne)
+          .regex(overrideCustomerEntitlementV2BodyFeatureKeyRegExpOne)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+          )
+          .optional()
+          .describe('Additional metadata for the feature.'),
+        type: zod.enum(['static']),
+        usagePeriod: zod
+          .object({
+            anchor: zod.coerce
+              .date()
+              .optional()
+              .describe('A date-time anchor to base the recurring period on.'),
+            interval: zod
+              .union([
+                zod.coerce.string(),
+                zod
+                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+                  .describe(
+                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
+                  ),
+              ])
+              .describe('Period duration for the recurrence')
+              .describe('The unit of time for the interval.'),
+          })
+          .describe('Recurring period with an interval and an anchor.')
+          .optional()
+          .describe('The usage period associated with the entitlement.'),
+      })
+      .describe('Create inputs for static entitlement'),
+    zod
+      .object({
+        featureId: zod.coerce
+          .string()
+          .regex(overrideCustomerEntitlementV2BodyFeatureIdRegExpTwo)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        featureKey: zod.coerce
+          .string()
+          .min(1)
+          .max(overrideCustomerEntitlementV2BodyFeatureKeyMaxTwo)
+          .regex(overrideCustomerEntitlementV2BodyFeatureKeyRegExpTwo)
+          .optional()
+          .describe(
+            'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
+          ),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+          )
+          .optional()
+          .describe('Additional metadata for the feature.'),
+        type: zod.enum(['boolean']),
+        usagePeriod: zod
+          .object({
+            anchor: zod.coerce
+              .date()
+              .optional()
+              .describe('A date-time anchor to base the recurring period on.'),
+            interval: zod
+              .union([
+                zod.coerce.string(),
+                zod
+                  .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+                  .describe(
+                    'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
+                  ),
+              ])
+              .describe('Period duration for the recurrence')
+              .describe('The unit of time for the interval.'),
+          })
+          .describe('Recurring period with an interval and an anchor.')
+          .optional()
+          .describe('The usage period associated with the entitlement.'),
+      })
+      .describe('Create inputs for boolean entitlement'),
+  ])
+  .describe('Create inputs for entitlement')
+
+/**
+ * Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the customers billing period to enforce usage based on their subscription.
+
+Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
+ * @summary Reset customer entitlement
+ */
+export const resetCustomerEntitlementUsageV2PathEntitlementIdOrFeatureKeyMax = 64
+
+export const resetCustomerEntitlementUsageV2PathEntitlementIdOrFeatureKeyRegExp =
+  new RegExp(
+    '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+  )
+
+export const resetCustomerEntitlementUsageV2Params = zod.object({
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(resetCustomerEntitlementUsageV2PathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(resetCustomerEntitlementUsageV2PathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+  entitlementIdOrFeatureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(resetCustomerEntitlementUsageV2PathEntitlementIdOrFeatureKeyMax)
+    .regex(resetCustomerEntitlementUsageV2PathEntitlementIdOrFeatureKeyRegExp),
+})
+
+export const resetCustomerEntitlementUsageV2Body = zod
+  .object({
+    effectiveAt: zod.coerce
+      .date()
+      .optional()
+      .describe(
+        'The time at which the reset takes effect, defaults to now. The reset cannot be in the future. The provided value is truncated to the minute due to how historical meter data is stored.'
+      ),
+    preserveOverage: zod.coerce
+      .boolean()
+      .optional()
+      .describe(
+        "Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.\n- If true, the overage is preserved.\n- If false, the overage is forgiven."
+      ),
+    retainAnchor: zod.coerce
+      .boolean()
+      .optional()
+      .describe(
+        'Determines whether the usage period anchor is retained or reset to the effectiveAt time.\n- If true, the usage period anchor is retained.\n- If false, the usage period anchor is reset to the effectiveAt time.'
+      ),
+  })
+  .describe('Reset parameters')
+
+/**
+ * Checks customer access to a given feature (by key). All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
+ * @summary Get customer entitlement value
+ */
+export const getCustomerEntitlementValueV2PathEntitlementIdOrFeatureKeyMax = 64
+
+export const getCustomerEntitlementValueV2PathEntitlementIdOrFeatureKeyRegExp =
+  new RegExp(
+    '^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+  )
+
+export const getCustomerEntitlementValueV2Params = zod.object({
+  customerIdOrKey: zod.union([
+    zod.coerce
+      .string()
+      .regex(getCustomerEntitlementValueV2PathCustomerIdOrKeyRegExpOne)
+      .describe(
+        'ULID (Universally Unique Lexicographically Sortable Identifier).'
+      ),
+    zod.coerce
+      .string()
+      .min(1)
+      .max(getCustomerEntitlementValueV2PathCustomerIdOrKeyMaxTwo)
+      .describe('ExternalKey is a looser version of key.'),
+  ]),
+  entitlementIdOrFeatureKey: zod.coerce
+    .string()
+    .min(1)
+    .max(getCustomerEntitlementValueV2PathEntitlementIdOrFeatureKeyMax)
+    .regex(getCustomerEntitlementValueV2PathEntitlementIdOrFeatureKeyRegExp),
+})
+
+export const getCustomerEntitlementValueV2QueryParams = zod.object({
+  time: zod.coerce.date().optional(),
+})
+
+/**
  * List ingested events with advanced filtering and cursor pagination.
  * @summary List ingested events
  */
@@ -17844,4 +17959,80 @@ export const listEventsV2QueryParams = zod.object({
     .max(listEventsV2QueryLimitMax)
     .default(listEventsV2QueryLimitDefault)
     .describe('The limit of the pagination.'),
+})
+
+/**
+ * List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.
+To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
+If page is provided that takes precedence and the paginated response is returned.
+ * @summary List grants
+ */
+export const listGrantsV2QueryIncludeDeletedDefault = false
+export const listGrantsV2QueryPageDefault = 1
+export const listGrantsV2QueryPageSizeDefault = 100
+export const listGrantsV2QueryPageSizeMax = 1000
+export const listGrantsV2QueryOffsetDefault = 0
+export const listGrantsV2QueryOffsetMin = 0
+export const listGrantsV2QueryLimitDefault = 100
+export const listGrantsV2QueryLimitMax = 1000
+
+export const listGrantsV2QueryParams = zod.object({
+  customer: zod
+    .array(
+      zod
+        .union([
+          zod.coerce
+            .string()
+            .regex(listGrantsV2QueryCustomerItemRegExpOne)
+            .describe(
+              'ULID (Universally Unique Lexicographically Sortable Identifier).'
+            ),
+          zod.coerce
+            .string()
+            .min(1)
+            .max(listGrantsV2QueryCustomerItemMaxTwo)
+            .describe('ExternalKey is a looser version of key.'),
+        ])
+        .describe(
+          'ULID (Universally Unique Lexicographically Sortable Identifier) or external unique key.'
+        )
+    )
+    .optional()
+    .describe(
+      'Filtering by multiple customers (either by ID or key).\n\nUsage: `?customer=customer-1&customer=customer-2`'
+    ),
+  feature: zod
+    .array(zod.coerce.string())
+    .optional()
+    .describe(
+      'Filtering by multiple features.\n\nUsage: `?feature=feature-1&feature=feature-2`'
+    ),
+  includeDeleted: zod.coerce.boolean().optional().describe('Include deleted'),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listGrantsV2QueryLimitMax)
+    .default(listGrantsV2QueryLimitDefault)
+    .describe('Number of items to return.\n\nDefault is 100.'),
+  offset: zod.coerce
+    .number()
+    .min(listGrantsV2QueryOffsetMin)
+    .optional()
+    .describe('Number of items to skip.\n\nDefault is 0.'),
+  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  orderBy: zod
+    .enum(['id', 'createdAt', 'updatedAt'])
+    .optional()
+    .describe('The order by field.'),
+  page: zod.coerce
+    .number()
+    .min(1)
+    .default(listGrantsV2QueryPageDefault)
+    .describe('Page index.\n\nDefault is 1.'),
+  pageSize: zod.coerce
+    .number()
+    .min(1)
+    .max(listGrantsV2QueryPageSizeMax)
+    .default(listGrantsV2QueryPageSizeDefault)
+    .describe('The maximum number of items per page.\n\nDefault is 100.'),
 })
