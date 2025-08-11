@@ -1,5 +1,11 @@
 # A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
+SVIX_JWT_SECRET = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds
+
+# dynamic forces confluent-kafka-go to build against local librdkafka
+GO_BUILD_FLAGS = -tags=dynamic
+GO_TEST_FLAGS = -p 128 --parallel 16 ${GO_BUILD_FLAGS}
+
 .PHONY: up
 up: ## Start the dependencies via docker compose. `export COMPOSE_PROFILES=dev,redis,...`
 	$(call print-target)
@@ -39,40 +45,43 @@ generate: ## Generate code
 	$(call print-target)
 	go generate ./...
 
+.PHONY: build
+build: build-server build-sink-worker build-benthos-collector build-balance-worker build-billing-worker build-notification-service build-jobs ## Build all binaries
+
 .PHONY: build-server
 build-server: ## Build server binary
 	$(call print-target)
-	go build -o build/server ./cmd/server
+	go build -o build/server ${GO_BUILD_FLAGS} ./cmd/server
 
 .PHONY: build-sink-worker
 build-sink-worker: ## Build sink-worker binary
 	$(call print-target)
-	go build -o build/sink-worker ./cmd/sink-worker
+	go build -o build/sink-worker ${GO_BUILD_FLAGS} ./cmd/sink-worker
 
 .PHONY: build-benthos-collector
 build-benthos-collector: ## Build benthos collector binary
 	$(call print-target)
-	go build -o build/benthos-collector ./cmd/benthos-collector
+	go build -o build/benthos-collector ${GO_BUILD_FLAGS} ./cmd/benthos-collector
 
 .PHONY: build-balance-worker
 build-balance-worker: ## Build balance-worker binary
 	$(call print-target)
-	go build -o build/balance-worker ./cmd/balance-worker
+	go build -o build/balance-worker ${GO_BUILD_FLAGS} ./cmd/balance-worker
 
 .PHONY: build-billing-worker
 build-billing-worker: ## Build billing-worker binary
 	$(call print-target)
-	go build -o build/billing-worker ./cmd/billing-worker
+	go build -o build/billing-worker ${GO_BUILD_FLAGS} ./cmd/billing-worker
 
 .PHONY: build-notification-service
 build-notification-service: ## Build notification-service binary
 	$(call print-target)
-	go build -o build/notification-service ./cmd/notification-service
+	go build -o build/notification-service ${GO_BUILD_FLAGS} ./cmd/notification-service
 
 .PHONY: build-jobs
 build-jobs: ## Build jobs binary
 	$(call print-target)
-	go build -o build/jobs ./cmd/jobs
+	go build -o build/jobs ${GO_BUILD_FLAGS} ./cmd/jobs
 
 config.yaml:
 	cp config.example.yaml config.yaml
@@ -115,7 +124,14 @@ etoe: ## Run e2e tests
 .PHONY: test
 test: ## Run tests
 	$(call print-target)
-	dagger call test
+	go test ${GO_TEST_FLAGS} ./...
+
+.PHONY: test-all
+test-all: ## Run tests with svix dependencies, bypassing the test cache
+	$(call print-target)
+	docker compose up -d postgres svix redis
+	./tools/wait-for-compose.sh postgres svix redis
+	SVIX_HOST="localhost" SVIX_JWT_SECRET="$(SVIX_JWT_SECRET)" go test ${GO_TEST_FLAGS} -count=1 ./...
 
 .PHONY: lint
 lint: ## Run linters
