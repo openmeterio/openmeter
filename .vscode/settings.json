@@ -24,5 +24,6 @@
     "**/node_modules": false
   },
   "typespec.tsp-server.path": "${workspaceFolder}/api/spec/node_modules/@typespec/compiler",
-  "go.buildTags": "wireinject"
+  // dynamic forces confluent-kafka-go to build against local librdkafka
+  "go.buildTags": "wireinject,dynamic"
 }
