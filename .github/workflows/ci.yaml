@@ -229,6 +229,11 @@ jobs:
         run: |
           docker compose down -v
 
+      - name: Stop docker-compose dependencies
+        if: always()
+        run: |
+          docker compose down -v postgres svix redis
+
   migrations:
     name: Migration Checks
     runs-on: depot-ubuntu-latest-8
