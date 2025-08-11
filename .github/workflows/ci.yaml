@@ -78,7 +78,7 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-
 
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
@@ -136,7 +136,7 @@ jobs:
 
       # This shaves off 5s or so
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
