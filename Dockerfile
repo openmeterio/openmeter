@@ -54,13 +54,19 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 RUN xx-verify /usr/local/bin/openmeter-balance-worker
 
-# Build balance-worker binary
+# Build notification-service binary
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
     xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-notification-service ./cmd/notification-service
 
 RUN xx-verify /usr/local/bin/openmeter-notification-service
 
+# Build billing-worker binary
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/go/cache \
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-billing-worker ./cmd/billing-worker
+
+RUN xx-verify /usr/local/bin/openmeter-billing-worker
 
 FROM alpine:3.22.1@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
 
@@ -72,6 +78,7 @@ COPY --link --from=builder /usr/local/bin/openmeter /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-balance-worker /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-notification-service /usr/local/bin/
+COPY --link --from=builder /usr/local/bin/openmeter-billing-worker /usr/local/bin/
 COPY --link --from=builder /src/go.* /usr/local/src/openmeter/
 COPY --link --from=builder /src/entrypoint.sh /entrypoint.sh
 

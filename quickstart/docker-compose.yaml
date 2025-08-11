@@ -1,3 +1,4 @@
+# please use port numbers in the 40000 range so that it doesn't conflict with the main dev environment
 services:
   openmeter:
     image: ghcr.io/openmeterio/openmeter:latest
@@ -12,7 +13,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8888:8888"
+      - "127.0.0.1:48888:8888"
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
     healthcheck:
@@ -36,42 +37,45 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "127.0.0.1:10000:10000"
+      - "127.0.0.1:40000:10000"
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
 
   kafka:
     extends:
-      file: ../docker-compose.yaml
+      file: ../docker-compose.base.yaml
       service: kafka
+    ports:
+      - "127.0.0.1:49092:29092"
 
   clickhouse:
     extends:
-      file: ../docker-compose.yaml
+      file: ../docker-compose.base.yaml
       service: clickhouse
+    ports:
+      - "127.0.0.1:48123:8123"
+      - "127.0.0.1:49000:9000"
+      - "127.0.0.1:49009:9009"
 
   redis:
-    image: redis:7.0-alpine
+    extends:
+      file: ../docker-compose.base.yaml
+      service: redis
     ports:
-      - "127.0.0.1:6379:6379"
-    command: ["redis-server", "--maxmemory", "50mb", "--maxmemory-policy", "noeviction", "--maxmemory-samples", "10"]
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
+      - "127.0.0.1:46379:6379"
 
   postgres:
-    image: postgres:14.9-alpine
+    extends:
+      file: ../docker-compose.base.yaml
+      service: postgres
     ports:
-      - "127.0.0.1:5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=postgres
-    command: ["postgres", "-c", "wal_level=logical"]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "$${POSTGRES_DB}", "-U", "$${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
+      - "127.0.0.1:45432:5432"
+
+configs:
+  svix_sql:
+    content: |
+      CREATE USER svix WITH PASSWORD 'svix';
+      CREATE DATABASE svix;
+      GRANT ALL PRIVILEGES ON DATABASE svix TO svix;
+      ALTER DATABASE svix OWNER TO svix;
+

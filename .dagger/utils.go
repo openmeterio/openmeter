@@ -78,3 +78,33 @@ func addSyncableStep[T any](p *pipeline, s syncable[T]) {
 func cacheVolume(name string) *dagger.CacheVolume {
 	return dag.CacheVolume(fmt.Sprintf("openmeter-%s", name))
 }
+
+func diff(ctx context.Context, d1, d2 *dagger.Directory) error {
+	_, err := dag.Container(dagger.ContainerOpts{Platform: ""}).
+		From(alpineBaseImage).
+		WithDirectory("src", d1).
+		WithDirectory("res", d2).
+		WithExec([]string{"diff", "-u", "-r", "-q", "src", "res"}).
+		Sync(ctx)
+
+	return err
+}
+
+func goModuleCross(platform dagger.Platform) *dagger.Go {
+	container := goModule().
+		WithCgoEnabled(). // TODO: set env var instead?
+		Container().
+		With(func(c *dagger.Container) *dagger.Container {
+			if platform != "" {
+				c = c.WithEnvVariable("TARGETPLATFORM", string(platform))
+			}
+
+			return c
+		}).
+		WithDirectory("/", dag.Container().From(xxBaseImage).Rootfs()).
+		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
+		WithExec([]string{"xx-apk", "add", "--update", "--no-cache", "musl-dev", "gcc"}).
+		WithExec([]string{"xx-go", "--wrap"})
+
+	return dag.Go(dagger.GoOpts{Container: container})
+}

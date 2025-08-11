@@ -22,3 +22,9 @@ func initClient(t *testing.T) *api.ClientWithResponses {
 
 	return client
 }
+
+func shouldRunSlowTests(t *testing.T) bool {
+	t.Helper()
+
+	return os.Getenv("RUN_SLOW_TESTS") != ""
+}

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -22,18 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
-
-func TestMain(m *testing.M) {
-	wait := os.Getenv("TEST_WAIT_ON_START")
-
-	if b, err := strconv.ParseBool(wait); err == nil && b {
-		// Make sure OpenMeter is ready
-		// TODO: replace this with some sort of health check
-		time.Sleep(15 * time.Second)
-	}
-
-	os.Exit(m.Run())
-}
 
 func TestIngest(t *testing.T) {
 	client := initClient(t)
@@ -1016,70 +1002,78 @@ func TestCredit(t *testing.T) {
 		assert.Equal(t, expected, resp.JSON200)
 	})
 
-	t.Run("Reset", func(t *testing.T) {
-		// we have to wait for a minute to pass so we can reset
-		time.Sleep(time.Minute)
-		effectiveAt := time.Now().Truncate(time.Minute)
+	t.Run("Slow: Reset testing", func(t *testing.T) {
+		// Entitlements are one minute rounded, so we need to wait for a minute to pass so we can reset, if we
+		// really want we can run this on main. (if we have a second resolution we can just enable it)
+		if !shouldRunSlowTests(t) {
+			t.Skip("Skipping slow test, please reenable when we have a second resolution for entitlements")
+		}
 
-		// Get grants
-		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject, entitlementId, nil)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
-		require.NotNil(t, grantListResp.JSON200)
-		require.Len(t, *grantListResp.JSON200, 1)
+		t.Run("Reset", func(t *testing.T) {
+			// we have to wait for a minute to pass so we can reset
+			time.Sleep(time.Minute)
+			effectiveAt := time.Now().Truncate(time.Minute)
 
-		// Get feature
-		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
-		require.NotNil(t, featureListResp.JSON200)
-		features, err := featureListResp.JSON200.AsListFeaturesResult0()
-		require.NoError(t, err)
-		require.Len(t, features, 1)
+			// Get grants
+			grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject, entitlementId, nil)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, grantListResp.StatusCode())
+			require.NotNil(t, grantListResp.JSON200)
+			require.Len(t, *grantListResp.JSON200, 1)
 
-		// Reset usage
-		resetResp, err := client.ResetEntitlementUsageWithResponse(context.Background(), subject, entitlementId, api.ResetEntitlementUsageJSONRequestBody{
-			EffectiveAt: &effectiveAt,
+			// Get feature
+			featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, featureListResp.StatusCode())
+			require.NotNil(t, featureListResp.JSON200)
+			features, err := featureListResp.JSON200.AsListFeaturesResult0()
+			require.NoError(t, err)
+			require.Len(t, features, 1)
+
+			// Reset usage
+			resetResp, err := client.ResetEntitlementUsageWithResponse(context.Background(), subject, entitlementId, api.ResetEntitlementUsageJSONRequestBody{
+				EffectiveAt: &effectiveAt,
+			})
+
+			require.NoError(t, err)
+			require.Equal(t, http.StatusNoContent, resetResp.StatusCode())
 		})
 
-		require.NoError(t, err)
-		require.Equal(t, http.StatusNoContent, resetResp.StatusCode())
-	})
+		subject2 := "credit-customer-2-key"
+		// we have to wait after the reset
+		time.Sleep(time.Minute)
+		time.Sleep(time.Second * 10)
 
-	subject2 := "credit-customer-2-key"
-	// we have to wait after the reset
-	time.Sleep(time.Minute)
-	time.Sleep(time.Second * 10)
+		t.Run("Create entitlement with automatic grant issuing", func(t *testing.T) {
+			meteredEntitlement := api.EntitlementMeteredCreateInputs{
+				Type:      "metered",
+				FeatureId: &featureId,
+				UsagePeriod: api.RecurringPeriodCreateInput{
+					Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					Interval: *apiMONTH,
+				},
+				IssueAfterReset: convert.ToPointer(50.0),
+			}
+			body := &api.CreateEntitlementJSONRequestBody{}
+			err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+			require.NoError(t, err)
+			resp, err := client.CreateEntitlementWithResponse(context.Background(), subject2, *body)
 
-	t.Run("Create entitlement with automatic grant issuing", func(t *testing.T) {
-		meteredEntitlement := api.EntitlementMeteredCreateInputs{
-			Type:      "metered",
-			FeatureId: &featureId,
-			UsagePeriod: api.RecurringPeriodCreateInput{
-				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
-				Interval: *apiMONTH,
-			},
-			IssueAfterReset: convert.ToPointer(50.0),
-		}
-		body := &api.CreateEntitlementJSONRequestBody{}
-		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
-		require.NoError(t, err)
-		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject2, *body)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+			metered, err := resp.JSON201.AsEntitlementMetered()
+			require.NoError(t, err)
 
-		metered, err := resp.JSON201.AsEntitlementMetered()
-		require.NoError(t, err)
+			require.Equal(t, metered.SubjectKey, subject2)
 
-		require.Equal(t, metered.SubjectKey, subject2)
-
-		// fetch grants for entitlement
-		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject2, metered.Id, nil)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
-		require.NotNil(t, grantListResp.JSON200)
-		require.Len(t, *grantListResp.JSON200, 1)
+			// fetch grants for entitlement
+			grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject2, metered.Id, nil)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, grantListResp.StatusCode())
+			require.NotNil(t, grantListResp.JSON200)
+			require.Len(t, *grantListResp.JSON200, 1)
+		})
 	})
 
 	t.Run("Override previous entitlement", func(t *testing.T) {

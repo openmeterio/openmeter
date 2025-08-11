@@ -88,6 +88,7 @@ jobs:
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
             ${{ runner.os }}-openmeter-go-modules-main
@@ -102,6 +103,65 @@ jobs:
         run: |
           nix develop --impure .#ci -c pre-commit run -a
           nix develop --impure .#ci -c pre-commit run --hook-stage manual
+
+  generators:
+    name: Code Generators
+    runs-on: depot-ubuntu-latest-8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@63ca48f939ee3b8d835f4126562537df0fee5b91 # v32
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Restore go.mod cache if exists
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: .devenv/state/go
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          # Prefer to restore the branch cache over the main cache
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main
+
+      - name: Ensure code generators are run
+        run: |
+          nix develop --impure .#ci -c make generate-all
+
+          # does not detect new files
+          if [ -n "$(git diff --exit-code)" ]; then
+            git diff
+
+            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            exit 1
+          fi
+
+          # detect files not committed
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+
+            echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
+            exit 1
+          fi
 
   test:
     name: Test
@@ -146,6 +206,7 @@ jobs:
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
             ${{ runner.os }}-openmeter-go-modules-main
@@ -162,11 +223,6 @@ jobs:
         # count=1 is needed to force retest
         run: |
           nix develop --impure .#ci -c go test -p 128 -tags=dynamic -parallel 16 -count=1 ./...
-
-      - name: Stop docker-compose dependencies
-        if: always()
-        run: |
-          docker compose down -v
 
       - name: Stop docker-compose dependencies
         if: always()
@@ -210,31 +266,90 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: depot-ubuntu-latest-8,dagger=0.18.14
+    runs-on: depot-ubuntu-latest-8
 
     steps:
-      # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Run pipeline
-        run: dagger call lint all
-
-      - name: Export Dagger Engine logs
-        id: export-dagger-engine-logs
-        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.stdout.log 2> engine.stderr.log
-        if: always()
-        continue-on-error: true
-
-      - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always() && steps.export-dagger-engine-logs.outcome == 'success'
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@63ca48f939ee3b8d835f4126562537df0fee5b91 # v32
         with:
-          name: "[${{ github.job }}] Dagger Engine logs"
-          path: |
-            engine.stdout.log
-            engine.stderr.log
-          retention-days: 14
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Upsert Nix store
+        run: nix develop --impure .#ci
+
+      # This shaves off 5s or so
+      - name: Restore go.mod cache if exists
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: .devenv/state/go
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          # Prefer to restore the branch cache over the main cache
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main
+
+      - name: Get main fork point
+        id: base-commit
+        run: |
+          git fetch origin main
+
+          echo "base candidate:"
+          git log -1 --reverse --boundary HEAD ^origin/main
+
+          BASE_COMMIT=$(git log -1 --reverse --boundary --format=%h HEAD ^origin/main)
+          if [ -z "$BASE_COMMIT" ]; then
+            BASE_COMMIT=$(git log -1 --format=%h)
+          fi
+          echo "sha=${BASE_COMMIT}" >> $GITHUB_OUTPUT
+
+          echo "sha=${BASE_COMMIT}"
+
+      - name: Lint cache
+        uses: actions/cache@v4.2.4
+        with:
+          path: .devenv/golangci-lint-cache
+          key: ${{ runner.os }}-openmeter-golangci-lint-cache-${{ steps.base-commit.outputs.sha }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-openmeter-golangci-lint-cache-${{ steps.base-commit.outputs.sha }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-golangci-lint-cache-${{ steps.base-commit.outputs.sha }}-
+            ${{ runner.os }}-openmeter-golangci-lint-cache-
+
+      - name: Run linters - go
+        env:
+          GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/golangci-lint-cache
+        run: |
+          nix develop --impure .#ci -c make lint-go
+
+      - name: Run linters - api spec
+        run: |
+          nix develop --impure .#ci -c make lint-api-spec
+
+      - name: Run linters - openapi
+        run: |
+          nix develop --impure .#ci -c make lint-openapi
+
+      - name: Run linters - helm
+        run: |
+          nix develop --impure .#ci -c make lint-helm
 
   artifacts:
     name: Artifacts
@@ -276,14 +391,61 @@ jobs:
   quickstart:
     name: Quickstart
     runs-on: depot-ubuntu-latest-8
+    needs:
+    - artifacts
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Create override files for quickstart
+        env:
+          DEPOT_IMAGE_URL: ${{ needs.artifacts.outputs.container-image-url-depot }}
+        run: |
+          cat > quickstart/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              image: $DEPOT_IMAGE_URL
+            sink-worker:
+              image: $DEPOT_IMAGE_URL
+          EOF
+
+          cat quickstart/docker-compose.override.yaml
+
+
       - name: Launch Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
+        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d
         working-directory: quickstart
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@63ca48f939ee3b8d835f4126562537df0fee5b91 # v32
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Restore go.mod cache if exists
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: .devenv/state/go
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          # Prefer to restore the branch cache over the main cache
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main
 
       - name: Check container health
         run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
@@ -291,66 +453,109 @@ jobs:
         continue-on-error: true
 
       - name: Wait for worker to become ready
-        run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:10000/healthz
+        run: |
+          curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:40000/healthz
+          docker ps
 
       - name: Run tests
-        uses: dagger/dagger-for-github@e47aba410ef9bb9ed81a4d2a97df31061e5e842e # v8.0.0
-        with:
-          verb: call
-          args: quickstart-test --service tcp://localhost:8888 --port 8888
-          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
-
-      - name: Export Container Logs
-        id: export-container-logs
-        run: docker logs $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}') > container.stdout.log 2> container.stderr.log
-        if: always()
-        continue-on-error: true
-
-      - name: Upload Container logs as artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always() && steps.export-container-logs.outcome == 'success'
-        with:
-          name: "[${{ github.job }}] Container logs"
-          path: |
-            container.stdout.log
-            container.stderr.log
-          retention-days: 14
+        env:
+          OPENMETER_ADDRESS: http://localhost:48888
+        run: |
+          nix develop --impure .#ci -c go test -v -count=1 ./quickstart/
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
+        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml down -v
         working-directory: quickstart
         if: always()
 
   e2e:
     name: E2E
-    runs-on: depot-ubuntu-latest-16
+    runs-on: depot-ubuntu-latest-8
+    # Note: This check is running agains the image that is going to be pushed. We can shave off ~2m by just building the image
+    needs:
+    - artifacts
 
     steps:
-      # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Run pipeline
-        uses: dagger/dagger-for-github@e47aba410ef9bb9ed81a4d2a97df31061e5e842e # v8.0.0
-        with:
-          verb: call
-          args: etoe
-          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
+      - name: Create override files for e2e
+        env:
+          DEPOT_IMAGE_URL: ${{ needs.artifacts.outputs.container-image-url-depot }}
+        run: |
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              image: $DEPOT_IMAGE_URL
+            sink-worker:
+              image: $DEPOT_IMAGE_URL
+          EOF
 
-      - name: Export Dagger Engine logs
-        id: export-dagger-engine-logs
-        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.stdout.log 2> engine.stderr.log
+          cat e2e/docker-compose.override.yaml
+
+
+      - name: Launch Docker Compose infra
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d
+        working-directory: e2e
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@63ca48f939ee3b8d835f4126562537df0fee5b91 # v32
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Restore go.mod cache if exists
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: .devenv/state/go
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          # Prefer to restore the branch cache over the main cache
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main
+
+      - name: Check container health
+        run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
         if: always()
         continue-on-error: true
 
-      - name: Upload Dagger Engine logs as artifact
+      - name: Wait for worker to become ready
+        run: |
+          curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+          docker ps
+
+      - name: Run tests
+        env:
+          OPENMETER_ADDRESS: http://localhost:38888
+          TZ: UTC
+        run: |
+          nix develop --impure .#ci -c go test -v -count=1 -timeout 3m ./e2e/
+
+      - name: Cleanup Docker Compose
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
+        working-directory: e2e
+        if: always()
+
+      - name: Upload Openmeter logs as artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always() && steps.export-dagger-engine-logs.outcome == 'success'
+        if: always()
         with:
-          name: "[${{ github.job }}] Dagger Engine logs"
+          name: "[${{ github.job }}] Openmeter logs"
           path: |
-            engine.stdout.log
-            engine.stderr.log
+            e2e/logs/openmeter/openmeter.log
+            e2e/logs/sink-worker/openmeter.log
           retention-days: 14

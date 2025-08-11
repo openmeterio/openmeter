@@ -26,7 +26,7 @@ docker compose up -d
 Ingest usage events in [CloudEvents](https://cloudevents.io/) format:
 
 ```sh
-curl -X POST http://localhost:8888/api/v1/events \
+curl -X POST http://localhost:48888/api/v1/events \
 -H 'Content-Type: application/cloudevents+json' \
 --data-raw '
 {
@@ -48,7 +48,7 @@ curl -X POST http://localhost:8888/api/v1/events \
 Note how ID is different:
 
 ```sh
-curl -X POST http://localhost:8888/api/v1/events \
+curl -X POST http://localhost:48888/api/v1/events \
 -H 'Content-Type: application/cloudevents+json' \
 --data-raw '
 {
@@ -70,7 +70,7 @@ curl -X POST http://localhost:8888/api/v1/events \
 Note how ID and time are different:
 
 ```sh
-curl -X POST http://localhost:8888/api/v1/events \
+curl -X POST http://localhost:48888/api/v1/events \
 -H 'Content-Type: application/cloudevents+json' \
 --data-raw '
 {
@@ -94,7 +94,7 @@ curl -X POST http://localhost:8888/api/v1/events \
 Query the usage hourly:
 
 ```sh
-curl 'http://localhost:8888/api/v1/meters/api_requests_total/query?windowSize=HOUR&groupBy=method&groupBy=route' | jq
+curl 'http://localhost:48888/api/v1/meters/api_requests_total/query?windowSize=HOUR&groupBy=method&groupBy=route' | jq
 ```
 
 ```json
@@ -128,7 +128,7 @@ curl 'http://localhost:8888/api/v1/meters/api_requests_total/query?windowSize=HO
 Query the total usage for `customer-1`:
 
 ```sh
-curl 'http://localhost:8888/api/v1/meters/api_requests_total/query?subject=customer-1' | jq
+curl 'http://localhost:48888/api/v1/meters/api_requests_total/query?subject=customer-1' | jq
 ```
 
 ```json

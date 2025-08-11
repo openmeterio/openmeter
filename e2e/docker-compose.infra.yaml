@@ -1,0 +1,40 @@
+# please use port numbers in the 30000 range so that it doesn't conflict with the main dev environment
+services:
+  kafka:
+    extends:
+      file: ../docker-compose.base.yaml
+      service: kafka
+    ports:
+      - "127.0.0.1:39092:29092"
+
+  clickhouse:
+    extends:
+      file: ../docker-compose.base.yaml
+      service: clickhouse
+    ports:
+      - "127.0.0.1:38123:8123"
+      - "127.0.0.1:39000:9000"
+      - "127.0.0.1:39009:9009"
+
+  redis:
+    extends:
+      file: ../docker-compose.base.yaml
+      service: redis
+    ports:
+      - "127.0.0.1:36379:6379"
+
+
+  postgres:
+    extends:
+      file: ../docker-compose.base.yaml
+      service: postgres
+    ports:
+      - "127.0.0.1:35432:35432"
+
+configs:
+  svix_sql:
+    content: |
+      CREATE USER svix WITH PASSWORD 'svix';
+      CREATE DATABASE svix;
+      GRANT ALL PRIVILEGES ON DATABASE svix TO svix;
+      ALTER DATABASE svix OWNER TO svix;

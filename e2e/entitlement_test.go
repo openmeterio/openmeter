@@ -18,6 +18,12 @@ import (
 )
 
 func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
+	// This takes a minute to run in itself due to Entitlements being one minute rounded and we need to wait in the last
+	// test for the minute to pass.
+	if !shouldRunSlowTests(t) {
+		t.Skip("Skipping slow test, please reenable when we have a second resolution for entitlements")
+	}
+
 	client := initClient(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -407,6 +413,10 @@ func TestEntitlementWithLatestAggregation(t *testing.T) {
 	})
 
 	t.Run("Should handle new latest value correctly", func(t *testing.T) {
+		if !shouldRunSlowTests(t) {
+			t.Skip("Skipping slow test, please reenable when we have a second resolution for entitlements")
+		}
+
 		// Send a new event with a different value
 		newLatestValue := 300.0
 

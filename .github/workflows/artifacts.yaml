@@ -21,6 +21,9 @@ on:
       container-image-ref:
         description: Container image ref
         value: ${{ jobs.container-image.outputs.ref }}
+      container-image-url-depot:
+        description: Container image URL from Depot
+        value: ${{ jobs.container-image.outputs.depot-image-url }}
 
 permissions:
   contents: read
@@ -41,6 +44,7 @@ jobs:
       digest: ${{ steps.build.outputs.digest }}
       tag: ${{ steps.meta.outputs.version }}
       ref: ${{ steps.image-ref.outputs.value }}
+      depot-image-url: ${{ steps.extract-dagger-image-url.outputs.url }}
 
     steps:
       - name: Checkout repository
@@ -92,6 +96,14 @@ jobs:
       - name: Set image ref
         id: image-ref
         run: echo "value=${{ steps.image-name.outputs.value }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract dagger image URL
+        id: extract-dagger-image-url
+        env:
+          DEPOT_IMAGE_METADATA: ${{ steps.build.outputs.metadata }}
+        run: |
+          echo "url=$(echo "$DEPOT_IMAGE_METADATA" | jq -r '."image.name"')" >> $GITHUB_OUTPUT
+
 
       - name: Retrieve pull token
         id: pull-token

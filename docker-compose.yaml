@@ -1,155 +1,79 @@
 services:
   kafka:
-    image: confluentinc/cp-kafka:7.7.1
+    extends:
+      file: docker-compose.base.yaml
+      service: kafka
     ports:
       - "127.0.0.1:29092:29092"
-    environment:
-      CLUSTER_ID: ca497efe-9f82-4b84-890b-d9969a9a2e1c
-      KAFKA_BROKER_ID: 0
-      KAFKA_PROCESS_ROLES: "broker,controller"
-      KAFKA_CONTROLLER_QUORUM_VOTERS: "0@kafka:9093"
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
-      KAFKA_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://kafka:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      JMX_PORT: 9997
-      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9997"
-    healthcheck:
-      test: ["CMD-SHELL", "JMX_PORT=9998", "kafka-topics", "--bootstrap-server", "kafka:9092", "--list"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
 
   clickhouse:
-    image: clickhouse/clickhouse-server:24.9-alpine
+    extends:
+      file: docker-compose.base.yaml
+      service: clickhouse
     ports:
       - "127.0.0.1:8123:8123"
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9009:9009"
-    environment:
-      CLICKHOUSE_USER: default
-      CLICKHOUSE_PASSWORD: default
-      CLICKHOUSE_DB: openmeter
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "http://clickhouse:8123/ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-
 
   ch-ui:
-    image: ghcr.io/caioricciuti/ch-ui:latest
+    extends:
+      file: docker-compose.base.yaml
+      service: ch-ui
     profiles:
       - dev
-    depends_on:
-      - clickhouse
-    restart: always
     ports:
       - "${CH_UI_PORT:-5521}:5521"
-    environment:
-      VITE_CLICKHOUSE_URL: http://localhost:8123
-      VITE_CLICKHOUSE_USER: default
-      VITE_CLICKHOUSE_PASS: default
 
   # Deduplication
   # docker compose --profile redis up
   redis:
+    extends:
+      file: docker-compose.base.yaml
+      service: redis
     profiles:
       - redis
-    image: redis:7.0-alpine
     ports:
       - "127.0.0.1:6379:6379"
-    command: ["redis-server", "--maxmemory", "50mb", "--maxmemory-policy", "noeviction", "--maxmemory-samples", "10"]
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
 
   # Development
   # docker compose --profile dev up
   kafka-ui:
-    image: ghcr.io/kafbat/kafka-ui:main
+    extends:
+      file: docker-compose.base.yaml
+      service: kafka-ui
     profiles:
       - dev
-    depends_on:
-      - kafka
     ports:
       - "127.0.0.1:8084:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-      KAFKA_CLUSTERS_0_METRICS_PORT: 9997
-      DYNAMIC_CONFIG_ENABLED: "true"
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "http://kafka-ui:8080/"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
 
   wiretap:
-    image: pb33f/wiretap:v0.0.49
+    extends:
+      file: docker-compose.base.yaml
+      service: wiretap
     profiles:
       - dev
-    command: --config /usr/local/src/openmeter/etc/wiretap/config.docker.yaml
     ports:
       - 127.0.0.1:19090:19090
       - 127.0.0.1:19091:19091
       - 127.0.0.1:19092:19092
-    volumes:
-      - ./api:/usr/local/src/openmeter/api
-      - ./etc:/usr/local/src/openmeter/etc
 
   # Credit
   # docker compose --profile postgres up
   postgres:
-    image: postgres:14-alpine
+    extends:
+      file: docker-compose.base.yaml
+      service: postgres
     ports:
       - "127.0.0.1:5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_HOST_AUTH_METHOD=md5
-    configs:
-      - source: svix_sql
-        target: /docker-entrypoint-initdb.d/svix.sql
-        mode: 0444
-    command: ["postgres", "-c", "wal_level=logical"]
-    healthcheck:
-      test: ["CMD", "pg_isready", "-d", "postgres", "-U", "postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
 
   svix:
-    image: svix/svix-server:v1.44
+    extends:
+      file: docker-compose.base.yaml
+      service: svix
     profiles:
       - webhook
-    environment:
-      WAIT_FOR: "true"  # We want to wait for the default services
-      SVIX_REDIS_DSN: "redis://redis:6379"
-      SVIX_DB_DSN: "postgresql://svix:svix@postgres/svix"
-      SVIX_CACHE_TYPE: "redis"
-      SVIX_JWT_SECRET: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
-      SVIX_LOG_LEVEL: "info"
-      SVIX_QUEUE_TYPE: "redis"
     ports:
       - "127.0.0.1:8071:8071"
-    depends_on:
-      - postgres
-      - redis
 
 configs:
   svix_sql:

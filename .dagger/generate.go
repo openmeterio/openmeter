@@ -1,9 +1,6 @@
 package main
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
@@ -17,51 +14,6 @@ func (m *Openmeter) Generate() *Generate {
 type Generate struct {
 	// +private
 	Source *dagger.Directory
-}
-
-// Generate OpenAPI from TypeSpec.
-func (m *Generate) Openapi() *dagger.File {
-	file := typespecBase(m.Source.Directory("api/spec")).
-		WithExec([]string{"pnpm", "compile"}).
-		File("/work/output/openapi.OpenMeter.yaml").
-		WithName("openapi.yaml")
-
-	// https://github.com/microsoft/typespec/issues/2154
-	file = dag.Container().
-		From("alpine").
-		WithFile("/work/openapi.yaml", file).
-		WithWorkdir("/work").
-		File("/work/openapi.yaml")
-
-	return file
-}
-
-// Generate OpenAPI from TypeSpec.
-func (m *Generate) Openapicloud() *dagger.File {
-	file := typespecBase(m.Source.Directory("api/spec")).
-		WithExec([]string{"pnpm", "compile"}).
-		File("/work/output/openapi.OpenMeterCloud.yaml").
-		WithName("openapi.cloud.yaml")
-
-	// https://github.com/microsoft/typespec/issues/2154
-	file = dag.Container().
-		From("alpine").
-		WithFile("/work/openapi.cloud.yaml", file).
-		WithWorkdir("/work").
-		File("/work/openapi.cloud.yaml")
-
-	return file
-}
-
-func typespecBase(source *dagger.Directory) *dagger.Container {
-	return dag.Container().
-		From(NODEJS_CONTAINER_IMAGE).
-		WithEnvVariable("CI", "true").
-		WithExec([]string{"npm", "install", "-g", fmt.Sprintf("corepack@v%s", COREPACK_VERSION)}).
-		WithExec([]string{"corepack", "enable"}).
-		WithDirectory("/work", source).
-		WithWorkdir("/work").
-		WithExec([]string{"pnpm", "install", "--frozen-lockfile"})
 }
 
 // Generate the Python SDK.
@@ -82,60 +34,4 @@ func (m *Generate) PythonSdk() *dagger.Directory {
 		WithWorkdir("/work/client/python").
 		WithExec([]string{"autorest", "config.yaml"}).
 		Directory("/work/client/python")
-}
-
-// Generate the JavaScript SDK.
-func (m *Generate) JavascriptSdk() *dagger.Directory {
-	return dag.Container().
-		From(NODEJS_CONTAINER_IMAGE).
-		WithExec([]string{"npm", "install", "-g", fmt.Sprintf("corepack@v%s", COREPACK_VERSION)}).
-		WithExec([]string{"corepack", "enable"}).
-		WithDirectory("/work", m.Source.Directory("api")).
-		WithWorkdir("/work/client/javascript").
-		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
-		WithExec([]string{"pnpm", "run", "generate"}).
-		WithExec([]string{"pnpm", "build"}).
-		WithExec([]string{"pnpm", "test"}).
-		Directory("/work/client/javascript").
-		WithoutDirectory("node_modules")
-}
-
-func (m *Generate) Server() *dagger.Directory {
-	openapi := m.Openapi()
-	cloud := m.Openapicloud()
-
-	source := m.Source.
-		WithFile("api/openapi.yaml", openapi).
-		WithFile("api/openapi.cloud.yaml", cloud)
-
-	return goModule().
-		WithSource(source).
-		Exec([]string{"go", "generate", "-x", "./api"}).
-		Directory("/work/src/api")
-}
-
-func (m *Generate) Check(ctx context.Context) error {
-	result := goModuleCross("").
-		WithSource(m.Source).
-		WithEnvVariable("GOFLAGS", "-tags=musl").
-		Exec([]string{"go", "generate", "-x", "./..."}).
-		Directory("")
-
-	err := diff(ctx, m.Source, result)
-	if err != nil {
-		return fmt.Errorf("go generate wasn't run: %w", err)
-	}
-
-	return nil
-}
-
-func diff(ctx context.Context, d1, d2 *dagger.Directory) error {
-	_, err := dag.Container(dagger.ContainerOpts{Platform: ""}).
-		From(alpineBaseImage).
-		WithDirectory("src", d1).
-		WithDirectory("res", d2).
-		WithExec([]string{"diff", "-u", "-r", "-q", "src", "res"}).
-		Sync(ctx)
-
-	return err
 }
