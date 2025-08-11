@@ -117,6 +117,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	billingWorkerConfiguration := billingConfiguration.Worker
 	consumerConfiguration := billingWorkerConfiguration.ConsumerConfiguration
 	options := router.Options{
@@ -124,6 +125,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Publisher:   publisher,
 		Logger:      logger,
 		MetricMeter: meter,
+		Tracer:      tracer,
 		Config:      consumerConfiguration,
 	}
 	eventbusPublisher, err := common.NewEventBusPublisher(publisher, eventsConfiguration, logger)
@@ -157,7 +159,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse

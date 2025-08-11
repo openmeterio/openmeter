@@ -10,6 +10,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
@@ -33,6 +34,7 @@ type Application struct {
 	Logger             *slog.Logger
 	MessagePublisher   message.Publisher
 	Meter              metric.Meter
+	Tracer             trace.Tracer
 	Metadata           common.Metadata
 	MeterService       meter.Service
 	Notification       notification.Service
