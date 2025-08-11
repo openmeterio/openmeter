@@ -15,7 +15,7 @@ if [[ -z "$CONTAINER_IDS" ]]; then
 fi
 
 checkServices() {
-    for CONTAINER_ID in "$@"; do
+    for CONTAINER_ID in $@; do
         STATUS="$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER_ID" 2>/dev/null || true)"
         SERVICE_NAME="$(docker inspect --format='{{.Name}}' "$CONTAINER_ID" 2>/dev/null | sed 's|^/||')"
         if [[ "$STATUS" == "healthy" ]]; then

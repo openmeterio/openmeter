@@ -46,41 +46,45 @@ generate: ## Generate code
 	$(call print-target)
 	go generate ./...
 
+.PHONY: build-dir
+build-dir:
+	@mkdir -p build
+
 .PHONY: build
 build: build-server build-sink-worker build-benthos-collector build-balance-worker build-billing-worker build-notification-service build-jobs ## Build all binaries
 
 .PHONY: build-server
-build-server: ## Build server binary
+build-server: | build-dir ## Build server binary
 	$(call print-target)
 	go build -o build/server ${GO_BUILD_FLAGS} ./cmd/server
 
 .PHONY: build-sink-worker
-build-sink-worker: ## Build sink-worker binary
+build-sink-worker: | build-dir ## Build sink-worker binary
 	$(call print-target)
 	go build -o build/sink-worker ${GO_BUILD_FLAGS} ./cmd/sink-worker
 
 .PHONY: build-benthos-collector
-build-benthos-collector: ## Build benthos collector binary
+build-benthos-collector: | build-dir ## Build benthos collector binary
 	$(call print-target)
 	go build -o build/benthos-collector ${GO_BUILD_FLAGS} ./cmd/benthos-collector
 
 .PHONY: build-balance-worker
-build-balance-worker: ## Build balance-worker binary
+build-balance-worker: | build-dir ## Build balance-worker binary
 	$(call print-target)
 	go build -o build/balance-worker ${GO_BUILD_FLAGS} ./cmd/balance-worker
 
 .PHONY: build-billing-worker
-build-billing-worker: ## Build billing-worker binary
+build-billing-worker: | build-dir ## Build billing-worker binary
 	$(call print-target)
 	go build -o build/billing-worker ${GO_BUILD_FLAGS} ./cmd/billing-worker
 
 .PHONY: build-notification-service
-build-notification-service: ## Build notification-service binary
+build-notification-service: | build-dir ## Build notification-service binary
 	$(call print-target)
 	go build -o build/notification-service ${GO_BUILD_FLAGS} ./cmd/notification-service
 
 .PHONY: build-jobs
-build-jobs: ## Build jobs binary
+build-jobs: | build-dir ## Build jobs binary
 	$(call print-target)
 	go build -o build/jobs ${GO_BUILD_FLAGS} ./cmd/jobs
 
