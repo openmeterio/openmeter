@@ -124,6 +124,7 @@ etoe: ## Run e2e tests
 .PHONY: test
 test: ## Run tests
 	$(call print-target)
+	PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres postgres -c "SELECT version();" || (echo "!!! Postgres is not running. Please start it with 'docker compose up -d postgres' !!!" && false)
 	go test ${GO_TEST_FLAGS} ./...
 
 .PHONY: test-all
