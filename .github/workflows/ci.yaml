@@ -11,6 +11,10 @@ permissions:
 env:
   DAGGER_VERSION: 0.18.14
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cache-rebuild:
     name: Rebuild GitHub Actions Caches
