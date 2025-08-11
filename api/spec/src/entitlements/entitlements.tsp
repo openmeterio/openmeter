@@ -269,7 +269,8 @@ model EntitlementSharedFields {
   type: EntitlementType;
 
   /**
-   * The identifier key unique to the subject
+   * The identifier key unique to the subject.
+   * NOTE: Subjects are being deprecated, please use the new customer APIs.
    */
   @example("customer-1")
   subjectKey: Key;
