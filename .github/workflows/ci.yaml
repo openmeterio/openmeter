@@ -148,7 +148,7 @@ jobs:
 
       - name: Wait for dependencies to be ready
         run: |
-          ./toos/wait-for-compose.sh postgres svix redis
+          ./tools/wait-for-compose.sh postgres svix redis
 
       - name: Run tests
         env:

@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Wait for docker compose services to be healthy (or if no health check is available, just running)
+#
+# Usage:
+#   ./tools/wait-for-compose.sh postgres svix redis
+#
+
 # Get the container ID for the service
 CONTAINER_IDS=$(docker compose ps -q "$@")
 if [[ -z "$CONTAINER_IDS" ]]; then
