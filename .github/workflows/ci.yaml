@@ -20,7 +20,7 @@ jobs:
     name: Rebuild GitHub Actions Caches
     runs-on: depot-ubuntu-latest-4
     # To test e2e feel free to comment this out for a branch, then a branch specific cache will be created
-    # if: github.ref_name == 'main'
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout repository
