@@ -19,6 +19,7 @@ import "./subjects.tsp";
 import "./debug.tsp";
 import "./notification";
 import "./entitlements";
+import "./entitlements/v2";
 import "./billing";
 import "./productcatalog";
 import "./info";
