@@ -464,7 +464,7 @@ func (s *CustomerOverrideTestSuite) TestGetCustomerApp() {
 
 	// Get the customer app
 	customerApp, err := s.BillingService.GetCustomerApp(ctx, billing.GetCustomerAppInput{
-		CustomerID: cust.GetID(),
+		CustomerID: cust.GetCustomerID(),
 		AppType:    sandboxApp.GetType(),
 	})
 	require.NoError(s.T(), err)

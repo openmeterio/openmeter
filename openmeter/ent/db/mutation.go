@@ -11369,6 +11369,7 @@ type BillingInvoiceMutation struct {
 	total                                    *alpacadecimal.Decimal
 	supplier_name                            *string
 	supplier_tax_code                        *string
+	customer_key                             *string
 	customer_name                            *string
 	customer_usage_attribution               **billing.VersionedCustomerUsageAttribution
 	number                                   *string
@@ -12744,6 +12745,55 @@ func (m *BillingInvoiceMutation) SupplierTaxCodeCleared() bool {
 func (m *BillingInvoiceMutation) ResetSupplierTaxCode() {
 	m.supplier_tax_code = nil
 	delete(m.clearedFields, billinginvoice.FieldSupplierTaxCode)
+}
+
+// SetCustomerKey sets the "customer_key" field.
+func (m *BillingInvoiceMutation) SetCustomerKey(s string) {
+	m.customer_key = &s
+}
+
+// CustomerKey returns the value of the "customer_key" field in the mutation.
+func (m *BillingInvoiceMutation) CustomerKey() (r string, exists bool) {
+	v := m.customer_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerKey returns the old "customer_key" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldCustomerKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerKey: %w", err)
+	}
+	return oldValue.CustomerKey, nil
+}
+
+// ClearCustomerKey clears the value of the "customer_key" field.
+func (m *BillingInvoiceMutation) ClearCustomerKey() {
+	m.customer_key = nil
+	m.clearedFields[billinginvoice.FieldCustomerKey] = struct{}{}
+}
+
+// CustomerKeyCleared returns if the "customer_key" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) CustomerKeyCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldCustomerKey]
+	return ok
+}
+
+// ResetCustomerKey resets all changes to the "customer_key" field.
+func (m *BillingInvoiceMutation) ResetCustomerKey() {
+	m.customer_key = nil
+	delete(m.clearedFields, billinginvoice.FieldCustomerKey)
 }
 
 // SetCustomerName sets the "customer_name" field.
@@ -14194,7 +14244,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 54)
+	fields := make([]string, 0, 55)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -14278,6 +14328,9 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	}
 	if m.supplier_tax_code != nil {
 		fields = append(fields, billinginvoice.FieldSupplierTaxCode)
+	}
+	if m.customer_key != nil {
+		fields = append(fields, billinginvoice.FieldCustomerKey)
 	}
 	if m.customer_name != nil {
 		fields = append(fields, billinginvoice.FieldCustomerName)
@@ -14421,6 +14474,8 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.SupplierName()
 	case billinginvoice.FieldSupplierTaxCode:
 		return m.SupplierTaxCode()
+	case billinginvoice.FieldCustomerKey:
+		return m.CustomerKey()
 	case billinginvoice.FieldCustomerName:
 		return m.CustomerName()
 	case billinginvoice.FieldCustomerUsageAttribution:
@@ -14538,6 +14593,8 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldSupplierName(ctx)
 	case billinginvoice.FieldSupplierTaxCode:
 		return m.OldSupplierTaxCode(ctx)
+	case billinginvoice.FieldCustomerKey:
+		return m.OldCustomerKey(ctx)
 	case billinginvoice.FieldCustomerName:
 		return m.OldCustomerName(ctx)
 	case billinginvoice.FieldCustomerUsageAttribution:
@@ -14794,6 +14851,13 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSupplierTaxCode(v)
+		return nil
+	case billinginvoice.FieldCustomerKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerKey(v)
 		return nil
 	case billinginvoice.FieldCustomerName:
 		v, ok := value.(string)
@@ -15058,6 +15122,9 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldSupplierTaxCode) {
 		fields = append(fields, billinginvoice.FieldSupplierTaxCode)
 	}
+	if m.FieldCleared(billinginvoice.FieldCustomerKey) {
+		fields = append(fields, billinginvoice.FieldCustomerKey)
+	}
 	if m.FieldCleared(billinginvoice.FieldDescription) {
 		fields = append(fields, billinginvoice.FieldDescription)
 	}
@@ -15164,6 +15231,9 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldSupplierTaxCode:
 		m.ClearSupplierTaxCode()
+		return nil
+	case billinginvoice.FieldCustomerKey:
+		m.ClearCustomerKey()
 		return nil
 	case billinginvoice.FieldDescription:
 		m.ClearDescription()
@@ -15298,6 +15368,9 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldSupplierTaxCode:
 		m.ResetSupplierTaxCode()
+		return nil
+	case billinginvoice.FieldCustomerKey:
+		m.ResetCustomerKey()
 		return nil
 	case billinginvoice.FieldCustomerName:
 		m.ResetCustomerName()

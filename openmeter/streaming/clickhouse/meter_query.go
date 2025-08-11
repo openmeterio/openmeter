@@ -23,7 +23,7 @@ type queryMeter struct {
 	EventsTableName string
 	Namespace       string
 	Meter           meterpkg.Meter
-	FilterCustomer  []customer.Customer
+	FilterCustomer  []customer.MeterCustomer
 	FilterSubject   []string
 	FilterGroupBy   map[string][]string
 	From            *time.Time
@@ -202,12 +202,12 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 		// Add the case statements for each subject to customer ID mapping
 		for _, customer := range d.FilterCustomer {
-			for _, subjectKey := range customer.UsageAttribution.SubjectKeys {
+			for _, subjectKey := range customer.GetUsageAttribution().SubjectKeys {
 				str := fmt.Sprintf(
 					"WHEN %s = '%s' THEN '%s' ",
 					getColumn("subject"),
 					sqlbuilder.Escape(subjectKey),
-					sqlbuilder.Escape(customer.ID),
+					sqlbuilder.Escape(customer.GetID()),
 				)
 				caseBuilder.WriteString(str)
 			}
@@ -308,7 +308,7 @@ func (d *queryMeter) subjectWhere(query *sqlbuilder.SelectBuilder) *sqlbuilder.S
 		var subjects []string
 
 		for _, customer := range d.FilterCustomer {
-			subjects = append(subjects, customer.UsageAttribution.SubjectKeys...)
+			subjects = append(subjects, customer.GetUsageAttribution().SubjectKeys...)
 		}
 
 		query = query.Where(query.Or(slicesx.Map(subjects, mapFunc)...))

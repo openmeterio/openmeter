@@ -14,7 +14,7 @@ type QueryParams struct {
 	ClientID       *string
 	From           *time.Time
 	To             *time.Time
-	FilterCustomer []customer.Customer
+	FilterCustomer []customer.MeterCustomer
 	FilterSubject  []string
 	FilterGroupBy  map[string][]string
 	GroupBy        []string

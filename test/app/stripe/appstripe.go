@@ -198,7 +198,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	// Get customer data
 	getCustomerData, err := testApp.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 	})
 
 	require.NoError(t, err, "Get customer data must not return error")
@@ -212,7 +212,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 			PageSize:   10,
 			PageNumber: 1,
 		},
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 	})
 
 	require.NoError(t, err, "List customer data must not return error")
@@ -241,7 +241,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	defer s.Env.StripeAppClient().Restore()
 
 	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID:             newStripeCustomerID,
 			StripeDefaultPaymentMethodID: &newStripePaymentMethodID,
@@ -252,7 +252,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	// Get customer data
 	getCustomerData, err = testApp.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 	})
 
 	require.NoError(t, err, "Get customer data must not return error")
@@ -273,7 +273,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	defer s.Env.StripeAppClient().Restore()
 
 	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID: nonExistingStripeCustomerID,
 		},
@@ -301,7 +301,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	defer s.Env.StripeAppClient().Restore()
 
 	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID:             newStripeCustomerID,
 			StripeDefaultPaymentMethodID: &nonExistingStripePaymentMethodID,
@@ -330,7 +330,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	defer s.Env.StripeAppClient().Restore()
 
 	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID:             newStripeCustomerID,
 			StripeDefaultPaymentMethodID: &newStripePaymentMethodID,
@@ -341,7 +341,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	// Updated customer data must match
 	getCustomerData, err = testApp.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 	})
 
 	require.NoError(t, err, "Get customer data must not return error")
@@ -352,7 +352,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	// Delete customer data
 	err = testApp.DeleteCustomerData(ctx, app.DeleteAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 	})
 
 	require.NoError(t, err, "Delete customer data must not return error")
@@ -363,7 +363,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 			PageSize:   10,
 			PageNumber: 1,
 		},
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 	})
 
 	require.NoError(t, err, "List customer data must not return error")
@@ -371,7 +371,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	// Get customer data should return 404
 	_, err = testApp.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 	})
 
 	require.True(t, app.IsAppCustomerPreConditionError(err), "Get customer data must return app customer pre condition error")
@@ -386,7 +386,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	defer s.Env.StripeAppClient().Restore()
 
 	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID: customerData.StripeCustomerID,
 		},
@@ -400,7 +400,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 			PageSize:   10,
 			PageNumber: 1,
 		},
-		CustomerID: customer.GetID(),
+		CustomerID: customer.GetCustomerID(),
 	})
 
 	require.NoError(t, err, "List customer data must not return error")
@@ -639,7 +639,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 
 	// Create checkout session
 	appID := testApp.GetID()
-	customerID := testCustomer.GetID()
+	customerID := testCustomer.GetCustomerID()
 
 	// Mocks
 	s.Env.StripeAppClient().
@@ -670,7 +670,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 
 	require.Equal(t, appstripeentity.CreateCheckoutSessionOutput{
 		AppID:            appID,
-		CustomerID:       testCustomer.GetID(),
+		CustomerID:       testCustomer.GetCustomerID(),
 		StripeCustomerID: defaultStripeCustomerID,
 		StripeCheckoutSession: stripeclient.StripeCheckoutSession{
 			SessionID:     "cs_123",
@@ -733,7 +733,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	defer s.Env.StripeAppClient().Restore()
 
 	_, err = s.Env.Customer().UpdateCustomer(ctx, customer.UpdateCustomerInput{
-		CustomerID: testCustomer.GetID(),
+		CustomerID: testCustomer.GetCustomerID(),
 		CustomerMutate: customer.CustomerMutate{
 			Name:             testCustomer.Name,
 			UsageAttribution: testCustomer.UsageAttribution,
@@ -757,7 +757,7 @@ func (s *AppHandlerTestSuite) TestCreatePortalSession(ctx context.Context, t *te
 
 	// Create portal session
 	appID := testApp.GetID()
-	customerID := testCustomer.GetID()
+	customerID := testCustomer.GetCustomerID()
 	createdAt := time.Now()
 
 	// Mocks

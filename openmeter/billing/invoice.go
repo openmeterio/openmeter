@@ -569,15 +569,60 @@ type (
 	}
 )
 
-type InvoiceCustomer struct {
-	CustomerID string `json:"customerId,omitempty"`
+// InvoiceCustomer implements the customer.MeterCustomer interface
+// This is used to query the usage of a customer in a meter query
+var _ customer.MeterCustomer = &InvoiceCustomer{}
 
+// NewInvoiceCustomer creates a new InvoiceCustomer from a customer.Customer
+func NewInvoiceCustomer(customer customer.Customer) InvoiceCustomer {
+	return InvoiceCustomer{
+		Key:              customer.Key,
+		CustomerID:       customer.ID,
+		Name:             customer.Name,
+		BillingAddress:   customer.BillingAddress,
+		UsageAttribution: customer.UsageAttribution,
+	}
+}
+
+// InvoiceCustomer represents a customer that is used in an invoice
+// We use a specific model as we snapshot the customer at the time of invoice creation,
+// and we don't want to modify the customer entity after it has been sent to the customer.
+type InvoiceCustomer struct {
+	Key              *string                  `json:"key,omitempty"`
+	CustomerID       string                   `json:"customerId,omitempty"`
 	Name             string                   `json:"name"`
 	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
 }
 
+// GetID returns the customer id
+// implementing the customer.MeterCustomer interface
+func (i InvoiceCustomer) GetID() string {
+	return i.CustomerID
+}
+
+// GetKey returns the customer key
+// implementing the customer.MeterCustomer interface
+func (i InvoiceCustomer) GetKey() *string {
+	return i.Key
+}
+
+// GetUsageAttribution returns the customer usage attribution
+// implementing the customer.MeterCustomer interface
+func (i InvoiceCustomer) GetUsageAttribution() CustomerUsageAttribution {
+	return i.UsageAttribution
+}
+
+// Validate validates the invoice customer
 func (i *InvoiceCustomer) Validate() error {
+	if i.CustomerID == "" {
+		return fmt.Errorf("customerID is required")
+	}
+
+	if i.Key != nil && *i.Key == "" {
+		return fmt.Errorf("key cannot be empty")
+	}
+
 	if i.Name == "" {
 		return fmt.Errorf("name is required")
 	}

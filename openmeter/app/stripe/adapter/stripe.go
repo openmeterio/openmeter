@@ -386,7 +386,7 @@ func (a *adapter) CreateCheckoutSession(ctx context.Context, input appstripeenti
 			}
 		}
 
-		customerID := targetCustomer.GetID()
+		customerID := targetCustomer.GetCustomerID()
 
 		// Get the stripe app customer
 		var stripeCustomerId string

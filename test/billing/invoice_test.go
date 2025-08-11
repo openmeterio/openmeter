@@ -127,7 +127,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
+				Customer: customerEntity.GetCustomerID(),
 				Currency: currencyx.Code(currency.USD),
 				Lines: []*billing.Line{
 					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -161,7 +161,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		res, err = s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
+				Customer: customerEntity.GetCustomerID(),
 				Currency: currencyx.Code(currency.HUF),
 				Lines: []*billing.Line{
 					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -296,6 +296,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				},
 
 				Customer: billing.InvoiceCustomer{
+					Key:        customerEntity.Key,
 					CustomerID: customerEntity.ID,
 
 					Name:           customerEntity.Name,
@@ -453,7 +454,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
 				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -629,7 +630,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	s.Run("When staging more lines the old gathering invoice gets reused", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
+				Customer: customerEntity.GetCustomerID(),
 				Currency: currencyx.Code(currency.USD),
 				Lines: []*billing.Line{
 					{
@@ -1402,7 +1403,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		// When we create pending invoice items
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
+				Customer: customerEntity.GetCustomerID(),
 				Currency: currencyx.Code(currency.USD),
 				Lines: []*billing.Line{
 					{
@@ -1559,7 +1560,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	s.Run("create invoice with empty trucated periods", func() {
 		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &periodStart,
 		})
 
@@ -1576,7 +1577,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		clock.SetTime(asOf)
 
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &asOf,
 		})
 
@@ -1879,7 +1880,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		clock.SetTime(asOf)
 
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &asOf,
 		})
 
@@ -2092,7 +2093,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		clock.SetTime(asOf)
 
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &asOf,
 		})
 
@@ -2323,7 +2324,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		// When we create pending invoice items
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
+				Customer: customerEntity.GetCustomerID(),
 				Currency: currencyx.Code(currency.USD),
 				Lines: []*billing.Line{
 					{
@@ -2379,7 +2380,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		// Period
 		asOf := periodStart.Add(time.Hour)
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &asOf,
 		})
 
@@ -2417,7 +2418,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		// Period
 		asOf := periodStart.Add(2 * time.Hour)
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &asOf,
 		})
 
@@ -2456,7 +2457,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 		asOf := periodStart.Add(3 * time.Hour)
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &asOf,
 		})
 
@@ -2636,7 +2637,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		// When we create pending invoice items
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
+				Customer: customerEntity.GetCustomerID(),
 				Currency: currencyx.Code(currency.USD),
 				Lines: []*billing.Line{
 					{
@@ -2786,7 +2787,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	s.Run("create invoice with empty truncated periods", func() {
 		asOf := periodStart.Add(time.Second)
 		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &asOf,
 		})
 
@@ -2798,7 +2799,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		// Period
 		asOf := periodStart.Add(time.Hour)
 		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &asOf,
 		})
 
@@ -2809,7 +2810,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	s.Run("create end of period invoice", func() {
 		asOf := periodEnd
 		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &asOf,
 		})
 
@@ -3155,7 +3156,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 		// When we create pending invoice items
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
+				Customer: customerEntity.GetCustomerID(),
 				Currency: currencyx.Code(currency.USD),
 				Lines: []*billing.Line{
 					{
@@ -3321,7 +3322,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	// Given we have pending invoice items without usage
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
 				{
@@ -3349,7 +3350,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 
 	// When we generate the invoice
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customerEntity.GetID(),
+		Customer: customerEntity.GetCustomerID(),
 	})
 	s.NoError(err)
 	s.Len(invoices, 1)
@@ -3440,7 +3441,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	// Given we have pending invoice items without usage
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
 				{
@@ -3468,7 +3469,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 
 	// When we generate the invoice
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customerEntity.GetID(),
+		Customer: customerEntity.GetCustomerID(),
 	})
 	s.NoError(err)
 	s.Len(invoices, 1)
@@ -3514,7 +3515,7 @@ func (s *InvoicingTestSuite) TestNamespaceLockedGatheringInvoiceCreation() {
 	})
 
 	invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 	})
 	s.ErrorIs(err, billing.ErrNamespaceLocked)
 	s.Nil(invoice)
@@ -3539,7 +3540,7 @@ func (s *InvoicingTestSuite) TestNamespaceLockedInvoiceProgression() {
 	billingSvc := s.BillingService.WithAdvancementStrategy(billing.QueuedAdvancementStrategy)
 
 	invoices, err := billingSvc.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 	})
 	s.NoError(err)
 	s.Len(invoices, 1)
@@ -3596,7 +3597,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 	defer clock.ResetTime()
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
 			{
@@ -3639,7 +3640,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 	clock.SetTime(collecitonDoneAt)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 	})
 	s.NoError(err)
 	s.Len(invoices, 1)
@@ -3690,7 +3691,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 	defer clock.ResetTime()
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
 			{
@@ -3750,7 +3751,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 	clock.SetTime(collecitonDoneAt)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer:                   customer.GetID(),
+		Customer:                   customer.GetCustomerID(),
 		ProgressiveBillingOverride: lo.ToPtr(false),
 	})
 	s.NoError(err)
@@ -3800,7 +3801,7 @@ func (s *InvoicingTestSuite) TestSortLines() {
 	defer clock.ResetTime()
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
 			{
@@ -3856,7 +3857,7 @@ func (s *InvoicingTestSuite) TestSortLines() {
 	clock.SetTime(periodEnd)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer:                   customer.GetID(),
+		Customer:                   customer.GetCustomerID(),
 		ProgressiveBillingOverride: lo.ToPtr(false),
 	})
 	s.NoError(err)
@@ -3929,7 +3930,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 
 	// When
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
 			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -3961,7 +3962,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	newPeriodEnd := periodEnd.Add(time.Hour * 24)
 
 	pendingLines, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
 			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -3992,7 +3993,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 
 	clock.SetTime(newPeriodEnd)
 	res, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer:                   customer.GetID(),
+		Customer:                   customer.GetCustomerID(),
 		ProgressiveBillingOverride: lo.ToPtr(false),
 	})
 	s.NoError(err)
@@ -4028,7 +4029,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 
 	clock.SetTime(customerDeletedAt)
-	s.NoError(s.CustomerService.DeleteCustomer(ctx, customer.GetID()))
+	s.NoError(s.CustomerService.DeleteCustomer(ctx, customer.GetCustomerID()))
 
 	// Given we have a deleted customer
 	// When we try to create pending lines that are before the deletion
@@ -4040,7 +4041,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	clock.SetTime(customerDeletedAt.Add(24 * time.Hour))
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
 			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -4058,7 +4059,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 
 	// Create the invoice
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer:                   customer.GetID(),
+		Customer:                   customer.GetCustomerID(),
 		ProgressiveBillingOverride: lo.ToPtr(false),
 	})
 	s.NoError(err)
@@ -4077,7 +4078,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	// Then we should not be able to perform the operation
 
 	pendingLines, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
 			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{

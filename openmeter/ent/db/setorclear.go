@@ -769,6 +769,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearSupplierTaxCode(value *string) *Bill
 	return u.SetSupplierTaxCode(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearCustomerKey(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerKey()
+	}
+	return u.SetCustomerKey(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerKey(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerKey()
+	}
+	return u.SetCustomerKey(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearDescription(value *string) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearDescription()

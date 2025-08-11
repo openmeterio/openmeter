@@ -72,6 +72,8 @@ const (
 	FieldSupplierName = "supplier_name"
 	// FieldSupplierTaxCode holds the string denoting the supplier_tax_code field in the database.
 	FieldSupplierTaxCode = "supplier_tax_code"
+	// FieldCustomerKey holds the string denoting the customer_key field in the database.
+	FieldCustomerKey = "customer_key"
 	// FieldCustomerName holds the string denoting the customer_name field in the database.
 	FieldCustomerName = "customer_name"
 	// FieldCustomerUsageAttribution holds the string denoting the customer_usage_attribution field in the database.
@@ -231,6 +233,7 @@ var Columns = []string{
 	FieldTotal,
 	FieldSupplierName,
 	FieldSupplierTaxCode,
+	FieldCustomerKey,
 	FieldCustomerName,
 	FieldCustomerUsageAttribution,
 	FieldNumber,
@@ -459,6 +462,11 @@ func BySupplierName(opts ...sql.OrderTermOption) OrderOption {
 // BySupplierTaxCode orders the results by the supplier_tax_code field.
 func BySupplierTaxCode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSupplierTaxCode, opts...).ToFunc()
+}
+
+// ByCustomerKey orders the results by the customer_key field.
+func ByCustomerKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerKey, opts...).ToFunc()
 }
 
 // ByCustomerName orders the results by the customer_name field.

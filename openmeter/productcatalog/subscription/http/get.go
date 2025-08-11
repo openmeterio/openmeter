@@ -99,7 +99,7 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 			}
 
 			return ListCustomerSubscriptionsRequest{
-				CustomerID: cus.GetID(),
+				CustomerID: cus.GetCustomerID(),
 				Page:       pagination.NewPageFromRef(params.Params.Page, params.Params.PageSize),
 			}, nil
 		},

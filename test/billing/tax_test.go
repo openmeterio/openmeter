@@ -201,7 +201,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customer.GetID(),
+			Customer: customer.GetCustomerID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
 				{
@@ -244,7 +244,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	clock.SetTime(now.Add(2 * time.Minute))
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 	})
 	s.NoError(err)
 	s.Len(invoices, 1)
@@ -271,7 +271,7 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, namesp
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customer.GetID(),
+			Customer: customer.GetCustomerID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
 				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
@@ -296,7 +296,7 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, namesp
 	s.Len(res.Lines, 1)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.GetID(),
+		Customer: customer.GetCustomerID(),
 		AsOf:     &now,
 	})
 	s.NoError(err)

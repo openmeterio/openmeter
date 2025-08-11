@@ -484,6 +484,26 @@ func (_u *BillingInvoiceUpdate) ClearSupplierTaxCode() *BillingInvoiceUpdate {
 	return _u
 }
 
+// SetCustomerKey sets the "customer_key" field.
+func (_u *BillingInvoiceUpdate) SetCustomerKey(v string) *BillingInvoiceUpdate {
+	_u.mutation.SetCustomerKey(v)
+	return _u
+}
+
+// SetNillableCustomerKey sets the "customer_key" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillableCustomerKey(v *string) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetCustomerKey(*v)
+	}
+	return _u
+}
+
+// ClearCustomerKey clears the value of the "customer_key" field.
+func (_u *BillingInvoiceUpdate) ClearCustomerKey() *BillingInvoiceUpdate {
+	_u.mutation.ClearCustomerKey()
+	return _u
+}
+
 // SetCustomerName sets the "customer_name" field.
 func (_u *BillingInvoiceUpdate) SetCustomerName(v string) *BillingInvoiceUpdate {
 	_u.mutation.SetCustomerName(v)
@@ -1163,6 +1183,12 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.SupplierTaxCodeCleared() {
 		_spec.ClearField(billinginvoice.FieldSupplierTaxCode, field.TypeString)
+	}
+	if value, ok := _u.mutation.CustomerKey(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerKey, field.TypeString, value)
+	}
+	if _u.mutation.CustomerKeyCleared() {
+		_spec.ClearField(billinginvoice.FieldCustomerKey, field.TypeString)
 	}
 	if value, ok := _u.mutation.CustomerName(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerName, field.TypeString, value)
@@ -1849,6 +1875,26 @@ func (_u *BillingInvoiceUpdateOne) SetNillableSupplierTaxCode(v *string) *Billin
 // ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
 func (_u *BillingInvoiceUpdateOne) ClearSupplierTaxCode() *BillingInvoiceUpdateOne {
 	_u.mutation.ClearSupplierTaxCode()
+	return _u
+}
+
+// SetCustomerKey sets the "customer_key" field.
+func (_u *BillingInvoiceUpdateOne) SetCustomerKey(v string) *BillingInvoiceUpdateOne {
+	_u.mutation.SetCustomerKey(v)
+	return _u
+}
+
+// SetNillableCustomerKey sets the "customer_key" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillableCustomerKey(v *string) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetCustomerKey(*v)
+	}
+	return _u
+}
+
+// ClearCustomerKey clears the value of the "customer_key" field.
+func (_u *BillingInvoiceUpdateOne) ClearCustomerKey() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearCustomerKey()
 	return _u
 }
 
@@ -2561,6 +2607,12 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 	}
 	if _u.mutation.SupplierTaxCodeCleared() {
 		_spec.ClearField(billinginvoice.FieldSupplierTaxCode, field.TypeString)
+	}
+	if value, ok := _u.mutation.CustomerKey(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerKey, field.TypeString, value)
+	}
+	if _u.mutation.CustomerKeyCleared() {
+		_spec.ClearField(billinginvoice.FieldCustomerKey, field.TypeString)
 	}
 	if value, ok := _u.mutation.CustomerName(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerName, field.TypeString, value)

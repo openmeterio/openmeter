@@ -497,6 +497,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		// Customer
 		updateQuery = updateQuery.
 			// CustomerID is immutable
+			SetNillableCustomerKey(in.Customer.Key).
 			SetCustomerName(in.Customer.Name)
 
 		if in.Customer.BillingAddress != nil {
@@ -666,6 +667,7 @@ func (a *adapter) mapInvoiceBaseFromDB(ctx context.Context, invoice *db.BillingI
 		},
 
 		Customer: billing.InvoiceCustomer{
+			Key:        invoice.CustomerKey,
 			CustomerID: invoice.CustomerID,
 			Name:       invoice.CustomerName,
 			BillingAddress: &models.Address{

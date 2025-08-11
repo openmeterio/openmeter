@@ -148,7 +148,7 @@ func (l *usageBasedLine) UpdateTotals() error {
 	return l.service.UpdateTotalsFromDetailedLines(l.line)
 }
 
-func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, subjectKeys []string) error {
+func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, customer billing.InvoiceCustomer) error {
 	featureMeter, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey)
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, subjectKeys []str
 			Line:     l.line,
 			Feature:  featureMeter.feature,
 			Meter:    featureMeter.meter,
-			Subjects: subjectKeys,
+			Customer: customer,
 		},
 	)
 	if err != nil {

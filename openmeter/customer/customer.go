@@ -11,6 +11,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
+// MeterCustomer is a customer that can be used in a meter query
+type MeterCustomer interface {
+	GetID() string
+	GetKey() *string
+	GetUsageAttribution() CustomerUsageAttribution
+}
+
+var _ MeterCustomer = &Customer{}
+
 // Customer represents a customer
 type Customer struct {
 	models.ManagedResource
@@ -24,6 +33,35 @@ type Customer struct {
 	Annotation       *models.Annotations      `json:"annotations,omitempty"`
 }
 
+// GetID returns the customer id
+// implementing the customer.MeterCustomer interface
+func (c Customer) GetID() string {
+	return c.ID
+}
+
+// GetKey returns the customer key
+// implementing the customer.MeterCustomer interface
+func (c Customer) GetKey() *string {
+	return c.Key
+}
+
+// GetUsageAttribution returns the customer usage attribution
+// implementing the customer.MeterCustomer interface
+func (c Customer) GetUsageAttribution() CustomerUsageAttribution {
+	return c.UsageAttribution
+}
+
+// GetCustomerID returns the customer id
+// This is a convenience method to get the customer id as a CustomerID
+// It is used to avoid having to create a CustomerID struct in the codebase
+func (c Customer) GetCustomerID() CustomerID {
+	return CustomerID{
+		Namespace: c.Namespace,
+		ID:        c.ID,
+	}
+}
+
+// Validate validates the customer
 func (c Customer) Validate() error {
 	if err := c.ManagedResource.Validate(); err != nil {
 		return models.NewGenericValidationError(err)
@@ -39,10 +77,6 @@ func (c Customer) Validate() error {
 		}
 	}
 	return nil
-}
-
-func (c Customer) GetID() CustomerID {
-	return CustomerID{c.Namespace, c.ID}
 }
 
 type CustomerMutate struct {

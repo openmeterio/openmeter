@@ -291,7 +291,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// When we create pending invoice items
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
+				Customer: customerEntity.GetCustomerID(),
 				Currency: currencyx.Code(currency.USD),
 				Lines: []*billing.Line{
 					{
@@ -467,7 +467,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		// When we create an invoice
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			AsOf:     &periodEnd,
 		})
 		s.NoError(err)
@@ -485,7 +485,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.StripeAppClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
 				AppID:               app.GetID(),
-				CustomerID:          customerEntity.GetID(),
+				CustomerID:          customerEntity.GetCustomerID(),
 				InvoiceID:           invoice.ID,
 				AutomaticTaxEnabled: true,
 				CollectionMethod:    billing.CollectionMethodChargeAutomatically,
@@ -1095,7 +1095,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	// Given we have pending invoice items without usage
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer: customerEntity.GetCustomerID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
 				{
@@ -1138,7 +1138,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 
 	// When we generate the invoice
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customerEntity.GetID(),
+		Customer: customerEntity.GetCustomerID(),
 	})
 	s.NoError(err)
 	s.Len(invoices, 1)
@@ -1148,7 +1148,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	// We have to do it after the call because the invoice ID is not known at the time of setting up the mock
 	stripeAppCreateInvoiceMock.Arguments.Assert(s.T(), stripeclient.CreateInvoiceInput{
 		AppID:               app.GetID(),
-		CustomerID:          customerEntity.GetID(),
+		CustomerID:          customerEntity.GetCustomerID(),
 		InvoiceID:           invoice.ID,
 		AutomaticTaxEnabled: true,
 		CollectionMethod:    billing.CollectionMethodChargeAutomatically,

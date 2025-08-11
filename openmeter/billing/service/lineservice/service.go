@@ -214,7 +214,7 @@ type Line interface {
 
 	Validate(context.Context, *billing.Invoice) error
 	CanBeInvoicedAsOf(context.Context, CanBeInvoicedAsOfInput) (*billing.Period, error)
-	SnapshotQuantity(ctx context.Context, subjectKeys []string) error
+	SnapshotQuantity(ctx context.Context, customer billing.InvoiceCustomer) error
 	CalculateDetailedLines() error
 	PrepareForCreate(context.Context) (Line, error)
 	UpdateTotals() error

@@ -264,8 +264,8 @@ func TestQueryMeter(t *testing.T) {
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
 				},
-				FilterCustomer: []customer.Customer{
-					{
+				FilterCustomer: []customer.MeterCustomer{
+					customer.Customer{
 						ManagedResource: models.ManagedResource{
 							NamespacedModel: models.NamespacedModel{
 								Namespace: "my_namespace",
@@ -276,7 +276,7 @@ func TestQueryMeter(t *testing.T) {
 							SubjectKeys: []string{"subject1"},
 						},
 					},
-					{
+					customer.Customer{
 						ManagedResource: models.ManagedResource{
 							NamespacedModel: models.NamespacedModel{
 								Namespace: "my_namespace",
@@ -304,8 +304,8 @@ func TestQueryMeter(t *testing.T) {
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
 				},
-				FilterCustomer: []customer.Customer{
-					{
+				FilterCustomer: []customer.MeterCustomer{
+					customer.Customer{
 						ManagedResource: models.ManagedResource{
 							NamespacedModel: models.NamespacedModel{
 								Namespace: "my_namespace",

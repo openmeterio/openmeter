@@ -206,7 +206,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 			}
 
 			req := UpdateCustomerRequest{
-				CustomerID:     cus.GetID(),
+				CustomerID:     cus.GetCustomerID(),
 				CustomerMutate: MapCustomerReplaceUpdate(body),
 			}
 
@@ -258,7 +258,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 				return DeleteCustomerRequest{}, err
 			}
 
-			return cus.GetID(), nil
+			return cus.GetCustomerID(), nil
 		},
 		func(ctx context.Context, request DeleteCustomerRequest) (DeleteCustomerResponse, error) {
 			err := h.service.DeleteCustomer(ctx, request)
@@ -359,7 +359,7 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 
 			return GetCustomerEntitlementValueRequest{
 				FeatureKey: params.FeatureKey,
-				CustomerID: cus.GetID(),
+				CustomerID: cus.GetCustomerID(),
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {

@@ -141,7 +141,9 @@ func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, r
 			return params, fmt.Errorf("failed to get filter customer: %w", err)
 		}
 
-		params.FilterCustomer = filterCustomer
+		params.FilterCustomer = lo.Map(filterCustomer, func(c customer.Customer, _ int) customer.MeterCustomer {
+			return c
+		})
 
 		// Add customer_id to group by if not already present and there are customers to filter by
 		if len(filterCustomer) > 0 && !slices.Contains(params.GroupBy, "customer_id") {
