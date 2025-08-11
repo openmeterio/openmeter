@@ -189,10 +189,18 @@ type CustomerProvisioner struct {
 var ErrCustomerKeyConflict = errors.New("customer key conflict")
 
 func (p CustomerProvisioner) getCustomerForSubject(ctx context.Context, sub *subject.Subject) (*customer.Customer, error) {
-	var (
-		cus *customer.Customer
-		err error
-	)
+	// Try to find Customer for Subject by usage attribution
+	cus, err := p.customer.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  sub.Namespace,
+		SubjectKey: sub.Key,
+	})
+	if err != nil && !models.IsGenericNotFoundError(err) {
+		return nil, err
+	}
+
+	if cus != nil && cus.DeletedAt == nil {
+		return cus, nil
+	}
 
 	// Try to find Customer for Subject by key
 	cus, err = p.customer.GetCustomer(ctx, customer.GetCustomerInput{
@@ -209,19 +217,16 @@ func (p CustomerProvisioner) getCustomerForSubject(ctx context.Context, sub *sub
 	// There are cases where the Customer and the Subject have the same key,
 	// while the Subject is not included in the Customers usage attribution.
 	// In this case the Customer must not match the Subject.
-	if cus != nil {
+	if cus != nil && cus.DeletedAt == nil {
 		if lo.Contains(cus.UsageAttribution.SubjectKeys, sub.Key) {
 			return cus, nil
 		}
 
-		return nil, ErrCustomerKeyConflict
+		return nil, models.NewGenericConflictError(ErrCustomerKeyConflict)
 	}
 
-	// Try to find Customer for Subject by usage attribution
-	return p.customer.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  sub.Namespace,
-		SubjectKey: sub.Key,
-	})
+	return nil, models.NewGenericNotFoundError(fmt.Errorf("failed to find customer for subject [namespace=%s subject.key=%s]",
+		sub.Namespace, sub.Key))
 }
 
 // EnsureCustomer returns a Customer entity created/updated based on the provided Subject.
