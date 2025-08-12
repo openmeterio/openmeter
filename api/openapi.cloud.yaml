@@ -15300,6 +15300,100 @@ components:
           enum:
             - boolean
       description: Create inputs for boolean entitlement
+    EntitlementBooleanV2:
+      type: object
+      required:
+        - type
+        - createdAt
+        - updatedAt
+        - activeFrom
+        - id
+        - featureKey
+        - featureId
+        - customerId
+      properties:
+        type:
+          type: string
+          enum:
+            - boolean
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the feature.
+        activeFrom:
+          type: string
+          format: date-time
+          description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
+        activeTo:
+          type: string
+          format: date-time
+          description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: The annotations of the entitlement.
+          example:
+            subscription.id: sub_123
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: Readonly unique ULID identifier.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          readOnly: true
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature the subject is entitled to use.
+          example: example-feature-key
+        featureId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The feature the subject is entitled to use.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        currentUsagePeriod:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: The current usage period.
+        usagePeriod:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: The defined usage period of the entitlement
+        customerKey:
+          type: string
+          description: The identifier key unique to the customer
+          example: customer-1
+        customerId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The identifier unique to the customer
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+      description: Entitlement template of a boolean entitlement.
     EntitlementCreateInputs:
       type: object
       oneOf:
@@ -15708,6 +15802,153 @@ components:
           title: Preserve overage at reset
           default: false
       description: Create inpurs for metered entitlement
+    EntitlementMeteredV2:
+      type: object
+      required:
+        - type
+        - createdAt
+        - updatedAt
+        - activeFrom
+        - id
+        - featureKey
+        - featureId
+        - lastReset
+        - currentUsagePeriod
+        - measureUsageFrom
+        - usagePeriod
+        - customerId
+      properties:
+        type:
+          type: string
+          enum:
+            - metered
+        isSoftLimit:
+          type: boolean
+          description: If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
+          title: Soft limit
+          default: false
+        isUnlimited:
+          type: boolean
+          description: Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.
+          deprecated: true
+          default: false
+        issueAfterReset:
+          type: number
+          format: double
+          minimum: 0
+          description: |-
+            You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
+            If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+            That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+            Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
+          title: Initial grant amount
+        issueAfterResetPriority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: Defines the grant priority for the default grant.
+          title: Issue grant after reset priority
+          default: 1
+        preserveOverageAtReset:
+          type: boolean
+          description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
+          title: Preserve overage at reset
+          default: false
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the feature.
+        activeFrom:
+          type: string
+          format: date-time
+          description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
+        activeTo:
+          type: string
+          format: date-time
+          description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: The annotations of the entitlement.
+          example:
+            subscription.id: sub_123
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: Readonly unique ULID identifier.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          readOnly: true
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature the subject is entitled to use.
+          example: example-feature-key
+        featureId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The feature the subject is entitled to use.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        lastReset:
+          type: string
+          format: date-time
+          description: The time the last reset happened.
+          example: '2023-01-01T01:01:01.001Z'
+          readOnly: true
+        currentUsagePeriod:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: The current usage period.
+          readOnly: true
+        measureUsageFrom:
+          type: string
+          format: date-time
+          description: The time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
+          example: '2023-01-01T01:01:01.001Z'
+          readOnly: true
+        usagePeriod:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: THe usage period of the entitlement.
+          readOnly: true
+        customerKey:
+          type: string
+          description: The identifier key unique to the customer
+          example: customer-1
+        customerId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The identifier unique to the customer
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+      description: |-
+        Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
+        Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
     EntitlementOrderBy:
       type: string
       enum:
@@ -15880,6 +16121,106 @@ components:
           description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
           example: '{ "integrations": ["github"] }'
       description: Create inputs for static entitlement
+    EntitlementStaticV2:
+      type: object
+      required:
+        - type
+        - config
+        - createdAt
+        - updatedAt
+        - activeFrom
+        - id
+        - featureKey
+        - featureId
+        - customerId
+      properties:
+        type:
+          type: string
+          enum:
+            - static
+        config:
+          type: string
+          format: json
+          description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
+          example: '{ "integrations": ["github"] }'
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the feature.
+        activeFrom:
+          type: string
+          format: date-time
+          description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
+        activeTo:
+          type: string
+          format: date-time
+          description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: The annotations of the entitlement.
+          example:
+            subscription.id: sub_123
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: Readonly unique ULID identifier.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          readOnly: true
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature the subject is entitled to use.
+          example: example-feature-key
+        featureId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The feature the subject is entitled to use.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        currentUsagePeriod:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: The current usage period.
+        usagePeriod:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: The defined usage period of the entitlement
+        customerKey:
+          type: string
+          description: The identifier key unique to the customer
+          example: customer-1
+        customerId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The identifier unique to the customer
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+      description: A static entitlement.
     EntitlementType:
       type: string
       enum:
@@ -15891,15 +16232,15 @@ components:
     EntitlementV2:
       type: object
       oneOf:
-        - $ref: '#/components/schemas/EntitlementMetered'
-        - $ref: '#/components/schemas/EntitlementStatic'
-        - $ref: '#/components/schemas/EntitlementBoolean'
+        - $ref: '#/components/schemas/EntitlementMeteredV2'
+        - $ref: '#/components/schemas/EntitlementStaticV2'
+        - $ref: '#/components/schemas/EntitlementBooleanV2'
       discriminator:
         propertyName: type
         mapping:
-          metered: '#/components/schemas/EntitlementMetered'
-          static: '#/components/schemas/EntitlementStatic'
-          boolean: '#/components/schemas/EntitlementBoolean'
+          metered: '#/components/schemas/EntitlementMeteredV2'
+          static: '#/components/schemas/EntitlementStaticV2'
+          boolean: '#/components/schemas/EntitlementBooleanV2'
       description: |-
         Entitlement templates are used to define the entitlements of a plan.
         Features are omitted from the entitlement template, as they are defined in the rate card.

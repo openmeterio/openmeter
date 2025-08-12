@@ -4464,6 +4464,85 @@ export interface components {
        */
       type: 'boolean'
     }
+    /** @description Entitlement template of a boolean entitlement. */
+    EntitlementBooleanV2: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'boolean'
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /** @description Additional metadata for the feature. */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Format: date-time
+       * @description The cadence start of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom: Date
+      /**
+       * Format: date-time
+       * @description The cadence end of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeTo?: Date
+      /**
+       * @description The annotations of the entitlement.
+       * @example {
+       *       "subscription.id": "sub_123"
+       *     }
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
+       * @description Readonly unique ULID identifier.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      readonly id: string
+      /**
+       * @description The feature the subject is entitled to use.
+       * @example example-feature-key
+       */
+      featureKey: string
+      /**
+       * @description The feature the subject is entitled to use.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      featureId: string
+      /** @description The current usage period. */
+      currentUsagePeriod?: components['schemas']['Period']
+      /** @description The defined usage period of the entitlement */
+      usagePeriod?: components['schemas']['RecurringPeriod']
+      /**
+       * @description The identifier key unique to the customer
+       * @example customer-1
+       */
+      customerKey?: string
+      /**
+       * @description The identifier unique to the customer
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      customerId: string
+    }
     /** @description Create inputs for entitlement */
     EntitlementCreateInputs:
       | components['schemas']['EntitlementMeteredCreateInputs']
@@ -4806,6 +4885,132 @@ export interface components {
        */
       preserveOverageAtReset?: boolean
     }
+    /** @description Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
+     *     Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage). */
+    EntitlementMeteredV2: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'metered'
+      /**
+       * Soft limit
+       * @description If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
+       * @default false
+       */
+      isSoftLimit?: boolean
+      /**
+       * @deprecated
+       * @description Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.
+       * @default false
+       */
+      isUnlimited?: boolean
+      /**
+       * Initial grant amount
+       * Format: double
+       * @description You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
+       *     If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+       *     That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+       *     Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
+       */
+      issueAfterReset?: number
+      /**
+       * Issue grant after reset priority
+       * Format: uint8
+       * @description Defines the grant priority for the default grant.
+       * @default 1
+       */
+      issueAfterResetPriority?: number
+      /**
+       * Preserve overage at reset
+       * @description If true, the overage is preserved at reset. If false, the usage is reset to 0.
+       * @default false
+       */
+      preserveOverageAtReset?: boolean
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /** @description Additional metadata for the feature. */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Format: date-time
+       * @description The cadence start of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom: Date
+      /**
+       * Format: date-time
+       * @description The cadence end of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeTo?: Date
+      /**
+       * @description The annotations of the entitlement.
+       * @example {
+       *       "subscription.id": "sub_123"
+       *     }
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
+       * @description Readonly unique ULID identifier.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      readonly id: string
+      /**
+       * @description The feature the subject is entitled to use.
+       * @example example-feature-key
+       */
+      featureKey: string
+      /**
+       * @description The feature the subject is entitled to use.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      featureId: string
+      /**
+       * Format: date-time
+       * @description The time the last reset happened.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly lastReset: Date
+      /** @description The current usage period. */
+      readonly currentUsagePeriod: components['schemas']['Period']
+      /**
+       * Format: date-time
+       * @description The time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly measureUsageFrom: Date
+      /** @description THe usage period of the entitlement. */
+      readonly usagePeriod: components['schemas']['RecurringPeriod']
+      /**
+       * @description The identifier key unique to the customer
+       * @example customer-1
+       */
+      customerKey?: string
+      /**
+       * @description The identifier unique to the customer
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      customerId: string
+    }
     /**
      * @description Order by options for entitlements.
      * @enum {string}
@@ -4942,6 +5147,91 @@ export interface components {
        */
       config: string
     }
+    /** @description A static entitlement. */
+    EntitlementStaticV2: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'static'
+      /**
+       * Format: json
+       * @description The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
+       * @example { "integrations": ["github"] }
+       */
+      config: string
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /** @description Additional metadata for the feature. */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * Format: date-time
+       * @description The cadence start of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom: Date
+      /**
+       * Format: date-time
+       * @description The cadence end of the resource.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeTo?: Date
+      /**
+       * @description The annotations of the entitlement.
+       * @example {
+       *       "subscription.id": "sub_123"
+       *     }
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
+       * @description Readonly unique ULID identifier.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      readonly id: string
+      /**
+       * @description The feature the subject is entitled to use.
+       * @example example-feature-key
+       */
+      featureKey: string
+      /**
+       * @description The feature the subject is entitled to use.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      featureId: string
+      /** @description The current usage period. */
+      currentUsagePeriod?: components['schemas']['Period']
+      /** @description The defined usage period of the entitlement */
+      usagePeriod?: components['schemas']['RecurringPeriod']
+      /**
+       * @description The identifier key unique to the customer
+       * @example customer-1
+       */
+      customerKey?: string
+      /**
+       * @description The identifier unique to the customer
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      customerId: string
+    }
     /**
      * @description Type of the entitlement.
      * @enum {string}
@@ -4950,9 +5240,9 @@ export interface components {
     /** @description Entitlement templates are used to define the entitlements of a plan.
      *     Features are omitted from the entitlement template, as they are defined in the rate card. */
     EntitlementV2:
-      | components['schemas']['EntitlementMetered']
-      | components['schemas']['EntitlementStatic']
-      | components['schemas']['EntitlementBoolean']
+      | components['schemas']['EntitlementMeteredV2']
+      | components['schemas']['EntitlementStaticV2']
+      | components['schemas']['EntitlementBooleanV2']
     /** @description Paginated response */
     EntitlementV2PaginatedResponse: {
       /**
@@ -10892,6 +11182,7 @@ export type Entitlement = components['schemas']['Entitlement']
 export type EntitlementBoolean = components['schemas']['EntitlementBoolean']
 export type EntitlementBooleanCreateInputs =
   components['schemas']['EntitlementBooleanCreateInputs']
+export type EntitlementBooleanV2 = components['schemas']['EntitlementBooleanV2']
 export type EntitlementCreateInputs =
   components['schemas']['EntitlementCreateInputs']
 export type EntitlementGrant = components['schemas']['EntitlementGrant']
@@ -10900,12 +11191,14 @@ export type EntitlementGrantCreateInput =
 export type EntitlementMetered = components['schemas']['EntitlementMetered']
 export type EntitlementMeteredCreateInputs =
   components['schemas']['EntitlementMeteredCreateInputs']
+export type EntitlementMeteredV2 = components['schemas']['EntitlementMeteredV2']
 export type EntitlementOrderBy = components['schemas']['EntitlementOrderBy']
 export type EntitlementPaginatedResponse =
   components['schemas']['EntitlementPaginatedResponse']
 export type EntitlementStatic = components['schemas']['EntitlementStatic']
 export type EntitlementStaticCreateInputs =
   components['schemas']['EntitlementStaticCreateInputs']
+export type EntitlementStaticV2 = components['schemas']['EntitlementStaticV2']
 export type EntitlementType = components['schemas']['EntitlementType']
 export type EntitlementV2 = components['schemas']['EntitlementV2']
 export type EntitlementV2PaginatedResponse =

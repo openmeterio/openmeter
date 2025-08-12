@@ -16604,15 +16604,15 @@ components:
     EntitlementV2:
       type: object
       oneOf:
-        - $ref: '#/components/schemas/EntitlementMetered'
-        - $ref: '#/components/schemas/EntitlementStatic'
-        - $ref: '#/components/schemas/EntitlementBoolean'
+        - $ref: '#/components/schemas/EntitlementMeteredV2'
+        - $ref: '#/components/schemas/EntitlementStaticV2'
+        - $ref: '#/components/schemas/EntitlementBooleanV2'
       discriminator:
         propertyName: type
         mapping:
-          metered: '#/components/schemas/EntitlementMetered'
-          static: '#/components/schemas/EntitlementStatic'
-          boolean: '#/components/schemas/EntitlementBoolean'
+          metered: '#/components/schemas/EntitlementMeteredV2'
+          static: '#/components/schemas/EntitlementStaticV2'
+          boolean: '#/components/schemas/EntitlementBooleanV2'
       description: |-
         Entitlement templates are used to define the entitlements of a plan.
         Features are omitted from the entitlement template, as they are defined in the rate card.

@@ -16,9 +16,9 @@ namespace OpenMeter.Entitlements.V2;
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 @friendlyName("EntitlementV2")
 union EntitlementV2 {
-  metered: EntitlementMetered,
-  static: EntitlementStatic,
-  boolean: EntitlementBoolean,
+  metered: EntitlementMeteredV2,
+  static: EntitlementStaticV2,
+  boolean: EntitlementBooleanV2,
 }
 
 /**
