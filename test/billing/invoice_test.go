@@ -61,6 +61,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
+			Key:          lo.ToPtr("test-customer-key"),
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
 				Country:     lo.ToPtr(models.CountryCode("US")),
@@ -295,15 +296,18 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					Apps:                   billingProfile.Apps,
 				},
 
+				// The customer snapshot
 				Customer: billing.InvoiceCustomer{
+					// Usage attribution fields
 					Key:        customerEntity.Key,
 					CustomerID: customerEntity.ID,
+					UsageAttribution: billing.CustomerUsageAttribution{
+						SubjectKeys: customerEntity.UsageAttribution.SubjectKeys,
+					},
 
+					// Other fields
 					Name:           customerEntity.Name,
 					BillingAddress: customerEntity.BillingAddress,
-					UsageAttribution: billing.CustomerUsageAttribution{
-						SubjectKeys: []string{"test"},
-					},
 				},
 				Supplier: billingProfile.Supplier,
 			},
