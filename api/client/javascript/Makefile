@@ -14,13 +14,13 @@ publish-javascript-sdk: ## Publish JavaScript SDK
 	$(call print-target)
 	@if [ -z "$$JS_SDK_RELEASE_VERSION" ]; then \
 		echo "ERROR: JS_SDK_RELEASE_VERSION is required"; \
-		echo "Usage: JS_SDK_RELEASE_VERSION=1.2.3 make publish-js-sdk [JS_SDK_RELEASE_TAG=beta]"; \
+		echo "Usage: JS_SDK_RELEASE_VERSION=1.2.3 make publish-javascript-sdk [JS_SDK_RELEASE_TAG=beta]"; \
 		exit 1; \
 	fi
 
 	@if [ -z "$$JS_SDK_RELEASE_TAG" ]; then \
 		echo "ERROR: JS_SDK_RELEASE_TAG is required"; \
-		echo "Usage: JS_SDK_RELEASE_VERSION=1.2.3 make publish-js-sdk [JS_SDK_RELEASE_TAG=beta]"; \
+		echo "Usage: JS_SDK_RELEASE_VERSION=1.2.3 make publish-javascript-sdk [JS_SDK_RELEASE_TAG=beta]"; \
 		exit 1; \
 	fi
 
