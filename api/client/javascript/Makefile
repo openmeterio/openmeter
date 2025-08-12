@@ -8,6 +8,7 @@ generate: ## Generate JavaScript SDK
 	pnpm build
 	pnpm test
 
+# Warning: keep in sync with .dagger/release.go for now
 .PHONY: publish-javascript-sdk
 publish-javascript-sdk: ## Publish JavaScript SDK
 	$(call print-target)

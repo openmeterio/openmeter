@@ -15,7 +15,7 @@ env:
 jobs:
   release-beta-sdk:
     name: JavaScript SDK Beta Release
-    runs-on: depot-ubuntu-latest
+    runs-on: depot-ubuntu-latest-8
 
     steps:
       - name: Checkout repository
