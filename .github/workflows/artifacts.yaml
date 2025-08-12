@@ -44,7 +44,7 @@ jobs:
       digest: ${{ steps.build.outputs.digest }}
       tag: ${{ steps.meta.outputs.version }}
       ref: ${{ steps.image-ref.outputs.value }}
-      depot-image-url: ${{ steps.extract-dagger-image-url.outputs.url }}
+      depot-image-url: "registry.depot.dev/${{ steps.build.outputs.project-id }}@${{ steps.build.outputs.imageid }}"
 
     steps:
       - name: Checkout repository
@@ -96,14 +96,6 @@ jobs:
       - name: Set image ref
         id: image-ref
         run: echo "value=${{ steps.image-name.outputs.value }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
-
-      - name: Extract dagger image URL
-        id: extract-dagger-image-url
-        env:
-          DEPOT_IMAGE_METADATA: ${{ steps.build.outputs.metadata }}
-        run: |
-          echo "url=$(echo "$DEPOT_IMAGE_METADATA" | jq -r '."image.name"')" >> $GITHUB_OUTPUT
-
 
       - name: Retrieve pull token
         id: pull-token
