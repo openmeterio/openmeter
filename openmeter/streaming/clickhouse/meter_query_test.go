@@ -294,6 +294,45 @@ func TestQueryMeter(t *testing.T) {
 			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, CASE WHEN om_events.subject = 'subject1' THEN 'customer1' WHEN om_events.subject = 'subject2' THEN 'customer2' ELSE '' END AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ?) GROUP BY customer_id",
 			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "subject2"},
 		},
+		{ // Filter by customer ID without group by
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationSum,
+					ValueProperty: lo.ToPtr("$.value"),
+				},
+				FilterCustomer: []streaming.Customer{
+					customer.Customer{
+						ManagedResource: models.ManagedResource{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: "my_namespace",
+							},
+							ID: "customer1",
+						},
+						UsageAttribution: customer.CustomerUsageAttribution{
+							SubjectKeys: []string{"subject1"},
+						},
+					},
+					customer.Customer{
+						ManagedResource: models.ManagedResource{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: "my_namespace",
+							},
+							ID: "customer2",
+						},
+						UsageAttribution: customer.CustomerUsageAttribution{
+							SubjectKeys: []string{"subject2"},
+						},
+					},
+				},
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND (om_events.subject = ? OR om_events.subject = ?)",
+			wantArgs: []interface{}{"my_namespace", "event1", "subject1", "subject2"},
+		},
 		{ // Filter by both customer and subject
 			query: queryMeter{
 				Database:        "openmeter",
