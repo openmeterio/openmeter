@@ -61,7 +61,7 @@ require (
 	github.com/rickb777/period v1.0.15
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/samber/lo v1.51.0
-	github.com/samber/mo v1.14.0
+	github.com/samber/mo v1.15.0
 	github.com/samber/slog-multi v1.4.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.7
