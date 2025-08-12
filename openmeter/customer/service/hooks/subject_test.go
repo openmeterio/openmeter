@@ -12,21 +12,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
-	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
-	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/datetime"
-	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -336,25 +331,6 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NoErrorf(t, err, "initializing meter adapter must not fail")
 	require.NotNilf(t, meterAdapter, "meter adapter must not be nil")
 
-	// Init lockr
-	locker, err := lockr.NewLocker(&lockr.LockerConfig{
-		Logger: slog.Default(),
-	})
-	require.NoError(t, err, "initializing lockr must not fail")
-
-	// Entitlement
-	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     client,
-		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
-		Logger:             logger,
-		MeterService:       meterAdapter,
-		Publisher:          publisher,
-		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: datetime.ISODurationString("P1D"),
-		},
-		Locker: locker,
-	})
-
 	// Init subject service
 	subjectAdapter, err := subjectadapter.New(client)
 	require.NoErrorf(t, err, "initializing subject adapter must not fail")
@@ -373,9 +349,8 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, customerAdapter, "customer adapter must not be nil")
 
 	customerService, err := customerservice.New(customerservice.Config{
-		Adapter:              customerAdapter,
-		EntitlementConnector: entitlementRegistry.Entitlement,
-		Publisher:            publisher,
+		Adapter:   customerAdapter,
+		Publisher: publisher,
 	})
 	require.NoErrorf(t, err, "initializing subject service must not fail")
 	require.NotNilf(t, subjectAdapter, "subject service must not be nil")
