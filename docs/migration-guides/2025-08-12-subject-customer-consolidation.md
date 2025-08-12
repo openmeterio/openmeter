@@ -93,9 +93,9 @@ const entitlement = await openmeter.customers.createEntitlement('my-identifier',
 
 ### ✏️ 3. Defining subjects on a customer becomes optional
 
-The `usageAttribution` field on customers is now optional.
-→ OpenMeter will automatically attribute usage based on the customer’s
-ID or Key.
+The `usageAttribution` field on customers is now optional to set.
+
+→ OpenMeter will automatically attribute usage by customer ID or Key.
 
 ### 👥 4. Assigning multiple subjects to a customer
 
