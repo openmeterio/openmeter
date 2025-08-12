@@ -644,6 +644,7 @@ func mapInvoiceCustomerToAPI(c billing.InvoiceCustomer) api.BillingInvoiceCustom
 
 	out := api.BillingInvoiceCustomerExtendedDetails{
 		Id:   lo.ToPtr(c.CustomerID),
+		Key:  c.Key,
 		Name: lo.EmptyableToPtr(c.Name),
 		UsageAttribution: api.CustomerUsageAttribution{
 			SubjectKeys: c.UsageAttribution.SubjectKeys,

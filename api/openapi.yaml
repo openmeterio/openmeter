@@ -12911,6 +12911,12 @@ components:
           type: string
           description: Unique identifier for the party (if available)
           readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: An optional unique key of the party (if available)
+          title: Key
         name:
           type: string
           description: Legal name or representation of the organization.
@@ -12942,6 +12948,12 @@ components:
           type: string
           description: Unique identifier for the party (if available)
           readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: An optional unique key of the party (if available)
+          title: Key
         name:
           type: string
           description: Legal name or representation of the organization.
@@ -12961,6 +12973,12 @@ components:
     BillingPartyReplaceUpdate:
       type: object
       properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: An optional unique key of the party (if available)
+          title: Key
         name:
           type: string
           description: Legal name or representation of the organization.
