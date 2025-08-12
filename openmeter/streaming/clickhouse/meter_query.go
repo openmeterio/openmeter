@@ -196,7 +196,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 	// Select customer_id column
 	// We map subjects to customer IDs if they are provided
-	if len(d.FilterCustomer) > 0 {
+	if slices.Contains(d.GroupBy, "customer_id") {
 		var caseBuilder bytes.Buffer
 		caseBuilder.WriteString("CASE ")
 
