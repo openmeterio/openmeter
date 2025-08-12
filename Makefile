@@ -20,15 +20,23 @@ down: ## Stop the dependencies via docker compose
 .PHONY: update-openapi
 update-openapi: ## Update OpenAPI spec
 	$(call print-target)
-	dagger call generate openapi -o ./api/openapi.yaml
-	dagger call generate openapicloud -o ./api/openapi.cloud.yaml
+	$(MAKE) -C api/spec generate
 	go generate ./api/...
 
-.PHONY: gen-api
-gen-api: update-openapi ## Generate API and SDKs
+.PHONY: generate-javascript-sdk
+generate-javascript-sdk: ## Generate JavaScript SDK
 	$(call print-target)
-	dagger call generate javascript-sdk -o api/client/javascript
+	$(MAKE) -C api/client/javascript generate
+
+.PHONY: gen-api
+gen-api: update-openapi generate-javascript-sdk ## Generate API and SDKs
+	$(call print-target)
 	# dagger call generate python-sdk -o api/client/python
+
+.PHONY: generate-all
+generate-all: update-openapi generate-javascript-sdk ## Execute all code generators
+	$(call print-target)
+	go generate ./...
 
 .PHONY: migrate-check
 migrate-check: ## Validate migrations
@@ -124,7 +132,7 @@ notification-service: ## Run notification-service
 .PHONY: etoe
 etoe: ## Run e2e tests
 	$(call print-target)
-	dagger call etoe
+	$(MAKE) -C e2e test-local
 
 .PHONY: test
 test: ## Run tests
@@ -140,9 +148,35 @@ test-all: ## Run tests with svix dependencies, bypassing the test cache
 	SVIX_HOST="localhost" SVIX_JWT_SECRET="$(SVIX_JWT_SECRET)" go test ${GO_TEST_FLAGS} -count=1 ./...
 
 .PHONY: lint
-lint: ## Run linters
+lint: lint-go lint-api-spec lint-openapi lint-helm ## Run linters
 	$(call print-target)
-	dagger call lint all
+
+.PHONY: lint-api-spec
+lint-api-spec: ## Lint OpenAPI spec
+	$(call print-target)
+	$(MAKE) -C api/spec lint
+
+.PHONY: lint-openapi
+lint-openapi: ## Lint OpenAPI spec
+	$(call print-target)
+	spectral lint api/openapi.yaml .spectral.yaml
+
+.PHONY: lint-helm
+lint-helm: ## Lint Helm charts
+	$(call print-target)
+	helm lint deploy/charts/openmeter
+	helm lint deploy/charts/benthos-collector
+
+.PHONY: lint-go
+lint-go: ## Lint Go code
+	$(call print-target)
+	golangci-lint run -v
+
+.PHONY: ci
+ci: ## Run CI checks
+	$(call print-target)
+	$(MAKE) generate-all
+	$(MAKE) -j 10 lint test etoe
 
 .PHONY: fmt
 fmt: ## Format code

@@ -1,0 +1,45 @@
+# Note: this can only be started using
+#  docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml up
+#
+# Given this is governed by the Makefile, it's fine to not to add all the extends here.
+services:
+  openmeter:
+    command: openmeter --address 0.0.0.0:8888 --config /etc/openmeter/config.yaml
+    restart: always
+    pull_policy: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:38888:8888"
+    volumes:
+      - ./config.yaml:/etc/openmeter/config.yaml
+      - ./logs/openmeter:/var/log/openmeter/
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://openmeter:8888/api/v1/debug/metrics"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  sink-worker:
+    command: openmeter-sink-worker --config /etc/openmeter/config.yaml
+    restart: always
+    pull_policy: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      openmeter:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:30000:10000"
+    volumes:
+      - ./config.yaml:/etc/openmeter/config.yaml
+      - ./logs/sink-worker:/var/log/openmeter

@@ -28,112 +28,146 @@
         };
 
         devenv.shells = {
-          default = {
-            languages = {
-              go = {
-                enable = true;
-                package = pkgs.go_1_24;
-              };
-
-              python = {
-                enable = true;
-                package = pkgs.python312;
-              };
-
-              javascript = {
-                enable = true;
-                package = pkgs.nodejs_22;
-                corepack = {
+          default =
+            let
+              corepack031 = pkgs.corepack.overrideAttrs (_: {
+                version = "0.31.0";
+                src = pkgs.fetchurl {
+                  url = "https://registry.npmjs.org/corepack/-/corepack-0.31.0.tgz";
+                  sha256 = "sha256-fGMkPPHeJV2BKJ+LRzzsVIwaltF2DAw2ltb9M2pj6xc=";
+                };
+              });
+            in
+            {
+              languages = {
+                go = {
                   enable = true;
+                  package = pkgs.go_1_24;
+                };
+
+                python = {
+                  enable = true;
+                  package = pkgs.python312;
+                };
+
+                javascript = {
+                  enable = true;
+                  package = pkgs.nodejs_22;
+                  corepack = {
+                    enable = true;
+                  };
                 };
               };
-            };
 
-            git-hooks.hooks = {
-              nixpkgs-fmt.enable = true;
-              commitizen.enable = true;
+              git-hooks.hooks = {
+                nixpkgs-fmt.enable = true;
+                commitizen.enable = true;
 
-              commitizen-branch = {
-                enable = true;
-                name = "commitizen-branch check";
-                description = ''
-                  Check whether commit messages on the current HEAD follows committing rules.
-                '';
-                entry = "${pkgs.commitizen}/bin/cz check --allow-abort --rev-range origin/HEAD..HEAD";
-                pass_filenames = false;
-                stages = [ "manual" ];
-              };
-            };
-
-            packages = with pkgs; [
-              gnumake
-              mage
-
-              # Kafka build dependencies
-              # https://github.com/confluentinc/confluent-kafka-go#librdkafka
-              # Check actual version via:
-              # $ pkg-config --modversion rdkafka++
-              # Getting sha256 hash for git ref:
-              # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.11.0 | jq -r '.sha256')"
-              (rdkafka.overrideAttrs (_: rec {
-                version = "2.11.0";
-                src = fetchFromGitHub {
-                  owner = "confluentinc";
-                  repo = "librdkafka";
-                  rev = "v${version}";
-                  sha256 = "sha256-37lCQ+CFeTRQwL6FCl79RSGw+nRKr0DeuXob9CjiVnk=";
+                commitizen-branch = {
+                  enable = true;
+                  name = "commitizen-branch check";
+                  description = ''
+                    Check whether commit messages on the current HEAD follows committing rules.
+                  '';
+                  entry = "${pkgs.commitizen}/bin/cz check --allow-abort --rev-range origin/HEAD..HEAD";
+                  pass_filenames = false;
+                  stages = [ "manual" ];
                 };
-              }))
+              };
 
-              cyrus_sasl
-              pkg-config
-              # confluent-platform
+              packages = with pkgs; [
+                gnumake
+                mage
 
-              golangci-lint
-              goreleaser
-              air
+                # Kafka build dependencies
+                # https://github.com/confluentinc/confluent-kafka-go#librdkafka
+                # Check actual version via:
+                # $ pkg-config --modversion rdkafka++
+                # Getting sha256 hash for git ref:
+                # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.11.0 | jq -r '.sha256')"
+                (rdkafka.overrideAttrs (_: rec {
+                  version = "2.11.0";
+                  src = fetchFromGitHub {
+                    owner = "confluentinc";
+                    repo = "librdkafka";
+                    rev = "v${version}";
+                    sha256 = "sha256-37lCQ+CFeTRQwL6FCl79RSGw+nRKr0DeuXob9CjiVnk=";
+                  };
+                }))
 
-              curl
-              jq
-              minikube
-              kind
-              kubectl
-              helm-docs
-              kubernetes-helm
+                cyrus_sasl
+                pkg-config
+                # confluent-platform
 
-              benthos
+                golangci-lint
+                goreleaser
+                air
 
-              # node
-              nodePackages.pnpm
+                curl
+                jq
+                minikube
+                kind
+                kubectl
+                helm-docs
+                kubernetes-helm
 
-              # python
-              poetry
+                benthos
 
-              atlasx
+                # node
+                nodePackages.pnpm
+                corepack031
+                # We can consider adding a pkgs.buildNpmPackage for spectral-cli if build takes a lot of time, but for now
+                # this is a quick fix to get it working.
+                (writeShellScriptBin "spectral" ''
+                  exec ${pkgs.nodejs_22}/bin/npx -y @stoplight/spectral-cli@6.13.1 "$@"
+                '')
 
-              just
-              semver-tool
+                # python
+                poetry
 
-              dagger
+                atlasx
 
-              go-migrate
+                just
+                semver-tool
 
-              sqlc
-            ];
+                dagger
 
-            env = {
-              KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
-              KIND_CLUSTER_NAME = "openmeter";
+                go-migrate
 
-              HELM_CACHE_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/cache";
-              HELM_CONFIG_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/config";
-              HELM_DATA_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/data";
+                sqlc
+              ];
 
+
+              enterShell = ''
+                # Put Corepack 0.31.0 first on PATH
+                export PATH="${corepack031}/bin:$PATH"
+
+                # Disable download prompt for corepack
+                export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+              '';
+
+              env = {
+                KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
+                KIND_CLUSTER_NAME = "openmeter";
+
+                HELM_CACHE_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/cache";
+                HELM_CONFIG_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/config";
+                HELM_DATA_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/data";
+
+                PATH = lib.mkBefore "${
+                (pkgs.corepack.overrideAttrs (_: {
+                  version = "0.31.0";
+                  src = pkgs.fetchurl {
+                    url = "https://registry.npmjs.org/corepack/-/corepack-0.31.0.tgz";
+                    sha256 = "sha256-fGMkPPHeJV2BKJ+LRzzsVIwaltF2DAw2ltb9M2pj6xc=";
+                  };
+                }))
+              }/bin";
+              };
+
+              # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
+              containers = pkgs.lib.mkForce { };
             };
-
-            # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
-            containers = pkgs.lib.mkForce { };
-          };
 
           ci = devenv.shells.default;
 

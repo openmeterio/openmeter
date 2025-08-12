@@ -1,0 +1,10 @@
+# Note: this can only be started using
+#  docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml up
+#
+# Given this is governed by the Makefile, it's fine to not to add all the extends here.
+services:
+  openmeter:
+    build: ..
+
+  sink-worker:
+    build: ..

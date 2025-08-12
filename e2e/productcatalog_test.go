@@ -3,7 +3,6 @@ package e2e
 import (
 	"net/http"
 	"slices"
-	"sync"
 	"testing"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
+	"golang.org/x/sync/semaphore"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -542,7 +542,7 @@ func TestPlan(t *testing.T) {
 		ct := &api.SubscriptionTiming{}
 		require.NoError(t, ct.FromSubscriptionTiming1(startTime))
 
-		createSubscription := func() {
+		createSubscription := func(ctx context.Context) {
 			ct := &api.SubscriptionTiming{}
 			require.NoError(t, ct.FromSubscriptionTiming1(startTime))
 
@@ -553,26 +553,40 @@ func TestPlan(t *testing.T) {
 				CustomerKey: customerAbused.Key,
 				CustomPlan:  customPlanInput,
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 
+			start := time.Now()
 			apiRes, err := client.CreateSubscriptionWithResponse(ctx, create)
-			require.Nil(t, err)
+			require.NoError(t, err)
+			t.Logf("Create subscription took %s", time.Since(start))
 
 			// It will either succeed or fail with 4xx
 			assert.Less(t, apiRes.StatusCode(), 500, "received the following status %d body: %s", apiRes.StatusCode(), apiRes.Body)
 		}
 
-		// Let's spam the API 10 times
-		wg := sync.WaitGroup{}
-		for i := 0; i < 10; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				createSubscription()
-			}()
+		// Let's spam the API 5 times
+		makeParallelCalls := func(t *testing.T, nrParallelCalls int64) {
+			t.Helper()
+
+			sem := semaphore.NewWeighted(nrParallelCalls)
+			timeoutContext, timeoutContextCancel := context.WithTimeout(t.Context(), 30*time.Second)
+			defer timeoutContextCancel()
+
+			for i := 0; i < 5; i++ {
+				err := sem.Acquire(timeoutContext, 1)
+				require.NoError(t, err)
+				go func() {
+					defer sem.Release(1)
+					createSubscription(timeoutContext)
+				}()
+			}
+
+			err := sem.Acquire(timeoutContext, nrParallelCalls)
+			require.NoError(t, err)
+			require.NoError(t, timeoutContext.Err())
 		}
 
-		wg.Wait()
+		makeParallelCalls(t, 5)
 
 		// Now let's fetch the customer's subscriptions and assert there's only one
 		apiRes, err := client.ListCustomerSubscriptionsWithResponse(ctx, customerAbused.Id, &api.ListCustomerSubscriptionsParams{

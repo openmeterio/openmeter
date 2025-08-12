@@ -1,8 +1,0 @@
-services:
-  openmeter:
-    image: "local"
-    build: ..
-
-  sink-worker:
-    image: "local"
-    build: ..
