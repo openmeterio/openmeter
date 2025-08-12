@@ -10,7 +10,7 @@ import "../../productcatalog";
 // Package Contents
 import "./invoice.tsp";
 import "./tax.tsp";
-import "./org.tsp";
+import "./party.tsp";
 import "./pay.tsp";
 import "./docref.tsp";
 import "./discounts.tsp";
