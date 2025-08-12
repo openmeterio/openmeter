@@ -123,6 +123,7 @@ func (m *Openmeter) publishPythonSdk(ctx context.Context, version string, pypiTo
 	return err
 }
 
+// TODO: keep in sync with api/client/javascript/Makefile for now, if the release process is moved to nix, can be removed
 func (m *Openmeter) PublishJavascriptSdk(ctx context.Context, version string, tag string, npmToken *dagger.Secret) error {
 	// TODO: generate SDK on the fly?
 	_, err := dag.Container().
