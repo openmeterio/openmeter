@@ -3,7 +3,6 @@ package customer
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -24,7 +23,4 @@ type CustomerService interface {
 	GetCustomerByUsageAttribution(ctx context.Context, input GetCustomerByUsageAttributionInput) (*Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
 	CustomerExists(ctx context.Context, customer CustomerID) error
-
-	GetEntitlementValue(ctx context.Context, input GetEntitlementValueInput) (entitlement.EntitlementValue, error)
-	GetCustomerAccess(ctx context.Context, input GetCustomerInput) (entitlement.Access, error)
 }
