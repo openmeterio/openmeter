@@ -102,7 +102,8 @@ jobs:
         env:
           DEPOT_IMAGE_METADATA: ${{ steps.build.outputs.metadata }}
         run: |
-          echo "url=$(echo "$DEPOT_IMAGE_METADATA" | jq -r '."image.name"')" >> $GITHUB_OUTPUT
+          # the image.name is a list of strings, we want the first one
+          echo "url=$(echo "$DEPOT_IMAGE_METADATA" | jq -r '."image.name"' | cut -f1 -d, )" >> $GITHUB_OUTPUT
 
 
       - name: Retrieve pull token
