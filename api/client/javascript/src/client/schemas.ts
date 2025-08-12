@@ -2755,6 +2755,11 @@ export interface components {
     BillingInvoiceCustomerExtendedDetails: {
       /** @description Unique identifier for the party (if available) */
       readonly id?: string
+      /**
+       * Key
+       * @description An optional unique key of the party (if available)
+       */
+      key?: string
       /** @description Legal name or representation of the organization. */
       name?: string
       /** @description The entity's legal ID code used for tax purposes. They may have
@@ -2772,6 +2777,11 @@ export interface components {
     BillingParty: {
       /** @description Unique identifier for the party (if available) */
       readonly id?: string
+      /**
+       * Key
+       * @description An optional unique key of the party (if available)
+       */
+      key?: string
       /** @description Legal name or representation of the organization. */
       name?: string
       /** @description The entity's legal ID code used for tax purposes. They may have
@@ -2782,6 +2792,11 @@ export interface components {
     }
     /** @description Resource update operation model. */
     BillingPartyReplaceUpdate: {
+      /**
+       * Key
+       * @description An optional unique key of the party (if available)
+       */
+      key?: string
       /** @description Legal name or representation of the organization. */
       name?: string
       /** @description The entity's legal ID code used for tax purposes. They may have

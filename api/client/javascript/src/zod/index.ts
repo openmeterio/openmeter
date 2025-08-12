@@ -4519,6 +4519,7 @@ export const updateInvoiceParams = zod.object({
 })
 
 export const updateInvoiceBodyDescriptionMax = 1024
+export const updateInvoiceBodySupplierKeyMax = 256
 export const updateInvoiceBodySupplierTaxIdCodeMaxOne = 32
 export const updateInvoiceBodySupplierAddressesItemCountryMinOne = 2
 
@@ -4527,6 +4528,7 @@ export const updateInvoiceBodySupplierAddressesItemCountryMaxOne = 2
 export const updateInvoiceBodySupplierAddressesItemCountryRegExpOne =
   new RegExp('^[A-Z]{2}$')
 export const updateInvoiceBodySupplierAddressesMax = 1
+export const updateInvoiceBodyCustomerKeyMax = 256
 export const updateInvoiceBodyCustomerTaxIdCodeMaxOne = 32
 export const updateInvoiceBodyCustomerAddressesItemCountryMinOne = 2
 
@@ -4694,6 +4696,12 @@ export const updateInvoiceBody = zod
           .describe(
             'Regular post addresses for where information should be sent if needed.'
           ),
+        key: zod.coerce
+          .string()
+          .min(1)
+          .max(updateInvoiceBodyCustomerKeyMax)
+          .optional()
+          .describe('An optional unique key of the party (if available)'),
         name: zod.coerce
           .string()
           .optional()
@@ -5506,6 +5514,12 @@ export const updateInvoiceBody = zod
           .describe(
             'Regular post addresses for where information should be sent if needed.'
           ),
+        key: zod.coerce
+          .string()
+          .min(1)
+          .max(updateInvoiceBodySupplierKeyMax)
+          .optional()
+          .describe('An optional unique key of the party (if available)'),
         name: zod.coerce
           .string()
           .optional()
@@ -5899,6 +5913,7 @@ can be applied to a billing profile to customize the billing behavior for a spec
  */
 export const createBillingProfileBodyNameMax = 256
 export const createBillingProfileBodyDescriptionMax = 1024
+export const createBillingProfileBodySupplierKeyMax = 256
 export const createBillingProfileBodySupplierTaxIdCodeMaxOne = 32
 export const createBillingProfileBodySupplierAddressesItemCountryMinOne = 2
 
@@ -6031,6 +6046,12 @@ export const createBillingProfileBody = zod
           .string()
           .optional()
           .describe('Unique identifier for the party (if available)'),
+        key: zod.coerce
+          .string()
+          .min(1)
+          .max(createBillingProfileBodySupplierKeyMax)
+          .optional()
+          .describe('An optional unique key of the party (if available)'),
         name: zod.coerce
           .string()
           .optional()
@@ -6278,6 +6299,7 @@ export const updateBillingProfileParams = zod.object({
 
 export const updateBillingProfileBodyNameMax = 256
 export const updateBillingProfileBodyDescriptionMax = 1024
+export const updateBillingProfileBodySupplierKeyMax = 256
 export const updateBillingProfileBodySupplierTaxIdCodeMaxOne = 32
 export const updateBillingProfileBodySupplierAddressesItemCountryMinOne = 2
 
@@ -6382,6 +6404,12 @@ export const updateBillingProfileBody = zod
           .string()
           .optional()
           .describe('Unique identifier for the party (if available)'),
+        key: zod.coerce
+          .string()
+          .min(1)
+          .max(updateBillingProfileBodySupplierKeyMax)
+          .optional()
+          .describe('An optional unique key of the party (if available)'),
         name: zod.coerce
           .string()
           .optional()
