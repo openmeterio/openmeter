@@ -69,7 +69,7 @@ model EntitlementMeteredV2 {
  * Entitlement template of a boolean entitlement.
  */
 @friendlyName("EntitlementBooleanV2")
-model EntitlementBooleanV2 extends EntitlementSharedFields {
+model EntitlementBooleanV2 {
   type: EntitlementType.boolean;
   ...OmitProperties<
     EntitlementBooleanCreateInputs,
