@@ -108,9 +108,9 @@ const customer = await openmeter.customers.create({
   key: 'my-identifier',
   usageAttribution: {
     subjects: [
-      'my-identifier-1',
-      'my-identifier-2',
-      'my-identifier-3'
+      'my-subject-1',
+      'my-subject-2',
+      'my-subject-3'
     ]
   },
 });
@@ -125,9 +125,22 @@ const customer = await openmeter.customers.create({
 
 ## Frequently Asked Questions
 
+### What is a subject?
+
+A subject is any entity that generates metered usage in OpenMeter — for
+example, a customer, user, server, service, or device. Subjects exist
+only in the context of usage events and metering, representing the
+consumers of your service.
+
+### What is a customer?
+
+A customer is the individual or organization that uses your service and
+is billed for the usage. One customer can have one or more subjects
+assigned to it to track usage for these consumers and bill them together.
+
 ### Will my existing integrations break after the migration?
 
-No. Existing subject-based integrations will continue to work until the
+No. Existing subject-based APIs will continue to work until the
 final deprecation date. However, we recommend updating to customer APIs
 as soon as possible.
 
@@ -137,31 +150,37 @@ Yes. All subjects not assigned to customers will be turned into
 customers on OpenMeter Cloud. These customers remain in sync with
 the subjects they were created from.
 
+### Can I assign multiple subjects to the same customer?
+
+Yes, this is now supported natively. You can assign multiple subjects to a
+single customer via the `usageAttribution` API property.
+
+### Can I assign the same subject to multiple customers?
+
+No, like before one subject can only belong to a single customer.
+
 ### Can I still assign subjects to customers later?
 
 Yes. You can still ingest usage with unassigned subjects, and later link
 them to customers. You can now assign multiple subjects to customers too.
 
-### Can I have customer-level entitlements?
-
-Yes. This change also introduces customer-level entitlements.
-
-### Can I still create subject-level entitlements?
-
-For now, yes. But subject level entitlements will eventually be deprecated.
-In the future, use customer-level entitlements, with single or multiple subjects as needed.
-
-### Can I revert back to using subjects only?
-
-No. After the final removal date, the subject APIs
-like subject-level entitlements will no longer be available.
-
-### What if I have multiple subjects pointing to the same customer?
-
-This is now supported natively. You can map multiple subjects to a
-single customer via the `usageAttribution` field.
-
 ### Can I mix customer IDs and subject IDs in ingestion?
 
 Yes. You can use Customer ID, Customer Key or manually assigned
 subjects as the `subject` field in the usage event.
+
+### Can I have customer-level entitlements?
+
+Yes. This change introduces customer-level entitlements, which combine
+usage from all subjects assigned to a customer when calculating
+balances.
+
+### Can I still create subject-level entitlements?
+
+For now, yes. But subject level entitlements APIs will eventually be deprecated.
+In the future, use customer-level entitlements, with single or multiple subjects as needed.
+
+### Can I revert back to using subjects APIs only?
+
+No. After the final removal date, the subject APIs
+like subject-level entitlements will no longer be available.
