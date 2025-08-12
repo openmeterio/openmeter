@@ -471,7 +471,7 @@ jobs:
   e2e:
     name: E2E
     runs-on: depot-ubuntu-latest-8
-    # Note: This check is running agains the image that is going to be pushed. We can shave off ~2m by just building the image
+    # Note: This check is running against the image that is going to be pushed.
     needs:
     - artifacts
 

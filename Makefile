@@ -172,6 +172,12 @@ lint-go: ## Lint Go code
 	$(call print-target)
 	golangci-lint run -v
 
+.PHONY: ci
+ci: ## Run CI checks
+	$(call print-target)
+	$(MAKE) generate-all
+	$(MAKE) -j 10 lint test etoe
+
 .PHONY: fmt
 fmt: ## Format code
 	$(call print-target)
