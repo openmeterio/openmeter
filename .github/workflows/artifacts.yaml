@@ -44,7 +44,7 @@ jobs:
       digest: ${{ steps.build.outputs.digest }}
       tag: ${{ steps.meta.outputs.version }}
       ref: ${{ steps.image-ref.outputs.value }}
-      depot-image-url: "registry.depot.dev/${{ steps.build.outputs.project-id }}@${{ steps.build.outputs.image-id }}"
+      depot-image-url: "registry.depot.dev/${{ steps.build.outputs.project-id }}@${{ steps.build.outputs.imageid }}"
 
     steps:
       - name: Checkout repository
