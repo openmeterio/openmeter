@@ -345,6 +345,20 @@ func (_c *BillingInvoiceCreate) SetNillableSupplierTaxCode(v *string) *BillingIn
 	return _c
 }
 
+// SetCustomerKey sets the "customer_key" field.
+func (_c *BillingInvoiceCreate) SetCustomerKey(v string) *BillingInvoiceCreate {
+	_c.mutation.SetCustomerKey(v)
+	return _c
+}
+
+// SetNillableCustomerKey sets the "customer_key" field if the given value is not nil.
+func (_c *BillingInvoiceCreate) SetNillableCustomerKey(v *string) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetCustomerKey(*v)
+	}
+	return _c
+}
+
 // SetCustomerName sets the "customer_name" field.
 func (_c *BillingInvoiceCreate) SetCustomerName(v string) *BillingInvoiceCreate {
 	_c.mutation.SetCustomerName(v)
@@ -1039,6 +1053,10 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 		_spec.SetField(billinginvoice.FieldSupplierTaxCode, field.TypeString, value)
 		_node.SupplierTaxCode = &value
 	}
+	if value, ok := _c.mutation.CustomerKey(); ok {
+		_spec.SetField(billinginvoice.FieldCustomerKey, field.TypeString, value)
+		_node.CustomerKey = &value
+	}
 	if value, ok := _c.mutation.CustomerName(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerName, field.TypeString, value)
 		_node.CustomerName = value
@@ -1716,6 +1734,24 @@ func (u *BillingInvoiceUpsert) UpdateSupplierTaxCode() *BillingInvoiceUpsert {
 // ClearSupplierTaxCode clears the value of the "supplier_tax_code" field.
 func (u *BillingInvoiceUpsert) ClearSupplierTaxCode() *BillingInvoiceUpsert {
 	u.SetNull(billinginvoice.FieldSupplierTaxCode)
+	return u
+}
+
+// SetCustomerKey sets the "customer_key" field.
+func (u *BillingInvoiceUpsert) SetCustomerKey(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCustomerKey, v)
+	return u
+}
+
+// UpdateCustomerKey sets the "customer_key" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCustomerKey() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCustomerKey)
+	return u
+}
+
+// ClearCustomerKey clears the value of the "customer_key" field.
+func (u *BillingInvoiceUpsert) ClearCustomerKey() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCustomerKey)
 	return u
 }
 
@@ -2595,6 +2631,27 @@ func (u *BillingInvoiceUpsertOne) UpdateSupplierTaxCode() *BillingInvoiceUpsertO
 func (u *BillingInvoiceUpsertOne) ClearSupplierTaxCode() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearSupplierTaxCode()
+	})
+}
+
+// SetCustomerKey sets the "customer_key" field.
+func (u *BillingInvoiceUpsertOne) SetCustomerKey(v string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerKey(v)
+	})
+}
+
+// UpdateCustomerKey sets the "customer_key" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCustomerKey() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerKey()
+	})
+}
+
+// ClearCustomerKey clears the value of the "customer_key" field.
+func (u *BillingInvoiceUpsertOne) ClearCustomerKey() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerKey()
 	})
 }
 
@@ -3695,6 +3752,27 @@ func (u *BillingInvoiceUpsertBulk) UpdateSupplierTaxCode() *BillingInvoiceUpsert
 func (u *BillingInvoiceUpsertBulk) ClearSupplierTaxCode() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearSupplierTaxCode()
+	})
+}
+
+// SetCustomerKey sets the "customer_key" field.
+func (u *BillingInvoiceUpsertBulk) SetCustomerKey(v string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCustomerKey(v)
+	})
+}
+
+// UpdateCustomerKey sets the "customer_key" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCustomerKey() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCustomerKey()
+	})
+}
+
+// ClearCustomerKey clears the value of the "customer_key" field.
+func (u *BillingInvoiceUpsertBulk) ClearCustomerKey() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerKey()
 	})
 }
 

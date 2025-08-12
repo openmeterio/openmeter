@@ -17,7 +17,7 @@ type getFeatureUsageInput struct {
 	Line     *billing.Line
 	Meter    meter.Meter
 	Feature  feature.Feature
-	Subjects []string
+	Customer billing.InvoiceCustomer
 }
 
 func (i getFeatureUsageInput) Validate() error {
@@ -34,8 +34,8 @@ func (i getFeatureUsageInput) Validate() error {
 		}
 	}
 
-	if len(i.Subjects) == 0 {
-		return fmt.Errorf("subjects are required")
+	if err := i.Customer.Validate(); err != nil {
+		return fmt.Errorf("customer: %w", err)
 	}
 
 	return nil
@@ -55,9 +55,9 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 	}
 
 	meterQueryParams := streaming.QueryParams{
-		FilterSubject: in.Subjects,
-		From:          &in.Line.Period.Start,
-		To:            &in.Line.Period.End,
+		FilterCustomer: []streaming.Customer{in.Customer},
+		From:           &in.Line.Period.Start,
+		To:             &in.Line.Period.End,
 	}
 
 	if in.Feature.MeterGroupByFilters != nil {

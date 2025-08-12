@@ -298,12 +298,14 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetCurrency(input.Currency).
 			SetStatus(input.Status).
 			SetSourceBillingProfileID(input.Profile.ID).
-			SetCustomerID(input.Customer.ID).
 			SetType(input.Type).
 			SetNumber(input.Number).
 			SetNillableDescription(input.Description).
 			SetNillableDueAt(input.DueAt).
 			SetNillableIssuedAt(lo.EmptyableToPtr(input.IssuedAt)).
+			// Customer snapshot about usage attribution fields
+			SetCustomerID(input.Customer.ID).
+			SetNillableCustomerKey(input.Customer.Key).
 			SetCustomerUsageAttribution(&billing.VersionedCustomerUsageAttribution{
 				Type:                     billing.CustomerUsageAttributionTypeVersion,
 				CustomerUsageAttribution: input.Customer.UsageAttribution,
@@ -499,6 +501,12 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			// CustomerID is immutable
 			SetCustomerName(in.Customer.Name)
 
+		if in.Customer.Key != nil {
+			updateQuery = updateQuery.SetCustomerKey(*in.Customer.Key)
+		} else {
+			updateQuery = updateQuery.ClearCustomerKey()
+		}
+
 		if in.Customer.BillingAddress != nil {
 			updateQuery = updateQuery.
 				SetOrClearCustomerAddressCountry(in.Customer.BillingAddress.Country).
@@ -666,6 +674,7 @@ func (a *adapter) mapInvoiceBaseFromDB(ctx context.Context, invoice *db.BillingI
 		},
 
 		Customer: billing.InvoiceCustomer{
+			Key:        invoice.CustomerKey,
 			CustomerID: invoice.CustomerID,
 			Name:       invoice.CustomerName,
 			BillingAddress: &models.Address{

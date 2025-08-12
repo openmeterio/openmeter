@@ -846,6 +846,10 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.String("customer_key").
+			Optional().
+			Nillable(),
+
 		field.String("customer_name").
 			NotEmpty(),
 

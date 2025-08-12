@@ -39,6 +39,12 @@ model BillingParty {
   id?: string;
 
   /**
+   * An optional unique key of the party (if available)
+   */
+  @summary("Key")
+  key?: ExternalKey;
+
+  /**
    * Legal name or representation of the organization.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)

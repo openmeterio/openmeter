@@ -306,7 +306,7 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billing.I
 	}
 
 	// Let's create the sub lines as per the meters (we are not setting the QuantitySnapshotedAt field just now, to signal that this is not the final snapshot)
-	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer.UsageAttribution.SubjectKeys, invoiceLines); err != nil {
+	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, invoiceLines); err != nil {
 		return invoice, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
@@ -316,7 +316,7 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billing.I
 	})
 }
 
-func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, subjectKeys []string, lines lineservice.Lines) error {
+func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer billing.InvoiceCustomer, lines lineservice.Lines) error {
 	linesCh := make(chan lineservice.Line, len(lines))
 	errCh := make(chan error, len(lines))
 	doneCh := make(chan struct{})
@@ -342,7 +342,7 @@ func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, subjectK
 					errCh <- ctx.Err()
 					return
 				}
-				if err := line.SnapshotQuantity(ctx, subjectKeys); err != nil {
+				if err := line.SnapshotQuantity(ctx, customer); err != nil {
 					errCh <- fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
 				}
 			}
@@ -391,7 +391,7 @@ func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.Snapsh
 		return nil, fmt.Errorf("creating line service: %w", err)
 	}
 
-	err = lineSvc.SnapshotQuantity(ctx, input.Invoice.Customer.UsageAttribution.SubjectKeys)
+	err = lineSvc.SnapshotQuantity(ctx, input.Invoice.Customer)
 	if err != nil {
 		return nil, fmt.Errorf("snapshotting line quantity: %w", err)
 	}

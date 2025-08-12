@@ -160,7 +160,11 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		return invoice, fmt.Errorf("creating line services: %w", err)
 	}
 
-	if err := s.snapshotLineQuantitiesInParallel(ctx, customerProfile.Customer.UsageAttribution.SubjectKeys, inScopeLineSvcs); err != nil {
+	if customerProfile.Customer == nil {
+		return invoice, fmt.Errorf("customer profile is nil")
+	}
+
+	if err := s.snapshotLineQuantitiesInParallel(ctx, billing.NewInvoiceCustomer(*customerProfile.Customer), inScopeLineSvcs); err != nil {
 		return invoice, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
@@ -1080,13 +1084,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 			CreatedAt:     now,
 			UpdatedAt:     now,
 
-			Customer: billing.InvoiceCustomer{
-				CustomerID: customerProfile.Customer.ID,
-
-				Name:             customerProfile.Customer.Name,
-				BillingAddress:   customerProfile.Customer.BillingAddress,
-				UsageAttribution: customerProfile.Customer.UsageAttribution,
-			},
+			Customer: billing.NewInvoiceCustomer(*customerProfile.Customer),
 
 			Supplier: billing.SupplierContact{
 				ID:      customerProfile.MergedProfile.Supplier.ID,

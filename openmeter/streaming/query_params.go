@@ -5,7 +5,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -14,7 +13,7 @@ type QueryParams struct {
 	ClientID       *string
 	From           *time.Time
 	To             *time.Time
-	FilterCustomer []customer.Customer
+	FilterCustomer []Customer
 	FilterSubject  []string
 	FilterGroupBy  map[string][]string
 	GroupBy        []string
@@ -63,4 +62,16 @@ func (p *QueryParams) Validate() error {
 	}
 
 	return nil
+}
+
+// Customer is a customer that can be used in a meter query
+type Customer interface {
+	GetUsageAttribution() CustomerUsageAttribution
+}
+
+// CustomerUsageAttribution holds customer fields that map usage to a customer
+type CustomerUsageAttribution struct {
+	ID          string
+	Key         *string
+	SubjectKeys []string
 }

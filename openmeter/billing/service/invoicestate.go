@@ -732,7 +732,7 @@ func (m *InvoiceStateMachine) snapshotQuantityAsNeeded(ctx context.Context) erro
 		return fmt.Errorf("creating line services: %w", err)
 	}
 
-	err = m.Service.snapshotLineQuantitiesInParallel(ctx, m.Invoice.Customer.UsageAttribution.SubjectKeys, lineSvcs)
+	err = m.Service.snapshotLineQuantitiesInParallel(ctx, m.Invoice.Customer, lineSvcs)
 	if err != nil {
 		return fmt.Errorf("snapshotting lines: %w", err)
 	}

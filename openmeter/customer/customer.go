@@ -5,11 +5,14 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
+
+var _ streaming.Customer = &Customer{}
 
 // Customer represents a customer
 type Customer struct {
@@ -24,6 +27,27 @@ type Customer struct {
 	Annotation       *models.Annotations      `json:"annotations,omitempty"`
 }
 
+// GetUsageAttribution returns the customer usage attribution
+// implementing the streaming.CustomerUsageAttribution interface
+func (c Customer) GetUsageAttribution() streaming.CustomerUsageAttribution {
+	return streaming.CustomerUsageAttribution{
+		ID:          c.ID,
+		Key:         c.Key,
+		SubjectKeys: c.UsageAttribution.SubjectKeys,
+	}
+}
+
+// GetID returns the customer id
+// This is a convenience method to get the customer id as a CustomerID
+// It is used to avoid having to create a CustomerID struct in the codebase
+func (c Customer) GetID() CustomerID {
+	return CustomerID{
+		Namespace: c.Namespace,
+		ID:        c.ID,
+	}
+}
+
+// Validate validates the customer
 func (c Customer) Validate() error {
 	if err := c.ManagedResource.Validate(); err != nil {
 		return models.NewGenericValidationError(err)
@@ -39,10 +63,6 @@ func (c Customer) Validate() error {
 		}
 	}
 	return nil
-}
-
-func (c Customer) GetID() CustomerID {
-	return CustomerID{c.Namespace, c.ID}
 }
 
 type CustomerMutate struct {

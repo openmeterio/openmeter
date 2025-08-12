@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -569,15 +570,52 @@ type (
 	}
 )
 
-type InvoiceCustomer struct {
-	CustomerID string `json:"customerId,omitempty"`
+// InvoiceCustomer implements the streaming.CustomerUsageAttribution interface
+// This is used to query the usage of a customer in a meter query
+var _ streaming.Customer = &InvoiceCustomer{}
 
+// NewInvoiceCustomer creates a new InvoiceCustomer from a customer.Customer
+func NewInvoiceCustomer(customer customer.Customer) InvoiceCustomer {
+	return InvoiceCustomer{
+		Key:              customer.Key,
+		CustomerID:       customer.ID,
+		Name:             customer.Name,
+		BillingAddress:   customer.BillingAddress,
+		UsageAttribution: customer.UsageAttribution,
+	}
+}
+
+// InvoiceCustomer represents a customer that is used in an invoice
+// We use a specific model as we snapshot the customer at the time of invoice creation,
+// and we don't want to modify the customer entity after it has been sent to the customer.
+type InvoiceCustomer struct {
+	Key              *string                  `json:"key,omitempty"`
+	CustomerID       string                   `json:"customerId,omitempty"`
 	Name             string                   `json:"name"`
 	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
 }
 
+// GetUsageAttribution returns the customer usage attribution
+// implementing the streaming.CustomerUsageAttribution interface
+func (c InvoiceCustomer) GetUsageAttribution() streaming.CustomerUsageAttribution {
+	return streaming.CustomerUsageAttribution{
+		ID:          c.CustomerID,
+		Key:         c.Key,
+		SubjectKeys: c.UsageAttribution.SubjectKeys,
+	}
+}
+
+// Validate validates the invoice customer
 func (i *InvoiceCustomer) Validate() error {
+	if i.CustomerID == "" {
+		return fmt.Errorf("customerID is required")
+	}
+
+	if i.Key != nil && *i.Key == "" {
+		return fmt.Errorf("key cannot be empty")
+	}
+
 	if i.Name == "" {
 		return fmt.Errorf("name is required")
 	}

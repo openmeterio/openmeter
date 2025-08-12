@@ -206,6 +206,11 @@ func SupplierTaxCode(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldSupplierTaxCode, v))
 }
 
+// CustomerKey applies equality check predicate on the "customer_key" field. It's identical to CustomerKeyEQ.
+func CustomerKey(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldCustomerKey, v))
+}
+
 // CustomerName applies equality check predicate on the "customer_name" field. It's identical to CustomerNameEQ.
 func CustomerName(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldCustomerName, v))
@@ -2028,6 +2033,81 @@ func SupplierTaxCodeEqualFold(v string) predicate.BillingInvoice {
 // SupplierTaxCodeContainsFold applies the ContainsFold predicate on the "supplier_tax_code" field.
 func SupplierTaxCodeContainsFold(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldContainsFold(FieldSupplierTaxCode, v))
+}
+
+// CustomerKeyEQ applies the EQ predicate on the "customer_key" field.
+func CustomerKeyEQ(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldCustomerKey, v))
+}
+
+// CustomerKeyNEQ applies the NEQ predicate on the "customer_key" field.
+func CustomerKeyNEQ(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldCustomerKey, v))
+}
+
+// CustomerKeyIn applies the In predicate on the "customer_key" field.
+func CustomerKeyIn(vs ...string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIn(FieldCustomerKey, vs...))
+}
+
+// CustomerKeyNotIn applies the NotIn predicate on the "customer_key" field.
+func CustomerKeyNotIn(vs ...string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldCustomerKey, vs...))
+}
+
+// CustomerKeyGT applies the GT predicate on the "customer_key" field.
+func CustomerKeyGT(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGT(FieldCustomerKey, v))
+}
+
+// CustomerKeyGTE applies the GTE predicate on the "customer_key" field.
+func CustomerKeyGTE(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGTE(FieldCustomerKey, v))
+}
+
+// CustomerKeyLT applies the LT predicate on the "customer_key" field.
+func CustomerKeyLT(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLT(FieldCustomerKey, v))
+}
+
+// CustomerKeyLTE applies the LTE predicate on the "customer_key" field.
+func CustomerKeyLTE(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLTE(FieldCustomerKey, v))
+}
+
+// CustomerKeyContains applies the Contains predicate on the "customer_key" field.
+func CustomerKeyContains(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldContains(FieldCustomerKey, v))
+}
+
+// CustomerKeyHasPrefix applies the HasPrefix predicate on the "customer_key" field.
+func CustomerKeyHasPrefix(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldHasPrefix(FieldCustomerKey, v))
+}
+
+// CustomerKeyHasSuffix applies the HasSuffix predicate on the "customer_key" field.
+func CustomerKeyHasSuffix(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldHasSuffix(FieldCustomerKey, v))
+}
+
+// CustomerKeyIsNil applies the IsNil predicate on the "customer_key" field.
+func CustomerKeyIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldCustomerKey))
+}
+
+// CustomerKeyNotNil applies the NotNil predicate on the "customer_key" field.
+func CustomerKeyNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldCustomerKey))
+}
+
+// CustomerKeyEqualFold applies the EqualFold predicate on the "customer_key" field.
+func CustomerKeyEqualFold(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEqualFold(FieldCustomerKey, v))
+}
+
+// CustomerKeyContainsFold applies the ContainsFold predicate on the "customer_key" field.
+func CustomerKeyContainsFold(v string) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldContainsFold(FieldCustomerKey, v))
 }
 
 // CustomerNameEQ applies the EQ predicate on the "customer_name" field.
