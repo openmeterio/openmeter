@@ -26,7 +26,7 @@ publish-javascript-sdk: ## Publish JavaScript SDK
 
 	pnpm --frozen-lockfile install
 	pnpm version $${JS_SDK_RELEASE_VERSION} --no-git-tag-version
-	CACHE_BUSTER=$$(date --rfc-3339=seconds) pnpm publish --no-git-checks --tag $${JS_SDK_RELEASE_TAG} --version $${JS_SDK_RELEASE_VERSION}
+	CACHE_BUSTER=$$(date --rfc-3339=seconds) pnpm publish --no-git-checks --tag $${JS_SDK_RELEASE_TAG}
 	@echo "✅ Published $${JS_SDK_RELEASE_TAG} JavaScript SDK version $${JS_SDK_RELEASE_VERSION} with tag $${JS_SDK_RELEASE_TAG}"
 
 .PHONY: help
