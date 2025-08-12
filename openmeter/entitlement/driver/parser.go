@@ -105,7 +105,7 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 		Metadata:           convert.MapToPointer(boolean.Metadata),
 		Annotations:        lo.EmptyableToPtr(api.Annotations(boolean.Annotations)),
 		SubjectKey:         boolean.SubjectKey,
-		Type:               string(boolean.EntitlementType),
+		Type:               api.EntitlementBooleanType(boolean.EntitlementType),
 		UpdatedAt:          boolean.UpdatedAt,
 		CurrentUsagePeriod: mapPeriod(boolean.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),

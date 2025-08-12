@@ -15563,8 +15563,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/RecurringPeriod'
           description: The defined usage period of the entitlement
-      allOf:
-        - $ref: '#/components/schemas/EntitlementBaseTemplate'
       description: Entitlement template of a boolean entitlement.
     EntitlementBooleanCreateInputs:
       type: object
@@ -15693,8 +15691,6 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The identifier unique to the customer
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-      allOf:
-        - $ref: '#/components/schemas/EntitlementBaseTemplate'
       description: Entitlement template of a boolean entitlement.
     EntitlementCreateInputs:
       type: object

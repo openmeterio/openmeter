@@ -4365,8 +4365,13 @@ export interface components {
       | components['schemas']['EntitlementMetered']
       | components['schemas']['EntitlementStatic']
       | components['schemas']['EntitlementBoolean']
-    /** @description Shared fields of the entitlement templates. */
-    EntitlementBaseTemplate: {
+    /** @description Entitlement template of a boolean entitlement. */
+    EntitlementBoolean: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'boolean'
       /**
        * Creation Time
        * Format: date-time
@@ -4414,11 +4419,6 @@ export interface components {
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
       readonly id: string
-      /**
-       * Type
-       * @description The type of the entitlement.
-       */
-      type: components['schemas']['EntitlementType']
       /**
        * @description The identifier key unique to the subject.
        *     NOTE: Subjects are being deprecated, please use the new customer APIs.
@@ -4440,94 +4440,6 @@ export interface components {
       /** @description The defined usage period of the entitlement */
       usagePeriod?: components['schemas']['RecurringPeriod']
     }
-    /** @description Entitlement template of a boolean entitlement. */
-    EntitlementBoolean: {
-      /** @enum {string} */
-      type: 'boolean'
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: Date
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: Date
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: Date
-      /** @description Additional metadata for the feature. */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * Format: date-time
-       * @description The cadence start of the resource.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeFrom: Date
-      /**
-       * Format: date-time
-       * @description The cadence end of the resource.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeTo?: Date
-      /**
-       * @description The annotations of the entitlement.
-       * @example {
-       *       "subscription.id": "sub_123"
-       *     }
-       */
-      readonly annotations?: components['schemas']['Annotations']
-      /**
-       * @description Readonly unique ULID identifier.
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      readonly id: string
-      /**
-       * @description The identifier key unique to the subject.
-       *     NOTE: Subjects are being deprecated, please use the new customer APIs.
-       * @example customer-1
-       */
-      subjectKey: string
-      /**
-       * @description The feature the subject is entitled to use.
-       * @example example-feature-key
-       */
-      featureKey: string
-      /**
-       * @description The feature the subject is entitled to use.
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      featureId: string
-      /** @description The current usage period. */
-      currentUsagePeriod?: components['schemas']['Period']
-      /** @description The defined usage period of the entitlement */
-      usagePeriod?: components['schemas']['RecurringPeriod']
-    } & (WithRequired<
-      components['schemas']['EntitlementBaseTemplate'],
-      | 'type'
-      | 'createdAt'
-      | 'updatedAt'
-      | 'activeFrom'
-      | 'id'
-      | 'subjectKey'
-      | 'featureKey'
-      | 'featureId'
-    > & {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'boolean'
-    })
     /** @description Create inputs for boolean entitlement */
     EntitlementBooleanCreateInputs: {
       /**
@@ -4552,91 +4464,6 @@ export interface components {
        */
       type: 'boolean'
     }
-    /** @description Entitlement template of a boolean entitlement. */
-    EntitlementBooleanV2: {
-      /** @enum {string} */
-      type: 'boolean'
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: Date
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: Date
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: Date
-      /** @description Additional metadata for the feature. */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * Format: date-time
-       * @description The cadence start of the resource.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeFrom: Date
-      /**
-       * Format: date-time
-       * @description The cadence end of the resource.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeTo?: Date
-      /**
-       * @description The annotations of the entitlement.
-       * @example {
-       *       "subscription.id": "sub_123"
-       *     }
-       */
-      readonly annotations?: components['schemas']['Annotations']
-      /**
-       * @description Readonly unique ULID identifier.
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      readonly id: string
-      /**
-       * @description The feature the subject is entitled to use.
-       * @example example-feature-key
-       */
-      featureKey: string
-      /**
-       * @description The feature the subject is entitled to use.
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      featureId: string
-      /** @description The current usage period. */
-      currentUsagePeriod?: components['schemas']['Period']
-      /** @description The defined usage period of the entitlement */
-      usagePeriod?: components['schemas']['RecurringPeriod']
-      /**
-       * @description The identifier key unique to the customer
-       * @example customer-1
-       */
-      customerKey?: string
-      /**
-       * @description The identifier unique to the customer
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      customerId: string
-    } & WithRequired<
-      components['schemas']['EntitlementBaseTemplate'],
-      | 'type'
-      | 'createdAt'
-      | 'updatedAt'
-      | 'activeFrom'
-      | 'id'
-      | 'featureKey'
-      | 'featureId'
-    >
     /** @description Create inputs for entitlement */
     EntitlementCreateInputs:
       | components['schemas']['EntitlementMeteredCreateInputs']
@@ -11062,12 +10889,9 @@ export type EditSubscriptionStretchPhase =
 export type EditSubscriptionUnscheduleEdit =
   components['schemas']['EditSubscriptionUnscheduleEdit']
 export type Entitlement = components['schemas']['Entitlement']
-export type EntitlementBaseTemplate =
-  components['schemas']['EntitlementBaseTemplate']
 export type EntitlementBoolean = components['schemas']['EntitlementBoolean']
 export type EntitlementBooleanCreateInputs =
   components['schemas']['EntitlementBooleanCreateInputs']
-export type EntitlementBooleanV2 = components['schemas']['EntitlementBooleanV2']
 export type EntitlementCreateInputs =
   components['schemas']['EntitlementCreateInputs']
 export type EntitlementGrant = components['schemas']['EntitlementGrant']
