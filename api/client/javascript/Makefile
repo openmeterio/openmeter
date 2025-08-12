@@ -8,6 +8,27 @@ generate: ## Generate JavaScript SDK
 	pnpm build
 	pnpm test
 
+.PHONY: publish-dev-javascript-sdk
+publish-dev-javascript-sdk: ## Publish dev JavaScript SDK
+	$(call print-target)
+	@if [ -z "$$JS_SDK_RELEASE_VERSION" ]; then \
+		echo "ERROR: JS_SDK_RELEASE_VERSION is required"; \
+		echo "Usage: JS_SDK_RELEASE_VERSION=1.2.3 NPM_TOKEN=xxxx make publish-js-sdk [JS_SDK_RELEASE_TAG=beta]"; \
+		exit 1; \
+	fi
+
+	@if [ -z "$$JS_SDK_RELEASE_TAG" ]; then \
+		echo "ERROR: JS_SDK_RELEASE_TAG is required"; \
+		echo "Usage: JS_SDK_RELEASE_VERSION=1.2.3 NPM_TOKEN=xxxx make publish-js-sdk [JS_SDK_RELEASE_TAG=beta]"; \
+		exit 1; \
+	fi
+
+	pnpm --frozen-lockfile install
+	pnpm version $${JS_SDK_RELEASE_VERSION} --no-git-tag-version
+	[ -f ~/.npmrc ] || (echo "//registry.npmjs.org/:_authToken=$${NPM_TOKEN}" > ~/.npmrc)
+	pnpm publish --no-git-checks --tag $${JS_SDK_RELEASE_TAG} --version $${JS_SDK_RELEASE_VERSION}
+	echo "✅ Published $${JS_SDK_RELEASE_TAG} JavaScript SDK version $${JS_SDK_RELEASE_VERSION} with tag $${JS_SDK_RELEASE_TAG}"
+
 .PHONY: help
 .DEFAULT_GOAL := help
 help:

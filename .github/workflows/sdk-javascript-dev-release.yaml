@@ -1,0 +1,60 @@
+name: JavaScript SDK beta release
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  pull_request: # TODO: TEMP
+  push:
+    branches:
+      - main
+env:
+  DAGGER_VERSION: 0.18.14
+
+jobs:
+  release-dev-sdk:
+    name: Release dev SDK
+    runs-on: depot-ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Get short SHA
+        id: get-short-sha
+        run: |
+          id=$(echo ${{github.sha}} | cut -c 1-12)
+          echo "id=${id}" >> $GITHUB_OUTPUT
+
+      - name: Configure registry auth
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@63ca48f939ee3b8d835f4126562537df0fee5b91 # v32
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Publish NPM package
+        run: |
+          nix develop --impure .#ci -c make -C api/client/javascript publish-dev-javascript-sdk
+        env:
+          JS_SDK_RELEASE_VERSION: ${{steps.get-short-sha.outputs.id}}
+          JS_SDK_RELEASE_TAG: beta
