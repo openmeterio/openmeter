@@ -74,7 +74,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{"test"},
+				SubjectKeys: []string{"test-subject-1", "test-subject-2"},
 			},
 		},
 	})
@@ -2625,7 +2625,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{"test"},
+				SubjectKeys: []string{"test-subject-1"},
 			},
 		},
 	})
@@ -3145,7 +3145,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{"test"},
+				SubjectKeys: []string{"test-subject-1"},
 			},
 		},
 	})
@@ -3312,7 +3312,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 			Name:     "Test Customer",
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{"test"},
+				SubjectKeys: []string{"test-subject-1"},
 			},
 		},
 	})
@@ -3431,7 +3431,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 			Name:     "Test Customer",
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{"test"},
+				SubjectKeys: []string{"test-subject-1"},
 			},
 		},
 	})
