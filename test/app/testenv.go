@@ -22,7 +22,6 @@ import (
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
@@ -83,33 +82,6 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
-	// Streaming
-	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
-
-	// Meter
-	meterAdapter, err := meteradapter.New([]meter.Meter{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create meter adapter: %w", err)
-	}
-
-	locker, err := lockr.NewLocker(&lockr.LockerConfig{
-		Logger: logger,
-	})
-	require.NoError(t, err)
-
-	// Entitlement
-	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     entClient,
-		StreamingConnector: streamingConnector,
-		Logger:             logger,
-		MeterService:       meterAdapter,
-		Publisher:          publisher,
-		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: datetime.ISODurationString("P1D"),
-		},
-		Locker: locker,
-	})
-
 	// Customer
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: entClient,
@@ -120,9 +92,8 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	customerService, err := customerservice.New(customerservice.Config{
-		Adapter:              customerAdapter,
-		EntitlementConnector: entitlementRegistry.Entitlement,
-		Publisher:            publisher,
+		Adapter:   customerAdapter,
+		Publisher: publisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)

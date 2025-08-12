@@ -3,25 +3,15 @@ package subscriptiontestutils
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
-	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
-	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
-	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
-	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datetime"
-	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -46,50 +36,11 @@ func NewCustomerAdapter(t *testing.T, dbDeps *DBDeps) *testCustomerRepo {
 func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 	t.Helper()
 
-	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		ManagedResource: models.ManagedResource{
-			ID: ulid.Make().String(),
-			NamespacedModel: models.NamespacedModel{
-				Namespace: ExampleNamespace,
-			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
-			},
-			Name: "Meter 1",
-		},
-		Key:           ExampleFeatureMeterSlug,
-		Aggregation:   meter.MeterAggregationSum,
-		EventType:     "test",
-		ValueProperty: lo.ToPtr("$.value"),
-	}})
-	if err != nil {
-		t.Fatalf("failed to create meter adapter: %v", err)
-	}
-
-	locker, err := lockr.NewLocker(&lockr.LockerConfig{
-		Logger: testutils.NewLogger(t),
-	})
-	require.NoError(t, err)
-
-	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     dbDeps.DBClient,
-		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
-		Logger:             testutils.NewLogger(t),
-		MeterService:       meterAdapter,
-		Publisher:          eventbus.NewMock(t),
-		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: datetime.ISODurationString("P1D"),
-		},
-		Locker: locker,
-	})
-
 	customerAdapter := NewCustomerAdapter(t, dbDeps)
 
 	customerService, err := customerservice.New(customerservice.Config{
-		Adapter:              customerAdapter,
-		EntitlementConnector: entitlementRegistry.Entitlement,
-		Publisher:            eventbus.NewMock(t),
+		Adapter:   customerAdapter,
+		Publisher: eventbus.NewMock(t),
 	})
 	if err != nil {
 		t.Fatalf("failed to create customer service: %v", err)
