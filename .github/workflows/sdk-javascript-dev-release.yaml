@@ -1,4 +1,4 @@
-name: JavaScript SDK beta release
+name: JavaScript SDK Beta Release
 
 permissions:
   contents: read
@@ -13,8 +13,8 @@ env:
   DAGGER_VERSION: 0.18.14
 
 jobs:
-  release-dev-sdk:
-    name: Release dev SDK
+  release-beta-sdk:
+    name: JavaScript SDK Beta Release
     runs-on: depot-ubuntu-latest
 
     steps:
@@ -54,7 +54,7 @@ jobs:
 
       - name: Publish NPM package
         run: |
-          nix develop --impure .#ci -c make -C api/client/javascript publish-dev-javascript-sdk
+          nix develop --impure .#ci -c make -C api/client/javascript publish-javascript-sdk
         env:
-          JS_SDK_RELEASE_VERSION: ${{steps.get-short-sha.outputs.id}}
+          JS_SDK_RELEASE_VERSION: 1.0.0-beta-${{steps.get-short-sha.outputs.id}}
           JS_SDK_RELEASE_TAG: beta

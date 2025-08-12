@@ -8,8 +8,8 @@ generate: ## Generate JavaScript SDK
 	pnpm build
 	pnpm test
 
-.PHONY: publish-dev-javascript-sdk
-publish-dev-javascript-sdk: ## Publish dev JavaScript SDK
+.PHONY: publish-javascript-sdk
+publish-javascript-sdk: ## Publish JavaScript SDK
 	$(call print-target)
 	@if [ -z "$$JS_SDK_RELEASE_VERSION" ]; then \
 		echo "ERROR: JS_SDK_RELEASE_VERSION is required"; \
@@ -25,9 +25,8 @@ publish-dev-javascript-sdk: ## Publish dev JavaScript SDK
 
 	pnpm --frozen-lockfile install
 	pnpm version $${JS_SDK_RELEASE_VERSION} --no-git-tag-version
-	[ -f ~/.npmrc ] || (echo "//registry.npmjs.org/:_authToken=$${NPM_TOKEN}" > ~/.npmrc)
-	pnpm publish --no-git-checks --tag $${JS_SDK_RELEASE_TAG} --version $${JS_SDK_RELEASE_VERSION}
-	echo "✅ Published $${JS_SDK_RELEASE_TAG} JavaScript SDK version $${JS_SDK_RELEASE_VERSION} with tag $${JS_SDK_RELEASE_TAG}"
+	CACHE_BUSTER=$$(date --rfc-3339=seconds) pnpm publish --no-git-checks --tag $${JS_SDK_RELEASE_TAG} --version $${JS_SDK_RELEASE_VERSION}
+	@echo "✅ Published $${JS_SDK_RELEASE_TAG} JavaScript SDK version $${JS_SDK_RELEASE_VERSION} with tag $${JS_SDK_RELEASE_TAG}"
 
 .PHONY: help
 .DEFAULT_GOAL := help
