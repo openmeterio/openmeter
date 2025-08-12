@@ -96,6 +96,13 @@ jobs:
       - name: Validate Nix flake
         run: nix flake check --impure
 
+      - name: debug
+        run: |
+          set -x
+          nix develop --impure .#ci -c go env
+          df
+          free
+
       - name: Build components
         run: nix develop --impure .#ci -c make -j 10 build
 
