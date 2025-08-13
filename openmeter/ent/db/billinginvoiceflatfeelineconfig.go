@@ -22,12 +22,20 @@ type BillingInvoiceFlatFeeLineConfig struct {
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// PerUnitAmount holds the value of the "per_unit_amount" field.
+	//
+	// Deprecated: use BillingInvoiceDetailedLine instead
 	PerUnitAmount alpacadecimal.Decimal `json:"per_unit_amount,omitempty"`
 	// Category holds the value of the "category" field.
-	Category billing.FlatFeeCategory `json:"category,omitempty"`
+	//
+	// Deprecated: use BillingInvoiceDetailedLine instead
+	Category billing.DetailedLineCategory `json:"category,omitempty"`
 	// PaymentTerm holds the value of the "payment_term" field.
+	//
+	// Deprecated: use BillingInvoiceDetailedLine instead
 	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`
 	// Index holds the value of the "index" field.
+	//
+	// Deprecated: use BillingInvoiceDetailedLine instead
 	Index        *int `json:"index,omitempty"`
 	selectValues sql.SelectValues
 }
@@ -80,7 +88,7 @@ func (_m *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, values
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field category", values[i])
 			} else if value.Valid {
-				_m.Category = billing.FlatFeeCategory(value.String)
+				_m.Category = billing.DetailedLineCategory(value.String)
 			}
 		case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
 			if value, ok := values[i].(*sql.NullString); !ok {

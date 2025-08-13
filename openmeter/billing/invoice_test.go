@@ -4,12 +4,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSortLines(t *testing.T) {
-	lines := []*Line{
+	input := NewLineChildren([]*Line{
 		{
 			LineBase: LineBase{
 				Type: InvoiceLineTypeUsageBased,
@@ -19,28 +20,22 @@ func TestSortLines(t *testing.T) {
 				},
 				Description: lo.ToPtr("index=1"),
 			},
-			Children: NewLineChildren([]*Line{
+			DetailedLines: DetailedLines{
 				{
-					LineBase: LineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						ID:          "child-2",
-						Type:        InvoiceLineTypeFee,
 						Description: lo.ToPtr("index=1.1"),
-					},
-					FlatFee: &FlatFeeLine{
-						Index: lo.ToPtr(1),
-					},
+					}),
+					Index: lo.ToPtr(1),
 				},
 				{
-					LineBase: LineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						ID:          "child-1",
-						Type:        InvoiceLineTypeFee,
 						Description: lo.ToPtr("index=1.0"),
-					},
-					FlatFee: &FlatFeeLine{
-						Index: lo.ToPtr(0),
-					},
+					}),
+					Index: lo.ToPtr(0),
 				},
-			}),
+			},
 		},
 		{
 			LineBase: LineBase{
@@ -51,15 +46,14 @@ func TestSortLines(t *testing.T) {
 				},
 				Description: lo.ToPtr("index=0"),
 			},
-			Children: NewLineChildren(nil),
 		},
-	}
+	})
 
-	sortLines(lines)
+	lines := input.Sorted().OrEmpty()
 
 	require.Equal(t, *lines[0].Description, "index=0")
 	require.Equal(t, *lines[1].Description, "index=1")
-	children := lines[1].Children.OrEmpty()
+	children := lines[1].DetailedLines
 	require.Equal(t, *children[0].Description, "index=1.0")
 	require.Equal(t, *children[1].Description, "index=1.1")
 }

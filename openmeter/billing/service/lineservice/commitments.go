@@ -51,7 +51,7 @@ func (m *minAmountCommitmentMutator) Mutate(i PricerCalculateInput, pricerResult
 			PerUnitAmount:          minimumSpendAmount,
 			ChildUniqueReferenceID: MinSpendChildUniqueReferenceID,
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-			Category:               billing.FlatFeeCategoryCommitment,
+			Category:               billing.DetailedLineCategoryCommitment,
 			Period:                 &period,
 		})
 	}

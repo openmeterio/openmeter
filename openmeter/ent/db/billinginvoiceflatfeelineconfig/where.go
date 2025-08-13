@@ -186,19 +186,19 @@ func PerUnitAmountLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceFlatFeeLi
 }
 
 // CategoryEQ applies the EQ predicate on the "category" field.
-func CategoryEQ(v billing.FlatFeeCategory) predicate.BillingInvoiceFlatFeeLineConfig {
+func CategoryEQ(v billing.DetailedLineCategory) predicate.BillingInvoiceFlatFeeLineConfig {
 	vc := v
 	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldEQ(FieldCategory, vc))
 }
 
 // CategoryNEQ applies the NEQ predicate on the "category" field.
-func CategoryNEQ(v billing.FlatFeeCategory) predicate.BillingInvoiceFlatFeeLineConfig {
+func CategoryNEQ(v billing.DetailedLineCategory) predicate.BillingInvoiceFlatFeeLineConfig {
 	vc := v
 	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldNEQ(FieldCategory, vc))
 }
 
 // CategoryIn applies the In predicate on the "category" field.
-func CategoryIn(vs ...billing.FlatFeeCategory) predicate.BillingInvoiceFlatFeeLineConfig {
+func CategoryIn(vs ...billing.DetailedLineCategory) predicate.BillingInvoiceFlatFeeLineConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -207,7 +207,7 @@ func CategoryIn(vs ...billing.FlatFeeCategory) predicate.BillingInvoiceFlatFeeLi
 }
 
 // CategoryNotIn applies the NotIn predicate on the "category" field.
-func CategoryNotIn(vs ...billing.FlatFeeCategory) predicate.BillingInvoiceFlatFeeLineConfig {
+func CategoryNotIn(vs ...billing.DetailedLineCategory) predicate.BillingInvoiceFlatFeeLineConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

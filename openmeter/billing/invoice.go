@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -404,13 +403,11 @@ func (i Invoice) RemoveMetaForCompare() Invoice {
 	return invoice
 }
 
-func (i *Invoice) FlattenLinesByID() map[string]*Line {
-	out := make(map[string]*Line, len(i.Lines.OrEmpty()))
+func (i *Invoice) DetailedLinesByID() map[string]DetailedLine {
+	out := make(map[string]DetailedLine, len(i.Lines.OrEmpty()))
 
 	for _, line := range i.Lines.OrEmpty() {
-		out[line.ID] = line
-
-		for _, child := range line.Children.OrEmpty() {
+		for _, child := range line.DetailedLines {
 			out[child.ID] = child
 		}
 	}
@@ -418,31 +415,10 @@ func (i *Invoice) FlattenLinesByID() map[string]*Line {
 	return out
 }
 
-// getLeafLines returns the leaf lines
-func (i *Invoice) getLeafLines() []*Line {
-	var leafLines []*Line
-
-	for _, line := range i.FlattenLinesByID() {
-		// Skip non leaf nodes
-		if line.Type != InvoiceLineTypeFee {
-			continue
-		}
-
-		leafLines = append(leafLines, line)
-	}
-
-	return leafLines
-}
-
-// GetLeafLinesWithConsolidatedTaxBehavior returns the leaf lines with the tax behavior set to the invoice's tax behavior
+// GetDetailedLinesWithConsolidatedTaxBehavior returns the detailed lines with the tax behavior set to the invoice's tax behavior
 // unless the line already has a tax behavior set.
-func (i *Invoice) GetLeafLinesWithConsolidatedTaxBehavior() []*Line {
-	leafLines := i.getLeafLines()
-	if i.Workflow.Config.Invoicing.DefaultTaxConfig == nil {
-		return leafLines
-	}
-
-	return lo.Map(leafLines, func(line *Line, _ int) *Line {
+func (i *Invoice) GetDetailedLinesWithConsolidatedTaxBehavior() []DetailedLine {
+	return lo.Map(lo.Values(i.DetailedLinesByID()), func(line DetailedLine, _ int) DetailedLine {
 		line.TaxConfig = productcatalog.MergeTaxConfigs(i.Workflow.Config.Invoicing.DefaultTaxConfig, line.TaxConfig)
 		return line
 	})
@@ -468,59 +444,9 @@ func (i Invoice) RemoveCircularReferences() Invoice {
 	return clone
 }
 
+// TODO: Do we need this at all?
 func (i *Invoice) SortLines() {
-	if !i.Lines.IsPresent() {
-		return
-	}
-
-	lines := i.Lines.OrEmpty()
-
-	sortLines(lines)
-
-	i.Lines = NewLineChildren(lines)
-}
-
-func sortLines(lines []*Line) {
-	sort.Slice(lines, func(a, b int) bool {
-		lineA := lines[a]
-		lineB := lines[b]
-
-		// If both lines are flat fee lines, we sort them by index if possible
-		if lineA.Type == InvoiceLineTypeFee && lineB.Type == InvoiceLineTypeFee {
-			if lineA.FlatFee.Index != nil && lineB.FlatFee.Index != nil {
-				return *lineA.FlatFee.Index < *lineB.FlatFee.Index
-			}
-
-			if lineA.FlatFee.Index != nil {
-				return true
-			}
-
-			if lineB.FlatFee.Index != nil {
-				return false
-			}
-		}
-
-		if nameOrder := strings.Compare(lineA.Name, lineB.Name); nameOrder != 0 {
-			return nameOrder < 0
-		}
-
-		if !lineA.Period.Start.Equal(lineB.Period.Start) {
-			return lineA.Period.Start.Before(lineB.Period.Start)
-		}
-
-		return strings.Compare(lineA.ID, lineB.ID) < 0
-	})
-
-	for idx, line := range lines {
-		if line.Type == InvoiceLineTypeUsageBased && line.Children.IsPresent() {
-			children := line.Children.OrEmpty()
-			sortLines(children)
-
-			line.Children = NewLineChildren(children)
-		}
-
-		lines[idx] = line
-	}
+	i.Lines = i.Lines.Sorted()
 }
 
 type InvoiceExternalIDs struct {

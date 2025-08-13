@@ -23,6 +23,8 @@ const (
 
 type PaymentTermType string
 
+var _ models.Validator = (*PaymentTermType)(nil)
+
 func (p PaymentTermType) Values() []string {
 	return []string{
 		string(InAdvancePaymentTerm),
@@ -35,6 +37,13 @@ func (p PaymentTermType) StringValues() []string {
 		string(InAdvancePaymentTerm),
 		string(InArrearsPaymentTerm),
 	}
+}
+
+func (p PaymentTermType) Validate() error {
+	if !slices.Contains(PaymentTermType("").Values(), string(p)) {
+		return fmt.Errorf("invalid payment term: %s", p)
+	}
+	return nil
 }
 
 const (

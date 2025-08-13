@@ -446,7 +446,7 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 					Type:      billing.InvoiceLineTypeUsageBased,
 					Name:      "UBP - unit",
 				},
-				UsageBased: &billing.UsageBasedLine{
+				UsageBased: billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
 					Price: productcatalog.NewPriceFrom(
 						productcatalog.UnitPrice{
