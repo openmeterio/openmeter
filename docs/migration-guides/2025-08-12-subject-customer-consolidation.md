@@ -24,6 +24,10 @@ and linked to customers when needed.
 
 → Use customer entities instead of subjects.
 
+> [!NOTE]
+> Ensure your custom subject values do not collide with any existing `customer.key`
+> or `customer.id`. If a collision occurs, usage may be attributed to the wrong customer.
+
 #### Before
 
 Mandatory subject-customer mapping via `usageAttribution` property before the change.
