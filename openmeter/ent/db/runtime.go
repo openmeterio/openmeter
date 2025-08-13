@@ -930,7 +930,7 @@ func init() {
 	// entitlement.SubjectKeyValidator is a validator for the "subject_key" field. It is called by the builders before save.
 	entitlement.SubjectKeyValidator = entitlementDescSubjectKey.Validators[0].(func(string) error)
 	// entitlementDescAnnotations is the schema descriptor for annotations field.
-	entitlementDescAnnotations := entitlementFields[16].Descriptor()
+	entitlementDescAnnotations := entitlementFields[17].Descriptor()
 	entitlement.ValueScanner.Annotations = entitlementDescAnnotations.ValueScanner.(field.TypeValueScanner[models.Annotations])
 	// entitlementDescID is the schema descriptor for id field.
 	entitlementDescID := entitlementMixinFields0[0].Descriptor()
