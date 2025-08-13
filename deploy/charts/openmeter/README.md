@@ -98,6 +98,17 @@ config:
       debug: true
 ```
 
+To run billing advancement via billing worker, set the API to queued and scale the worker:
+
+```yaml
+config:
+  billing:
+    advancementStrategy: queued
+
+billingWorker:
+  replicaCount: 1
+```
+
 ## Values
 
 | Key | Type | Default | Description |
@@ -162,6 +173,7 @@ config:
 | postgresql.primary.initdb.scripts."setup.sql" | string | `"CREATE USER application WITH PASSWORD 'application';\nCREATE DATABASE application;\nGRANT ALL PRIVILEGES ON DATABASE application TO application;\nALTER DATABASE application OWNER TO application;\nCREATE USER svix WITH PASSWORD 'svix';\nCREATE DATABASE svix;\nGRANT ALL PRIVILEGES ON DATABASE svix TO svix;\nALTER DATABASE svix OWNER TO svix;\n"` |  |
 | api.replicaCount | int | `1` | Number of API replicas (pods) to launch. |
 | balanceWorker.replicaCount | int | `1` | Number of Balance Worker replicas (pods) to launch. |
+| billingWorker.replicaCount | int | `0` | Number of Billing Worker replicas (pods) to launch. |
 | notificationService.replicaCount | int | `1` | Number of Notification Service replicas (pods) to launch. |
 | sinkWorker.replicaCount | int | `1` | Number of Sink Worker replicas (pods) to launch. |
 | caRootCertificates | object | `{}` | List of CA Root certificates to inject into pods at runtime. See [values.yaml](values.yaml) |

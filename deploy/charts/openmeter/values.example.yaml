@@ -5,6 +5,8 @@ config:
     enabled: true
   entitlements:
     enabled: true
+  billing:
+    advancementStrategy: queued
   meters:
     # Sample meter to count API requests
     - slug: api_requests_total # Unique identifier for the meter
@@ -24,3 +26,6 @@ config:
       groupBy:
         model: $.model # AI model used: gpt4-turbo, etc.
         type: $.type # Prompt type: input, output, system
+
+billingWorker:
+  replicaCount: 1

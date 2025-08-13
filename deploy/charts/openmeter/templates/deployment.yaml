@@ -416,7 +416,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/entrypoint.sh", "openmeter-billing-worker"]
-          args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
+          args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml", "--billing-advancement-strategy=foreground"]
           ports:
             - name: telemetry-http
               containerPort: 10000
