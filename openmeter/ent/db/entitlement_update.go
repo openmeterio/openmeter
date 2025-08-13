@@ -387,10 +387,14 @@ func (_u *EntitlementUpdate) sqlSave(ctx context.Context) (_node int, err error)
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(entitlement.FieldMetadata, field.TypeJSON, value)
+		vv, err := entitlement.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(entitlement.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(entitlement.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(entitlement.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(entitlement.FieldUpdatedAt, field.TypeTime, value)
@@ -1051,10 +1055,14 @@ func (_u *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlement
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(entitlement.FieldMetadata, field.TypeJSON, value)
+		vv, err := entitlement.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(entitlement.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(entitlement.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(entitlement.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(entitlement.FieldUpdatedAt, field.TypeTime, value)

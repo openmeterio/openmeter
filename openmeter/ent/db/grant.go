@@ -84,7 +84,7 @@ func (*Grant) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case dbgrant.FieldMetadata, dbgrant.FieldExpiration:
+		case dbgrant.FieldExpiration:
 			values[i] = new([]byte)
 		case dbgrant.FieldAmount, dbgrant.FieldResetMaxRollover, dbgrant.FieldResetMinRollover:
 			values[i] = new(sql.NullFloat64)
@@ -94,6 +94,8 @@ func (*Grant) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case dbgrant.FieldCreatedAt, dbgrant.FieldUpdatedAt, dbgrant.FieldDeletedAt, dbgrant.FieldEffectiveAt, dbgrant.FieldExpiresAt, dbgrant.FieldVoidedAt, dbgrant.FieldRecurrenceAnchor:
 			values[i] = new(sql.NullTime)
+		case dbgrant.FieldMetadata:
+			values[i] = dbgrant.ValueScanner.Metadata.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -122,12 +124,10 @@ func (_m *Grant) assignValues(columns []string, values []any) error {
 				_m.Namespace = value.String
 			}
 		case dbgrant.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
+			if value, err := dbgrant.ValueScanner.Metadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Metadata = value
 			}
 		case dbgrant.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

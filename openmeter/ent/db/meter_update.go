@@ -203,10 +203,14 @@ func (_u *MeterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(dbmeter.FieldMetadata, field.TypeJSON, value)
+		vv, err := dbmeter.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(dbmeter.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(dbmeter.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbmeter.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbmeter.FieldUpdatedAt, field.TypeTime, value)
@@ -469,10 +473,14 @@ func (_u *MeterUpdateOne) sqlSave(ctx context.Context) (_node *Meter, err error)
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(dbmeter.FieldMetadata, field.TypeJSON, value)
+		vv, err := dbmeter.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(dbmeter.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(dbmeter.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbmeter.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbmeter.FieldUpdatedAt, field.TypeTime, value)

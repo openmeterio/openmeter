@@ -37,11 +37,33 @@ func AddonRateCardOrErr(p AddonRateCard, err error) AddonRateCard {
 // App is the predicate function for dbapp builders.
 type App func(*sql.Selector)
 
+// AppOrErr calls the predicate only if the error is not nit.
+func AppOrErr(p App, err error) App {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // AppCustomInvoicing is the predicate function for appcustominvoicing builders.
 type AppCustomInvoicing func(*sql.Selector)
 
 // AppCustomInvoicingCustomer is the predicate function for appcustominvoicingcustomer builders.
 type AppCustomInvoicingCustomer func(*sql.Selector)
+
+// AppCustomInvoicingCustomerOrErr calls the predicate only if the error is not nit.
+func AppCustomInvoicingCustomerOrErr(p AppCustomInvoicingCustomer, err error) AppCustomInvoicingCustomer {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // AppCustomer is the predicate function for appcustomer builders.
 type AppCustomer func(*sql.Selector)
@@ -63,6 +85,17 @@ type BillingCustomerOverride func(*sql.Selector)
 
 // BillingInvoice is the predicate function for billinginvoice builders.
 type BillingInvoice func(*sql.Selector)
+
+// BillingInvoiceOrErr calls the predicate only if the error is not nit.
+func BillingInvoiceOrErr(p BillingInvoice, err error) BillingInvoice {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // BillingInvoiceFlatFeeLineConfig is the predicate function for billinginvoiceflatfeelineconfig builders.
 type BillingInvoiceFlatFeeLineConfig func(*sql.Selector)
@@ -143,6 +176,17 @@ type BillingInvoiceValidationIssue func(*sql.Selector)
 // BillingProfile is the predicate function for billingprofile builders.
 type BillingProfile func(*sql.Selector)
 
+// BillingProfileOrErr calls the predicate only if the error is not nit.
+func BillingProfileOrErr(p BillingProfile, err error) BillingProfile {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // BillingSequenceNumbers is the predicate function for billingsequencenumbers builders.
 type BillingSequenceNumbers func(*sql.Selector)
 
@@ -151,6 +195,17 @@ type BillingWorkflowConfig func(*sql.Selector)
 
 // Customer is the predicate function for customer builders.
 type Customer func(*sql.Selector)
+
+// CustomerOrErr calls the predicate only if the error is not nit.
+func CustomerOrErr(p Customer, err error) Customer {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // CustomerSubjects is the predicate function for customersubjects builders.
 type CustomerSubjects func(*sql.Selector)
@@ -172,11 +227,44 @@ func EntitlementOrErr(p Entitlement, err error) Entitlement {
 // Feature is the predicate function for feature builders.
 type Feature func(*sql.Selector)
 
+// FeatureOrErr calls the predicate only if the error is not nit.
+func FeatureOrErr(p Feature, err error) Feature {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Grant is the predicate function for dbgrant builders.
 type Grant func(*sql.Selector)
 
+// GrantOrErr calls the predicate only if the error is not nit.
+func GrantOrErr(p Grant, err error) Grant {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Meter is the predicate function for dbmeter builders.
 type Meter func(*sql.Selector)
+
+// MeterOrErr calls the predicate only if the error is not nit.
+func MeterOrErr(p Meter, err error) Meter {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // NotificationChannel is the predicate function for notificationchannel builders.
 type NotificationChannel func(*sql.Selector)
@@ -240,8 +328,30 @@ func PlanOrErr(p Plan, err error) Plan {
 // PlanAddon is the predicate function for planaddon builders.
 type PlanAddon func(*sql.Selector)
 
+// PlanAddonOrErr calls the predicate only if the error is not nit.
+func PlanAddonOrErr(p PlanAddon, err error) PlanAddon {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // PlanPhase is the predicate function for planphase builders.
 type PlanPhase func(*sql.Selector)
+
+// PlanPhaseOrErr calls the predicate only if the error is not nit.
+func PlanPhaseOrErr(p PlanPhase, err error) PlanPhase {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // PlanRateCard is the predicate function for planratecard builders.
 type PlanRateCard func(*sql.Selector)
@@ -277,6 +387,17 @@ func SubscriptionOrErr(p Subscription, err error) Subscription {
 // SubscriptionAddon is the predicate function for subscriptionaddon builders.
 type SubscriptionAddon func(*sql.Selector)
 
+// SubscriptionAddonOrErr calls the predicate only if the error is not nit.
+func SubscriptionAddonOrErr(p SubscriptionAddon, err error) SubscriptionAddon {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // SubscriptionAddonQuantity is the predicate function for subscriptionaddonquantity builders.
 type SubscriptionAddonQuantity func(*sql.Selector)
 
@@ -296,6 +417,17 @@ func SubscriptionItemOrErr(p SubscriptionItem, err error) SubscriptionItem {
 
 // SubscriptionPhase is the predicate function for subscriptionphase builders.
 type SubscriptionPhase func(*sql.Selector)
+
+// SubscriptionPhaseOrErr calls the predicate only if the error is not nit.
+func SubscriptionPhaseOrErr(p SubscriptionPhase, err error) SubscriptionPhase {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // UsageReset is the predicate function for usagereset builders.
 type UsageReset func(*sql.Selector)

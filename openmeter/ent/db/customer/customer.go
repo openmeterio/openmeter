@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 )
 
 const (
@@ -147,6 +148,11 @@ var (
 	CurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all Customer fields.
+	ValueScanner struct {
+		Metadata    field.TypeValueScanner[map[string]string]
+		Annotations field.TypeValueScanner[map[string]interface{}]
+	}
 )
 
 // OrderOption defines the ordering options for the Customer queries.
@@ -160,6 +166,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByNamespace orders the results by the namespace field.
 func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
+}
+
+// ByMetadata orders the results by the metadata field.
+func ByMetadata(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMetadata, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.
@@ -220,6 +231,11 @@ func ByBillingAddressLine2(opts ...sql.OrderTermOption) OrderOption {
 // ByBillingAddressPhoneNumber orders the results by the billing_address_phone_number field.
 func ByBillingAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingAddressPhoneNumber, opts...).ToFunc()
+}
+
+// ByAnnotations orders the results by the annotations field.
+func ByAnnotations(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAnnotations, opts...).ToFunc()
 }
 
 // ByKey orders the results by the key field.

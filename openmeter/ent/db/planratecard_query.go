@@ -637,41 +637,41 @@ type PlanRateCardGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (prcgb *PlanRateCardGroupBy) Aggregate(fns ...AggregateFunc) *PlanRateCardGroupBy {
-	prcgb.fns = append(prcgb.fns, fns...)
-	return prcgb
+func (_g *PlanRateCardGroupBy) Aggregate(fns ...AggregateFunc) *PlanRateCardGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (prcgb *PlanRateCardGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, prcgb.build.ctx, ent.OpQueryGroupBy)
-	if err := prcgb.build.prepareQuery(ctx); err != nil {
+func (_g *PlanRateCardGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*PlanRateCardQuery, *PlanRateCardGroupBy](ctx, prcgb.build, prcgb, prcgb.build.inters, v)
+	return scanWithInterceptors[*PlanRateCardQuery, *PlanRateCardGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (prcgb *PlanRateCardGroupBy) sqlScan(ctx context.Context, root *PlanRateCardQuery, v any) error {
+func (_g *PlanRateCardGroupBy) sqlScan(ctx context.Context, root *PlanRateCardQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(prcgb.fns))
-	for _, fn := range prcgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*prcgb.flds)+len(prcgb.fns))
-		for _, f := range *prcgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*prcgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := prcgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -685,27 +685,27 @@ type PlanRateCardSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (prcs *PlanRateCardSelect) Aggregate(fns ...AggregateFunc) *PlanRateCardSelect {
-	prcs.fns = append(prcs.fns, fns...)
-	return prcs
+func (_s *PlanRateCardSelect) Aggregate(fns ...AggregateFunc) *PlanRateCardSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (prcs *PlanRateCardSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, prcs.ctx, ent.OpQuerySelect)
-	if err := prcs.prepareQuery(ctx); err != nil {
+func (_s *PlanRateCardSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*PlanRateCardQuery, *PlanRateCardSelect](ctx, prcs.PlanRateCardQuery, prcs, prcs.inters, v)
+	return scanWithInterceptors[*PlanRateCardQuery, *PlanRateCardSelect](ctx, _s.PlanRateCardQuery, _s, _s.inters, v)
 }
 
-func (prcs *PlanRateCardSelect) sqlScan(ctx context.Context, root *PlanRateCardQuery, v any) error {
+func (_s *PlanRateCardSelect) sqlScan(ctx context.Context, root *PlanRateCardQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(prcs.fns))
-	for _, fn := range prcs.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*prcs.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -713,7 +713,7 @@ func (prcs *PlanRateCardSelect) sqlScan(ctx context.Context, root *PlanRateCardQ
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := prcs.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

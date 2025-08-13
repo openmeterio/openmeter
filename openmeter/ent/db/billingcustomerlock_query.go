@@ -480,41 +480,41 @@ type BillingCustomerLockGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (bclgb *BillingCustomerLockGroupBy) Aggregate(fns ...AggregateFunc) *BillingCustomerLockGroupBy {
-	bclgb.fns = append(bclgb.fns, fns...)
-	return bclgb
+func (_g *BillingCustomerLockGroupBy) Aggregate(fns ...AggregateFunc) *BillingCustomerLockGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bclgb *BillingCustomerLockGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bclgb.build.ctx, ent.OpQueryGroupBy)
-	if err := bclgb.build.prepareQuery(ctx); err != nil {
+func (_g *BillingCustomerLockGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingCustomerLockQuery, *BillingCustomerLockGroupBy](ctx, bclgb.build, bclgb, bclgb.build.inters, v)
+	return scanWithInterceptors[*BillingCustomerLockQuery, *BillingCustomerLockGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (bclgb *BillingCustomerLockGroupBy) sqlScan(ctx context.Context, root *BillingCustomerLockQuery, v any) error {
+func (_g *BillingCustomerLockGroupBy) sqlScan(ctx context.Context, root *BillingCustomerLockQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(bclgb.fns))
-	for _, fn := range bclgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*bclgb.flds)+len(bclgb.fns))
-		for _, f := range *bclgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*bclgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bclgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -528,27 +528,27 @@ type BillingCustomerLockSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (bcls *BillingCustomerLockSelect) Aggregate(fns ...AggregateFunc) *BillingCustomerLockSelect {
-	bcls.fns = append(bcls.fns, fns...)
-	return bcls
+func (_s *BillingCustomerLockSelect) Aggregate(fns ...AggregateFunc) *BillingCustomerLockSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bcls *BillingCustomerLockSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bcls.ctx, ent.OpQuerySelect)
-	if err := bcls.prepareQuery(ctx); err != nil {
+func (_s *BillingCustomerLockSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingCustomerLockQuery, *BillingCustomerLockSelect](ctx, bcls.BillingCustomerLockQuery, bcls, bcls.inters, v)
+	return scanWithInterceptors[*BillingCustomerLockQuery, *BillingCustomerLockSelect](ctx, _s.BillingCustomerLockQuery, _s, _s.inters, v)
 }
 
-func (bcls *BillingCustomerLockSelect) sqlScan(ctx context.Context, root *BillingCustomerLockQuery, v any) error {
+func (_s *BillingCustomerLockSelect) sqlScan(ctx context.Context, root *BillingCustomerLockQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(bcls.fns))
-	for _, fn := range bcls.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*bcls.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -556,7 +556,7 @@ func (bcls *BillingCustomerLockSelect) sqlScan(ctx context.Context, root *Billin
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bcls.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

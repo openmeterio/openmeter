@@ -262,6 +262,8 @@ var (
 	DefaultID func() string
 	// ValueScanner of all BillingInvoiceLine fields.
 	ValueScanner struct {
+		Annotations       field.TypeValueScanner[map[string]interface{}]
+		Metadata          field.TypeValueScanner[map[string]string]
 		RatecardDiscounts field.TypeValueScanner[*billing.Discounts]
 	}
 )
@@ -304,9 +306,19 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
+// ByAnnotations orders the results by the annotations field.
+func ByAnnotations(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAnnotations, opts...).ToFunc()
+}
+
 // ByNamespace orders the results by the namespace field.
 func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
+}
+
+// ByMetadata orders the results by the metadata field.
+func ByMetadata(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMetadata, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

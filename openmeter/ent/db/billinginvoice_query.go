@@ -1086,41 +1086,41 @@ type BillingInvoiceGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (bigb *BillingInvoiceGroupBy) Aggregate(fns ...AggregateFunc) *BillingInvoiceGroupBy {
-	bigb.fns = append(bigb.fns, fns...)
-	return bigb
+func (_g *BillingInvoiceGroupBy) Aggregate(fns ...AggregateFunc) *BillingInvoiceGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bigb *BillingInvoiceGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bigb.build.ctx, ent.OpQueryGroupBy)
-	if err := bigb.build.prepareQuery(ctx); err != nil {
+func (_g *BillingInvoiceGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingInvoiceQuery, *BillingInvoiceGroupBy](ctx, bigb.build, bigb, bigb.build.inters, v)
+	return scanWithInterceptors[*BillingInvoiceQuery, *BillingInvoiceGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (bigb *BillingInvoiceGroupBy) sqlScan(ctx context.Context, root *BillingInvoiceQuery, v any) error {
+func (_g *BillingInvoiceGroupBy) sqlScan(ctx context.Context, root *BillingInvoiceQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(bigb.fns))
-	for _, fn := range bigb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*bigb.flds)+len(bigb.fns))
-		for _, f := range *bigb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*bigb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bigb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -1134,27 +1134,27 @@ type BillingInvoiceSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (bis *BillingInvoiceSelect) Aggregate(fns ...AggregateFunc) *BillingInvoiceSelect {
-	bis.fns = append(bis.fns, fns...)
-	return bis
+func (_s *BillingInvoiceSelect) Aggregate(fns ...AggregateFunc) *BillingInvoiceSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bis *BillingInvoiceSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bis.ctx, ent.OpQuerySelect)
-	if err := bis.prepareQuery(ctx); err != nil {
+func (_s *BillingInvoiceSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingInvoiceQuery, *BillingInvoiceSelect](ctx, bis.BillingInvoiceQuery, bis, bis.inters, v)
+	return scanWithInterceptors[*BillingInvoiceQuery, *BillingInvoiceSelect](ctx, _s.BillingInvoiceQuery, _s, _s.inters, v)
 }
 
-func (bis *BillingInvoiceSelect) sqlScan(ctx context.Context, root *BillingInvoiceQuery, v any) error {
+func (_s *BillingInvoiceSelect) sqlScan(ctx context.Context, root *BillingInvoiceQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(bis.fns))
-	for _, fn := range bis.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*bis.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -1162,7 +1162,7 @@ func (bis *BillingInvoiceSelect) sqlScan(ctx context.Context, root *BillingInvoi
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bis.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

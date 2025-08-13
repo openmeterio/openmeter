@@ -157,6 +157,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all Subscription fields.
 	ValueScanner struct {
+		Metadata        field.TypeValueScanner[map[string]string]
 		ProRatingConfig field.TypeValueScanner[productcatalog.ProRatingConfig]
 	}
 )
@@ -187,6 +188,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByMetadata orders the results by the metadata field.
+func ByMetadata(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMetadata, opts...).ToFunc()
 }
 
 // ByActiveFrom orders the results by the active_from field.

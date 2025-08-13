@@ -273,7 +273,10 @@ func (_c *FeatureCreate) sqlSave(ctx context.Context) (*Feature, error) {
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -292,7 +295,7 @@ func (_c *FeatureCreate) sqlSave(ctx context.Context) (*Feature, error) {
 	return _node, nil
 }
 
-func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
+func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &Feature{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(feature.Table, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
@@ -315,7 +318,11 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 		_node.DeletedAt = &value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
+		vv, err := feature.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(feature.FieldMetadata, field.TypeString, vv)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.Namespace(); ok {
@@ -390,7 +397,7 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -778,7 +785,10 @@ func (_c *FeatureCreateBulk) Save(ctx context.Context) ([]*Feature, error) {
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {

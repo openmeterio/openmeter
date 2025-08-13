@@ -299,7 +299,10 @@ func (_c *SubscriptionPhaseCreate) sqlSave(ctx context.Context) (*SubscriptionPh
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -318,7 +321,7 @@ func (_c *SubscriptionPhaseCreate) sqlSave(ctx context.Context) (*SubscriptionPh
 	return _node, nil
 }
 
-func (_c *SubscriptionPhaseCreate) createSpec() (*SubscriptionPhase, *sqlgraph.CreateSpec) {
+func (_c *SubscriptionPhaseCreate) createSpec() (*SubscriptionPhase, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &SubscriptionPhase{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(subscriptionphase.Table, sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString))
@@ -345,7 +348,11 @@ func (_c *SubscriptionPhaseCreate) createSpec() (*SubscriptionPhase, *sqlgraph.C
 		_node.DeletedAt = &value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(subscriptionphase.FieldMetadata, field.TypeJSON, value)
+		vv, err := subscriptionphase.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(subscriptionphase.FieldMetadata, field.TypeString, vv)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.Key(); ok {
@@ -433,7 +440,7 @@ func (_c *SubscriptionPhaseCreate) createSpec() (*SubscriptionPhase, *sqlgraph.C
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -837,7 +844,10 @@ func (_c *SubscriptionPhaseCreateBulk) Save(ctx context.Context) ([]*Subscriptio
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {

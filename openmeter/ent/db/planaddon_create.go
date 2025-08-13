@@ -238,7 +238,10 @@ func (_c *PlanAddonCreate) sqlSave(ctx context.Context) (*PlanAddon, error) {
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -257,7 +260,7 @@ func (_c *PlanAddonCreate) sqlSave(ctx context.Context) (*PlanAddon, error) {
 	return _node, nil
 }
 
-func (_c *PlanAddonCreate) createSpec() (*PlanAddon, *sqlgraph.CreateSpec) {
+func (_c *PlanAddonCreate) createSpec() (*PlanAddon, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &PlanAddon{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(planaddon.Table, sqlgraph.NewFieldSpec(planaddon.FieldID, field.TypeString))
@@ -272,11 +275,19 @@ func (_c *PlanAddonCreate) createSpec() (*PlanAddon, *sqlgraph.CreateSpec) {
 		_node.Namespace = value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(planaddon.FieldMetadata, field.TypeJSON, value)
+		vv, err := planaddon.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(planaddon.FieldMetadata, field.TypeString, vv)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.Annotations(); ok {
-		_spec.SetField(planaddon.FieldAnnotations, field.TypeJSON, value)
+		vv, err := planaddon.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(planaddon.FieldAnnotations, field.TypeString, vv)
 		_node.Annotations = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
@@ -333,7 +344,7 @@ func (_c *PlanAddonCreate) createSpec() (*PlanAddon, *sqlgraph.CreateSpec) {
 		_node.AddonID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -734,7 +745,10 @@ func (_c *PlanAddonCreateBulk) Save(ctx context.Context) ([]*PlanAddon, error) {
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {

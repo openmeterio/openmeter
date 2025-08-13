@@ -296,10 +296,14 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		_spec.ClearField(feature.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
+		vv, err := feature.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(feature.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(feature.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(feature.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(feature.FieldName, field.TypeString, value)
@@ -769,10 +773,14 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 		_spec.ClearField(feature.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
+		vv, err := feature.ValueScanner.Metadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(feature.FieldMetadata, field.TypeString, vv)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(feature.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(feature.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(feature.FieldName, field.TypeString, value)
