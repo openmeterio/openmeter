@@ -10,10 +10,18 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
+	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	featureadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/subject"
+	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
+	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -23,8 +31,12 @@ import (
 var m sync.Mutex
 
 type deps struct {
-	entRepo     entitlement.EntitlementRepo
-	featureRepo feature.FeatureRepo
+	entRepo      entitlement.EntitlementRepo
+	featureRepo  feature.FeatureRepo
+	subjectRepo  subject.Service
+	customerRepo interface {
+		CreateCustomer(ctx context.Context, input customer.CreateCustomerInput) (*customer.Customer, error)
+	}
 }
 
 func setup(t *testing.T) (deps deps, cleanup func()) {
@@ -48,6 +60,25 @@ func setup(t *testing.T) (deps deps, cleanup func()) {
 
 	deps.entRepo = adapter.NewPostgresEntitlementRepo(dbClient)
 	deps.featureRepo = featureadapter.NewPostgresFeatureRepo(dbClient, logger)
+
+	// customer adapter for creating customers in tests
+	custAdapter, err := customeradapter.New(customeradapter.Config{Client: dbClient, Logger: logger})
+	if err != nil {
+		t.Fatalf("failed to create customer adapter: %v", err)
+	}
+	deps.customerRepo = custAdapter
+
+	// Create subject adapter and service
+	subjectAdapter, err := subjectadapter.New(dbClient)
+	if err != nil {
+		t.Fatalf("failed to create subject adapter: %v", err)
+	}
+
+	subjectService, err := subjectservice.New(subjectAdapter)
+	if err != nil {
+		t.Fatalf("failed to create subject service: %v", err)
+	}
+	deps.subjectRepo = subjectService
 
 	m.Lock()
 	defer m.Unlock()
@@ -76,7 +107,26 @@ func TestUpsertEntitlementCurrentPeriods(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// First, let's create 3 entitlements
+		// First, let's create the subjects
+		_, err = repo.subjectRepo.Create(ctx, subject.CreateInput{
+			Namespace: ns,
+			Key:       "subject1",
+		})
+		require.NoError(t, err)
+
+		_, err = repo.subjectRepo.Create(ctx, subject.CreateInput{
+			Namespace: ns,
+			Key:       "subject2",
+		})
+		require.NoError(t, err)
+
+		_, err = repo.subjectRepo.Create(ctx, subject.CreateInput{
+			Namespace: ns,
+			Key:       "subject3",
+		})
+		require.NoError(t, err)
+
+		// Then, let's create 3 entitlements
 		ent1, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
 			Namespace:        ns,
 			FeatureID:        feature.ID,
@@ -243,7 +293,20 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 		clock.SetTime(now)
 		defer clock.ResetTime()
 
-		// Let's create two entitlements, one with expired usage period and one with no expired usage period
+		// First, create the subjects
+		_, err = repo.subjectRepo.Create(ctx, subject.CreateInput{
+			Namespace: ns,
+			Key:       "subject1",
+		})
+		require.NoError(t, err)
+
+		_, err = repo.subjectRepo.Create(ctx, subject.CreateInput{
+			Namespace: ns,
+			Key:       "subject2",
+		})
+		require.NoError(t, err)
+
+		// Then create two entitlements, one with expired usage period and one with no expired usage period
 		ent1, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
 			Namespace:        ns,
 			FeatureID:        feature.ID,
@@ -315,13 +378,22 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 
 		var ents []entitlement.Entitlement
 
-		// Let's create 10 entitlements
+		// Let's create 10 entitlements (with their subjects first)
 		for i := 0; i < 10; i++ {
+			subjectKey := fmt.Sprintf("subject%d", i)
+
+			// Create the subject first
+			_, err := repo.subjectRepo.Create(ctx, subject.CreateInput{
+				Namespace: ns,
+				Key:       subjectKey,
+			})
+			require.NoError(t, err)
+
 			ent, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
 				Namespace:        ns,
 				FeatureID:        feature.ID,
 				FeatureKey:       featureKey,
-				SubjectKey:       fmt.Sprintf("subject%d", i),
+				SubjectKey:       subjectKey,
 				EntitlementType:  entitlement.EntitlementTypeMetered,
 				MeasureUsageFrom: lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
 				UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
@@ -366,4 +438,112 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 		require.Equal(t, ents[8].ID, next5Ents[3].ID)
 		require.Equal(t, ents[9].ID, next5Ents[4].ID)
 	})
+}
+
+func TestEntitlementLoadsSubjectAndCustomerAndPreservesAcrossTypedMapping(t *testing.T) {
+	ctx := context.Background()
+	ns := "ns-load"
+	featureKey := "feat-load"
+
+	repo, cleanup := setup(t)
+	defer cleanup()
+
+	// Create feature
+	feat, err := repo.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: ns,
+		Key:       featureKey,
+		Name:      "Feature Load",
+	})
+	require.NoError(t, err)
+
+	// Create subject
+	subj, err := repo.subjectRepo.Create(ctx, subject.CreateInput{Namespace: ns, Key: "subj-load"})
+	require.NoError(t, err)
+
+	// Create customer with usage attribution to the subject
+	cust, err := repo.customerRepo.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: ns,
+		CustomerMutate: customer.CustomerMutate{
+			Key:              lo.ToPtr("cust-load"),
+			Name:             "Customer Load",
+			UsageAttribution: customer.CustomerUsageAttribution{SubjectKeys: []string{subj.Key}},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, cust)
+
+	// Create 3 entitlements of different types
+	// metered
+	entMetered, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+		Namespace:        ns,
+		FeatureID:        feat.ID,
+		FeatureKey:       featureKey,
+		SubjectKey:       subj.Key,
+		EntitlementType:  entitlement.EntitlementTypeMetered,
+		MeasureUsageFrom: lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
+		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodMonth,
+			Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		})),
+	})
+	require.NoError(t, err)
+
+	// static
+	entStatic, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+		Namespace:       ns,
+		FeatureID:       feat.ID,
+		FeatureKey:      featureKey,
+		SubjectKey:      subj.Key,
+		EntitlementType: entitlement.EntitlementTypeStatic,
+		Config:          []byte(`{"on":true}`),
+	})
+	require.NoError(t, err)
+
+	// boolean
+	entBoolean, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+		Namespace:       ns,
+		FeatureID:       feat.ID,
+		FeatureKey:      featureKey,
+		SubjectKey:      subj.Key,
+		EntitlementType: entitlement.EntitlementTypeBoolean,
+	})
+	require.NoError(t, err)
+
+	// Fetch individually and assert Subject and Customer are populated
+	for _, id := range []string{entMetered.ID, entStatic.ID, entBoolean.ID} {
+		got, err := repo.entRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: ns, ID: id})
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		require.Equal(t, subj.Key, got.SubjectKey)
+		require.Equal(t, ns, got.Subject.Namespace)
+		require.Equal(t, subj.Key, got.Subject.Key)
+		require.NotNil(t, got.Customer)
+		require.Equal(t, ns, got.Customer.Namespace)
+		require.Contains(t, got.Customer.UsageAttribution.SubjectKeys, subj.Key)
+
+		// Verify preservation through typed mapping
+		switch got.EntitlementType {
+		case entitlement.EntitlementTypeMetered:
+			typed, err := meteredentitlement.ParseFromGenericEntitlement(got)
+			require.NoError(t, err)
+			require.Equal(t, subj.Key, typed.GenericProperties.SubjectKey)
+			require.Equal(t, ns, typed.GenericProperties.Subject.Namespace)
+			require.NotNil(t, typed.GenericProperties.Customer)
+			require.Contains(t, typed.GenericProperties.Customer.UsageAttribution.SubjectKeys, subj.Key)
+		case entitlement.EntitlementTypeStatic:
+			typed, err := staticentitlement.ParseFromGenericEntitlement(got)
+			require.NoError(t, err)
+			require.Equal(t, subj.Key, typed.GenericProperties.SubjectKey)
+			require.Equal(t, ns, typed.GenericProperties.Subject.Namespace)
+			require.NotNil(t, typed.GenericProperties.Customer)
+			require.Contains(t, typed.GenericProperties.Customer.UsageAttribution.SubjectKeys, subj.Key)
+		case entitlement.EntitlementTypeBoolean:
+			typed, err := booleanentitlement.ParseFromGenericEntitlement(got)
+			require.NoError(t, err)
+			require.Equal(t, subj.Key, typed.GenericProperties.SubjectKey)
+			require.Equal(t, ns, typed.GenericProperties.Subject.Namespace)
+			require.NotNil(t, typed.GenericProperties.Customer)
+			require.Contains(t, typed.GenericProperties.Customer.UsageAttribution.SubjectKeys, subj.Key)
+		}
+	}
 }

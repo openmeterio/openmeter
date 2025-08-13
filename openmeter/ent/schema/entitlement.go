@@ -45,6 +45,9 @@ func (Entitlement) Fields() []ent.Field {
 			return nil
 		}).Immutable(),
 		field.String("subject_key").NotEmpty().Immutable(),
+		field.String("subject_id").Immutable().SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}),
 		field.Time("measure_usage_from").Optional().Nillable().Immutable(),
 		field.Float("issue_after_reset").Optional().Nillable().Immutable(),
 		field.Uint8("issue_after_reset_priority").Optional().Nillable().Immutable(),
@@ -96,6 +99,12 @@ func (Entitlement) Edges() []ent.Edge {
 		edge.From("feature", Feature.Type).
 			Ref("entitlement").
 			Field("feature_id").
+			Required().
+			Unique().
+			Immutable(),
+		edge.From("subject", Subject.Type).
+			Ref("entitlements").
+			Field("subject_id").
 			Required().
 			Unique().
 			Immutable(),

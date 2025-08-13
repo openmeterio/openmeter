@@ -223,6 +223,9 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		inp := getEntitlement(t, feature)
 		inp.MeasureUsageFrom = &startTime
 
+		// ensure subject exists for SubjectKey used in entitlement
+		_, _ = deps.dbClient.Subject.Create().SetNamespace(namespace).SetKey("subject1").Save(ctx)
+
 		inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 			Anchor:   inp.UsagePeriod.GetValue().Anchor,
 			Interval: timeutil.RecurrencePeriodMonth,

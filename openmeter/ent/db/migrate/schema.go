@@ -1420,6 +1420,7 @@ var (
 		{Name: "current_usage_period_end", Type: field.TypeTime, Nullable: true},
 		{Name: "annotations", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subject_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// EntitlementsTable holds the schema information for the "entitlements" table.
 	EntitlementsTable = &schema.Table{
@@ -1431,6 +1432,12 @@ var (
 				Symbol:     "entitlements_features_entitlement",
 				Columns:    []*schema.Column{EntitlementsColumns[22]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "entitlements_subjects_entitlements",
+				Columns:    []*schema.Column{EntitlementsColumns[23]},
+				RefColumns: []*schema.Column{SubjectsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
@@ -2588,6 +2595,7 @@ func init() {
 	BillingProfilesTable.ForeignKeys[3].RefTable = BillingWorkflowConfigsTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
+	EntitlementsTable.ForeignKeys[1].RefTable = SubjectsTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable
