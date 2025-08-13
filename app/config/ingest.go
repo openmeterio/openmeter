@@ -61,6 +61,7 @@ func (c KafkaIngestConfiguration) Validate() error {
 type KafkaConfiguration struct {
 	Broker           string
 	SecurityProtocol string
+	TLSInsecure      bool
 	SaslMechanisms   string
 	SaslUsername     string
 	SaslPassword     string
