@@ -113,6 +113,10 @@
 
                 benthos
 
+                # We should use a custom light-weight derivation, see this thread https://discourse.nixos.org/t/installing-postgresql-client/948/15
+                # Multi-platform support makes this a bit more difficult
+                postgresql
+
                 # node
                 nodePackages.pnpm
                 corepack031
