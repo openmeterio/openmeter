@@ -31,8 +31,29 @@ type Subject struct {
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the SubjectQuery when eager-loading is set.
+	Edges        SubjectEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// SubjectEdges holds the relations/edges for other nodes in the graph.
+type SubjectEdges struct {
+	// Entitlements holds the value of the entitlements edge.
+	Entitlements []*Entitlement `json:"entitlements,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// EntitlementsOrErr returns the Entitlements value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubjectEdges) EntitlementsOrErr() ([]*Entitlement, error) {
+	if e.loadedTypes[0] {
+		return e.Entitlements, nil
+	}
+	return nil, &NotLoadedError{edge: "entitlements"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -124,6 +145,11 @@ func (_m *Subject) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Subject) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryEntitlements queries the "entitlements" edge of the Subject entity.
+func (_m *Subject) QueryEntitlements() *EntitlementQuery {
+	return NewSubjectClient(_m.config).QueryEntitlements(_m)
 }
 
 // Update returns a builder for updating this Subject.

@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionaddonrepo "github.com/openmeterio/openmeter/openmeter/subscription/addon/repo"
@@ -43,6 +44,7 @@ type SubscriptionDependencies struct {
 	ItemRepo                 subscription.SubscriptionItemRepository
 	CustomerAdapter          *testCustomerRepo
 	CustomerService          customer.Service
+	SubjectService           subject.Service
 	FeatureConnector         *testFeatureConnector
 	MeterService             meter.Service
 	MockStreamingConnector   *streamingtestutils.MockStreamingConnector
@@ -112,6 +114,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 
 	customerAdapter := NewCustomerAdapter(t, dbDeps)
 	customer := NewCustomerService(t, dbDeps)
+	subjectService := NewSubjectService(t, dbDeps)
 
 	planRepo, err := planrepo.New(planrepo.Config{
 		Client: dbDeps.DBClient,
@@ -198,6 +201,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		WorkflowService:          workflowSvc,
 		CustomerAdapter:          customerAdapter,
 		CustomerService:          customer,
+		SubjectService:           subjectService,
 		FeatureConnector:         NewTestFeatureConnector(entitlementRegistry.Feature),
 		EntitlementAdapter:       entitlementAdapter,
 		DBDeps:                   dbDeps,
@@ -209,5 +213,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		AddonService:             NewTestAddonService(addonService),
 		PlanAddonService:         planAddonService,
 		MeterService:             meterAdapter,
+		MockStreamingConnector:   mockStreaming,
 	}
 }

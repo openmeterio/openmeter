@@ -9,6 +9,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	"github.com/openmeterio/openmeter/openmeter/subject"
+	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
+	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -28,9 +31,28 @@ func NewCustomerAdapter(t *testing.T, dbDeps *DBDeps) *testCustomerRepo {
 		t.Fatalf("failed to create customer repo: %v", err)
 	}
 
+	subjectService := NewSubjectService(t, dbDeps)
+
 	return &testCustomerRepo{
-		repo,
+		Adapter:        repo,
+		subjectService: subjectService,
 	}
+}
+
+func NewSubjectService(t *testing.T, dbDeps *DBDeps) subject.Service {
+	t.Helper()
+
+	subjectAdapter, err := subjectadapter.New(dbDeps.DBClient)
+	if err != nil {
+		t.Fatalf("failed to create subject adapter: %v", err)
+	}
+
+	subjectService, err := subjectservice.New(subjectAdapter)
+	if err != nil {
+		t.Fatalf("failed to create subject service: %v", err)
+	}
+
+	return subjectService
 }
 
 func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
@@ -51,10 +73,22 @@ func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 
 type testCustomerRepo struct {
 	customer.Adapter
+	subjectService subject.Service
 }
 
 func (a *testCustomerRepo) CreateExampleCustomer(t *testing.T) *customer.Customer {
 	t.Helper()
+
+	// Create the subjects first
+	for _, subjectKey := range ExampleCreateCustomerInput.UsageAttribution.SubjectKeys {
+		_, err := a.subjectService.Create(context.Background(), subject.CreateInput{
+			Namespace: ExampleCreateCustomerInput.Namespace,
+			Key:       subjectKey,
+		})
+		if err != nil {
+			t.Fatalf("failed to create subject %s: %v", subjectKey, err)
+		}
+	}
 
 	c, err := a.CreateCustomer(context.Background(), ExampleCreateCustomerInput)
 	if err != nil {
