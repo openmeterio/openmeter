@@ -1,10 +1,5 @@
 # Subject-Customer Consolidation
 
-From Version: `TODO`
-To Version: `TODO`
-
-## Summary
-
 OpenMeter has always separated usage owners (subjects) from billing
 entities (customers). This design stays, but now you can assign multiple
 subjects to a customer.
@@ -31,7 +26,7 @@ and linked to customers when needed.
 
 #### Before
 
-Mandatory subject-cusomer mapping via `usageAttribution` property before the change.
+Mandatory subject-customer mapping via `usageAttribution` property before the change.
 
 ```ts
 const customer = await openmeter.customers.create({
@@ -75,17 +70,13 @@ after the migration period.
 
 → Use customer APIs instead: entitlements and notification
 
-#### Before
-
-Subject-level entitlements before the change:
+#### Before (subject-level)
 
 ```ts
 const entitlement = await openmeter.subjects.createEntitlement('my-identifier', { … });
 ```
 
-#### After
-
-Customer-level entitlements before the change:
+#### After (customer-level)
 
 ```ts
 const entitlement = await openmeter.customers.createEntitlement('my-identifier', { … });
@@ -118,10 +109,22 @@ const customer = await openmeter.customers.create({
 
 ## 🗓 Deprecation Timeline
 
-| Date         | Change                                                         |
-|--------------|----------------------------------------------------------------|
-| Aug 11, 2025 | Subject APIs marked as deprecated, functionality unchanged     |
-| Nov 01, 2025 | Subject APIs removed entirely                                  |
+| Date               | Change                                                         |
+|--------------------|----------------------------------------------------------------|
+| September 01, 2025 | Subject APIs marked as deprecated, functionality unchanged     |
+| November 01, 2025  | Subject APIs removed entirely                                  |
+
+## Migration Guide
+
+Who should act? Anyone calling /subjects APIs or relying on subject-level entitlements/notifications.
+
+- **1. Switch to customer APIs**
+  - Find all calls to `/api/v*/subjects*.`
+  - Entitlements → Use customer APIs
+  - Notifications → Use customer field in events
+- **2. Decide your attribution strategy**
+  - Easiest: Start sending `subject = customer.key` (`or customer.id`) in new events.
+  - Custom subjects: Keep your own subject strings and add them to `customer.usageAttribution.subjects`.
 
 ## Frequently Asked Questions
 
