@@ -29,7 +29,7 @@ func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
 	var annotations *models.Annotations
 
 	if len(e.Annotations) > 0 {
-		annotations = lo.ToPtr(e.Annotations)
+		annotations = lo.ToPtr((models.Annotations)(e.Annotations))
 	}
 
 	result := &customer.Customer{
