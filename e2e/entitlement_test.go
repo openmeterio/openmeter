@@ -87,6 +87,60 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 		entitlementId = metered.Id
 	})
 
+	t.Run("Create entitlement via Customer V2 API", func(t *testing.T) {
+		// Ensure subject exists and matches a customer mapping (use same subject)
+		{
+			resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{api.SubjectUpsert{Key: subject}})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+		}
+
+		// Create a feature for V2 test
+		var v2FeatureId string
+		{
+			randKey := fmt.Sprintf("entitlement_v2_test_feature_%d", time.Now().Unix())
+			resp, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
+				Name:      "Entitlement V2 Test Feature",
+				MeterSlug: convert.ToPointer(meterSlug),
+				Key:       randKey,
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+			v2FeatureId = resp.JSON201.Id
+		}
+
+		// Create entitlement via customer V2 endpoint
+		{
+			apiMONTH := &api.RecurringPeriodInterval{}
+			require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+
+			meteredEntitlement := api.EntitlementMeteredCreateInputs{
+				Type:      "metered",
+				FeatureId: &v2FeatureId,
+				UsagePeriod: api.RecurringPeriodCreateInput{
+					Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					Interval: *apiMONTH,
+				},
+			}
+
+			// Build union body for V2
+			var createBody api.CreateCustomerEntitlementV2JSONRequestBody
+			require.NoError(t, createBody.FromEntitlementMeteredCreateInputs(meteredEntitlement))
+
+			// Use customerIdOrKey that maps 1:1 to subject
+			res, err := client.CreateCustomerEntitlementV2WithResponse(ctx, subject, createBody)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, res.StatusCode(), "Invalid status code [response_body=%s]", string(res.Body))
+
+			// Validate V2 union response minimally
+			v2, err := res.JSON201.AsEntitlementMeteredV2()
+			require.NoError(t, err)
+			require.Equal(t, v2FeatureId, v2.FeatureId)
+			// CustomerKey may be nil if we resolved by customerId only; assert customerId presence
+			require.Equal(t, subject, v2.CustomerId)
+		}
+	})
+
 	grantAmount := 100.0
 	t.Run("Create Grant", func(t *testing.T) {
 		effectiveAt := time.Now().Truncate(time.Minute)

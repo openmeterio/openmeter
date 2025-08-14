@@ -87,7 +87,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createEntitlement"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -156,7 +156,7 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("overrideEntitlement"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -203,7 +203,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementValue"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -253,7 +253,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementsOfSubject"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -365,7 +365,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listEntitlements"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -407,7 +407,7 @@ func (h *entitlementHandler) GetEntitlement() GetEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlement"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -449,7 +449,7 @@ func (h *entitlementHandler) GetEntitlementById() GetEntitlementByIdHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlement"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -500,7 +500,7 @@ func (h *entitlementHandler) DeleteEntitlement() DeleteEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deleteEntitlement"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
