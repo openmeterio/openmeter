@@ -8,6 +8,28 @@ import (
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 )
 
+// ------------------------------------------------------------
+// Entitlement APIs (V1)
+// ------------------------------------------------------------
+
+// List entitlements
+// (GET /api/v1/entitlements)
+func (a *Router) ListEntitlements(w http.ResponseWriter, r *http.Request, params api.ListEntitlementsParams) {
+	a.entitlementHandler.ListEntitlements().With(params).ServeHTTP(w, r)
+}
+
+// Get an entitlement
+// (GET /api/v1/entitlements/{entitlementId})
+func (a *Router) GetEntitlementById(w http.ResponseWriter, r *http.Request, entitlementId string) {
+	a.entitlementHandler.GetEntitlementById().With(entitlementdriver.GetEntitlementByIdHandlerParams{
+		EntitlementId: entitlementId,
+	}).ServeHTTP(w, r)
+}
+
+// ------------------------------------------------------------
+// Subject Entitlement APIs (V1)
+// ------------------------------------------------------------
+
 // Create entitlement
 // (POST /api/v1/subjects/{subjectIdOrKey}/entitlements)
 func (a *Router) CreateEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey string) {
@@ -70,12 +92,6 @@ func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, s
 	}).ServeHTTP(w, r)
 }
 
-// List entitlements
-// (GET /api/v1/entitlements)
-func (a *Router) ListEntitlements(w http.ResponseWriter, r *http.Request, params api.ListEntitlementsParams) {
-	a.entitlementHandler.ListEntitlements().With(params).ServeHTTP(w, r)
-}
-
 // Delete entitlement
 // (DELETE /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId})
 func (a *Router) DeleteEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementId string) {
@@ -92,14 +108,6 @@ func (a *Router) GetEntitlement(w http.ResponseWriter, r *http.Request, subjectI
 	}).ServeHTTP(w, r)
 }
 
-// Get an entitlement
-// (GET /api/v1/entitlements/{entitlementId})
-func (a *Router) GetEntitlementById(w http.ResponseWriter, r *http.Request, entitlementId string) {
-	a.entitlementHandler.GetEntitlementById().With(entitlementdriver.GetEntitlementByIdHandlerParams{
-		EntitlementId: entitlementId,
-	}).ServeHTTP(w, r)
-}
-
 // Override an entitlement
 // (PUT /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override)
 func (a *Router) OverrideEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementIdOrFeatureKey string) {
@@ -108,6 +116,10 @@ func (a *Router) OverrideEntitlement(w http.ResponseWriter, r *http.Request, sub
 		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
 	}).ServeHTTP(w, r)
 }
+
+// ------------------------------------------------------------
+// Customer Entitlement APIs (V1)
+// ------------------------------------------------------------
 
 // Get entitlement value
 // (GET /api/v1/customers/{customerId}/entitlements/{featureKey}/value)
@@ -118,10 +130,6 @@ func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Requ
 	}).ServeHTTP(w, r)
 }
 
-// ------------------------------------------------------------
-// Customer APIs (V2)
-// ------------------------------------------------------------
-
 // Get customer access
 // (GET /api/v2/customers/{customerId}/access)
 func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
@@ -129,6 +137,10 @@ func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, custo
 		CustomerIDOrKey: customerIdOrKey,
 	}).ServeHTTP(w, r)
 }
+
+// ------------------------------------------------------------
+// Customer Entitlement APIs (V2)
+// ------------------------------------------------------------
 
 // Create customer entitlement
 // (POST /api/v2/customers/{customerIdOrKey}/entitlements)
