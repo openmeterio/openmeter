@@ -17,6 +17,7 @@ SET subject_id = t.subject_id
 FROM tt t
 WHERE e.id = t.entitlement_id;
 
+-- atlas:nolint MF104
 ALTER TABLE "entitlements" ALTER COLUMN "subject_id" SET NOT NULL;
 
 -- Now let's add the foreign key constraint
