@@ -371,6 +371,9 @@ func (_u *EntitlementUpdate) check() error {
 	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Entitlement.feature"`)
 	}
+	if _u.mutation.SubjectCleared() && len(_u.mutation.SubjectIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "Entitlement.subject"`)
+	}
 	return nil
 }
 
@@ -1017,6 +1020,9 @@ func (_u *EntitlementUpdateOne) defaults() {
 func (_u *EntitlementUpdateOne) check() error {
 	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Entitlement.feature"`)
+	}
+	if _u.mutation.SubjectCleared() && len(_u.mutation.SubjectIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "Entitlement.subject"`)
 	}
 	return nil
 }

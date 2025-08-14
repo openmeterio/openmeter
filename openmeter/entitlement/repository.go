@@ -81,7 +81,7 @@ type CreateEntitlementRepoInputs struct {
 	Namespace       string            `json:"namespace"`
 	FeatureID       string            `json:"featureId"`
 	FeatureKey      string            `json:"featureKey"`
-	SubjectKey      string            `json:"subjectKey"`
+	SubjectKey      string            `json:"subjectKey"` // Note: Adapter will resolve this to SubjectID when creating in DB
 	EntitlementType EntitlementType   `json:"type"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
 	ActiveFrom      *time.Time        `json:"activeFrom,omitempty"`
