@@ -145,7 +145,7 @@ func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, custo
 // Create customer entitlement
 // (POST /api/v2/customers/{customerIdOrKey}/entitlements)
 func (a *Router) CreateCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
-	unimplemented.CreateCustomerEntitlementV2(w, r, customerIdOrKey)
+	a.entitlementV2Handler.CreateCustomerEntitlement().With(customerIdOrKey).ServeHTTP(w, r)
 }
 
 // List customer entitlements

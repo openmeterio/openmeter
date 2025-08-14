@@ -145,7 +145,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 		commonhttp.JSONResponseEncoderWithStatus[api.EntitlementGrant](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -198,7 +198,7 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 		commonhttp.JSONResponseEncoder[[]api.EntitlementGrant],
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -270,7 +270,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 		commonhttp.EmptyResponseEncoder[interface{}](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -370,7 +370,7 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 		commonhttp.JSONResponseEncoder[api.WindowedBalanceHistory],
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }

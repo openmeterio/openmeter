@@ -30,6 +30,7 @@ import (
 	debug_httpdriver "github.com/openmeterio/openmeter/openmeter/debug/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	entitlementdriverv2 "github.com/openmeterio/openmeter/openmeter/entitlement/driver/v2"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	infohttpdriver "github.com/openmeterio/openmeter/openmeter/info/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -231,6 +232,7 @@ type Router struct {
 	debugHandler              debug_httpdriver.DebugHandler
 	customerHandler           customerhttpdriver.CustomerHandler
 	entitlementHandler        entitlementdriver.EntitlementHandler
+	entitlementV2Handler      entitlementdriverv2.CustomerEntitlementHandler
 	meterHandler              meterhttphandler.Handler
 	meterEventHandler         metereventhttphandler.Handler
 	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
@@ -269,6 +271,14 @@ func NewRouter(config Config) (*Router, error) {
 
 	router.entitlementHandler = entitlementdriver.NewEntitlementHandler(
 		config.EntitlementConnector,
+		staticNamespaceDecoder,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	// V2 entitlement handler for customer-scoped operations
+	router.entitlementV2Handler = entitlementdriverv2.NewCustomerEntitlementHandler(
+		config.EntitlementConnector,
+		config.Customer,
 		staticNamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
