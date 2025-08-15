@@ -52,6 +52,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 
 	"entgo.io/ent/schema/field"
 )
@@ -95,7 +96,7 @@ func init() {
 	addon.CurrencyValidator = addonDescCurrency.Validators[0].(func(string) error)
 	// addonDescAnnotations is the schema descriptor for annotations field.
 	addonDescAnnotations := addonFields[5].Descriptor()
-	addon.ValueScanner.Annotations = addonDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
+	addon.ValueScanner.Annotations = addonDescAnnotations.ValueScanner.(field.TypeValueScanner[models.Annotations])
 	// addonDescID is the schema descriptor for id field.
 	addonDescID := addonMixinFields0[0].Descriptor()
 	// addon.DefaultID holds the default value on creation for the id field.
@@ -930,7 +931,7 @@ func init() {
 	entitlement.SubjectKeyValidator = entitlementDescSubjectKey.Validators[0].(func(string) error)
 	// entitlementDescAnnotations is the schema descriptor for annotations field.
 	entitlementDescAnnotations := entitlementFields[16].Descriptor()
-	entitlement.ValueScanner.Annotations = entitlementDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
+	entitlement.ValueScanner.Annotations = entitlementDescAnnotations.ValueScanner.(field.TypeValueScanner[models.Annotations])
 	// entitlementDescID is the schema descriptor for id field.
 	entitlementDescID := entitlementMixinFields0[0].Descriptor()
 	// entitlement.DefaultID holds the default value on creation for the id field.
@@ -1085,7 +1086,7 @@ func init() {
 	notificationevent.DefaultCreatedAt = notificationeventDescCreatedAt.Default.(func() time.Time)
 	// notificationeventDescAnnotations is the schema descriptor for annotations field.
 	notificationeventDescAnnotations := notificationeventFields[4].Descriptor()
-	notificationevent.ValueScanner.Annotations = notificationeventDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
+	notificationevent.ValueScanner.Annotations = notificationeventDescAnnotations.ValueScanner.(field.TypeValueScanner[models.Annotations])
 	// notificationeventDescID is the schema descriptor for id field.
 	notificationeventDescID := notificationeventMixinFields0[0].Descriptor()
 	// notificationevent.DefaultID holds the default value on creation for the id field.
@@ -1503,7 +1504,7 @@ func init() {
 	subscriptionitem.UpdateDefaultUpdatedAt = subscriptionitemDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// subscriptionitemDescAnnotations is the schema descriptor for annotations field.
 	subscriptionitemDescAnnotations := subscriptionitemFields[0].Descriptor()
-	subscriptionitem.ValueScanner.Annotations = subscriptionitemDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
+	subscriptionitem.ValueScanner.Annotations = subscriptionitemDescAnnotations.ValueScanner.(field.TypeValueScanner[models.Annotations])
 	// subscriptionitemDescPhaseID is the schema descriptor for phase_id field.
 	subscriptionitemDescPhaseID := subscriptionitemFields[3].Descriptor()
 	// subscriptionitem.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.

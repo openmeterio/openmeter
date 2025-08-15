@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // AddonUpdate is the builder for updating Addon entities.
@@ -180,7 +181,7 @@ func (_u *AddonUpdate) ClearEffectiveTo() *AddonUpdate {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *AddonUpdate) SetAnnotations(v map[string]interface{}) *AddonUpdate {
+func (_u *AddonUpdate) SetAnnotations(v models.Annotations) *AddonUpdate {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }
@@ -725,7 +726,7 @@ func (_u *AddonUpdateOne) ClearEffectiveTo() *AddonUpdateOne {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *AddonUpdateOne) SetAnnotations(v map[string]interface{}) *AddonUpdateOne {
+func (_u *AddonUpdateOne) SetAnnotations(v models.Annotations) *AddonUpdateOne {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }

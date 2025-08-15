@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // AddonCreate is the builder for creating a Addon entity.
@@ -170,7 +171,7 @@ func (_c *AddonCreate) SetNillableEffectiveTo(v *time.Time) *AddonCreate {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_c *AddonCreate) SetAnnotations(v map[string]interface{}) *AddonCreate {
+func (_c *AddonCreate) SetAnnotations(v models.Annotations) *AddonCreate {
 	_c.mutation.SetAnnotations(v)
 	return _c
 }
@@ -686,7 +687,7 @@ func (u *AddonUpsert) ClearEffectiveTo() *AddonUpsert {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *AddonUpsert) SetAnnotations(v map[string]interface{}) *AddonUpsert {
+func (u *AddonUpsert) SetAnnotations(v models.Annotations) *AddonUpsert {
 	u.Set(addon.FieldAnnotations, v)
 	return u
 }
@@ -932,7 +933,7 @@ func (u *AddonUpsertOne) ClearEffectiveTo() *AddonUpsertOne {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *AddonUpsertOne) SetAnnotations(v map[string]interface{}) *AddonUpsertOne {
+func (u *AddonUpsertOne) SetAnnotations(v models.Annotations) *AddonUpsertOne {
 	return u.Update(func(s *AddonUpsert) {
 		s.SetAnnotations(v)
 	})
@@ -1351,7 +1352,7 @@ func (u *AddonUpsertBulk) ClearEffectiveTo() *AddonUpsertBulk {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *AddonUpsertBulk) SetAnnotations(v map[string]interface{}) *AddonUpsertBulk {
+func (u *AddonUpsertBulk) SetAnnotations(v models.Annotations) *AddonUpsertBulk {
 	return u.Update(func(s *AddonUpsert) {
 		s.SetAnnotations(v)
 	})

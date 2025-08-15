@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NotificationEvent is the model entity for the NotificationEvent schema.
@@ -30,7 +31,7 @@ type NotificationEvent struct {
 	// Payload holds the value of the "payload" field.
 	Payload string `json:"payload,omitempty"`
 	// Annotations holds the value of the "annotations" field.
-	Annotations map[string]interface{} `json:"annotations,omitempty"`
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationEventQuery when eager-loading is set.
 	Edges        NotificationEventEdges `json:"edges"`

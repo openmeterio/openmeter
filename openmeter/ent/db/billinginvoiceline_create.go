@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // BillingInvoiceLineCreate is the builder for creating a BillingInvoiceLine entity.
@@ -37,7 +38,7 @@ type BillingInvoiceLineCreate struct {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_c *BillingInvoiceLineCreate) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetAnnotations(v models.Annotations) *BillingInvoiceLineCreate {
 	_c.mutation.SetAnnotations(v)
 	return _c
 }
@@ -1018,7 +1019,7 @@ type (
 )
 
 // SetAnnotations sets the "annotations" field.
-func (u *BillingInvoiceLineUpsert) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineUpsert {
+func (u *BillingInvoiceLineUpsert) SetAnnotations(v models.Annotations) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldAnnotations, v)
 	return u
 }
@@ -1528,7 +1529,7 @@ func (u *BillingInvoiceLineUpsertOne) Update(set func(*BillingInvoiceLineUpsert)
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *BillingInvoiceLineUpsertOne) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineUpsertOne {
+func (u *BillingInvoiceLineUpsertOne) SetAnnotations(v models.Annotations) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetAnnotations(v)
 	})
@@ -2283,7 +2284,7 @@ func (u *BillingInvoiceLineUpsertBulk) Update(set func(*BillingInvoiceLineUpsert
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *BillingInvoiceLineUpsertBulk) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineUpsertBulk {
+func (u *BillingInvoiceLineUpsertBulk) SetAnnotations(v models.Annotations) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetAnnotations(v)
 	})

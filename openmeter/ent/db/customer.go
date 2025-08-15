@@ -50,7 +50,7 @@ type Customer struct {
 	// BillingAddressPhoneNumber holds the value of the "billing_address_phone_number" field.
 	BillingAddressPhoneNumber *string `json:"billing_address_phone_number,omitempty"`
 	// Annotations holds the value of the "annotations" field.
-	Annotations map[string]interface{} `json:"annotations,omitempty"`
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// PrimaryEmail holds the value of the "primary_email" field.

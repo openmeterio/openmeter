@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -163,7 +164,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all Entitlement fields.
 	ValueScanner struct {
-		Annotations field.TypeValueScanner[map[string]interface{}]
+		Annotations field.TypeValueScanner[models.Annotations]
 	}
 )
 

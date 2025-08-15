@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // SubscriptionItemUpdate is the builder for updating SubscriptionItem entities.
@@ -72,7 +73,7 @@ func (_u *SubscriptionItemUpdate) ClearMetadata() *SubscriptionItemUpdate {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *SubscriptionItemUpdate) SetAnnotations(v map[string]interface{}) *SubscriptionItemUpdate {
+func (_u *SubscriptionItemUpdate) SetAnnotations(v models.Annotations) *SubscriptionItemUpdate {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }
@@ -779,7 +780,7 @@ func (_u *SubscriptionItemUpdateOne) ClearMetadata() *SubscriptionItemUpdateOne 
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *SubscriptionItemUpdateOne) SetAnnotations(v map[string]interface{}) *SubscriptionItemUpdateOne {
+func (_u *SubscriptionItemUpdateOne) SetAnnotations(v models.Annotations) *SubscriptionItemUpdateOne {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }

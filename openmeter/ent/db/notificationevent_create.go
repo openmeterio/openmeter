@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NotificationEventCreate is the builder for creating a NotificationEvent entity.
@@ -65,7 +66,7 @@ func (_c *NotificationEventCreate) SetPayload(v string) *NotificationEventCreate
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_c *NotificationEventCreate) SetAnnotations(v map[string]interface{}) *NotificationEventCreate {
+func (_c *NotificationEventCreate) SetAnnotations(v models.Annotations) *NotificationEventCreate {
 	_c.mutation.SetAnnotations(v)
 	return _c
 }
@@ -346,7 +347,7 @@ func (u *NotificationEventUpsert) UpdatePayload() *NotificationEventUpsert {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *NotificationEventUpsert) SetAnnotations(v map[string]interface{}) *NotificationEventUpsert {
+func (u *NotificationEventUpsert) SetAnnotations(v models.Annotations) *NotificationEventUpsert {
 	u.Set(notificationevent.FieldAnnotations, v)
 	return u
 }
@@ -438,7 +439,7 @@ func (u *NotificationEventUpsertOne) UpdatePayload() *NotificationEventUpsertOne
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *NotificationEventUpsertOne) SetAnnotations(v map[string]interface{}) *NotificationEventUpsertOne {
+func (u *NotificationEventUpsertOne) SetAnnotations(v models.Annotations) *NotificationEventUpsertOne {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.SetAnnotations(v)
 	})
@@ -703,7 +704,7 @@ func (u *NotificationEventUpsertBulk) UpdatePayload() *NotificationEventUpsertBu
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *NotificationEventUpsertBulk) SetAnnotations(v map[string]interface{}) *NotificationEventUpsertBulk {
+func (u *NotificationEventUpsertBulk) SetAnnotations(v models.Annotations) *NotificationEventUpsertBulk {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.SetAnnotations(v)
 	})

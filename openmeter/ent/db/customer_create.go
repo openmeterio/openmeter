@@ -203,7 +203,7 @@ func (_c *CustomerCreate) SetNillableBillingAddressPhoneNumber(v *string) *Custo
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_c *CustomerCreate) SetAnnotations(v map[string]interface{}) *CustomerCreate {
+func (_c *CustomerCreate) SetAnnotations(v models.Annotations) *CustomerCreate {
 	_c.mutation.SetAnnotations(v)
 	return _c
 }
@@ -866,7 +866,7 @@ func (u *CustomerUpsert) ClearBillingAddressPhoneNumber() *CustomerUpsert {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *CustomerUpsert) SetAnnotations(v map[string]interface{}) *CustomerUpsert {
+func (u *CustomerUpsert) SetAnnotations(v models.Annotations) *CustomerUpsert {
 	u.Set(customer.FieldAnnotations, v)
 	return u
 }
@@ -1230,7 +1230,7 @@ func (u *CustomerUpsertOne) ClearBillingAddressPhoneNumber() *CustomerUpsertOne 
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *CustomerUpsertOne) SetAnnotations(v map[string]interface{}) *CustomerUpsertOne {
+func (u *CustomerUpsertOne) SetAnnotations(v models.Annotations) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetAnnotations(v)
 	})
@@ -1773,7 +1773,7 @@ func (u *CustomerUpsertBulk) ClearBillingAddressPhoneNumber() *CustomerUpsertBul
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *CustomerUpsertBulk) SetAnnotations(v map[string]interface{}) *CustomerUpsertBulk {
+func (u *CustomerUpsertBulk) SetAnnotations(v models.Annotations) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.SetAnnotations(v)
 	})

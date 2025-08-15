@@ -142,7 +142,7 @@ type AddonMutation struct {
 	instance_type              *productcatalog.AddonInstanceType
 	effective_from             *time.Time
 	effective_to               *time.Time
-	annotations                *map[string]interface{}
+	annotations                *models.Annotations
 	clearedFields              map[string]struct{}
 	ratecards                  map[string]struct{}
 	removedratecards           map[string]struct{}
@@ -816,12 +816,12 @@ func (m *AddonMutation) ResetEffectiveTo() {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (m *AddonMutation) SetAnnotations(value map[string]interface{}) {
+func (m *AddonMutation) SetAnnotations(value models.Annotations) {
 	m.annotations = &value
 }
 
 // Annotations returns the value of the "annotations" field in the mutation.
-func (m *AddonMutation) Annotations() (r map[string]interface{}, exists bool) {
+func (m *AddonMutation) Annotations() (r models.Annotations, exists bool) {
 	v := m.annotations
 	if v == nil {
 		return
@@ -832,7 +832,7 @@ func (m *AddonMutation) Annotations() (r map[string]interface{}, exists bool) {
 // OldAnnotations returns the old "annotations" field's value of the Addon entity.
 // If the Addon object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AddonMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+func (m *AddonMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
 	}
@@ -1277,7 +1277,7 @@ func (m *AddonMutation) SetField(name string, value ent.Value) error {
 		m.SetEffectiveTo(v)
 		return nil
 	case addon.FieldAnnotations:
-		v, ok := value.(map[string]interface{})
+		v, ok := value.(models.Annotations)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -16285,7 +16285,7 @@ type BillingInvoiceLineMutation struct {
 	op                           Op
 	typ                          string
 	id                           *string
-	annotations                  *map[string]interface{}
+	annotations                  *models.Annotations
 	namespace                    *string
 	metadata                     *map[string]string
 	created_at                   *time.Time
@@ -16449,12 +16449,12 @@ func (m *BillingInvoiceLineMutation) IDs(ctx context.Context) ([]string, error) 
 }
 
 // SetAnnotations sets the "annotations" field.
-func (m *BillingInvoiceLineMutation) SetAnnotations(value map[string]interface{}) {
+func (m *BillingInvoiceLineMutation) SetAnnotations(value models.Annotations) {
 	m.annotations = &value
 }
 
 // Annotations returns the value of the "annotations" field in the mutation.
-func (m *BillingInvoiceLineMutation) Annotations() (r map[string]interface{}, exists bool) {
+func (m *BillingInvoiceLineMutation) Annotations() (r models.Annotations, exists bool) {
 	v := m.annotations
 	if v == nil {
 		return
@@ -16465,7 +16465,7 @@ func (m *BillingInvoiceLineMutation) Annotations() (r map[string]interface{}, ex
 // OldAnnotations returns the old "annotations" field's value of the BillingInvoiceLine entity.
 // If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+func (m *BillingInvoiceLineMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
 	}
@@ -18582,7 +18582,7 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) error {
 	switch name {
 	case billinginvoiceline.FieldAnnotations:
-		v, ok := value.(map[string]interface{})
+		v, ok := value.(models.Annotations)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -28833,7 +28833,7 @@ type CustomerMutation struct {
 	billing_address_line1            *string
 	billing_address_line2            *string
 	billing_address_phone_number     *string
-	annotations                      *map[string]interface{}
+	annotations                      *models.Annotations
 	key                              *string
 	primary_email                    *string
 	currency                         *currencyx.Code
@@ -29596,12 +29596,12 @@ func (m *CustomerMutation) ResetBillingAddressPhoneNumber() {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (m *CustomerMutation) SetAnnotations(value map[string]interface{}) {
+func (m *CustomerMutation) SetAnnotations(value models.Annotations) {
 	m.annotations = &value
 }
 
 // Annotations returns the value of the "annotations" field in the mutation.
-func (m *CustomerMutation) Annotations() (r map[string]interface{}, exists bool) {
+func (m *CustomerMutation) Annotations() (r models.Annotations, exists bool) {
 	v := m.annotations
 	if v == nil {
 		return
@@ -29612,7 +29612,7 @@ func (m *CustomerMutation) Annotations() (r map[string]interface{}, exists bool)
 // OldAnnotations returns the old "annotations" field's value of the Customer entity.
 // If the Customer object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+func (m *CustomerMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
 	}
@@ -30332,7 +30332,7 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 		m.SetBillingAddressPhoneNumber(v)
 		return nil
 	case customer.FieldAnnotations:
-		v, ok := value.(map[string]interface{})
+		v, ok := value.(models.Annotations)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -31380,7 +31380,7 @@ type EntitlementMutation struct {
 	usage_period_anchor           *time.Time
 	current_usage_period_start    *time.Time
 	current_usage_period_end      *time.Time
-	annotations                   *map[string]interface{}
+	annotations                   *models.Annotations
 	clearedFields                 map[string]struct{}
 	usage_reset                   map[string]struct{}
 	removedusage_reset            map[string]struct{}
@@ -32502,12 +32502,12 @@ func (m *EntitlementMutation) ResetCurrentUsagePeriodEnd() {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (m *EntitlementMutation) SetAnnotations(value map[string]interface{}) {
+func (m *EntitlementMutation) SetAnnotations(value models.Annotations) {
 	m.annotations = &value
 }
 
 // Annotations returns the value of the "annotations" field in the mutation.
-func (m *EntitlementMutation) Annotations() (r map[string]interface{}, exists bool) {
+func (m *EntitlementMutation) Annotations() (r models.Annotations, exists bool) {
 	v := m.annotations
 	if v == nil {
 		return
@@ -32518,7 +32518,7 @@ func (m *EntitlementMutation) Annotations() (r map[string]interface{}, exists bo
 // OldAnnotations returns the old "annotations" field's value of the Entitlement entity.
 // If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EntitlementMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+func (m *EntitlementMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
 	}
@@ -33156,7 +33156,7 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		m.SetCurrentUsagePeriodEnd(v)
 		return nil
 	case entitlement.FieldAnnotations:
-		v, ok := value.(map[string]interface{})
+		v, ok := value.(models.Annotations)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -38149,7 +38149,7 @@ type NotificationEventMutation struct {
 	created_at               *time.Time
 	_type                    *notification.EventType
 	payload                  *string
-	annotations              *map[string]interface{}
+	annotations              *models.Annotations
 	clearedFields            map[string]struct{}
 	delivery_statuses        map[string]struct{}
 	removeddelivery_statuses map[string]struct{}
@@ -38446,12 +38446,12 @@ func (m *NotificationEventMutation) ResetPayload() {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (m *NotificationEventMutation) SetAnnotations(value map[string]interface{}) {
+func (m *NotificationEventMutation) SetAnnotations(value models.Annotations) {
 	m.annotations = &value
 }
 
 // Annotations returns the value of the "annotations" field in the mutation.
-func (m *NotificationEventMutation) Annotations() (r map[string]interface{}, exists bool) {
+func (m *NotificationEventMutation) Annotations() (r models.Annotations, exists bool) {
 	v := m.annotations
 	if v == nil {
 		return
@@ -38462,7 +38462,7 @@ func (m *NotificationEventMutation) Annotations() (r map[string]interface{}, exi
 // OldAnnotations returns the old "annotations" field's value of the NotificationEvent entity.
 // If the NotificationEvent object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NotificationEventMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+func (m *NotificationEventMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
 	}
@@ -38727,7 +38727,7 @@ func (m *NotificationEventMutation) SetField(name string, value ent.Value) error
 		m.SetPayload(v)
 		return nil
 	case notificationevent.FieldAnnotations:
-		v, ok := value.(map[string]interface{})
+		v, ok := value.(models.Annotations)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -42048,7 +42048,7 @@ type PlanAddonMutation struct {
 	id              *string
 	namespace       *string
 	metadata        *map[string]string
-	annotations     *map[string]interface{}
+	annotations     *models.Annotations
 	created_at      *time.Time
 	updated_at      *time.Time
 	deleted_at      *time.Time
@@ -42255,12 +42255,12 @@ func (m *PlanAddonMutation) ResetMetadata() {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (m *PlanAddonMutation) SetAnnotations(value map[string]interface{}) {
+func (m *PlanAddonMutation) SetAnnotations(value models.Annotations) {
 	m.annotations = &value
 }
 
 // Annotations returns the value of the "annotations" field in the mutation.
-func (m *PlanAddonMutation) Annotations() (r map[string]interface{}, exists bool) {
+func (m *PlanAddonMutation) Annotations() (r models.Annotations, exists bool) {
 	v := m.annotations
 	if v == nil {
 		return
@@ -42271,7 +42271,7 @@ func (m *PlanAddonMutation) Annotations() (r map[string]interface{}, exists bool
 // OldAnnotations returns the old "annotations" field's value of the PlanAddon entity.
 // If the PlanAddon object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanAddonMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+func (m *PlanAddonMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
 	}
@@ -42802,7 +42802,7 @@ func (m *PlanAddonMutation) SetField(name string, value ent.Value) error {
 		m.SetMetadata(v)
 		return nil
 	case planaddon.FieldAnnotations:
-		v, ok := value.(map[string]interface{})
+		v, ok := value.(models.Annotations)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -49699,7 +49699,7 @@ type SubscriptionItemMutation struct {
 	updated_at                                   *time.Time
 	deleted_at                                   *time.Time
 	metadata                                     *map[string]string
-	annotations                                  *map[string]interface{}
+	annotations                                  *models.Annotations
 	active_from                                  *time.Time
 	active_to                                    *time.Time
 	key                                          *string
@@ -50041,12 +50041,12 @@ func (m *SubscriptionItemMutation) ResetMetadata() {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (m *SubscriptionItemMutation) SetAnnotations(value map[string]interface{}) {
+func (m *SubscriptionItemMutation) SetAnnotations(value models.Annotations) {
 	m.annotations = &value
 }
 
 // Annotations returns the value of the "annotations" field in the mutation.
-func (m *SubscriptionItemMutation) Annotations() (r map[string]interface{}, exists bool) {
+func (m *SubscriptionItemMutation) Annotations() (r models.Annotations, exists bool) {
 	v := m.annotations
 	if v == nil {
 		return
@@ -50057,7 +50057,7 @@ func (m *SubscriptionItemMutation) Annotations() (r map[string]interface{}, exis
 // OldAnnotations returns the old "annotations" field's value of the SubscriptionItem entity.
 // If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionItemMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+func (m *SubscriptionItemMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
 	}
@@ -51234,7 +51234,7 @@ func (m *SubscriptionItemMutation) SetField(name string, value ent.Value) error 
 		m.SetMetadata(v)
 		return nil
 	case subscriptionitem.FieldAnnotations:
-		v, ok := value.(map[string]interface{})
+		v, ok := value.(models.Annotations)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -53010,7 +53010,7 @@ type UsageResetMutation struct {
 	typ                   string
 	id                    *string
 	namespace             *string
-	annotations           *map[string]interface{}
+	annotations           *models.Annotations
 	created_at            *time.Time
 	updated_at            *time.Time
 	deleted_at            *time.Time
@@ -53166,12 +53166,12 @@ func (m *UsageResetMutation) ResetNamespace() {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (m *UsageResetMutation) SetAnnotations(value map[string]interface{}) {
+func (m *UsageResetMutation) SetAnnotations(value models.Annotations) {
 	m.annotations = &value
 }
 
 // Annotations returns the value of the "annotations" field in the mutation.
-func (m *UsageResetMutation) Annotations() (r map[string]interface{}, exists bool) {
+func (m *UsageResetMutation) Annotations() (r models.Annotations, exists bool) {
 	v := m.annotations
 	if v == nil {
 		return
@@ -53182,7 +53182,7 @@ func (m *UsageResetMutation) Annotations() (r map[string]interface{}, exists boo
 // OldAnnotations returns the old "annotations" field's value of the UsageReset entity.
 // If the UsageReset object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UsageResetMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+func (m *UsageResetMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
 	}
@@ -53638,7 +53638,7 @@ func (m *UsageResetMutation) SetField(name string, value ent.Value) error {
 		m.SetNamespace(v)
 		return nil
 	case usagereset.FieldAnnotations:
-		v, ok := value.(map[string]interface{})
+		v, ok := value.(models.Annotations)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

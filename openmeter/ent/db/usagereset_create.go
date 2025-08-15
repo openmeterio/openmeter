@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // UsageResetCreate is the builder for creating a UsageReset entity.
@@ -32,7 +33,7 @@ func (_c *UsageResetCreate) SetNamespace(v string) *UsageResetCreate {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_c *UsageResetCreate) SetAnnotations(v map[string]interface{}) *UsageResetCreate {
+func (_c *UsageResetCreate) SetAnnotations(v models.Annotations) *UsageResetCreate {
 	_c.mutation.SetAnnotations(v)
 	return _c
 }
@@ -340,7 +341,7 @@ type (
 )
 
 // SetAnnotations sets the "annotations" field.
-func (u *UsageResetUpsert) SetAnnotations(v map[string]interface{}) *UsageResetUpsert {
+func (u *UsageResetUpsert) SetAnnotations(v models.Annotations) *UsageResetUpsert {
 	u.Set(usagereset.FieldAnnotations, v)
 	return u
 }
@@ -454,7 +455,7 @@ func (u *UsageResetUpsertOne) Update(set func(*UsageResetUpsert)) *UsageResetUps
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *UsageResetUpsertOne) SetAnnotations(v map[string]interface{}) *UsageResetUpsertOne {
+func (u *UsageResetUpsertOne) SetAnnotations(v models.Annotations) *UsageResetUpsertOne {
 	return u.Update(func(s *UsageResetUpsert) {
 		s.SetAnnotations(v)
 	})
@@ -743,7 +744,7 @@ func (u *UsageResetUpsertBulk) Update(set func(*UsageResetUpsert)) *UsageResetUp
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *UsageResetUpsertBulk) SetAnnotations(v map[string]interface{}) *UsageResetUpsertBulk {
+func (u *UsageResetUpsertBulk) SetAnnotations(v models.Annotations) *UsageResetUpsertBulk {
 	return u.Update(func(s *UsageResetUpsert) {
 		s.SetAnnotations(v)
 	})
