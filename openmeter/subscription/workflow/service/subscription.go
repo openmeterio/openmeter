@@ -52,24 +52,14 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 		// Let's normalize the billing anchor to the closest iteration based on the cadence
 		billingAnchor := lo.FromPtrOr(inp.BillingAnchor, activeFrom).UTC()
 
-		billingRecurrence, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(plan.ToCreateSubscriptionPlanInput().BillingCadence), billingAnchor)
+		billingRecurrence, err := timeutil.NewRecurrenceFromISODuration(plan.ToCreateSubscriptionPlanInput().BillingCadence, billingAnchor)
 		if err != nil {
 			return def, fmt.Errorf("failed to get billing recurrence: %w", err)
 		}
 
-		billingAnchor, err = billingRecurrence.PrevBefore(activeFrom)
+		billingAnchor, err = billingRecurrence.PrevBefore(activeFrom, timeutil.Inclusive)
 		if err != nil {
 			return def, fmt.Errorf("failed to get billing anchor: %w", err)
-		}
-
-		// When anchor = beforeTime (or falls on iteration boundary), PrevBefore will return an iteration early.
-		oneBefore, err := billingRecurrence.Prev(activeFrom)
-		if err != nil {
-			return def, fmt.Errorf("failed to get one iteration before billing anchor: %w", err)
-		}
-
-		if oneBefore.Equal(billingAnchor) {
-			billingAnchor = activeFrom
 		}
 
 		// Let's create the new Spec

@@ -165,6 +165,19 @@ func (d ISODuration) DivisibleBy(smaller ISODuration) (bool, error) {
 	return true, nil
 }
 
+func (p ISODuration) Mul(n int) (ISODuration, error) {
+	nDecimal, err := decimal.NewFromInt64(int64(n), 0, 0)
+	if err != nil {
+		return ISODuration{}, err
+	}
+
+	per, err := p.Period.Mul(nDecimal)
+	if err != nil {
+		return ISODuration{}, err
+	}
+	return ISODuration{per}, nil
+}
+
 // convertPeriodToSeconds converts a period to total seconds using decimal precision
 func convertPeriodToSeconds(p period.Period, daysInMonth int, hoursInDays int) (decimal.Decimal, error) {
 	zero := decimal.MustNew(0, 0)

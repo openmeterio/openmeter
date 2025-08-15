@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // CreateGrant creates a grant for a given entitlement
@@ -109,7 +110,7 @@ type EntitlementGrant struct {
 func GrantFromCreditGrant(grant grant.Grant) (*EntitlementGrant, error) {
 	g := &EntitlementGrant{}
 	if grant.Recurrence != nil {
-		next, err := grant.Recurrence.NextAfter(clock.Now())
+		next, err := grant.Recurrence.NextAfter(clock.Now(), timeutil.Inclusive)
 		if err != nil {
 			return nil, err
 		}
