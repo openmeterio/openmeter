@@ -2,6 +2,7 @@
 -- Billing sync will ensure that the lines are continous for a subscription item, thus we will not have a few seconds of gaps
 -- in the invoices.
 
+-- Warning: If you want to reuse this please make sure that you also add billing.subscription.sync.force-continuous-lines: true
 UPDATE billing_invoice_lines
 SET
     annotations = CASE

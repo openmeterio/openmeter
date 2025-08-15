@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // EntitlementUpdate is the builder for updating Entitlement entities.
@@ -170,7 +171,7 @@ func (_u *EntitlementUpdate) ClearCurrentUsagePeriodEnd() *EntitlementUpdate {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *EntitlementUpdate) SetAnnotations(v map[string]interface{}) *EntitlementUpdate {
+func (_u *EntitlementUpdate) SetAnnotations(v models.Annotations) *EntitlementUpdate {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }
@@ -804,7 +805,7 @@ func (_u *EntitlementUpdateOne) ClearCurrentUsagePeriodEnd() *EntitlementUpdateO
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *EntitlementUpdateOne) SetAnnotations(v map[string]interface{}) *EntitlementUpdateOne {
+func (_u *EntitlementUpdateOne) SetAnnotations(v models.Annotations) *EntitlementUpdateOne {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }

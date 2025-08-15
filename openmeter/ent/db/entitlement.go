@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Entitlement is the model entity for the Entitlement schema.
@@ -63,7 +64,7 @@ type Entitlement struct {
 	// CurrentUsagePeriodEnd holds the value of the "current_usage_period_end" field.
 	CurrentUsagePeriodEnd *time.Time `json:"current_usage_period_end,omitempty"`
 	// Annotations holds the value of the "annotations" field.
-	Annotations map[string]interface{} `json:"annotations,omitempty"`
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the EntitlementQuery when eager-loading is set.
 	Edges        EntitlementEdges `json:"edges"`

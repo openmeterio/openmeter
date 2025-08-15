@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // PlanAddonUpdate is the builder for updating PlanAddon entities.
@@ -41,7 +42,7 @@ func (_u *PlanAddonUpdate) ClearMetadata() *PlanAddonUpdate {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *PlanAddonUpdate) SetAnnotations(v map[string]interface{}) *PlanAddonUpdate {
+func (_u *PlanAddonUpdate) SetAnnotations(v models.Annotations) *PlanAddonUpdate {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }
@@ -249,7 +250,7 @@ func (_u *PlanAddonUpdateOne) ClearMetadata() *PlanAddonUpdateOne {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *PlanAddonUpdateOne) SetAnnotations(v map[string]interface{}) *PlanAddonUpdateOne {
+func (_u *PlanAddonUpdateOne) SetAnnotations(v models.Annotations) *PlanAddonUpdateOne {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }

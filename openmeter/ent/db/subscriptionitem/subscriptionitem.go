@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -156,7 +157,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all SubscriptionItem fields.
 	ValueScanner struct {
-		Annotations         field.TypeValueScanner[map[string]interface{}]
+		Annotations         field.TypeValueScanner[models.Annotations]
 		EntitlementTemplate field.TypeValueScanner[*productcatalog.EntitlementTemplate]
 		TaxConfig           field.TypeValueScanner[*productcatalog.TaxConfig]
 		Price               field.TypeValueScanner[*productcatalog.Price]

@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // EntitlementCreate is the builder for creating a Entitlement entity.
@@ -268,7 +269,7 @@ func (_c *EntitlementCreate) SetNillableCurrentUsagePeriodEnd(v *time.Time) *Ent
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_c *EntitlementCreate) SetAnnotations(v map[string]interface{}) *EntitlementCreate {
+func (_c *EntitlementCreate) SetAnnotations(v models.Annotations) *EntitlementCreate {
 	_c.mutation.SetAnnotations(v)
 	return _c
 }
@@ -846,7 +847,7 @@ func (u *EntitlementUpsert) ClearCurrentUsagePeriodEnd() *EntitlementUpsert {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *EntitlementUpsert) SetAnnotations(v map[string]interface{}) *EntitlementUpsert {
+func (u *EntitlementUpsert) SetAnnotations(v models.Annotations) *EntitlementUpsert {
 	u.Set(entitlement.FieldAnnotations, v)
 	return u
 }
@@ -1112,7 +1113,7 @@ func (u *EntitlementUpsertOne) ClearCurrentUsagePeriodEnd() *EntitlementUpsertOn
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *EntitlementUpsertOne) SetAnnotations(v map[string]interface{}) *EntitlementUpsertOne {
+func (u *EntitlementUpsertOne) SetAnnotations(v models.Annotations) *EntitlementUpsertOne {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.SetAnnotations(v)
 	})
@@ -1551,7 +1552,7 @@ func (u *EntitlementUpsertBulk) ClearCurrentUsagePeriodEnd() *EntitlementUpsertB
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *EntitlementUpsertBulk) SetAnnotations(v map[string]interface{}) *EntitlementUpsertBulk {
+func (u *EntitlementUpsertBulk) SetAnnotations(v models.Annotations) *EntitlementUpsertBulk {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.SetAnnotations(v)
 	})

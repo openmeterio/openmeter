@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // PlanAddonCreate is the builder for creating a PlanAddon entity.
@@ -38,7 +39,7 @@ func (_c *PlanAddonCreate) SetMetadata(v map[string]string) *PlanAddonCreate {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_c *PlanAddonCreate) SetAnnotations(v map[string]interface{}) *PlanAddonCreate {
+func (_c *PlanAddonCreate) SetAnnotations(v models.Annotations) *PlanAddonCreate {
 	_c.mutation.SetAnnotations(v)
 	return _c
 }
@@ -404,7 +405,7 @@ func (u *PlanAddonUpsert) ClearMetadata() *PlanAddonUpsert {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *PlanAddonUpsert) SetAnnotations(v map[string]interface{}) *PlanAddonUpsert {
+func (u *PlanAddonUpsert) SetAnnotations(v models.Annotations) *PlanAddonUpsert {
 	u.Set(planaddon.FieldAnnotations, v)
 	return u
 }
@@ -569,7 +570,7 @@ func (u *PlanAddonUpsertOne) ClearMetadata() *PlanAddonUpsertOne {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *PlanAddonUpsertOne) SetAnnotations(v map[string]interface{}) *PlanAddonUpsertOne {
+func (u *PlanAddonUpsertOne) SetAnnotations(v models.Annotations) *PlanAddonUpsertOne {
 	return u.Update(func(s *PlanAddonUpsert) {
 		s.SetAnnotations(v)
 	})
@@ -915,7 +916,7 @@ func (u *PlanAddonUpsertBulk) ClearMetadata() *PlanAddonUpsertBulk {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *PlanAddonUpsertBulk) SetAnnotations(v map[string]interface{}) *PlanAddonUpsertBulk {
+func (u *PlanAddonUpsertBulk) SetAnnotations(v models.Annotations) *PlanAddonUpsertBulk {
 	return u.Update(func(s *PlanAddonUpsert) {
 		s.SetAnnotations(v)
 	})

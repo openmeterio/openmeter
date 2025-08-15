@@ -351,12 +351,12 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 
 		// We are not correcting periods for lines that are already ignored
 		if existingCurrentLine, ok := existingLinesByUniqueID[line.UniqueID]; ok {
-			hasAnnotation, err := h.lineOrHierarchyHasSubscriptionSyncIgnoreAnnotation(existingCurrentLine)
+			syncIgnore, err := h.lineOrHierarchyHasAnnotation(existingCurrentLine, billing.AnnotationSubscriptionSyncIgnore)
 			if err != nil {
 				return nil, fmt.Errorf("checking if line has subscription sync ignore annotation: %w", err)
 			}
 
-			if hasAnnotation {
+			if syncIgnore {
 				continue
 			}
 		}
@@ -375,12 +375,22 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 			continue
 		}
 
-		existingPreviousLineHasAnnotation, err := h.lineOrHierarchyHasSubscriptionSyncIgnoreAnnotation(existingPreviousLine)
+		existingPreviousLineSyncIgnoreAnnotation, err := h.lineOrHierarchyHasAnnotation(existingPreviousLine, billing.AnnotationSubscriptionSyncIgnore)
 		if err != nil {
 			return nil, fmt.Errorf("checking if previous line has subscription sync ignore annotation: %w", err)
 		}
 
-		if !existingPreviousLineHasAnnotation {
+		if !existingPreviousLineSyncIgnoreAnnotation {
+			continue
+		}
+
+		// If the previous line does not have the AnnotationSubscriptionSyncForceContinuousLines annotations, we don't need to perform the period correction
+		existingPreviousLineSyncForceContinuousLinesAnnotation, err := h.lineOrHierarchyHasAnnotation(existingPreviousLine, billing.AnnotationSubscriptionSyncForceContinuousLines)
+		if err != nil {
+			return nil, fmt.Errorf("checking if previous line has subscription sync force continuous lines annotation: %w", err)
+		}
+
+		if !existingPreviousLineSyncForceContinuousLinesAnnotation {
 			continue
 		}
 
@@ -409,7 +419,7 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 	return inScopeLines, nil
 }
 
-func (h *Handler) lineOrHierarchyHasSubscriptionSyncIgnoreAnnotation(lineOrHierarchy billing.LineOrHierarchy) (bool, error) {
+func (h *Handler) lineOrHierarchyHasAnnotation(lineOrHierarchy billing.LineOrHierarchy, annotation string) (bool, error) {
 	switch lineOrHierarchy.Type() {
 	case billing.LineOrHierarchyTypeLine:
 		previousLine, err := lineOrHierarchy.AsLine()
@@ -417,20 +427,20 @@ func (h *Handler) lineOrHierarchyHasSubscriptionSyncIgnoreAnnotation(lineOrHiera
 			return false, fmt.Errorf("getting previous line: %w", err)
 		}
 
-		return h.lineHasSubscriptionSyncIgnoreAnnotation(previousLine), nil
+		return h.lineHasAnnotation(previousLine, annotation), nil
 	case billing.LineOrHierarchyTypeHierarchy:
 		hierarchy, err := lineOrHierarchy.AsHierarchy()
 		if err != nil {
 			return false, fmt.Errorf("getting previous hierarchy: %w", err)
 		}
 
-		return h.hierarchyHasSubscriptionSyncIgnoreAnnotation(hierarchy), nil
+		return h.hierarchyHasAnnotation(hierarchy, annotation), nil
 	default:
 		return false, nil
 	}
 }
 
-func (h *Handler) lineHasSubscriptionSyncIgnoreAnnotation(line *billing.Line) bool {
+func (h *Handler) lineHasAnnotation(line *billing.Line, annotation string) bool {
 	if line.ManagedBy != billing.SubscriptionManagedLine {
 		// We only correct the period start for subscription managed lines, for manual edits
 		// we should not apply this logic, as the user might have created a setup where the period start
@@ -438,31 +448,16 @@ func (h *Handler) lineHasSubscriptionSyncIgnoreAnnotation(line *billing.Line) bo
 		return false
 	}
 
-	if line.Annotations == nil {
-		// If the previous line is not annotated to be frozen we should not correct the period start
-		return false
-	}
-
-	val, ok := line.Annotations[billing.AnnotationSubscriptionSyncIgnore]
-	if !ok {
-		return false
-	}
-
-	boolVal, ok := val.(bool)
-	if !ok {
-		return false
-	}
-
-	return boolVal
+	return line.Annotations.GetBool(annotation)
 }
 
-func (h *Handler) hierarchyHasSubscriptionSyncIgnoreAnnotation(hierarchy *billing.SplitLineHierarchy) bool {
+func (h *Handler) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, annotation string) bool {
 	servicePeriod := hierarchy.Group.ServicePeriod
 
 	// The correction can only happen if the last line the progressively billed group is in scope for the period correction
 	for _, line := range hierarchy.Lines {
 		if line.Line.Period.End.Equal(servicePeriod.End) {
-			return h.lineHasSubscriptionSyncIgnoreAnnotation(line.Line)
+			return h.lineHasAnnotation(line.Line, annotation)
 		}
 	}
 
@@ -760,11 +755,11 @@ func (h *Handler) getPatchesForExistingLineOrHierarchy(existingLine billing.Line
 
 func (h *Handler) getPatchesForExistingLine(existingLine *billing.Line, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// Lines can be manually marked as ignored in syncing, which is used for cases where we're doing backwards incompatible changes
-	if ignore, ok := expectedLine.Annotations[billing.AnnotationSubscriptionSyncIgnore]; ok && ignore == true {
+	if expectedLine.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 		return nil, nil
 	}
 
-	if ignore, ok := existingLine.Annotations[billing.AnnotationSubscriptionSyncIgnore]; ok && ignore == true {
+	if existingLine.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 		return nil, nil
 	}
 

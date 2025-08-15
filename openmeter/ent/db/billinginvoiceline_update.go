@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // BillingInvoiceLineUpdate is the builder for updating BillingInvoiceLine entities.
@@ -41,7 +42,7 @@ func (_u *BillingInvoiceLineUpdate) Where(ps ...predicate.BillingInvoiceLine) *B
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *BillingInvoiceLineUpdate) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineUpdate {
+func (_u *BillingInvoiceLineUpdate) SetAnnotations(v models.Annotations) *BillingInvoiceLineUpdate {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }
@@ -1318,7 +1319,7 @@ type BillingInvoiceLineUpdateOne struct {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *BillingInvoiceLineUpdateOne) SetAnnotations(v map[string]interface{}) *BillingInvoiceLineUpdateOne {
+func (_u *BillingInvoiceLineUpdateOne) SetAnnotations(v models.Annotations) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }

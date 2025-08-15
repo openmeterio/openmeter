@@ -83,14 +83,14 @@ func (u *AddonUpdateOne) SetOrClearEffectiveTo(value *time.Time) *AddonUpdateOne
 	return u.SetEffectiveTo(*value)
 }
 
-func (u *AddonUpdate) SetOrClearAnnotations(value *map[string]interface{}) *AddonUpdate {
+func (u *AddonUpdate) SetOrClearAnnotations(value *models.Annotations) *AddonUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *AddonUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *AddonUpdateOne {
+func (u *AddonUpdateOne) SetOrClearAnnotations(value *models.Annotations) *AddonUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
@@ -993,14 +993,14 @@ func (u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetOrClearIndex(value *int) *
 	return u.SetIndex(*value)
 }
 
-func (u *BillingInvoiceLineUpdate) SetOrClearAnnotations(value *map[string]interface{}) *BillingInvoiceLineUpdate {
+func (u *BillingInvoiceLineUpdate) SetOrClearAnnotations(value *models.Annotations) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *BillingInvoiceLineUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *BillingInvoiceLineUpdateOne {
+func (u *BillingInvoiceLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *BillingInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
@@ -1889,14 +1889,14 @@ func (u *CustomerUpdateOne) SetOrClearBillingAddressPhoneNumber(value *string) *
 	return u.SetBillingAddressPhoneNumber(*value)
 }
 
-func (u *CustomerUpdate) SetOrClearAnnotations(value *map[string]interface{}) *CustomerUpdate {
+func (u *CustomerUpdate) SetOrClearAnnotations(value *models.Annotations) *CustomerUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *CustomerUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *CustomerUpdateOne {
+func (u *CustomerUpdateOne) SetOrClearAnnotations(value *models.Annotations) *CustomerUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
@@ -2057,14 +2057,14 @@ func (u *EntitlementUpdateOne) SetOrClearCurrentUsagePeriodEnd(value *time.Time)
 	return u.SetCurrentUsagePeriodEnd(*value)
 }
 
-func (u *EntitlementUpdate) SetOrClearAnnotations(value *map[string]interface{}) *EntitlementUpdate {
+func (u *EntitlementUpdate) SetOrClearAnnotations(value *models.Annotations) *EntitlementUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *EntitlementUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *EntitlementUpdateOne {
+func (u *EntitlementUpdateOne) SetOrClearAnnotations(value *models.Annotations) *EntitlementUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
@@ -2281,14 +2281,14 @@ func (u *NotificationChannelUpdateOne) SetOrClearDisabled(value *bool) *Notifica
 	return u.SetDisabled(*value)
 }
 
-func (u *NotificationEventUpdate) SetOrClearAnnotations(value *map[string]interface{}) *NotificationEventUpdate {
+func (u *NotificationEventUpdate) SetOrClearAnnotations(value *models.Annotations) *NotificationEventUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *NotificationEventUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *NotificationEventUpdateOne {
+func (u *NotificationEventUpdateOne) SetOrClearAnnotations(value *models.Annotations) *NotificationEventUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
@@ -2421,14 +2421,14 @@ func (u *PlanAddonUpdateOne) SetOrClearMetadata(value *map[string]string) *PlanA
 	return u.SetMetadata(*value)
 }
 
-func (u *PlanAddonUpdate) SetOrClearAnnotations(value *map[string]interface{}) *PlanAddonUpdate {
+func (u *PlanAddonUpdate) SetOrClearAnnotations(value *models.Annotations) *PlanAddonUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *PlanAddonUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *PlanAddonUpdateOne {
+func (u *PlanAddonUpdateOne) SetOrClearAnnotations(value *models.Annotations) *PlanAddonUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
@@ -2841,14 +2841,14 @@ func (u *SubscriptionItemUpdateOne) SetOrClearMetadata(value *map[string]string)
 	return u.SetMetadata(*value)
 }
 
-func (u *SubscriptionItemUpdate) SetOrClearAnnotations(value *map[string]interface{}) *SubscriptionItemUpdate {
+func (u *SubscriptionItemUpdate) SetOrClearAnnotations(value *models.Annotations) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *SubscriptionItemUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *SubscriptionItemUpdateOne {
+func (u *SubscriptionItemUpdateOne) SetOrClearAnnotations(value *models.Annotations) *SubscriptionItemUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
@@ -3079,14 +3079,14 @@ func (u *SubscriptionPhaseUpdateOne) SetOrClearSortHint(value *uint8) *Subscript
 	return u.SetSortHint(*value)
 }
 
-func (u *UsageResetUpdate) SetOrClearAnnotations(value *map[string]interface{}) *UsageResetUpdate {
+func (u *UsageResetUpdate) SetOrClearAnnotations(value *models.Annotations) *UsageResetUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *UsageResetUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *UsageResetUpdateOne {
+func (u *UsageResetUpdateOne) SetOrClearAnnotations(value *models.Annotations) *UsageResetUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}

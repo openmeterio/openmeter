@@ -248,7 +248,7 @@ func (_u *CustomerUpdate) ClearBillingAddressPhoneNumber() *CustomerUpdate {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *CustomerUpdate) SetAnnotations(v map[string]interface{}) *CustomerUpdate {
+func (_u *CustomerUpdate) SetAnnotations(v models.Annotations) *CustomerUpdate {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }
@@ -1088,7 +1088,7 @@ func (_u *CustomerUpdateOne) ClearBillingAddressPhoneNumber() *CustomerUpdateOne
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *CustomerUpdateOne) SetAnnotations(v map[string]interface{}) *CustomerUpdateOne {
+func (_u *CustomerUpdateOne) SetAnnotations(v models.Annotations) *CustomerUpdateOne {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }

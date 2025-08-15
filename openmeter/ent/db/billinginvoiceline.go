@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // BillingInvoiceLine is the model entity for the BillingInvoiceLine schema.
@@ -30,7 +31,7 @@ type BillingInvoiceLine struct {
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
 	// Annotations holds the value of the "annotations" field.
-	Annotations map[string]interface{} `json:"annotations,omitempty"`
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// Metadata holds the value of the "metadata" field.

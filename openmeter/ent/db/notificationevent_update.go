@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NotificationEventUpdate is the builder for updating NotificationEvent entities.
@@ -43,7 +44,7 @@ func (_u *NotificationEventUpdate) SetNillablePayload(v *string) *NotificationEv
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *NotificationEventUpdate) SetAnnotations(v map[string]interface{}) *NotificationEventUpdate {
+func (_u *NotificationEventUpdate) SetAnnotations(v models.Annotations) *NotificationEventUpdate {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }
@@ -235,7 +236,7 @@ func (_u *NotificationEventUpdateOne) SetNillablePayload(v *string) *Notificatio
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *NotificationEventUpdateOne) SetAnnotations(v map[string]interface{}) *NotificationEventUpdateOne {
+func (_u *NotificationEventUpdateOne) SetAnnotations(v models.Annotations) *NotificationEventUpdateOne {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }

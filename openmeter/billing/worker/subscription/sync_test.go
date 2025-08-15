@@ -3499,7 +3499,8 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 			line := s.getLineByChildID(*invoice, draftLineReferenceID)
 
 			line.Annotations = models.Annotations{
-				billing.AnnotationSubscriptionSyncIgnore: true,
+				billing.AnnotationSubscriptionSyncIgnore:               true,
+				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
 			}
 
 			return nil
@@ -3515,7 +3516,8 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 			line := s.getLineByChildID(*invoice, gatheringLineReferenceID)
 
 			line.Annotations = models.Annotations{
-				billing.AnnotationSubscriptionSyncIgnore: true,
+				billing.AnnotationSubscriptionSyncIgnore:               true,
+				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
 			}
 
 			gatheringInvoiceIgnoredLine = line.Clone()
@@ -3558,7 +3560,8 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	expectedInvoice.Lines = expectedInvoice.Lines.Map(func(line *billing.Line) *billing.Line {
 		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == draftLineReferenceID {
 			line.Annotations = models.Annotations{
-				billing.AnnotationSubscriptionSyncIgnore: true,
+				billing.AnnotationSubscriptionSyncIgnore:               true,
+				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
 			}
 		}
 
@@ -3673,7 +3676,8 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 			line := s.getLineByChildID(*invoice, markedLineReferenceID)
 
 			line.Annotations = models.Annotations{
-				billing.AnnotationSubscriptionSyncIgnore: true,
+				billing.AnnotationSubscriptionSyncIgnore:               true,
+				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
 			}
 
 			return nil
@@ -4514,7 +4518,8 @@ func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithm
 			line.Period.Start = s.mustParseTime("2025-01-31T00:00:00Z")
 			line.Period.End = s.mustParseTime("2025-03-02T00:00:00Z")
 			line.Annotations = models.Annotations{
-				billing.AnnotationSubscriptionSyncIgnore: true,
+				billing.AnnotationSubscriptionSyncIgnore:               true,
+				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
 			}
 
 			invoice.Lines = billing.NewLineChildren([]*billing.Line{

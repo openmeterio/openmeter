@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // UsageResetUpdate is the builder for updating UsageReset entities.
@@ -29,7 +30,7 @@ func (_u *UsageResetUpdate) Where(ps ...predicate.UsageReset) *UsageResetUpdate 
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *UsageResetUpdate) SetAnnotations(v map[string]interface{}) *UsageResetUpdate {
+func (_u *UsageResetUpdate) SetAnnotations(v models.Annotations) *UsageResetUpdate {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }
@@ -163,7 +164,7 @@ type UsageResetUpdateOne struct {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_u *UsageResetUpdateOne) SetAnnotations(v map[string]interface{}) *UsageResetUpdateOne {
+func (_u *UsageResetUpdateOne) SetAnnotations(v models.Annotations) *UsageResetUpdateOne {
 	_u.mutation.SetAnnotations(v)
 	return _u
 }

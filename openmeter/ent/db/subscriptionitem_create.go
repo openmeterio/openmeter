@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // SubscriptionItemCreate is the builder for creating a SubscriptionItem entity.
@@ -84,7 +85,7 @@ func (_c *SubscriptionItemCreate) SetMetadata(v map[string]string) *Subscription
 }
 
 // SetAnnotations sets the "annotations" field.
-func (_c *SubscriptionItemCreate) SetAnnotations(v map[string]interface{}) *SubscriptionItemCreate {
+func (_c *SubscriptionItemCreate) SetAnnotations(v models.Annotations) *SubscriptionItemCreate {
 	_c.mutation.SetAnnotations(v)
 	return _c
 }
@@ -724,7 +725,7 @@ func (u *SubscriptionItemUpsert) ClearMetadata() *SubscriptionItemUpsert {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *SubscriptionItemUpsert) SetAnnotations(v map[string]interface{}) *SubscriptionItemUpsert {
+func (u *SubscriptionItemUpsert) SetAnnotations(v models.Annotations) *SubscriptionItemUpsert {
 	u.Set(subscriptionitem.FieldAnnotations, v)
 	return u
 }
@@ -1098,7 +1099,7 @@ func (u *SubscriptionItemUpsertOne) ClearMetadata() *SubscriptionItemUpsertOne {
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *SubscriptionItemUpsertOne) SetAnnotations(v map[string]interface{}) *SubscriptionItemUpsertOne {
+func (u *SubscriptionItemUpsertOne) SetAnnotations(v models.Annotations) *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetAnnotations(v)
 	})
@@ -1685,7 +1686,7 @@ func (u *SubscriptionItemUpsertBulk) ClearMetadata() *SubscriptionItemUpsertBulk
 }
 
 // SetAnnotations sets the "annotations" field.
-func (u *SubscriptionItemUpsertBulk) SetAnnotations(v map[string]interface{}) *SubscriptionItemUpsertBulk {
+func (u *SubscriptionItemUpsertBulk) SetAnnotations(v models.Annotations) *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetAnnotations(v)
 	})

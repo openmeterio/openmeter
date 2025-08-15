@@ -902,19 +902,20 @@ func FromMetadata(metadata models.Metadata) *api.Metadata {
 	return &result
 }
 
+func FromValidationAttributes(attrs models.Attributes) *api.Annotations {
+	if len(attrs) == 0 {
+		return nil
+	}
+
+	return lo.ToPtr((api.Annotations)(attrs))
+}
+
 func FromAnnotations(annotations models.Annotations) *api.Annotations {
 	if len(annotations) == 0 {
 		return nil
 	}
 
-	result := make(api.Annotations)
-	if len(annotations) > 0 {
-		for k, v := range annotations {
-			result[k] = v
-		}
-	}
-
-	return &result
+	return lo.ToPtr((api.Annotations)(annotations))
 }
 
 func FromValidationErrors(issues models.ValidationIssues) *[]api.ValidationError {
@@ -929,7 +930,7 @@ func FromValidationErrors(issues models.ValidationIssues) *[]api.ValidationError
 			Message:    issue.Message(),
 			Field:      issue.Field().JSONPath(),
 			Code:       string(issue.Code()),
-			Attributes: FromAnnotations(issue.Attributes()),
+			Attributes: FromValidationAttributes(issue.Attributes()),
 		})
 	}
 

@@ -464,6 +464,7 @@ $$ LANGUAGE plpgsql VOLATILE;
 -- Let's run the migration
 SELECT om_func_update_usage_period_durations_batch(2000, NOW());
 
+-- Warning: If you want to reuse this please make sure that you also add billing.subscription.sync.force-continuous-lines: true
 UPDATE billing_invoice_lines
 SET
     annotations = CASE

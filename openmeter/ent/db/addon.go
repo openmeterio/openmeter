@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Addon is the model entity for the Addon schema.
@@ -46,7 +47,7 @@ type Addon struct {
 	// EffectiveTo holds the value of the "effective_to" field.
 	EffectiveTo *time.Time `json:"effective_to,omitempty"`
 	// Annotations holds the value of the "annotations" field.
-	Annotations map[string]interface{} `json:"annotations,omitempty"`
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AddonQuery when eager-loading is set.
 	Edges        AddonEdges `json:"edges"`

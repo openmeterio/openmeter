@@ -660,7 +660,7 @@ func (_q *BillingInvoiceLineQuery) WithSubscriptionItem(opts ...func(*Subscripti
 // Example:
 //
 //	var v []struct {
-//		Annotations map[string]interface {} `json:"annotations,omitempty"`
+//		Annotations models.Annotations `json:"annotations,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -683,7 +683,7 @@ func (_q *BillingInvoiceLineQuery) GroupBy(field string, fields ...string) *Bill
 // Example:
 //
 //	var v []struct {
-//		Annotations map[string]interface {} `json:"annotations,omitempty"`
+//		Annotations models.Annotations `json:"annotations,omitempty"`
 //	}
 //
 //	client.BillingInvoiceLine.Query().
