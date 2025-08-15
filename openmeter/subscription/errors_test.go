@@ -197,15 +197,9 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 		byts, err := json.MarshalIndent(exts, "", "  ")
 		require.NoError(t, err)
 
-		require.Len(t, issues, 5, "got %s", string(byts))
+		require.Len(t, issues, 4, "got %s", string(byts))
 
 		require.ElementsMatch(t, []models.ErrorExtension{
-			{
-				"code":     subscription.ErrCodeSubscriptionBillingAnchorIsInvalid,
-				"field":    models.NewFieldSelectors(models.NewFieldSelector("billingAnchor")),
-				"message":  "billing anchor must be before subscription start and normalized to the closest iteration before subscription start",
-				"severity": "critical",
-			},
 			{
 				"code": subscription.ErrCodeSubscriptionPhaseStartAfterIsNegative,
 				"field": models.NewFieldSelectors(
@@ -274,12 +268,6 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 			exts := mappedIssues.AsErrorExtensions()
 
 			require.ElementsMatch(t, []models.ErrorExtension{
-				{
-					"code":     subscription.ErrCodeSubscriptionBillingAnchorIsInvalid,
-					"field":    models.NewFieldSelectors(models.NewFieldSelector("billingAnchor")),
-					"message":  "billing anchor must be before subscription start and normalized to the closest iteration before subscription start",
-					"severity": "critical",
-				},
 				{
 					"code": subscription.ErrCodeSubscriptionPhaseStartAfterIsNegative,
 					"field": models.NewFieldSelectors(

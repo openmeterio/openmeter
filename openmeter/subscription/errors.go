@@ -66,14 +66,6 @@ var ErrSubscriptionBillingAnchorIsRequired = models.NewValidationIssue(
 	models.WithFieldString("billingAnchor"),
 )
 
-const ErrCodeSubscriptionBillingAnchorIsInvalid models.ErrorCode = "subscription_billing_anchor_is_invalid"
-
-var ErrSubscriptionBillingAnchorIsInvalid = models.NewValidationIssue(
-	ErrCodeSubscriptionBillingAnchorIsInvalid,
-	"billing anchor must be before subscription start and normalized to the closest iteration before subscription start",
-	models.WithFieldString("billingAnchor"),
-)
-
 // Phase
 
 const ErrCodeSubscriptionPhaseStartAfterIsNegative models.ErrorCode = "subscription_phase_start_after_is_negative"

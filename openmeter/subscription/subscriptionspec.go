@@ -301,15 +301,6 @@ func (s *SubscriptionSpec) Validate() error {
 		errs = append(errs, ErrSubscriptionBillingAnchorIsRequired)
 	}
 
-	// - is normalized to the closest iteration before subscriptiion start
-	if s.BillingAnchor.After(s.ActiveFrom) {
-		errs = append(errs, ErrSubscriptionBillingAnchorIsInvalid)
-	}
-
-	if next, _ := s.BillingCadence.AddTo(s.BillingAnchor); next.Before(s.ActiveFrom) {
-		errs = append(errs, ErrSubscriptionBillingAnchorIsInvalid)
-	}
-
 	sortedPhases := s.GetSortedPhases()
 	for idx, phase := range sortedPhases {
 		// Let's validate that if there are phases with the same start time, they have sort hint present
