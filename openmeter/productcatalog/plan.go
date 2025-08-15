@@ -68,6 +68,8 @@ func ValidatePlanPhases() models.ValidatorFunc[Plan] {
 			return ErrPlanWithNoPhases
 		}
 
+		phaseKeys := make(map[string]struct{}, len(p.Phases))
+
 		lastPhaseIdx := len(p.Phases) - 1
 
 		for idx, phase := range p.Phases {
@@ -87,6 +89,20 @@ func ValidatePlanPhases() models.ValidatorFunc[Plan] {
 					errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, ErrPlanHasLastPhaseWithDuration))
 				}
 			}
+
+			// Check for duplicated phase keys
+			if _, ok := phaseKeys[phase.Key]; ok {
+				selector := models.NewFieldSelectors(
+					models.NewFieldSelector("phases").
+						WithExpression(
+							models.NewFieldAttrValue("key", phase.Key),
+						),
+					models.NewFieldSelector("key"),
+				)
+
+				errs = append(errs, models.ErrorWithFieldPrefix(selector, ErrPlanPhaseDuplicatedKey))
+			}
+			phaseKeys[phase.Key] = struct{}{}
 
 			if err := phase.Validate(); err != nil {
 				errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, err))
