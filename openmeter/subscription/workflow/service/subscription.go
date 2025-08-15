@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
@@ -51,16 +50,6 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 
 		// Let's normalize the billing anchor to the closest iteration based on the cadence
 		billingAnchor := lo.FromPtrOr(inp.BillingAnchor, activeFrom).UTC()
-
-		billingRecurrence, err := timeutil.NewRecurrenceFromISODuration(plan.ToCreateSubscriptionPlanInput().BillingCadence, billingAnchor)
-		if err != nil {
-			return def, fmt.Errorf("failed to get billing recurrence: %w", err)
-		}
-
-		billingAnchor, err = billingRecurrence.PrevBefore(activeFrom, timeutil.Inclusive)
-		if err != nil {
-			return def, fmt.Errorf("failed to get billing anchor: %w", err)
-		}
 
 		// Let's create the new Spec
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{

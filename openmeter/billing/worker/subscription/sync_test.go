@@ -3,24 +3,19 @@ package billingworkersubscription
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -32,99 +27,22 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
 type SubscriptionHandlerTestSuite struct {
-	billingtest.BaseSuite
-
-	billingtest.SubscriptionMixin
-
-	Namespace               string
-	Customer                *customer.Customer
-	APIRequestsTotalFeature feature.Feature
-	Context                 context.Context
-
-	Handler *Handler
+	SuiteBase
 }
 
 func (s *SubscriptionHandlerTestSuite) SetupSuite() {
-	s.BaseSuite.SetupSuite()
-	s.SubscriptionMixin.SetupSuite(s.T(), s.GetSubscriptionMixInDependencies())
-
-	handler, err := New(Config{
-		BillingService:      s.BillingService,
-		Logger:              slog.Default(),
-		Tracer:              noop.NewTracerProvider().Tracer("test"),
-		TxCreator:           s.BillingAdapter,
-		SubscriptionService: s.SubscriptionService,
-	})
-	s.NoError(err)
-
-	s.Handler = handler
+	s.SuiteBase.SetupSuite()
 }
 
 func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
-	s.Namespace = "test-subs-update-" + ulid.Make().String()
-	// TODO: go 1.24, let's use T()'s context
-	s.Context = context.Background()
-
-	ctx := s.Context
-
-	appSandbox := s.InstallSandboxApp(s.T(), s.Namespace)
-
-	s.ProvisionBillingProfile(ctx, s.Namespace, appSandbox.GetID())
-
-	apiRequestsTotalMeterSlug := "api-requests-total"
-
-	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
-		{
-			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: s.Namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
-				Name: "API Requests Total",
-			},
-			Key:           apiRequestsTotalMeterSlug,
-			Aggregation:   meter.MeterAggregationSum,
-			EventType:     "test",
-			ValueProperty: lo.ToPtr("$.value"),
-		},
-	})
-	s.NoError(err, "Replacing meters must not return error")
-
-	apiRequestsTotalFeatureKey := "api-requests-total"
-
-	apiRequestsTotalFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
-		Namespace: s.Namespace,
-		Name:      "api-requests-total",
-		Key:       apiRequestsTotalFeatureKey,
-		MeterSlug: lo.ToPtr("api-requests-total"),
-	})
-	s.NoError(err)
-	s.APIRequestsTotalFeature = apiRequestsTotalFeature
-
-	customerEntity := s.CreateTestCustomer(s.Namespace, "test")
-	require.NotNil(s.T(), customerEntity)
-	require.NotEmpty(s.T(), customerEntity.ID)
-
-	s.Customer = customerEntity
+	s.SuiteBase.BeforeTest(s.T().Context(), suiteName, testName)
 }
 
 func (s *SubscriptionHandlerTestSuite) AfterTest(suiteName, testName string) {
-	clock.UnFreeze()
-	clock.ResetTime()
-
-	err := s.MeterAdapter.ReplaceMeters(s.Context, []meter.Meter{})
-	s.NoError(err, "Replacing meters must not return error")
-
-	s.MockStreamingConnector.Reset()
-	s.Handler.featureFlags = FeatureFlags{}
+	s.SuiteBase.AfterTest(s.T().Context(), suiteName, testName)
 }
 
 func TestSubscriptionHandlerScenarios(t *testing.T) {
@@ -137,7 +55,7 @@ func (s *SubscriptionHandlerTestSuite) mustParseTime(t string) time.Time {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	namespace := s.Namespace
 	start := s.mustParseTime("2024-01-01T00:00:00.123456Z")
 	clock.SetTime(start)
@@ -255,10 +173,10 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	s.NoError(err)
 	s.NotNil(subsView)
 
-	freeTierPhase := getPhaseByKey(s.T(), subsView, "free-trial")
+	freeTierPhase := s.getPhaseByKey(s.T(), subsView, "free-trial")
 	s.Equal(lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")), freeTierPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].Spec.RateCard.GetBillingCadence())
 
-	discountedPhase := getPhaseByKey(s.T(), subsView, "discounted-phase")
+	discountedPhase := s.getPhaseByKey(s.T(), subsView, "discounted-phase")
 	var gatheringInvoiceID billing.InvoiceID
 
 	// let's provision the first set of items
@@ -737,7 +655,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmountProrated() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 	s.enableProrating()
 
@@ -830,7 +748,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmount() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -964,7 +882,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmount() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -1091,7 +1009,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountProrated() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 	s.enableProrating()
 
@@ -1225,7 +1143,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProrated() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 	s.enableProrating()
 
@@ -1394,7 +1312,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoiceProrated() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 	s.enableProrating()
 
@@ -1570,7 +1488,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 }
 
 func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -1642,7 +1560,7 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -1918,7 +1836,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	startTime := s.mustParseTime("2024-01-01T00:00:00Z")
 	clock.FreezeTime(startTime)
 	defer clock.UnFreeze()
@@ -2053,7 +1971,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBillingCancellation() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	startTime := s.mustParseTime("2024-01-01T00:00:00Z")
 	clock.FreezeTime(startTime)
 	defer clock.UnFreeze()
@@ -2252,7 +2170,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceOneTimeFeeSyncing() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -2308,7 +2226,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -2426,7 +2344,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -2559,7 +2477,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -2765,7 +2683,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 }
 
 func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -2916,7 +2834,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 }
 
 func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -3185,7 +3103,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -3256,7 +3174,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 	s.enableProgressiveBilling()
 
@@ -3362,7 +3280,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -3430,7 +3348,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -3615,7 +3533,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriodChanges() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -3717,7 +3635,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 }
 
 func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 	s.enableProgressiveBilling()
 
@@ -3830,7 +3748,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -3910,7 +3828,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscriptionCreation() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	// Given
@@ -3989,7 +3907,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscriptionCreationWithSubscriptionStartInFuture() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z")) // This will be the future
 
 	// Given
@@ -4077,7 +3995,7 @@ func (s *SubscriptionHandlerTestSuite) expectValidationIssueForLine(line *billin
 }
 
 func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
 	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
@@ -4216,7 +4134,7 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 }
 
 func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 	defer clock.UnFreeze()
 
@@ -4475,7 +4393,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 }
 
 func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithmChange() {
-	ctx := s.Context
+	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2025-01-31T00:00:00Z"))
 	defer clock.UnFreeze()
 
@@ -4588,354 +4506,4 @@ func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithm
 			}),
 		},
 	})
-}
-
-type expectedLine struct {
-	Matcher   lineMatcher
-	Qty       mo.Option[float64]
-	Price     mo.Option[*productcatalog.Price]
-	Periods   []billing.Period
-	InvoiceAt mo.Option[[]time.Time]
-}
-
-func (s *SubscriptionHandlerTestSuite) expectLines(invoice billing.Invoice, subscriptionID string, expectedLines []expectedLine) {
-	s.T().Helper()
-
-	lines := invoice.Lines.OrEmpty()
-
-	existingLineChildIDs := lo.Map(lines, func(line *billing.Line, _ int) string {
-		return lo.FromPtrOr(line.ChildUniqueReferenceID, line.ID)
-	})
-
-	expectedLineIds := lo.Flatten(lo.Map(expectedLines, func(expectedLine expectedLine, _ int) []string {
-		return expectedLine.Matcher.ChildIDs(subscriptionID)
-	}))
-
-	s.ElementsMatch(expectedLineIds, existingLineChildIDs)
-
-	for _, expectedLine := range expectedLines {
-		childIDs := expectedLine.Matcher.ChildIDs(subscriptionID)
-		for idx, childID := range childIDs {
-			line, found := lo.Find(lines, func(line *billing.Line) bool {
-				return lo.FromPtrOr(line.ChildUniqueReferenceID, line.ID) == childID
-			})
-			s.Truef(found, "line not found with child id %s", childID)
-			s.NotNil(line)
-
-			if expectedLine.Qty.IsPresent() {
-				if line.UsageBased == nil {
-					s.Failf("usage based line not found", "line not found with child id %s", childID)
-				} else if line.UsageBased.Quantity == nil {
-					s.Failf("usage based line quantity not found", "line not found with child id %s", childID)
-				} else {
-					s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), "%s: quantity", childID)
-				}
-			}
-
-			if expectedLine.Price.IsPresent() {
-				s.Equal(billing.InvoiceLineTypeUsageBased, line.Type, "%s: line type", childID)
-				s.Equal(*expectedLine.Price.OrEmpty(), *line.UsageBased.Price, "%s: price", childID)
-			}
-
-			s.Equal(expectedLine.Periods[idx].Start, line.Period.Start, "%s: period start", childID)
-			s.Equal(expectedLine.Periods[idx].End, line.Period.End, "%s: period end", childID)
-
-			if expectedLine.InvoiceAt.IsPresent() {
-				s.Equal(expectedLine.InvoiceAt.OrEmpty()[idx], line.InvoiceAt, "%s: invoice at", childID)
-			}
-		}
-	}
-}
-
-type lineMatcher interface {
-	ChildIDs(subsID string) []string
-}
-
-type recurringLineMatcher struct {
-	PhaseKey  string
-	ItemKey   string
-	Version   int
-	PeriodMin int
-	PeriodMax int
-}
-
-func (m recurringLineMatcher) ChildIDs(subsID string) []string {
-	out := []string{}
-	for periodID := m.PeriodMin; periodID <= m.PeriodMax; periodID++ {
-		out = append(out, fmt.Sprintf("%s/%s/%s/v[%d]/period[%d]", subsID, m.PhaseKey, m.ItemKey, m.Version, periodID))
-	}
-
-	return out
-}
-
-type oneTimeLineMatcher struct {
-	PhaseKey string
-	ItemKey  string
-	Version  int
-}
-
-func (m oneTimeLineMatcher) ChildIDs(subsID string) []string {
-	return []string{fmt.Sprintf("%s/%s/%s/v[%d]", subsID, m.PhaseKey, m.ItemKey, m.Version)}
-}
-
-// helpers
-
-//nolint:unparam
-func (s *SubscriptionHandlerTestSuite) phaseMeta(key string, duration string) productcatalog.PhaseMeta {
-	out := productcatalog.PhaseMeta{
-		Key:  key,
-		Name: key,
-	}
-
-	if duration != "" {
-		out.Duration = lo.ToPtr(datetime.MustParseDuration(s.T(), duration))
-	}
-
-	return out
-}
-
-func (s *SubscriptionHandlerTestSuite) enableProgressiveBilling() {
-	s.updateProfile(func(profile *billing.Profile) {
-		profile.WorkflowConfig.Invoicing.ProgressiveBilling = true
-	})
-}
-
-func (s *SubscriptionHandlerTestSuite) updateProfile(modify func(profile *billing.Profile)) {
-	defaultProfile, err := s.BillingService.GetDefaultProfile(s.Context, billing.GetDefaultProfileInput{
-		Namespace: s.Namespace,
-	})
-	s.NoError(err)
-
-	modify(defaultProfile)
-
-	defaultProfile.AppReferences = nil
-
-	_, err = s.BillingService.UpdateProfile(s.Context, billing.UpdateProfileInput(defaultProfile.BaseProfile))
-	s.NoError(err)
-}
-
-type subscriptionAddItem struct {
-	PhaseKey       string
-	ItemKey        string
-	Price          *productcatalog.Price
-	BillingCadence *datetime.ISODuration
-	FeatureKey     string
-	TaxConfig      *productcatalog.TaxConfig
-}
-
-func (i subscriptionAddItem) AsPatch() subscription.Patch {
-	var rc productcatalog.RateCard
-
-	meta := productcatalog.RateCardMeta{
-		Name:       i.ItemKey,
-		Key:        i.ItemKey,
-		Price:      i.Price,
-		FeatureKey: lo.EmptyableToPtr(i.FeatureKey),
-		TaxConfig:  i.TaxConfig,
-	}
-
-	switch {
-	case i.Price == nil:
-		rc = &productcatalog.FlatFeeRateCard{
-			RateCardMeta:   meta,
-			BillingCadence: i.BillingCadence,
-		}
-	case i.Price.Type() == productcatalog.FlatPriceType:
-		rc = &productcatalog.FlatFeeRateCard{
-			RateCardMeta:   meta,
-			BillingCadence: i.BillingCadence,
-		}
-	default:
-		rc = &productcatalog.UsageBasedRateCard{
-			RateCardMeta:   meta,
-			BillingCadence: *i.BillingCadence,
-		}
-	}
-
-	return patch.PatchAddItem{
-		PhaseKey: i.PhaseKey,
-		ItemKey:  i.ItemKey,
-		CreateInput: subscription.SubscriptionItemSpec{
-			CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
-				CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
-					PhaseKey: i.PhaseKey,
-					ItemKey:  i.ItemKey,
-					RateCard: rc,
-				},
-			},
-		},
-	}
-}
-
-func (s *SubscriptionHandlerTestSuite) generatePeriods(startStr, endStr string, cadenceStr string, n int) []billing.Period { //nolint: unparam
-	start := s.mustParseTime(startStr)
-	end := s.mustParseTime(endStr)
-	cadence := datetime.MustParseDuration(s.T(), cadenceStr)
-
-	out := []billing.Period{}
-
-	for n != 0 {
-		out = append(out, billing.Period{
-			Start: start,
-			End:   end,
-		})
-
-		start, _ = cadence.AddTo(start)
-		end, _ = cadence.AddTo(end)
-
-		n--
-	}
-	return out
-}
-
-// populateChildIDsFromParents copies over the child ID from the parent line, if it's not already set
-// as line splitting doesn't set the child ID on child lines to prevent conflicts if multiple split lines
-// end up on a single invoice.
-func (s *SubscriptionHandlerTestSuite) populateChildIDsFromParents(invoice *billing.Invoice) {
-	for _, line := range invoice.Lines.OrEmpty() {
-		if line.ChildUniqueReferenceID == nil && line.SplitLineGroupID != nil {
-			line.ChildUniqueReferenceID = line.SplitLineHierarchy.Group.UniqueReferenceID
-		}
-	}
-}
-
-// helpers
-
-func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlanPhases(phases []productcatalog.Phase) subscription.SubscriptionView {
-	planInput := plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: s.Namespace,
-		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:           "Test Plan",
-				Key:            "test-plan",
-				Version:        1,
-				Currency:       currency.USD,
-				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-				ProRatingConfig: productcatalog.ProRatingConfig{
-					Enabled: true,
-					Mode:    productcatalog.ProRatingModeProratePrices,
-				},
-			},
-			Phases: phases,
-		},
-	}
-
-	return s.createSubscriptionFromPlan(planInput)
-}
-
-func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlan(planInput plan.CreatePlanInput) subscription.SubscriptionView {
-	ctx := s.Context
-
-	plan, err := s.PlanService.CreatePlan(ctx, planInput)
-	s.NoError(err)
-
-	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, s.Namespace, productcatalogsubscription.PlanRefInput{
-		Key:     plan.Key,
-		Version: lo.ToPtr(1),
-	})
-	s.NoError(err)
-
-	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
-		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
-			Timing: subscription.Timing{
-				Custom: lo.ToPtr(clock.Now()),
-			},
-			Name: "subs-1",
-		},
-		Namespace:  s.Namespace,
-		CustomerID: s.Customer.ID,
-	}, subscriptionPlan)
-
-	s.NoError(err)
-	s.NotNil(subsView)
-	return subsView
-}
-
-func (s *SubscriptionHandlerTestSuite) timingImmediate() subscription.Timing {
-	return subscription.Timing{
-		Enum: lo.ToPtr(subscription.TimingImmediate),
-	}
-}
-
-func getPhaseByKey(t *testing.T, subsView subscription.SubscriptionView, key string) subscription.SubscriptionPhaseView {
-	for _, phase := range subsView.Phases {
-		if phase.SubscriptionPhase.Key == key {
-			return phase
-		}
-	}
-
-	t.Fatalf("phase with key %s not found", key)
-	return subscription.SubscriptionPhaseView{}
-}
-
-func (s *SubscriptionHandlerTestSuite) gatheringInvoice(ctx context.Context, namespace string, customerID string) billing.Invoice {
-	s.T().Helper()
-
-	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces: []string{namespace},
-		Customers:  []string{customerID},
-		Page: pagination.Page{
-			PageSize:   10,
-			PageNumber: 1,
-		},
-		Expand: billing.InvoiceExpandAll,
-		Statuses: []string{
-			string(billing.InvoiceStatusGathering),
-		},
-	})
-
-	s.NoError(err)
-	s.Len(invoices.Items, 1)
-	return invoices.Items[0]
-}
-
-func (s *SubscriptionHandlerTestSuite) expectNoGatheringInvoice(ctx context.Context, namespace string, customerID string) {
-	s.T().Helper()
-
-	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces: []string{namespace},
-		Customers:  []string{customerID},
-		Page: pagination.Page{
-			PageSize:   10,
-			PageNumber: 1,
-		},
-		Expand: billing.InvoiceExpandAll,
-		Statuses: []string{
-			string(billing.InvoiceStatusGathering),
-		},
-	})
-
-	s.NoError(err)
-	s.Len(invoices.Items, 0)
-}
-
-func (s *SubscriptionHandlerTestSuite) enableProrating() {
-	s.Handler.featureFlags.EnableFlatFeeInAdvanceProrating = true
-	s.Handler.featureFlags.EnableFlatFeeInArrearsProrating = true
-}
-
-func (s *SubscriptionHandlerTestSuite) getLineByChildID(invoice billing.Invoice, childID string) *billing.Line {
-	s.T().Helper()
-
-	for _, line := range invoice.Lines.OrEmpty() {
-		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == childID {
-			return line
-		}
-	}
-
-	s.Failf("line not found", "line with child id %s not found", childID)
-
-	return nil
-}
-
-func (s *SubscriptionHandlerTestSuite) expectNoLineWithChildID(invoice billing.Invoice, childID string) {
-	s.T().Helper()
-
-	for _, line := range invoice.Lines.OrEmpty() {
-		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == childID {
-			s.Failf("line found", "line with child id %s found", childID)
-		}
-	}
 }

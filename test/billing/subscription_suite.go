@@ -52,6 +52,7 @@ type SubscriptionMixin struct {
 	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionPlanAdapter     subscriptiontestutils.PlanSubscriptionAdapter
 	SubscriptionWorkflowService subscriptionworkflow.Service
+	EntitlementConnector        entitlement.Connector
 }
 
 type SubscriptionMixInDependencies struct {
@@ -120,6 +121,8 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	subsRepo := subscriptionrepo.NewSubscriptionRepo(deps.DBClient)
 	subsItemRepo := subscriptionrepo.NewSubscriptionItemRepo(deps.DBClient)
 
+	s.EntitlementConnector = s.SetupEntitlements(t, deps)
+
 	s.SubscriptionService = subscriptionservice.New(subscriptionservice.ServiceConfig{
 		SubscriptionRepo:      subsRepo,
 		SubscriptionPhaseRepo: subscriptionrepo.NewSubscriptionPhaseRepo(deps.DBClient),
@@ -129,7 +132,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		FeatureService:  deps.FeatureService,
 		// adapters
 		EntitlementAdapter: subscriptionentitlementadatapter.NewSubscriptionEntitlementAdapter(
-			s.SetupEntitlements(t, deps),
+			s.EntitlementConnector,
 			subsItemRepo,
 			subsRepo,
 		),
