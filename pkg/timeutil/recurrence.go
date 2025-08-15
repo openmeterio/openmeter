@@ -14,7 +14,7 @@ type Recurrence struct {
 	Interval RecurrenceInterval `json:"interval"`
 	// Anchor can be an arbitrary anchor time for the recurrence.
 	// It does not have to be the last or the next time.
-	Anchor time.Time `json:"anchor"`
+	Anchor time.Time
 }
 
 func (r Recurrence) Validate() error {
