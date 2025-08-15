@@ -357,18 +357,24 @@ func TestGetPeriodAt(t *testing.T) {
 		want       timeutil.ClosedPeriod
 	}{
 		{
-			name:       "Should return next period if time falls on recurrence period",
-			recurrence: timeutil.MustNewRecurrence(t, timeutil.RecurrencePeriodDaily, now.AddDate(0, 0, -1)),
-			time:       now,
+			name: "Should return next period if time falls on recurrence period",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -1),
+			},
+			time: now,
 			want: timeutil.ClosedPeriod{
 				From: now,
 				To:   now.AddDate(0, 0, 1),
 			},
 		},
 		{
-			name:       "Should return containing period in general case",
-			recurrence: timeutil.MustNewRecurrence(t, timeutil.RecurrencePeriodDaily, now.AddDate(0, 0, -1)),
-			time:       now.Add(-time.Hour),
+			name: "Should return containing period in general case",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -1),
+			},
+			time: now.Add(-time.Hour),
 			want: timeutil.ClosedPeriod{
 				From: now.AddDate(0, 0, -1),
 				To:   now,
