@@ -76,7 +76,7 @@ func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.C
 
 	for _, grant := range grantsWithRecurrence {
 		it, err := grant.Recurrence.IterateFromNextAfter(
-			timeutil.Later(grant.EffectiveAt, period.From),
+			lo.Latest(grant.EffectiveAt, period.From),
 			timeutil.Inclusive,
 		)
 		if err != nil {
