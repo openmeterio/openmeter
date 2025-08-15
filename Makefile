@@ -140,6 +140,12 @@ test: ## Run tests
 	PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres postgres -c "SELECT version();" || (echo "!!! Postgres is not running. Please start it with 'docker compose up -d postgres' !!!" && false)
 	go test ${GO_TEST_FLAGS} ./...
 
+.PHONY: test-nocache
+test-nocache: ## Run tests without cache
+	$(call print-target)
+	PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres postgres -c "SELECT version();" || (echo "!!! Postgres is not running. Please start it with 'docker compose up -d postgres' !!!" && false)
+	go test ${GO_TEST_FLAGS} -count=1 ./...
+
 .PHONY: test-all
 test-all: ## Run tests with svix dependencies, bypassing the test cache
 	$(call print-target)

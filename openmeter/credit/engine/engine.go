@@ -61,10 +61,3 @@ type engine struct {
 
 // Ensure engine implements Engine
 var _ Engine = (*engine)(nil)
-
-func later(t1 time.Time, t2 time.Time) time.Time {
-	if t1.After(t2) {
-		return t1
-	}
-	return t2
-}

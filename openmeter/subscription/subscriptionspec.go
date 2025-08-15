@@ -253,7 +253,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.Clo
 	// TODO(galexi, OM-1418): implement reanchoring
 
 	// We will use the subscription billing anchor as the cadence anchor
-	billingRecurrence, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(s.BillingCadence), s.BillingAnchor)
+	billingRecurrence, err := timeutil.NewRecurrenceFromISODuration(s.BillingCadence, s.BillingAnchor)
 	if err != nil {
 		return def, fmt.Errorf("failed to get billing recurrence for phase %s: %w", phase.PhaseKey, err)
 	}
@@ -815,7 +815,7 @@ func (s SubscriptionItemSpec) GetFullServicePeriodAt(
 		}, nil
 	}
 
-	rec, err := timeutil.RecurrenceFromISODuration(billingCadence, alignedBillingAnchor)
+	rec, err := timeutil.NewRecurrenceFromISODuration(*billingCadence, alignedBillingAnchor)
 	if err != nil {
 		return timeutil.ClosedPeriod{}, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 	}
@@ -922,7 +922,7 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 		scheduleInput.IssueAfterReset = tpl.IssueAfterReset
 		scheduleInput.IssueAfterResetPriority = tpl.IssueAfterResetPriority
 		scheduleInput.PreserveOverageAtReset = tpl.PreserveOverageAtReset
-		rec, err := timeutil.RecurrenceFromISODuration(&tpl.UsagePeriod, truncatedAnchorTime)
+		rec, err := timeutil.NewRecurrenceFromISODuration(tpl.UsagePeriod, truncatedAnchorTime)
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 		}

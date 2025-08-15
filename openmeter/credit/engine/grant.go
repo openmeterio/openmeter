@@ -75,17 +75,20 @@ func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.C
 	}
 
 	for _, grant := range grantsWithRecurrence {
-		i, err := grant.Recurrence.NextAfter(later(grant.EffectiveAt, period.From))
+		it, err := grant.Recurrence.IterateFromNextAfter(
+			timeutil.Later(grant.EffectiveAt, period.From),
+			timeutil.Inclusive,
+		)
 		if err != nil {
 			return nil, err
 		}
 		// writing all reccurence times until grant is active or period ends
-		for i.Before(period.To) && grant.ActiveAt(i) {
+		for it.At.Before(period.To) && grant.ActiveAt(it.At) {
 			times = append(times, struct {
 				time    time.Time
 				grantID string
-			}{time: i, grantID: grant.ID})
-			i, err = grant.Recurrence.Next(i)
+			}{time: it.At, grantID: grant.ID})
+			it, err = it.Next()
 			if err != nil {
 				return nil, err
 			}

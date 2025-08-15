@@ -104,12 +104,12 @@ func TestCreateFromPlan(t *testing.T) {
 
 				billingAnchor := activeFrom.Add(time.Hour)
 
-				cadRec, err := timeutil.RecurrenceFromISODuration(lo.ToPtr(cad), billingAnchor)
+				cadRec, err := timeutil.NewRecurrenceFromISODuration(cad, billingAnchor)
 				require.Nil(t, err)
 
 				// Let's set an anchor one hour after the activeFrom, which will then be set to one iteration before
 
-				expectedBillingAnchor, err := cadRec.Prev(billingAnchor)
+				expectedBillingAnchor, err := cadRec.Iterator().Prev()
 				require.Nil(t, err)
 
 				subView, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
