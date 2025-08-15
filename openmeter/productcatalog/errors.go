@@ -454,6 +454,15 @@ var ErrPlanPhaseDurationLessThenAnHour = models.NewValidationIssue(
 	models.WithWarningSeverity(),
 )
 
+const ErrCodePlanPhaseDuplicatedKey models.ErrorCode = "plan_phase_duplicated_key"
+
+var ErrPlanPhaseDuplicatedKey = models.NewValidationIssue(
+	ErrCodePlanPhaseDuplicatedKey,
+	"duplicated key",
+	models.WithFieldString("key"),
+	models.WithCriticalSeverity(),
+)
+
 const ErrCodePlanInvalidStatus models.ErrorCode = "plan_invalid_status"
 
 var ErrPlanInvalidStatus = models.NewValidationIssue(
