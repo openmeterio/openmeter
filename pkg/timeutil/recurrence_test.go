@@ -22,11 +22,14 @@ func TestNextAfter(t *testing.T) {
 		want       time.Time
 	}{
 		{
-			name:       "Should return time if its same as anchor",
-			recurrence: timeutil.MustNewRecurrence(t, timeutil.RecurrencePeriodDaily, now),
-			boundary:   timeutil.Inclusive,
-			time:       now,
-			want:       now,
+			name: "Should return time if its same as anchor",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   now,
+			},
+			boundary: timeutil.Inclusive,
+			time:     now,
+			want:     now,
 		},
 		{
 			name: "Should return time if it falls on recurrence period",
@@ -354,45 +357,60 @@ func TestGetPeriodAt(t *testing.T) {
 		want       timeutil.ClosedPeriod
 	}{
 		{
-			name:       "Should return next period if time falls on recurrence period",
-			recurrence: timeutil.MustNewRecurrence(t, timeutil.RecurrencePeriodDaily, now.AddDate(0, 0, -1)),
-			time:       now,
+			name: "Should return next period if time falls on recurrence period",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -1),
+			},
+			time: now,
 			want: timeutil.ClosedPeriod{
 				From: now,
 				To:   now.AddDate(0, 0, 1),
 			},
 		},
 		{
-			name:       "Should return containing period in general case",
-			recurrence: timeutil.MustNewRecurrence(t, timeutil.RecurrencePeriodDaily, now.AddDate(0, 0, -1)),
-			time:       now.Add(-time.Hour),
+			name: "Should return containing period in general case",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -1),
+			},
+			time: now.Add(-time.Hour),
 			want: timeutil.ClosedPeriod{
 				From: now.AddDate(0, 0, -1),
 				To:   now,
 			},
 		},
 		{
-			name:       "Correctly handles variable length months",
-			recurrence: timeutil.MustNewRecurrence(t, timeutil.RecurrencePeriodMonth, testutils.GetRFC3339Time(t, "2025-01-31T15:00:00Z")),
-			time:       testutils.GetRFC3339Time(t, "2025-08-13T20:00:00Z"),
+			name: "Correctly handles variable length months",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodMonth,
+				Anchor:   testutils.GetRFC3339Time(t, "2025-01-31T15:00:00Z"),
+			},
+			time: testutils.GetRFC3339Time(t, "2025-08-13T20:00:00Z"),
 			want: timeutil.ClosedPeriod{
 				From: testutils.GetRFC3339Time(t, "2025-07-31T15:00:00Z"),
 				To:   testutils.GetRFC3339Time(t, "2025-08-31T15:00:00Z"),
 			},
 		},
 		{
-			name:       "Correctly handles variable t being at the end of the period (we are exclusive at the end)",
-			recurrence: timeutil.MustNewRecurrence(t, timeutil.RecurrencePeriodMonth, testutils.GetRFC3339Time(t, "2025-01-31T15:00:00Z")),
-			time:       testutils.GetRFC3339Time(t, "2025-09-30T15:00:00Z"),
+			name: "Correctly handles variable t being at the end of the period (we are exclusive at the end)",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodMonth,
+				Anchor:   testutils.GetRFC3339Time(t, "2025-01-31T15:00:00Z"),
+			},
+			time: testutils.GetRFC3339Time(t, "2025-09-30T15:00:00Z"),
 			want: timeutil.ClosedPeriod{
 				From: testutils.GetRFC3339Time(t, "2025-09-30T15:00:00Z"),
 				To:   testutils.GetRFC3339Time(t, "2025-10-31T15:00:00Z"),
 			},
 		},
 		{
-			name:       "Correctly handles variable length months",
-			recurrence: timeutil.MustNewRecurrence(t, timeutil.RecurrencePeriodMonth, testutils.GetRFC3339Time(t, "2025-01-30T15:00:00Z")),
-			time:       testutils.GetRFC3339Time(t, "2025-02-13T20:00:00Z"),
+			name: "Correctly handles variable length months",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodMonth,
+				Anchor:   testutils.GetRFC3339Time(t, "2025-01-30T15:00:00Z"),
+			},
+			time: testutils.GetRFC3339Time(t, "2025-02-13T20:00:00Z"),
 			want: timeutil.ClosedPeriod{
 				From: testutils.GetRFC3339Time(t, "2025-01-30T15:00:00Z"),
 				To:   testutils.GetRFC3339Time(t, "2025-02-28T15:00:00Z"),

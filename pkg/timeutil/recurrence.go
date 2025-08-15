@@ -3,7 +3,6 @@ package timeutil
 import (
 	"errors"
 	"fmt"
-	"testing"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -12,10 +11,10 @@ import (
 const MAX_SAFE_ITERATIONS = 10000
 
 type Recurrence struct {
-	Interval RecurrenceInterval
+	Interval RecurrenceInterval `json:"interval"`
 	// Anchor can be an arbitrary anchor time for the recurrence.
 	// It does not have to be the last or the next time.
-	Anchor time.Time
+	Anchor time.Time `json:"anchor"`
 }
 
 func (r Recurrence) Validate() error {
@@ -338,12 +337,4 @@ func NewRecurrence(p RecurrenceInterval, anchor time.Time) (Recurrence, error) {
 	}
 
 	return rec, nil
-}
-
-func MustNewRecurrence(t *testing.T, p RecurrenceInterval, anchor time.Time) Recurrence {
-	rec, err := NewRecurrence(p, anchor)
-	if err != nil {
-		t.Fatalf("failed to create recurrence: %v", err)
-	}
-	return rec
 }

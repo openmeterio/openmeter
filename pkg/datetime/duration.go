@@ -180,40 +180,70 @@ func (p ISODuration) Mul(n int) (ISODuration, error) {
 
 // convertPeriodToSeconds converts a period to total seconds using decimal precision
 func convertPeriodToSeconds(p period.Period, daysInMonth int, hoursInDays int) (decimal.Decimal, error) {
-	zero := decimal.MustNew(0, 0)
+	zero := decimal.Zero
+
+	yearsMul, err := decimal.New(int64(daysInMonth*12*hoursInDays*3600), 0)
+	if err != nil {
+		return zero, err
+	}
 
 	// Convert years to seconds: years * (daysInMonth * 12) * hoursInDays * 3600
-	years, err := p.YearsDecimal().Mul(decimal.MustNew(int64(daysInMonth*12*hoursInDays*3600), 0))
+	years, err := p.YearsDecimal().Mul(yearsMul)
+	if err != nil {
+		return zero, err
+	}
+
+	monthsMul, err := decimal.New(int64(daysInMonth*hoursInDays*3600), 0)
 	if err != nil {
 		return zero, err
 	}
 
 	// Convert months to seconds: months * daysInMonth * hoursInDays * 3600
-	months, err := p.MonthsDecimal().Mul(decimal.MustNew(int64(daysInMonth*hoursInDays*3600), 0))
+	months, err := p.MonthsDecimal().Mul(monthsMul)
+	if err != nil {
+		return zero, err
+	}
+
+	weeksMul, err := decimal.New(int64(7*hoursInDays*3600), 0)
 	if err != nil {
 		return zero, err
 	}
 
 	// Convert weeks to seconds: weeks * 7 * hoursInDays * 3600
-	weeks, err := p.WeeksDecimal().Mul(decimal.MustNew(int64(7*hoursInDays*3600), 0))
+	weeks, err := p.WeeksDecimal().Mul(weeksMul)
 	if err != nil {
 		return zero, err
 	}
 
 	// Convert days to seconds: days * hoursInDays * 3600
-	days, err := p.DaysDecimal().Mul(decimal.MustNew(int64(hoursInDays*3600), 0))
+	daysMul, err := decimal.New(int64(hoursInDays*3600), 0)
+	if err != nil {
+		return zero, err
+	}
+
+	days, err := p.DaysDecimal().Mul(daysMul)
 	if err != nil {
 		return zero, err
 	}
 
 	// Convert hours to seconds: hours * 3600
-	hours, err := p.HoursDecimal().Mul(decimal.MustNew(3600, 0))
+	hoursMul, err := decimal.New(int64(3600), 0)
+	if err != nil {
+		return zero, err
+	}
+
+	hours, err := p.HoursDecimal().Mul(hoursMul)
 	if err != nil {
 		return zero, err
 	}
 
 	// Convert minutes to seconds: minutes * 60
-	minutes, err := p.MinutesDecimal().Mul(decimal.MustNew(60, 0))
+	minutesMul, err := decimal.New(int64(60), 0)
+	if err != nil {
+		return zero, err
+	}
+
+	minutes, err := p.MinutesDecimal().Mul(minutesMul)
 	if err != nil {
 		return zero, err
 	}
