@@ -1,6 +1,8 @@
 package slicesx
 
-import "errors"
+import (
+	"errors"
+)
 
 // Map maps elements of a slice from T to M, returning a new slice.
 func Map[T any, S any](s []T, f func(T) S) []S {
