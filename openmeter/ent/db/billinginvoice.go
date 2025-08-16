@@ -150,6 +150,8 @@ type BillingInvoiceEdges struct {
 	BillingWorkflowConfig *BillingWorkflowConfig `json:"billing_workflow_config,omitempty"`
 	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
 	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
+	// DetailedLines holds the value of the detailed_lines edge.
+	DetailedLines []*BillingInvoiceDetailedLine `json:"detailed_lines,omitempty"`
 	// BillingInvoiceValidationIssues holds the value of the billing_invoice_validation_issues edge.
 	BillingInvoiceValidationIssues []*BillingInvoiceValidationIssue `json:"billing_invoice_validation_issues,omitempty"`
 	// BillingInvoiceCustomer holds the value of the billing_invoice_customer edge.
@@ -162,7 +164,7 @@ type BillingInvoiceEdges struct {
 	PaymentApp *App `json:"payment_app,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [8]bool
+	loadedTypes [9]bool
 }
 
 // SourceBillingProfileOrErr returns the SourceBillingProfile value or an error if the edge
@@ -196,10 +198,19 @@ func (e BillingInvoiceEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, 
 	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
 }
 
+// DetailedLinesOrErr returns the DetailedLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceEdges) DetailedLinesOrErr() ([]*BillingInvoiceDetailedLine, error) {
+	if e.loadedTypes[3] {
+		return e.DetailedLines, nil
+	}
+	return nil, &NotLoadedError{edge: "detailed_lines"}
+}
+
 // BillingInvoiceValidationIssuesOrErr returns the BillingInvoiceValidationIssues value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) BillingInvoiceValidationIssuesOrErr() ([]*BillingInvoiceValidationIssue, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.BillingInvoiceValidationIssues, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_validation_issues"}
@@ -210,7 +221,7 @@ func (e BillingInvoiceEdges) BillingInvoiceValidationIssuesOrErr() ([]*BillingIn
 func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
 	if e.BillingInvoiceCustomer != nil {
 		return e.BillingInvoiceCustomer, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_customer"}
@@ -221,7 +232,7 @@ func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
 func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
 	if e.TaxApp != nil {
 		return e.TaxApp, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_app"}
@@ -232,7 +243,7 @@ func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
 func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
 	if e.InvoicingApp != nil {
 		return e.InvoicingApp, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoicing_app"}
@@ -243,7 +254,7 @@ func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
 func (e BillingInvoiceEdges) PaymentAppOrErr() (*App, error) {
 	if e.PaymentApp != nil {
 		return e.PaymentApp, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment_app"}
@@ -674,6 +685,11 @@ func (_m *BillingInvoice) QueryBillingWorkflowConfig() *BillingWorkflowConfigQue
 // QueryBillingInvoiceLines queries the "billing_invoice_lines" edge of the BillingInvoice entity.
 func (_m *BillingInvoice) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
 	return NewBillingInvoiceClient(_m.config).QueryBillingInvoiceLines(_m)
+}
+
+// QueryDetailedLines queries the "detailed_lines" edge of the BillingInvoice entity.
+func (_m *BillingInvoice) QueryDetailedLines() *BillingInvoiceDetailedLineQuery {
+	return NewBillingInvoiceClient(_m.config).QueryDetailedLines(_m)
 }
 
 // QueryBillingInvoiceValidationIssues queries the "billing_invoice_validation_issues" edge of the BillingInvoice entity.

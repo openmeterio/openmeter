@@ -635,7 +635,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		}
 
 		line.Type = billing.InvoiceLineTypeUsageBased
-		line.UsageBased = &billing.UsageBasedLine{
+		line.UsageBased = billing.UsageBasedLine{
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      perUnitAmount,
 				PaymentTerm: price.PaymentTerm,
@@ -649,7 +649,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		}
 
 		line.Type = billing.InvoiceLineTypeUsageBased
-		line.UsageBased = &billing.UsageBasedLine{
+		line.UsageBased = billing.UsageBasedLine{
 			Price:      item.SubscriptionItem.RateCard.AsMeta().Price,
 			FeatureKey: *item.SubscriptionItem.RateCard.AsMeta().FeatureKey,
 		}

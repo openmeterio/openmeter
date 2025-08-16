@@ -14,6 +14,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -886,6 +887,21 @@ func (_u *BillingInvoiceUpdate) AddBillingInvoiceLines(v ...*BillingInvoiceLine)
 	return _u.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddDetailedLineIDs adds the "detailed_lines" edge to the BillingInvoiceDetailedLine entity by IDs.
+func (_u *BillingInvoiceUpdate) AddDetailedLineIDs(ids ...string) *BillingInvoiceUpdate {
+	_u.mutation.AddDetailedLineIDs(ids...)
+	return _u
+}
+
+// AddDetailedLines adds the "detailed_lines" edges to the BillingInvoiceDetailedLine entity.
+func (_u *BillingInvoiceUpdate) AddDetailedLines(v ...*BillingInvoiceDetailedLine) *BillingInvoiceUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddDetailedLineIDs(ids...)
+}
+
 // AddBillingInvoiceValidationIssueIDs adds the "billing_invoice_validation_issues" edge to the BillingInvoiceValidationIssue entity by IDs.
 func (_u *BillingInvoiceUpdate) AddBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceUpdate {
 	_u.mutation.AddBillingInvoiceValidationIssueIDs(ids...)
@@ -931,6 +947,27 @@ func (_u *BillingInvoiceUpdate) RemoveBillingInvoiceLines(v ...*BillingInvoiceLi
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceLineIDs(ids...)
+}
+
+// ClearDetailedLines clears all "detailed_lines" edges to the BillingInvoiceDetailedLine entity.
+func (_u *BillingInvoiceUpdate) ClearDetailedLines() *BillingInvoiceUpdate {
+	_u.mutation.ClearDetailedLines()
+	return _u
+}
+
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to BillingInvoiceDetailedLine entities by IDs.
+func (_u *BillingInvoiceUpdate) RemoveDetailedLineIDs(ids ...string) *BillingInvoiceUpdate {
+	_u.mutation.RemoveDetailedLineIDs(ids...)
+	return _u
+}
+
+// RemoveDetailedLines removes "detailed_lines" edges to BillingInvoiceDetailedLine entities.
+func (_u *BillingInvoiceUpdate) RemoveDetailedLines(v ...*BillingInvoiceDetailedLine) *BillingInvoiceUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveDetailedLineIDs(ids...)
 }
 
 // ClearBillingInvoiceValidationIssues clears all "billing_invoice_validation_issues" edges to the BillingInvoiceValidationIssue entity.
@@ -1356,6 +1393,51 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.DetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.DetailedLinesTable,
+			Columns: []string{billinginvoice.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicedetailedline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.DetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.DetailedLinesTable,
+			Columns: []string{billinginvoice.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicedetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.DetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.DetailedLinesTable,
+			Columns: []string{billinginvoice.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicedetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2280,6 +2362,21 @@ func (_u *BillingInvoiceUpdateOne) AddBillingInvoiceLines(v ...*BillingInvoiceLi
 	return _u.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddDetailedLineIDs adds the "detailed_lines" edge to the BillingInvoiceDetailedLine entity by IDs.
+func (_u *BillingInvoiceUpdateOne) AddDetailedLineIDs(ids ...string) *BillingInvoiceUpdateOne {
+	_u.mutation.AddDetailedLineIDs(ids...)
+	return _u
+}
+
+// AddDetailedLines adds the "detailed_lines" edges to the BillingInvoiceDetailedLine entity.
+func (_u *BillingInvoiceUpdateOne) AddDetailedLines(v ...*BillingInvoiceDetailedLine) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddDetailedLineIDs(ids...)
+}
+
 // AddBillingInvoiceValidationIssueIDs adds the "billing_invoice_validation_issues" edge to the BillingInvoiceValidationIssue entity by IDs.
 func (_u *BillingInvoiceUpdateOne) AddBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceUpdateOne {
 	_u.mutation.AddBillingInvoiceValidationIssueIDs(ids...)
@@ -2325,6 +2422,27 @@ func (_u *BillingInvoiceUpdateOne) RemoveBillingInvoiceLines(v ...*BillingInvoic
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceLineIDs(ids...)
+}
+
+// ClearDetailedLines clears all "detailed_lines" edges to the BillingInvoiceDetailedLine entity.
+func (_u *BillingInvoiceUpdateOne) ClearDetailedLines() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearDetailedLines()
+	return _u
+}
+
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to BillingInvoiceDetailedLine entities by IDs.
+func (_u *BillingInvoiceUpdateOne) RemoveDetailedLineIDs(ids ...string) *BillingInvoiceUpdateOne {
+	_u.mutation.RemoveDetailedLineIDs(ids...)
+	return _u
+}
+
+// RemoveDetailedLines removes "detailed_lines" edges to BillingInvoiceDetailedLine entities.
+func (_u *BillingInvoiceUpdateOne) RemoveDetailedLines(v ...*BillingInvoiceDetailedLine) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveDetailedLineIDs(ids...)
 }
 
 // ClearBillingInvoiceValidationIssues clears all "billing_invoice_validation_issues" edges to the BillingInvoiceValidationIssue entity.
@@ -2780,6 +2898,51 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.DetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.DetailedLinesTable,
+			Columns: []string{billinginvoice.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicedetailedline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.DetailedLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.DetailedLinesTable,
+			Columns: []string{billinginvoice.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicedetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.DetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.DetailedLinesTable,
+			Columns: []string{billinginvoice.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicedetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

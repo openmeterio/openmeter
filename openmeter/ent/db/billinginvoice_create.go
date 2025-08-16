@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -672,6 +673,21 @@ func (_c *BillingInvoiceCreate) AddBillingInvoiceLines(v ...*BillingInvoiceLine)
 	return _c.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddDetailedLineIDs adds the "detailed_lines" edge to the BillingInvoiceDetailedLine entity by IDs.
+func (_c *BillingInvoiceCreate) AddDetailedLineIDs(ids ...string) *BillingInvoiceCreate {
+	_c.mutation.AddDetailedLineIDs(ids...)
+	return _c
+}
+
+// AddDetailedLines adds the "detailed_lines" edges to the BillingInvoiceDetailedLine entity.
+func (_c *BillingInvoiceCreate) AddDetailedLines(v ...*BillingInvoiceDetailedLine) *BillingInvoiceCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddDetailedLineIDs(ids...)
+}
+
 // AddBillingInvoiceValidationIssueIDs adds the "billing_invoice_validation_issues" edge to the BillingInvoiceValidationIssue entity by IDs.
 func (_c *BillingInvoiceCreate) AddBillingInvoiceValidationIssueIDs(ids ...string) *BillingInvoiceCreate {
 	_c.mutation.AddBillingInvoiceValidationIssueIDs(ids...)
@@ -1180,6 +1196,22 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.DetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.DetailedLinesTable,
+			Columns: []string{billinginvoice.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicedetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

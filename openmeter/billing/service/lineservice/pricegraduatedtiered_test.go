@@ -197,7 +197,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Period:                 &ubpTestFullPeriod,
 					ChildUniqueReferenceID: MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billing.FlatFeeCategoryCommitment,
+					Category:               billing.DetailedLineCategoryCommitment,
 				},
 			},
 		})
@@ -226,7 +226,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Period:                 &ubpTestFullPeriod,
 					ChildUniqueReferenceID: MinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billing.FlatFeeCategoryCommitment,
+					Category:               billing.DetailedLineCategoryCommitment,
 				},
 			},
 		})
@@ -280,16 +280,14 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(3),
 					ChildUniqueReferenceID: "graduated-tiered-3-price-usage",
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Discounts: billing.LineDiscounts{
-						Amount: []billing.AmountLineDiscountManaged{
-							{
-								AmountLineDiscount: billing.AmountLineDiscount{
-									Amount: alpacadecimal.NewFromFloat(5),
-									LineDiscountBase: billing.LineDiscountBase{
-										Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
-										ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-										Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
-									},
+					AmountDiscounts: billing.AmountLineDiscountsManaged{
+						{
+							AmountLineDiscount: billing.AmountLineDiscount{
+								Amount: alpacadecimal.NewFromFloat(5),
+								LineDiscountBase: billing.LineDiscountBase{
+									Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
+									ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+									Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
 								},
 							},
 						},
@@ -301,16 +299,14 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(7),
 					ChildUniqueReferenceID: "graduated-tiered-4-price-usage",
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Discounts: billing.LineDiscounts{
-						Amount: []billing.AmountLineDiscountManaged{
-							{
-								AmountLineDiscount: billing.AmountLineDiscount{
-									Amount: alpacadecimal.NewFromFloat(7),
-									LineDiscountBase: billing.LineDiscountBase{
-										Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
-										ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-										Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
-									},
+					AmountDiscounts: billing.AmountLineDiscountsManaged{
+						{
+							AmountLineDiscount: billing.AmountLineDiscount{
+								Amount: alpacadecimal.NewFromFloat(7),
+								LineDiscountBase: billing.LineDiscountBase{
+									Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
+									ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+									Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
 								},
 							},
 						},

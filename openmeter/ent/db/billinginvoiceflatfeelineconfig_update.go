@@ -45,13 +45,13 @@ func (_u *BillingInvoiceFlatFeeLineConfigUpdate) SetNillablePerUnitAmount(v *alp
 }
 
 // SetCategory sets the "category" field.
-func (_u *BillingInvoiceFlatFeeLineConfigUpdate) SetCategory(v billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdate {
+func (_u *BillingInvoiceFlatFeeLineConfigUpdate) SetCategory(v billing.DetailedLineCategory) *BillingInvoiceFlatFeeLineConfigUpdate {
 	_u.mutation.SetCategory(v)
 	return _u
 }
 
 // SetNillableCategory sets the "category" field if the given value is not nil.
-func (_u *BillingInvoiceFlatFeeLineConfigUpdate) SetNillableCategory(v *billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdate {
+func (_u *BillingInvoiceFlatFeeLineConfigUpdate) SetNillableCategory(v *billing.DetailedLineCategory) *BillingInvoiceFlatFeeLineConfigUpdate {
 	if v != nil {
 		_u.SetCategory(*v)
 	}
@@ -211,13 +211,13 @@ func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillablePerUnitAmount(v *
 }
 
 // SetCategory sets the "category" field.
-func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetCategory(v billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetCategory(v billing.DetailedLineCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
 	_u.mutation.SetCategory(v)
 	return _u
 }
 
 // SetNillableCategory sets the "category" field if the given value is not nil.
-func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillableCategory(v *billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+func (_u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillableCategory(v *billing.DetailedLineCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
 	if v != nil {
 		_u.SetCategory(*v)
 	}

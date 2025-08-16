@@ -132,6 +132,8 @@ const (
 	EdgeBillingWorkflowConfig = "billing_workflow_config"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
+	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
+	EdgeDetailedLines = "detailed_lines"
 	// EdgeBillingInvoiceValidationIssues holds the string denoting the billing_invoice_validation_issues edge name in mutations.
 	EdgeBillingInvoiceValidationIssues = "billing_invoice_validation_issues"
 	// EdgeBillingInvoiceCustomer holds the string denoting the billing_invoice_customer edge name in mutations.
@@ -165,6 +167,13 @@ const (
 	BillingInvoiceLinesInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLinesColumn is the table column denoting the billing_invoice_lines relation/edge.
 	BillingInvoiceLinesColumn = "invoice_id"
+	// DetailedLinesTable is the table that holds the detailed_lines relation/edge.
+	DetailedLinesTable = "billing_invoice_detailed_lines"
+	// DetailedLinesInverseTable is the table name for the BillingInvoiceDetailedLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicedetailedline" package.
+	DetailedLinesInverseTable = "billing_invoice_detailed_lines"
+	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
+	DetailedLinesColumn = "invoice_id"
 	// BillingInvoiceValidationIssuesTable is the table that holds the billing_invoice_validation_issues relation/edge.
 	BillingInvoiceValidationIssuesTable = "billing_invoice_validation_issues"
 	// BillingInvoiceValidationIssuesInverseTable is the table name for the BillingInvoiceValidationIssue entity.
@@ -617,6 +626,20 @@ func ByBillingInvoiceLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOpti
 	}
 }
 
+// ByDetailedLinesCount orders the results by detailed_lines count.
+func ByDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newDetailedLinesStep(), opts...)
+	}
+}
+
+// ByDetailedLines orders the results by detailed_lines terms.
+func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByBillingInvoiceValidationIssuesCount orders the results by billing_invoice_validation_issues count.
 func ByBillingInvoiceValidationIssuesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -677,6 +700,13 @@ func newBillingInvoiceLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceLinesTable, BillingInvoiceLinesColumn),
+	)
+}
+func newDetailedLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(DetailedLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
 	)
 }
 func newBillingInvoiceValidationIssuesStep() *sqlgraph.Step {

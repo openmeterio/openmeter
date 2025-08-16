@@ -33,16 +33,17 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldNamespace,
-	FieldPerUnitAmount,
-	FieldCategory,
-	FieldPaymentTerm,
-	FieldIndex,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldPerUnitAmount, FieldCategory, FieldPaymentTerm, FieldIndex} {
+		if column == f {
 			return true
 		}
 	}
@@ -56,10 +57,10 @@ var (
 	DefaultID func() string
 )
 
-const DefaultCategory billing.FlatFeeCategory = "regular"
+const DefaultCategory billing.DetailedLineCategory = "regular"
 
 // CategoryValidator is a validator for the "category" field enum values. It is called by the builders before save.
-func CategoryValidator(c billing.FlatFeeCategory) error {
+func CategoryValidator(c billing.DetailedLineCategory) error {
 	switch c {
 	case "regular", "commitment":
 		return nil
