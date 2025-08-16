@@ -48,6 +48,10 @@ func (i LineDiscountBase) GetChildUniqueReferenceID() *string {
 	return i.ChildUniqueReferenceID
 }
 
+func (i LineDiscountBase) GetDescription() *string {
+	return i.Description
+}
+
 type LineDiscountBaseManaged struct {
 	models.ManagedModelWithID `json:",inline"`
 	LineDiscountBase          `json:",inline"`
