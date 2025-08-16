@@ -19,9 +19,6 @@ type UpdateInput struct {
 	InvoiceAt        time.Time
 	Status           billing.InvoiceLineStatus
 
-	// PreventChildChanges is used to prevent any child changes to the line by the adapter.
-	PreventChildChanges bool
-
 	ResetChildUniqueReferenceID bool
 }
 
@@ -200,11 +197,6 @@ func (l lineBase) Update(in UpdateInput) Line {
 	if in.Status != "" {
 		l.line.Status = in.Status
 	}
-
-	if in.PreventChildChanges {
-		l.line.Children = billing.LineChildren{}
-	}
-
 	if in.SplitLineGroupID != "" {
 		l.line.SplitLineGroupID = lo.ToPtr(in.SplitLineGroupID)
 	}

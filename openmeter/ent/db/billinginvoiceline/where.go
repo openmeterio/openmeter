@@ -1914,29 +1914,6 @@ func HasSplitLineGroupWith(preds ...predicate.BillingInvoiceSplitLineGroup) pred
 	})
 }
 
-// HasFlatFeeLine applies the HasEdge predicate on the "flat_fee_line" edge.
-func HasFlatFeeLine() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, FlatFeeLineTable, FlatFeeLineColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasFlatFeeLineWith applies the HasEdge predicate on the "flat_fee_line" edge with a given conditions (other predicates).
-func HasFlatFeeLineWith(preds ...predicate.BillingInvoiceFlatFeeLineConfig) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		step := newFlatFeeLineStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasUsageBasedLine applies the HasEdge predicate on the "usage_based_line" edge.
 func HasUsageBasedLine() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
@@ -1960,29 +1937,6 @@ func HasUsageBasedLineWith(preds ...predicate.BillingInvoiceUsageBasedLineConfig
 	})
 }
 
-// HasParentLine applies the HasEdge predicate on the "parent_line" edge.
-func HasParentLine() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ParentLineTable, ParentLineColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasParentLineWith applies the HasEdge predicate on the "parent_line" edge with a given conditions (other predicates).
-func HasParentLineWith(preds ...predicate.BillingInvoiceLine) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		step := newParentLineStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasDetailedLines applies the HasEdge predicate on the "detailed_lines" edge.
 func HasDetailedLines() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
@@ -1995,7 +1949,7 @@ func HasDetailedLines() predicate.BillingInvoiceLine {
 }
 
 // HasDetailedLinesWith applies the HasEdge predicate on the "detailed_lines" edge with a given conditions (other predicates).
-func HasDetailedLinesWith(preds ...predicate.BillingInvoiceLine) predicate.BillingInvoiceLine {
+func HasDetailedLinesWith(preds ...predicate.BillingInvoiceDetailedLine) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		step := newDetailedLinesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {

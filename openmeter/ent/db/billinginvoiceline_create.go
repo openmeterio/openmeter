@@ -15,7 +15,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
@@ -383,25 +383,6 @@ func (_c *BillingInvoiceLineCreate) SetSplitLineGroup(v *BillingInvoiceSplitLine
 	return _c.SetSplitLineGroupID(v.ID)
 }
 
-// SetFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID.
-func (_c *BillingInvoiceLineCreate) SetFlatFeeLineID(id string) *BillingInvoiceLineCreate {
-	_c.mutation.SetFlatFeeLineID(id)
-	return _c
-}
-
-// SetNillableFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID if the given value is not nil.
-func (_c *BillingInvoiceLineCreate) SetNillableFlatFeeLineID(id *string) *BillingInvoiceLineCreate {
-	if id != nil {
-		_c = _c.SetFlatFeeLineID(*id)
-	}
-	return _c
-}
-
-// SetFlatFeeLine sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
-func (_c *BillingInvoiceLineCreate) SetFlatFeeLine(v *BillingInvoiceFlatFeeLineConfig) *BillingInvoiceLineCreate {
-	return _c.SetFlatFeeLineID(v.ID)
-}
-
 // SetUsageBasedLineID sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity by ID.
 func (_c *BillingInvoiceLineCreate) SetUsageBasedLineID(id string) *BillingInvoiceLineCreate {
 	_c.mutation.SetUsageBasedLineID(id)
@@ -421,19 +402,14 @@ func (_c *BillingInvoiceLineCreate) SetUsageBasedLine(v *BillingInvoiceUsageBase
 	return _c.SetUsageBasedLineID(v.ID)
 }
 
-// SetParentLine sets the "parent_line" edge to the BillingInvoiceLine entity.
-func (_c *BillingInvoiceLineCreate) SetParentLine(v *BillingInvoiceLine) *BillingInvoiceLineCreate {
-	return _c.SetParentLineID(v.ID)
-}
-
-// AddDetailedLineIDs adds the "detailed_lines" edge to the BillingInvoiceLine entity by IDs.
+// AddDetailedLineIDs adds the "detailed_lines" edge to the BillingInvoiceDetailedLine entity by IDs.
 func (_c *BillingInvoiceLineCreate) AddDetailedLineIDs(ids ...string) *BillingInvoiceLineCreate {
 	_c.mutation.AddDetailedLineIDs(ids...)
 	return _c
 }
 
-// AddDetailedLines adds the "detailed_lines" edges to the BillingInvoiceLine entity.
-func (_c *BillingInvoiceLineCreate) AddDetailedLines(v ...*BillingInvoiceLine) *BillingInvoiceLineCreate {
+// AddDetailedLines adds the "detailed_lines" edges to the BillingInvoiceDetailedLine entity.
+func (_c *BillingInvoiceLineCreate) AddDetailedLines(v ...*BillingInvoiceDetailedLine) *BillingInvoiceLineCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -746,6 +722,10 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
 		_node.ManagedBy = value
 	}
+	if value, ok := _c.mutation.ParentLineID(); ok {
+		_spec.SetField(billinginvoiceline.FieldParentLineID, field.TypeString, value)
+		_node.ParentLineID = &value
+	}
 	if value, ok := _c.mutation.InvoiceAt(); ok {
 		_spec.SetField(billinginvoiceline.FieldInvoiceAt, field.TypeTime, value)
 		_node.InvoiceAt = value
@@ -816,23 +796,6 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_node.SplitLineGroupID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.FlatFeeLineIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   billinginvoiceline.FlatFeeLineTable,
-			Columns: []string{billinginvoiceline.FlatFeeLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.fee_line_config_id = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
 	if nodes := _c.mutation.UsageBasedLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -850,23 +813,6 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_node.usage_based_line_config_id = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.ParentLineIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billinginvoiceline.ParentLineTable,
-			Columns: []string{billinginvoiceline.ParentLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ParentLineID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
 	if nodes := _c.mutation.DetailedLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -875,7 +821,7 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 			Columns: []string{billinginvoiceline.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicedetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
