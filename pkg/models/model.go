@@ -30,6 +30,18 @@ type ManagedResource struct {
 	Name        string  `json:"name"`
 }
 
+func (m ManagedResource) GetID() string {
+	return m.ID
+}
+
+func (m ManagedResource) GetDescription() *string {
+	return m.Description
+}
+
+func (m ManagedResource) GetName() string {
+	return m.Name
+}
+
 type ManagedResourceInput struct {
 	ID          string
 	Namespace   string
@@ -152,6 +164,18 @@ func (m ManagedModel) Equal(other ManagedModel) bool {
 	return true
 }
 
+func (m ManagedModel) GetCreatedAt() time.Time {
+	return m.CreatedAt
+}
+
+func (m ManagedModel) GetUpdatedAt() time.Time {
+	return m.UpdatedAt
+}
+
+func (m ManagedModel) GetDeletedAt() *time.Time {
+	return m.DeletedAt
+}
+
 type ManagedModelWithID struct {
 	ManagedModel `json:",inline" mapstructure:",squash"`
 	ID           string `json:"id"`
@@ -187,6 +211,10 @@ func (m NamespacedModel) Validate() error {
 	}
 
 	return nil
+}
+
+func (m NamespacedModel) GetNamespace() string {
+	return m.Namespace
 }
 
 type Address struct {

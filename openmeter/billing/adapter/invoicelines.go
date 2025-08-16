@@ -187,8 +187,8 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 
 				create := tx.BillingInvoiceLineUsageDiscount.Create().
 					SetID(discount.ID).
-					SetNamespace(d.Line.Namespace).
-					SetLineID(d.Line.ID).
+					SetNamespace(d.Parent.GetNamespace()).
+					SetLineID(d.Parent.GetID()).
 					SetReason(discount.Reason.Type()).
 					SetReasonDetails(lo.ToPtr(discount.Reason)).
 					SetQuantity(discount.Quantity).
@@ -233,8 +233,8 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 
 				create := tx.BillingInvoiceLineDiscount.Create().
 					SetID(discount.ID).
-					SetNamespace(d.Line.Namespace).
-					SetLineID(d.Line.ID).
+					SetNamespace(d.Parent.GetNamespace()).
+					SetLineID(d.Parent.GetID()).
 					SetReason(discount.Reason.Type()).
 					SetSourceDiscount(lo.ToPtr(discount.Reason)).
 					SetAmount(discount.Amount).

@@ -297,11 +297,13 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					{
 						// Covered case: standalone flat line
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "Fee",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeFee,
-							Name:      "Fee",
 						},
 						FlatFee: &billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(100),
@@ -313,11 +315,13 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					{
 						// Covered case: Discount caused by maximum amount
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - FLAT per unit",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - FLAT per unit",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.flatPerUnit.Key,
@@ -332,11 +336,13 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					{
 						// Covered case: Very small per unit amount, high quantity, rounding to two decimal places
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - AI Usecase",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - AI Usecase",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.aiFlatPerUnit.Key,
@@ -348,11 +354,13 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					{
 						// Covered case: Flat line represented as UBP item
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - FLAT per any usage",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - FLAT per any usage",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.flatPerUsage.Key,
@@ -366,11 +374,13 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					{
 						// Covered case: Multiple lines per item, tier boundary is fractional
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - Tiered graduated",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - Tiered graduated",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
@@ -401,11 +411,13 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					{
 						// Covered case: minimum amount charges
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - Tiered volume",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - Tiered volume",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredVolume.Key,
@@ -1100,11 +1112,13 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 			Lines: []*billing.Line{
 				{
 					LineBase: billing.LineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "UBP - FLAT per unit",
+						}),
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
 						InvoiceAt: periodEnd,
 						ManagedBy: billing.ManuallyManagedLine,
 						Type:      billing.InvoiceLineTypeUsageBased,
-						Name:      "UBP - FLAT per unit",
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: flatPerUnitFeature.Key,

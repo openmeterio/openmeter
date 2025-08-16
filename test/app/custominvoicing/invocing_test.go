@@ -180,14 +180,15 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 					}),
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "Test item - HUF",
+							}),
 							Period: billing.Period{Start: periodStart, End: periodEnd},
 
 							InvoiceAt: issueAt,
 							ManagedBy: billing.ManuallyManagedLine,
 
 							Type: billing.InvoiceLineTypeUsageBased,
-
-							Name: "Test item - HUF",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{

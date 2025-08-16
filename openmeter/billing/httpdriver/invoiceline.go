@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/set"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -139,13 +140,15 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 
 	return &billing.Line{
 		LineBase: billing.LineBase{
-			Namespace: ns,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   ns,
+				Name:        line.Name,
+				Description: line.Description,
+			}),
 
-			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
-			Name:        line.Name,
-			Type:        billing.InvoiceLineTypeUsageBased,
-			Description: line.Description,
-			ManagedBy:   billing.ManuallyManagedLine,
+			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
+			Type:      billing.InvoiceLineTypeUsageBased,
+			ManagedBy: billing.ManuallyManagedLine,
 
 			Status: billing.InvoiceLineStatusValid, // This is not settable from outside
 			Period: billing.Period{
@@ -547,12 +550,14 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Line, e
 
 	return &billing.Line{
 		LineBase: billing.LineBase{
-			ID:          lo.FromPtr(line.Id),
-			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
-			Name:        line.Name,
-			Type:        billing.InvoiceLineTypeUsageBased,
-			Description: line.Description,
-			ManagedBy:   billing.ManuallyManagedLine,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				ID:          lo.FromPtr(line.Id),
+				Name:        line.Name,
+				Description: line.Description,
+			}),
+			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
+			Type:      billing.InvoiceLineTypeUsageBased,
+			ManagedBy: billing.ManuallyManagedLine,
 
 			Status: billing.InvoiceLineStatusValid,
 			Period: billing.Period{
@@ -588,13 +593,15 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 
 	return &billing.Line{
 		LineBase: billing.LineBase{
-			Namespace: invoice.Namespace,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   invoice.Namespace,
+				Name:        line.Name,
+				Description: line.Description,
+			}),
 
-			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
-			Name:        line.Name,
-			Description: line.Description,
-			ManagedBy:   billing.ManuallyManagedLine,
-			Status:      billing.InvoiceLineStatusValid,
+			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
+			ManagedBy: billing.ManuallyManagedLine,
+			Status:    billing.InvoiceLineStatusValid,
 
 			Type: billing.InvoiceLineTypeUsageBased,
 

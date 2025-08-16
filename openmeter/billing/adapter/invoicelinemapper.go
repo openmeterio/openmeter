@@ -130,12 +130,15 @@ func (a *adapter) fetchInvoiceLineNewReferences(ctx context.Context, parentIDs [
 func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine) (billing.Line, error) {
 	invoiceLine := billing.Line{
 		LineBase: billing.LineBase{
-			Namespace: dbLine.Namespace,
-			ID:        dbLine.ID,
-
-			CreatedAt: dbLine.CreatedAt.In(time.UTC),
-			UpdatedAt: dbLine.UpdatedAt.In(time.UTC),
-			DeletedAt: convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   dbLine.Namespace,
+				ID:          dbLine.ID,
+				CreatedAt:   dbLine.CreatedAt.In(time.UTC),
+				UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
+				DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
+				Name:        dbLine.Name,
+				Description: dbLine.Description,
+			}),
 
 			Metadata:    dbLine.Metadata,
 			Annotations: dbLine.Annotations,
@@ -153,9 +156,6 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
 
 			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
-
-			Name:        dbLine.Name,
-			Description: dbLine.Description,
 
 			Type:     dbLine.Type,
 			Currency: dbLine.Currency,

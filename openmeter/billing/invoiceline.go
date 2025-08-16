@@ -125,19 +125,12 @@ func (p Period) Duration() time.Duration {
 
 // LineBase represents the common fields for an invoice item.
 type LineBase struct {
-	Namespace string `json:"namespace,omitempty"`
-	ID        string `json:"id,omitempty"`
-
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt time.Time  `json:"updatedAt"`
-	DeletedAt *time.Time `json:"deletedAt,omitempty"`
+	models.ManagedResource
 
 	Metadata    map[string]string    `json:"metadata,omitempty"`
 	Annotations models.Annotations   `json:"annotations,omitempty"`
-	Name        string               `json:"name"`
 	Type        InvoiceLineType      `json:"type"`
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
-	Description *string              `json:"description,omitempty"`
 
 	InvoiceID string         `json:"invoiceID,omitempty"`
 	Currency  currencyx.Code `json:"currency"`
@@ -164,6 +157,13 @@ type LineBase struct {
 
 func (i LineBase) Equal(other LineBase) bool {
 	return reflect.DeepEqual(i, other)
+}
+
+func (i LineBase) GetParentID() (string, bool) {
+	if i.ParentLineID == nil {
+		return "", false
+	}
+	return *i.ParentLineID, true
 }
 
 func (i LineBase) Validate() error {
@@ -616,19 +616,21 @@ type NewFlatFeeLineInput struct {
 func NewFlatFeeLine(input NewFlatFeeLineInput) *Line {
 	return &Line{
 		LineBase: LineBase{
-			Namespace: input.Namespace,
-			ID:        input.ID,
-			CreatedAt: input.CreatedAt,
-			UpdatedAt: input.UpdatedAt,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   input.Namespace,
+				ID:          input.ID,
+				CreatedAt:   input.CreatedAt,
+				UpdatedAt:   input.UpdatedAt,
+				Name:        input.Name,
+				Description: input.Description,
+			}),
 
 			Period:    input.Period,
 			InvoiceAt: input.InvoiceAt,
 			InvoiceID: input.InvoiceID,
 
-			Name:        input.Name,
 			Metadata:    input.Metadata,
 			Annotations: input.Annotations,
-			Description: input.Description,
 
 			Status: InvoiceLineStatusValid,
 
@@ -673,19 +675,20 @@ func NewUsageBasedFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineO
 
 	return &Line{
 		LineBase: LineBase{
-			Namespace: input.Namespace,
-			ID:        input.ID,
-			CreatedAt: input.CreatedAt,
-			UpdatedAt: input.UpdatedAt,
-
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   input.Namespace,
+				ID:          input.ID,
+				CreatedAt:   input.CreatedAt,
+				UpdatedAt:   input.UpdatedAt,
+				Name:        input.Name,
+				Description: input.Description,
+			}),
 			Period:    input.Period,
 			InvoiceAt: input.InvoiceAt,
 			InvoiceID: input.InvoiceID,
 
-			Name:        input.Name,
 			Metadata:    input.Metadata,
 			Annotations: input.Annotations,
-			Description: input.Description,
 
 			Status: InvoiceLineStatusValid,
 

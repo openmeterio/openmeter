@@ -90,15 +90,17 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 				Lines: []*billing.Line{
 					{
 						LineBase: billing.LineBase{
-							Namespace: namespace,
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Namespace: namespace,
+								Name:      "Test item1",
+							}),
+							Period: billing.Period{Start: periodStart, End: periodEnd},
 
 							InvoiceAt: periodEnd,
 
 							Type:      billing.InvoiceLineTypeUsageBased,
 							ManagedBy: billing.ManuallyManagedLine,
 
-							Name:     "Test item1",
 							Currency: currencyx.Code(currency.USD),
 							RateCardDiscounts: billing.Discounts{
 								Percentage: &billing.PercentageDiscount{
@@ -285,15 +287,17 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 			Lines: []*billing.Line{
 				{
 					LineBase: billing.LineBase{
-						Namespace: namespace,
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Test item1",
+						}),
+						Period: billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: periodEnd,
 
 						Type:      billing.InvoiceLineTypeUsageBased,
 						ManagedBy: billing.ManuallyManagedLine,
 
-						Name:     "Test item1",
 						Currency: currencyx.Code(currency.USD),
 						RateCardDiscounts: billing.Discounts{
 							Usage: &billing.UsageDiscount{

@@ -30,21 +30,27 @@ func TestInvoiceLineDiffing(t *testing.T) {
 	template := []*billing.Line{
 		{
 			LineBase: billing.LineBase{
-				ID:   "1",
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					ID: "1",
+				}),
 				Type: billing.InvoiceLineTypeFee,
 			},
 			FlatFee: &billing.FlatFeeLine{},
 		},
 		{
 			LineBase: billing.LineBase{
-				ID:   "2",
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					ID: "2",
+				}),
 				Type: billing.InvoiceLineTypeUsageBased,
 			},
 			UsageBased: &billing.UsageBasedLine{},
 			Children: billing.NewLineChildren([]*billing.Line{
 				{
 					LineBase: billing.LineBase{
-						ID:   "2.1",
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							ID: "2.1",
+						}),
 						Type: billing.InvoiceLineTypeFee,
 					},
 					FlatFee:   &billing.FlatFeeLine{},
@@ -52,7 +58,9 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				},
 				{
 					LineBase: billing.LineBase{
-						ID:   "2.2",
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							ID: "2.2",
+						}),
 						Type: billing.InvoiceLineTypeFee,
 					},
 					FlatFee: &billing.FlatFeeLine{},
@@ -381,8 +389,8 @@ func mapLineDiffToIDs(in diff[*billing.Line]) idDiff {
 	}
 }
 
-func mapLineDiscountsToIDs(t *testing.T, discounts []withLine[billing.AmountLineDiscountManaged]) []string {
-	return lo.Map(discounts, func(d withLine[billing.AmountLineDiscountManaged], _ int) string {
+func mapLineDiscountsToIDs(t *testing.T, discounts []withParent[billing.AmountLineDiscountManaged, *billing.Line]) []string {
+	return lo.Map(discounts, func(d withParent[billing.AmountLineDiscountManaged, *billing.Line], _ int) string {
 		if d.Discount.Description != nil {
 			return *d.Discount.Description
 		}
@@ -391,7 +399,7 @@ func mapLineDiscountsToIDs(t *testing.T, discounts []withLine[billing.AmountLine
 	})
 }
 
-func mapLineDiscountDiffToIDs(t *testing.T, in diff[withLine[billing.AmountLineDiscountManaged]]) idDiff {
+func mapLineDiscountDiffToIDs(t *testing.T, in diff[withParent[billing.AmountLineDiscountManaged, *billing.Line]]) idDiff {
 	return idDiff{
 		ToCreate: mapLineDiscountsToIDs(t, in.ToCreate),
 		ToUpdate: mapLineDiscountsToIDs(t, in.ToUpdate),

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type CollectionTestSuite struct {
@@ -81,11 +82,13 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 			Lines: []*billing.Line{
 				{
 					LineBase: billing.LineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "UBP - unit",
+						}),
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
 						InvoiceAt: periodEnd,
 						ManagedBy: billing.ManuallyManagedLine,
 						Type:      billing.InvoiceLineTypeUsageBased,
-						Name:      "UBP - unit",
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -94,11 +97,13 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 				},
 				{
 					LineBase: billing.LineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "UBP - volume",
+						}),
 						Period:    billing.Period{Start: periodStart, End: period2End},
 						InvoiceAt: period2End,
 						ManagedBy: billing.ManuallyManagedLine,
 						Type:      billing.InvoiceLineTypeUsageBased,
-						Name:      "UBP - volume",
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -337,11 +342,13 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 		Lines: []*billing.Line{
 			{
 				LineBase: billing.LineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "UBP - unit",
+					}),
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt: periodEnd,
 					ManagedBy: billing.ManuallyManagedLine,
 					Type:      billing.InvoiceLineTypeUsageBased,
-					Name:      "UBP - unit",
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -438,11 +445,13 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 		Lines: []*billing.Line{
 			{
 				LineBase: billing.LineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "UBP - unit",
+					}),
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt: periodEnd,
 					ManagedBy: billing.ManuallyManagedLine,
 					Type:      billing.InvoiceLineTypeUsageBased,
-					Name:      "UBP - unit",
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -480,7 +489,10 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 			EditFn: func(invoice *billing.Invoice) error {
 				invoice.Lines.Append(&billing.Line{
 					LineBase: billing.LineBase{
-						Namespace: namespace,
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "UBP - unit - new",
+						}),
 						Currency:  currencyx.Code(currency.USD),
 						InvoiceID: invoice.ID,
 						Status:    billing.InvoiceLineStatusValid,
@@ -488,7 +500,6 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 						InvoiceAt: newLinePeriod.End,
 						ManagedBy: billing.ManuallyManagedLine,
 						Type:      billing.InvoiceLineTypeUsageBased,
-						Name:      "UBP - unit - new",
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: apiRequestsTotalFeature.Feature.Key,
