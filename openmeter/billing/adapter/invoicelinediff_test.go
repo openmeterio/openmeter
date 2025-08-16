@@ -391,11 +391,11 @@ func mapLineDiffToIDs(in diff[*billing.Line]) idDiff {
 
 func mapLineDiscountsToIDs(t *testing.T, discounts []withParent[billing.AmountLineDiscountManaged, *billing.Line]) []string {
 	return lo.Map(discounts, func(d withParent[billing.AmountLineDiscountManaged, *billing.Line], _ int) string {
-		if d.Discount.Description != nil {
-			return *d.Discount.Description
+		if d.Entity.Description != nil {
+			return *d.Entity.Description
 		}
 
-		return d.Discount.GetID()
+		return d.Entity.GetID()
 	})
 }
 

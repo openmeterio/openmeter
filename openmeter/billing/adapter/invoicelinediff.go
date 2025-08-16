@@ -91,8 +91,8 @@ func getParentIDAsSlice(e entityParent) []string {
 }
 
 type withParent[T any, P entityParent] struct {
-	Discount T
-	Parent   P
+	Entity T
+	Parent P
 }
 
 type (
@@ -423,15 +423,15 @@ func handleLineDiscounts[T diffable[T], P entityParent](items []T, dbItems []T, 
 	case operationCreate:
 		for _, discount := range items {
 			out.diff.NeedsCreate(withParent[T, P]{
-				Discount: discount,
-				Parent:   parentLine,
+				Entity: discount,
+				Parent: parentLine,
 			})
 		}
 	case operationDelete:
 		for _, discount := range items {
 			out.diff.NeedsDelete(withParent[T, P]{
-				Discount: discount,
-				Parent:   parentLine,
+				Entity: discount,
+				Parent: parentLine,
 			})
 		}
 	case operationUpdate:
@@ -471,8 +471,8 @@ func handleLineDiscountUpdate[T diffable[T], P entityParent](items []T, dbItems 
 		if _, ok := currentDiscountIDs[dbDiscount.GetID()]; !ok {
 			// We need to delete this discount
 			out.NeedsDelete(withParent[T, P]{
-				Discount: dbDiscount,
-				Parent:   line,
+				Entity: dbDiscount,
+				Parent: line,
 			})
 		}
 	}
@@ -481,8 +481,8 @@ func handleLineDiscountUpdate[T diffable[T], P entityParent](items []T, dbItems 
 		if currentDiscount.GetID() == "" {
 			// We need to create this discount
 			out.NeedsCreate(withParent[T, P]{
-				Discount: currentDiscount,
-				Parent:   line,
+				Entity: currentDiscount,
+				Parent: line,
 			})
 
 			continue
@@ -495,8 +495,8 @@ func handleLineDiscountUpdate[T diffable[T], P entityParent](items []T, dbItems 
 
 		if !dbDiscount.ContentsEqual(currentDiscount) {
 			out.NeedsUpdate(withParent[T, P]{
-				Discount: currentDiscount,
-				Parent:   line,
+				Entity: currentDiscount,
+				Parent: line,
 			})
 		}
 	}

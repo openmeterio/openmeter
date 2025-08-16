@@ -179,7 +179,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		allUsageDiscountDiffs := unionOfDiffs(lineDiffs.UsageDiscounts, lineDiffs.ChildrenDiff.UsageDiscounts)
 		err = upsertWithOptions(ctx, tx.db, allUsageDiscountDiffs, upsertInput[usageLineDiscountMangedWithLine, *db.BillingInvoiceLineUsageDiscountCreate]{
 			Create: func(tx *db.Client, d usageLineDiscountMangedWithLine) (*db.BillingInvoiceLineUsageDiscountCreate, error) {
-				discount := d.Discount
+				discount := d.Entity
 
 				if discount.ID == "" {
 					discount.ID = ulid.Make().String()
@@ -213,7 +213,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					).Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, d usageLineDiscountMangedWithLine) (usageLineDiscountMangedWithLine, error) {
-				d.Discount.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+				d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
 
 				return d, nil
 			},
@@ -225,7 +225,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		allAmountDiscountDiffs := unionOfDiffs(lineDiffs.AmountDiscounts, lineDiffs.ChildrenDiff.AmountDiscounts)
 		err = upsertWithOptions(ctx, tx.db, allAmountDiscountDiffs, upsertInput[amountLineDiscountMangedWithLine, *db.BillingInvoiceLineDiscountCreate]{
 			Create: func(tx *db.Client, d amountLineDiscountMangedWithLine) (*db.BillingInvoiceLineDiscountCreate, error) {
-				discount := d.Discount
+				discount := d.Entity
 
 				if discount.ID == "" {
 					discount.ID = ulid.Make().String()
@@ -259,7 +259,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					).Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, d amountLineDiscountMangedWithLine) (amountLineDiscountMangedWithLine, error) {
-				d.Discount.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+				d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
 
 				return d, nil
 			},
