@@ -63,3 +63,9 @@ meters:
 portal:
   enabled: true
   tokenSecret: this-isnt-secure
+
+svix:
+   # This is just a random JWT based on docker-compose's JWT_SECRET, so it's not sensitive
+  apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUiLCJleHAiOjE4OTM0NTYwMDAsIm5iZiI6MTcwNDA2NzIwMCwiaWF0IjoxNzIzNTUzMTQ0fQ.JVOFgHymisTD-Zw_p03qD4iUXXXw-VwABda2Q3f1wfs
+  serverURL: http://svix:8071
+  debug: false

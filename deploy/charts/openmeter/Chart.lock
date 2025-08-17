@@ -1,7 +1,4 @@
 dependencies:
-- name: strimzi-kafka-operator
-  repository: https://strimzi.io/charts/
-  version: 0.39.0
 - name: altinity-clickhouse-operator
   repository: https://docs.altinity.com/clickhouse-operator/
   version: 0.23.3
@@ -14,5 +11,5 @@ dependencies:
 - name: redis
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 20.2.1
-digest: sha256:f4de5a9b17965212a6afccfcdb46f054a8b5011e526f187c84dfb7344825bad8
-generated: "2024-11-08T11:40:40.003502+01:00"
+digest: sha256:984e797866c51fc1d921e3490d3f88b1023257345849449ffb0adb457e39a529
+generated: "2025-08-17T14:11:37.936915+02:00"

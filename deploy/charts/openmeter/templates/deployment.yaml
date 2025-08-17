@@ -368,3 +368,95 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openmeter.componentName" (list . "billing-worker") }}
+  labels:
+    {{- include "openmeter.componentLabels" (list . "billing-worker") | nindent 4 }}
+spec:
+  replicas: {{ .Values.billingWorker.replicaCount }}
+  selector:
+    matchLabels:
+    {{- include "openmeter.componentSelectorLabels" (list . "billing-worker") | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "openmeter.componentLabels" (list . "billing-worker") | nindent 8 }}
+        {{- with .Values.podLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}
+      initContainers:
+        {{- if .Values.postgresql.enabled -}}
+        {{- include "openmeter.init.postgres" (list .) | nindent 8 }}
+        {{- end }}
+        {{- if .Values.clickhouse.enabled -}}
+        {{- include "openmeter.init.clickhouse" (list .) | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/entrypoint.sh", "openmeter-billing-worker"]
+          args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
+          ports:
+            - name: telemetry-http
+              containerPort: 10000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz/live
+              port: telemetry-http
+          readinessProbe:
+            httpGet:
+              path: /healthz/ready
+              port: telemetry-http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/openmeter
+            {{- if ne (len .Values.caRootCertificates) 0 }}
+            - name: ca-certificates
+              mountPath: /usr/local/share/ca-certificates
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "openmeter.fullname" . }}
+        {{- if ne (len .Values.caRootCertificates) 0 }}
+        - name: ca-certificates
+          configMap:
+            name: ca-certificates
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

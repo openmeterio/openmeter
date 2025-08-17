@@ -41,6 +41,76 @@ services:
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
 
+  balance-worker:
+    image: ghcr.io/openmeterio/openmeter:latest
+    command: openmeter-balance-worker --config /etc/openmeter/config.yaml
+    restart: always
+    pull_policy: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      openmeter:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:40001:10000"
+    volumes:
+      - ./config.yaml:/etc/openmeter/config.yaml
+
+  notification-service:
+    image: ghcr.io/openmeterio/openmeter:latest
+    command: openmeter-notification-service --config /etc/openmeter/config.yaml
+    restart: always
+    pull_policy: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      openmeter:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:40002:10000"
+    volumes:
+      - ./config.yaml:/etc/openmeter/config.yaml
+
+  billing-worker:
+    image: ghcr.io/openmeterio/openmeter:latest
+    command: openmeter-billing-worker --config /etc/openmeter/config.yaml
+    restart: always
+    pull_policy: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      openmeter:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:40003:10000"
+    volumes:
+      - ./config.yaml:/etc/openmeter/config.yaml
+
+  openmeter-jobs:
+    image: ghcr.io/openmeterio/openmeter:latest
+    command: openmeter-jobs --config /etc/openmeter/config.yaml quickstart cron
+    restart: always
+    pull_policy: never
+    depends_on:
+      openmeter:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./config.yaml:/etc/openmeter/config.yaml
+
   kafka:
     extends:
       file: ../docker-compose.base.yaml
@@ -70,6 +140,13 @@ services:
       service: postgres
     ports:
       - "127.0.0.1:45432:5432"
+
+  svix:
+    extends:
+      file: ../docker-compose.base.yaml
+      service: svix
+    ports:
+      - "127.0.0.1:48071:8071"
 
 configs:
   svix_sql:
