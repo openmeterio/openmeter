@@ -177,8 +177,8 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		// Step 4a: Line Discounts
 
 		allUsageDiscountDiffs := unionOfDiffs(lineDiffs.UsageDiscounts, lineDiffs.ChildrenDiff.UsageDiscounts)
-		err = upsertWithOptions(ctx, tx.db, allUsageDiscountDiffs, upsertInput[usageLineDiscountMangedWithLine, *db.BillingInvoiceLineUsageDiscountCreate]{
-			Create: func(tx *db.Client, d usageLineDiscountMangedWithLine) (*db.BillingInvoiceLineUsageDiscountCreate, error) {
+		err = upsertWithOptions(ctx, tx.db, allUsageDiscountDiffs, upsertInput[usageLineDiscountManagedWithLine, *db.BillingInvoiceLineUsageDiscountCreate]{
+			Create: func(tx *db.Client, d usageLineDiscountManagedWithLine) (*db.BillingInvoiceLineUsageDiscountCreate, error) {
 				discount := d.Entity
 
 				if discount.ID == "" {
@@ -212,7 +212,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						}),
 					).Exec(ctx)
 			},
-			MarkDeleted: func(ctx context.Context, d usageLineDiscountMangedWithLine) (usageLineDiscountMangedWithLine, error) {
+			MarkDeleted: func(ctx context.Context, d usageLineDiscountManagedWithLine) (usageLineDiscountManagedWithLine, error) {
 				d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
 
 				return d, nil
@@ -223,8 +223,8 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		}
 
 		allAmountDiscountDiffs := unionOfDiffs(lineDiffs.AmountDiscounts, lineDiffs.ChildrenDiff.AmountDiscounts)
-		err = upsertWithOptions(ctx, tx.db, allAmountDiscountDiffs, upsertInput[amountLineDiscountMangedWithLine, *db.BillingInvoiceLineDiscountCreate]{
-			Create: func(tx *db.Client, d amountLineDiscountMangedWithLine) (*db.BillingInvoiceLineDiscountCreate, error) {
+		err = upsertWithOptions(ctx, tx.db, allAmountDiscountDiffs, upsertInput[amountLineDiscountManagedWithLine, *db.BillingInvoiceLineDiscountCreate]{
+			Create: func(tx *db.Client, d amountLineDiscountManagedWithLine) (*db.BillingInvoiceLineDiscountCreate, error) {
 				discount := d.Entity
 
 				if discount.ID == "" {
@@ -258,7 +258,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						}),
 					).Exec(ctx)
 			},
-			MarkDeleted: func(ctx context.Context, d amountLineDiscountMangedWithLine) (amountLineDiscountMangedWithLine, error) {
+			MarkDeleted: func(ctx context.Context, d amountLineDiscountManagedWithLine) (amountLineDiscountManagedWithLine, error) {
 				d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
 
 				return d, nil

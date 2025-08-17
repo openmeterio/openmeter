@@ -96,8 +96,8 @@ type withParent[T any, P entityParent] struct {
 }
 
 type (
-	usageLineDiscountMangedWithLine  = withParent[billing.UsageLineDiscountManaged, *billing.Line]
-	amountLineDiscountMangedWithLine = withParent[billing.AmountLineDiscountManaged, *billing.Line]
+	usageLineDiscountManagedWithLine  = withParent[billing.UsageLineDiscountManaged, *billing.Line]
+	amountLineDiscountManagedWithLine = withParent[billing.AmountLineDiscountManaged, *billing.Line]
 )
 
 type invoiceLineDiff struct {
@@ -106,8 +106,8 @@ type invoiceLineDiff struct {
 	UsageBased diff[*billing.Line]
 
 	// Dependant entities
-	UsageDiscounts  diff[usageLineDiscountMangedWithLine]
-	AmountDiscounts diff[amountLineDiscountMangedWithLine]
+	UsageDiscounts  diff[usageLineDiscountManagedWithLine]
+	AmountDiscounts diff[amountLineDiscountManagedWithLine]
 
 	// AffectedLineIDs contains the list of line IDs that are affected by the diff, even if they
 	// are not updated. We can use this to update the UpdatedAt of the lines if any of the dependant
