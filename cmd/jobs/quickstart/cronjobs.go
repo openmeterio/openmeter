@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
+	"github.com/spf13/cobra"
+
 	"github.com/openmeterio/openmeter/cmd/jobs/internal"
 	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
-	"github.com/spf13/cobra"
 )
 
 var Cron = &cobra.Command{
