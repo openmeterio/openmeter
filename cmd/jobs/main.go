@@ -57,7 +57,11 @@ func main() {
 	rootCmd.AddCommand(billing.Cmd)
 	rootCmd.AddCommand(quickstart.Cmd)
 
-	defer internal.AppShutdown()
+	defer func() {
+		if internal.AppShutdown != nil {
+			internal.AppShutdown()
+		}
+	}()
 
 	if err := rootCmd.ExecuteContext(ctx); err != nil {
 		slog.Error("failed to execute command", "error", err)

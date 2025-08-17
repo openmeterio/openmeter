@@ -376,7 +376,7 @@ metadata:
   labels:
     {{- include "openmeter.componentLabels" (list . "billing-worker") | nindent 4 }}
 spec:
-  replicas: {{ .Values.balanceWorker.replicaCount }}
+  replicas: {{ .Values.billingWorker.replicaCount }}
   selector:
     matchLabels:
     {{- include "openmeter.componentSelectorLabels" (list . "billing-worker") | nindent 6 }}
