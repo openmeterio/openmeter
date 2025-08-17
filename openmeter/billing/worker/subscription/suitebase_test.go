@@ -238,9 +238,7 @@ func (s *SuiteBase) expectLines(invoice billing.Invoice, subscriptionID string, 
 			s.NotNil(line)
 
 			if expectedLine.Qty.IsPresent() {
-				if line.UsageBased == nil {
-					s.Failf("usage based line not found", "line not found with child id %s", childID)
-				} else if line.UsageBased.Quantity == nil {
+				if line.UsageBased.Quantity == nil {
 					s.Failf("usage based line quantity not found", "line not found with child id %s", childID)
 				} else {
 					s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), "%s: quantity", childID)
@@ -248,7 +246,6 @@ func (s *SuiteBase) expectLines(invoice billing.Invoice, subscriptionID string, 
 			}
 
 			if expectedLine.Price.IsPresent() {
-				s.Equal(billing.InvoiceLineTypeUsageBased, line.Type, "%s: line type", childID)
 				s.Equal(*expectedLine.Price.OrEmpty(), *line.UsageBased.Price, "%s: price", childID)
 			}
 

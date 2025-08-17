@@ -463,6 +463,7 @@ enum InvoiceLineTypes {
 /**
  * Line status specifies the status of the line.
  */
+// TODO[v2]: Deprecate this type altogether
 @friendlyName("InvoiceLineStatus")
 enum InvoiceLineStatus {
   /**
@@ -474,7 +475,7 @@ enum InvoiceLineStatus {
    * The line is a detail line which is used to detail the individual
    * charges and discounts of a valid line.
    */
-  detail: "detail",
+  detailed: "detailed",
 
   /**
    * The line has been split into multiple valid lines due to progressive
@@ -762,7 +763,7 @@ model InvoiceDetailedLineRateCard {
  */
 @friendlyName("InvoiceDetailedLine")
 model InvoiceDetailedLine {
-  ...OmitProperties<InvoiceLineBase, "type">;
+  ...OmitProperties<InvoiceLineBase, "type" | "discounts">;
 
   /**
    * Type of the line.
@@ -804,6 +805,28 @@ model InvoiceDetailedLine {
    */
   @visibility(Lifecycle.Read)
   category?: InvoiceDetailedLineCostCategory = InvoiceDetailedLineCostCategory.regular;
+
+  /**
+   * Discounts detailes applied to this line.
+   *
+   * New discounts can be added via the invoice's discounts API, to facilitate
+   * discounts that are affecting multiple lines.
+   */
+  @visibility(Lifecycle.Read)
+  discounts?: InvoiceDetailedLineDiscounts;
+}
+
+/**
+ * InvoiceLineDiscounts represents the discounts applied to the invoice line by type.
+ */
+@friendlyName("InvoiceDetailedLineDiscounts")
+model InvoiceDetailedLineDiscounts {
+  /**
+   * Amount based discounts applied to the line.
+   *
+   * Amount based discounts are deduced from the total price of the line.
+   */
+  amount?: InvoiceLineAmountDiscount[];
 }
 
 /**

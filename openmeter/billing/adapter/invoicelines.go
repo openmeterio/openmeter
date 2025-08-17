@@ -63,110 +63,15 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		}
 
 		// Step 2: Let's create the lines, but not their detailed lines
-		lineUpsertConfig := upsertInput[*billing.Line, *db.BillingInvoiceLineCreate]{
-			Create: func(tx *db.Client, line *billing.Line) (*db.BillingInvoiceLineCreate, error) {
-				if line.ID == "" {
-					line.ID = ulid.Make().String()
-				}
-
-				create := tx.BillingInvoiceLine.Create().
-					SetID(line.ID).
-					SetNamespace(line.Namespace).
-					SetInvoiceID(line.InvoiceID).
-					SetPeriodStart(line.Period.Start.In(time.UTC)).
-					SetPeriodEnd(line.Period.End.In(time.UTC)).
-					SetNillableParentLineID(line.ParentLineID).
-					SetNillableSplitLineGroupID(line.SplitLineGroupID).
-					SetNillableDeletedAt(line.DeletedAt).
-					SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
-					SetStatus(line.Status).
-					SetManagedBy(line.ManagedBy).
-					SetType(line.Type).
-					SetName(line.Name).
-					SetNillableDescription(line.Description).
-					SetCurrency(line.Currency).
-					SetMetadata(line.Metadata).
-					SetAnnotations(line.Annotations).
-					SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
-					// Totals
-					SetAmount(line.Totals.Amount).
-					SetChargesTotal(line.Totals.ChargesTotal).
-					SetDiscountsTotal(line.Totals.DiscountsTotal).
-					SetTaxesTotal(line.Totals.TaxesTotal).
-					SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
-					SetTaxesExclusiveTotal(line.Totals.TaxesExclusiveTotal).
-					SetTotal(line.Totals.Total).
-					// ExternalIDs
-					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
-
-				if line.Subscription != nil {
-					create = create.SetSubscriptionID(line.Subscription.SubscriptionID).
-						SetSubscriptionPhaseID(line.Subscription.PhaseID).
-						SetSubscriptionItemID(line.Subscription.ItemID).
-						SetSubscriptionBillingPeriodFrom(line.Subscription.BillingPeriod.From.In(time.UTC)).
-						SetSubscriptionBillingPeriodTo(line.Subscription.BillingPeriod.To.In(time.UTC))
-				}
-
-				if line.TaxConfig != nil {
-					create = create.SetTaxConfig(*line.TaxConfig)
-				}
-
-				if !line.RateCardDiscounts.IsEmpty() {
-					create = create.SetRatecardDiscounts(lo.ToPtr(line.RateCardDiscounts))
-				}
-
-				switch line.Type {
-				case billing.InvoiceLineTypeFee:
-					create = create.SetQuantity(line.FlatFee.Quantity).
-						SetFlatFeeLineID(line.FlatFee.ConfigID).
-						SetNillableUsageBasedLineID(nil)
-				case billing.InvoiceLineTypeUsageBased:
-					create = create.
-						SetNillableQuantity(line.UsageBased.Quantity).
-						SetUsageBasedLineID(line.UsageBased.ConfigID).
-						SetNillableFlatFeeLineID(nil)
-
-				default:
-					return nil, fmt.Errorf("unsupported type: %s", line.Type)
-				}
-
-				return create, nil
-			},
-			UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceLineCreate) error {
-				return tx.BillingInvoiceLine.
-					CreateBulk(items...).
-					OnConflict(sql.ConflictColumns(billinginvoiceline.FieldID),
-						sql.ResolveWithNewValues(),
-						sql.ResolveWith(func(u *sql.UpdateSet) {
-							u.SetIgnore(billinginvoiceline.FieldCreatedAt)
-						})).
-					// TODO[OM-1416]: all nillable fileds must be listed explicitly
-					UpdateQuantity().
-					UpdateChildUniqueReferenceID().
-					Exec(ctx)
-			},
-			MarkDeleted: func(ctx context.Context, line *billing.Line) (*billing.Line, error) {
-				line.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
-				return line, nil
-			},
-		}
-
-		if err := upsertWithOptions(ctx, tx.db, lineDiffs.Line, lineUpsertConfig); err != nil {
+		if err := tx.upsertInvoiceLines(ctx, lineDiffs.Line); err != nil {
 			return nil, fmt.Errorf("creating lines: %w", err)
 		}
 
 		// Step 3: Let's create the detailed lines
 		if !lineDiffs.DetailedLine.IsEmpty() {
-			// Let's restore the parent <-> child relationship in terms of the ParentLineID field
-			for _, line := range input.Lines {
-				for _, child := range line.Children {
-					child.ParentLineID = lo.ToPtr(line.ID)
-				}
-			}
-
 			detailedLineDiff := lineDiffs.GetDetailedLineDiffWithParentID()
 
-			if err := upsertWithOptions(ctx, tx.db, detailedLineDiff, lineUpsertConfig); err != nil {
+			if err := tx.upsertDetailedLines(ctx, detailedLineDiff); err != nil {
 				return nil, fmt.Errorf("[children] creating lines: %w", err)
 			}
 		}
@@ -219,11 +124,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			return nil, fmt.Errorf("upserting usage discounts: %w", err)
 		}
 
-		allAmountDiscountDiffs := entitydiff.Union(
-			lineDiffs.AmountDiscounts,
-			lineDiffs.DetailedLineAmountDiscounts,
-		)
-		err = upsertWithOptions(ctx, tx.db, allAmountDiscountDiffs, upsertInput[amountLineDiscountManagedWithLine, *db.BillingInvoiceLineDiscountCreate]{
+		err = upsertWithOptions(ctx, tx.db, lineDiffs.AmountDiscounts, upsertInput[amountLineDiscountManagedWithLine, *db.BillingInvoiceLineDiscountCreate]{
 			Create: func(tx *db.Client, d amountLineDiscountManagedWithLine) (*db.BillingInvoiceLineDiscountCreate, error) {
 				discount := d.Entity
 
@@ -259,6 +160,51 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					).Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, d amountLineDiscountManagedWithLine) (amountLineDiscountManagedWithLine, error) {
+				d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+
+				return d, nil
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("upserting amount discounts: %w", err)
+		}
+
+		err = upsertWithOptions(ctx, tx.db, lineDiffs.DetailedLineAmountDiscounts, upsertInput[detailedLineAmountDiscountWithParent, *db.BillingInvoiceLineDiscountCreate]{
+			Create: func(tx *db.Client, d detailedLineAmountDiscountWithParent) (*db.BillingInvoiceLineDiscountCreate, error) {
+				discount := d.Entity
+
+				if discount.ID == "" {
+					discount.ID = ulid.Make().String()
+				}
+
+				create := tx.BillingInvoiceLineDiscount.Create().
+					SetID(discount.ID).
+					SetNamespace(d.Parent.GetNamespace()).
+					SetLineID(d.Parent.GetID()).
+					SetReason(discount.Reason.Type()).
+					SetSourceDiscount(lo.ToPtr(discount.Reason)).
+					SetAmount(discount.Amount).
+					SetNillableRoundingAmount(lo.EmptyableToPtr(discount.RoundingAmount)).
+					SetNillableDeletedAt(discount.DeletedAt).
+					SetNillableChildUniqueReferenceID(discount.ChildUniqueReferenceID).
+					SetNillableDescription(discount.Description).
+					// ExternalIDs
+					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(discount.ExternalIDs.Invoicing))
+
+				return create, nil
+			},
+			UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceLineDiscountCreate) error {
+				return tx.BillingInvoiceLineDiscount.
+					CreateBulk(items...).
+					OnConflict(
+						sql.ConflictColumns(billinginvoicelinediscount.FieldID),
+						sql.ResolveWithNewValues(),
+						sql.ResolveWith(func(u *sql.UpdateSet) {
+							u.SetIgnore(billinginvoicelinediscount.FieldCreatedAt)
+						}),
+					).Exec(ctx)
+			},
+			MarkDeleted: func(ctx context.Context, d detailedLineAmountDiscountWithParent) (detailedLineAmountDiscountWithParent, error) {
 				d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
 
 				return d, nil
@@ -345,6 +291,163 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 					sql.ConflictColumns(billinginvoiceusagebasedlineconfig.FieldID),
 					sql.ResolveWithNewValues(),
 				).Exec(ctx)
+		},
+	})
+}
+
+func (a *adapter) upsertInvoiceLines(ctx context.Context, in entitydiff.Diff[*billing.Line]) error {
+	return upsertWithOptions(ctx, a.db, in, upsertInput[*billing.Line, *db.BillingInvoiceLineCreate]{
+		Create: func(tx *db.Client, line *billing.Line) (*db.BillingInvoiceLineCreate, error) {
+			if line.ID == "" {
+				line.ID = ulid.Make().String()
+			}
+
+			create := tx.BillingInvoiceLine.Create().
+				SetID(line.ID).
+				SetNamespace(line.Namespace).
+				SetInvoiceID(line.InvoiceID).
+				SetPeriodStart(line.Period.Start.In(time.UTC)).
+				SetPeriodEnd(line.Period.End.In(time.UTC)).
+				SetNillableParentLineID(line.ParentLineID).
+				SetNillableSplitLineGroupID(line.SplitLineGroupID).
+				SetNillableDeletedAt(line.DeletedAt).
+				SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
+				SetStatus(billing.InvoiceLineStatusValid).
+				SetManagedBy(line.ManagedBy).
+				SetType(billing.InvoiceLineTypeUsageBased).
+				SetName(line.Name).
+				SetNillableDescription(line.Description).
+				SetCurrency(line.Currency).
+				SetMetadata(line.Metadata).
+				SetAnnotations(line.Annotations).
+				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
+				// Totals
+				SetAmount(line.Totals.Amount).
+				SetChargesTotal(line.Totals.ChargesTotal).
+				SetDiscountsTotal(line.Totals.DiscountsTotal).
+				SetTaxesTotal(line.Totals.TaxesTotal).
+				SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
+				SetTaxesExclusiveTotal(line.Totals.TaxesExclusiveTotal).
+				SetTotal(line.Totals.Total).
+				// ExternalIDs
+				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+
+			if line.Subscription != nil {
+				create = create.SetSubscriptionID(line.Subscription.SubscriptionID).
+					SetSubscriptionPhaseID(line.Subscription.PhaseID).
+					SetSubscriptionItemID(line.Subscription.ItemID).
+					SetSubscriptionBillingPeriodFrom(line.Subscription.BillingPeriod.From.In(time.UTC)).
+					SetSubscriptionBillingPeriodTo(line.Subscription.BillingPeriod.To.In(time.UTC))
+			}
+
+			if line.TaxConfig != nil {
+				create = create.SetTaxConfig(*line.TaxConfig)
+			}
+
+			if !line.RateCardDiscounts.IsEmpty() {
+				create = create.SetRatecardDiscounts(lo.ToPtr(line.RateCardDiscounts))
+			}
+
+			create = create.
+				SetNillableQuantity(line.UsageBased.Quantity).
+				SetUsageBasedLineID(line.UsageBased.ConfigID).
+				SetNillableFlatFeeLineID(nil)
+
+			return create, nil
+		},
+		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceLineCreate) error {
+			return tx.BillingInvoiceLine.
+				CreateBulk(items...).
+				OnConflict(sql.ConflictColumns(billinginvoiceline.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.ResolveWith(func(u *sql.UpdateSet) {
+						u.SetIgnore(billinginvoiceline.FieldCreatedAt)
+					})).
+				UpdateQuantity().
+				UpdateChildUniqueReferenceID().
+				Exec(ctx)
+		},
+		MarkDeleted: func(ctx context.Context, line *billing.Line) (*billing.Line, error) {
+			line.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+			return line, nil
+		},
+	})
+}
+
+func (a *adapter) upsertDetailedLines(ctx context.Context, in entitydiff.Diff[*billing.DetailedLine]) error {
+	return upsertWithOptions(ctx, a.db, in, upsertInput[*billing.DetailedLine, *db.BillingInvoiceLineCreate]{
+		Create: func(tx *db.Client, line *billing.DetailedLine) (*db.BillingInvoiceLineCreate, error) {
+			if line.ID == "" {
+				line.ID = ulid.Make().String()
+			}
+
+			create := tx.BillingInvoiceLine.Create().
+				SetID(line.ID).
+				SetNamespace(line.Namespace).
+				SetInvoiceID(line.InvoiceID).
+				SetPeriodStart(line.Period.Start.In(time.UTC)).
+				SetPeriodEnd(line.Period.End.In(time.UTC)).
+				SetNillableParentLineID(line.ParentLineID).
+				SetNillableSplitLineGroupID(line.SplitLineGroupID).
+				SetNillableDeletedAt(line.DeletedAt).
+				SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
+				SetStatus(billing.InvoiceLineStatusValid).
+				SetManagedBy(line.ManagedBy).
+				SetType(billing.InvoiceLineTypeUsageBased).
+				SetName(line.Name).
+				SetNillableDescription(line.Description).
+				SetCurrency(line.Currency).
+				SetMetadata(line.Metadata).
+				SetAnnotations(line.Annotations).
+				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
+				// Totals
+				SetAmount(line.Totals.Amount).
+				SetChargesTotal(line.Totals.ChargesTotal).
+				SetDiscountsTotal(line.Totals.DiscountsTotal).
+				SetTaxesTotal(line.Totals.TaxesTotal).
+				SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
+				SetTaxesExclusiveTotal(line.Totals.TaxesExclusiveTotal).
+				SetTotal(line.Totals.Total).
+				// ExternalIDs
+				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+
+			if line.Subscription != nil {
+				create = create.SetSubscriptionID(line.Subscription.SubscriptionID).
+					SetSubscriptionPhaseID(line.Subscription.PhaseID).
+					SetSubscriptionItemID(line.Subscription.ItemID).
+					SetSubscriptionBillingPeriodFrom(line.Subscription.BillingPeriod.From.In(time.UTC)).
+					SetSubscriptionBillingPeriodTo(line.Subscription.BillingPeriod.To.In(time.UTC))
+			}
+
+			if line.TaxConfig != nil {
+				create = create.SetTaxConfig(*line.TaxConfig)
+			}
+
+			if !line.RateCardDiscounts.IsEmpty() {
+				create = create.SetRatecardDiscounts(lo.ToPtr(line.RateCardDiscounts))
+			}
+
+			create = create.SetQuantity(line.FlatFee.Quantity).
+				SetFlatFeeLineID(line.FlatFee.ConfigID).
+				SetNillableUsageBasedLineID(nil)
+
+			return create, nil
+		},
+		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceLineCreate) error {
+			return tx.BillingInvoiceLine.
+				CreateBulk(items...).
+				OnConflict(sql.ConflictColumns(billinginvoiceline.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.ResolveWith(func(u *sql.UpdateSet) {
+						u.SetIgnore(billinginvoiceline.FieldCreatedAt)
+					})).
+				UpdateQuantity().
+				UpdateChildUniqueReferenceID().
+				Exec(ctx)
+		},
+		MarkDeleted: func(ctx context.Context, line *billing.DetailedLine) (*billing.DetailedLine, error) {
+			line.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+			return line, nil
 		},
 	})
 }

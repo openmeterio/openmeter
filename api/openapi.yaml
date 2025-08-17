@@ -17174,15 +17174,6 @@ components:
             External calls always create valid lines, other line types are managed by the
             billing engine of OpenMeter.
           readOnly: true
-        discounts:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceLineDiscounts'
-          description: |-
-            Discounts detailes applied to this line.
-
-            New discounts can be added via the invoice's discounts API, to facilitate
-            discounts that are affecting multiple lines.
-          readOnly: true
         invoice:
           allOf:
             - $ref: '#/components/schemas/InvoiceReference'
@@ -17262,6 +17253,15 @@ components:
           description: Category of the flat fee.
           default: regular
           readOnly: true
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceDetailedLineDiscounts'
+          description: |-
+            Discounts detailes applied to this line.
+
+            New discounts can be added via the invoice's discounts API, to facilitate
+            discounts that are affecting multiple lines.
+          readOnly: true
       description: InvoiceDetailedLine represents a line item that is sold to the customer as a manually added fee.
     InvoiceDetailedLineCostCategory:
       type: string
@@ -17271,6 +17271,18 @@ components:
       description: |-
         InvoiceDetailedLineCostCategory determines if the flat fee is a regular fee due to use due to a
         commitment.
+    InvoiceDetailedLineDiscounts:
+      type: object
+      properties:
+        amount:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineAmountDiscount'
+          description: |-
+            Amount based discounts applied to the line.
+
+            Amount based discounts are deduced from the total price of the line.
+      description: InvoiceLineDiscounts represents the discounts applied to the invoice line by type.
     InvoiceDetailedLineRateCard:
       type: object
       required:
@@ -17902,7 +17914,7 @@ components:
       type: string
       enum:
         - valid
-        - detail
+        - detailed
         - split
       description: Line status specifies the status of the line.
     InvoiceLineSubscriptionReference:

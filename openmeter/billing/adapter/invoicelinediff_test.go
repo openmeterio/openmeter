@@ -39,37 +39,33 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					ID: "1",
 				}),
-				Type: billing.InvoiceLineTypeUsageBased,
 			},
-			UsageBased: &billing.UsageBasedLine{},
+			UsageBased: billing.UsageBasedLine{},
 		},
 		{
 			LineBase: billing.LineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					ID: "2",
 				}),
-				Type: billing.InvoiceLineTypeUsageBased,
 			},
-			UsageBased: &billing.UsageBasedLine{},
-			Children: billing.NewLineChildren([]*billing.Line{
+			UsageBased: billing.UsageBasedLine{},
+			Children: billing.NewLineChildren([]billing.DetailedLine{
 				{
 					LineBase: billing.LineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							ID: "2.1",
 						}),
-						Type: billing.InvoiceLineTypeFee,
 					},
-					FlatFee:   &billing.FlatFeeLine{},
-					Discounts: newAmountDiscountsWithIDs("D2.1.1"),
+					FlatFee:         billing.FlatFeeLine{},
+					AmountDiscounts: newAmountDiscountsWithIDs("D2.1.1"),
 				},
 				{
 					LineBase: billing.LineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							ID: "2.2",
 						}),
-						Type: billing.InvoiceLineTypeFee,
 					},
-					FlatFee: &billing.FlatFeeLine{},
+					FlatFee: billing.FlatFeeLine{},
 				},
 			}),
 		},
@@ -392,17 +388,15 @@ func snapshotAsDBState(lines []*billing.Line) {
 	}
 }
 
-func newAmountDiscountsWithIDs(ids ...string) billing.LineDiscounts {
-	return billing.LineDiscounts{
-		Amount: lo.Map(ids, func(id string, _ int) billing.AmountLineDiscountManaged {
-			return billing.AmountLineDiscountManaged{
-				ManagedModelWithID: models.ManagedModelWithID{
-					ID: id,
-				},
-				AmountLineDiscount: billing.AmountLineDiscount{
-					Amount: alpacadecimal.NewFromFloat(10),
-				},
-			}
-		}),
-	}
+func newAmountDiscountsWithIDs(ids ...string) billing.AmountLineDiscountsManaged {
+	return lo.Map(ids, func(id string, _ int) billing.AmountLineDiscountManaged {
+		return billing.AmountLineDiscountManaged{
+			ManagedModelWithID: models.ManagedModelWithID{
+				ID: id,
+			},
+			AmountLineDiscount: billing.AmountLineDiscount{
+				Amount: alpacadecimal.NewFromFloat(10),
+			},
+		}
+	})
 }

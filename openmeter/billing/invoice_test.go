@@ -11,28 +11,26 @@ import (
 )
 
 func TestSortLines(t *testing.T) {
-	lines := []*Line{
+	lines := NewInvoiceLines([]*Line{
 		{
 			LineBase: LineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					Name:        "usage-based-line",
 					Description: lo.ToPtr("index=1"),
 				}),
-				Type: InvoiceLineTypeUsageBased,
 				Period: Period{
 					Start: time.Now().Add(time.Hour * 24),
 				},
 			},
-			Children: NewLineChildren([]*Line{
+			Children: NewLineChildren([]DetailedLine{
 				{
 					LineBase: LineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name:        "child-2",
 							Description: lo.ToPtr("index=1.1"),
 						}),
-						Type: InvoiceLineTypeFee,
 					},
-					FlatFee: &FlatFeeLine{
+					FlatFee: FlatFeeLine{
 						Index: lo.ToPtr(1),
 					},
 				},
@@ -42,9 +40,8 @@ func TestSortLines(t *testing.T) {
 							Name:        "child-1",
 							Description: lo.ToPtr("index=1.0"),
 						}),
-						Type: InvoiceLineTypeFee,
 					},
-					FlatFee: &FlatFeeLine{
+					FlatFee: FlatFeeLine{
 						Index: lo.ToPtr(0),
 					},
 				},
@@ -56,20 +53,19 @@ func TestSortLines(t *testing.T) {
 					Name:        "usage-based-line",
 					Description: lo.ToPtr("index=0"),
 				}),
-				Type: InvoiceLineTypeUsageBased,
 				Period: Period{
 					Start: time.Now(),
 				},
 			},
 			Children: NewLineChildren(nil),
 		},
-	}
+	})
 
-	sortLines(lines)
+	lines.Sort()
 
-	require.Equal(t, *lines[0].Description, "index=0")
-	require.Equal(t, *lines[1].Description, "index=1")
-	children := lines[1].Children
+	require.Equal(t, *lines.OrEmpty()[0].Description, "index=0")
+	require.Equal(t, *lines.OrEmpty()[1].Description, "index=1")
+	children := lines.OrEmpty()[1].Children
 	require.Equal(t, *children[0].Description, "index=1.0")
 	require.Equal(t, *children[1].Description, "index=1.1")
 }

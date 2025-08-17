@@ -37,7 +37,6 @@ type LineBase interface {
 	InvoiceID() string
 	Currency() currencyx.Code
 	Period() billing.Period
-	Status() billing.InvoiceLineStatus
 	// IsLastInPeriod returns true if the line is the last line in the period that is going to be invoiced.
 	IsLastInPeriod() bool
 	IsDeleted() bool
@@ -61,6 +60,7 @@ type LineBase interface {
 
 var _ LineBase = (*lineBase)(nil)
 
+// TODO[later]: remove LineBase as we don't have multiple line types anymore
 type lineBase struct {
 	line     *billing.Line
 	service  *Service
@@ -89,10 +89,6 @@ func (l lineBase) Currency() currencyx.Code {
 
 func (l lineBase) Period() billing.Period {
 	return l.line.Period
-}
-
-func (l lineBase) Status() billing.InvoiceLineStatus {
-	return l.line.Status
 }
 
 func (l lineBase) IsSplitLineGroupMember() bool {
@@ -197,10 +193,6 @@ func (l lineBase) Update(in UpdateInput) Line {
 		l.line.InvoiceAt = in.InvoiceAt
 	}
 
-	if in.Status != "" {
-		l.line.Status = in.Status
-	}
-
 	if in.PreventChildChanges {
 		l.line.Children = billing.LineChildren{}
 	}
@@ -221,21 +213,12 @@ func (l lineBase) Update(in UpdateInput) Line {
 
 // TODO[later]: We should rely on UpsertInvoiceLines and do this in bulk.
 func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, error) {
-	// We only split valid lines; split etc. lines are not supported
-	if l.line.Status != billing.InvoiceLineStatusValid {
-		return SplitResult{}, fmt.Errorf("line[%s]: line is not valid", l.line.ID)
-	}
-
 	if !l.line.Period.Contains(splitAt) {
 		return SplitResult{}, fmt.Errorf("line[%s]: splitAt is not within the line period", l.line.ID)
 	}
 
 	var splitLineGroupID string
 	if !l.IsSplitLineGroupMember() {
-		if l.line.Type != billing.InvoiceLineTypeUsageBased {
-			return SplitResult{}, fmt.Errorf("line[%s]: split is only supported for usage based lines", l.line.ID)
-		}
-
 		splitLineGroup, err := l.service.BillingAdapter.CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput{
 			Namespace: l.line.Namespace,
 

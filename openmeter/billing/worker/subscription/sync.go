@@ -595,7 +595,6 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			}),
 			ManagedBy:              billing.SubscriptionManagedLine,
 			Currency:               subs.Spec.Currency,
-			Status:                 billing.InvoiceLineStatusValid,
 			ChildUniqueReferenceID: &item.UniqueID,
 			TaxConfig:              item.Spec.RateCard.AsMeta().TaxConfig,
 			Period:                 item.ServicePeriod,
@@ -641,8 +640,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			return nil, nil
 		}
 
-		line.Type = billing.InvoiceLineTypeUsageBased
-		line.UsageBased = &billing.UsageBasedLine{
+		line.UsageBased = billing.UsageBasedLine{
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      perUnitAmount,
 				PaymentTerm: price.PaymentTerm,
@@ -655,8 +653,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			return nil, fmt.Errorf("price must be defined for usage based price")
 		}
 
-		line.Type = billing.InvoiceLineTypeUsageBased
-		line.UsageBased = &billing.UsageBasedLine{
+		line.UsageBased = billing.UsageBasedLine{
 			Price:      item.SubscriptionItem.RateCard.AsMeta().Price,
 			FeatureKey: *item.SubscriptionItem.RateCard.AsMeta().FeatureKey,
 		}

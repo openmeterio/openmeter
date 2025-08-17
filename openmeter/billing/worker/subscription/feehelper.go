@@ -17,10 +17,7 @@ func isFlatFee(line *billing.Line) bool {
 		return false
 	}
 
-	if line.Type == billing.InvoiceLineTypeUsageBased &&
-		line.UsageBased != nil &&
-		line.UsageBased.Price != nil &&
-		line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
+	if line.UsageBased.Price != nil && line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
 		return true
 	}
 
@@ -32,11 +29,7 @@ func getFlatFeePerUnitAmount(line *billing.Line) (alpacadecimal.Decimal, error) 
 		return alpacadecimal.Zero, fmt.Errorf("line is nil")
 	}
 
-	if line.Type != billing.InvoiceLineTypeUsageBased {
-		return alpacadecimal.Zero, fmt.Errorf("line is not a usage based line")
-	}
-
-	if line.UsageBased == nil || line.UsageBased.Price == nil {
+	if line.UsageBased.Price == nil {
 		return alpacadecimal.Zero, fmt.Errorf("line misses usage based metadata")
 	}
 
@@ -53,11 +46,7 @@ func setFlatFeePerUnitAmount(line *billing.Line, perUnitAmount alpacadecimal.Dec
 		return fmt.Errorf("line is nil")
 	}
 
-	if line.Type != billing.InvoiceLineTypeUsageBased {
-		return fmt.Errorf("line is not a usage based line")
-	}
-
-	if line.UsageBased == nil || line.UsageBased.Price == nil {
+	if line.UsageBased.Price == nil {
 		return fmt.Errorf("line misses usage based metadata")
 	}
 

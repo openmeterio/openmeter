@@ -404,12 +404,10 @@ func (i Invoice) RemoveMetaForCompare() Invoice {
 	return invoice
 }
 
-func (i *Invoice) FlattenLinesByID() map[string]*Line {
-	out := make(map[string]*Line, len(i.Lines.OrEmpty()))
+func (i *Invoice) GetDetailedLinesByID() map[string]DetailedLine {
+	out := make(map[string]DetailedLine, len(i.Lines.OrEmpty()))
 
 	for _, line := range i.Lines.OrEmpty() {
-		out[line.ID] = line
-
 		for _, child := range line.Children {
 			out[child.ID] = child
 		}
@@ -418,31 +416,15 @@ func (i *Invoice) FlattenLinesByID() map[string]*Line {
 	return out
 }
 
-// getLeafLines returns the leaf lines
-func (i *Invoice) getLeafLines() []*Line {
-	var leafLines []*Line
-
-	for _, line := range i.FlattenLinesByID() {
-		// Skip non leaf nodes
-		if line.Type != InvoiceLineTypeFee {
-			continue
-		}
-
-		leafLines = append(leafLines, line)
-	}
-
-	return leafLines
-}
-
-// GetLeafLinesWithConsolidatedTaxBehavior returns the leaf lines with the tax behavior set to the invoice's tax behavior
+// GetDetailedLinesWithConsolidatedTaxBehavior returns the detailed lines with the tax behavior set to the invoice's tax behavior
 // unless the line already has a tax behavior set.
-func (i *Invoice) GetLeafLinesWithConsolidatedTaxBehavior() []*Line {
-	leafLines := i.getLeafLines()
+func (i *Invoice) GetDetailedLinesWithConsolidatedTaxBehavior() []DetailedLine {
+	leafLines := lo.Values(i.GetDetailedLinesByID())
 	if i.Workflow.Config.Invoicing.DefaultTaxConfig == nil {
 		return leafLines
 	}
 
-	return lo.Map(leafLines, func(line *Line, _ int) *Line {
+	return lo.Map(leafLines, func(line DetailedLine, _ int) DetailedLine {
 		line.TaxConfig = productcatalog.MergeTaxConfigs(i.Workflow.Config.Invoicing.DefaultTaxConfig, line.TaxConfig)
 		return line
 	})
@@ -469,55 +451,7 @@ func (i Invoice) RemoveCircularReferences() Invoice {
 }
 
 func (i *Invoice) SortLines() {
-	if !i.Lines.IsPresent() {
-		return
-	}
-
-	lines := i.Lines.OrEmpty()
-
-	sortLines(lines)
-
-	i.Lines = NewInvoiceLines(lines)
-}
-
-func sortLines(lines []*Line) {
-	sort.Slice(lines, func(a, b int) bool {
-		lineA := lines[a]
-		lineB := lines[b]
-
-		// If both lines are flat fee lines, we sort them by index if possible
-		if lineA.Type == InvoiceLineTypeFee && lineB.Type == InvoiceLineTypeFee {
-			if lineA.FlatFee.Index != nil && lineB.FlatFee.Index != nil {
-				return *lineA.FlatFee.Index < *lineB.FlatFee.Index
-			}
-
-			if lineA.FlatFee.Index != nil {
-				return true
-			}
-
-			if lineB.FlatFee.Index != nil {
-				return false
-			}
-		}
-
-		if nameOrder := strings.Compare(lineA.Name, lineB.Name); nameOrder != 0 {
-			return nameOrder < 0
-		}
-
-		if !lineA.Period.Start.Equal(lineB.Period.Start) {
-			return lineA.Period.Start.Before(lineB.Period.Start)
-		}
-
-		return strings.Compare(lineA.ID, lineB.ID) < 0
-	})
-
-	for idx, line := range lines {
-		if line.Type == InvoiceLineTypeUsageBased {
-			sortLines(line.Children)
-		}
-
-		lines[idx] = line
-	}
+	i.Lines.Sort()
 }
 
 type InvoiceLines struct {
@@ -586,10 +520,39 @@ func (c *InvoiceLines) ReplaceByID(id string, newLine *Line) bool {
 	return false
 }
 
+func (c *InvoiceLines) Sort() {
+	if c.IsAbsent() {
+		return
+	}
+
+	lines := c.OrEmpty()
+
+	sort.Slice(lines, func(a, b int) bool {
+		lineA := lines[a]
+		lineB := lines[b]
+
+		if nameOrder := strings.Compare(lineA.Name, lineB.Name); nameOrder != 0 {
+			return nameOrder < 0
+		}
+
+		if !lineA.Period.Start.Equal(lineB.Period.Start) {
+			return lineA.Period.Start.Before(lineB.Period.Start)
+		}
+
+		return strings.Compare(lineA.ID, lineB.ID) < 0
+	})
+
+	for _, line := range lines {
+		line.SortDetailedLines()
+	}
+
+	c.Option = mo.Some(lines)
+}
+
 // NonDeletedLineCount returns the number of lines that are not deleted and have a valid status (e.g. we are ignoring split lines)
 func (c InvoiceLines) NonDeletedLineCount() int {
 	return lo.CountBy(c.OrEmpty(), func(l *Line) bool {
-		return l.DeletedAt == nil && l.Status == InvoiceLineStatusValid
+		return l.DeletedAt == nil
 	})
 }
 
