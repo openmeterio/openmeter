@@ -440,11 +440,13 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 		Lines: []*billing.Line{
 			{
 				LineBase: billing.LineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "UBP - unit",
+					}),
 					Period:    lineServicePeriod,
 					InvoiceAt: lineServicePeriod.End,
 					ManagedBy: billing.ManuallyManagedLine,
 					Type:      billing.InvoiceLineTypeUsageBased,
-					Name:      "UBP - unit",
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,

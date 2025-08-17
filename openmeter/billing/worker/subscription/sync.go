@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -587,9 +588,11 @@ func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.Su
 func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.Line, error) {
 	line := &billing.Line{
 		LineBase: billing.LineBase{
-			Namespace:              subs.Subscription.Namespace,
-			Name:                   item.Spec.RateCard.AsMeta().Name,
-			Description:            item.Spec.RateCard.AsMeta().Description,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   subs.Subscription.Namespace,
+				Name:        item.Spec.RateCard.AsMeta().Name,
+				Description: item.Spec.RateCard.AsMeta().Description,
+			}),
 			ManagedBy:              billing.SubscriptionManagedLine,
 			Currency:               subs.Spec.Currency,
 			Status:                 billing.InvoiceLineStatusValid,

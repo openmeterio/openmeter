@@ -61,14 +61,43 @@ func (d *diff[T]) IsEmpty() bool {
 	return len(d.ToDelete) == 0 && len(d.ToUpdate) == 0 && len(d.ToCreate) == 0
 }
 
-type withLine[T any] struct {
-	Discount T
-	Line     *billing.Line
+type entityParent interface {
+	// Get the ID of the parent entity
+	GetID() string
+	// Get the parent ID of the parent (if available)
+	GetParentID() (string, bool)
+}
+
+func getIDAndParentID(e entityParent) []string {
+	out := make([]string, 0, 2)
+
+	if e.GetID() != "" {
+		out = append(out, e.GetID())
+	}
+
+	if parentID, ok := e.GetParentID(); ok {
+		out = append(out, parentID)
+	}
+
+	return out
+}
+
+func getParentIDAsSlice(e entityParent) []string {
+	if parentID, ok := e.GetParentID(); ok {
+		return []string{parentID}
+	}
+
+	return nil
+}
+
+type withParent[T any, P entityParent] struct {
+	Entity T
+	Parent P
 }
 
 type (
-	usageLineDiscountMangedWithLine  = withLine[billing.UsageLineDiscountManaged]
-	amountLineDiscountMangedWithLine = withLine[billing.AmountLineDiscountManaged]
+	usageLineDiscountManagedWithLine  = withParent[billing.UsageLineDiscountManaged, *billing.Line]
+	amountLineDiscountManagedWithLine = withParent[billing.AmountLineDiscountManaged, *billing.Line]
 )
 
 type invoiceLineDiff struct {
@@ -77,8 +106,8 @@ type invoiceLineDiff struct {
 	UsageBased diff[*billing.Line]
 
 	// Dependant entities
-	UsageDiscounts  diff[usageLineDiscountMangedWithLine]
-	AmountDiscounts diff[amountLineDiscountMangedWithLine]
+	UsageDiscounts  diff[usageLineDiscountManagedWithLine]
+	AmountDiscounts diff[amountLineDiscountManagedWithLine]
 
 	// AffectedLineIDs contains the list of line IDs that are affected by the diff, even if they
 	// are not updated. We can use this to update the UpdatedAt of the lines if any of the dependant
@@ -224,7 +253,7 @@ func diffLineBaseEntities(line *billing.Line, out *invoiceLineDiff) error {
 		case (line.DBState.LineBase.DeletedAt == nil) && (line.LineBase.DeletedAt != nil):
 			// The line got deleted
 			out.LineBase.NeedsDelete(line)
-			out.AffectedLineIDs.Add(lineParentIDs(line, lineIDExcludeSelf)...)
+			out.AffectedLineIDs.Add(getParentIDAsSlice(line)...)
 
 			if line.Children.IsPresent() {
 				// We need to delete the children as well
@@ -271,7 +300,7 @@ func diffLineBaseEntities(line *billing.Line, out *invoiceLineDiff) error {
 	if baseNeedsUpdate {
 		out.LineBase.NeedsUpdate(line)
 
-		out.AffectedLineIDs.Add(lineParentIDs(line, lineIDExcludeSelf)...)
+		out.AffectedLineIDs.Add(getParentIDAsSlice(line)...)
 	}
 
 	return handleLineDependantEntities(line, operationUpdate, out)
@@ -296,7 +325,7 @@ func getChildrenActions(dbSave []*billing.Line, current []*billing.Line, out *in
 			}
 
 			// Deleting a child is considered an update for the parent
-			out.AffectedLineIDs.Add(lineParentIDs(dbLine, lineIDExcludeSelf)...)
+			out.AffectedLineIDs.Add(getParentIDAsSlice(dbLine)...)
 		}
 	}
 
@@ -313,7 +342,7 @@ func getChildrenActions(dbSave []*billing.Line, current []*billing.Line, out *in
 			}
 
 			// Adding a child is considered an update for the parent even if the db line of parent has not changed
-			out.AffectedLineIDs.Add(lineParentIDs(currentLine, lineIDExcludeSelf)...)
+			out.AffectedLineIDs.Add(getParentIDAsSlice(currentLine)...)
 			continue
 		}
 
@@ -341,7 +370,7 @@ func deleteLineChildren(line *billing.Line, out *invoiceLineDiff) error {
 			return err
 		}
 
-		out.ChildrenDiff.AffectedLineIDs.Add(lineParentIDs(child, lineIDExcludeSelf)...)
+		out.ChildrenDiff.AffectedLineIDs.Add(getParentIDAsSlice(child)...)
 	}
 
 	return nil
@@ -380,48 +409,48 @@ type diffable[T any] interface {
 	ContentsEqual(other T) bool
 }
 
-type handleLineDiscountsResult[T diffable[T]] struct {
-	diff            diff[withLine[T]]
+type handleLineDiscountsResult[T diffable[T], P entityParent] struct {
+	diff            diff[withParent[T, P]]
 	affectedLineIDs []string
 }
 
-func handleLineDiscounts[T diffable[T]](items []T, dbItems []T, lineOperation operation, line *billing.Line) (handleLineDiscountsResult[T], error) {
-	out := handleLineDiscountsResult[T]{
-		diff: diff[withLine[T]]{},
+func handleLineDiscounts[T diffable[T], P entityParent](items []T, dbItems []T, lineOperation operation, parentLine P) (handleLineDiscountsResult[T, P], error) {
+	out := handleLineDiscountsResult[T, P]{
+		diff: diff[withParent[T, P]]{},
 	}
 
 	switch lineOperation {
 	case operationCreate:
 		for _, discount := range items {
-			out.diff.NeedsCreate(withLine[T]{
-				Discount: discount,
-				Line:     line,
+			out.diff.NeedsCreate(withParent[T, P]{
+				Entity: discount,
+				Parent: parentLine,
 			})
 		}
 	case operationDelete:
 		for _, discount := range items {
-			out.diff.NeedsDelete(withLine[T]{
-				Discount: discount,
-				Line:     line,
+			out.diff.NeedsDelete(withParent[T, P]{
+				Entity: discount,
+				Parent: parentLine,
 			})
 		}
 	case operationUpdate:
-		updateDiffs, err := handleLineDiscountUpdate(items, dbItems, line)
+		updateDiffs, err := handleLineDiscountUpdate(items, dbItems, parentLine)
 		if err != nil {
 			return out, err
 		}
 
 		out.diff = updateDiffs
 		if !updateDiffs.IsEmpty() {
-			out.affectedLineIDs = lineParentIDs(line, lineIDIncludeSelf)
+			out.affectedLineIDs = getIDAndParentID(parentLine)
 		}
 	}
 
 	return out, nil
 }
 
-func handleLineDiscountUpdate[T diffable[T]](items []T, dbItems []T, line *billing.Line) (diff[withLine[T]], error) {
-	out := diff[withLine[T]]{}
+func handleLineDiscountUpdate[T diffable[T], P entityParent](items []T, dbItems []T, line P) (diff[withParent[T, P]], error) {
+	out := diff[withParent[T, P]]{}
 
 	// We need to figure out what we need to update
 	currentDiscountIDs := map[string]T{}
@@ -441,9 +470,9 @@ func handleLineDiscountUpdate[T diffable[T]](items []T, dbItems []T, line *billi
 	for _, dbDiscount := range dbDiscountIDs {
 		if _, ok := currentDiscountIDs[dbDiscount.GetID()]; !ok {
 			// We need to delete this discount
-			out.NeedsDelete(withLine[T]{
-				Discount: dbDiscount,
-				Line:     line,
+			out.NeedsDelete(withParent[T, P]{
+				Entity: dbDiscount,
+				Parent: line,
 			})
 		}
 	}
@@ -451,9 +480,9 @@ func handleLineDiscountUpdate[T diffable[T]](items []T, dbItems []T, line *billi
 	for _, currentDiscount := range items {
 		if currentDiscount.GetID() == "" {
 			// We need to create this discount
-			out.NeedsCreate(withLine[T]{
-				Discount: currentDiscount,
-				Line:     line,
+			out.NeedsCreate(withParent[T, P]{
+				Entity: currentDiscount,
+				Parent: line,
 			})
 
 			continue
@@ -465,44 +494,12 @@ func handleLineDiscountUpdate[T diffable[T]](items []T, dbItems []T, line *billi
 		}
 
 		if !dbDiscount.ContentsEqual(currentDiscount) {
-			out.NeedsUpdate(withLine[T]{
-				Discount: currentDiscount,
-				Line:     line,
+			out.NeedsUpdate(withParent[T, P]{
+				Entity: currentDiscount,
+				Parent: line,
 			})
 		}
 	}
 
 	return out, nil
-}
-
-type lineIDIncludeFlag int
-
-const (
-	lineIDIncludeSelf lineIDIncludeFlag = iota
-	lineIDExcludeSelf
-)
-
-func lineParentIDs(line *billing.Line, includeLineID lineIDIncludeFlag) []string {
-	out := make([]string, 0, 3)
-
-	if line == nil {
-		return out
-	}
-
-	if includeLineID == lineIDIncludeSelf {
-		out = append(out, line.ID)
-	}
-
-	currentLine := line
-	for currentLine != nil {
-		if currentLine.ParentLineID == nil {
-			break
-		}
-
-		out = append(out, *currentLine.ParentLineID)
-
-		currentLine = currentLine.ParentLine
-	}
-
-	return out
 }

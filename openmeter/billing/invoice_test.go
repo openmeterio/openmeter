@@ -6,25 +6,31 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestSortLines(t *testing.T) {
 	lines := []*Line{
 		{
 			LineBase: LineBase{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Name:        "usage-based-line",
+					Description: lo.ToPtr("index=1"),
+				}),
 				Type: InvoiceLineTypeUsageBased,
-				Name: "usage-based-line",
 				Period: Period{
 					Start: time.Now().Add(time.Hour * 24),
 				},
-				Description: lo.ToPtr("index=1"),
 			},
 			Children: NewLineChildren([]*Line{
 				{
 					LineBase: LineBase{
-						ID:          "child-2",
-						Type:        InvoiceLineTypeFee,
-						Description: lo.ToPtr("index=1.1"),
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name:        "child-2",
+							Description: lo.ToPtr("index=1.1"),
+						}),
+						Type: InvoiceLineTypeFee,
 					},
 					FlatFee: &FlatFeeLine{
 						Index: lo.ToPtr(1),
@@ -32,9 +38,11 @@ func TestSortLines(t *testing.T) {
 				},
 				{
 					LineBase: LineBase{
-						ID:          "child-1",
-						Type:        InvoiceLineTypeFee,
-						Description: lo.ToPtr("index=1.0"),
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name:        "child-1",
+							Description: lo.ToPtr("index=1.0"),
+						}),
+						Type: InvoiceLineTypeFee,
 					},
 					FlatFee: &FlatFeeLine{
 						Index: lo.ToPtr(0),
@@ -44,12 +52,14 @@ func TestSortLines(t *testing.T) {
 		},
 		{
 			LineBase: LineBase{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Name:        "usage-based-line",
+					Description: lo.ToPtr("index=0"),
+				}),
 				Type: InvoiceLineTypeUsageBased,
-				Name: "usage-based-line",
 				Period: Period{
 					Start: time.Now(),
 				},
-				Description: lo.ToPtr("index=0"),
 			},
 			Children: NewLineChildren(nil),
 		},

@@ -50,11 +50,13 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 
 	line := &billing.Line{
 		LineBase: billing.LineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				ID:   "fake-line",
+				Name: "feature",
+			}),
 			Currency:          "USD",
-			ID:                "fake-line",
 			Type:              billing.InvoiceLineTypeUsageBased,
 			Status:            billing.InvoiceLineStatusValid,
-			Name:              "feature",
 			RateCardDiscounts: tc.discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{

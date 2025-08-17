@@ -178,14 +178,15 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					}),
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "Test item - HUF",
+							}),
 							Period: billing.Period{Start: periodStart, End: periodEnd},
 
 							InvoiceAt: issueAt,
 							ManagedBy: billing.ManuallyManagedLine,
 
 							Type: billing.InvoiceLineTypeUsageBased,
-
-							Name: "Test item - HUF",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
@@ -234,8 +235,13 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		usdInvoiceLine := usdInvoice.Lines.MustGet()[0]
 		expectedUSDLine := &billing.Line{
 			LineBase: billing.LineBase{
-				ID:        items[0].ID,
-				Namespace: namespace,
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					ID:        items[0].ID,
+					Namespace: namespace,
+					Name:      "Test item - USD",
+					CreatedAt: usdInvoiceLine.CreatedAt.In(time.UTC),
+					UpdatedAt: usdInvoiceLine.UpdatedAt.In(time.UTC),
+				}),
 
 				Period: billing.Period{Start: periodStart.Truncate(time.Microsecond), End: periodEnd.Truncate(time.Microsecond)},
 
@@ -245,13 +251,9 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 				Type: billing.InvoiceLineTypeFee,
 
-				Name:     "Test item - USD",
 				Currency: currencyx.Code(currency.USD),
 
 				Status: billing.InvoiceLineStatusValid,
-
-				CreatedAt: usdInvoiceLine.CreatedAt.In(time.UTC),
-				UpdatedAt: usdInvoiceLine.UpdatedAt.In(time.UTC),
 
 				Metadata: map[string]string{
 					"key": "value",
@@ -639,15 +641,16 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				Lines: []*billing.Line{
 					{
 						LineBase: billing.LineBase{
-							Namespace: namespace,
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name:      "Test item1",
+								Namespace: namespace,
+							}),
+							Period: billing.Period{Start: periodStart, End: periodEnd},
 
 							InvoiceAt: line1IssueAt,
 
 							Type:      billing.InvoiceLineTypeFee,
 							ManagedBy: billing.ManuallyManagedLine,
-
-							Name: "Test item1",
 
 							Metadata: map[string]string{
 								"key": "value",
@@ -1412,11 +1415,13 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				Lines: []*billing.Line{
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - FLAT per unit",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - FLAT per unit",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.flatPerUnit.Key,
@@ -1430,11 +1435,13 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 					},
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - FLAT per any usage",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - FLAT per any usage",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
@@ -1446,11 +1453,13 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 					},
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - Tiered graduated",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - Tiered graduated",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
@@ -1480,11 +1489,13 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 					},
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - Tiered volume",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - Tiered volume",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredVolume.Key,
@@ -2333,11 +2344,13 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 				Lines: []*billing.Line{
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - Tiered graduated",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - Tiered graduated",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
@@ -2646,11 +2659,13 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 				Lines: []*billing.Line{
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - FLAT per unit",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - FLAT per unit",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.flatPerUnit.Key,
@@ -2664,11 +2679,13 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 					},
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - FLAT per any usage",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - FLAT per any usage",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
@@ -2680,11 +2697,13 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 					},
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - Tiered graduated",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - Tiered graduated",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
@@ -2714,11 +2733,13 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 					},
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - Tiered volume",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - Tiered volume",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredVolume.Key,
@@ -3165,11 +3186,13 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 				Lines: []*billing.Line{
 					{
 						LineBase: billing.LineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Name: "UBP - FLAT per unit",
+							}),
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
 							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - FLAT per unit",
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: flatPerUnitFeature.Key,
@@ -3331,11 +3354,13 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 			Lines: []*billing.Line{
 				{
 					LineBase: billing.LineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "UBP - FLAT per unit",
+						}),
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
 						InvoiceAt: periodEnd,
 						ManagedBy: billing.ManuallyManagedLine,
 						Type:      billing.InvoiceLineTypeUsageBased,
-						Name:      "UBP - FLAT per unit",
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: flatPerUnitFeature.Key,
@@ -3450,11 +3475,13 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 			Lines: []*billing.Line{
 				{
 					LineBase: billing.LineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "UBP - FLAT per unit",
+						}),
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
 						InvoiceAt: periodEnd,
 						ManagedBy: billing.ManuallyManagedLine,
 						Type:      billing.InvoiceLineTypeUsageBased,
-						Name:      "UBP - FLAT per unit",
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: flatPerUnitFeature.Key,
@@ -3606,11 +3633,13 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 		Lines: []*billing.Line{
 			{
 				LineBase: billing.LineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "UBP - volume",
+					}),
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt: periodEnd,
 					ManagedBy: billing.ManuallyManagedLine,
 					Type:      billing.InvoiceLineTypeUsageBased,
-					Name:      "UBP - volume",
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -3700,11 +3729,13 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 		Lines: []*billing.Line{
 			{
 				LineBase: billing.LineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "UBP - volume",
+					}),
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt: periodEnd,
 					ManagedBy: billing.ManuallyManagedLine,
 					Type:      billing.InvoiceLineTypeUsageBased,
-					Name:      "UBP - volume",
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -3731,11 +3762,13 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 			},
 			{
 				LineBase: billing.LineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "UBP - unit",
+					}),
 					Period:    billing.Period{Start: periodStart, End: periodStart.Add(24 * time.Hour)},
 					InvoiceAt: periodStart.Add(24 * time.Hour),
 					ManagedBy: billing.ManuallyManagedLine,
 					Type:      billing.InvoiceLineTypeUsageBased,
-					Name:      "UBP - unit",
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -3810,11 +3843,13 @@ func (s *InvoicingTestSuite) TestSortLines() {
 		Lines: []*billing.Line{
 			{
 				LineBase: billing.LineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "UBP - volume",
+					}),
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt: periodEnd,
 					ManagedBy: billing.ManuallyManagedLine,
 					Type:      billing.InvoiceLineTypeUsageBased,
-					Name:      "UBP - volume",
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,

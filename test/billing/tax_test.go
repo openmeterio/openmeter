@@ -206,15 +206,16 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 			Lines: []*billing.Line{
 				{
 					LineBase: billing.LineBase{
-						Namespace: namespace,
-						Period:    billing.Period{Start: now, End: now.Add(time.Hour * 24)},
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Test item - USD",
+						}),
+						Period: billing.Period{Start: now, End: now.Add(time.Hour * 24)},
 
 						InvoiceAt: now.Add(time.Hour * 24),
 						ManagedBy: billing.ManuallyManagedLine,
 
 						Type: billing.InvoiceLineTypeUsageBased,
-
-						Name: "Test item - USD",
 
 						TaxConfig: taxConfig,
 

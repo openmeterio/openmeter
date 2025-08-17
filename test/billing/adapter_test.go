@@ -98,12 +98,14 @@ type usageBasedLineInput struct {
 func newUsageBasedLine(in usageBasedLineInput) *billing.Line {
 	out := &billing.Line{
 		LineBase: billing.LineBase{
-			Namespace: in.Namespace,
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace: in.Namespace,
+				Name:      in.Name,
+			}),
 
 			Type:      billing.InvoiceLineTypeUsageBased,
 			ManagedBy: billing.ManuallyManagedLine,
 			InvoiceID: in.Invoice.ID,
-			Name:      in.Name,
 			Currency:  in.Invoice.Currency,
 
 			Period:    in.Period,

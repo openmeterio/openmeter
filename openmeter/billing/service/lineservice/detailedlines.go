@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -136,11 +137,13 @@ func newDetailedLines(line *billing.Line, inputs ...newDetailedLineInput) ([]*bi
 
 		line := &billing.Line{
 			LineBase: billing.LineBase{
-				Namespace:              line.Namespace,
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace: line.Namespace,
+					Name:      in.Name,
+				}),
 				Type:                   billing.InvoiceLineTypeFee,
 				Status:                 billing.InvoiceLineStatusDetailed,
 				Period:                 period,
-				Name:                   in.Name,
 				ManagedBy:              billing.SystemManagedLine,
 				InvoiceAt:              line.InvoiceAt,
 				InvoiceID:              line.InvoiceID,

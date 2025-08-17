@@ -338,15 +338,17 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 			Lines: []*billing.Line{
 				{
 					LineBase: billing.LineBase{
-						Namespace: namespace,
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Test item1",
+						}),
+						Period: billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: invoiceAt,
 
 						Type:      billing.InvoiceLineTypeFee,
 						ManagedBy: billing.ManuallyManagedLine,
 
-						Name:     "Test item1",
 						Currency: currencyx.Code(currency.USD),
 
 						Metadata: map[string]string{
@@ -362,15 +364,17 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 				},
 				{
 					LineBase: billing.LineBase{
-						Namespace: namespace,
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Test item2",
+						}),
+						Period: billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: invoiceAt,
 
 						Type:      billing.InvoiceLineTypeFee,
 						ManagedBy: billing.ManuallyManagedLine,
 
-						Name:     "Test item2",
 						Currency: currencyx.Code(currency.USD),
 					},
 					FlatFee: &billing.FlatFeeLine{
