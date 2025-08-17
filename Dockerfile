@@ -68,6 +68,13 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 RUN xx-verify /usr/local/bin/openmeter-billing-worker
 
+# Build periodic jobs binary
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/go/cache \
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-jobs ./cmd/jobs
+
+RUN xx-verify /usr/local/bin/openmeter-jobs
+
 FROM alpine:3.22.1@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
 
 RUN apk add --update --no-cache ca-certificates tzdata bash
@@ -79,6 +86,7 @@ COPY --link --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-balance-worker /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-notification-service /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-billing-worker /usr/local/bin/
+COPY --link --from=builder /usr/local/bin/openmeter-jobs /usr/local/bin/
 COPY --link --from=builder /src/go.* /usr/local/src/openmeter/
 COPY --link --from=builder /src/entrypoint.sh /entrypoint.sh
 
