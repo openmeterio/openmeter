@@ -158,8 +158,8 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.Equal(discountCorrelationID, invoiceLine.SplitLineHierarchy.Group.RatecardDiscounts.Percentage.CorrelationID)
 
 		// An amount discount is also created, and it retains the same correlation ID
-		s.Len(invoiceLine.Children.OrEmpty(), 1)
-		detailedLine := invoiceLine.Children.OrEmpty()[0]
+		s.Len(invoiceLine.Children, 1)
+		detailedLine := invoiceLine.Children[0]
 
 		require.Len(s.T(), detailedLine.Discounts.Amount, 1)
 
@@ -361,7 +361,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		require.Equal(s.T(), discountCorrelationID, reason.CorrelationID)
 
 		// The detailed line does not exists, as we had no usage
-		require.Len(s.T(), invoiceLine.Children.OrEmpty(), 0)
+		require.Len(s.T(), invoiceLine.Children, 0)
 	})
 
 	s.Run("[invoice2] Creating a draft invoice with 75 usage", func() {
@@ -403,8 +403,8 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		require.Equal(s.T(), float64(110), reason.Quantity.InexactFloat64())
 
 		// The detailed line exists and has a usage of 15
-		require.Len(s.T(), invoiceLine.Children.OrEmpty(), 1)
-		detailedLine := invoiceLine.Children.OrEmpty()[0]
+		require.Len(s.T(), invoiceLine.Children, 1)
+		detailedLine := invoiceLine.Children[0]
 		require.Equal(s.T(), float64(15), detailedLine.FlatFee.Quantity.InexactFloat64())
 	})
 
@@ -435,8 +435,8 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		s.Len(invoiceLine.Discounts.Usage, 0)
 
 		// The detailed line exists and has a usage of 30
-		require.Len(s.T(), invoiceLine.Children.OrEmpty(), 1)
-		detailedLine := invoiceLine.Children.OrEmpty()[0]
+		require.Len(s.T(), invoiceLine.Children, 1)
+		detailedLine := invoiceLine.Children[0]
 		require.Equal(s.T(), float64(30), detailedLine.FlatFee.Quantity.InexactFloat64())
 	})
 }

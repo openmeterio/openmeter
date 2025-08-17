@@ -110,9 +110,8 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		s.Len(lines, 1)
 		line := lines[0]
 
-		detailedLines := line.Children.MustGet()
-		s.Len(detailedLines, 1)
-		detailedLine := detailedLines[0]
+		s.Len(line.Children, 1)
+		detailedLine := line.Children[0]
 
 		// Let's validate the detailed line
 		s.Equal(float64(1), detailedLine.FlatFee.Quantity.InexactFloat64())
@@ -192,9 +191,8 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	s.Len(lines, 1)
 	line := lines[0]
 
-	detailedLines := line.Children.MustGet()
-	s.Len(detailedLines, 1)
-	detailedLine := detailedLines[0]
+	s.Len(line.Children, 1)
+	detailedLine := line.Children[0]
 
 	// Let's validate the lines
 

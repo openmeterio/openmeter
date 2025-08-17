@@ -260,7 +260,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.NotNil(ubpSplitLine.SplitLineGroupID, "the line is a split line")
 	s.Equal(ubpSplitLine.TaxConfig, taxConfig, "tax config is retained")
 
-	ubpSplitLineChildren := ubpSplitLine.Children.OrEmpty()
+	ubpSplitLineChildren := ubpSplitLine.Children
 	s.Len(ubpSplitLineChildren, 1)
 
 	ubpDetailedLine := ubpSplitLineChildren[0]

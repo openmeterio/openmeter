@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
@@ -13,11 +14,7 @@ import (
 // manually.
 func FillGatheringDetailedLineMeta(invoice *billing.Invoice, deps CalculatorDependencies) error {
 	invoice.Lines = invoice.Lines.Map(func(line *billing.Line) *billing.Line {
-		if line.Children.IsAbsent() {
-			return line
-		}
-
-		line.Children = line.Children.Map(func(child *billing.Line) *billing.Line {
+		line.Children = lo.Map(line.Children, func(child *billing.Line, _ int) *billing.Line {
 			if child.ID == "" {
 				child.ID = ulid.Make().String()
 			}

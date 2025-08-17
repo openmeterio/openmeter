@@ -552,7 +552,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			return in, err
 		}
 
-		updatedLines := billing.LineChildren{}
+		updatedLines := billing.InvoiceLines{}
 		if in.Lines.IsPresent() {
 			// Note: this only supports adding new lines or setting the DeletedAt field
 			// we don't support moving lines between invoices here, as the cross invoice
@@ -567,14 +567,14 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 				return in, err
 			}
 
-			updatedLines = billing.NewLineChildren(lines)
+			updatedLines = billing.NewInvoiceLines(lines)
 		}
 
 		// Let's return the updated invoice
 		if !in.ExpandedFields.DeletedLines && updatedLines.IsPresent() {
 			// If we haven't requested deleted lines, let's filter them out, as if there were lines marked deleted
 			// the adapter update would return them as well.
-			updatedLines = billing.NewLineChildren(
+			updatedLines = billing.NewInvoiceLines(
 				lo.Filter(updatedLines.OrEmpty(), func(line *billing.Line, _ int) bool {
 					return line.DeletedAt == nil
 				}),
@@ -761,7 +761,7 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 			return billing.Invoice{}, err
 		}
 
-		res.Lines = billing.NewLineChildren(mappedLines)
+		res.Lines = billing.NewInvoiceLines(mappedLines)
 	}
 
 	if len(invoice.Edges.BillingInvoiceValidationIssues) > 0 {

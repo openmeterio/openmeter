@@ -367,7 +367,7 @@ func (i Line) RemoveCircularReferences() *Line {
 	clone.ParentLine = nil
 	clone.DBState = nil
 
-	clone.Children = clone.Children.Map(func(l *Line) *Line {
+	clone.Children = lo.Map(clone.Children, func(l *Line, _ int) *Line {
 		return l.RemoveCircularReferences()
 	})
 
@@ -382,14 +382,14 @@ func (i Line) RemoveCircularReferences() *Line {
 func (i Line) RemoveMetaForCompare() *Line {
 	out := i.Clone()
 
-	if !out.Children.IsPresent() || len(out.Children.OrEmpty()) == 0 {
+	if len(out.Children) == 0 {
 		out.Children = NewLineChildren(nil)
 	}
 
-	for _, child := range out.Children.OrEmpty() {
+	for _, child := range out.Children {
 		child.ParentLine = out
 
-		if !child.Children.IsPresent() || len(child.Children.OrEmpty()) == 0 {
+		if len(child.Children) == 0 {
 			child.Children = NewLineChildren(nil)
 		}
 	}
@@ -426,7 +426,7 @@ func (i Line) clone(opts cloneOptions) *Line {
 	res.LineBase = i.LineBase.Clone()
 
 	if !opts.skipChildren {
-		res.Children = i.Children.Map(func(line *Line) *Line {
+		res.Children = lo.Map(i.Children, func(line *Line, _ int) *Line {
 			cloned := line.Clone()
 			cloned.ParentLine = line
 			return cloned
@@ -464,11 +464,11 @@ func (i Line) Validate() error {
 		errs = append(errs, fmt.Errorf("discounts: %w", err))
 	}
 
-	if i.Children.IsPresent() && len(i.Children.OrEmpty()) > 0 {
+	if len(i.Children) > 0 {
 		if i.Status == InvoiceLineStatusDetailed {
 			errs = append(errs, errors.New("detailed lines are not allowed for detailed lines (e.g. no nesting is allowed)"))
 		} else {
-			for j, detailedLine := range i.Children.OrEmpty() {
+			for j, detailedLine := range i.Children {
 				if err := detailedLine.Validate(); err != nil {
 					errs = append(errs, fmt.Errorf("detailedLines[%d]: %w", j, err))
 				}
@@ -564,10 +564,6 @@ func (i Line) ValidateUsageBased() error {
 //
 // The childrens receive DBState objects, so that they can be safely persisted/managed without the parent.
 func (i *Line) DisassociateChildren() {
-	if i.Children.IsAbsent() {
-		return
-	}
-
 	i.Children = LineChildren{}
 	if i.DBState != nil {
 		i.DBState.Children = LineChildren{}
@@ -711,9 +707,7 @@ func NewUsageBasedFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineO
 }
 
 // TODO[OM-1016]: For events we need a json marshaler
-type LineChildren struct {
-	mo.Option[[]*Line]
-}
+type LineChildren []*Line
 
 func NewLineChildren(children []*Line) LineChildren {
 	// Note: this helps with test equality checks
@@ -721,35 +715,17 @@ func NewLineChildren(children []*Line) LineChildren {
 		children = nil
 	}
 
-	return LineChildren{mo.Some(children)}
-}
-
-func (c LineChildren) Map(fn func(*Line) *Line) LineChildren {
-	if !c.IsPresent() {
-		return c
-	}
-
-	return LineChildren{
-		mo.Some(
-			lo.Map(c.OrEmpty(), func(item *Line, _ int) *Line {
-				return fn(item)
-			}),
-		),
-	}
+	return LineChildren(children)
 }
 
 func (c LineChildren) Validate() error {
-	return errors.Join(lo.Map(c.OrEmpty(), func(line *Line, idx int) error {
+	return errors.Join(lo.Map(c, func(line *Line, idx int) error {
 		return ValidationWithFieldPrefix(fmt.Sprintf("%d", idx), line.Validate())
 	})...)
 }
 
-func (c *LineChildren) Append(l ...*Line) {
-	c.Option = mo.Some(append(c.OrEmpty(), l...))
-}
-
 func (c LineChildren) GetByID(id string) *Line {
-	return lo.FindOrElse(c.Option.OrEmpty(), nil, func(line *Line) bool {
+	return lo.FindOrElse(c, nil, func(line *Line) bool {
 		return line.ID == id
 	})
 }
@@ -760,38 +736,15 @@ func (c *LineChildren) RemoveByID(id string) bool {
 		return false
 	}
 
-	c.Option = mo.Some(
-		lo.Filter(c.Option.OrEmpty(), func(l *Line, _ int) bool {
-			return l.ID != id
-		}),
-	)
+	*c = lo.Filter(*c, func(l *Line, _ int) bool {
+		return l.ID != id
+	})
 
 	return true
 }
 
-func (c *LineChildren) ReplaceByID(id string, newLine *Line) bool {
-	if c.IsAbsent() {
-		return false
-	}
-
-	lines := c.OrEmpty()
-
-	for i, line := range lines {
-		if line.ID == id {
-			// Let's preserve the DB state of the original line (as we are only replacing the current state)
-			originalDBState := line.DBState
-
-			lines[i] = newLine
-			lines[i].DBState = originalDBState
-			return true
-		}
-	}
-
-	return false
-}
-
-func (c *LineChildren) GetByChildUniqueReferenceID(id string) *Line {
-	return lo.FindOrElse(c.Option.OrEmpty(), nil, func(line *Line) bool {
+func (c LineChildren) GetByChildUniqueReferenceID(id string) *Line {
+	return lo.FindOrElse(c, nil, func(line *Line) bool {
 		return lo.FromPtr(line.ChildUniqueReferenceID) == id
 	})
 }
@@ -799,15 +752,11 @@ func (c *LineChildren) GetByChildUniqueReferenceID(id string) *Line {
 // ChildrenWithIDReuse returns a new LineChildren instance with the given lines. If the line has a child
 // with a unique reference ID, it will try to retain the database ID of the existing child to avoid a delete/create.
 func (c Line) ChildrenWithIDReuse(l []*Line) (LineChildren, error) {
-	if !c.Children.IsPresent() {
-		return NewLineChildren(l), nil
-	}
-
 	clonedNewLines := lo.Map(l, func(line *Line, _ int) *Line {
 		return line.Clone()
 	})
 
-	existingItems := c.Children.OrEmpty()
+	existingItems := c.Children
 	childrenRefToLine := make(map[string]*Line, len(existingItems))
 
 	for _, child := range existingItems {
@@ -844,19 +793,6 @@ func (c Line) ChildrenWithIDReuse(l []*Line) (LineChildren, error) {
 	}
 
 	return NewLineChildren(clonedNewLines), nil
-}
-
-func (c LineChildren) Clone() LineChildren {
-	return c.Map(func(l *Line) *Line {
-		return l.Clone()
-	})
-}
-
-// NonDeletedLineCount returns the number of lines that are not deleted and have a valid status (e.g. we are ignoring split lines)
-func (c LineChildren) NonDeletedLineCount() int {
-	return lo.CountBy(c.OrEmpty(), func(l *Line) bool {
-		return l.DeletedAt == nil && l.Status == InvoiceLineStatusValid
-	})
 }
 
 type UsageBasedLine struct {
@@ -956,7 +892,7 @@ func (c CreatePendingInvoiceLinesInput) Validate() error {
 			errs = append(errs, fmt.Errorf("line.%d: invoice ID is not allowed for pending lines", id))
 		}
 
-		if len(line.Children.OrEmpty()) > 0 {
+		if len(line.Children) > 0 {
 			errs = append(errs, fmt.Errorf("line.%d: children are not allowed for pending lines", id))
 		}
 

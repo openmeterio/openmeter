@@ -184,7 +184,7 @@ func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespac
 
 		Number:   lo.ToPtr("TEST-INV-1"),
 		Currency: currencyx.Code(currency.USD),
-		Lines: billing.NewLineChildren([]*billing.Line{
+		Lines: billing.NewInvoiceLines([]*billing.Line{
 			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
 				Namespace: namespace,
 				ID:        ulid.Make().String(),

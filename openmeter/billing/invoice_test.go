@@ -69,7 +69,7 @@ func TestSortLines(t *testing.T) {
 
 	require.Equal(t, *lines[0].Description, "index=0")
 	require.Equal(t, *lines[1].Description, "index=1")
-	children := lines[1].Children.OrEmpty()
+	children := lines[1].Children
 	require.Equal(t, *children[0].Description, "index=1.0")
 	require.Equal(t, *children[1].Description, "index=1.1")
 }

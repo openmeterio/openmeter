@@ -179,7 +179,7 @@ func diffInvoiceLines(lines []*billing.Line) (*invoiceLineDiff, error) {
 		}
 
 		// Any child of a new item is also new => let's create them
-		for _, child := range workItem.Children.OrEmpty() {
+		for _, child := range workItem.Children {
 			diff.ChildrenDiff.LineBase.NeedsCreate(child)
 			switch child.Type {
 			case billing.InvoiceLineTypeFee:
@@ -197,13 +197,13 @@ func diffInvoiceLines(lines []*billing.Line) (*invoiceLineDiff, error) {
 	// Let's figure out what we need to do about child lines
 	for _, childUpdate := range childUpdates {
 		// If the children are not present, we don't need to do anything (a.k.a. do not touch)
-		if !childUpdate.Children.IsPresent() {
+		if len(childUpdate.Children) == 0 {
 			continue
 		}
 
 		if err := getChildrenActions(
-			childUpdate.DBState.Children.OrEmpty(),
-			childUpdate.Children.OrEmpty(),
+			childUpdate.DBState.Children,
+			childUpdate.Children,
 			diff.ChildrenDiff,
 		); err != nil {
 			outErr = errors.Join(outErr, err)
@@ -255,11 +255,9 @@ func diffLineBaseEntities(line *billing.Line, out *invoiceLineDiff) error {
 			out.LineBase.NeedsDelete(line)
 			out.AffectedLineIDs.Add(getParentIDAsSlice(line)...)
 
-			if line.Children.IsPresent() {
-				// We need to delete the children as well
-				if err := deleteLineChildren(line, out); err != nil {
-					return err
-				}
+			// We need to delete the children as well
+			if err := deleteLineChildren(line, out); err != nil {
+				return err
 			}
 
 			if err := handleLineDependantEntities(line, operationDelete, out); err != nil {
@@ -363,7 +361,7 @@ func getChildrenActions(dbSave []*billing.Line, current []*billing.Line, out *in
 }
 
 func deleteLineChildren(line *billing.Line, out *invoiceLineDiff) error {
-	for _, child := range line.DBState.Children.OrEmpty() {
+	for _, child := range line.DBState.Children {
 		out.ChildrenDiff.LineBase.NeedsDelete(child)
 
 		if err := handleLineDependantEntities(child, operationDelete, out.ChildrenDiff); err != nil {

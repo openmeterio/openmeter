@@ -183,13 +183,7 @@ func mapTaxConfigToAPI(to *productcatalog.TaxConfig) *api.TaxConfig {
 	return lo.ToPtr(productcataloghttp.FromTaxConfig(*to))
 }
 
-func mapDetailedLinesToAPI(optChildren billing.LineChildren) (*[]api.InvoiceDetailedLine, error) {
-	if optChildren.IsAbsent() {
-		return nil, nil
-	}
-
-	children := optChildren.OrEmpty()
-
+func mapDetailedLinesToAPI(children billing.LineChildren) (*[]api.InvoiceDetailedLine, error) {
 	out := make([]api.InvoiceDetailedLine, 0, len(children))
 
 	for _, child := range children {
@@ -697,7 +691,7 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 	return existing, wasChange, nil
 }
 
-func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing.Invoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.LineChildren, error) {
+func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing.Invoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.InvoiceLines, error) {
 	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line *billing.Line) string {
 		return line.ID
 	})
@@ -716,11 +710,11 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 			// but we are not persisting them to the database
 			newLine, err := lineFromInvoiceLineReplaceUpdate(line, invoice)
 			if err != nil {
-				return billing.LineChildren{}, fmt.Errorf("failed to create new line: %w", err)
+				return billing.InvoiceLines{}, fmt.Errorf("failed to create new line: %w", err)
 			}
 
 			if newLine.Type == billing.InvoiceLineTypeFee {
-				return billing.LineChildren{}, billing.ValidationError{
+				return billing.InvoiceLines{}, billing.ValidationError{
 					Err: fmt.Errorf("creating flat fee lines is not supported, please use usage based lines instead"),
 				}
 			}
@@ -731,7 +725,7 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 					Line:    newLine,
 				})
 				if err != nil {
-					return billing.LineChildren{}, fmt.Errorf("failed to snapshot quantity: %w", err)
+					return billing.InvoiceLines{}, fmt.Errorf("failed to snapshot quantity: %w", err)
 				}
 			}
 
@@ -742,11 +736,11 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 		foundLines.Add(id)
 		mergedLine, changed, err := mergeLineFromInvoiceLineReplaceUpdate(existingLine, line)
 		if err != nil {
-			return billing.LineChildren{}, fmt.Errorf("failed to merge line: %w", err)
+			return billing.InvoiceLines{}, fmt.Errorf("failed to merge line: %w", err)
 		}
 
 		if changed && mergedLine.Type == billing.InvoiceLineTypeFee {
-			return billing.LineChildren{}, billing.ValidationError{
+			return billing.InvoiceLines{}, billing.ValidationError{
 				Err: fmt.Errorf("updating flat fee lines is not supported, please use usage based lines instead"),
 			}
 		}
@@ -757,7 +751,7 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 				Line:    mergedLine,
 			})
 			if err != nil {
-				return billing.LineChildren{}, fmt.Errorf("failed to snapshot quantity: %w", err)
+				return billing.InvoiceLines{}, fmt.Errorf("failed to snapshot quantity: %w", err)
 			}
 		}
 
@@ -773,5 +767,5 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 		out = append(out, existingLine)
 	}
 
-	return billing.NewLineChildren(out), nil
+	return billing.NewInvoiceLines(out), nil
 }
