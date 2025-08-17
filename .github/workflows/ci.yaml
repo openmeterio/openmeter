@@ -408,6 +408,14 @@ jobs:
               image: $DEPOT_IMAGE_URL
             sink-worker:
               image: $DEPOT_IMAGE_URL
+            balance-worker:
+              image: $DEPOT_IMAGE_URL
+            notification-service:
+              image: $DEPOT_IMAGE_URL
+            billing-worker:
+              image: $DEPOT_IMAGE_URL
+            openmeter-jobs:
+              image: $DEPOT_IMAGE_URL
           EOF
 
           cat quickstart/docker-compose.override.yaml

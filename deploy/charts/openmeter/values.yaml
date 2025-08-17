@@ -259,3 +259,23 @@ caRootCertificates: {}
 #    -----BEGIN CERTIFICATE-----
 #    ...
 #    -----END CERTIFICATE-----
+
+jobs:
+  # -- Subscription sync job is a backup reconciler to make sure that all subscriptions are properly billed even
+  # if there is some kind of issue with the billing worker.
+  subscriptionSync:
+    # -- Schedule for the subscription sync job.
+    # Default is every hour.
+    schedule: "0 * * * *"
+  # -- Collect invoices job creates invoices based on gathering invoices. The job is only used
+  # for the second invoice and up. The first invoice is issued as part of the subscription start job immidately.
+  billingCollectInvoices:
+    # -- Schedule for the collect invoices job.
+    # Default is every five minutes.
+    schedule: "*/5 * * * *"
+
+  # -- Advance invoices job advances automatic approval invoices.
+  billingAdvanceInvoices:
+    # -- Schedule for the advance invoices job.
+    # Default is every five minutes.
+    schedule: "*/5 * * * *"

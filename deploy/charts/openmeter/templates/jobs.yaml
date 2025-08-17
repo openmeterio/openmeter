@@ -1,0 +1,288 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "openmeter.componentName" (list . "subscription-sync") }}
+  labels:
+    {{- include "openmeter.componentLabels" (list . "subscription-sync") | nindent 4 }}
+spec:
+  schedule: "{{ .Values.jobs.subscriptionSync.schedule }}"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "openmeter.componentLabels" (list . "subscription-sync") | nindent 8 }}
+        {{- with .Values.podLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      template:
+        metadata:
+          annotations:
+            {{- with .Values.podAnnotations }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+          labels:
+            {{- include "openmeter.componentLabels" (list . "subscription-sync") | nindent 12 }}
+            {{- with .Values.podLabels }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          restartPolicy: Never # next run is fine
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
+          serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}
+          initContainers:
+            {{- if .Values.postgresql.enabled -}}
+            {{- include "openmeter.init.postgres" (list .) | nindent 12 }}
+            {{- end }}
+            {{- if .Values.clickhouse.enabled -}}
+            {{- include "openmeter.init.clickhouse" (list .) | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          containers:
+            - name: subscription-sync
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["/entrypoint.sh", "openmeter-jobs"]
+              args: [ "--config", "/etc/openmeter/config.yaml", "billing", "subscriptionsync", "all"]
+              ports:
+                - name: telemetry-http
+                  containerPort: 10000
+                  protocol: TCP
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              volumeMounts:
+                - name: config
+                  mountPath: /etc/openmeter
+                {{- if ne (len .Values.caRootCertificates) 0 }}
+                - name: ca-certificates
+                  mountPath: /usr/local/share/ca-certificates
+                  readOnly: true
+                {{- end }}
+          volumes:
+            - name: config
+              configMap:
+                name: {{ include "openmeter.fullname" . }}
+            {{- if ne (len .Values.caRootCertificates) 0 }}
+            - name: ca-certificates
+              configMap:
+                name: ca-certificates
+            {{- end }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "openmeter.componentName" (list . "billing-collect-invoices") }}
+  labels:
+    {{- include "openmeter.componentLabels" (list . "billing-collect-invoices") | nindent 4 }}
+spec:
+  schedule: "{{ .Values.jobs.billingCollectInvoices.schedule }}"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "openmeter.componentLabels" (list . "billing-collect-invoices") | nindent 8 }}
+        {{- with .Values.podLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      template:
+        metadata:
+          annotations:
+            {{- with .Values.podAnnotations }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+          labels:
+            {{- include "openmeter.componentLabels" (list . "billing-collect-invoices") | nindent 12 }}
+            {{- with .Values.podLabels }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          restartPolicy: Never # next run is fine
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
+          serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}
+          initContainers:
+            {{- if .Values.postgresql.enabled -}}
+            {{- include "openmeter.init.postgres" (list .) | nindent 12 }}
+            {{- end }}
+            {{- if .Values.clickhouse.enabled -}}
+            {{- include "openmeter.init.clickhouse" (list .) | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          containers:
+            - name: billing-collect-invoices
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["/entrypoint.sh", "openmeter-jobs"]
+              args: [ "--config", "/etc/openmeter/config.yaml", "billing", "collect", "all"]
+              ports:
+                - name: telemetry-http
+                  containerPort: 10000
+                  protocol: TCP
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              volumeMounts:
+                - name: config
+                  mountPath: /etc/openmeter
+                {{- if ne (len .Values.caRootCertificates) 0 }}
+                - name: ca-certificates
+                  mountPath: /usr/local/share/ca-certificates
+                  readOnly: true
+                {{- end }}
+          volumes:
+            - name: config
+              configMap:
+                name: {{ include "openmeter.fullname" . }}
+            {{- if ne (len .Values.caRootCertificates) 0 }}
+            - name: ca-certificates
+              configMap:
+                name: ca-certificates
+            {{- end }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "openmeter.componentName" (list . "billing-advance-invoices") }}
+  labels:
+    {{- include "openmeter.componentLabels" (list . "billing-advance-invoices") | nindent 4 }}
+spec:
+  schedule: "{{ .Values.jobs.billingAdvanceInvoices.schedule }}"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "openmeter.componentLabels" (list . "billing-advance-invoices") | nindent 8 }}
+        {{- with .Values.podLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      template:
+        metadata:
+          annotations:
+            {{- with .Values.podAnnotations }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+          labels:
+            {{- include "openmeter.componentLabels" (list . "billing-advance-invoices") | nindent 12 }}
+            {{- with .Values.podLabels }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          restartPolicy: Never # next run is fine
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
+          serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}
+          initContainers:
+            {{- if .Values.postgresql.enabled -}}
+            {{- include "openmeter.init.postgres" (list .) | nindent 12 }}
+            {{- end }}
+            {{- if .Values.clickhouse.enabled -}}
+            {{- include "openmeter.init.clickhouse" (list .) | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          containers:
+            - name: billing-advance-invoices
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["/entrypoint.sh", "openmeter-jobs"]
+              args: [ "--config", "/etc/openmeter/config.yaml", "billing", "advance", "all"]
+              ports:
+                - name: telemetry-http
+                  containerPort: 10000
+                  protocol: TCP
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              volumeMounts:
+                - name: config
+                  mountPath: /etc/openmeter
+                {{- if ne (len .Values.caRootCertificates) 0 }}
+                - name: ca-certificates
+                  mountPath: /usr/local/share/ca-certificates
+                  readOnly: true
+                {{- end }}
+          volumes:
+            - name: config
+              configMap:
+                name: {{ include "openmeter.fullname" . }}
+            {{- if ne (len .Values.caRootCertificates) 0 }}
+            - name: ca-certificates
+              configMap:
+                name: ca-certificates
+            {{- end }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

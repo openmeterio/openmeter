@@ -84,5 +84,19 @@
         "--billing-advancement-strategy=foreground",
       ]
     },
+    {
+      "name": "Launch periodic jobs",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/jobs",
+      "args": [
+        "--config",
+        "${workspaceFolder}/config.yaml",
+        "billing",
+        "subscriptionsync",
+        "list"
+      ]
+    },
   ]
 }
