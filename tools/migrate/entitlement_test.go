@@ -1915,3 +1915,342 @@ func TestUsagePeriodIntervalDurationBackfillMigration(t *testing.T) {
 		}.Test(t)
 	})
 }
+
+func TestEntitlementSubjectIdMigration(t *testing.T) {
+	// Create ULIDs for all entities we'll need
+	featId := ulid.Make()
+
+	// Happy path - single subject per entitlement
+	entId1 := ulid.Make()
+	subId1 := ulid.Make()
+
+	entId2 := ulid.Make()
+	subId2 := ulid.Make()
+
+	// Third entitlement for more comprehensive testing
+	entId3 := ulid.Make()
+	subId3 := ulid.Make()
+
+	runner{
+		stops: stops{
+			{
+				// Before our migration
+				version:   20250807075408, // Just before our migration
+				direction: directionUp,
+				action: func(t *testing.T, db *sql.DB) {
+					// 1. Create a feature
+					_, err := db.Exec(`
+						INSERT INTO features (
+							namespace,
+							id,
+							key,
+							name,
+							created_at,
+							updated_at
+						)
+						VALUES (
+							'default',
+							$1,
+							'feat_1',
+							'Feature 1',
+							NOW(),
+							NOW()
+						)`,
+						featId.String(),
+					)
+					require.NoError(t, err)
+
+					// 2. Create subjects
+					// Happy path subjects
+					_, err = db.Exec(`
+						INSERT INTO subjects (
+							namespace,
+							id,
+							key,
+							created_at,
+							updated_at
+						)
+						VALUES (
+							'default',
+							$1,
+							'subject_1',
+							'2024-01-01 00:00:00',
+							NOW()
+						)`,
+						subId1.String(),
+					)
+					require.NoError(t, err)
+
+					_, err = db.Exec(`
+						INSERT INTO subjects (
+							namespace,
+							id,
+							key,
+							created_at,
+							updated_at
+						)
+						VALUES (
+							'default',
+							$1,
+							'subject_2',
+							'2024-01-01 00:00:00',
+							NOW()
+						)`,
+						subId2.String(),
+					)
+					require.NoError(t, err)
+
+					// Third subject for comprehensive testing
+					_, err = db.Exec(`
+						INSERT INTO subjects (
+							namespace,
+							id,
+							key,
+							created_at,
+							updated_at
+						)
+						VALUES (
+							'default',
+							$1,
+							'subject_3',
+							'2024-01-01 00:00:00',
+							NOW()
+						)`,
+						subId3.String(),
+					)
+					require.NoError(t, err)
+
+					// 3. Create entitlements (without subject_id column yet)
+					_, err = db.Exec(`
+						INSERT INTO entitlements (
+							namespace,
+							id,
+							created_at,
+							updated_at,
+							entitlement_type,
+							feature_key,
+							feature_id,
+							subject_key
+						)
+						VALUES (
+							'default',
+							$1,
+							NOW(),
+							NOW(),
+							'METERED',
+							'feat_1',
+							$2,
+							'subject_1'
+						)`,
+						entId1.String(),
+						featId.String(),
+					)
+					require.NoError(t, err)
+
+					_, err = db.Exec(`
+						INSERT INTO entitlements (
+							namespace,
+							id,
+							created_at,
+							updated_at,
+							entitlement_type,
+							feature_key,
+							feature_id,
+							subject_key
+						)
+						VALUES (
+							'default',
+							$1,
+							NOW(),
+							NOW(),
+							'BOOLEAN',
+							'feat_1',
+							$2,
+							'subject_2'
+						)`,
+						entId2.String(),
+						featId.String(),
+					)
+					require.NoError(t, err)
+
+					// Third entitlement
+					_, err = db.Exec(`
+						INSERT INTO entitlements (
+							namespace,
+							id,
+							created_at,
+							updated_at,
+							entitlement_type,
+							feature_key,
+							feature_id,
+							subject_key
+						)
+						VALUES (
+							'default',
+							$1,
+							NOW(),
+							NOW(),
+							'METERED',
+							'feat_1',
+							$2,
+							'subject_3'
+						)`,
+						entId3.String(),
+						featId.String(),
+					)
+					require.NoError(t, err)
+
+					// 4. Verify subject_id column doesn't exist yet
+					_, err = db.Exec(`SELECT subject_id FROM entitlements LIMIT 1`)
+					require.Error(t, err, "subject_id column should not exist before migration")
+				},
+			},
+			{
+				// After our migration
+				version:   20250818093933,
+				direction: directionUp,
+				action: func(t *testing.T, db *sql.DB) {
+					// 1. Verify subject_id column was added and populated
+					var subjectId1 string
+					err := db.QueryRow(`
+						SELECT subject_id
+						FROM entitlements
+						WHERE id = $1
+					`, entId1.String()).Scan(&subjectId1)
+					require.NoError(t, err)
+					require.Equal(t, subId1.String(), subjectId1, "First entitlement should have correct subject_id")
+
+					var subjectId2 string
+					err = db.QueryRow(`
+						SELECT subject_id
+						FROM entitlements
+						WHERE id = $1
+					`, entId2.String()).Scan(&subjectId2)
+					require.NoError(t, err)
+					require.Equal(t, subId2.String(), subjectId2, "Second entitlement should have correct subject_id")
+
+					// 2. Verify third entitlement
+					var subjectId3 string
+					err = db.QueryRow(`
+						SELECT subject_id
+						FROM entitlements
+						WHERE id = $1
+					`, entId3.String()).Scan(&subjectId3)
+					require.NoError(t, err)
+					require.Equal(t, subId3.String(), subjectId3, "Third entitlement should have correct subject_id")
+
+					// 3. Verify subject_id column is NOT NULL
+					_, err = db.Exec(`
+						INSERT INTO entitlements (
+							namespace,
+							id,
+							created_at,
+							updated_at,
+							entitlement_type,
+							feature_key,
+							feature_id,
+							subject_key,
+							subject_id
+						)
+						VALUES (
+							'default',
+							$1,
+							NOW(),
+							NOW(),
+							'METERED',
+							'feat_1',
+							$2,
+							'subject_1',
+							NULL
+						)`,
+						ulid.Make().String(),
+						featId.String(),
+					)
+					require.Error(t, err, "should not allow NULL values in subject_id column")
+
+					// 4. Verify foreign key constraint exists and works
+					// Try to insert entitlement with non-existent subject_id
+					_, err = db.Exec(`
+						INSERT INTO entitlements (
+							namespace,
+							id,
+							created_at,
+							updated_at,
+							entitlement_type,
+							feature_key,
+							feature_id,
+							subject_key,
+							subject_id
+						)
+						VALUES (
+							'default',
+							$1,
+							NOW(),
+							NOW(),
+							'METERED',
+							'feat_1',
+							$2,
+							'subject_1',
+							$3
+						)`,
+						ulid.Make().String(),
+						featId.String(),
+						ulid.Make().String(), // Non-existent subject_id
+					)
+					require.Error(t, err, "should enforce foreign key constraint")
+					require.Contains(t, err.Error(), "foreign key", "error should mention foreign key constraint")
+
+					// 5. Verify we can insert valid entitlements
+					validSubjectId := ulid.Make()
+					_, err = db.Exec(`
+						INSERT INTO subjects (
+							namespace,
+							id,
+							key,
+							created_at,
+							updated_at
+						)
+						VALUES (
+							'default',
+							$1,
+							'valid_subject',
+							NOW(),
+							NOW()
+						)`,
+						validSubjectId.String(),
+					)
+					require.NoError(t, err)
+
+					_, err = db.Exec(`
+						INSERT INTO entitlements (
+							namespace,
+							id,
+							created_at,
+							updated_at,
+							entitlement_type,
+							feature_key,
+							feature_id,
+							subject_key,
+							subject_id
+						)
+						VALUES (
+							'default',
+							$1,
+							NOW(),
+							NOW(),
+							'METERED',
+							'feat_1',
+							$2,
+							'valid_subject',
+							$3
+						)`,
+						ulid.Make().String(),
+						featId.String(),
+						validSubjectId.String(),
+					)
+					require.NoError(t, err, "should allow valid entitlement with proper subject_id")
+				},
+			},
+		},
+	}.Test(t)
+}
