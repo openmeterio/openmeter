@@ -103,7 +103,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 				if line.Subscription != nil {
 					create = create.SetSubscriptionID(line.Subscription.SubscriptionID).
 						SetSubscriptionPhaseID(line.Subscription.PhaseID).
-						SetSubscriptionItemID(line.Subscription.ItemID)
+						SetSubscriptionItemID(line.Subscription.ItemID).
+						SetSubscriptionBillingPeriodFrom(line.Subscription.BillingPeriod.From.In(time.UTC)).
+						SetSubscriptionBillingPeriodTo(line.Subscription.BillingPeriod.To.In(time.UTC))
 				}
 
 				if line.TaxConfig != nil {

@@ -94,6 +94,10 @@ type BillingInvoiceLine struct {
 	SubscriptionPhaseID *string `json:"subscription_phase_id,omitempty"`
 	// SubscriptionItemID holds the value of the "subscription_item_id" field.
 	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
+	// SubscriptionBillingPeriodFrom holds the value of the "subscription_billing_period_from" field.
+	SubscriptionBillingPeriodFrom *time.Time `json:"subscription_billing_period_from,omitempty"`
+	// SubscriptionBillingPeriodTo holds the value of the "subscription_billing_period_to" field.
+	SubscriptionBillingPeriodTo *time.Time `json:"subscription_billing_period_to,omitempty"`
 	// SplitLineGroupID holds the value of the "split_line_group_id" field.
 	SplitLineGroupID *string `json:"split_line_group_id,omitempty"`
 	// LineIds holds the value of the "line_ids" field.
@@ -265,7 +269,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldLineIds:
 			values[i] = new(sql.NullString)
-		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
+		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt, billinginvoiceline.FieldSubscriptionBillingPeriodFrom, billinginvoiceline.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
 		case billinginvoiceline.FieldRatecardDiscounts:
 			values[i] = billinginvoiceline.ValueScanner.RatecardDiscounts.ScanValue()
@@ -501,6 +505,20 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				_m.SubscriptionItemID = new(string)
 				*_m.SubscriptionItemID = value.String
 			}
+		case billinginvoiceline.FieldSubscriptionBillingPeriodFrom:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_billing_period_from", values[i])
+			} else if value.Valid {
+				_m.SubscriptionBillingPeriodFrom = new(time.Time)
+				*_m.SubscriptionBillingPeriodFrom = value.Time
+			}
+		case billinginvoiceline.FieldSubscriptionBillingPeriodTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_billing_period_to", values[i])
+			} else if value.Valid {
+				_m.SubscriptionBillingPeriodTo = new(time.Time)
+				*_m.SubscriptionBillingPeriodTo = value.Time
+			}
 		case billinginvoiceline.FieldSplitLineGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field split_line_group_id", values[i])
@@ -734,6 +752,16 @@ func (_m *BillingInvoiceLine) String() string {
 	if v := _m.SubscriptionItemID; v != nil {
 		builder.WriteString("subscription_item_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SubscriptionBillingPeriodFrom; v != nil {
+		builder.WriteString("subscription_billing_period_from=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.SubscriptionBillingPeriodTo; v != nil {
+		builder.WriteString("subscription_billing_period_to=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	if v := _m.SplitLineGroupID; v != nil {

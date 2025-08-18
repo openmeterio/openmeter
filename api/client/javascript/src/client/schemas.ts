@@ -6092,6 +6092,8 @@ export interface components {
       readonly phase: components['schemas']['IDResource']
       /** @description The item this line is related to. */
       readonly item: components['schemas']['IDResource']
+      /** @description The billing period of the subscription. */
+      readonly billingPeriod: components['schemas']['Period']
     }
     /**
      * @description InvoiceLineTaxBehavior details how the tax item is applied to the base amount.

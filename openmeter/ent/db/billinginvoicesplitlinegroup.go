@@ -60,6 +60,10 @@ type BillingInvoiceSplitLineGroup struct {
 	SubscriptionPhaseID *string `json:"subscription_phase_id,omitempty"`
 	// SubscriptionItemID holds the value of the "subscription_item_id" field.
 	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
+	// SubscriptionBillingPeriodFrom holds the value of the "subscription_billing_period_from" field.
+	SubscriptionBillingPeriodFrom *time.Time `json:"subscription_billing_period_from,omitempty"`
+	// SubscriptionBillingPeriodTo holds the value of the "subscription_billing_period_to" field.
+	SubscriptionBillingPeriodTo *time.Time `json:"subscription_billing_period_to,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceSplitLineGroupQuery when eager-loading is set.
 	Edges        BillingInvoiceSplitLineGroupEdges `json:"edges"`
@@ -132,7 +136,7 @@ func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error)
 			values[i] = new([]byte)
 		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldFeatureKey, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID:
 			values[i] = new(sql.NullString)
-		case billinginvoicesplitlinegroup.FieldCreatedAt, billinginvoicesplitlinegroup.FieldUpdatedAt, billinginvoicesplitlinegroup.FieldDeletedAt, billinginvoicesplitlinegroup.FieldServicePeriodStart, billinginvoicesplitlinegroup.FieldServicePeriodEnd:
+		case billinginvoicesplitlinegroup.FieldCreatedAt, billinginvoicesplitlinegroup.FieldUpdatedAt, billinginvoicesplitlinegroup.FieldDeletedAt, billinginvoicesplitlinegroup.FieldServicePeriodStart, billinginvoicesplitlinegroup.FieldServicePeriodEnd, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
 		case billinginvoicesplitlinegroup.FieldRatecardDiscounts:
 			values[i] = billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts.ScanValue()
@@ -278,6 +282,20 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 				_m.SubscriptionItemID = new(string)
 				*_m.SubscriptionItemID = value.String
 			}
+		case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_billing_period_from", values[i])
+			} else if value.Valid {
+				_m.SubscriptionBillingPeriodFrom = new(time.Time)
+				*_m.SubscriptionBillingPeriodFrom = value.Time
+			}
+		case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_billing_period_to", values[i])
+			} else if value.Valid {
+				_m.SubscriptionBillingPeriodTo = new(time.Time)
+				*_m.SubscriptionBillingPeriodTo = value.Time
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -402,6 +420,16 @@ func (_m *BillingInvoiceSplitLineGroup) String() string {
 	if v := _m.SubscriptionItemID; v != nil {
 		builder.WriteString("subscription_item_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SubscriptionBillingPeriodFrom; v != nil {
+		builder.WriteString("subscription_billing_period_from=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.SubscriptionBillingPeriodTo; v != nil {
+		builder.WriteString("subscription_billing_period_to=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteByte(')')
 	return builder.String()

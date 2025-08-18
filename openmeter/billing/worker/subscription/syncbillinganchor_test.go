@@ -1,6 +1,7 @@
 package billingworkersubscription
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -207,6 +208,14 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 			}),
 		},
 	})
+
+	// Validate billing period settings
+	firstLine := invoice.Lines.GetByChildUniqueReferenceID(
+		fmt.Sprintf("%s/first-phase/api-requests-total/v[0]/period[0]", subsView.Subscription.ID),
+	)
+	s.NotNil(firstLine)
+	s.Equal(testutils.GetRFC3339Time(s.T(), "2025-07-10T15:00:00Z"), firstLine.Subscription.BillingPeriod.From)
+	s.Equal(testutils.GetRFC3339Time(s.T(), "2025-07-31T15:00:00Z"), firstLine.Subscription.BillingPeriod.To)
 }
 
 func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {

@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type LineID models.NamespacedID
@@ -233,9 +234,10 @@ func (i LineBase) Clone() LineBase {
 }
 
 type SubscriptionReference struct {
-	SubscriptionID string `json:"subscriptionID"`
-	PhaseID        string `json:"phaseID"`
-	ItemID         string `json:"itemID"`
+	SubscriptionID string                `json:"subscriptionID"`
+	PhaseID        string                `json:"phaseID"`
+	ItemID         string                `json:"itemID"`
+	BillingPeriod  timeutil.ClosedPeriod `json:"billingPeriod"`
 }
 
 func (i SubscriptionReference) Validate() error {
@@ -251,6 +253,10 @@ func (i SubscriptionReference) Validate() error {
 
 	if i.ItemID == "" {
 		errs = append(errs, errors.New("itemID is required"))
+	}
+
+	if err := i.BillingPeriod.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("billingPeriod: %w", err))
 	}
 
 	return errors.Join(errs...)

@@ -606,6 +606,10 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 				SubscriptionID: subs.Subscription.ID,
 				PhaseID:        item.PhaseID,
 				ItemID:         item.SubscriptionItem.ID,
+				BillingPeriod: timeutil.ClosedPeriod{
+					From: item.BillingPeriod.Start,
+					To:   item.BillingPeriod.End,
+				},
 			},
 		},
 	}

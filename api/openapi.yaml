@@ -17911,6 +17911,7 @@ components:
         - subscription
         - phase
         - item
+        - billingPeriod
       properties:
         subscription:
           allOf:
@@ -17926,6 +17927,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/IDResource'
           description: The item this line is related to.
+          readOnly: true
+        billingPeriod:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: The billing period of the subscription.
           readOnly: true
       description: InvoiceLineSubscriptionReference contains the references to the subscription that this line is related to.
     InvoiceLineTaxBehavior:

@@ -53,6 +53,10 @@ const (
 	FieldSubscriptionPhaseID = "subscription_phase_id"
 	// FieldSubscriptionItemID holds the string denoting the subscription_item_id field in the database.
 	FieldSubscriptionItemID = "subscription_item_id"
+	// FieldSubscriptionBillingPeriodFrom holds the string denoting the subscription_billing_period_from field in the database.
+	FieldSubscriptionBillingPeriodFrom = "subscription_billing_period_from"
+	// FieldSubscriptionBillingPeriodTo holds the string denoting the subscription_billing_period_to field in the database.
+	FieldSubscriptionBillingPeriodTo = "subscription_billing_period_to"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
@@ -114,6 +118,8 @@ var Columns = []string{
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
+	FieldSubscriptionBillingPeriodFrom,
+	FieldSubscriptionBillingPeriodTo,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -232,6 +238,16 @@ func BySubscriptionPhaseID(opts ...sql.OrderTermOption) OrderOption {
 // BySubscriptionItemID orders the results by the subscription_item_id field.
 func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionItemID, opts...).ToFunc()
+}
+
+// BySubscriptionBillingPeriodFrom orders the results by the subscription_billing_period_from field.
+func BySubscriptionBillingPeriodFrom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionBillingPeriodFrom, opts...).ToFunc()
+}
+
+// BySubscriptionBillingPeriodTo orders the results by the subscription_billing_period_to field.
+func BySubscriptionBillingPeriodTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionBillingPeriodTo, opts...).ToFunc()
 }
 
 // ByBillingInvoiceLinesCount orders the results by billing_invoice_lines count.

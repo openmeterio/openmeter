@@ -1025,4 +1025,10 @@ model InvoiceLineSubscriptionReference {
    */
   @visibility(Lifecycle.Read)
   item: IDResource;
+
+  /**
+   * The billing period of the subscription.
+   */
+  @visibility(Lifecycle.Read)
+  billingPeriod: Period;
 }

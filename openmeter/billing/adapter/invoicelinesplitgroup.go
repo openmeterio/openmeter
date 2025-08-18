@@ -3,6 +3,7 @@ package billingadapter
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func (a *adapter) CreateSplitLineGroup(ctx context.Context, input billing.CreateSplitLineGroupAdapterInput) (billing.SplitLineGroup, error) {
@@ -39,7 +41,9 @@ func (a *adapter) CreateSplitLineGroup(ctx context.Context, input billing.Create
 		if input.Subscription != nil {
 			create = create.SetSubscriptionID(input.Subscription.SubscriptionID).
 				SetSubscriptionPhaseID(input.Subscription.PhaseID).
-				SetSubscriptionItemID(input.Subscription.ItemID)
+				SetSubscriptionItemID(input.Subscription.ItemID).
+				SetSubscriptionBillingPeriodFrom(input.Subscription.BillingPeriod.From.In(time.UTC)).
+				SetSubscriptionBillingPeriodTo(input.Subscription.BillingPeriod.To.In(time.UTC))
 		}
 
 		dbSplitLineGroup, err := create.Save(ctx)
@@ -151,6 +155,10 @@ func (a *adapter) mapSplitLineGroupFromDB(dbSplitLineGroup *db.BillingInvoiceSpl
 			SubscriptionID: lo.FromPtr(dbSplitLineGroup.SubscriptionID),
 			PhaseID:        lo.FromPtr(dbSplitLineGroup.SubscriptionPhaseID),
 			ItemID:         lo.FromPtr(dbSplitLineGroup.SubscriptionItemID),
+			BillingPeriod: timeutil.ClosedPeriod{
+				From: lo.FromPtr(dbSplitLineGroup.SubscriptionBillingPeriodFrom).In(time.UTC),
+				To:   lo.FromPtr(dbSplitLineGroup.SubscriptionBillingPeriodTo).In(time.UTC),
+			},
 		}
 
 		if err := subscriptionRef.Validate(); err != nil {
