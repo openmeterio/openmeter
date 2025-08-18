@@ -6092,6 +6092,16 @@ export interface components {
       readonly phase: components['schemas']['IDResource']
       /** @description The item this line is related to. */
       readonly item: components['schemas']['IDResource']
+      /** @description The billing period of the subscription. In case the subscription item's billing period is different
+       *     from the subscription's billing period, this field will contain the billing period of the subscription itself.
+       *
+       *     For example, in case of:
+       *     - A monthly billed subscription anchored to 2025-01-01
+       *     - A subscription item billed daily
+       *
+       *     An example line would have the period of 2025-01-02 to 2025-01-03 as the item is billed daily, but the subscription's billing period
+       *     will be 2025-01-01 to 2025-01-31. */
+      readonly billingPeriod: components['schemas']['Period']
     }
     /**
      * @description InvoiceLineTaxBehavior details how the tax item is applied to the base amount.

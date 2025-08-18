@@ -218,6 +218,34 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableSubscriptionItemID(v *s
 	return _c
 }
 
+// SetSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscriptionBillingPeriodFrom(v time.Time) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetSubscriptionBillingPeriodFrom(v)
+	return _c
+}
+
+// SetNillableSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field if the given value is not nil.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableSubscriptionBillingPeriodFrom(v *time.Time) *BillingInvoiceSplitLineGroupCreate {
+	if v != nil {
+		_c.SetSubscriptionBillingPeriodFrom(*v)
+	}
+	return _c
+}
+
+// SetSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscriptionBillingPeriodTo(v time.Time) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetSubscriptionBillingPeriodTo(v)
+	return _c
+}
+
+// SetNillableSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field if the given value is not nil.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableSubscriptionBillingPeriodTo(v *time.Time) *BillingInvoiceSplitLineGroupCreate {
+	if v != nil {
+		_c.SetSubscriptionBillingPeriodTo(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *BillingInvoiceSplitLineGroupCreate) SetID(v string) *BillingInvoiceSplitLineGroupCreate {
 	_c.mutation.SetID(v)
@@ -463,6 +491,14 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 		}
 		_spec.SetField(billinginvoicesplitlinegroup.FieldPrice, field.TypeString, vv)
 		_node.Price = value
+	}
+	if value, ok := _c.mutation.SubscriptionBillingPeriodFrom(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom, field.TypeTime, value)
+		_node.SubscriptionBillingPeriodFrom = &value
+	}
+	if value, ok := _c.mutation.SubscriptionBillingPeriodTo(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo, field.TypeTime, value)
+		_node.SubscriptionBillingPeriodTo = &value
 	}
 	if nodes := _c.mutation.BillingInvoiceLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -721,6 +757,42 @@ func (u *BillingInvoiceSplitLineGroupUpsert) ClearRatecardDiscounts() *BillingIn
 	return u
 }
 
+// SetSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetSubscriptionBillingPeriodFrom(v time.Time) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom, v)
+	return u
+}
+
+// UpdateSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateSubscriptionBillingPeriodFrom() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom)
+	return u
+}
+
+// ClearSubscriptionBillingPeriodFrom clears the value of the "subscription_billing_period_from" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) ClearSubscriptionBillingPeriodFrom() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetNull(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom)
+	return u
+}
+
+// SetSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetSubscriptionBillingPeriodTo(v time.Time) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo, v)
+	return u
+}
+
+// UpdateSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo)
+	return u
+}
+
+// ClearSubscriptionBillingPeriodTo clears the value of the "subscription_billing_period_to" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) ClearSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetNull(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -954,6 +1026,48 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateRatecardDiscounts() *Billi
 func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearRatecardDiscounts() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearRatecardDiscounts()
+	})
+}
+
+// SetSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetSubscriptionBillingPeriodFrom(v time.Time) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetSubscriptionBillingPeriodFrom(v)
+	})
+}
+
+// UpdateSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateSubscriptionBillingPeriodFrom() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateSubscriptionBillingPeriodFrom()
+	})
+}
+
+// ClearSubscriptionBillingPeriodFrom clears the value of the "subscription_billing_period_from" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearSubscriptionBillingPeriodFrom() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearSubscriptionBillingPeriodFrom()
+	})
+}
+
+// SetSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetSubscriptionBillingPeriodTo(v time.Time) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetSubscriptionBillingPeriodTo(v)
+	})
+}
+
+// UpdateSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateSubscriptionBillingPeriodTo()
+	})
+}
+
+// ClearSubscriptionBillingPeriodTo clears the value of the "subscription_billing_period_to" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearSubscriptionBillingPeriodTo()
 	})
 }
 
@@ -1360,6 +1474,48 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateRatecardDiscounts() *Bill
 func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearRatecardDiscounts() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearRatecardDiscounts()
+	})
+}
+
+// SetSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetSubscriptionBillingPeriodFrom(v time.Time) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetSubscriptionBillingPeriodFrom(v)
+	})
+}
+
+// UpdateSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateSubscriptionBillingPeriodFrom() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateSubscriptionBillingPeriodFrom()
+	})
+}
+
+// ClearSubscriptionBillingPeriodFrom clears the value of the "subscription_billing_period_from" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearSubscriptionBillingPeriodFrom() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearSubscriptionBillingPeriodFrom()
+	})
+}
+
+// SetSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetSubscriptionBillingPeriodTo(v time.Time) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetSubscriptionBillingPeriodTo(v)
+	})
+}
+
+// UpdateSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateSubscriptionBillingPeriodTo()
+	})
+}
+
+// ClearSubscriptionBillingPeriodTo clears the value of the "subscription_billing_period_to" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearSubscriptionBillingPeriodTo()
 	})
 }
 

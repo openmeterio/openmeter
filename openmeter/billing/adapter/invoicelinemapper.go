@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type mapInvoiceLineFromDBInput struct {
@@ -175,6 +176,10 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			SubscriptionID: *dbLine.SubscriptionID,
 			PhaseID:        *dbLine.SubscriptionPhaseID,
 			ItemID:         *dbLine.SubscriptionItemID,
+			BillingPeriod: timeutil.ClosedPeriod{
+				From: lo.FromPtr(dbLine.SubscriptionBillingPeriodFrom).In(time.UTC),
+				To:   lo.FromPtr(dbLine.SubscriptionBillingPeriodTo).In(time.UTC),
+			},
 		}
 	}
 

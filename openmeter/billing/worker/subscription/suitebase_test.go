@@ -205,11 +205,12 @@ func (s *SuiteBase) getPhaseByKey(t *testing.T, subsView subscription.Subscripti
 }
 
 type expectedLine struct {
-	Matcher   lineMatcher
-	Qty       mo.Option[float64]
-	Price     mo.Option[*productcatalog.Price]
-	Periods   []billing.Period
-	InvoiceAt mo.Option[[]time.Time]
+	Matcher          lineMatcher
+	Qty              mo.Option[float64]
+	Price            mo.Option[*productcatalog.Price]
+	Periods          []billing.Period
+	InvoiceAt        mo.Option[[]time.Time]
+	AdditionalChecks func(line *billing.Line)
 }
 
 func (s *SuiteBase) expectLines(invoice billing.Invoice, subscriptionID string, expectedLines []expectedLine) {
@@ -256,6 +257,10 @@ func (s *SuiteBase) expectLines(invoice billing.Invoice, subscriptionID string, 
 
 			if expectedLine.InvoiceAt.IsPresent() {
 				s.Equal(expectedLine.InvoiceAt.OrEmpty()[idx], line.InvoiceAt, "%s: invoice at", childID)
+			}
+
+			if expectedLine.AdditionalChecks != nil {
+				expectedLine.AdditionalChecks(line)
 			}
 		}
 	}

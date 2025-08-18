@@ -17911,6 +17911,7 @@ components:
         - subscription
         - phase
         - item
+        - billingPeriod
       properties:
         subscription:
           allOf:
@@ -17926,6 +17927,20 @@ components:
           allOf:
             - $ref: '#/components/schemas/IDResource'
           description: The item this line is related to.
+          readOnly: true
+        billingPeriod:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: |-
+            The billing period of the subscription. In case the subscription item's billing period is different
+            from the subscription's billing period, this field will contain the billing period of the subscription itself.
+
+            For example, in case of:
+            - A monthly billed subscription anchored to 2025-01-01
+            - A subscription item billed daily
+
+            An example line would have the period of 2025-01-02 to 2025-01-03 as the item is billed daily, but the subscription's billing period
+            will be 2025-01-01 to 2025-01-31.
           readOnly: true
       description: InvoiceLineSubscriptionReference contains the references to the subscription that this line is related to.
     InvoiceLineTaxBehavior:

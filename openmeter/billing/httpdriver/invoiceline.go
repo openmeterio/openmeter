@@ -355,7 +355,7 @@ func mapSubscriptionReferencesToAPI(optSub *billing.SubscriptionReference) *api.
 		return nil
 	}
 
-	return &api.InvoiceLineSubscriptionReference{
+	out := &api.InvoiceLineSubscriptionReference{
 		Item: api.IDResource{
 			Id: optSub.SubscriptionID,
 		},
@@ -366,6 +366,13 @@ func mapSubscriptionReferencesToAPI(optSub *billing.SubscriptionReference) *api.
 			Id: optSub.ItemID,
 		},
 	}
+
+	out.BillingPeriod = api.Period{
+		From: optSub.BillingPeriod.From,
+		To:   optSub.BillingPeriod.To,
+	}
+
+	return out
 }
 
 func mapDiscountsToAPI(discounts billing.LineDiscounts) (*api.InvoiceLineDiscounts, error) {

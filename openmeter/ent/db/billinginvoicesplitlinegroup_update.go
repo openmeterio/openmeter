@@ -163,6 +163,46 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) ClearRatecardDiscounts() *BillingI
 	return _u
 }
 
+// SetSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetSubscriptionBillingPeriodFrom(v time.Time) *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.SetSubscriptionBillingPeriodFrom(v)
+	return _u
+}
+
+// SetNillableSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableSubscriptionBillingPeriodFrom(v *time.Time) *BillingInvoiceSplitLineGroupUpdate {
+	if v != nil {
+		_u.SetSubscriptionBillingPeriodFrom(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionBillingPeriodFrom clears the value of the "subscription_billing_period_from" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearSubscriptionBillingPeriodFrom() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearSubscriptionBillingPeriodFrom()
+	return _u
+}
+
+// SetSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetSubscriptionBillingPeriodTo(v time.Time) *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.SetSubscriptionBillingPeriodTo(v)
+	return _u
+}
+
+// SetNillableSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableSubscriptionBillingPeriodTo(v *time.Time) *BillingInvoiceSplitLineGroupUpdate {
+	if v != nil {
+		_u.SetSubscriptionBillingPeriodTo(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionBillingPeriodTo clears the value of the "subscription_billing_period_to" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearSubscriptionBillingPeriodTo()
+	return _u
+}
+
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
 func (_u *BillingInvoiceSplitLineGroupUpdate) AddBillingInvoiceLineIDs(ids ...string) *BillingInvoiceSplitLineGroupUpdate {
 	_u.mutation.AddBillingInvoiceLineIDs(ids...)
@@ -300,6 +340,18 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_nod
 	}
 	if _u.mutation.FeatureKeyCleared() {
 		_spec.ClearField(billinginvoicesplitlinegroup.FieldFeatureKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.SubscriptionBillingPeriodFrom(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom, field.TypeTime, value)
+	}
+	if _u.mutation.SubscriptionBillingPeriodFromCleared() {
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom, field.TypeTime)
+	}
+	if value, ok := _u.mutation.SubscriptionBillingPeriodTo(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo, field.TypeTime, value)
+	}
+	if _u.mutation.SubscriptionBillingPeriodToCleared() {
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo, field.TypeTime)
 	}
 	if _u.mutation.BillingInvoiceLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -498,6 +550,46 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearRatecardDiscounts() *Billi
 	return _u
 }
 
+// SetSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetSubscriptionBillingPeriodFrom(v time.Time) *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.SetSubscriptionBillingPeriodFrom(v)
+	return _u
+}
+
+// SetNillableSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableSubscriptionBillingPeriodFrom(v *time.Time) *BillingInvoiceSplitLineGroupUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionBillingPeriodFrom(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionBillingPeriodFrom clears the value of the "subscription_billing_period_from" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearSubscriptionBillingPeriodFrom() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearSubscriptionBillingPeriodFrom()
+	return _u
+}
+
+// SetSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetSubscriptionBillingPeriodTo(v time.Time) *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.SetSubscriptionBillingPeriodTo(v)
+	return _u
+}
+
+// SetNillableSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableSubscriptionBillingPeriodTo(v *time.Time) *BillingInvoiceSplitLineGroupUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionBillingPeriodTo(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionBillingPeriodTo clears the value of the "subscription_billing_period_to" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearSubscriptionBillingPeriodTo()
+	return _u
+}
+
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
 func (_u *BillingInvoiceSplitLineGroupUpdateOne) AddBillingInvoiceLineIDs(ids ...string) *BillingInvoiceSplitLineGroupUpdateOne {
 	_u.mutation.AddBillingInvoiceLineIDs(ids...)
@@ -665,6 +757,18 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_
 	}
 	if _u.mutation.FeatureKeyCleared() {
 		_spec.ClearField(billinginvoicesplitlinegroup.FieldFeatureKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.SubscriptionBillingPeriodFrom(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom, field.TypeTime, value)
+	}
+	if _u.mutation.SubscriptionBillingPeriodFromCleared() {
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom, field.TypeTime)
+	}
+	if value, ok := _u.mutation.SubscriptionBillingPeriodTo(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo, field.TypeTime, value)
+	}
+	if _u.mutation.SubscriptionBillingPeriodToCleared() {
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo, field.TypeTime)
 	}
 	if _u.mutation.BillingInvoiceLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{

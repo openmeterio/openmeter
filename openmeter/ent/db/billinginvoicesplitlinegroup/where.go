@@ -137,6 +137,16 @@ func SubscriptionItemID(v string) predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionItemID, v))
 }
 
+// SubscriptionBillingPeriodFrom applies equality check predicate on the "subscription_billing_period_from" field. It's identical to SubscriptionBillingPeriodFromEQ.
+func SubscriptionBillingPeriodFrom(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionBillingPeriodFrom, v))
+}
+
+// SubscriptionBillingPeriodTo applies equality check predicate on the "subscription_billing_period_to" field. It's identical to SubscriptionBillingPeriodToEQ.
+func SubscriptionBillingPeriodTo(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionBillingPeriodTo, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldNamespace, v))
@@ -1039,6 +1049,106 @@ func SubscriptionItemIDEqualFold(v string) predicate.BillingInvoiceSplitLineGrou
 // SubscriptionItemIDContainsFold applies the ContainsFold predicate on the "subscription_item_id" field.
 func SubscriptionItemIDContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionBillingPeriodFromEQ applies the EQ predicate on the "subscription_billing_period_from" field.
+func SubscriptionBillingPeriodFromEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionBillingPeriodFrom, v))
+}
+
+// SubscriptionBillingPeriodFromNEQ applies the NEQ predicate on the "subscription_billing_period_from" field.
+func SubscriptionBillingPeriodFromNEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldSubscriptionBillingPeriodFrom, v))
+}
+
+// SubscriptionBillingPeriodFromIn applies the In predicate on the "subscription_billing_period_from" field.
+func SubscriptionBillingPeriodFromIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldSubscriptionBillingPeriodFrom, vs...))
+}
+
+// SubscriptionBillingPeriodFromNotIn applies the NotIn predicate on the "subscription_billing_period_from" field.
+func SubscriptionBillingPeriodFromNotIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldSubscriptionBillingPeriodFrom, vs...))
+}
+
+// SubscriptionBillingPeriodFromGT applies the GT predicate on the "subscription_billing_period_from" field.
+func SubscriptionBillingPeriodFromGT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldSubscriptionBillingPeriodFrom, v))
+}
+
+// SubscriptionBillingPeriodFromGTE applies the GTE predicate on the "subscription_billing_period_from" field.
+func SubscriptionBillingPeriodFromGTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldSubscriptionBillingPeriodFrom, v))
+}
+
+// SubscriptionBillingPeriodFromLT applies the LT predicate on the "subscription_billing_period_from" field.
+func SubscriptionBillingPeriodFromLT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldSubscriptionBillingPeriodFrom, v))
+}
+
+// SubscriptionBillingPeriodFromLTE applies the LTE predicate on the "subscription_billing_period_from" field.
+func SubscriptionBillingPeriodFromLTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldSubscriptionBillingPeriodFrom, v))
+}
+
+// SubscriptionBillingPeriodFromIsNil applies the IsNil predicate on the "subscription_billing_period_from" field.
+func SubscriptionBillingPeriodFromIsNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIsNull(FieldSubscriptionBillingPeriodFrom))
+}
+
+// SubscriptionBillingPeriodFromNotNil applies the NotNil predicate on the "subscription_billing_period_from" field.
+func SubscriptionBillingPeriodFromNotNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldSubscriptionBillingPeriodFrom))
+}
+
+// SubscriptionBillingPeriodToEQ applies the EQ predicate on the "subscription_billing_period_to" field.
+func SubscriptionBillingPeriodToEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldSubscriptionBillingPeriodTo, v))
+}
+
+// SubscriptionBillingPeriodToNEQ applies the NEQ predicate on the "subscription_billing_period_to" field.
+func SubscriptionBillingPeriodToNEQ(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldSubscriptionBillingPeriodTo, v))
+}
+
+// SubscriptionBillingPeriodToIn applies the In predicate on the "subscription_billing_period_to" field.
+func SubscriptionBillingPeriodToIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldSubscriptionBillingPeriodTo, vs...))
+}
+
+// SubscriptionBillingPeriodToNotIn applies the NotIn predicate on the "subscription_billing_period_to" field.
+func SubscriptionBillingPeriodToNotIn(vs ...time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldSubscriptionBillingPeriodTo, vs...))
+}
+
+// SubscriptionBillingPeriodToGT applies the GT predicate on the "subscription_billing_period_to" field.
+func SubscriptionBillingPeriodToGT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldSubscriptionBillingPeriodTo, v))
+}
+
+// SubscriptionBillingPeriodToGTE applies the GTE predicate on the "subscription_billing_period_to" field.
+func SubscriptionBillingPeriodToGTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldSubscriptionBillingPeriodTo, v))
+}
+
+// SubscriptionBillingPeriodToLT applies the LT predicate on the "subscription_billing_period_to" field.
+func SubscriptionBillingPeriodToLT(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldSubscriptionBillingPeriodTo, v))
+}
+
+// SubscriptionBillingPeriodToLTE applies the LTE predicate on the "subscription_billing_period_to" field.
+func SubscriptionBillingPeriodToLTE(v time.Time) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldSubscriptionBillingPeriodTo, v))
+}
+
+// SubscriptionBillingPeriodToIsNil applies the IsNil predicate on the "subscription_billing_period_to" field.
+func SubscriptionBillingPeriodToIsNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIsNull(FieldSubscriptionBillingPeriodTo))
+}
+
+// SubscriptionBillingPeriodToNotNil applies the NotNil predicate on the "subscription_billing_period_to" field.
+func SubscriptionBillingPeriodToNotNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldSubscriptionBillingPeriodTo))
 }
 
 // HasBillingInvoiceLines applies the HasEdge predicate on the "billing_invoice_lines" edge.

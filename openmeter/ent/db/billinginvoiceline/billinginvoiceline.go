@@ -81,6 +81,10 @@ const (
 	FieldSubscriptionPhaseID = "subscription_phase_id"
 	// FieldSubscriptionItemID holds the string denoting the subscription_item_id field in the database.
 	FieldSubscriptionItemID = "subscription_item_id"
+	// FieldSubscriptionBillingPeriodFrom holds the string denoting the subscription_billing_period_from field in the database.
+	FieldSubscriptionBillingPeriodFrom = "subscription_billing_period_from"
+	// FieldSubscriptionBillingPeriodTo holds the string denoting the subscription_billing_period_to field in the database.
+	FieldSubscriptionBillingPeriodTo = "subscription_billing_period_to"
 	// FieldSplitLineGroupID holds the string denoting the split_line_group_id field in the database.
 	FieldSplitLineGroupID = "split_line_group_id"
 	// FieldLineIds holds the string denoting the line_ids field in the database.
@@ -217,6 +221,8 @@ var Columns = []string{
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
+	FieldSubscriptionBillingPeriodFrom,
+	FieldSubscriptionBillingPeriodTo,
 	FieldSplitLineGroupID,
 }
 
@@ -447,6 +453,16 @@ func BySubscriptionPhaseID(opts ...sql.OrderTermOption) OrderOption {
 // BySubscriptionItemID orders the results by the subscription_item_id field.
 func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionItemID, opts...).ToFunc()
+}
+
+// BySubscriptionBillingPeriodFrom orders the results by the subscription_billing_period_from field.
+func BySubscriptionBillingPeriodFrom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionBillingPeriodFrom, opts...).ToFunc()
+}
+
+// BySubscriptionBillingPeriodTo orders the results by the subscription_billing_period_to field.
+func BySubscriptionBillingPeriodTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionBillingPeriodTo, opts...).ToFunc()
 }
 
 // BySplitLineGroupID orders the results by the split_line_group_id field.

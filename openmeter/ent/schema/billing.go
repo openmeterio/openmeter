@@ -401,6 +401,13 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.Time("subscription_billing_period_from").
+			Optional().
+			Nillable(),
+		field.Time("subscription_billing_period_to").
+			Optional().
+			Nillable(),
+
 		// NOTE: This is only valid for ubp lines, but eventually this table will become the "ubp" table
 		field.String("split_line_group_id").
 			SchemaType(map[string]string{
@@ -638,6 +645,13 @@ func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
+
+		field.Time("subscription_billing_period_from").
+			Optional().
+			Nillable(),
+		field.Time("subscription_billing_period_to").
+			Optional().
+			Nillable(),
 	}
 }
 

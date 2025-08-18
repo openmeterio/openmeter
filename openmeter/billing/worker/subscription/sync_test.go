@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type SubscriptionHandlerTestSuite struct {
@@ -205,6 +206,10 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		s.Equal(line.Subscription.SubscriptionID, subsView.Subscription.ID)
 		s.Equal(line.Subscription.PhaseID, discountedPhase.SubscriptionPhase.ID)
 		s.Equal(line.Subscription.ItemID, discountedPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].SubscriptionItem.ID)
+		s.Equal(timeutil.ClosedPeriod{
+			From: s.mustParseTime("2024-02-01T00:00:00Z"),
+			To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+		}, line.Subscription.BillingPeriod)
 
 		// 1 month free tier + in arrears billing with 1 month cadence
 		s.Equal(line.InvoiceAt, s.mustParseTime("2024-03-01T00:00:00Z"))

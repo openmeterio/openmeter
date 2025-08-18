@@ -1025,4 +1025,18 @@ model InvoiceLineSubscriptionReference {
    */
   @visibility(Lifecycle.Read)
   item: IDResource;
+
+  /**
+   * The billing period of the subscription. In case the subscription item's billing period is different
+   * from the subscription's billing period, this field will contain the billing period of the subscription itself.
+   *
+   * For example, in case of:
+   * - A monthly billed subscription anchored to 2025-01-01
+   * - A subscription item billed daily
+   *
+   * An example line would have the period of 2025-01-02 to 2025-01-03 as the item is billed daily, but the subscription's billing period
+   * will be 2025-01-01 to 2025-01-31.
+   */
+  @visibility(Lifecycle.Read)
+  billingPeriod: Period;
 }

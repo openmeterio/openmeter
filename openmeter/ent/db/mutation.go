@@ -16282,66 +16282,68 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetEdge(name string) error {
 // BillingInvoiceLineMutation represents an operation that mutates the BillingInvoiceLine nodes in the graph.
 type BillingInvoiceLineMutation struct {
 	config
-	op                           Op
-	typ                          string
-	id                           *string
-	annotations                  *models.Annotations
-	namespace                    *string
-	metadata                     *map[string]string
-	created_at                   *time.Time
-	updated_at                   *time.Time
-	deleted_at                   *time.Time
-	name                         *string
-	description                  *string
-	currency                     *currencyx.Code
-	tax_config                   *productcatalog.TaxConfig
-	amount                       *alpacadecimal.Decimal
-	taxes_total                  *alpacadecimal.Decimal
-	taxes_inclusive_total        *alpacadecimal.Decimal
-	taxes_exclusive_total        *alpacadecimal.Decimal
-	charges_total                *alpacadecimal.Decimal
-	discounts_total              *alpacadecimal.Decimal
-	total                        *alpacadecimal.Decimal
-	period_start                 *time.Time
-	period_end                   *time.Time
-	managed_by                   *billing.InvoiceLineManagedBy
-	invoice_at                   *time.Time
-	_type                        *billing.InvoiceLineType
-	status                       *billing.InvoiceLineStatus
-	quantity                     *alpacadecimal.Decimal
-	ratecard_discounts           **billing.Discounts
-	invoicing_app_external_id    *string
-	child_unique_reference_id    *string
-	line_ids                     *string
-	clearedFields                map[string]struct{}
-	billing_invoice              *string
-	clearedbilling_invoice       bool
-	split_line_group             *string
-	clearedsplit_line_group      bool
-	flat_fee_line                *string
-	clearedflat_fee_line         bool
-	usage_based_line             *string
-	clearedusage_based_line      bool
-	parent_line                  *string
-	clearedparent_line           bool
-	detailed_lines               map[string]struct{}
-	removeddetailed_lines        map[string]struct{}
-	cleareddetailed_lines        bool
-	line_usage_discounts         map[string]struct{}
-	removedline_usage_discounts  map[string]struct{}
-	clearedline_usage_discounts  bool
-	line_amount_discounts        map[string]struct{}
-	removedline_amount_discounts map[string]struct{}
-	clearedline_amount_discounts bool
-	subscription                 *string
-	clearedsubscription          bool
-	subscription_phase           *string
-	clearedsubscription_phase    bool
-	subscription_item            *string
-	clearedsubscription_item     bool
-	done                         bool
-	oldValue                     func(context.Context) (*BillingInvoiceLine, error)
-	predicates                   []predicate.BillingInvoiceLine
+	op                               Op
+	typ                              string
+	id                               *string
+	annotations                      *models.Annotations
+	namespace                        *string
+	metadata                         *map[string]string
+	created_at                       *time.Time
+	updated_at                       *time.Time
+	deleted_at                       *time.Time
+	name                             *string
+	description                      *string
+	currency                         *currencyx.Code
+	tax_config                       *productcatalog.TaxConfig
+	amount                           *alpacadecimal.Decimal
+	taxes_total                      *alpacadecimal.Decimal
+	taxes_inclusive_total            *alpacadecimal.Decimal
+	taxes_exclusive_total            *alpacadecimal.Decimal
+	charges_total                    *alpacadecimal.Decimal
+	discounts_total                  *alpacadecimal.Decimal
+	total                            *alpacadecimal.Decimal
+	period_start                     *time.Time
+	period_end                       *time.Time
+	managed_by                       *billing.InvoiceLineManagedBy
+	invoice_at                       *time.Time
+	_type                            *billing.InvoiceLineType
+	status                           *billing.InvoiceLineStatus
+	quantity                         *alpacadecimal.Decimal
+	ratecard_discounts               **billing.Discounts
+	invoicing_app_external_id        *string
+	child_unique_reference_id        *string
+	subscription_billing_period_from *time.Time
+	subscription_billing_period_to   *time.Time
+	line_ids                         *string
+	clearedFields                    map[string]struct{}
+	billing_invoice                  *string
+	clearedbilling_invoice           bool
+	split_line_group                 *string
+	clearedsplit_line_group          bool
+	flat_fee_line                    *string
+	clearedflat_fee_line             bool
+	usage_based_line                 *string
+	clearedusage_based_line          bool
+	parent_line                      *string
+	clearedparent_line               bool
+	detailed_lines                   map[string]struct{}
+	removeddetailed_lines            map[string]struct{}
+	cleareddetailed_lines            bool
+	line_usage_discounts             map[string]struct{}
+	removedline_usage_discounts      map[string]struct{}
+	clearedline_usage_discounts      bool
+	line_amount_discounts            map[string]struct{}
+	removedline_amount_discounts     map[string]struct{}
+	clearedline_amount_discounts     bool
+	subscription                     *string
+	clearedsubscription              bool
+	subscription_phase               *string
+	clearedsubscription_phase        bool
+	subscription_item                *string
+	clearedsubscription_item         bool
+	done                             bool
+	oldValue                         func(context.Context) (*BillingInvoiceLine, error)
+	predicates                       []predicate.BillingInvoiceLine
 }
 
 var _ ent.Mutation = (*BillingInvoiceLineMutation)(nil)
@@ -17769,6 +17771,104 @@ func (m *BillingInvoiceLineMutation) ResetSubscriptionItemID() {
 	delete(m.clearedFields, billinginvoiceline.FieldSubscriptionItemID)
 }
 
+// SetSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field.
+func (m *BillingInvoiceLineMutation) SetSubscriptionBillingPeriodFrom(t time.Time) {
+	m.subscription_billing_period_from = &t
+}
+
+// SubscriptionBillingPeriodFrom returns the value of the "subscription_billing_period_from" field in the mutation.
+func (m *BillingInvoiceLineMutation) SubscriptionBillingPeriodFrom() (r time.Time, exists bool) {
+	v := m.subscription_billing_period_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionBillingPeriodFrom returns the old "subscription_billing_period_from" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldSubscriptionBillingPeriodFrom(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionBillingPeriodFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionBillingPeriodFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionBillingPeriodFrom: %w", err)
+	}
+	return oldValue.SubscriptionBillingPeriodFrom, nil
+}
+
+// ClearSubscriptionBillingPeriodFrom clears the value of the "subscription_billing_period_from" field.
+func (m *BillingInvoiceLineMutation) ClearSubscriptionBillingPeriodFrom() {
+	m.subscription_billing_period_from = nil
+	m.clearedFields[billinginvoiceline.FieldSubscriptionBillingPeriodFrom] = struct{}{}
+}
+
+// SubscriptionBillingPeriodFromCleared returns if the "subscription_billing_period_from" field was cleared in this mutation.
+func (m *BillingInvoiceLineMutation) SubscriptionBillingPeriodFromCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceline.FieldSubscriptionBillingPeriodFrom]
+	return ok
+}
+
+// ResetSubscriptionBillingPeriodFrom resets all changes to the "subscription_billing_period_from" field.
+func (m *BillingInvoiceLineMutation) ResetSubscriptionBillingPeriodFrom() {
+	m.subscription_billing_period_from = nil
+	delete(m.clearedFields, billinginvoiceline.FieldSubscriptionBillingPeriodFrom)
+}
+
+// SetSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field.
+func (m *BillingInvoiceLineMutation) SetSubscriptionBillingPeriodTo(t time.Time) {
+	m.subscription_billing_period_to = &t
+}
+
+// SubscriptionBillingPeriodTo returns the value of the "subscription_billing_period_to" field in the mutation.
+func (m *BillingInvoiceLineMutation) SubscriptionBillingPeriodTo() (r time.Time, exists bool) {
+	v := m.subscription_billing_period_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionBillingPeriodTo returns the old "subscription_billing_period_to" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldSubscriptionBillingPeriodTo(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionBillingPeriodTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionBillingPeriodTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionBillingPeriodTo: %w", err)
+	}
+	return oldValue.SubscriptionBillingPeriodTo, nil
+}
+
+// ClearSubscriptionBillingPeriodTo clears the value of the "subscription_billing_period_to" field.
+func (m *BillingInvoiceLineMutation) ClearSubscriptionBillingPeriodTo() {
+	m.subscription_billing_period_to = nil
+	m.clearedFields[billinginvoiceline.FieldSubscriptionBillingPeriodTo] = struct{}{}
+}
+
+// SubscriptionBillingPeriodToCleared returns if the "subscription_billing_period_to" field was cleared in this mutation.
+func (m *BillingInvoiceLineMutation) SubscriptionBillingPeriodToCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceline.FieldSubscriptionBillingPeriodTo]
+	return ok
+}
+
+// ResetSubscriptionBillingPeriodTo resets all changes to the "subscription_billing_period_to" field.
+func (m *BillingInvoiceLineMutation) ResetSubscriptionBillingPeriodTo() {
+	m.subscription_billing_period_to = nil
+	delete(m.clearedFields, billinginvoiceline.FieldSubscriptionBillingPeriodTo)
+}
+
 // SetSplitLineGroupID sets the "split_line_group_id" field.
 func (m *BillingInvoiceLineMutation) SetSplitLineGroupID(s string) {
 	m.split_line_group = &s
@@ -18316,7 +18416,7 @@ func (m *BillingInvoiceLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineMutation) Fields() []string {
-	fields := make([]string, 0, 34)
+	fields := make([]string, 0, 36)
 	if m.annotations != nil {
 		fields = append(fields, billinginvoiceline.FieldAnnotations)
 	}
@@ -18413,6 +18513,12 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	if m.subscription_item != nil {
 		fields = append(fields, billinginvoiceline.FieldSubscriptionItemID)
 	}
+	if m.subscription_billing_period_from != nil {
+		fields = append(fields, billinginvoiceline.FieldSubscriptionBillingPeriodFrom)
+	}
+	if m.subscription_billing_period_to != nil {
+		fields = append(fields, billinginvoiceline.FieldSubscriptionBillingPeriodTo)
+	}
 	if m.split_line_group != nil {
 		fields = append(fields, billinginvoiceline.FieldSplitLineGroupID)
 	}
@@ -18491,6 +18597,10 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.SubscriptionPhaseID()
 	case billinginvoiceline.FieldSubscriptionItemID:
 		return m.SubscriptionItemID()
+	case billinginvoiceline.FieldSubscriptionBillingPeriodFrom:
+		return m.SubscriptionBillingPeriodFrom()
+	case billinginvoiceline.FieldSubscriptionBillingPeriodTo:
+		return m.SubscriptionBillingPeriodTo()
 	case billinginvoiceline.FieldSplitLineGroupID:
 		return m.SplitLineGroupID()
 	case billinginvoiceline.FieldLineIds:
@@ -18568,6 +18678,10 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldSubscriptionPhaseID(ctx)
 	case billinginvoiceline.FieldSubscriptionItemID:
 		return m.OldSubscriptionItemID(ctx)
+	case billinginvoiceline.FieldSubscriptionBillingPeriodFrom:
+		return m.OldSubscriptionBillingPeriodFrom(ctx)
+	case billinginvoiceline.FieldSubscriptionBillingPeriodTo:
+		return m.OldSubscriptionBillingPeriodTo(ctx)
 	case billinginvoiceline.FieldSplitLineGroupID:
 		return m.OldSplitLineGroupID(ctx)
 	case billinginvoiceline.FieldLineIds:
@@ -18805,6 +18919,20 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetSubscriptionItemID(v)
 		return nil
+	case billinginvoiceline.FieldSubscriptionBillingPeriodFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionBillingPeriodFrom(v)
+		return nil
+	case billinginvoiceline.FieldSubscriptionBillingPeriodTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionBillingPeriodTo(v)
+		return nil
 	case billinginvoiceline.FieldSplitLineGroupID:
 		v, ok := value.(string)
 		if !ok {
@@ -18888,6 +19016,12 @@ func (m *BillingInvoiceLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceline.FieldSubscriptionItemID) {
 		fields = append(fields, billinginvoiceline.FieldSubscriptionItemID)
 	}
+	if m.FieldCleared(billinginvoiceline.FieldSubscriptionBillingPeriodFrom) {
+		fields = append(fields, billinginvoiceline.FieldSubscriptionBillingPeriodFrom)
+	}
+	if m.FieldCleared(billinginvoiceline.FieldSubscriptionBillingPeriodTo) {
+		fields = append(fields, billinginvoiceline.FieldSubscriptionBillingPeriodTo)
+	}
 	if m.FieldCleared(billinginvoiceline.FieldSplitLineGroupID) {
 		fields = append(fields, billinginvoiceline.FieldSplitLineGroupID)
 	}
@@ -18946,6 +19080,12 @@ func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 		return nil
 	case billinginvoiceline.FieldSubscriptionItemID:
 		m.ClearSubscriptionItemID()
+		return nil
+	case billinginvoiceline.FieldSubscriptionBillingPeriodFrom:
+		m.ClearSubscriptionBillingPeriodFrom()
+		return nil
+	case billinginvoiceline.FieldSubscriptionBillingPeriodTo:
+		m.ClearSubscriptionBillingPeriodTo()
 		return nil
 	case billinginvoiceline.FieldSplitLineGroupID:
 		m.ClearSplitLineGroupID()
@@ -19056,6 +19196,12 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceline.FieldSubscriptionItemID:
 		m.ResetSubscriptionItemID()
+		return nil
+	case billinginvoiceline.FieldSubscriptionBillingPeriodFrom:
+		m.ResetSubscriptionBillingPeriodFrom()
+		return nil
+	case billinginvoiceline.FieldSubscriptionBillingPeriodTo:
+		m.ResetSubscriptionBillingPeriodTo()
 		return nil
 	case billinginvoiceline.FieldSplitLineGroupID:
 		m.ResetSplitLineGroupID()
@@ -21789,37 +21935,39 @@ func (m *BillingInvoiceLineUsageDiscountMutation) ResetEdge(name string) error {
 // BillingInvoiceSplitLineGroupMutation represents an operation that mutates the BillingInvoiceSplitLineGroup nodes in the graph.
 type BillingInvoiceSplitLineGroupMutation struct {
 	config
-	op                           Op
-	typ                          string
-	id                           *string
-	namespace                    *string
-	metadata                     *map[string]string
-	created_at                   *time.Time
-	updated_at                   *time.Time
-	deleted_at                   *time.Time
-	name                         *string
-	description                  *string
-	currency                     *currencyx.Code
-	tax_config                   *productcatalog.TaxConfig
-	service_period_start         *time.Time
-	service_period_end           *time.Time
-	unique_reference_id          *string
-	ratecard_discounts           **billing.Discounts
-	feature_key                  *string
-	price                        **productcatalog.Price
-	clearedFields                map[string]struct{}
-	billing_invoice_lines        map[string]struct{}
-	removedbilling_invoice_lines map[string]struct{}
-	clearedbilling_invoice_lines bool
-	subscription                 *string
-	clearedsubscription          bool
-	subscription_phase           *string
-	clearedsubscription_phase    bool
-	subscription_item            *string
-	clearedsubscription_item     bool
-	done                         bool
-	oldValue                     func(context.Context) (*BillingInvoiceSplitLineGroup, error)
-	predicates                   []predicate.BillingInvoiceSplitLineGroup
+	op                               Op
+	typ                              string
+	id                               *string
+	namespace                        *string
+	metadata                         *map[string]string
+	created_at                       *time.Time
+	updated_at                       *time.Time
+	deleted_at                       *time.Time
+	name                             *string
+	description                      *string
+	currency                         *currencyx.Code
+	tax_config                       *productcatalog.TaxConfig
+	service_period_start             *time.Time
+	service_period_end               *time.Time
+	unique_reference_id              *string
+	ratecard_discounts               **billing.Discounts
+	feature_key                      *string
+	price                            **productcatalog.Price
+	subscription_billing_period_from *time.Time
+	subscription_billing_period_to   *time.Time
+	clearedFields                    map[string]struct{}
+	billing_invoice_lines            map[string]struct{}
+	removedbilling_invoice_lines     map[string]struct{}
+	clearedbilling_invoice_lines     bool
+	subscription                     *string
+	clearedsubscription              bool
+	subscription_phase               *string
+	clearedsubscription_phase        bool
+	subscription_item                *string
+	clearedsubscription_item         bool
+	done                             bool
+	oldValue                         func(context.Context) (*BillingInvoiceSplitLineGroup, error)
+	predicates                       []predicate.BillingInvoiceSplitLineGroup
 }
 
 var _ ent.Mutation = (*BillingInvoiceSplitLineGroupMutation)(nil)
@@ -22704,6 +22852,104 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetSubscriptionItemID() {
 	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldSubscriptionItemID)
 }
 
+// SetSubscriptionBillingPeriodFrom sets the "subscription_billing_period_from" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetSubscriptionBillingPeriodFrom(t time.Time) {
+	m.subscription_billing_period_from = &t
+}
+
+// SubscriptionBillingPeriodFrom returns the value of the "subscription_billing_period_from" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionBillingPeriodFrom() (r time.Time, exists bool) {
+	v := m.subscription_billing_period_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionBillingPeriodFrom returns the old "subscription_billing_period_from" field's value of the BillingInvoiceSplitLineGroup entity.
+// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceSplitLineGroupMutation) OldSubscriptionBillingPeriodFrom(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionBillingPeriodFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionBillingPeriodFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionBillingPeriodFrom: %w", err)
+	}
+	return oldValue.SubscriptionBillingPeriodFrom, nil
+}
+
+// ClearSubscriptionBillingPeriodFrom clears the value of the "subscription_billing_period_from" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearSubscriptionBillingPeriodFrom() {
+	m.subscription_billing_period_from = nil
+	m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom] = struct{}{}
+}
+
+// SubscriptionBillingPeriodFromCleared returns if the "subscription_billing_period_from" field was cleared in this mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionBillingPeriodFromCleared() bool {
+	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom]
+	return ok
+}
+
+// ResetSubscriptionBillingPeriodFrom resets all changes to the "subscription_billing_period_from" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetSubscriptionBillingPeriodFrom() {
+	m.subscription_billing_period_from = nil
+	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom)
+}
+
+// SetSubscriptionBillingPeriodTo sets the "subscription_billing_period_to" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetSubscriptionBillingPeriodTo(t time.Time) {
+	m.subscription_billing_period_to = &t
+}
+
+// SubscriptionBillingPeriodTo returns the value of the "subscription_billing_period_to" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionBillingPeriodTo() (r time.Time, exists bool) {
+	v := m.subscription_billing_period_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionBillingPeriodTo returns the old "subscription_billing_period_to" field's value of the BillingInvoiceSplitLineGroup entity.
+// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceSplitLineGroupMutation) OldSubscriptionBillingPeriodTo(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionBillingPeriodTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionBillingPeriodTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionBillingPeriodTo: %w", err)
+	}
+	return oldValue.SubscriptionBillingPeriodTo, nil
+}
+
+// ClearSubscriptionBillingPeriodTo clears the value of the "subscription_billing_period_to" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearSubscriptionBillingPeriodTo() {
+	m.subscription_billing_period_to = nil
+	m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo] = struct{}{}
+}
+
+// SubscriptionBillingPeriodToCleared returns if the "subscription_billing_period_to" field was cleared in this mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) SubscriptionBillingPeriodToCleared() bool {
+	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo]
+	return ok
+}
+
+// ResetSubscriptionBillingPeriodTo resets all changes to the "subscription_billing_period_to" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetSubscriptionBillingPeriodTo() {
+	m.subscription_billing_period_to = nil
+	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo)
+}
+
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by ids.
 func (m *BillingInvoiceSplitLineGroupMutation) AddBillingInvoiceLineIDs(ids ...string) {
 	if m.billing_invoice_lines == nil {
@@ -22873,7 +23119,7 @@ func (m *BillingInvoiceSplitLineGroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 20)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldNamespace)
 	}
@@ -22928,6 +23174,12 @@ func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
 	if m.subscription_item != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionItemID)
 	}
+	if m.subscription_billing_period_from != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom)
+	}
+	if m.subscription_billing_period_to != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo)
+	}
 	return fields
 }
 
@@ -22972,6 +23224,10 @@ func (m *BillingInvoiceSplitLineGroupMutation) Field(name string) (ent.Value, bo
 		return m.SubscriptionPhaseID()
 	case billinginvoicesplitlinegroup.FieldSubscriptionItemID:
 		return m.SubscriptionItemID()
+	case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom:
+		return m.SubscriptionBillingPeriodFrom()
+	case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo:
+		return m.SubscriptionBillingPeriodTo()
 	}
 	return nil, false
 }
@@ -23017,6 +23273,10 @@ func (m *BillingInvoiceSplitLineGroupMutation) OldField(ctx context.Context, nam
 		return m.OldSubscriptionPhaseID(ctx)
 	case billinginvoicesplitlinegroup.FieldSubscriptionItemID:
 		return m.OldSubscriptionItemID(ctx)
+	case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom:
+		return m.OldSubscriptionBillingPeriodFrom(ctx)
+	case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo:
+		return m.OldSubscriptionBillingPeriodTo(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceSplitLineGroup field %s", name)
 }
@@ -23152,6 +23412,20 @@ func (m *BillingInvoiceSplitLineGroupMutation) SetField(name string, value ent.V
 		}
 		m.SetSubscriptionItemID(v)
 		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionBillingPeriodFrom(v)
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionBillingPeriodTo(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup field %s", name)
 }
@@ -23212,6 +23486,12 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoicesplitlinegroup.FieldSubscriptionItemID) {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionItemID)
 	}
+	if m.FieldCleared(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom) {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom)
+	}
+	if m.FieldCleared(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo) {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo)
+	}
 	return fields
 }
 
@@ -23255,6 +23535,12 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearField(name string) error {
 		return nil
 	case billinginvoicesplitlinegroup.FieldSubscriptionItemID:
 		m.ClearSubscriptionItemID()
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom:
+		m.ClearSubscriptionBillingPeriodFrom()
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo:
+		m.ClearSubscriptionBillingPeriodTo()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup nullable field %s", name)
@@ -23317,6 +23603,12 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetField(name string) error {
 		return nil
 	case billinginvoicesplitlinegroup.FieldSubscriptionItemID:
 		m.ResetSubscriptionItemID()
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom:
+		m.ResetSubscriptionBillingPeriodFrom()
+		return nil
+	case billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo:
+		m.ResetSubscriptionBillingPeriodTo()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup field %s", name)
