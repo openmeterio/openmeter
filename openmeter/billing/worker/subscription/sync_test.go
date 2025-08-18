@@ -3485,7 +3485,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 			}
 		}
 
-		line.Children = line.Children.Map(func(child *billing.Line) *billing.Line {
+		line.Children = lo.Map(line.Children, func(child *billing.Line, _ int) *billing.Line {
 			child.FlatFee.ConfigID = ""
 			return child
 		})
@@ -3494,7 +3494,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	})
 
 	draftInvoiceAfterSync.Lines = draftInvoiceAfterSync.Lines.Map(func(line *billing.Line) *billing.Line {
-		line.Children = line.Children.Map(func(child *billing.Line) *billing.Line {
+		line.Children = lo.Map(line.Children, func(child *billing.Line, _ int) *billing.Line {
 			child.FlatFee.ConfigID = ""
 			return child
 		})
@@ -4127,10 +4127,8 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 
 	// The advance fee should have 100% discount
 	line := instantInvoice.Lines.OrEmpty()[0]
-	lineChildren := line.Children.OrEmpty()
-	s.Len(lineChildren, 1)
-
-	child := lineChildren[0]
+	s.Len(line.Children, 1)
+	child := line.Children[0]
 
 	s.Equal(float64(6), child.Discounts.Amount[0].Amount.InexactFloat64())
 }
@@ -4442,7 +4440,7 @@ func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithm
 				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
 			}
 
-			invoice.Lines = billing.NewLineChildren([]*billing.Line{
+			invoice.Lines = billing.NewInvoiceLines([]*billing.Line{
 				line,
 			})
 			return nil

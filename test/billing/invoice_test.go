@@ -314,7 +314,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				Supplier: billingProfile.Supplier,
 			},
 
-			Lines: billing.NewLineChildren([]*billing.Line{expectedUSDLine}),
+			Lines: billing.NewInvoiceLines([]*billing.Line{expectedUSDLine}),
 
 			ExpandedFields: billing.InvoiceExpandAll,
 		}
@@ -1661,7 +1661,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		requireTotals(s.T(), expectedTotals{
 			Amount: 1000,
 			Total:  1000,
-		}, flatPerUnit.Children.MustGet()[0].Totals)
+		}, flatPerUnit.Children[0].Totals)
 
 		requireTotals(s.T(), expectedTotals{
 			Amount: 1000,
@@ -2421,7 +2421,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 		// Let's validate the output of the split itself
 		// Other line is a zero usage line
-		s.Len(tieredGraduated.Children.OrEmpty(), 2)
+		s.Len(tieredGraduated.Children, 2)
 		flatFeeLine := tieredGraduated.Children.GetByChildUniqueReferenceID("graduated-tiered-1-flat-price")
 		require.NotNil(s.T(), flatFeeLine)
 
@@ -2457,7 +2457,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		}, tieredGraduated.Totals)
 
 		// Let's validate the output of the split itself
-		s.Len(tieredGraduated.Children.OrEmpty(), 1)
+		s.Len(tieredGraduated.Children, 1)
 		usageBasedEmptyLine := tieredGraduated.Children.GetByChildUniqueReferenceID("graduated-tiered-1-price-usage")
 		require.NotNil(s.T(), usageBasedEmptyLine)
 
@@ -3027,7 +3027,7 @@ type feeLineExpect struct {
 func requireDetailedLines(t *testing.T, line *billing.Line, expectations lineExpectations) {
 	t.Helper()
 	require.NotNil(t, line)
-	children := line.Children.MustGet()
+	children := line.Children
 
 	require.Len(t, children, len(expectations.Details))
 
@@ -3515,9 +3515,8 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	s.Equal(float64(10), line.UsageBased.Quantity.InexactFloat64())
 
 	// And there should be a detailed line with 0 total
-	detailedLines := line.Children.OrEmpty()
-	s.Len(detailedLines, 1)
-	detailedLine := detailedLines[0]
+	s.Len(line.Children, 1)
+	detailedLine := line.Children[0]
 	s.Equal(float64(0), detailedLine.Totals.Total.InexactFloat64())
 	s.Equal(float64(10), detailedLine.FlatFee.Quantity.InexactFloat64())
 
@@ -3914,7 +3913,7 @@ func (s *InvoicingTestSuite) TestSortLines() {
 		// Let's shuffle the lines (ULIDs usually provide a consistent order that's why we are shuffling it a few times)
 		lines := invoice.Lines.OrEmpty()
 
-		detailedLines := lines[0].Children.OrEmpty()
+		detailedLines := lines[0].Children
 
 		rand.Shuffle(len(detailedLines), func(i, j int) {
 			detailedLines[i], detailedLines[j] = detailedLines[j], detailedLines[i]
@@ -3922,7 +3921,7 @@ func (s *InvoicingTestSuite) TestSortLines() {
 
 		lines[0].Children = billing.NewLineChildren(detailedLines)
 
-		invoice.Lines = billing.NewLineChildren(lines)
+		invoice.Lines = billing.NewInvoiceLines(lines)
 
 		// We expect the lines to be sorted by index
 		invoice.SortLines()
@@ -3935,7 +3934,7 @@ func (s *InvoicingTestSuite) TestSortLines() {
 		s.Equal(line.Name, "UBP - volume")
 		s.True(line.Period.Equal(billing.Period{Start: periodStart, End: periodEnd}), "periods should equal")
 
-		children := line.Children.OrEmpty()
+		children := line.Children
 		s.Len(children, 4)
 
 		// There should be 4 children properly indexed

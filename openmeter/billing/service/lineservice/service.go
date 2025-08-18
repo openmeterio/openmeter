@@ -147,7 +147,7 @@ func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billing.
 		return nil, err
 	}
 
-	invoice.Lines = billing.NewLineChildren(append(invoice.Lines.OrEmpty(), lineEntities...))
+	invoice.Lines = billing.NewInvoiceLines(append(invoice.Lines.OrEmpty(), lineEntities...))
 
 	return s.FromEntities(lineEntities)
 }
@@ -155,7 +155,7 @@ func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billing.
 // UpdateTotalsFromDetailedLines is a helper method to update the totals of a line from its detailed lines.
 func (s *Service) UpdateTotalsFromDetailedLines(line *billing.Line) error {
 	// Calculate the line totals
-	for _, line := range line.Children.OrEmpty() {
+	for _, line := range line.Children {
 		if line.DeletedAt != nil {
 			continue
 		}
@@ -179,7 +179,7 @@ func (s *Service) UpdateTotalsFromDetailedLines(line *billing.Line) error {
 	// UBP line's value is the sum of all the children
 	res := billing.Totals{}
 
-	res = res.Add(lo.Map(line.Children.OrEmpty(), func(l *billing.Line, _ int) billing.Totals {
+	res = res.Add(lo.Map(line.Children, func(l *billing.Line, _ int) billing.Totals {
 		// Deleted lines are not contributing to the totals
 		if l.DeletedAt != nil {
 			return billing.Totals{}

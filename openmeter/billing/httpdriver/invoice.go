@@ -383,7 +383,7 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 
 				Number:   body.Number,
 				Currency: currencyx.Code(body.Currency),
-				Lines:    billing.NewLineChildren(lines),
+				Lines:    billing.NewInvoiceLines(lines),
 			}, nil
 		},
 		func(ctx context.Context, request SimulateInvoiceRequest) (SimulateInvoiceResponse, error) {

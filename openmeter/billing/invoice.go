@@ -332,7 +332,7 @@ type Invoice struct {
 	InvoiceBase `json:",inline"`
 
 	// Entities external to the invoice itself
-	Lines            LineChildren     `json:"lines,omitempty"`
+	Lines            InvoiceLines     `json:"lines,omitempty"`
 	ValidationIssues ValidationIssues `json:"validationIssues,omitempty"`
 
 	Totals Totals `json:"totals"`
@@ -410,7 +410,7 @@ func (i *Invoice) FlattenLinesByID() map[string]*Line {
 	for _, line := range i.Lines.OrEmpty() {
 		out[line.ID] = line
 
-		for _, child := range line.Children.OrEmpty() {
+		for _, child := range line.Children {
 			out[child.ID] = child
 		}
 	}
@@ -477,7 +477,7 @@ func (i *Invoice) SortLines() {
 
 	sortLines(lines)
 
-	i.Lines = NewLineChildren(lines)
+	i.Lines = NewInvoiceLines(lines)
 }
 
 func sortLines(lines []*Line) {
@@ -512,15 +512,104 @@ func sortLines(lines []*Line) {
 	})
 
 	for idx, line := range lines {
-		if line.Type == InvoiceLineTypeUsageBased && line.Children.IsPresent() {
-			children := line.Children.OrEmpty()
-			sortLines(children)
-
-			line.Children = NewLineChildren(children)
+		if line.Type == InvoiceLineTypeUsageBased {
+			sortLines(line.Children)
 		}
 
 		lines[idx] = line
 	}
+}
+
+type InvoiceLines struct {
+	mo.Option[[]*Line]
+}
+
+func NewInvoiceLines(children []*Line) InvoiceLines {
+	// Note: this helps with test equality checks
+	if len(children) == 0 {
+		children = nil
+	}
+
+	return InvoiceLines{mo.Some(children)}
+}
+
+func (i InvoiceLines) Validate() error {
+	return errors.Join(lo.Map(i.OrEmpty(), func(line *Line, idx int) error {
+		return ValidationWithFieldPrefix(fmt.Sprintf("%d", idx), line.Validate())
+	})...)
+}
+
+func (c InvoiceLines) Map(fn func(*Line) *Line) InvoiceLines {
+	if !c.IsPresent() {
+		return c
+	}
+
+	return InvoiceLines{
+		mo.Some(
+			lo.Map(c.OrEmpty(), func(item *Line, _ int) *Line {
+				return fn(item)
+			}),
+		),
+	}
+}
+
+func (c InvoiceLines) Clone() InvoiceLines {
+	return c.Map(func(l *Line) *Line {
+		return l.Clone()
+	})
+}
+
+func (c InvoiceLines) GetByID(id string) *Line {
+	return lo.FindOrElse(c.Option.OrEmpty(), nil, func(line *Line) bool {
+		return line.ID == id
+	})
+}
+
+func (c *InvoiceLines) ReplaceByID(id string, newLine *Line) bool {
+	if c.IsAbsent() {
+		return false
+	}
+
+	lines := c.OrEmpty()
+
+	for i, line := range lines {
+		if line.ID == id {
+			// Let's preserve the DB state of the original line (as we are only replacing the current state)
+			originalDBState := line.DBState
+
+			lines[i] = newLine
+			lines[i].DBState = originalDBState
+			return true
+		}
+	}
+
+	return false
+}
+
+// NonDeletedLineCount returns the number of lines that are not deleted and have a valid status (e.g. we are ignoring split lines)
+func (c InvoiceLines) NonDeletedLineCount() int {
+	return lo.CountBy(c.OrEmpty(), func(l *Line) bool {
+		return l.DeletedAt == nil && l.Status == InvoiceLineStatusValid
+	})
+}
+
+func (c *InvoiceLines) Append(l ...*Line) {
+	c.Option = mo.Some(append(c.OrEmpty(), l...))
+}
+
+func (c *InvoiceLines) RemoveByID(id string) bool {
+	toBeRemoved := c.GetByID(id)
+	if toBeRemoved == nil {
+		return false
+	}
+
+	c.Option = mo.Some(
+		lo.Filter(c.Option.OrEmpty(), func(l *Line, _ int) bool {
+			return l.ID != id
+		}),
+	)
+
+	return true
 }
 
 type InvoiceExternalIDs struct {
@@ -959,7 +1048,7 @@ type SimulateInvoiceInput struct {
 
 	Number   *string
 	Currency currencyx.Code
-	Lines    LineChildren
+	Lines    InvoiceLines
 }
 
 func (i SimulateInvoiceInput) Validate() error {
@@ -991,7 +1080,7 @@ func (i SimulateInvoiceInput) Validate() error {
 		return errors.New("currency is required")
 	}
 
-	if i.Lines.IsAbsent() || len(i.Lines.OrEmpty()) == 0 {
+	if len(i.Lines.OrEmpty()) == 0 {
 		return errors.New("lines are required")
 	}
 

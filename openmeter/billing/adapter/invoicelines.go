@@ -156,13 +156,13 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 
 		// Step 3: Let's create the detailed lines
 		flattenedDetailedLines := lo.FlatMap(input.Lines, func(_ *billing.Line, idx int) []*billing.Line {
-			return input.Lines[idx].Children.OrEmpty()
+			return input.Lines[idx].Children
 		})
 
 		if len(flattenedDetailedLines) > 0 {
 			// Let's restore the parent <-> child relationship in terms of the ParentLineID field
 			for _, line := range input.Lines {
-				for _, child := range line.Children.OrEmpty() {
+				for _, child := range line.Children {
 					child.ParentLineID = lo.ToPtr(line.ID)
 				}
 			}

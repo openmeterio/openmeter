@@ -135,7 +135,7 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 			return invoice, fmt.Errorf("loading lines: %w", err)
 		}
 
-		invoice.Lines = billing.NewLineChildren(lines)
+		invoice.Lines = billing.NewInvoiceLines(lines)
 	}
 
 	hasInvoicableLines := mo.Option[bool]{}
@@ -190,10 +190,10 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 
 	if wasLinesAbsent {
 		// If the original user intent was to not to receive the lines, let's not send them
-		invoice.Lines = billing.LineChildren{}
+		invoice.Lines = billing.InvoiceLines{}
 	} else {
 		// For calulcations we fetch the split lines, but we don't want to expose them for the response
-		invoice.Lines = billing.NewLineChildren(
+		invoice.Lines = billing.NewInvoiceLines(
 			lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
 				if !in.Expand.DeletedLines && line.DeletedAt != nil {
 					return false
@@ -921,7 +921,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				lineServices[idx] = lineSvc
 			}
 
-			invoice.Lines = billing.NewLineChildren(lineServices.ToEntities())
+			invoice.Lines = billing.NewInvoiceLines(lineServices.ToEntities())
 
 			if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
 				return billing.Invoice{}, fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
@@ -1104,7 +1104,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 
 	inputLines := input.Lines.OrEmpty()
 
-	invoice.Lines = billing.NewLineChildren(
+	invoice.Lines = billing.NewInvoiceLines(
 		lo.Map(inputLines, func(line *billing.Line, _ int) *billing.Line {
 			line.Namespace = input.Namespace
 			if line.ID == "" {

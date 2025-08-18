@@ -461,7 +461,7 @@ func cloneLines(lines []*billing.Line) []*billing.Line {
 
 func fixParentReferences(lines []*billing.Line) []*billing.Line {
 	for _, line := range lines {
-		for _, child := range line.Children.OrEmpty() {
+		for _, child := range line.Children {
 			child.ParentLineID = lo.ToPtr(line.ID)
 			child.ParentLine = line
 		}

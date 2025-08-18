@@ -73,7 +73,7 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, in mapInvoiceLineFro
 			entity.ParentLine = parent
 			// We only add children references if we know that those has been properly resolved
 			if _, ok := resolvedChildrenOfIDs[parent.ID]; ok {
-				parent.Children.Append(entity)
+				parent.Children = append(parent.Children, entity)
 			}
 		}
 	}
@@ -83,13 +83,6 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, in mapInvoiceLineFro
 		entity, ok := mappedEntities[dbEntity.ID]
 		if !ok {
 			return nil, fmt.Errorf("missing entity[%s]", dbEntity.ID)
-		}
-
-		// Given that we did the one level deep resolution, all the children should be resolved
-		// if it's not present it means that the line has no children, but before we only rely on Append
-		// to set the Present flag implicitly.
-		if !entity.Children.IsPresent() {
-			entity.Children = billing.NewLineChildren(nil)
 		}
 
 		entity.SaveDBSnapshot()
