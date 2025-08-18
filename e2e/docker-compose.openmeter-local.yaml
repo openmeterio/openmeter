@@ -5,6 +5,20 @@
 services:
   openmeter:
     build: ..
+    develop:
+      watch:
+        - action: rebuild
+          path: ..
+          ignore:
+            - "**/*.test.go"
+            - "**/*.md"
 
   sink-worker:
     build: ..
+    develop:
+      watch:
+        - action: rebuild
+          path: ..
+          ignore:
+            - "**/*.test.go"
+            - "**/*.md"
