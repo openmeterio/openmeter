@@ -10,6 +10,6 @@ UPDATE billing_invoice_lines
     WHERE subscription_id IS NOT NULL;
 
 UPDATE billing_invoice_split_line_groups
-    SET subscription_billing_period_from = period_start,
-        subscription_billing_period_to = period_end
+    SET subscription_billing_period_from = service_period_start,
+        subscription_billing_period_to = service_period_end
     WHERE subscription_id IS NOT NULL;
