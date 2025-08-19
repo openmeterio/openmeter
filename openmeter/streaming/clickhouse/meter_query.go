@@ -195,7 +195,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 	// Select customer id column if it's in the group by
 	if slices.Contains(d.GroupBy, "customer_id") {
-		selectColumns = append(selectColumns, selectCustomerIdColumns(d.EventsTableName, d.FilterCustomer)...)
+		selectColumns = append(selectColumns, selectCustomerIdColumns(d.EventsTableName, d.FilterCustomer))
 	}
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()

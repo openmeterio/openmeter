@@ -69,7 +69,8 @@ interface Events {
      * The event customer ID.
      */
     @query
-    @example(#["A1234", "B5678"])
+    @query(#{ explode: true })
+    @example(#["01HZXABCD3M6E7K8J9PQRS1TUV", "01HZXABCDE3M6E7K8J9PQRSTUV"])
     customerId?: ULID[],
 
     /**

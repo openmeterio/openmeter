@@ -118,8 +118,8 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	}
 
 	// Select customer_id column if customer filter is provided
-	if d.Customers != nil {
-		selectColumns = append(selectColumns, selectCustomerIdColumns(d.EventsTableName, *d.Customers)...)
+	if d.Customers != nil && len(*d.Customers) > 0 {
+		selectColumns = append(selectColumns, selectCustomerIdColumns(d.EventsTableName, *d.Customers))
 	}
 
 	query.Select(selectColumns...)

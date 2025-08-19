@@ -11,11 +11,11 @@ import (
 )
 
 // customerIdSelect returns the select columns for the customer ID.
-func selectCustomerIdColumns(eventsTableName string, customers []streaming.Customer) []string {
+func selectCustomerIdColumns(eventsTableName string, customers []streaming.Customer) string {
 	getColumn := columnFactory(eventsTableName)
 	subjectColumn := getColumn("subject")
+	added := false
 
-	selectColumns := []string{}
 	var caseBuilder bytes.Buffer
 	caseBuilder.WriteString("CASE ")
 
@@ -29,16 +29,17 @@ func selectCustomerIdColumns(eventsTableName string, customers []streaming.Custo
 				sqlbuilder.Escape(customer.GetUsageAttribution().ID),
 			)
 			caseBuilder.WriteString(str)
+			added = true
 		}
 	}
 
-	// If the subject is not in the map, we return an empty string
+	if !added {
+		// No mappings: return a constant column to avoid invalid CASE
+		return "'' AS customer_id"
+	}
+
 	caseBuilder.WriteString("ELSE '' END AS customer_id")
-
-	// Add the case statement to the select columns
-	selectColumns = append(selectColumns, caseBuilder.String())
-
-	return selectColumns
+	return caseBuilder.String()
 }
 
 // subjectWhere applies the subject filter to the query.
@@ -59,13 +60,13 @@ func subjectWhere(
 
 	// If the customer filter is provided, we add all the subjects to the filter
 	if len(customers) > 0 {
-		var subjects []string
+		var customerSubjects []string
 
 		for _, customer := range customers {
-			subjects = append(subjects, customer.GetUsageAttribution().SubjectKeys...)
+			customerSubjects = append(customerSubjects, customer.GetUsageAttribution().SubjectKeys...)
 		}
 
-		query = query.Where(query.Or(slicesx.Map(subjects, mapFunc)...))
+		query = query.Where(query.Or(slicesx.Map(customerSubjects, mapFunc)...))
 	}
 
 	// If we have a subject filter, we add it to the query
