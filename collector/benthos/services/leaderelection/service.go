@@ -14,6 +14,8 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	"github.com/openmeterio/openmeter/collector/benthos/internal/logging"
 )
 
 type genericKey string
@@ -23,13 +25,14 @@ const (
 )
 
 type Config struct {
-	Enabled            bool
-	LeaseLockNamespace string
-	LeaseLockName      string
-	LeaseDuration      time.Duration
-	LeaseRenewDeadline time.Duration
-	LeaseRetryPeriod   time.Duration
-	Identity           string
+	Enabled                 bool
+	LeaseLockNamespace      string
+	LeaseLockName           string
+	LeaseDuration           time.Duration
+	LeaseRenewDeadline      time.Duration
+	LeaseRetryPeriod        time.Duration
+	LeaseHealthCheckTimeout time.Duration
+	Identity                string
 }
 
 type Service struct {
@@ -37,6 +40,7 @@ type Service struct {
 	logger               *service.Logger
 	resources            *service.Resources
 	leaderElectionConfig *leaderelection.LeaderElectionConfig
+	healthzAdaptor       *leaderelection.HealthzAdaptor
 	started              bool
 	cancel               context.CancelFunc
 	mu                   sync.Mutex
@@ -46,6 +50,9 @@ type Service struct {
 
 func NewService(res *service.Resources, cfg Config) (*Service, error) {
 	logger := res.Logger().With("component", "leader election")
+
+	// Route client-go (klog) logs through Benthos service logger.
+	logging.SetupKlog(logger)
 
 	kubeconfig, err := config.GetConfig()
 	if err != nil {
@@ -66,12 +73,19 @@ func NewService(res *service.Resources, cfg Config) (*Service, error) {
 		LockConfig: resourcelock.ResourceLockConfig{Identity: cfg.Identity},
 	}
 
+	leaseHealthCheckTimeout := cfg.LeaseHealthCheckTimeout
+	if leaseHealthCheckTimeout == 0 {
+		leaseHealthCheckTimeout = cfg.LeaseDuration + cfg.LeaseDuration/2
+	}
+	healthzAdaptor := leaderelection.NewLeaderHealthzAdaptor(leaseHealthCheckTimeout)
+
 	leaderElectionConfig := &leaderelection.LeaderElectionConfig{
 		Lock:            lock,
 		LeaseDuration:   cfg.LeaseDuration,
 		RenewDeadline:   cfg.LeaseRenewDeadline,
 		RetryPeriod:     cfg.LeaseRetryPeriod,
 		ReleaseOnCancel: true,
+		WatchDog:        healthzAdaptor,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(ctx context.Context) {
 				logger.Info("lease acquired")
@@ -94,6 +108,7 @@ func NewService(res *service.Resources, cfg Config) (*Service, error) {
 		logger:               logger,
 		resources:            res,
 		leaderElectionConfig: leaderElectionConfig,
+		healthzAdaptor:       healthzAdaptor,
 	}, nil
 }
 
@@ -154,13 +169,14 @@ func GetLeaderElectionCLIOpts(ctx context.Context) []service.CLIOptFunc {
 			leaderElectionCLIFlags,
 			func(ctx *cli.Context) error {
 				leaderElectionConfig = Config{
-					Enabled:            ctx.Bool(leaderElectionEnabledFlag),
-					LeaseLockNamespace: ctx.String(leaseLockNamespaceFlag),
-					LeaseLockName:      ctx.String(leaseLockNameFlag),
-					LeaseDuration:      ctx.Duration(leaseDurationFlag),
-					LeaseRenewDeadline: ctx.Duration(leaseRenewDeadlineFlag),
-					LeaseRetryPeriod:   ctx.Duration(leaseRetryPeriodFlag),
-					Identity:           ctx.String(leaseLockIdentityFlag),
+					Enabled:                 ctx.Bool(leaderElectionEnabledFlag),
+					LeaseLockNamespace:      ctx.String(leaseLockNamespaceFlag),
+					LeaseLockName:           ctx.String(leaseLockNameFlag),
+					LeaseDuration:           ctx.Duration(leaseDurationFlag),
+					LeaseRenewDeadline:      ctx.Duration(leaseRenewDeadlineFlag),
+					LeaseRetryPeriod:        ctx.Duration(leaseRetryPeriodFlag),
+					LeaseHealthCheckTimeout: ctx.Duration(leaseHealthCheckTimeoutFlag),
+					Identity:                ctx.String(leaseLockIdentityFlag),
 				}
 				return nil
 			}),
