@@ -8563,6 +8563,9 @@ If the from query param is not provided it defaults to last 72 hours.
  * @summary List ingested events
  */
 export const listEventsQueryClientIdMax = 36
+export const listEventsQueryCustomerIdItemRegExp = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
 export const listEventsQueryLimitDefault = 100
 export const listEventsQueryLimitMax = 100
 
@@ -8573,6 +8576,17 @@ export const listEventsQueryParams = zod.object({
     .max(listEventsQueryClientIdMax)
     .optional()
     .describe('Client ID\nUseful to track progress of a query.'),
+  customerId: zod
+    .array(
+      zod.coerce
+        .string()
+        .regex(listEventsQueryCustomerIdItemRegExp)
+        .describe(
+          'ULID (Universally Unique Lexicographically Sortable Identifier).'
+        )
+    )
+    .optional()
+    .describe('The event customer ID.'),
   from: zod.coerce
     .date()
     .optional()

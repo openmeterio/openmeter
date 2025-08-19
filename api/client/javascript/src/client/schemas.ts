@@ -5461,6 +5461,11 @@ export interface components {
     IngestedEvent: {
       /** @description The original event ingested. */
       event: components['schemas']['Event']
+      /**
+       * @description The customer ID if the event is associated with a customer.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      customerId?: string
       /** @description The validation error if the event failed validation. */
       validationError?: string
       /**
@@ -17604,6 +17609,8 @@ export interface operations {
          *
          *     Accepts partial subject. */
         subject?: string
+        /** @description The event customer ID. */
+        customerId?: string[]
         /** @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. */

@@ -67,6 +67,7 @@ func convertEvent(e meterevent.Event) (api.IngestedEvent, error) {
 
 	return api.IngestedEvent{
 		Event:           ev,
+		CustomerId:      e.CustomerID,
 		IngestedAt:      e.IngestedAt,
 		StoredAt:        e.StoredAt,
 		ValidationError: validationError,

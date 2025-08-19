@@ -6,7 +6,7 @@ import (
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/meterevent"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 const eventQueryV2DefaultLimit = 100
@@ -15,7 +15,7 @@ const eventQueryV2DefaultLimit = 100
 type queryEventsTableV2 struct {
 	Database        string
 	EventsTableName string
-	Params          meterevent.ListEventsV2Params
+	Params          streaming.ListEventsV2Params
 }
 
 // toSQL generates the SQL query and arguments for fetching events with v2 filtering

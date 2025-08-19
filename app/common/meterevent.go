@@ -3,6 +3,7 @@ package common
 import (
 	"github.com/google/wire"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/meterevent/adapter"
@@ -15,7 +16,8 @@ var MeterEvent = wire.NewSet(
 
 func NewMeterEventService(
 	streamingConnector streaming.Connector,
+	customerService customer.Service,
 	meterService meter.Service,
 ) meterevent.Service {
-	return adapter.New(streamingConnector, meterService)
+	return adapter.New(streamingConnector, customerService, meterService)
 }

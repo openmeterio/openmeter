@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/openmeter/meterevent"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
@@ -28,7 +28,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 				},
 			},
@@ -40,7 +40,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					ID: &filter.FilterString{
 						Eq: stringPtr("event-123"),
@@ -55,7 +55,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Subject: &filter.FilterString{
 						Like: stringPtr("%customer%"),
@@ -70,7 +70,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Time: &filter.FilterTime{
 						Gte: &now,
@@ -85,7 +85,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Cursor: &pagination.Cursor{
 						Time: cursorTime,
@@ -102,7 +102,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					IngestedAt: &filter.FilterTime{
 						Gte: &now,
@@ -137,7 +137,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 				},
 			},
@@ -149,7 +149,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Type: &filter.FilterString{
 						Eq: stringPtr("api-calls"),
@@ -164,7 +164,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Time: &filter.FilterTime{
 						Gte: &now,
@@ -179,7 +179,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Subject: &filter.FilterString{
 						Like: stringPtr("%customer%"),

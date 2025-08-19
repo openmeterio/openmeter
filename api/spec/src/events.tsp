@@ -66,6 +66,13 @@ interface Events {
     subject?: string,
 
     /**
+     * The event customer ID.
+     */
+    @query
+    @example(#["A1234", "B5678"])
+    customerId?: ULID[],
+
+    /**
      * Start date-time in RFC 3339 format.
      *
      * Inclusive.
@@ -297,6 +304,11 @@ model IngestedEvent {
    * The original event ingested.
    */
   event: Event;
+
+  /**
+   * The customer ID if the event is associated with a customer.
+   */
+  customerId?: ULID;
 
   /**
    * The validation error if the event failed validation.

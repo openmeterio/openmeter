@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -33,14 +32,15 @@ type RawEvent struct {
 	IngestedAt time.Time `ch:"ingested_at" json:"ingested_at,omitempty,omitzero"`
 	StoredAt   time.Time `ch:"stored_at" json:"stored_at,omitempty,omitzero"`
 	StoreRowID string    `ch:"store_row_id" json:"store_row_id,omitempty,omitzero"`
+	CustomerID string    `ch:"customer_id" json:"customer_id,omitempty,omitzero"`
 }
 
 type Connector interface {
 	namespace.Handler
 
 	CountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)
-	ListEvents(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]RawEvent, error)
-	ListEventsV2(ctx context.Context, params meterevent.ListEventsV2Params) ([]RawEvent, error)
+	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]RawEvent, error)
+	ListEventsV2(ctx context.Context, params ListEventsV2Params) ([]RawEvent, error)
 	QueryMeter(ctx context.Context, namespace string, meter meter.Meter, params QueryParams) ([]meter.MeterQueryRow, error)
 	ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params ListMeterSubjectsParams) ([]string, error)
 	BatchInsert(ctx context.Context, events []RawEvent) error
