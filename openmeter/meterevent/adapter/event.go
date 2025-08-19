@@ -23,13 +23,15 @@ func (a *adapter) ListEvents(ctx context.Context, params meterevent.ListEventsPa
 
 	// Params
 	listParams := streaming.ListEventsParams{
-		Namespace: params.Namespace,
-		ClientID:  params.ClientID,
-		From:      params.From,
-		To:        params.To,
-		ID:        params.ID,
-		Subject:   params.Subject,
-		Limit:     params.Limit,
+		Namespace:      params.Namespace,
+		ClientID:       params.ClientID,
+		From:           params.From,
+		To:             params.To,
+		ID:             params.ID,
+		Subject:        params.Subject,
+		Limit:          params.Limit,
+		IngestedAtFrom: params.IngestedAtFrom,
+		IngestedAtTo:   params.IngestedAtTo,
 	}
 
 	// Resolve customer IDs to customers if provided
