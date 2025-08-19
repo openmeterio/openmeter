@@ -15,7 +15,127 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/client/go"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/samber/lo"
 )
+
+func TestEntitlementV2(t *testing.T) {
+	client := initClient(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	meterSlug := "entitlement_v2_meter"
+	subject := "ent_customer_v2"
+
+	// ensure subject exists
+	{
+		resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{
+			api.SubjectUpsert{Key: subject},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
+
+	apiMONTH := &api.RecurringPeriodInterval{}
+	require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+
+	apiYEAR := &api.RecurringPeriodInterval{}
+	require.NoError(t, apiYEAR.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumYEAR))
+
+	// V2: Create entitlement via Customer API and list them (with real customer)
+	t.Run("V2 Create and List Customer Entitlements", func(t *testing.T) {
+		// Set up dedicated subject and customer
+		v2Subject := "ent_customer_v2"
+		{
+			resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{api.SubjectUpsert{Key: v2Subject}})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+		}
+		var v2CustomerID string
+		{
+			resp, err := client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
+				Name:             "Entitlement V2 Customer",
+				UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: []string{v2Subject}},
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
+			v2CustomerID = resp.JSON201.Id
+		}
+
+		// Create feature for V2 flow
+		var v2FeatureId string
+		{
+			randKey := fmt.Sprintf("entitlement_v2_list_feature_%d", time.Now().Unix())
+			resp, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
+				Name:      "Entitlement V2 List Feature",
+				MeterSlug: convert.ToPointer(meterSlug),
+				Key:       randKey,
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+			v2FeatureId = resp.JSON201.Id
+		}
+
+		// Create entitlement via customer V2 endpoint
+		{
+			iv := &api.RecurringPeriodInterval{}
+			require.NoError(t, iv.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+			me := api.EntitlementMeteredCreateInputs{
+				Type:      "metered",
+				FeatureId: &v2FeatureId,
+				UsagePeriod: api.RecurringPeriodCreateInput{
+					Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					Interval: *iv,
+				},
+			}
+			var body api.CreateCustomerEntitlementV2JSONRequestBody
+			require.NoError(t, body.FromEntitlementMeteredCreateInputs(me))
+
+			res, err := client.CreateCustomerEntitlementV2WithResponse(ctx, v2CustomerID, body)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, res.StatusCode(), "Invalid status code [response_body=%s]", string(res.Body))
+
+			v2, err := res.JSON201.AsEntitlementMeteredV2()
+			require.NoError(t, err)
+			require.Equal(t, v2FeatureId, v2.FeatureId)
+			require.Equal(t, v2CustomerID, v2.CustomerId)
+		}
+
+		// List customer entitlements V2
+		{
+			resp, err := client.ListCustomerEntitlementsV2WithResponse(ctx, v2CustomerID, &api.ListCustomerEntitlementsV2Params{
+				Page:     lo.ToPtr(1),
+				PageSize: lo.ToPtr(10),
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+			require.NotNil(t, resp.JSON200)
+			require.GreaterOrEqual(t, resp.JSON200.TotalCount, 1)
+		}
+	})
+
+	// V2: Validate error mapping when customer does not exist
+	t.Run("V2 Create with missing customer should map to 404", func(t *testing.T) {
+		iv := &api.RecurringPeriodInterval{}
+		require.NoError(t, iv.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+		me := api.EntitlementMeteredCreateInputs{
+			Type:       "metered",
+			FeatureKey: lo.ToPtr("nonexistent_feature_key"),
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				Interval: *iv,
+			},
+		}
+		var body api.CreateCustomerEntitlementV2JSONRequestBody
+		require.NoError(t, body.FromEntitlementMeteredCreateInputs(me))
+
+		// Use random customer id to ensure not found
+		randomID := fmt.Sprintf("missing-%d", time.Now().UnixNano())
+		res, err := client.CreateCustomerEntitlementV2WithResponse(ctx, randomID, body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNotFound, res.StatusCode(), "expected 404 mapping, got %d", res.StatusCode())
+	})
+}
 
 func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 	// This takes a minute to run in itself due to Entitlements being one minute rounded and we need to wait in the last
