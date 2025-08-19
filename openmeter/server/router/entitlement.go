@@ -6,6 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	customerdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	entitlementdriverv2 "github.com/openmeterio/openmeter/openmeter/entitlement/driver/v2"
 )
 
 // ------------------------------------------------------------
@@ -144,14 +145,17 @@ func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, custo
 
 // Create customer entitlement
 // (POST /api/v2/customers/{customerIdOrKey}/entitlements)
-func (a *Router) CreateCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
+func (a *Router) CreateCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey api.ULIDOrExternalKey) {
 	a.entitlementV2Handler.CreateCustomerEntitlement().With(customerIdOrKey).ServeHTTP(w, r)
 }
 
 // List customer entitlements
 // (GET /api/v2/customers/{customerIdOrKey}/entitlements)
-func (a *Router) ListCustomerEntitlementsV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, params api.ListCustomerEntitlementsV2Params) {
-	unimplemented.ListCustomerEntitlementsV2(w, r, customerIdOrKey, params)
+func (a *Router) ListCustomerEntitlementsV2(w http.ResponseWriter, r *http.Request, customerIdOrKey api.ULIDOrExternalKey, params api.ListCustomerEntitlementsV2Params) {
+	a.entitlementV2Handler.ListCustomerEntitlements().With(entitlementdriverv2.ListCustomerEntitlementsHandlerParams{
+		CustomerIdOrKey: customerIdOrKey,
+		Params:          params,
+	}).ServeHTTP(w, r)
 }
 
 // Get customer entitlement
