@@ -136,13 +136,10 @@ func mapEventsToMeterEvents(rawEvents []streaming.RawEvent) []meterevent.Event {
 			Subject:          rawEvent.Subject,
 			Time:             rawEvent.Time,
 			Data:             rawEvent.Data,
+			CustomerID:       rawEvent.CustomerID,
 			IngestedAt:       rawEvent.IngestedAt,
 			StoredAt:         rawEvent.StoredAt,
 			ValidationErrors: make([]error, 0),
-		}
-
-		if rawEvent.CustomerID != "" {
-			meterEvent.CustomerID = &rawEvent.CustomerID
 		}
 
 		meterEvents = append(meterEvents, meterEvent)

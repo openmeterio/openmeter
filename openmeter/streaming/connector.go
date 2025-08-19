@@ -32,7 +32,7 @@ type RawEvent struct {
 	IngestedAt time.Time `ch:"ingested_at" json:"ingested_at,omitempty,omitzero"`
 	StoredAt   time.Time `ch:"stored_at" json:"stored_at,omitempty,omitzero"`
 	StoreRowID string    `ch:"store_row_id" json:"store_row_id,omitempty,omitzero"`
-	CustomerID string    `ch:"customer_id" json:"customer_id,omitempty,omitzero"`
+	CustomerID *string   `ch:"customer_id" json:"customer_id,omitempty,omitzero"`
 }
 
 type Connector interface {

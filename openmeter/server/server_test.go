@@ -165,7 +165,7 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
-			name: "query events",
+			name: "list events v1",
 			req: testRequest{
 				method:      http.MethodGet,
 				path:        "/api/v1/events",
@@ -176,6 +176,8 @@ func TestRoutes(t *testing.T) {
 				body: []api.IngestedEvent{
 					{
 						Event: mockEvent,
+						// empty string customer id because it's not set on the mock
+						CustomerId: lo.ToPtr(""),
 						// empty string event type in error message because it's not set on the mock event
 						ValidationError: lo.ToPtr("no meter found for event type: "),
 					},
