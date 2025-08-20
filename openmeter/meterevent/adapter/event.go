@@ -35,7 +35,7 @@ func (a *adapter) ListEvents(ctx context.Context, params meterevent.ListEventsPa
 	}
 
 	// Resolve customer IDs to customers if provided
-	if params.CustomerIDs != nil {
+	if params.CustomerIDs != nil && len(*params.CustomerIDs) > 0 {
 		customerList, err := a.customerService.ListCustomers(ctx, customer.ListCustomersInput{
 			Namespace:   params.Namespace,
 			CustomerIDs: *params.CustomerIDs,
@@ -65,21 +65,12 @@ func (a *adapter) ListEvents(ctx context.Context, params meterevent.ListEventsPa
 	}
 
 	// Map events to meter events
-	meterEvents := mapEventsToMeterEvents(rawEvents)
-
-	// Validate events
-	validatedEvents, err := a.validateEvents(ctx, params.Namespace, meterEvents)
+	meterEvents, err := a.eventPostProcess(ctx, params.Namespace, rawEvents)
 	if err != nil {
-		return nil, fmt.Errorf("validate events: %w", err)
+		return nil, fmt.Errorf("post process events: %w", err)
 	}
 
-	// Enrich events with customer ID
-	eventsWithCustomerID, err := a.enrichEventsWithCustomerID(ctx, params.Namespace, validatedEvents)
-	if err != nil {
-		return nil, fmt.Errorf("enrich events with customer id: %w", err)
-	}
-
-	return eventsWithCustomerID, nil
+	return meterEvents, nil
 }
 
 // ListEventsV2 returns a list of events.
@@ -109,21 +100,34 @@ func (a *adapter) ListEventsV2(ctx context.Context, params meterevent.ListEvents
 	}
 
 	// Map events to meter events
-	meterEvents := mapEventsToMeterEvents(events)
-
-	// Validate events
-	validatedEvents, err := a.validateEvents(ctx, params.Namespace, meterEvents)
+	meterEvents, err := a.eventPostProcess(ctx, params.Namespace, events)
 	if err != nil {
-		return pagination.Result[meterevent.Event]{}, fmt.Errorf("validate events: %w", err)
+		return pagination.Result[meterevent.Event]{}, fmt.Errorf("post process events: %w", err)
 	}
+
+	return pagination.NewResult(meterEvents), nil
+}
+
+// eventPostProcess is a helper function to post-process events.
+func (a *adapter) eventPostProcess(ctx context.Context, namespace string, rawEvents []streaming.RawEvent) ([]meterevent.Event, error) {
+	var err error
+
+	// Map events to meter events
+	meterEvents := mapEventsToMeterEvents(rawEvents)
 
 	// Enrich events with customer ID
-	eventsWithCustomerID, err := a.enrichEventsWithCustomerID(ctx, params.Namespace, validatedEvents)
+	meterEvents, err = a.enrichEventsWithCustomerID(ctx, namespace, meterEvents)
 	if err != nil {
-		return pagination.Result[meterevent.Event]{}, fmt.Errorf("enrich events with customer id: %w", err)
+		return nil, fmt.Errorf("enrich events with customer id: %w", err)
 	}
 
-	return pagination.NewResult(eventsWithCustomerID), nil
+	// Validate events
+	meterEvents, err = a.validateEvents(ctx, namespace, meterEvents)
+	if err != nil {
+		return nil, fmt.Errorf("validate events: %w", err)
+	}
+
+	return meterEvents, nil
 }
 
 // mapEventsToMeterEvents maps a list of raw events to a list of meter events.
@@ -186,6 +190,11 @@ func (a *adapter) validateEvents(ctx context.Context, namespace string, events [
 			validationErrors = append(validationErrors, fmt.Errorf("no meter found for event type: %s", event.Type))
 		}
 
+		// If the event does not have a customer ID, add an error to the event
+		if event.CustomerID == nil {
+			validationErrors = append(validationErrors, fmt.Errorf("no customer found for event subject: %s", event.Subject))
+		}
+
 		event.ValidationErrors = validationErrors
 		validatedEvents = append(validatedEvents, event)
 	}
@@ -206,15 +215,17 @@ func (a *adapter) enrichEventsWithCustomerID(ctx context.Context, namespace stri
 		}
 
 		// Check if the customer ID for the subject is in the cache
-		if customerId, ok := cache[event.Subject]; ok {
-			event.CustomerID = &customerId
+		if customerID, ok := cache[event.Subject]; ok {
+			// Create a stable copy to take address of
+			id := customerID
+			event.CustomerID = &id
 			eventsWithCustomerID = append(eventsWithCustomerID, event)
 			continue
 		}
 
 		// FIXME: do this in a batches to avoid hitting the database for each event
 		// Get the customer by usage attribution subject key
-		customer, err := a.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		cust, err := a.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
 			Namespace:  namespace,
 			SubjectKey: event.Subject,
 		})
@@ -228,10 +239,11 @@ func (a *adapter) enrichEventsWithCustomerID(ctx context.Context, namespace stri
 		}
 
 		// Add the customer ID to the cache
-		cache[event.Subject] = customer.ID
+		cache[event.Subject] = cust.ID
 
-		// Add the event to the list
-		event.CustomerID = &customer.ID
+		// Add the event to the list (use stable copy for pointer)
+		customerID := cust.ID
+		event.CustomerID = &customerID
 		eventsWithCustomerID = append(eventsWithCustomerID, event)
 	}
 
