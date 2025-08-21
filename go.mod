@@ -87,7 +87,7 @@ require (
 	go.opentelemetry.io/proto/otlp v1.7.1
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
 	golang.org/x/net v0.43.0
-	google.golang.org/grpc v1.74.2
+	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.7
 	gotest.tools/gotestsum v1.12.3
 	k8s.io/api v0.33.3
