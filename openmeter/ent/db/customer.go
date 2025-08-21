@@ -75,9 +75,11 @@ type CustomerEdges struct {
 	BillingInvoice []*BillingInvoice `json:"billing_invoice,omitempty"`
 	// Subscription holds the value of the subscription edge.
 	Subscription []*Subscription `json:"subscription,omitempty"`
+	// Entitlements holds the value of the entitlements edge.
+	Entitlements []*Entitlement `json:"entitlements,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // AppsOrErr returns the Apps value or an error if the edge
@@ -125,6 +127,15 @@ func (e CustomerEdges) SubscriptionOrErr() ([]*Subscription, error) {
 		return e.Subscription, nil
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
+}
+
+// EntitlementsOrErr returns the Entitlements value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) EntitlementsOrErr() ([]*Entitlement, error) {
+	if e.loadedTypes[5] {
+		return e.Entitlements, nil
+	}
+	return nil, &NotLoadedError{edge: "entitlements"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -318,6 +329,11 @@ func (_m *Customer) QueryBillingInvoice() *BillingInvoiceQuery {
 // QuerySubscription queries the "subscription" edge of the Customer entity.
 func (_m *Customer) QuerySubscription() *SubscriptionQuery {
 	return NewCustomerClient(_m.config).QuerySubscription(_m)
+}
+
+// QueryEntitlements queries the "entitlements" edge of the Customer entity.
+func (_m *Customer) QueryEntitlements() *EntitlementQuery {
+	return NewCustomerClient(_m.config).QueryEntitlements(_m)
 }
 
 // Update returns a builder for updating this Customer.

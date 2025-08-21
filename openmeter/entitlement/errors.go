@@ -1,6 +1,7 @@
 package entitlement
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -65,4 +66,35 @@ type ForbiddenError struct {
 
 func (e *ForbiddenError) Error() string {
 	return fmt.Sprintf("forbidden: %s", e.Message)
+}
+
+// SubjectCustomerConflictError indicates that a subject key resolves to multiple customers
+// within the same namespace via usage attribution mapping.
+// Uses the generic conflict error pattern for consistency with other domains.
+type SubjectCustomerConflictError struct {
+	err error
+}
+
+func (e *SubjectCustomerConflictError) Error() string {
+	return e.err.Error()
+}
+
+func (e *SubjectCustomerConflictError) Unwrap() error {
+	return e.err
+}
+
+// NewSubjectCustomerConflictError constructs a SubjectCustomerConflictError wrapped in a GenericConflictError.
+func NewSubjectCustomerConflictError(namespace, subjectKey string) error {
+	return &SubjectCustomerConflictError{
+		err: models.NewGenericConflictError(fmt.Errorf("multiple customers reference subject key %s in namespace %s", subjectKey, namespace)),
+	}
+}
+
+// IsSubjectCustomerConflictError checks whether the error chain contains a SubjectCustomerConflictError.
+func IsSubjectCustomerConflictError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var e *SubjectCustomerConflictError
+	return errors.As(err, &e)
 }
