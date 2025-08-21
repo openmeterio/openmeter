@@ -353,24 +353,24 @@ func TestInvalidIngest(t *testing.T) {
 
 	// null data should have processing error
 	require.NotNil(t, events[0].ValidationError)
-	require.Contains(t, `invalid event: null and missing value property`, *events[0].ValidationError)
+	require.Contains(t, *events[0].ValidationError, `invalid event: null and missing value property`)
 
 	// missing data should have processing error
 	// we only validate events against meters in the processing pipeline so this is an async error
 	require.NotNil(t, events[1].ValidationError)
-	require.Contains(t, `invalid event: null and missing value property`, *events[1].ValidationError)
+	require.Contains(t, *events[1].ValidationError, `invalid event: null and missing value property`)
 
 	// empty data should have processing error as it does not have the required value property
 	require.NotNil(t, events[2].ValidationError)
-	require.Contains(t, `invalid event: missing value property: "$.duration_ms"`, *events[2].ValidationError)
+	require.Contains(t, *events[2].ValidationError, `invalid event: missing value property: "$.duration_ms"`)
 
 	// nan data should have processing error as it does not have the required value property
 	require.NotNil(t, events[3].ValidationError)
-	require.Contains(t, `invalid event: value cannot be NaN`, *events[3].ValidationError)
+	require.Contains(t, *events[3].ValidationError, `invalid event: value cannot be NaN`)
 
 	// inf data should have processing error as it does not have the required value property
 	require.NotNil(t, events[4].ValidationError)
-	require.Contains(t, `invalid event: value cannot be infinity`, *events[4].ValidationError)
+	require.Contains(t, *events[4].ValidationError, `invalid event: value cannot be infinity`)
 }
 
 func TestDedupe(t *testing.T) {
