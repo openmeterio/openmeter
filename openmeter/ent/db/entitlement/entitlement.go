@@ -37,10 +37,12 @@ const (
 	FieldActiveTo = "active_to"
 	// FieldFeatureKey holds the string denoting the feature_key field in the database.
 	FieldFeatureKey = "feature_key"
-	// FieldSubjectKey holds the string denoting the subject_key field in the database.
-	FieldSubjectKey = "subject_key"
+	// FieldCustomerID holds the string denoting the customer_id field in the database.
+	FieldCustomerID = "customer_id"
 	// FieldSubjectID holds the string denoting the subject_id field in the database.
 	FieldSubjectID = "subject_id"
+	// FieldSubjectKey holds the string denoting the subject_key field in the database.
+	FieldSubjectKey = "subject_key"
 	// FieldMeasureUsageFrom holds the string denoting the measure_usage_from field in the database.
 	FieldMeasureUsageFrom = "measure_usage_from"
 	// FieldIssueAfterReset holds the string denoting the issue_after_reset field in the database.
@@ -73,6 +75,8 @@ const (
 	EdgeSubscriptionItem = "subscription_item"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
 	EdgeFeature = "feature"
+	// EdgeCustomer holds the string denoting the customer edge name in mutations.
+	EdgeCustomer = "customer"
 	// EdgeSubject holds the string denoting the subject edge name in mutations.
 	EdgeSubject = "subject"
 	// Table holds the table name of the entitlement in the database.
@@ -112,6 +116,13 @@ const (
 	FeatureInverseTable = "features"
 	// FeatureColumn is the table column denoting the feature relation/edge.
 	FeatureColumn = "feature_id"
+	// CustomerTable is the table that holds the customer relation/edge.
+	CustomerTable = "entitlements"
+	// CustomerInverseTable is the table name for the Customer entity.
+	// It exists in this package in order to avoid circular dependency with the "customer" package.
+	CustomerInverseTable = "customers"
+	// CustomerColumn is the table column denoting the customer relation/edge.
+	CustomerColumn = "customer_id"
 	// SubjectTable is the table that holds the subject relation/edge.
 	SubjectTable = "entitlements"
 	// SubjectInverseTable is the table name for the Subject entity.
@@ -134,8 +145,9 @@ var Columns = []string{
 	FieldActiveFrom,
 	FieldActiveTo,
 	FieldFeatureKey,
-	FieldSubjectKey,
+	FieldCustomerID,
 	FieldSubjectID,
+	FieldSubjectKey,
 	FieldMeasureUsageFrom,
 	FieldIssueAfterReset,
 	FieldIssueAfterResetPriority,
@@ -257,14 +269,19 @@ func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureKey, opts...).ToFunc()
 }
 
-// BySubjectKey orders the results by the subject_key field.
-func BySubjectKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSubjectKey, opts...).ToFunc()
+// ByCustomerID orders the results by the customer_id field.
+func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerID, opts...).ToFunc()
 }
 
 // BySubjectID orders the results by the subject_id field.
 func BySubjectID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubjectID, opts...).ToFunc()
+}
+
+// BySubjectKey orders the results by the subject_key field.
+func BySubjectKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubjectKey, opts...).ToFunc()
 }
 
 // ByMeasureUsageFrom orders the results by the measure_usage_from field.
@@ -380,6 +397,13 @@ func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
+// ByCustomerField orders the results by customer field.
+func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // BySubjectField orders the results by subject field.
 func BySubjectField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -419,6 +443,13 @@ func newFeatureStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FeatureInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
+	)
+}
+func newCustomerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
 	)
 }
 func newSubjectStep() *sqlgraph.Step {

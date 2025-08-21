@@ -59,10 +59,6 @@ func (Subject) Indexes() []ent.Index {
 func (Subject) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("entitlements", Entitlement.Type),
-		// FIXME: enable foreign key constraints
-		// Ent doesn't support foreign key constraints on non ID fields (key)
-		// https://github.com/ent/ent/issues/2549
-		// edge.To("subject_key", Entitlement.Type),
 
 		// FIXME: enable foreign key constraints
 		// Ent doesn't support foreign key constraints on non ID fields (key)

@@ -10,12 +10,12 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/samber/lo"
 )
 
 func TestEntitlementV2(t *testing.T) {
