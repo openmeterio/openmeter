@@ -36,7 +36,7 @@ func (m *discountPercentageMutator) Mutate(i PricerCalculateInput, pricerResult 
 			return newDetailedLineInput{}, err
 		}
 
-		l.Discounts.Amount = append(l.Discounts.Amount, lineDiscount)
+		l.AmountDiscounts = append(l.AmountDiscounts, lineDiscount)
 		return l, nil
 	})
 	if err != nil {

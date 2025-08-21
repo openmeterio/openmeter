@@ -153,7 +153,7 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 
 	inScopeLineSvcs, err := s.lineService.FromEntities(
 		lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
-			return line.Status == billing.InvoiceLineStatusValid && line.DeletedAt == nil
+			return !line.IsDeleted()
 		}),
 	)
 	if err != nil {
@@ -1005,7 +1005,7 @@ func (s Service) updateInvoice(ctx context.Context, in billing.UpdateInvoiceAdap
 func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing.Invoice, progressiveBilling bool) error {
 	inScopeLineServices, err := s.lineService.FromEntities(
 		lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
-			return line.Status == billing.InvoiceLineStatusValid && line.DeletedAt == nil
+			return !line.IsDeleted()
 		}),
 	)
 	if err != nil {

@@ -205,12 +205,12 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Add lines to the Stripe invoice
 	var stripeLineAdd []*stripe.InvoiceItemParams
 
-	leafLines := invoice.GetLeafLinesWithConsolidatedTaxBehavior()
+	leafLines := invoice.GetDetailedLinesWithConsolidatedTaxBehavior()
 
 	// Iterate over the leaf lines
 	for _, line := range leafLines {
 		// Add discounts for line if any
-		for _, discount := range line.Discounts.Amount {
+		for _, discount := range line.AmountDiscounts {
 			stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
 		}
 
@@ -304,7 +304,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		stripeLinesRemove []string
 	)
 
-	leafLines := invoice.GetLeafLinesWithConsolidatedTaxBehavior()
+	leafLines := invoice.GetDetailedLinesWithConsolidatedTaxBehavior()
 
 	// Helper to get a Stripe line item by ID
 	stripeLinesByID := make(map[string]*stripe.InvoiceLineItem)
@@ -319,7 +319,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Iterate over the leaf lines
 	for _, line := range leafLines {
-		amountDiscountsById, err := line.Discounts.Amount.GetByID()
+		amountDiscountsById, err := line.AmountDiscounts.GetByID()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get amount discounts by ID: %w", err)
 		}
@@ -452,7 +452,7 @@ func sortInvoiceLines[K StripeInvoiceLineOperationParams](stripeLineAdd []*K) {
 // getDiscountStripeUpdateInvoiceItemParams returns the Stripe line item for a discount
 func getDiscountStripeUpdateInvoiceItemParams(
 	calculator StripeCalculator,
-	line *billing.Line,
+	line billing.DetailedLine,
 	discount billing.AmountLineDiscountManaged,
 	stripeLine *stripe.InvoiceLineItem,
 ) *stripeclient.StripeInvoiceItemWithID {
@@ -463,7 +463,7 @@ func getDiscountStripeUpdateInvoiceItemParams(
 }
 
 // getDiscountStripeInvoiceItemParams returns the Stripe line item for a discount
-func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line *billing.Line, discount billing.AmountLineDiscountManaged) *stripe.InvoiceItemParams {
+func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLine, discount billing.AmountLineDiscountManaged) *stripe.InvoiceItemParams {
 	name := getDiscountLineName(line, discount)
 	period := getPeriod(line)
 
@@ -480,14 +480,14 @@ func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line *billi
 	return applyTaxSettingsToInvoiceItem(addParams, line)
 }
 
-func getDiscountStripeAddInvoiceItemParams(calculator StripeCalculator, line *billing.Line, discount billing.AmountLineDiscountManaged, stripeCustomerID string) *stripe.InvoiceItemParams {
+func getDiscountStripeAddInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLine, discount billing.AmountLineDiscountManaged, stripeCustomerID string) *stripe.InvoiceItemParams {
 	params := getDiscountStripeInvoiceItemParams(calculator, line, discount)
 	// Customer is required for adds
 	params.Customer = stripe.String(stripeCustomerID)
 	return params
 }
 
-func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, line *billing.Line) *stripe.InvoiceItemParams {
+func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, line billing.DetailedLine) *stripe.InvoiceItemParams {
 	if line.TaxConfig != nil && !lo.IsEmpty(line.TaxConfig) {
 		if line.TaxConfig.Behavior != nil {
 			add.TaxBehavior = getStripeTaxBehavior(line.TaxConfig.Behavior)
@@ -504,7 +504,7 @@ func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, line *billing.
 // getStripeUpdateInvoiceItemParams returns the Stripe update line params
 func getStripeUpdateInvoiceItemParams(
 	calculator StripeCalculator,
-	line *billing.Line,
+	line billing.DetailedLine,
 	stripeLine *stripe.InvoiceLineItem,
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
@@ -514,7 +514,7 @@ func getStripeUpdateInvoiceItemParams(
 }
 
 // getStripeAddLinesLineParams returns the Stripe line item
-func getStripeInvoiceItemParams(line *billing.Line, calculator StripeCalculator) *stripe.InvoiceItemParams {
+func getStripeInvoiceItemParams(line billing.DetailedLine, calculator StripeCalculator) *stripe.InvoiceItemParams {
 	description := getLineName(line)
 	period := getPeriod(line)
 	amount := line.Totals.Amount
@@ -551,14 +551,14 @@ func getStripeInvoiceItemParams(line *billing.Line, calculator StripeCalculator)
 }
 
 // getStripeAddInvoiceItemParams returns the Stripe line item
-func getStripeAddInvoiceItemParams(line *billing.Line, calculator StripeCalculator, stripeCustomerID string) *stripe.InvoiceItemParams {
+func getStripeAddInvoiceItemParams(line billing.DetailedLine, calculator StripeCalculator, stripeCustomerID string) *stripe.InvoiceItemParams {
 	params := getStripeInvoiceItemParams(line, calculator)
 	params.Customer = stripe.String(stripeCustomerID)
 	return params
 }
 
 // getPeriod returns the period
-func getPeriod(line *billing.Line) *stripe.InvoiceItemPeriodParams {
+func getPeriod(line billing.DetailedLine) *stripe.InvoiceItemPeriodParams {
 	return &stripe.InvoiceItemPeriodParams{
 		Start: lo.ToPtr(line.Period.Start.Unix()),
 		End:   lo.ToPtr(line.Period.End.Unix()),
@@ -566,7 +566,7 @@ func getPeriod(line *billing.Line) *stripe.InvoiceItemPeriodParams {
 }
 
 // getDiscountLineName returns the line name
-func getDiscountLineName(line *billing.Line, discount billing.AmountLineDiscountManaged) string {
+func getDiscountLineName(line billing.DetailedLine, discount billing.AmountLineDiscountManaged) string {
 	name := line.Name
 	if discount.Description != nil {
 		name = fmt.Sprintf("%s (%s)", name, *discount.Description)
@@ -576,7 +576,7 @@ func getDiscountLineName(line *billing.Line, discount billing.AmountLineDiscount
 }
 
 // getLineName returns the line name
-func getLineName(line *billing.Line) string {
+func getLineName(line billing.DetailedLine) string {
 	name := line.Name
 	if line.Description != nil {
 		name = fmt.Sprintf("%s (%s)", name, *line.Description)

@@ -137,7 +137,6 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			Metadata:    dbLine.Metadata,
 			Annotations: dbLine.Annotations,
 			InvoiceID:   dbLine.InvoiceID,
-			Status:      dbLine.Status,
 			ManagedBy:   dbLine.ManagedBy,
 
 			Period: billing.Period{
@@ -151,7 +150,6 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 
 			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
 
-			Type:     dbLine.Type,
 			Currency: dbLine.Currency,
 
 			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
@@ -198,7 +196,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 		if ubpLine == nil {
 			return invoiceLine, fmt.Errorf("manual usage based line is missing")
 		}
-		invoiceLine.UsageBased = &billing.UsageBasedLine{
+		invoiceLine.UsageBased = billing.UsageBasedLine{
 			ConfigID:                     ubpLine.ID,
 			FeatureKey:                   lo.FromPtr(ubpLine.FeatureKey),
 			Price:                        ubpLine.Price,

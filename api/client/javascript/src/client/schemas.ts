@@ -5720,11 +5720,6 @@ export interface components {
        *     External calls always create valid lines, other line types are managed by the
        *     billing engine of OpenMeter. */
       readonly status: components['schemas']['InvoiceLineStatus']
-      /** @description Discounts detailes applied to this line.
-       *
-       *     New discounts can be added via the invoice's discounts API, to facilitate
-       *     discounts that are affecting multiple lines. */
-      readonly discounts?: components['schemas']['InvoiceLineDiscounts']
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
       /** @description The currency of this line. */
@@ -5781,6 +5776,11 @@ export interface components {
        * @default regular
        */
       readonly category?: components['schemas']['InvoiceDetailedLineCostCategory']
+      /** @description Discounts detailes applied to this line.
+       *
+       *     New discounts can be added via the invoice's discounts API, to facilitate
+       *     discounts that are affecting multiple lines. */
+      readonly discounts?: components['schemas']['InvoiceDetailedLineDiscounts']
     }
     /**
      * @description InvoiceDetailedLineCostCategory determines if the flat fee is a regular fee due to use due to a
@@ -5788,6 +5788,13 @@ export interface components {
      * @enum {string}
      */
     InvoiceDetailedLineCostCategory: 'regular' | 'commitment'
+    /** @description InvoiceLineDiscounts represents the discounts applied to the invoice line by type. */
+    InvoiceDetailedLineDiscounts: {
+      /** @description Amount based discounts applied to the line.
+       *
+       *     Amount based discounts are deduced from the total price of the line. */
+      amount?: components['schemas']['InvoiceLineAmountDiscount'][]
+    }
     /** @description InvoiceDetailedLineRateCard represents the rate card (intent) for a flat fee line. */
     InvoiceDetailedLineRateCard: {
       /**
@@ -6083,7 +6090,7 @@ export interface components {
      * @description Line status specifies the status of the line.
      * @enum {string}
      */
-    InvoiceLineStatus: 'valid' | 'detail' | 'split'
+    InvoiceLineStatus: 'valid' | 'detailed' | 'split'
     /** @description InvoiceLineSubscriptionReference contains the references to the subscription that this line is related to. */
     InvoiceLineSubscriptionReference: {
       /** @description The subscription. */
@@ -10950,6 +10957,8 @@ export type InvoiceAvailableActions =
 export type InvoiceDetailedLine = components['schemas']['InvoiceDetailedLine']
 export type InvoiceDetailedLineCostCategory =
   components['schemas']['InvoiceDetailedLineCostCategory']
+export type InvoiceDetailedLineDiscounts =
+  components['schemas']['InvoiceDetailedLineDiscounts']
 export type InvoiceDetailedLineRateCard =
   components['schemas']['InvoiceDetailedLineRateCard']
 export type InvoiceDocumentRef = components['schemas']['InvoiceDocumentRef']
