@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
-	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
-	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -90,17 +88,8 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
 		}
 
-		subjectKey, err := owner.GetSubjectKey()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get subject key for owner %s: %w", ownerID.ID, err)
-		}
-
-		// publish event
-		event := grant.CreatedEvent{
-			Grant:     *g,
-			Namespace: eventmodels.NamespaceID{ID: ownerID.Namespace},
-			Subject:   subject.SubjectKey{Key: subjectKey},
-		}
+		// publish v2 event (customer-centric)
+		event := grant.NewCreatedEventV2FromGrant(*g, owner.DefaultQueryParams.FilterCustomer[0].GetUsageAttribution().ID)
 
 		if err := m.Publisher.Publish(ctx, event); err != nil {
 			return nil, err
@@ -154,17 +143,8 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
 		}
 
-		// publish an event
-		subjectKey, err := owner.GetSubjectKey()
-		if err != nil {
-			return nil, err
-		}
-
-		return nil, m.Publisher.Publish(ctx, grant.VoidedEvent{
-			Grant:     g,
-			Namespace: eventmodels.NamespaceID{ID: ownerID.Namespace},
-			Subject:   subject.SubjectKey{Key: subjectKey},
-		})
+		// publish v2 event (customer-centric)
+		return nil, m.Publisher.Publish(ctx, grant.NewVoidedEventV2FromGrant(g, owner.DefaultQueryParams.FilterCustomer[0].GetUsageAttribution().ID, now))
 	})
 	return err
 }
