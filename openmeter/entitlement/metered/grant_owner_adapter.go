@@ -30,6 +30,22 @@ type entitlementGrantOwner struct {
 	tracer          trace.Tracer
 }
 
+// ownerCustomer is a lightweight adapter that implements streaming.Customer
+// without introducing customer package dependencies into credit.
+type ownerCustomer struct {
+	id          string
+	key         *string
+	subjectKeys []string
+}
+
+func (c ownerCustomer) GetUsageAttribution() streaming.CustomerUsageAttribution {
+	return streaming.CustomerUsageAttribution{
+		ID:          c.id,
+		Key:         c.key,
+		SubjectKeys: c.subjectKeys,
+	}
+}
+
 func NewEntitlementGrantOwnerAdapter(
 	featureRepo feature.FeatureRepo,
 	entitlementRepo entitlement.EntitlementRepo,
@@ -87,9 +103,18 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 		return def, fmt.Errorf("failed to get meter: %w", err)
 	}
 
-	queryParams := streaming.QueryParams{
-		FilterSubject: []string{ent.SubjectKey},
+	queryParams := streaming.QueryParams{}
+
+	// Require filtering by customer; error if missing
+	if ent.Customer == nil {
+		return def, models.NewGenericValidationError(fmt.Errorf("meter queries require customer filtering for entitlement %s", id.ID))
 	}
+
+	queryParams.FilterCustomer = []streaming.Customer{ownerCustomer{
+		id:          ent.Customer.ID,
+		key:         ent.Customer.Key,
+		subjectKeys: ent.Customer.UsageAttribution.SubjectKeys,
+	}}
 
 	if feature.MeterGroupByFilters != nil {
 		queryParams.FilterGroupBy = map[string][]string{}

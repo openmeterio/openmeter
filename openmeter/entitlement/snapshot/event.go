@@ -145,3 +145,17 @@ func (e SnapshotEvent) Validate() error {
 
 	return errors.Join(errs...)
 }
+
+// NewSnapshotEvent builds a SnapshotEvent deriving the namespace from the entitlement.
+func NewSnapshotEvent(ent entitlement.Entitlement, subj subject.Subject, feat feature.Feature, op ValueOperationType, calculatedAt *time.Time, value *EntitlementValue, currentUsagePeriod *timeutil.ClosedPeriod) SnapshotEvent {
+	return SnapshotEvent{
+		Entitlement:        ent,
+		Namespace:          models.NamespaceID{ID: ent.Namespace},
+		Subject:            subj,
+		Feature:            feat,
+		Operation:          op,
+		CalculatedAt:       calculatedAt,
+		Value:              value,
+		CurrentUsagePeriod: currentUsagePeriod,
+	}
+}

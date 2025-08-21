@@ -153,12 +153,7 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		// entitlement got deleted while processing changes => let's create a delete event so that we are not working
 
 		snap, err := w.createDeletedSnapshotEvent(ctx,
-			entitlement.EntitlementDeletedEvent{
-				Entitlement: *entitlementEntity,
-				Namespace: models.NamespaceID{
-					ID: entitlementEntity.Namespace,
-				},
-			}, calculatedAt)
+			entitlement.NewEntitlementDeletedEventPayload(*entitlementEntity), calculatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create entitlement delete snapshot event: %w", err)
 		}
@@ -350,37 +345,23 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, event entitleme
 		if !pkgmodels.IsGenericNotFoundError(err) {
 			return nil, fmt.Errorf("failed to get subject: %w", err)
 		}
-
-		sub = subject.Subject{
-			Key: event.SubjectKey,
-		}
 	}
 
-	cus, err := w.opts.Customer.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  event.Entitlement.Namespace,
-		SubjectKey: event.Entitlement.SubjectKey,
-	})
-	if err != nil {
-		if !pkgmodels.IsGenericNotFoundError(err) {
-			return nil, fmt.Errorf("failed to get customer: %w", err)
-		}
-	}
+	// Build snapshot payload via constructor (namespace derived from entitlement)
+	snap := snapshot.NewSnapshotEvent(
+		event.ToDomainEntitlement(),
+		sub,
+		*feat,
+		snapshot.ValueOperationDelete,
+		convert.ToPointer(calculationTime),
+		nil,
+		event.CurrentUsagePeriod,
+	)
 
-	return marshaler.WithSource(
+	res := marshaler.WithSource(
 		metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
-		snapshot.SnapshotEvent{
-			Entitlement: event.Entitlement,
-			Namespace: models.NamespaceID{
-				ID: event.Namespace.ID,
-			},
-			Subject:   sub,
-			Feature:   *feat,
-			Customer:  cus,
-			Operation: snapshot.ValueOperationDelete,
+		snap,
+	)
 
-			CalculatedAt: convert.ToPointer(calculationTime),
-
-			CurrentUsagePeriod: event.CurrentUsagePeriod,
-		},
-	), nil
+	return res, nil
 }

@@ -231,8 +231,32 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				))
 		}),
 
+		// Grant created event v2 (customer-centric)
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *grant.CreatedEventV2) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementEvent(
+					ctx,
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
+					WithEventAt(event.CreatedAt),
+				))
+		}),
+
 		// Grant voided event
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *grant.VoidedEvent) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementEvent(
+					ctx,
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
+					WithEventAt(event.UpdatedAt),
+				))
+		}),
+
+		// Grant voided event v2 (customer-centric)
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *grant.VoidedEventV2) error {
 			return w.opts.EventBus.
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
