@@ -6,7 +6,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/go-logr/logr"
 	"github.com/redpanda-data/benthos/v4/public/service"
 	"github.com/samber/lo"
 	corev1 "k8s.io/api/core/v1"
@@ -19,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	"github.com/openmeterio/openmeter/collector/benthos/internal/logging"
 	"github.com/openmeterio/openmeter/collector/benthos/services/leaderelection"
 )
 
@@ -68,8 +68,8 @@ type kubernetesResourcesInput struct {
 func newKubernetesResourcesInput(conf *service.ParsedConfig, res *service.Resources) (*kubernetesResourcesInput, error) {
 	logger := res.Logger().With("component", "kubernetes_resources")
 
-	crLogger := logr.New(&managerLogger{logger})
-	ctrllog.SetLogger(crLogger)
+	ctrlLogger := logging.NewLogrLogger(logger)
+	ctrllog.SetLogger(ctrlLogger)
 
 	namespaces, err := conf.FieldStringList("namespaces")
 	if err != nil {
@@ -117,7 +117,7 @@ func newKubernetesResourcesInput(conf *service.ParsedConfig, res *service.Resour
 
 	// Create a new manager. Its client will automatically use a cache.
 	mgr, err := manager.New(kubeconfig, manager.Options{
-		Logger: crLogger,
+		Logger: ctrlLogger,
 		Scheme: scheme,
 		// Disable servers.
 		Metrics:                metricsserver.Options{BindAddress: "0"},
@@ -277,37 +277,4 @@ func (in *kubernetesResourcesInput) Close(ctx context.Context) error {
 		return ctx.Err()
 	}
 	return nil
-}
-
-type managerLogger struct {
-	logger *service.Logger
-}
-
-func (l *managerLogger) Init(info logr.RuntimeInfo) {
-}
-
-func (l *managerLogger) Enabled(level int) bool {
-	return true
-}
-
-func (l *managerLogger) Info(level int, msg string, keysAndValues ...any) {
-	if level == 0 {
-		l.logger.Infof(msg, keysAndValues...)
-	} else {
-		l.logger.Debugf(msg, keysAndValues...)
-	}
-}
-
-func (l *managerLogger) Error(err error, msg string, keysAndValues ...any) {
-	l.logger.Errorf(msg, keysAndValues...)
-}
-
-func (l *managerLogger) WithValues(keysAndValues ...any) logr.LogSink {
-	// Not implemented.
-	return l
-}
-
-func (l *managerLogger) WithName(name string) logr.LogSink {
-	// Not implemented.
-	return l
 }

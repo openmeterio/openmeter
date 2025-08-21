@@ -8,13 +8,14 @@ import (
 )
 
 const (
-	leaderElectionEnabledFlag = "leader-election"
-	leaseLockNamespaceFlag    = "lease-lock-namespace"
-	leaseLockNameFlag         = "lease-lock-name"
-	leaseLockIdentityFlag     = "lease-lock-identity"
-	leaseDurationFlag         = "lease-duration"
-	leaseRenewDeadlineFlag    = "lease-renew-deadline"
-	leaseRetryPeriodFlag      = "lease-retry-period"
+	leaderElectionEnabledFlag   = "leader-election"
+	leaseLockNamespaceFlag      = "lease-lock-namespace"
+	leaseLockNameFlag           = "lease-lock-name"
+	leaseLockIdentityFlag       = "lease-lock-identity"
+	leaseDurationFlag           = "lease-duration"
+	leaseRenewDeadlineFlag      = "lease-renew-deadline"
+	leaseRetryPeriodFlag        = "lease-retry-period"
+	leaseHealthCheckTimeoutFlag = "lease-health-check-timeout"
 )
 
 var hostname, _ = os.Hostname()
@@ -45,18 +46,24 @@ var leaderElectionCLIFlags = []cli.Flag{
 		Name:    leaseDurationFlag,
 		Usage:   "Duration of the lease",
 		EnvVars: []string{"LEASE_DURATION"},
-		Value:   10 * time.Second,
+		Value:   15 * time.Second,
 	},
 	&cli.DurationFlag{
 		Name:    leaseRenewDeadlineFlag,
 		Usage:   "Renew deadline of the lease",
 		EnvVars: []string{"LEASE_RENEW_DEADLINE"},
-		Value:   5 * time.Second,
+		Value:   10 * time.Second,
 	},
 	&cli.DurationFlag{
 		Name:    leaseRetryPeriodFlag,
 		Usage:   "Retry period of the lease",
 		EnvVars: []string{"LEASE_RETRY_PERIOD"},
 		Value:   2 * time.Second,
+	},
+	&cli.DurationFlag{
+		Name:    leaseHealthCheckTimeoutFlag,
+		Usage:   "Timeout for lease health check. Should be longer than lease duration for inactive leader detection",
+		EnvVars: []string{"LEASE_HEALTH_CHECK_TIMEOUT"},
+		Value:   0,
 	},
 }
