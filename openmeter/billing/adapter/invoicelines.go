@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/entitydiff"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -53,13 +54,11 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		}
 
 		// Step 1: Let's create/upsert the line configs first
-		if err = tx.upsertFeeLineConfig(ctx,
-			unionOfDiffs(lineDiffs.FlatFee, lineDiffs.ChildrenDiff.FlatFee)); err != nil {
+		if err = tx.upsertFeeLineConfig(ctx, lineDiffs.DetailedLine); err != nil {
 			return nil, fmt.Errorf("upserting fee line configs: %w", err)
 		}
 
-		if err := tx.upsertUsageBasedConfig(ctx,
-			unionOfDiffs(lineDiffs.UsageBased, lineDiffs.ChildrenDiff.UsageBased)); err != nil {
+		if err := tx.upsertUsageBasedConfig(ctx, lineDiffs.Line); err != nil {
 			return nil, fmt.Errorf("upserting usage based line configs: %w", err)
 		}
 
@@ -152,16 +151,12 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			},
 		}
 
-		if err := upsertWithOptions(ctx, tx.db, lineDiffs.LineBase, lineUpsertConfig); err != nil {
+		if err := upsertWithOptions(ctx, tx.db, lineDiffs.Line, lineUpsertConfig); err != nil {
 			return nil, fmt.Errorf("creating lines: %w", err)
 		}
 
 		// Step 3: Let's create the detailed lines
-		flattenedDetailedLines := lo.FlatMap(input.Lines, func(_ *billing.Line, idx int) []*billing.Line {
-			return input.Lines[idx].Children
-		})
-
-		if len(flattenedDetailedLines) > 0 {
+		if !lineDiffs.DetailedLine.IsEmpty() {
 			// Let's restore the parent <-> child relationship in terms of the ParentLineID field
 			for _, line := range input.Lines {
 				for _, child := range line.Children {
@@ -169,7 +164,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 				}
 			}
 
-			if err := upsertWithOptions(ctx, tx.db, lineDiffs.ChildrenDiff.LineBase, lineUpsertConfig); err != nil {
+			detailedLineDiff := lineDiffs.GetDetailedLineDiffWithParentID()
+
+			if err := upsertWithOptions(ctx, tx.db, detailedLineDiff, lineUpsertConfig); err != nil {
 				return nil, fmt.Errorf("[children] creating lines: %w", err)
 			}
 		}
@@ -177,9 +174,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		// Step 4: Let's upsert anything else, that doesn't have strict ID requirements
 
 		// Step 4a: Line Discounts
-
-		allUsageDiscountDiffs := unionOfDiffs(lineDiffs.UsageDiscounts, lineDiffs.ChildrenDiff.UsageDiscounts)
-		err = upsertWithOptions(ctx, tx.db, allUsageDiscountDiffs, upsertInput[usageLineDiscountManagedWithLine, *db.BillingInvoiceLineUsageDiscountCreate]{
+		err = upsertWithOptions(ctx, tx.db, lineDiffs.UsageDiscounts, upsertInput[usageLineDiscountManagedWithLine, *db.BillingInvoiceLineUsageDiscountCreate]{
 			Create: func(tx *db.Client, d usageLineDiscountManagedWithLine) (*db.BillingInvoiceLineUsageDiscountCreate, error) {
 				discount := d.Entity
 
@@ -224,7 +219,10 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			return nil, fmt.Errorf("upserting usage discounts: %w", err)
 		}
 
-		allAmountDiscountDiffs := unionOfDiffs(lineDiffs.AmountDiscounts, lineDiffs.ChildrenDiff.AmountDiscounts)
+		allAmountDiscountDiffs := entitydiff.Union(
+			lineDiffs.AmountDiscounts,
+			lineDiffs.DetailedLineAmountDiscounts,
+		)
 		err = upsertWithOptions(ctx, tx.db, allAmountDiscountDiffs, upsertInput[amountLineDiscountManagedWithLine, *db.BillingInvoiceLineDiscountCreate]{
 			Create: func(tx *db.Client, d amountLineDiscountManagedWithLine) (*db.BillingInvoiceLineDiscountCreate, error) {
 				discount := d.Entity
@@ -290,9 +288,11 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 	})
 }
 
-func (a *adapter) upsertFeeLineConfig(ctx context.Context, in diff[*billing.Line]) error {
-	return upsertWithOptions(ctx, a.db, in, upsertInput[*billing.Line, *db.BillingInvoiceFlatFeeLineConfigCreate]{
-		Create: func(tx *db.Client, line *billing.Line) (*db.BillingInvoiceFlatFeeLineConfigCreate, error) {
+func (a *adapter) upsertFeeLineConfig(ctx context.Context, in detailedLineDiff) error {
+	return upsertWithOptions(ctx, a.db, in, upsertInput[detailedLineWithParent, *db.BillingInvoiceFlatFeeLineConfigCreate]{
+		Create: func(tx *db.Client, lineWithParent detailedLineWithParent) (*db.BillingInvoiceFlatFeeLineConfigCreate, error) {
+			line := lineWithParent.Entity
+
 			if line.FlatFee.ConfigID == "" {
 				line.FlatFee.ConfigID = ulid.Make().String()
 			}
@@ -302,13 +302,8 @@ func (a *adapter) upsertFeeLineConfig(ctx context.Context, in diff[*billing.Line
 				SetPerUnitAmount(line.FlatFee.PerUnitAmount).
 				SetCategory(line.FlatFee.Category).
 				SetPaymentTerm(line.FlatFee.PaymentTerm).
-				SetID(line.FlatFee.ConfigID)
-
-			if line.Status == billing.InvoiceLineStatusDetailed {
-				// TODO[later]: Detailed lines must be a separate entity, so that we don't need these hacks (like line config or type specific sets)
-				create = create.SetNillableIndex(line.FlatFee.Index)
-			}
-
+				SetID(line.FlatFee.ConfigID).
+				SetNillableIndex(line.FlatFee.Index)
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceFlatFeeLineConfigCreate) error {
@@ -317,12 +312,14 @@ func (a *adapter) upsertFeeLineConfig(ctx context.Context, in diff[*billing.Line
 				OnConflict(
 					sql.ConflictColumns(billinginvoiceflatfeelineconfig.FieldID),
 					sql.ResolveWithNewValues(),
-				).Exec(ctx)
+				).
+				UpdateIndex().
+				Exec(ctx)
 		},
 	})
 }
 
-func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs diff[*billing.Line]) error {
+func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydiff.Diff[*billing.Line]) error {
 	return upsertWithOptions(ctx, a.db, lineDiffs, upsertInput[*billing.Line, *db.BillingInvoiceUsageBasedLineConfigCreate]{
 		Create: func(tx *db.Client, line *billing.Line) (*db.BillingInvoiceUsageBasedLineConfigCreate, error) {
 			if line.UsageBased.ConfigID == "" {
