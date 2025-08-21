@@ -10,8 +10,10 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -41,6 +43,10 @@ type Entitlement struct {
 	ActiveTo *time.Time `json:"active_to,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey string `json:"feature_key,omitempty"`
+	// CustomerID holds the value of the "customer_id" field.
+	CustomerID string `json:"customer_id,omitempty"`
+	// SubjectID holds the value of the "subject_id" field.
+	SubjectID string `json:"subject_id,omitempty"`
 	// SubjectKey holds the value of the "subject_key" field.
 	SubjectKey string `json:"subject_key,omitempty"`
 	// MeasureUsageFrom holds the value of the "measure_usage_from" field.
@@ -83,9 +89,13 @@ type EntitlementEdges struct {
 	SubscriptionItem []*SubscriptionItem `json:"subscription_item,omitempty"`
 	// Feature holds the value of the feature edge.
 	Feature *Feature `json:"feature,omitempty"`
+	// Customer holds the value of the customer edge.
+	Customer *Customer `json:"customer,omitempty"`
+	// Subject holds the value of the subject edge.
+	Subject *Subject `json:"subject,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [7]bool
 }
 
 // UsageResetOrErr returns the UsageReset value or an error if the edge
@@ -135,6 +145,28 @@ func (e EntitlementEdges) FeatureOrErr() (*Feature, error) {
 	return nil, &NotLoadedError{edge: "feature"}
 }
 
+// CustomerOrErr returns the Customer value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e EntitlementEdges) CustomerOrErr() (*Customer, error) {
+	if e.Customer != nil {
+		return e.Customer, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: customer.Label}
+	}
+	return nil, &NotLoadedError{edge: "customer"}
+}
+
+// SubjectOrErr returns the Subject value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e EntitlementEdges) SubjectOrErr() (*Subject, error) {
+	if e.Subject != nil {
+		return e.Subject, nil
+	} else if e.loadedTypes[6] {
+		return nil, &NotFoundError{label: subject.Label}
+	}
+	return nil, &NotLoadedError{edge: "subject"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Entitlement) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -148,7 +180,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case entitlement.FieldIssueAfterResetPriority:
 			values[i] = new(sql.NullInt64)
-		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldFeatureKey, entitlement.FieldSubjectKey, entitlement.FieldUsagePeriodInterval:
+		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldFeatureKey, entitlement.FieldCustomerID, entitlement.FieldSubjectID, entitlement.FieldSubjectKey, entitlement.FieldUsagePeriodInterval:
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldActiveFrom, entitlement.FieldActiveTo, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -239,6 +271,18 @@ func (_m *Entitlement) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
 			} else if value.Valid {
 				_m.FeatureKey = value.String
+			}
+		case entitlement.FieldCustomerID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
+			} else if value.Valid {
+				_m.CustomerID = value.String
+			}
+		case entitlement.FieldSubjectID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subject_id", values[i])
+			} else if value.Valid {
+				_m.SubjectID = value.String
 			}
 		case entitlement.FieldSubjectKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -361,6 +405,16 @@ func (_m *Entitlement) QueryFeature() *FeatureQuery {
 	return NewEntitlementClient(_m.config).QueryFeature(_m)
 }
 
+// QueryCustomer queries the "customer" edge of the Entitlement entity.
+func (_m *Entitlement) QueryCustomer() *CustomerQuery {
+	return NewEntitlementClient(_m.config).QueryCustomer(_m)
+}
+
+// QuerySubject queries the "subject" edge of the Entitlement entity.
+func (_m *Entitlement) QuerySubject() *SubjectQuery {
+	return NewEntitlementClient(_m.config).QuerySubject(_m)
+}
+
 // Update returns a builder for updating this Entitlement.
 // Note that you need to call Entitlement.Unwrap() before calling this method if this Entitlement
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -419,6 +473,12 @@ func (_m *Entitlement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("feature_key=")
 	builder.WriteString(_m.FeatureKey)
+	builder.WriteString(", ")
+	builder.WriteString("customer_id=")
+	builder.WriteString(_m.CustomerID)
+	builder.WriteString(", ")
+	builder.WriteString("subject_id=")
+	builder.WriteString(_m.SubjectID)
 	builder.WriteString(", ")
 	builder.WriteString("subject_key=")
 	builder.WriteString(_m.SubjectKey)

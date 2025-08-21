@@ -104,9 +104,8 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	customerService, err := customerservice.New(customerservice.Config{
-		Adapter:              customerAdapter,
-		EntitlementConnector: entitlementRegistry.Entitlement,
-		Publisher:            eventbus.NewMock(t),
+		Adapter:   customerAdapter,
+		Publisher: eventbus.NewMock(t),
 	})
 	if err != nil {
 		return nil, err

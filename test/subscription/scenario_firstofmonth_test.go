@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	subscription "github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -150,7 +151,14 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 	_, err = tDeps.billingService.CreateProfile(ctx, minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()))
 	require.NoError(t, err)
 
-	// 3rd, let's create the customer
+	// 3rd, let's create the subject first
+	_, err = tDeps.SubjectService.Create(ctx, subject.CreateInput{
+		Namespace: namespace,
+		Key:       "subject_1",
+	})
+	require.NoError(t, err)
+
+	// Then create the customer
 	c, err := tDeps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
 		CustomerMutate: customer.CustomerMutate{

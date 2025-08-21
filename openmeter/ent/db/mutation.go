@@ -29144,6 +29144,9 @@ type CustomerMutation struct {
 	subscription                     map[string]struct{}
 	removedsubscription              map[string]struct{}
 	clearedsubscription              bool
+	entitlements                     map[string]struct{}
+	removedentitlements              map[string]struct{}
+	clearedentitlements              bool
 	done                             bool
 	oldValue                         func(context.Context) (*Customer, error)
 	predicates                       []predicate.Customer
@@ -30338,6 +30341,60 @@ func (m *CustomerMutation) ResetSubscription() {
 	m.removedsubscription = nil
 }
 
+// AddEntitlementIDs adds the "entitlements" edge to the Entitlement entity by ids.
+func (m *CustomerMutation) AddEntitlementIDs(ids ...string) {
+	if m.entitlements == nil {
+		m.entitlements = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.entitlements[ids[i]] = struct{}{}
+	}
+}
+
+// ClearEntitlements clears the "entitlements" edge to the Entitlement entity.
+func (m *CustomerMutation) ClearEntitlements() {
+	m.clearedentitlements = true
+}
+
+// EntitlementsCleared reports if the "entitlements" edge to the Entitlement entity was cleared.
+func (m *CustomerMutation) EntitlementsCleared() bool {
+	return m.clearedentitlements
+}
+
+// RemoveEntitlementIDs removes the "entitlements" edge to the Entitlement entity by IDs.
+func (m *CustomerMutation) RemoveEntitlementIDs(ids ...string) {
+	if m.removedentitlements == nil {
+		m.removedentitlements = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.entitlements, ids[i])
+		m.removedentitlements[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedEntitlements returns the removed IDs of the "entitlements" edge to the Entitlement entity.
+func (m *CustomerMutation) RemovedEntitlementsIDs() (ids []string) {
+	for id := range m.removedentitlements {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// EntitlementsIDs returns the "entitlements" edge IDs in the mutation.
+func (m *CustomerMutation) EntitlementsIDs() (ids []string) {
+	for id := range m.entitlements {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetEntitlements resets all changes to the "entitlements" edge.
+func (m *CustomerMutation) ResetEntitlements() {
+	m.entitlements = nil
+	m.clearedentitlements = false
+	m.removedentitlements = nil
+}
+
 // Where appends a list predicates to the CustomerMutation builder.
 func (m *CustomerMutation) Where(ps ...predicate.Customer) {
 	m.predicates = append(m.predicates, ps...)
@@ -30847,7 +30904,7 @@ func (m *CustomerMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CustomerMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.apps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -30862,6 +30919,9 @@ func (m *CustomerMutation) AddedEdges() []string {
 	}
 	if m.subscription != nil {
 		edges = append(edges, customer.EdgeSubscription)
+	}
+	if m.entitlements != nil {
+		edges = append(edges, customer.EdgeEntitlements)
 	}
 	return edges
 }
@@ -30898,13 +30958,19 @@ func (m *CustomerMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customer.EdgeEntitlements:
+		ids := make([]ent.Value, 0, len(m.entitlements))
+		for id := range m.entitlements {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CustomerMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedapps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -30916,6 +30982,9 @@ func (m *CustomerMutation) RemovedEdges() []string {
 	}
 	if m.removedsubscription != nil {
 		edges = append(edges, customer.EdgeSubscription)
+	}
+	if m.removedentitlements != nil {
+		edges = append(edges, customer.EdgeEntitlements)
 	}
 	return edges
 }
@@ -30948,13 +31017,19 @@ func (m *CustomerMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customer.EdgeEntitlements:
+		ids := make([]ent.Value, 0, len(m.removedentitlements))
+		for id := range m.removedentitlements {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CustomerMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedapps {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -30969,6 +31044,9 @@ func (m *CustomerMutation) ClearedEdges() []string {
 	}
 	if m.clearedsubscription {
 		edges = append(edges, customer.EdgeSubscription)
+	}
+	if m.clearedentitlements {
+		edges = append(edges, customer.EdgeEntitlements)
 	}
 	return edges
 }
@@ -30987,6 +31065,8 @@ func (m *CustomerMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice
 	case customer.EdgeSubscription:
 		return m.clearedsubscription
+	case customer.EdgeEntitlements:
+		return m.clearedentitlements
 	}
 	return false
 }
@@ -31020,6 +31100,9 @@ func (m *CustomerMutation) ResetEdge(name string) error {
 		return nil
 	case customer.EdgeSubscription:
 		m.ResetSubscription()
+		return nil
+	case customer.EdgeEntitlements:
+		m.ResetEntitlements()
 		return nil
 	}
 	return fmt.Errorf("unknown Customer edge %s", name)
@@ -31688,6 +31771,10 @@ type EntitlementMutation struct {
 	clearedsubscription_item      bool
 	feature                       *string
 	clearedfeature                bool
+	customer                      *string
+	clearedcustomer               bool
+	subject                       *string
+	clearedsubject                bool
 	done                          bool
 	oldValue                      func(context.Context) (*Entitlement, error)
 	predicates                    []predicate.Entitlement
@@ -32207,6 +32294,78 @@ func (m *EntitlementMutation) OldFeatureKey(ctx context.Context) (v string, err 
 // ResetFeatureKey resets all changes to the "feature_key" field.
 func (m *EntitlementMutation) ResetFeatureKey() {
 	m.feature_key = nil
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *EntitlementMutation) SetCustomerID(s string) {
+	m.customer = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *EntitlementMutation) CustomerID() (r string, exists bool) {
+	v := m.customer
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *EntitlementMutation) ResetCustomerID() {
+	m.customer = nil
+}
+
+// SetSubjectID sets the "subject_id" field.
+func (m *EntitlementMutation) SetSubjectID(s string) {
+	m.subject = &s
+}
+
+// SubjectID returns the value of the "subject_id" field in the mutation.
+func (m *EntitlementMutation) SubjectID() (r string, exists bool) {
+	v := m.subject
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubjectID returns the old "subject_id" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldSubjectID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubjectID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubjectID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubjectID: %w", err)
+	}
+	return oldValue.SubjectID, nil
+}
+
+// ResetSubjectID resets all changes to the "subject_id" field.
+func (m *EntitlementMutation) ResetSubjectID() {
+	m.subject = nil
 }
 
 // SetSubjectKey sets the "subject_key" field.
@@ -33085,6 +33244,60 @@ func (m *EntitlementMutation) ResetFeature() {
 	m.clearedfeature = false
 }
 
+// ClearCustomer clears the "customer" edge to the Customer entity.
+func (m *EntitlementMutation) ClearCustomer() {
+	m.clearedcustomer = true
+	m.clearedFields[entitlement.FieldCustomerID] = struct{}{}
+}
+
+// CustomerCleared reports if the "customer" edge to the Customer entity was cleared.
+func (m *EntitlementMutation) CustomerCleared() bool {
+	return m.clearedcustomer
+}
+
+// CustomerIDs returns the "customer" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomerID instead. It exists only for internal usage by the builders.
+func (m *EntitlementMutation) CustomerIDs() (ids []string) {
+	if id := m.customer; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomer resets all changes to the "customer" edge.
+func (m *EntitlementMutation) ResetCustomer() {
+	m.customer = nil
+	m.clearedcustomer = false
+}
+
+// ClearSubject clears the "subject" edge to the Subject entity.
+func (m *EntitlementMutation) ClearSubject() {
+	m.clearedsubject = true
+	m.clearedFields[entitlement.FieldSubjectID] = struct{}{}
+}
+
+// SubjectCleared reports if the "subject" edge to the Subject entity was cleared.
+func (m *EntitlementMutation) SubjectCleared() bool {
+	return m.clearedsubject
+}
+
+// SubjectIDs returns the "subject" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubjectID instead. It exists only for internal usage by the builders.
+func (m *EntitlementMutation) SubjectIDs() (ids []string) {
+	if id := m.subject; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubject resets all changes to the "subject" edge.
+func (m *EntitlementMutation) ResetSubject() {
+	m.subject = nil
+	m.clearedsubject = false
+}
+
 // Where appends a list predicates to the EntitlementMutation builder.
 func (m *EntitlementMutation) Where(ps ...predicate.Entitlement) {
 	m.predicates = append(m.predicates, ps...)
@@ -33119,7 +33332,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 24)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -33149,6 +33362,12 @@ func (m *EntitlementMutation) Fields() []string {
 	}
 	if m.feature_key != nil {
 		fields = append(fields, entitlement.FieldFeatureKey)
+	}
+	if m.customer != nil {
+		fields = append(fields, entitlement.FieldCustomerID)
+	}
+	if m.subject != nil {
+		fields = append(fields, entitlement.FieldSubjectID)
 	}
 	if m.subject_key != nil {
 		fields = append(fields, entitlement.FieldSubjectKey)
@@ -33214,6 +33433,10 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.ActiveTo()
 	case entitlement.FieldFeatureKey:
 		return m.FeatureKey()
+	case entitlement.FieldCustomerID:
+		return m.CustomerID()
+	case entitlement.FieldSubjectID:
+		return m.SubjectID()
 	case entitlement.FieldSubjectKey:
 		return m.SubjectKey()
 	case entitlement.FieldMeasureUsageFrom:
@@ -33267,6 +33490,10 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldActiveTo(ctx)
 	case entitlement.FieldFeatureKey:
 		return m.OldFeatureKey(ctx)
+	case entitlement.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	case entitlement.FieldSubjectID:
+		return m.OldSubjectID(ctx)
 	case entitlement.FieldSubjectKey:
 		return m.OldSubjectKey(ctx)
 	case entitlement.FieldMeasureUsageFrom:
@@ -33369,6 +33596,20 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetFeatureKey(v)
+		return nil
+	case entitlement.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	case entitlement.FieldSubjectID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubjectID(v)
 		return nil
 	case entitlement.FieldSubjectKey:
 		v, ok := value.(string)
@@ -33653,6 +33894,12 @@ func (m *EntitlementMutation) ResetField(name string) error {
 	case entitlement.FieldFeatureKey:
 		m.ResetFeatureKey()
 		return nil
+	case entitlement.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	case entitlement.FieldSubjectID:
+		m.ResetSubjectID()
+		return nil
 	case entitlement.FieldSubjectKey:
 		m.ResetSubjectKey()
 		return nil
@@ -33695,7 +33942,7 @@ func (m *EntitlementMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *EntitlementMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 7)
 	if m.usage_reset != nil {
 		edges = append(edges, entitlement.EdgeUsageReset)
 	}
@@ -33710,6 +33957,12 @@ func (m *EntitlementMutation) AddedEdges() []string {
 	}
 	if m.feature != nil {
 		edges = append(edges, entitlement.EdgeFeature)
+	}
+	if m.customer != nil {
+		edges = append(edges, entitlement.EdgeCustomer)
+	}
+	if m.subject != nil {
+		edges = append(edges, entitlement.EdgeSubject)
 	}
 	return edges
 }
@@ -33746,13 +33999,21 @@ func (m *EntitlementMutation) AddedIDs(name string) []ent.Value {
 		if id := m.feature; id != nil {
 			return []ent.Value{*id}
 		}
+	case entitlement.EdgeCustomer:
+		if id := m.customer; id != nil {
+			return []ent.Value{*id}
+		}
+	case entitlement.EdgeSubject:
+		if id := m.subject; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *EntitlementMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 7)
 	if m.removedusage_reset != nil {
 		edges = append(edges, entitlement.EdgeUsageReset)
 	}
@@ -33802,7 +34063,7 @@ func (m *EntitlementMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *EntitlementMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 7)
 	if m.clearedusage_reset {
 		edges = append(edges, entitlement.EdgeUsageReset)
 	}
@@ -33817,6 +34078,12 @@ func (m *EntitlementMutation) ClearedEdges() []string {
 	}
 	if m.clearedfeature {
 		edges = append(edges, entitlement.EdgeFeature)
+	}
+	if m.clearedcustomer {
+		edges = append(edges, entitlement.EdgeCustomer)
+	}
+	if m.clearedsubject {
+		edges = append(edges, entitlement.EdgeSubject)
 	}
 	return edges
 }
@@ -33835,6 +34102,10 @@ func (m *EntitlementMutation) EdgeCleared(name string) bool {
 		return m.clearedsubscription_item
 	case entitlement.EdgeFeature:
 		return m.clearedfeature
+	case entitlement.EdgeCustomer:
+		return m.clearedcustomer
+	case entitlement.EdgeSubject:
+		return m.clearedsubject
 	}
 	return false
 }
@@ -33845,6 +34116,12 @@ func (m *EntitlementMutation) ClearEdge(name string) error {
 	switch name {
 	case entitlement.EdgeFeature:
 		m.ClearFeature()
+		return nil
+	case entitlement.EdgeCustomer:
+		m.ClearCustomer()
+		return nil
+	case entitlement.EdgeSubject:
+		m.ClearSubject()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement unique edge %s", name)
@@ -33868,6 +34145,12 @@ func (m *EntitlementMutation) ResetEdge(name string) error {
 		return nil
 	case entitlement.EdgeFeature:
 		m.ResetFeature()
+		return nil
+	case entitlement.EdgeCustomer:
+		m.ResetCustomer()
+		return nil
+	case entitlement.EdgeSubject:
+		m.ResetSubject()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement edge %s", name)
@@ -45997,20 +46280,23 @@ func (m *PlanRateCardMutation) ResetEdge(name string) error {
 // SubjectMutation represents an operation that mutates the Subject nodes in the graph.
 type SubjectMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *string
-	namespace          *string
-	key                *string
-	display_name       *string
-	stripe_customer_id *string
-	metadata           *map[string]interface{}
-	created_at         *time.Time
-	updated_at         *time.Time
-	clearedFields      map[string]struct{}
-	done               bool
-	oldValue           func(context.Context) (*Subject, error)
-	predicates         []predicate.Subject
+	op                  Op
+	typ                 string
+	id                  *string
+	namespace           *string
+	key                 *string
+	display_name        *string
+	stripe_customer_id  *string
+	metadata            *map[string]interface{}
+	created_at          *time.Time
+	updated_at          *time.Time
+	clearedFields       map[string]struct{}
+	entitlements        map[string]struct{}
+	removedentitlements map[string]struct{}
+	clearedentitlements bool
+	done                bool
+	oldValue            func(context.Context) (*Subject, error)
+	predicates          []predicate.Subject
 }
 
 var _ ent.Mutation = (*SubjectMutation)(nil)
@@ -46408,6 +46694,60 @@ func (m *SubjectMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
+// AddEntitlementIDs adds the "entitlements" edge to the Entitlement entity by ids.
+func (m *SubjectMutation) AddEntitlementIDs(ids ...string) {
+	if m.entitlements == nil {
+		m.entitlements = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.entitlements[ids[i]] = struct{}{}
+	}
+}
+
+// ClearEntitlements clears the "entitlements" edge to the Entitlement entity.
+func (m *SubjectMutation) ClearEntitlements() {
+	m.clearedentitlements = true
+}
+
+// EntitlementsCleared reports if the "entitlements" edge to the Entitlement entity was cleared.
+func (m *SubjectMutation) EntitlementsCleared() bool {
+	return m.clearedentitlements
+}
+
+// RemoveEntitlementIDs removes the "entitlements" edge to the Entitlement entity by IDs.
+func (m *SubjectMutation) RemoveEntitlementIDs(ids ...string) {
+	if m.removedentitlements == nil {
+		m.removedentitlements = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.entitlements, ids[i])
+		m.removedentitlements[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedEntitlements returns the removed IDs of the "entitlements" edge to the Entitlement entity.
+func (m *SubjectMutation) RemovedEntitlementsIDs() (ids []string) {
+	for id := range m.removedentitlements {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// EntitlementsIDs returns the "entitlements" edge IDs in the mutation.
+func (m *SubjectMutation) EntitlementsIDs() (ids []string) {
+	for id := range m.entitlements {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetEntitlements resets all changes to the "entitlements" edge.
+func (m *SubjectMutation) ResetEntitlements() {
+	m.entitlements = nil
+	m.clearedentitlements = false
+	m.removedentitlements = nil
+}
+
 // Where appends a list predicates to the SubjectMutation builder.
 func (m *SubjectMutation) Where(ps ...predicate.Subject) {
 	m.predicates = append(m.predicates, ps...)
@@ -46664,49 +47004,85 @@ func (m *SubjectMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubjectMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.entitlements != nil {
+		edges = append(edges, subject.EdgeEntitlements)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *SubjectMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case subject.EdgeEntitlements:
+		ids := make([]ent.Value, 0, len(m.entitlements))
+		for id := range m.entitlements {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubjectMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedentitlements != nil {
+		edges = append(edges, subject.EdgeEntitlements)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *SubjectMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case subject.EdgeEntitlements:
+		ids := make([]ent.Value, 0, len(m.removedentitlements))
+		for id := range m.removedentitlements {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubjectMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedentitlements {
+		edges = append(edges, subject.EdgeEntitlements)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *SubjectMutation) EdgeCleared(name string) bool {
+	switch name {
+	case subject.EdgeEntitlements:
+		return m.clearedentitlements
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *SubjectMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Subject unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *SubjectMutation) ResetEdge(name string) error {
+	switch name {
+	case subject.EdgeEntitlements:
+		m.ResetEntitlements()
+		return nil
+	}
 	return fmt.Errorf("unknown Subject edge %s", name)
 }
 

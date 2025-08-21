@@ -14,10 +14,12 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 )
@@ -34,6 +36,8 @@ type EntitlementQuery struct {
 	withBalanceSnapshot  *BalanceSnapshotQuery
 	withSubscriptionItem *SubscriptionItemQuery
 	withFeature          *FeatureQuery
+	withCustomer         *CustomerQuery
+	withSubject          *SubjectQuery
 	modifiers            []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -174,6 +178,50 @@ func (_q *EntitlementQuery) QueryFeature() *FeatureQuery {
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
 			sqlgraph.To(feature.Table, feature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.FeatureTable, entitlement.FeatureColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCustomer chains the current query on the "customer" edge.
+func (_q *EntitlementQuery) QueryCustomer() *CustomerQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.CustomerTable, entitlement.CustomerColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySubject chains the current query on the "subject" edge.
+func (_q *EntitlementQuery) QuerySubject() *SubjectQuery {
+	query := (&SubjectClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
+			sqlgraph.To(subject.Table, subject.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.SubjectTable, entitlement.SubjectColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -378,6 +426,8 @@ func (_q *EntitlementQuery) Clone() *EntitlementQuery {
 		withBalanceSnapshot:  _q.withBalanceSnapshot.Clone(),
 		withSubscriptionItem: _q.withSubscriptionItem.Clone(),
 		withFeature:          _q.withFeature.Clone(),
+		withCustomer:         _q.withCustomer.Clone(),
+		withSubject:          _q.withSubject.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -436,6 +486,28 @@ func (_q *EntitlementQuery) WithFeature(opts ...func(*FeatureQuery)) *Entitlemen
 		opt(query)
 	}
 	_q.withFeature = query
+	return _q
+}
+
+// WithCustomer tells the query-builder to eager-load the nodes that are connected to
+// the "customer" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *EntitlementQuery) WithCustomer(opts ...func(*CustomerQuery)) *EntitlementQuery {
+	query := (&CustomerClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCustomer = query
+	return _q
+}
+
+// WithSubject tells the query-builder to eager-load the nodes that are connected to
+// the "subject" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *EntitlementQuery) WithSubject(opts ...func(*SubjectQuery)) *EntitlementQuery {
+	query := (&SubjectClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSubject = query
 	return _q
 }
 
@@ -517,12 +589,14 @@ func (_q *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 	var (
 		nodes       = []*Entitlement{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [7]bool{
 			_q.withUsageReset != nil,
 			_q.withGrant != nil,
 			_q.withBalanceSnapshot != nil,
 			_q.withSubscriptionItem != nil,
 			_q.withFeature != nil,
+			_q.withCustomer != nil,
+			_q.withSubject != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -579,6 +653,18 @@ func (_q *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 	if query := _q.withFeature; query != nil {
 		if err := _q.loadFeature(ctx, query, nodes, nil,
 			func(n *Entitlement, e *Feature) { n.Edges.Feature = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCustomer; query != nil {
+		if err := _q.loadCustomer(ctx, query, nodes, nil,
+			func(n *Entitlement, e *Customer) { n.Edges.Customer = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withSubject; query != nil {
+		if err := _q.loadSubject(ctx, query, nodes, nil,
+			func(n *Entitlement, e *Subject) { n.Edges.Subject = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -737,6 +823,64 @@ func (_q *EntitlementQuery) loadFeature(ctx context.Context, query *FeatureQuery
 	}
 	return nil
 }
+func (_q *EntitlementQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *Customer)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Entitlement)
+	for i := range nodes {
+		fk := nodes[i].CustomerID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(customer.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "customer_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *EntitlementQuery) loadSubject(ctx context.Context, query *SubjectQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *Subject)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Entitlement)
+	for i := range nodes {
+		fk := nodes[i].SubjectID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(subject.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "subject_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *EntitlementQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -768,6 +912,12 @@ func (_q *EntitlementQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withFeature != nil {
 			_spec.Node.AddColumnOnce(entitlement.FieldFeatureID)
+		}
+		if _q.withCustomer != nil {
+			_spec.Node.AddColumnOnce(entitlement.FieldCustomerID)
+		}
+		if _q.withSubject != nil {
+			_spec.Node.AddColumnOnce(entitlement.FieldSubjectID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

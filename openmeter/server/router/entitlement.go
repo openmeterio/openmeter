@@ -6,7 +6,30 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	customerdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	entitlementdriverv2 "github.com/openmeterio/openmeter/openmeter/entitlement/driver/v2"
 )
+
+// ------------------------------------------------------------
+// Entitlement APIs (V1)
+// ------------------------------------------------------------
+
+// List entitlements
+// (GET /api/v1/entitlements)
+func (a *Router) ListEntitlements(w http.ResponseWriter, r *http.Request, params api.ListEntitlementsParams) {
+	a.entitlementHandler.ListEntitlements().With(params).ServeHTTP(w, r)
+}
+
+// Get an entitlement
+// (GET /api/v1/entitlements/{entitlementId})
+func (a *Router) GetEntitlementById(w http.ResponseWriter, r *http.Request, entitlementId string) {
+	a.entitlementHandler.GetEntitlementById().With(entitlementdriver.GetEntitlementByIdHandlerParams{
+		EntitlementId: entitlementId,
+	}).ServeHTTP(w, r)
+}
+
+// ------------------------------------------------------------
+// Subject Entitlement APIs (V1)
+// ------------------------------------------------------------
 
 // Create entitlement
 // (POST /api/v1/subjects/{subjectIdOrKey}/entitlements)
@@ -70,12 +93,6 @@ func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, s
 	}).ServeHTTP(w, r)
 }
 
-// List entitlements
-// (GET /api/v1/entitlements)
-func (a *Router) ListEntitlements(w http.ResponseWriter, r *http.Request, params api.ListEntitlementsParams) {
-	a.entitlementHandler.ListEntitlements().With(params).ServeHTTP(w, r)
-}
-
 // Delete entitlement
 // (DELETE /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId})
 func (a *Router) DeleteEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementId string) {
@@ -92,14 +109,6 @@ func (a *Router) GetEntitlement(w http.ResponseWriter, r *http.Request, subjectI
 	}).ServeHTTP(w, r)
 }
 
-// Get an entitlement
-// (GET /api/v1/entitlements/{entitlementId})
-func (a *Router) GetEntitlementById(w http.ResponseWriter, r *http.Request, entitlementId string) {
-	a.entitlementHandler.GetEntitlementById().With(entitlementdriver.GetEntitlementByIdHandlerParams{
-		EntitlementId: entitlementId,
-	}).ServeHTTP(w, r)
-}
-
 // Override an entitlement
 // (PUT /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override)
 func (a *Router) OverrideEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementIdOrFeatureKey string) {
@@ -109,57 +118,9 @@ func (a *Router) OverrideEntitlement(w http.ResponseWriter, r *http.Request, sub
 	}).ServeHTTP(w, r)
 }
 
-// Customer APIs
-
-// Get customer access
-// (GET /api/v1/customers/{customerId}/access)
-func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
-	a.customerHandler.GetCustomerAccess().With(customerdriver.GetCustomerAccessParams{
-		CustomerIDOrKey: customerIdOrKey,
-	}).ServeHTTP(w, r)
-}
-
-// Create customer entitlement
-// (POST /api/v1/customers/{customerIdOrKey}/entitlements)
-func (a *Router) CreateCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
-	unimplemented.CreateCustomerEntitlement(w, r, customerIdOrKey)
-}
-
-// List customer entitlements
-// (GET /api/v1/customers/{customerIdOrKey}/entitlements)
-func (a *Router) ListCustomerEntitlements(w http.ResponseWriter, r *http.Request, customerIdOrKey string, params api.ListCustomerEntitlementsParams) {
-	unimplemented.ListCustomerEntitlements(w, r, customerIdOrKey, params)
-}
-
-// Get customer entitlement
-// (GET /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey})
-func (a *Router) GetCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
-	unimplemented.GetCustomerEntitlement(w, r, customerIdOrKey, featureKey)
-}
-
-// Delete customer entitlement
-// (DELETE /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey})
-func (a *Router) DeleteCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
-	unimplemented.DeleteCustomerEntitlement(w, r, customerIdOrKey, featureKey)
-}
-
-// Override customer entitlement
-// (PUT /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/override)
-func (a *Router) OverrideCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
-	unimplemented.OverrideCustomerEntitlement(w, r, customerIdOrKey, featureKey)
-}
-
-// List customer entitlement grants
-// (GET /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/grants)
-func (a *Router) ListCustomerEntitlementGrants(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.ListCustomerEntitlementGrantsParams) {
-	unimplemented.ListCustomerEntitlementGrants(w, r, customerIdOrKey, featureKey, params)
-}
-
-// Create customer entitlement grant
-// (POST /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/grants)
-func (a *Router) CreateCustomerEntitlementGrant(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
-	unimplemented.CreateCustomerEntitlementGrant(w, r, customerIdOrKey, featureKey)
-}
+// ------------------------------------------------------------
+// Customer Entitlement APIs (V1)
+// ------------------------------------------------------------
 
 // Get entitlement value
 // (GET /api/v1/customers/{customerId}/entitlements/{featureKey}/value)
@@ -170,14 +131,80 @@ func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Requ
 	}).ServeHTTP(w, r)
 }
 
+// Get customer access
+// (GET /api/v2/customers/{customerId}/access)
+func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
+	a.customerHandler.GetCustomerAccess().With(customerdriver.GetCustomerAccessParams{
+		CustomerIDOrKey: customerIdOrKey,
+	}).ServeHTTP(w, r)
+}
+
+// ------------------------------------------------------------
+// Customer Entitlement APIs (V2)
+// ------------------------------------------------------------
+
+// Create customer entitlement
+// (POST /api/v2/customers/{customerIdOrKey}/entitlements)
+func (a *Router) CreateCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey api.ULIDOrExternalKey) {
+	a.entitlementV2Handler.CreateCustomerEntitlement().With(customerIdOrKey).ServeHTTP(w, r)
+}
+
+// List customer entitlements
+// (GET /api/v2/customers/{customerIdOrKey}/entitlements)
+func (a *Router) ListCustomerEntitlementsV2(w http.ResponseWriter, r *http.Request, customerIdOrKey api.ULIDOrExternalKey, params api.ListCustomerEntitlementsV2Params) {
+	a.entitlementV2Handler.ListCustomerEntitlements().With(entitlementdriverv2.ListCustomerEntitlementsHandlerParams{
+		CustomerIdOrKey: customerIdOrKey,
+		Params:          params,
+	}).ServeHTTP(w, r)
+}
+
+// Get customer entitlement
+// (GET /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey})
+func (a *Router) GetCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
+	unimplemented.GetCustomerEntitlementV2(w, r, customerIdOrKey, featureKey)
+}
+
+// Delete customer entitlement
+// (DELETE /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey})
+func (a *Router) DeleteCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
+	unimplemented.DeleteCustomerEntitlementV2(w, r, customerIdOrKey, featureKey)
+}
+
+// Override customer entitlement
+// (PUT /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey}/override)
+func (a *Router) OverrideCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
+	unimplemented.OverrideCustomerEntitlementV2(w, r, customerIdOrKey, featureKey)
+}
+
+// List customer entitlement grants
+// (GET /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey}/grants)
+func (a *Router) ListCustomerEntitlementGrantsV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.ListCustomerEntitlementGrantsV2Params) {
+	unimplemented.ListCustomerEntitlementGrantsV2(w, r, customerIdOrKey, featureKey, params)
+}
+
+// Create customer entitlement grant
+// (POST /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey}/grants)
+func (a *Router) CreateCustomerEntitlementGrantV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
+	unimplemented.CreateCustomerEntitlementGrantV2(w, r, customerIdOrKey, featureKey)
+}
+
+// Get entitlement value
+// (GET /api/v2/customers/{customerId}/entitlements/{featureKey}/value)
+func (a *Router) GetCustomerEntitlementValueV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementValueV2Params) {
+	a.customerHandler.GetCustomerEntitlementValue().With(customerdriver.GetCustomerEntitlementValueParams{
+		CustomerIDOrKey: customerIdOrKey,
+		FeatureKey:      featureKey,
+	}).ServeHTTP(w, r)
+}
+
 // Get entitlement history
-// (GET /api/v1/customers/{customerId}/entitlements/{featureKey}/history)
-func (a *Router) GetCustomerEntitlementHistory(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementHistoryParams) {
-	unimplemented.GetCustomerEntitlementHistory(w, r, customerIdOrKey, featureKey, params)
+// (GET /api/v2/customers/{customerId}/entitlements/{featureKey}/history)
+func (a *Router) GetCustomerEntitlementHistoryV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementHistoryV2Params) {
+	unimplemented.GetCustomerEntitlementHistoryV2(w, r, customerIdOrKey, featureKey, params)
 }
 
 // Reset entitlement usage
-// (POST /api/v1/customers/{customerId}/entitlements/{featureKey}/reset)
-func (a *Router) ResetCustomerEntitlementUsage(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
-	unimplemented.ResetCustomerEntitlementUsage(w, r, customerIdOrKey, featureKey)
+// (POST /api/v2/customers/{customerId}/entitlements/{featureKey}/reset)
+func (a *Router) ResetCustomerEntitlementUsageV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
+	unimplemented.ResetCustomerEntitlementUsageV2(w, r, customerIdOrKey, featureKey)
 }

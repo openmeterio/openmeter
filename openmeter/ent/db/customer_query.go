@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 )
@@ -34,6 +35,7 @@ type CustomerQuery struct {
 	withBillingCustomerOverride *BillingCustomerOverrideQuery
 	withBillingInvoice          *BillingInvoiceQuery
 	withSubscription            *SubscriptionQuery
+	withEntitlements            *EntitlementQuery
 	modifiers                   []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -174,6 +176,28 @@ func (_q *CustomerQuery) QuerySubscription() *SubscriptionQuery {
 			sqlgraph.From(customer.Table, customer.FieldID, selector),
 			sqlgraph.To(subscription.Table, subscription.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubscriptionTable, customer.SubscriptionColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryEntitlements chains the current query on the "entitlements" edge.
+func (_q *CustomerQuery) QueryEntitlements() *EntitlementQuery {
+	query := (&EntitlementClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, selector),
+			sqlgraph.To(entitlement.Table, entitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.EntitlementsTable, customer.EntitlementsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -378,6 +402,7 @@ func (_q *CustomerQuery) Clone() *CustomerQuery {
 		withBillingCustomerOverride: _q.withBillingCustomerOverride.Clone(),
 		withBillingInvoice:          _q.withBillingInvoice.Clone(),
 		withSubscription:            _q.withSubscription.Clone(),
+		withEntitlements:            _q.withEntitlements.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -436,6 +461,17 @@ func (_q *CustomerQuery) WithSubscription(opts ...func(*SubscriptionQuery)) *Cus
 		opt(query)
 	}
 	_q.withSubscription = query
+	return _q
+}
+
+// WithEntitlements tells the query-builder to eager-load the nodes that are connected to
+// the "entitlements" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CustomerQuery) WithEntitlements(opts ...func(*EntitlementQuery)) *CustomerQuery {
+	query := (&EntitlementClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withEntitlements = query
 	return _q
 }
 
@@ -517,12 +553,13 @@ func (_q *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	var (
 		nodes       = []*Customer{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			_q.withApps != nil,
 			_q.withSubjects != nil,
 			_q.withBillingCustomerOverride != nil,
 			_q.withBillingInvoice != nil,
 			_q.withSubscription != nil,
+			_q.withEntitlements != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -577,6 +614,13 @@ func (_q *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 		if err := _q.loadSubscription(ctx, query, nodes,
 			func(n *Customer) { n.Edges.Subscription = []*Subscription{} },
 			func(n *Customer, e *Subscription) { n.Edges.Subscription = append(n.Edges.Subscription, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withEntitlements; query != nil {
+		if err := _q.loadEntitlements(ctx, query, nodes,
+			func(n *Customer) { n.Edges.Entitlements = []*Entitlement{} },
+			func(n *Customer, e *Entitlement) { n.Edges.Entitlements = append(n.Edges.Entitlements, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -715,6 +759,36 @@ func (_q *CustomerQuery) loadSubscription(ctx context.Context, query *Subscripti
 	}
 	query.Where(predicate.Subscription(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(customer.SubscriptionColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "customer_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CustomerQuery) loadEntitlements(ctx context.Context, query *EntitlementQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *Entitlement)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Customer)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(entitlement.FieldCustomerID)
+	}
+	query.Where(predicate.Entitlement(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customer.EntitlementsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

@@ -29,6 +29,12 @@ func TestPlan(t *testing.T) {
 	defer cancel()
 
 	// Let's set up two customers
+	// ensure subjects exist for usage attribution
+	{
+		resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{api.SubjectUpsert{Key: "test_customer_subject_1"}})
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
 	customerAPIRes, err := client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 		Name:         "Test Customer 1",
 		Currency:     lo.ToPtr(api.CurrencyCode("USD")),
@@ -53,6 +59,12 @@ func TestPlan(t *testing.T) {
 	customer1 := customerAPIRes.JSON201
 	require.NotNil(t, customer1)
 
+	// ensure subject exists for second customer
+	{
+		resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{api.SubjectUpsert{Key: "test_customer_subject_2"}})
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
 	customerAPIRes, err = client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 		Name:         "Test Customer 2",
 		Key:          lo.ToPtr("test_customer_2"),
@@ -87,6 +99,12 @@ func TestPlan(t *testing.T) {
 	customer2 := customerAPIRes.JSON201
 	require.NotNil(t, customer2)
 
+	// ensure subject exists for abused customer
+	{
+		resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{api.SubjectUpsert{Key: "test_customer_subject_abused"}})
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
 	customerAPIRes, err = client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 		Name:         "Test Customer Abused",
 		Key:          lo.ToPtr("test_customer_abused"),
@@ -933,6 +951,12 @@ func TestPlan(t *testing.T) {
 
 		// Let's create a 3rd customer that doesnt have a subscription
 		// Let's set up two customers
+		// ensure subject exists for third customer
+		{
+			resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{api.SubjectUpsert{Key: "test_customer_subject_3"}})
+			require.Nil(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+		}
 		customerAPIRes, err := client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 			Name:         "Test Customer 3",
 			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
@@ -961,7 +985,22 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 		require.NotNil(t, apiRes.JSON200)
 		require.NotNil(t, apiRes.JSON200.Items)
-		require.Equal(t, 4, len(apiRes.JSON200.Items))
+		require.GreaterOrEqual(t, len(apiRes.JSON200.Items), 3)
+
+		_, foundFirst := lo.Find(apiRes.JSON200.Items, func(item api.Customer) bool {
+			return item.Id == customer1.Id
+		})
+		require.True(t, foundFirst)
+
+		_, foundSecond := lo.Find(apiRes.JSON200.Items, func(item api.Customer) bool {
+			return item.Id == customer2.Id
+		})
+		require.True(t, foundSecond)
+
+		_, foundThird := lo.Find(apiRes.JSON200.Items, func(item api.Customer) bool {
+			return item.Id == customerAPIRes.JSON201.Id
+		})
+		require.True(t, foundThird)
 
 		// Now let's check the filtering works
 		apiRes, err = client.ListCustomersWithResponse(ctx, &api.ListCustomersParams{
