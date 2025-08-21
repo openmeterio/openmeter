@@ -11,7 +11,6 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -108,12 +107,7 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 			return nil, err
 		}
 
-		err = c.publisher.Publish(ctx, entitlement.EntitlementDeletedEvent{
-			Entitlement: *ent,
-			Namespace: eventmodels.NamespaceID{
-				ID: namespace,
-			},
-		})
+		err = c.publisher.Publish(ctx, entitlement.NewEntitlementDeletedEventPayload(*ent))
 		if err != nil {
 			return nil, err
 		}

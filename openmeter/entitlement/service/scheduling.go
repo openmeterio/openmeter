@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -117,12 +116,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input en
 			return nil, err
 		}
 
-		err = c.publisher.Publish(ctx, entitlement.EntitlementCreatedEvent{
-			Entitlement: *ent,
-			Namespace: eventmodels.NamespaceID{
-				ID: input.Namespace,
-			},
-		})
+		err = c.publisher.Publish(ctx, entitlement.NewEntitlementCreatedEventPayload(*ent))
 		if err != nil {
 			return nil, err
 		}

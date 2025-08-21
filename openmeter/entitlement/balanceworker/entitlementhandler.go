@@ -151,12 +151,7 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		// entitlement got deleted while processing changes => let's create a delete event so that we are not working
 
 		snapshot, err := w.createDeletedSnapshotEvent(ctx,
-			entitlement.EntitlementDeletedEvent{
-				Entitlement: *entitlementEntity,
-				Namespace: models.NamespaceID{
-					ID: entitlementEntity.Namespace,
-				},
-			}, calculatedAt)
+			entitlement.NewEntitlementDeletedEventPayload(*entitlementEntity), calculatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create entitlement delete snapshot event: %w", err)
 		}
@@ -334,21 +329,19 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitl
 		return nil, fmt.Errorf("failed to get subject: %w", err)
 	}
 
+	// Build snapshot payload via constructor (namespace derived from entitlement)
+	snap := snapshot.NewSnapshotEvent(
+		delEvent.ToDomainEntitlement(),
+		subject,
+		*feature,
+		snapshot.ValueOperationDelete,
+		convert.ToPointer(calculationTime),
+		nil,
+		delEvent.CurrentUsagePeriod,
+	)
 	event := marshaler.WithSource(
 		metadata.ComposeResourcePath(namespace, metadata.EntityEntitlement, delEvent.ID),
-		snapshot.SnapshotEvent{
-			Entitlement: delEvent.Entitlement,
-			Namespace: models.NamespaceID{
-				ID: namespace,
-			},
-			Subject:   subject,
-			Feature:   *feature,
-			Operation: snapshot.ValueOperationDelete,
-
-			CalculatedAt: convert.ToPointer(calculationTime),
-
-			CurrentUsagePeriod: delEvent.CurrentUsagePeriod,
-		},
+		snap,
 	)
 
 	return event, nil
