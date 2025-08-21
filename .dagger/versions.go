@@ -16,5 +16,5 @@ const (
 	NODEJS_CONTAINER_IMAGE = "node:22.13-alpine3.21@sha256:e2b39f7b64281324929257d0f8004fb6cb4bf0fdfb9aa8cedb235a766aec31da"
 
 	// AtlasContainerImage defines the container image to be used for testing database migrations.
-	AtlasContainerImage = "arigaio/atlas:0.32.1@sha256:faff97dab166a6ccd0e76b724355d579b54c2e86386f5a3ef7582513ec07ad40"
+	AtlasContainerImage = "arigaio/atlas:0.36.0@sha256:fc61beb75283c17eb30e0ccacd80423b774f83f20293a644e1e5f5a9e53d1cab"
 )
