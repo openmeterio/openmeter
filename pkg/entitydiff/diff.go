@@ -3,8 +3,9 @@ package entitydiff
 import (
 	"errors"
 
-	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/equal"
 )
 
 type Entity interface {
