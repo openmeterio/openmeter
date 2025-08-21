@@ -63,6 +63,14 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 		HandleDelete:  diff.DeleteLine,
 		HandleCreate:  diff.CreateLine,
 		HandleUpdate: func(item entitydiff.DiffUpdate[*billing.Line]) error {
+			if item.ExpectedState.UsageBased == nil {
+				return fmt.Errorf("expected state usage based is nil")
+			}
+
+			if item.DBState.UsageBased == nil {
+				return fmt.Errorf("db state usage based is nil")
+			}
+
 			if !item.ExpectedState.LineBase.Equal(item.DBState.LineBase) || !item.ExpectedState.UsageBased.Equal(item.DBState.UsageBased) {
 				diff.Line.NeedsUpdate(item)
 			}
