@@ -1,7 +1,3 @@
-import "@typespec/openapi3";
-
-using TypeSpec.OpenAPI;
-
 namespace OpenMeter;
 
 /**
@@ -90,6 +86,26 @@ model FilterString {
   // @minItems(1)
   // @maxItems(10)
   $or?: FilterString[] | null;
+}
+
+/**
+ * A filter for a ID (ULID) field allowing only equality or inclusion.
+ */
+#suppress "@openmeter/api-spec/casing" "ID"
+@friendlyName("FilterIDExact")
+model FilterIDExact {
+  /**
+   * The field must be equal to the provided value.
+   */
+  $eq?: ULID | null;
+
+  /**
+   * The field must be in the provided list of values.
+   */
+  // Not supported for nullable types
+  // @minItems(1)
+  // @maxItems(100)
+  $in?: ULID[] | null;
 }
 
 /**

@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
@@ -82,8 +83,7 @@ func (a *adapter) ListEventsV2(ctx context.Context, params meterevent.ListEvents
 		)
 	}
 
-	// Get all events v2
-	events, err := a.streamingConnector.ListEventsV2(ctx, streaming.ListEventsV2Params{
+	listParams := streaming.ListEventsV2Params{
 		Namespace:  params.Namespace,
 		ClientID:   params.ClientID,
 		Cursor:     params.Cursor,
@@ -94,7 +94,40 @@ func (a *adapter) ListEventsV2(ctx context.Context, params meterevent.ListEvents
 		Type:       params.Type,
 		Time:       params.Time,
 		IngestedAt: params.IngestedAt,
-	})
+	}
+
+	// Resolve customer IDs to customers if provided
+	if params.CustomerID != nil {
+		customerIDs := make([]string, 0)
+		if params.CustomerID.Eq != nil {
+			customerIDs = append(customerIDs, *params.CustomerID.Eq)
+		}
+		if params.CustomerID.In != nil {
+			customerIDs = append(customerIDs, *params.CustomerID.In...)
+		}
+
+		customerList, err := a.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+			Namespace:   params.Namespace,
+			CustomerIDs: customerIDs,
+		})
+		if err != nil {
+			return pagination.Result[meterevent.Event]{}, fmt.Errorf("list customers: %w", err)
+		}
+
+		var subjectKeys []string
+		for _, c := range customerList.Items {
+			subjectKeys = append(subjectKeys, c.GetUsageAttribution().SubjectKeys...)
+		}
+
+		if listParams.Subject == nil {
+			listParams.Subject = &filter.FilterString{}
+		}
+
+		listParams.Subject.In = &subjectKeys
+	}
+
+	// Get all events v2
+	events, err := a.streamingConnector.ListEventsV2(ctx, listParams)
 	if err != nil {
 		return pagination.Result[meterevent.Event]{}, fmt.Errorf("query events: %w", err)
 	}

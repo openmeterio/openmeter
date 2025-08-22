@@ -66,6 +66,21 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "%customer%", 100},
 		},
 		{
+			name: "query with subject IN filter (customerId)",
+			query: queryEventsTableV2{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Params: streaming.ListEventsV2Params{
+					Namespace: "my_namespace",
+					Subject: &filter.FilterString{
+						In: &[]string{"customer-subject-1", "customer-subject-2"},
+					},
+				},
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND subject IN (?) ORDER BY time DESC, id DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", []string{"customer-subject-1", "customer-subject-2"}, 100},
+		},
+		{
 			name: "query with time filter",
 			query: queryEventsTableV2{
 				Database:        "openmeter",
@@ -143,6 +158,21 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			},
 			wantSQL:  "SELECT count() as total FROM openmeter.om_events WHERE namespace = ?",
 			wantArgs: []interface{}{"my_namespace"},
+		},
+		{
+			name: "count query with subject IN filter (customerId)",
+			query: queryEventsTableV2{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Params: streaming.ListEventsV2Params{
+					Namespace: "my_namespace",
+					Subject: &filter.FilterString{
+						In: &[]string{"customer-subject-1", "customer-subject-2"},
+					},
+				},
+			},
+			wantSQL:  "SELECT count() as total FROM openmeter.om_events WHERE namespace = ? AND subject IN (?)",
+			wantArgs: []interface{}{"my_namespace", []string{"customer-subject-1", "customer-subject-2"}},
 		},
 		{
 			name: "count query with type filter",

@@ -10,8 +10,11 @@ import (
 // goverter:skipCopySameType
 // goverter:output:file ./filter.gen.go
 var (
-	ConvertString     func(api.FilterString) filter.FilterString
-	ConvertStringPtr  func(*api.FilterString) *filter.FilterString
+	ConvertString    func(api.FilterString) filter.FilterString
+	ConvertStringPtr func(*api.FilterString) *filter.FilterString
+	// goverter:ignoreMissing
+	ConvertIDExact    func(api.FilterIDExact) filter.FilterString
+	ConvertIDExactPtr func(*api.FilterIDExact) *filter.FilterString
 	ConvertInt        func(api.FilterInteger) filter.FilterInteger
 	ConvertIntPtr     func(*api.FilterInteger) *filter.FilterInteger
 	ConvertFloat      func(api.FilterFloat) filter.FilterFloat

@@ -137,6 +137,8 @@ type ListEventsV2Params struct {
 	Source *filter.FilterString
 	// The subject filter.
 	Subject *filter.FilterString
+	// The customer ID filter.
+	CustomerID *filter.FilterString
 	// The type filter.
 	Type *filter.FilterString
 	// The time filter.
@@ -174,6 +176,17 @@ func (p ListEventsV2Params) Validate() error {
 	if p.Subject != nil {
 		if err := p.Subject.ValidateWithComplexity(1); err != nil {
 			errs = append(errs, fmt.Errorf("subject: %w", err))
+		}
+	}
+
+	if p.CustomerID != nil {
+		if err := p.CustomerID.ValidateWithComplexity(1); err != nil {
+			errs = append(errs, fmt.Errorf("customer id: %w", err))
+		}
+
+		// Only $eq and $in are supported for customer id
+		if !p.CustomerID.IsEmpty() && p.CustomerID.Eq == nil && p.CustomerID.In == nil {
+			errs = append(errs, errors.New("customer id filter supports only eq or in"))
 		}
 	}
 

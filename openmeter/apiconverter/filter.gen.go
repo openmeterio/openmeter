@@ -60,6 +60,20 @@ func init() {
 		}
 		return pFilterFilterFloat
 	}
+	ConvertIDExact = func(source api.FilterIDExact) filter.FilterString {
+		var filterFilterString filter.FilterString
+		filterFilterString.Eq = source.Eq
+		filterFilterString.In = source.In
+		return filterFilterString
+	}
+	ConvertIDExactPtr = func(source *api.FilterIDExact) *filter.FilterString {
+		var pFilterFilterString *filter.FilterString
+		if source != nil {
+			filterFilterString := ConvertIDExact((*source))
+			pFilterFilterString = &filterFilterString
+		}
+		return pFilterFilterString
+	}
 	ConvertInt = func(source api.FilterInteger) filter.FilterInteger {
 		var filterFilterInteger filter.FilterInteger
 		filterFilterInteger.Eq = source.Eq
