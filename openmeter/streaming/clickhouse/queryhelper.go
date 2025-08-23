@@ -12,6 +12,11 @@ import (
 
 // selectCustomerIdColumn
 func selectCustomerIdColumn(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
+	// If there are no customers, we return an empty customer id column
+	if len(customers) == 0 {
+		return query.SelectMore("'' AS customer_id")
+	}
+
 	// Helper function to get the subject column
 	getColumn := columnFactory(eventsTableName)
 	subjectColumn := getColumn("subject")
@@ -44,20 +49,21 @@ func selectCustomerIdColumn(eventsTableName string, customers []streaming.Custom
 
 // customersWhere applies the customer filter to the query.
 func customersWhere(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
+	// If there are no customers, we return an empty subject filter
+	if len(customers) == 0 {
+		return query
+	}
+
 	// Helper function to filter by subject
 	getColumn := columnFactory(eventsTableName)
 	subjectColumn := getColumn("subject")
 
 	// If the customer filter is provided, we add all the subjects to the filter
-	if len(customers) > 0 {
-		subjects := lo.Map(customers, func(customer streaming.Customer, _ int) []string {
-			return customer.GetUsageAttribution().SubjectKeys
-		})
+	subjects := lo.Map(customers, func(customer streaming.Customer, _ int) []string {
+		return customer.GetUsageAttribution().SubjectKeys
+	})
 
-		return query.Where(query.In(subjectColumn, lo.Flatten(subjects)))
-	}
-
-	return query
+	return query.Where(query.In(subjectColumn, lo.Flatten(subjects)))
 }
 
 // subjectWhere applies the subject filter to the query.
