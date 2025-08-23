@@ -3,13 +3,16 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
+	"github.com/samber/lo"
 )
 
 // ListEvents returns a list of events.
@@ -36,18 +39,9 @@ func (a *adapter) ListEvents(ctx context.Context, params meterevent.ListEventsPa
 
 	// Resolve customer IDs to customers if provided
 	if params.CustomerIDs != nil && len(*params.CustomerIDs) > 0 {
-		customerList, err := a.customerService.ListCustomers(ctx, customer.ListCustomersInput{
-			Namespace:   params.Namespace,
-			CustomerIDs: *params.CustomerIDs,
-		})
+		customers, err := a.listCustomers(ctx, params.Namespace, *params.CustomerIDs)
 		if err != nil {
 			return nil, fmt.Errorf("list customers: %w", err)
-		}
-
-		customers := make([]streaming.Customer, 0, len(customerList.Items))
-
-		for _, c := range customerList.Items {
-			customers = append(customers, c)
 		}
 
 		// If no customers are found, return an empty list
@@ -106,6 +100,46 @@ func (a *adapter) ListEventsV2(ctx context.Context, params meterevent.ListEvents
 	}
 
 	return pagination.NewResult(meterEvents), nil
+}
+
+// listCustomers returns a list of customers.
+func (a *adapter) listCustomers(ctx context.Context, namespace string, customerIDs []string) ([]streaming.Customer, error) {
+	customerList, err := a.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace:   namespace,
+		CustomerIDs: customerIDs,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list customers: %w", err)
+	}
+
+	// If some customers are not found, return an error
+	if len(customerList.Items) != len(customerIDs) {
+		var notFoundCustomerIDs []string
+
+		for _, c := range customerIDs {
+			_, found := lo.Find(customerList.Items, func(item customer.Customer) bool {
+				return item.ID == c
+			})
+
+			if !found {
+				notFoundCustomerIDs = append(notFoundCustomerIDs, c)
+			}
+		}
+
+		if len(notFoundCustomerIDs) > 0 {
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("customers not found in namespace %s: %v", namespace, strings.Join(notFoundCustomerIDs, ", ")),
+			)
+		}
+	}
+
+	customers := make([]streaming.Customer, 0, len(customerList.Items))
+
+	for _, c := range customerList.Items {
+		customers = append(customers, c)
+	}
+
+	return customers, nil
 }
 
 // eventPostProcess is a helper function to post-process events.
