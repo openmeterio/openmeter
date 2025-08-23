@@ -5013,7 +5013,6 @@ paths:
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
               example: 01G65Z755AFWAKHE12NY0CQ9FH
-          explode: false
           style: form
         - name: from
           in: query
@@ -11314,6 +11313,8 @@ paths:
                     $ref: '#/components/schemas/FilterString'
                   subject:
                     $ref: '#/components/schemas/FilterString'
+                  customerId:
+                    $ref: '#/components/schemas/FilterIDExact'
                   type:
                     $ref: '#/components/schemas/FilterString'
                   time:
@@ -16435,6 +16436,19 @@ components:
           nullable: true
           description: Provide a list of filters to be combined with a logical OR.
       description: A filter for a float field.
+    FilterIDExact:
+      type: object
+      properties:
+        $in:
+          type: array
+          items:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            description: ULID (Universally Unique Lexicographically Sortable Identifier).
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+          nullable: true
+          description: The field must be in the provided list of values.
+      description: A filter for a ID (ULID) field allowing only equality or inclusion.
     FilterInteger:
       type: object
       properties:

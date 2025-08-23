@@ -68,7 +68,6 @@ interface Events {
     /**
      * The event customer ID.
      */
-    @query
     @query(#{ explode: true })
     @example(#["01HZXABCD3M6E7K8J9PQRS1TUV", "01HZXABCDE3M6E7K8J9PQRSTUV"])
     customerId?: ULID[],
@@ -181,6 +180,7 @@ interface EventsV2 {
       id?: OpenMeter.FilterString;
       source?: OpenMeter.FilterString;
       subject?: OpenMeter.FilterString;
+      customerId?: OpenMeter.FilterIDExact;
       type?: OpenMeter.FilterString;
       time?: OpenMeter.FilterTime;
       ingestedAt?: OpenMeter.FilterTime;

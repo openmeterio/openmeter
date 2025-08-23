@@ -5251,6 +5251,11 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['Feature'][]
     }
+    /** @description A filter for a ID (ULID) field allowing only equality or inclusion. */
+    FilterIDExact: {
+      /** @description The field must be in the provided list of values. */
+      $in?: string[] | null
+    }
     /** @description A filter for a string field. */
     FilterString: {
       /** @description The field must be equal to the provided value. */
@@ -10920,6 +10925,7 @@ export type FeatureMeta = components['schemas']['FeatureMeta']
 export type FeatureOrderBy = components['schemas']['FeatureOrderBy']
 export type FeaturePaginatedResponse =
   components['schemas']['FeaturePaginatedResponse']
+export type FilterIdExact = components['schemas']['FilterIDExact']
 export type FilterString = components['schemas']['FilterString']
 export type FilterTime = components['schemas']['FilterTime']
 export type FlatPrice = components['schemas']['FlatPrice']

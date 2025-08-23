@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
-	"github.com/samber/lo"
 )
 
 // ListEvents returns a list of events.
@@ -76,8 +76,7 @@ func (a *adapter) ListEventsV2(ctx context.Context, params meterevent.ListEvents
 		)
 	}
 
-	// Get all events v2
-	events, err := a.streamingConnector.ListEventsV2(ctx, streaming.ListEventsV2Params{
+	listParams := streaming.ListEventsV2Params{
 		Namespace:  params.Namespace,
 		ClientID:   params.ClientID,
 		Cursor:     params.Cursor,
@@ -88,7 +87,25 @@ func (a *adapter) ListEventsV2(ctx context.Context, params meterevent.ListEvents
 		Type:       params.Type,
 		Time:       params.Time,
 		IngestedAt: params.IngestedAt,
-	})
+	}
+
+	// Resolve customer IDs to customers if provided
+	if params.CustomerID != nil && len(*params.CustomerID.In) > 0 {
+		customers, err := a.listCustomers(ctx, params.Namespace, *params.CustomerID.In)
+		if err != nil {
+			return pagination.Result[meterevent.Event]{}, fmt.Errorf("list customers: %w", err)
+		}
+
+		// If no customers are found, return an empty list
+		if len(customers) == 0 {
+			return pagination.Result[meterevent.Event]{}, nil
+		}
+
+		listParams.Customers = &customers
+	}
+
+	// Get all events v2
+	events, err := a.streamingConnector.ListEventsV2(ctx, listParams)
 	if err != nil {
 		return pagination.Result[meterevent.Event]{}, fmt.Errorf("query events: %w", err)
 	}

@@ -76,6 +76,8 @@ type ListEventsV2Params struct {
 	Source *filter.FilterString
 	// The subject filter.
 	Subject *filter.FilterString
+	// The event customer ID.
+	Customers *[]Customer
 	// The type filter.
 	Type *filter.FilterString
 	// The time filter.

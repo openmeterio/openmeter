@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/huandu/go-sqlbuilder"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 // customerIdSelect returns the select columns for the customer ID.
@@ -42,6 +42,24 @@ func selectCustomerIdColumns(eventsTableName string, customers []streaming.Custo
 	return caseBuilder.String()
 }
 
+// customersWhereExpr returns the WHERE expression for the customer filter.
+func customersWhereExpr(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) string {
+	// Helper function to filter by subject
+	getColumn := columnFactory(eventsTableName)
+	subjectColumn := getColumn("subject")
+
+	// If the customer filter is provided, we add all the subjects to the filter
+	if len(customers) > 0 {
+		subjects := lo.Map(customers, func(customer streaming.Customer, _ int) []string {
+			return customer.GetUsageAttribution().SubjectKeys
+		})
+
+		return query.In(subjectColumn, lo.Flatten(subjects))
+	}
+
+	return ""
+}
+
 // subjectWhere applies the subject filter to the query.
 // This is a helper function to filter by customers or subjects in the row event table.
 func subjectWhere(
@@ -54,26 +72,19 @@ func subjectWhere(
 	getColumn := columnFactory(eventsTableName)
 	subjectColumn := getColumn("subject")
 
-	mapFunc := func(subject string) string {
-		return query.Equal(subjectColumn, subject)
-	}
-
 	// If the customer filter is provided, we add all the subjects to the filter
 	if len(customers) > 0 {
-		var customerSubjects []string
-
-		for _, customer := range customers {
-			customerSubjects = append(customerSubjects, customer.GetUsageAttribution().SubjectKeys...)
+		expr := customersWhereExpr(eventsTableName, customers, query)
+		if expr != "" {
+			query.Where(expr)
 		}
-
-		query = query.Where(query.Or(slicesx.Map(customerSubjects, mapFunc)...))
 	}
 
 	// If we have a subject filter, we add it to the query
 	// If we have both a customer filter and a subject filter,
 	// this is an AND between the two filters
 	if len(subjects) > 0 {
-		query = query.Where(query.Or(slicesx.Map(subjects, mapFunc)...))
+		query = query.Where(query.In(subjectColumn, subjects))
 	}
 
 	return query

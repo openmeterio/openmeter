@@ -23,7 +23,22 @@ func (q queryEventsTableV2) toSQL() (string, []interface{}) {
 	tableName := getTableName(q.Database, q.EventsTableName)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("id", "type", "subject", "source", "time", "data", "ingested_at", "stored_at", "store_row_id")
+	selectColumns := []string{
+		"id",
+		"type",
+		"subject",
+		"source",
+		"time",
+		"data",
+		"ingested_at",
+		"stored_at",
+		"store_row_id",
+	}
+	// Select customer_id column if customer filter is provided
+	if q.Params.Customers != nil && len(*q.Params.Customers) > 0 {
+		selectColumns = append(selectColumns, selectCustomerIdColumns(q.EventsTableName, *q.Params.Customers))
+	}
+	query.Select(selectColumns...)
 	query.From(tableName)
 
 	// Base filter for namespace
@@ -47,6 +62,13 @@ func (q queryEventsTableV2) toSQL() (string, []interface{}) {
 		expr := q.Params.Subject.SelectWhereExpr("subject", query)
 		if expr != "" {
 			query.Where(expr)
+		}
+	}
+
+	if q.Params.Customers != nil {
+		expr := customersWhereExpr(tableName, *q.Params.Customers, query)
+		if expr != "" {
+			query = query.Where(expr)
 		}
 	}
 
@@ -122,6 +144,13 @@ func (q queryEventsTableV2) toCountRowSQL() (string, []interface{}) {
 		expr := q.Params.Subject.SelectWhereExpr("subject", query)
 		if expr != "" {
 			query.Where(expr)
+		}
+	}
+
+	if q.Params.Customers != nil {
+		expr := customersWhereExpr(tableName, *q.Params.Customers, query)
+		if expr != "" {
+			query = query.Where(expr)
 		}
 	}
 
