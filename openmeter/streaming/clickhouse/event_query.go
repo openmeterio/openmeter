@@ -94,7 +94,8 @@ func (d queryEventsTable) toCountRowSQL() (string, []interface{}) {
 		subjects = append(subjects, *d.Subject)
 	}
 
-	query = subjectWhere(d.EventsTableName, customers, subjects, query)
+	query = subjectWhere(d.EventsTableName, subjects, query)
+	query = customersWhere(d.EventsTableName, customers, query)
 
 	sql, args := query.Build()
 	return sql, args
@@ -118,8 +119,8 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	}
 
 	// Select customer_id column if customer filter is provided
-	if d.Customers != nil && len(*d.Customers) > 0 {
-		selectColumns = append(selectColumns, selectCustomerIdColumns(d.EventsTableName, *d.Customers))
+	if d.Customers != nil {
+		query = selectCustomerIdColumn(d.EventsTableName, *d.Customers, query)
 	}
 
 	query.Select(selectColumns...)
@@ -157,7 +158,8 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 		subjects = append(subjects, *d.Subject)
 	}
 
-	query = subjectWhere(d.EventsTableName, customers, subjects, query)
+	query = subjectWhere(d.EventsTableName, subjects, query)
+	query = customersWhere(d.EventsTableName, customers, query)
 
 	// Order by time and limit the number of rows returned
 	query.Desc().OrderBy("time")

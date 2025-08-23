@@ -1,8 +1,8 @@
 package clickhouse
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
@@ -10,40 +10,40 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
-// customerIdSelect returns the select columns for the customer ID.
-func selectCustomerIdColumns(eventsTableName string, customers []streaming.Customer) string {
+// selectCustomerIdColumn
+func selectCustomerIdColumn(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
+	// Helper function to get the subject column
 	getColumn := columnFactory(eventsTableName)
 	subjectColumn := getColumn("subject")
-	added := false
 
-	var caseBuilder bytes.Buffer
-	caseBuilder.WriteString("CASE ")
+	// Build a map of subject to customer id
+	var values []string
 
-	// Add the case statements for each subject to customer ID mapping
 	for _, customer := range customers {
+		// Add each subject key to the map and map it to the customer id
 		for _, subjectKey := range customer.GetUsageAttribution().SubjectKeys {
-			str := fmt.Sprintf(
-				"WHEN %s = '%s' THEN '%s' ",
-				subjectColumn,
-				sqlbuilder.Escape(subjectKey),
-				sqlbuilder.Escape(customer.GetUsageAttribution().ID),
-			)
-			caseBuilder.WriteString(str)
-			added = true
+			subjectSQL := fmt.Sprintf("'%s'", sqlbuilder.Escape(subjectKey))
+			customerIDSQL := fmt.Sprintf("'%s'", sqlbuilder.Escape(customer.GetUsageAttribution().ID))
+
+			values = append(values, subjectSQL, customerIDSQL)
 		}
 	}
 
-	if !added {
-		// No mappings: return a constant column to avoid invalid CASE
-		return "'' AS customer_id"
-	}
+	mapAs := "subject_to_customer_id"
+	mapSQL := fmt.Sprintf("WITH map(%s) as %s", strings.Join(values, ", "), mapAs)
 
-	caseBuilder.WriteString("ELSE '' END AS customer_id")
-	return caseBuilder.String()
+	// Add the map to query via WITH clause
+	mapQuery := sqlbuilder.ClickHouse.NewCTEBuilder().SQL(mapSQL)
+	query = query.With(mapQuery)
+
+	// Select the customer id column
+	query = query.SelectMore(fmt.Sprintf("%s[%s] AS customer_id", mapAs, subjectColumn))
+
+	return query
 }
 
-// customersWhereExpr returns the WHERE expression for the customer filter.
-func customersWhereExpr(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) string {
+// customersWhere applies the customer filter to the query.
+func customersWhere(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
 	// Helper function to filter by subject
 	getColumn := columnFactory(eventsTableName)
 	subjectColumn := getColumn("subject")
@@ -54,31 +54,21 @@ func customersWhereExpr(eventsTableName string, customers []streaming.Customer, 
 			return customer.GetUsageAttribution().SubjectKeys
 		})
 
-		return query.In(subjectColumn, lo.Flatten(subjects))
+		return query.Where(query.In(subjectColumn, lo.Flatten(subjects)))
 	}
 
-	return ""
+	return query
 }
 
 // subjectWhere applies the subject filter to the query.
-// This is a helper function to filter by customers or subjects in the row event table.
 func subjectWhere(
 	eventsTableName string,
-	customers []streaming.Customer,
 	subjects []string,
 	query *sqlbuilder.SelectBuilder,
 ) *sqlbuilder.SelectBuilder {
 	// Helper function to filter by subject
 	getColumn := columnFactory(eventsTableName)
 	subjectColumn := getColumn("subject")
-
-	// If the customer filter is provided, we add all the subjects to the filter
-	if len(customers) > 0 {
-		expr := customersWhereExpr(eventsTableName, customers, query)
-		if expr != "" {
-			query.Where(expr)
-		}
-	}
 
 	// If we have a subject filter, we add it to the query
 	// If we have both a customer filter and a subject filter,
