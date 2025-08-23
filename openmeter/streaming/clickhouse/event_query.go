@@ -58,6 +58,7 @@ type queryEventsTable struct {
 	IngestedAtTo    *time.Time
 	ID              *string
 	Subject         *string
+	Customers       *[]streaming.Customer
 	Limit           int
 }
 
@@ -69,6 +70,7 @@ func (d queryEventsTable) toCountRowSQL() (string, []interface{}) {
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select("count() as total")
+
 	query.From(tableName)
 
 	query.Where(query.Equal("namespace", d.Namespace))
@@ -77,9 +79,22 @@ func (d queryEventsTable) toCountRowSQL() (string, []interface{}) {
 	if d.To != nil {
 		query.Where(query.LessThan("time", d.To.Unix()))
 	}
-	if d.Subject != nil {
-		query.Where(query.Equal("subject", *d.Subject))
+
+	// If we have a customer filter, we add it to the query
+	var customers []streaming.Customer
+
+	if d.Customers != nil {
+		customers = *d.Customers
 	}
+
+	// If we have a subject filter, we add it to the query
+	var subjects []string
+
+	if d.Subject != nil {
+		subjects = append(subjects, *d.Subject)
+	}
+
+	query = subjectWhere(d.EventsTableName, customers, subjects, query)
 
 	sql, args := query.Build()
 	return sql, args
@@ -87,11 +102,31 @@ func (d queryEventsTable) toCountRowSQL() (string, []interface{}) {
 
 func (d queryEventsTable) toSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.EventsTableName)
-
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("id", "type", "subject", "source", "time", "data", "ingested_at", "stored_at", "store_row_id")
+
+	// Select columns
+	selectColumns := []string{
+		"id",
+		"type",
+		"subject",
+		"source",
+		"time",
+		"data",
+		"ingested_at",
+		"stored_at",
+		"store_row_id",
+	}
+
+	// Select customer_id column if customer filter is provided
+	if d.Customers != nil && len(*d.Customers) > 0 {
+		selectColumns = append(selectColumns, selectCustomerIdColumns(d.EventsTableName, *d.Customers))
+	}
+
+	query.Select(selectColumns...)
+
 	query.From(tableName)
 
+	// Add where clauses
 	query.Where(query.Equal("namespace", d.Namespace))
 	query.Where(query.GreaterEqualThan("time", d.From.Unix()))
 
@@ -107,14 +142,29 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	if d.ID != nil {
 		query.Where(query.Like("id", fmt.Sprintf("%%%s%%", *d.ID)))
 	}
-	if d.Subject != nil {
-		query.Where(query.Equal("subject", *d.Subject))
+
+	// If we have a customer filter, we add it to the query
+	var customers []streaming.Customer
+
+	if d.Customers != nil {
+		customers = *d.Customers
 	}
 
+	// If we have a subject filter, we add it to the query
+	var subjects []string
+
+	if d.Subject != nil {
+		subjects = append(subjects, *d.Subject)
+	}
+
+	query = subjectWhere(d.EventsTableName, customers, subjects, query)
+
+	// Order by time and limit the number of rows returned
 	query.Desc().OrderBy("time")
 	query.Limit(d.Limit)
 
 	sql, args := query.Build()
+
 	return sql, args
 }
 

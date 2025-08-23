@@ -1,7 +1,6 @@
 package clickhouse
 
 import (
-	"bytes"
 	_ "embed"
 	"fmt"
 	"math"
@@ -194,30 +193,9 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		groupByColumns = append(groupByColumns, groupByColumn)
 	}
 
-	// Select customer_id column
-	// We map subjects to customer IDs if they are provided
+	// Select customer id column if it's in the group by
 	if slices.Contains(d.GroupBy, "customer_id") {
-		var caseBuilder bytes.Buffer
-		caseBuilder.WriteString("CASE ")
-
-		// Add the case statements for each subject to customer ID mapping
-		for _, customer := range d.FilterCustomer {
-			for _, subjectKey := range customer.GetUsageAttribution().SubjectKeys {
-				str := fmt.Sprintf(
-					"WHEN %s = '%s' THEN '%s' ",
-					getColumn("subject"),
-					sqlbuilder.Escape(subjectKey),
-					sqlbuilder.Escape(customer.GetUsageAttribution().ID),
-				)
-				caseBuilder.WriteString(str)
-			}
-		}
-
-		// If the subject is not in the map, we return an empty string
-		caseBuilder.WriteString("ELSE '' END AS customer_id")
-
-		// Add the case statement to the select columns
-		selectColumns = append(selectColumns, caseBuilder.String())
+		selectColumns = append(selectColumns, selectCustomerIdColumns(d.EventsTableName, d.FilterCustomer))
 	}
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
@@ -295,33 +273,12 @@ func (d *queryMeter) whereByOrderedColumns(query *sqlbuilder.SelectBuilder) *sql
 
 // subjectWhere applies the subject filter to the query.
 func (d *queryMeter) subjectWhere(query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
-	// Helper function to filter by subject
-	getColumn := columnFactory(d.EventsTableName)
-	subjectColumn := getColumn("subject")
-
-	mapFunc := func(subject string) string {
-		return query.Equal(subjectColumn, subject)
-	}
-
-	// If the customer filter is provided, we add all the subjects to the filter
-	if len(d.FilterCustomer) > 0 {
-		var subjects []string
-
-		for _, customer := range d.FilterCustomer {
-			subjects = append(subjects, customer.GetUsageAttribution().SubjectKeys...)
-		}
-
-		query = query.Where(query.Or(slicesx.Map(subjects, mapFunc)...))
-	}
-
-	// If we have a subject filter, we add it to the query
-	// If we have both a customer filter and a subject filter,
-	// this is an AND between the two filters
-	if len(d.FilterSubject) > 0 {
-		query = query.Where(query.Or(slicesx.Map(d.FilterSubject, mapFunc)...))
-	}
-
-	return query
+	return subjectWhere(
+		d.EventsTableName,
+		d.FilterCustomer,
+		d.FilterSubject,
+		query,
+	)
 }
 
 // timeWhere applies the time filter to the query.

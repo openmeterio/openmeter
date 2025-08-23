@@ -5251,6 +5251,11 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['Feature'][]
     }
+    /** @description A filter for a ID (ULID) field allowing only equality or inclusion. */
+    FilterIDExact: {
+      /** @description The field must be in the provided list of values. */
+      $in?: string[] | null
+    }
     /** @description A filter for a string field. */
     FilterString: {
       /** @description The field must be equal to the provided value. */
@@ -5461,6 +5466,11 @@ export interface components {
     IngestedEvent: {
       /** @description The original event ingested. */
       event: components['schemas']['Event']
+      /**
+       * @description The customer ID if the event is associated with a customer.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      customerId?: string
       /** @description The validation error if the event failed validation. */
       validationError?: string
       /**
@@ -10915,6 +10925,7 @@ export type FeatureMeta = components['schemas']['FeatureMeta']
 export type FeatureOrderBy = components['schemas']['FeatureOrderBy']
 export type FeaturePaginatedResponse =
   components['schemas']['FeaturePaginatedResponse']
+export type FilterIdExact = components['schemas']['FilterIDExact']
 export type FilterString = components['schemas']['FilterString']
 export type FilterTime = components['schemas']['FilterTime']
 export type FlatPrice = components['schemas']['FlatPrice']
@@ -17604,6 +17615,8 @@ export interface operations {
          *
          *     Accepts partial subject. */
         subject?: string
+        /** @description The event customer ID. */
+        customerId?: string[]
         /** @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. */

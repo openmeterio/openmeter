@@ -66,6 +66,13 @@ interface Events {
     subject?: string,
 
     /**
+     * The event customer ID.
+     */
+    @query(#{ explode: true })
+    @example(#["01HZXABCD3M6E7K8J9PQRS1TUV", "01HZXABCDE3M6E7K8J9PQRSTUV"])
+    customerId?: ULID[],
+
+    /**
      * Start date-time in RFC 3339 format.
      *
      * Inclusive.
@@ -173,6 +180,7 @@ interface EventsV2 {
       id?: OpenMeter.FilterString;
       source?: OpenMeter.FilterString;
       subject?: OpenMeter.FilterString;
+      customerId?: OpenMeter.FilterIDExact;
       type?: OpenMeter.FilterString;
       time?: OpenMeter.FilterTime;
       ingestedAt?: OpenMeter.FilterTime;
@@ -297,6 +305,11 @@ model IngestedEvent {
    * The original event ingested.
    */
   event: Event;
+
+  /**
+   * The customer ID if the event is associated with a customer.
+   */
+  customerId?: ULID;
 
   /**
    * The validation error if the event failed validation.

@@ -6,8 +6,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/openmeter/meterevent"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
@@ -28,7 +30,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 				},
 			},
@@ -40,7 +42,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					ID: &filter.FilterString{
 						Eq: stringPtr("event-123"),
@@ -55,7 +57,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Subject: &filter.FilterString{
 						Like: stringPtr("%customer%"),
@@ -70,7 +72,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Time: &filter.FilterTime{
 						Gte: &now,
@@ -85,7 +87,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Cursor: &pagination.Cursor{
 						Time: cursorTime,
@@ -102,7 +104,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					IngestedAt: &filter.FilterTime{
 						Gte: &now,
@@ -111,6 +113,42 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND ingested_at >= ? ORDER BY ingested_at DESC, id DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", now, 100},
+		},
+		{
+			name: "query with customer filter",
+			query: queryEventsTableV2{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Params: streaming.ListEventsV2Params{
+					Namespace: "my_namespace",
+					Customers: &[]streaming.Customer{
+						customer.Customer{
+							ManagedResource: models.ManagedResource{
+								NamespacedModel: models.NamespacedModel{
+									Namespace: "my_namespace",
+								},
+								ID: "customer1",
+							},
+							UsageAttribution: customer.CustomerUsageAttribution{
+								SubjectKeys: []string{"subject1", "subject2"},
+							},
+						},
+						customer.Customer{
+							ManagedResource: models.ManagedResource{
+								NamespacedModel: models.NamespacedModel{
+									Namespace: "my_namespace",
+								},
+								ID: "customer2",
+							},
+							UsageAttribution: customer.CustomerUsageAttribution{
+								SubjectKeys: []string{"subject3"},
+							},
+						},
+					},
+				},
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id, CASE WHEN om_events.subject = 'subject1' THEN 'customer1' WHEN om_events.subject = 'subject2' THEN 'customer1' WHEN om_events.subject = 'subject3' THEN 'customer2' ELSE '' END AS customer_id FROM openmeter.om_events WHERE namespace = ? AND openmeter.om_events.subject IN (?) ORDER BY time DESC, id DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", []string{"subject1", "subject2", "subject3"}, 100},
 		},
 	}
 
@@ -137,7 +175,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 				},
 			},
@@ -149,7 +187,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Type: &filter.FilterString{
 						Eq: stringPtr("api-calls"),
@@ -164,7 +202,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Time: &filter.FilterTime{
 						Gte: &now,
@@ -179,7 +217,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			query: queryEventsTableV2{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
-				Params: meterevent.ListEventsV2Params{
+				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Subject: &filter.FilterString{
 						Like: stringPtr("%customer%"),
@@ -188,6 +226,31 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			},
 			wantSQL:  "SELECT count() as total FROM openmeter.om_events WHERE namespace = ? AND subject LIKE ?",
 			wantArgs: []interface{}{"my_namespace", "%customer%"},
+		},
+		{
+			name: "count query with customer filter",
+			query: queryEventsTableV2{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Params: streaming.ListEventsV2Params{
+					Namespace: "my_namespace",
+					Customers: &[]streaming.Customer{
+						customer.Customer{
+							ManagedResource: models.ManagedResource{
+								NamespacedModel: models.NamespacedModel{
+									Namespace: "my_namespace",
+								},
+								ID: "customer1",
+							},
+							UsageAttribution: customer.CustomerUsageAttribution{
+								SubjectKeys: []string{"subject1"},
+							},
+						},
+					},
+				},
+			},
+			wantSQL:  "SELECT count() as total FROM openmeter.om_events WHERE namespace = ? AND openmeter.om_events.subject IN (?)",
+			wantArgs: []interface{}{"my_namespace", []string{"subject1"}},
 		},
 	}
 

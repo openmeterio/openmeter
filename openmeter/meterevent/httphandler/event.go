@@ -43,6 +43,7 @@ func (h *handler) ListEvents() ListEventsHandler {
 				IngestedAtTo:   params.IngestedAtTo,
 				ID:             params.Id,
 				Subject:        params.Subject,
+				CustomerIDs:    params.CustomerId,
 				Limit:          lo.FromPtrOr(params.Limit, meterevent.MaximumLimit),
 			}, nil
 		},

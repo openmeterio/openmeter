@@ -450,7 +450,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	v4 := conf.Meters
 	manageService := common.NewMeterManageService(adapter, manager, eventbusPublisher)
 	v5 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
-	metereventService := common.NewMeterEventService(connector, service)
+	metereventService := common.NewMeterEventService(connector, customerService, service)
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
 		cleanup7()

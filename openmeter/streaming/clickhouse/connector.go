@@ -12,7 +12,6 @@ import (
 	"golang.org/x/exp/constraints"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	progressmanagerentity "github.com/openmeterio/openmeter/openmeter/progressmanager/entity"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -93,7 +92,7 @@ func (c *Connector) createTable(ctx context.Context) error {
 	return nil
 }
 
-func (c *Connector) ListEvents(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]streaming.RawEvent, error) {
+func (c *Connector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]streaming.RawEvent, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -110,7 +109,7 @@ func (c *Connector) ListEvents(ctx context.Context, namespace string, params met
 	return events, nil
 }
 
-func (c *Connector) ListEventsV2(ctx context.Context, params meterevent.ListEventsV2Params) ([]streaming.RawEvent, error) {
+func (c *Connector) ListEventsV2(ctx context.Context, params streaming.ListEventsV2Params) ([]streaming.RawEvent, error) {
 	if err := params.Validate(); err != nil {
 		return nil, err
 	}
@@ -307,7 +306,7 @@ func (c *Connector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool
 	return true, nil
 }
 
-func (c *Connector) queryEventsTable(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]streaming.RawEvent, error) {
+func (c *Connector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]streaming.RawEvent, error) {
 	var err error
 
 	table := queryEventsTable{
@@ -320,6 +319,7 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		IngestedAtTo:    params.IngestedAtTo,
 		ID:              params.ID,
 		Subject:         params.Subject,
+		Customers:       params.Customers,
 		Limit:           params.Limit,
 	}
 
@@ -367,7 +367,7 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 }
 
 // queryEventsTableV2 is similar to queryEventsTable but with advanced filtering options.
-func (c *Connector) queryEventsTableV2(ctx context.Context, params meterevent.ListEventsV2Params) ([]streaming.RawEvent, error) {
+func (c *Connector) queryEventsTableV2(ctx context.Context, params streaming.ListEventsV2Params) ([]streaming.RawEvent, error) {
 	var err error
 
 	// Create query struct

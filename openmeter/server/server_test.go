@@ -35,7 +35,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
-	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	metereventadapter "github.com/openmeterio/openmeter/openmeter/meterevent/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -166,7 +165,7 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
-			name: "query events",
+			name: "list events v1",
 			req: testRequest{
 				method:      http.MethodGet,
 				path:        "/api/v1/events",
@@ -177,6 +176,8 @@ func TestRoutes(t *testing.T) {
 				body: []api.IngestedEvent{
 					{
 						Event: mockEvent,
+						// empty string customer id because it's not set on the mock
+						CustomerId: lo.ToPtr(""),
 						// empty string event type in error message because it's not set on the mock event
 						ValidationError: lo.ToPtr("no meter found for event type: "),
 					},
@@ -454,11 +455,12 @@ func getTestServer(t *testing.T) *Server {
 	assert.NoError(t, err, "failed to create portal")
 
 	mockStreamingConnector := &MockStreamingConnector{}
+	customerService := &NoopCustomerService{}
 
 	meterManageService, err := meteradapter.NewManage(mockMeters)
 	assert.NoError(t, err, "failed to create meter service")
 
-	meterEventService := metereventadapter.New(mockStreamingConnector, meterManageService)
+	meterEventService := metereventadapter.New(mockStreamingConnector, customerService, meterManageService)
 
 	logger := slog.New(log.NewMockHandler())
 
@@ -469,8 +471,6 @@ func getTestServer(t *testing.T) *Server {
 	appService := &NoopAppService{}
 	appStripeService := &NoopAppStripeService{}
 	appCustomInvoicingService := &NoopAppCustomInvoicingService{}
-	// Create customer service
-	customerService := &NoopCustomerService{}
 
 	// Create plan service
 	planService := &NoopPlanService{}
@@ -603,7 +603,7 @@ func (c *MockStreamingConnector) CountEvents(ctx context.Context, namespace stri
 	return []streaming.CountEventRow{}, nil
 }
 
-func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]streaming.RawEvent, error) {
+func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]streaming.RawEvent, error) {
 	events := []streaming.RawEvent{
 		{
 			ID:         mockEvent.ID(),
@@ -619,7 +619,7 @@ func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace strin
 	return events, nil
 }
 
-func (c *MockStreamingConnector) ListEventsV2(ctx context.Context, params meterevent.ListEventsV2Params) ([]streaming.RawEvent, error) {
+func (c *MockStreamingConnector) ListEventsV2(ctx context.Context, params streaming.ListEventsV2Params) ([]streaming.RawEvent, error) {
 	events := []streaming.RawEvent{
 		{
 			ID:         mockEvent.ID(),
