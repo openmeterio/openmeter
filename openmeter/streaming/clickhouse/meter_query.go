@@ -193,14 +193,14 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		groupByColumns = append(groupByColumns, groupByColumn)
 	}
 
-	// Select customer id column if it's in the group by
-	if slices.Contains(d.GroupBy, "customer_id") {
-		selectColumns = append(selectColumns, selectCustomerIdColumns(d.EventsTableName, d.FilterCustomer))
-	}
-
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select(selectColumns...)
 	query.From(tableName)
+
+	// Select customer id column if it's in the group by
+	if slices.Contains(d.GroupBy, "customer_id") {
+		query = selectCustomerIdColumn(d.EventsTableName, d.FilterCustomer, query)
+	}
 
 	// Where by ordered columns
 	query = d.whereByOrderedColumns(query)
@@ -264,21 +264,11 @@ func (d *queryMeter) whereByOrderedColumns(query *sqlbuilder.SelectBuilder) *sql
 
 	query.Where(query.Equal(getColumn("namespace"), d.Namespace))
 	query.Where(query.Equal(getColumn("type"), d.Meter.EventType))
-
-	query = d.subjectWhere(query)
+	query = customersWhere(d.EventsTableName, d.FilterCustomer, query)
+	query = subjectWhere(d.EventsTableName, d.FilterSubject, query)
 	query = d.timeWhere(query)
 
 	return query
-}
-
-// subjectWhere applies the subject filter to the query.
-func (d *queryMeter) subjectWhere(query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
-	return subjectWhere(
-		d.EventsTableName,
-		d.FilterCustomer,
-		d.FilterSubject,
-		query,
-	)
 }
 
 // timeWhere applies the time filter to the query.
