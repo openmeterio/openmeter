@@ -6,7 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestCreateEventsTable(t *testing.T) {
@@ -90,6 +92,42 @@ func TestQueryEventsTable(t *testing.T) {
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND time < ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", from.Unix(), to.Unix(), "%event-id-1%", 100},
+		},
+		// Customer filter
+		{
+			query: queryEventsTable{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				From:            from,
+				Limit:           100,
+				Customers: &[]streaming.Customer{
+					customer.Customer{
+						ManagedResource: models.ManagedResource{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: "my_namespace",
+							},
+							ID: "customer1",
+						},
+						UsageAttribution: customer.CustomerUsageAttribution{
+							SubjectKeys: []string{"subject1", "subject2"},
+						},
+					},
+					customer.Customer{
+						ManagedResource: models.ManagedResource{
+							NamespacedModel: models.NamespacedModel{
+								Namespace: "my_namespace",
+							},
+							ID: "customer2",
+						},
+						UsageAttribution: customer.CustomerUsageAttribution{
+							SubjectKeys: []string{"subject3"},
+						},
+					},
+				},
+			},
+			wantSQL:  "WITH map('subject1', 'customer1', 'subject2', 'customer1', 'subject3', 'customer2') as subject_to_customer_id SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id, subject_to_customer_id[om_events.subject] AS customer_id FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND om_events.subject IN (?) ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", from.Unix(), []string{"subject1", "subject2", "subject3"}, 100},
 		},
 	}
 

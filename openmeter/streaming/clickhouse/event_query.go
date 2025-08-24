@@ -106,7 +106,7 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 
 	// Select columns
-	selectColumns := []string{
+	query.Select(
 		"id",
 		"type",
 		"subject",
@@ -116,14 +116,12 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 		"ingested_at",
 		"stored_at",
 		"store_row_id",
-	}
+	)
 
 	// Select customer_id column if customer filter is provided
 	if d.Customers != nil {
 		query = selectCustomerIdColumn(d.EventsTableName, *d.Customers, query)
 	}
-
-	query.Select(selectColumns...)
 
 	query.From(tableName)
 
