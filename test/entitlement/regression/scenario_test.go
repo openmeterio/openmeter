@@ -613,11 +613,11 @@ func TestBalanceWorkerActiveToFromEntitlementsMapping(t *testing.T) {
 	bwRepo, ok := deps.EntitlementRepo.(balanceworker.BalanceWorkerRepository)
 	assert.True(ok)
 
-	affectedEntitlements, err := bwRepo.ListAffectedEntitlements(ctx, []balanceworker.IngestEventQueryFilter{
+	affectedEntitlements, err := bwRepo.ListEntitlementsAffectedByIngestEvents(ctx, []balanceworker.IngestEventQueryFilter{
 		{
-			Namespace:  "namespace-1",
-			MeterSlugs: []string{"meter-1"},
-			SubjectKey: "subject-1",
+			Namespace:    "namespace-1",
+			MeterSlugs:   []string{"meter-1"},
+			EventSubject: "subject-1",
 		},
 	})
 	assert.NoError(err)
