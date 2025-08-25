@@ -110,7 +110,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 					return response, err
 				}
 				// FIXME: not elegant but good for now, entitlement grants are all we have...
-				apiGrant := entitlement_httpdriver.MapEntitlementGrantToAPI(nil, entitlementGrant)
+				apiGrant := entitlement_httpdriver.MapEntitlementGrantToAPI(entitlementGrant)
 
 				apiGrants = append(apiGrants, apiGrant)
 			}

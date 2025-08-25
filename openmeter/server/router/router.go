@@ -271,6 +271,8 @@ func NewRouter(config Config) (*Router, error) {
 
 	router.entitlementHandler = entitlementdriver.NewEntitlementHandler(
 		config.EntitlementConnector,
+		config.Customer,
+		config.SubjectService,
 		staticNamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
@@ -301,6 +303,8 @@ func NewRouter(config Config) (*Router, error) {
 	router.meteredEntitlementHandler = entitlementdriver.NewMeteredEntitlementHandler(
 		config.EntitlementConnector,
 		config.EntitlementBalanceConnector,
+		config.Customer,
+		config.SubjectService,
 		staticNamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)

@@ -18,11 +18,11 @@ import (
 // CreateGrant creates a grant for a given entitlement
 //
 // You can issue grants for inactive entitlements by passing the entitlement ID
-func (e *connector) CreateGrant(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error) {
+func (e *connector) CreateGrant(ctx context.Context, namespace string, customerID string, entitlementIdOrFeatureKey string, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error) {
 	// First we attempt to find the entitlement by ID, then by featureKey
 	ent, err := e.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: entitlementIdOrFeatureKey})
 	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
-		ent, err = e.entitlementRepo.GetActiveEntitlementOfSubjectAt(ctx, namespace, subjectKey, entitlementIdOrFeatureKey, clock.Now())
+		ent, err = e.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, namespace, customerID, entitlementIdOrFeatureKey, clock.Now())
 	}
 	if err != nil {
 		return EntitlementGrant{}, err
@@ -59,11 +59,11 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, subjectKe
 // ListEntitlementGrants lists all grants for a given entitlement
 //
 // You can list grants for inactive entitlements by passing the entitlement ID
-func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string) ([]EntitlementGrant, error) {
+func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string, customerID string, entitlementIdOrFeatureKey string) ([]EntitlementGrant, error) {
 	// Find the matching entitlement, first by ID, then by feature key
 	ent, err := e.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: entitlementIdOrFeatureKey})
 	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
-		ent, err = e.entitlementRepo.GetActiveEntitlementOfSubjectAt(ctx, namespace, subjectKey, entitlementIdOrFeatureKey, clock.Now())
+		ent, err = e.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, namespace, customerID, entitlementIdOrFeatureKey, clock.Now())
 	}
 	if err != nil {
 		return nil, err

@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
@@ -22,7 +24,10 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
+	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -67,13 +72,13 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature feature.Feature) entitlement.CreateEntitlementRepoInputs {
+	getEntitlement := func(t *testing.T, feature feature.Feature, usageAttribution streaming.CustomerUsageAttribution) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
 		input := entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			FeatureKey:       feature.Key,
-			SubjectKey:       "subject1",
+			UsageAttribution: usageAttribution,
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
@@ -189,6 +194,18 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			tracer,
 		)
 
+		subjectRepo, err := subjectadapter.New(dbClient)
+		require.NoError(t, err)
+
+		subjectService, err := subjectservice.New(subjectRepo)
+		require.NoError(t, err)
+
+		customerService, err := customeradapter.New(customeradapter.Config{
+			Client: dbClient,
+			Logger: testLogger,
+		})
+		require.NoError(t, err)
+
 		return connector, &dependencies{
 			dbClient,
 			pgDriver,
@@ -203,6 +220,8 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			streamingConnector,
 			inconsistentCreditConnector,
 			meterAdapter,
+			subjectService,
+			customerService,
 		}
 	}
 
@@ -219,8 +238,11 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 		assert.NoError(t, err)
 
+		// create customer and subject
+		cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 		// create entitlement in db
-		inp := getEntitlement(t, feature)
+		inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 		inp.MeasureUsageFrom = &startTime
 
 		// ensure subject exists for SubjectKey used in entitlement

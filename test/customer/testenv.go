@@ -111,7 +111,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, err
 	}
 
-	entValidator, err := entcustomervalidator.NewValidator(customerService, entitlementRegistry.EntitlementRepo)
+	entValidator, err := entcustomervalidator.NewValidator(entitlementRegistry.EntitlementRepo)
 	if err != nil {
 		return nil, err
 	}
