@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -377,12 +376,7 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 				return GetCustomerEntitlementValueResponse{}, err
 			}
 
-			subjectKey, err := cust.UsageAttribution.GetSubjectKey()
-			if err != nil {
-				return GetCustomerEntitlementValueResponse{}, models.NewGenericConflictError(fmt.Errorf("failed to get subject key: %w", err))
-			}
-
-			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, subjectKey, request.FeatureKey, clock.Now())
+			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, cust.ID, request.FeatureKey, clock.Now())
 			if err != nil {
 				if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 					val = &entitlement.NoAccessValue{}
@@ -436,12 +430,7 @@ func (h *handler) GetCustomerAccess() GetCustomerAccessHandler {
 				return GetCustomerAccessResponse{}, err
 			}
 
-			subjectKey, err := cust.UsageAttribution.GetSubjectKey()
-			if err != nil {
-				return GetCustomerAccessResponse{}, models.NewGenericConflictError(fmt.Errorf("failed to get subject key: %w", err))
-			}
-
-			access, err := h.entitlementService.GetAccess(ctx, cust.Namespace, subjectKey)
+			access, err := h.entitlementService.GetAccess(ctx, cust.Namespace, cust.ID)
 			if err != nil {
 				return GetCustomerAccessResponse{}, err
 			}

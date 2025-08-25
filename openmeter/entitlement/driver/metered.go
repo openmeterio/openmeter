@@ -10,9 +10,11 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -35,17 +37,23 @@ type meteredEntitlementHandler struct {
 	options              []httptransport.HandlerOption
 	entitlementConnector entitlement.Connector
 	balanceConnector     meteredentitlement.Connector
+	subjectService       subject.Service
+	customerService      customer.Service
 }
 
 func NewMeteredEntitlementHandler(
 	entitlementConnector entitlement.Connector,
 	balanceConnector meteredentitlement.Connector,
+	customerService customer.Service,
+	subjectService subject.Service,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
 ) MeteredEntitlementHandler {
 	return &meteredEntitlementHandler{
 		entitlementConnector: entitlementConnector,
 		balanceConnector:     balanceConnector,
+		customerService:      customerService,
+		subjectService:       subjectService,
 		namespaceDecoder:     namespaceDecoder,
 		options:              options,
 	}
@@ -121,7 +129,12 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request CreateGrantHandlerRequest) (api.EntitlementGrant, error) {
-			ent, err := h.entitlementConnector.GetEntitlementOfSubjectAt(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, clock.Now())
+			cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectKey)
+			if err != nil {
+				return api.EntitlementGrant{}, err
+			}
+
+			ent, err := h.entitlementConnector.GetEntitlementOfCustomerAt(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, clock.Now())
 			if err != nil {
 				return api.EntitlementGrant{}, err
 			}
@@ -134,11 +147,11 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 				return api.EntitlementGrant{}, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 			}
 
-			grant, err := h.balanceConnector.CreateGrant(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, request.GrantInput)
+			grant, err := h.balanceConnector.CreateGrant(ctx, request.Namespace, ent.Customer.ID, request.EntitlementIdOrFeatureKey, request.GrantInput)
 			if err != nil {
 				return api.EntitlementGrant{}, err
 			}
-			apiGrant := MapEntitlementGrantToAPI(&request.SubjectKey, &grant)
+			apiGrant := MapEntitlementGrantToAPI(&grant)
 
 			return apiGrant, nil
 		},
@@ -180,15 +193,20 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 			}, nil
 		},
 		func(ctx context.Context, request ListEntitlementGrantHandlerRequest) ([]api.EntitlementGrant, error) {
+			cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectKey)
+			if err != nil {
+				return nil, err
+			}
+
 			// TODO: validate that entitlement belongs to subject
-			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey)
+			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey)
 			if err != nil {
 				return nil, err
 			}
 
 			apiGrants := make([]api.EntitlementGrant, 0, len(grants))
 			for _, grant := range grants {
-				apiGrant := MapEntitlementGrantToAPI(&request.SubjectKey, &grant)
+				apiGrant := MapEntitlementGrantToAPI(&grant)
 
 				apiGrants = append(apiGrants, apiGrant)
 			}
@@ -384,7 +402,24 @@ func (h *meteredEntitlementHandler) resolveNamespace(ctx context.Context) (strin
 	return ns, nil
 }
 
-func MapEntitlementGrantToAPI(subjectKey *string, grant *meteredentitlement.EntitlementGrant) api.EntitlementGrant {
+func (h *meteredEntitlementHandler) resolveCustomerFromSubject(ctx context.Context, namespace string, subjectIdOrKey string) (*customer.Customer, error) {
+	subj, err := h.subjectService.GetByIdOrKey(ctx, namespace, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	cust, err := h.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  namespace,
+		SubjectKey: subj.Key,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return cust, nil
+}
+
+func MapEntitlementGrantToAPI(grant *meteredentitlement.EntitlementGrant) api.EntitlementGrant {
 	apiGrant := api.EntitlementGrant{
 		Amount:      grant.Amount,
 		CreatedAt:   grant.CreatedAt,

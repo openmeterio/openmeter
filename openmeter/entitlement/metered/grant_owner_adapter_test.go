@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -24,7 +25,7 @@ import (
 )
 
 func TestEntitlementGrantOwnerAdapter(t *testing.T) {
-	createFeature := func(t *testing.T, deps *dependencies) feature.Feature {
+	createFeatureAndCustomer := func(t *testing.T, deps *dependencies) (feature.Feature, *customer.Customer) {
 		t.Helper()
 
 		f, err := deps.featureRepo.CreateFeature(context.Background(), feature.CreateFeatureInputs{
@@ -35,7 +36,9 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		return f
+		cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
+		return f, cust
 	}
 
 	t.Run("Should return the last reset time for the full period if there are no resets", func(t *testing.T) {
@@ -47,15 +50,15 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		_, deps := setupConnector(t)
 		defer deps.Teardown()
-		f := createFeature(t, deps)
+		f, c := createFeatureAndCustomer(t, deps)
 
 		// Let's create an entitlement
 		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:       namespace,
-			FeatureID:       f.ID,
-			FeatureKey:      f.Key,
-			SubjectKey:      "subject1",
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        namespace,
+			FeatureID:        f.ID,
+			FeatureKey:       f.Key,
+			UsageAttribution: c.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
@@ -114,15 +117,15 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		_, deps := setupConnector(t)
 		defer deps.Teardown()
-		f := createFeature(t, deps)
+		f, c := createFeatureAndCustomer(t, deps)
 
 		// Let's create an entitlement
 		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:       namespace,
-			FeatureID:       f.ID,
-			FeatureKey:      f.Key,
-			SubjectKey:      "subject1",
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        namespace,
+			FeatureID:        f.ID,
+			FeatureKey:       f.Key,
+			UsageAttribution: c.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
@@ -172,15 +175,15 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		_, deps := setupConnector(t)
 		defer deps.Teardown()
-		f := createFeature(t, deps)
+		f, c := createFeatureAndCustomer(t, deps)
 
 		// Let's create an entitlement
 		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:       namespace,
-			FeatureID:       f.ID,
-			FeatureKey:      f.Key,
-			SubjectKey:      "subject1",
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        namespace,
+			FeatureID:        f.ID,
+			FeatureKey:       f.Key,
+			UsageAttribution: c.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
@@ -219,15 +222,15 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		_, deps := setupConnector(t)
 		defer deps.Teardown()
-		f := createFeature(t, deps)
+		f, c := createFeatureAndCustomer(t, deps)
 
 		// Let's create an entitlement
 		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:       namespace,
-			FeatureID:       f.ID,
-			FeatureKey:      f.Key,
-			SubjectKey:      "subject1",
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        namespace,
+			FeatureID:        f.ID,
+			FeatureKey:       f.Key,
+			UsageAttribution: c.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
@@ -291,15 +294,15 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		_, deps := setupConnector(t)
 		defer deps.Teardown()
-		f := createFeature(t, deps)
+		f, c := createFeatureAndCustomer(t, deps)
 
 		// Let's create an entitlement
 		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:       namespace,
-			FeatureID:       f.ID,
-			FeatureKey:      f.Key,
-			SubjectKey:      "subject1",
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        namespace,
+			FeatureID:        f.ID,
+			FeatureKey:       f.Key,
+			UsageAttribution: c.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
@@ -348,15 +351,15 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		_, deps := setupConnector(t)
 		defer deps.Teardown()
-		f := createFeature(t, deps)
+		f, c := createFeatureAndCustomer(t, deps)
 
 		// Let's create an entitlement
 		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:       namespace,
-			FeatureID:       f.ID,
-			FeatureKey:      f.Key,
-			SubjectKey:      "subject1",
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        namespace,
+			FeatureID:        f.ID,
+			FeatureKey:       f.Key,
+			UsageAttribution: c.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
@@ -392,15 +395,15 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		_, deps := setupConnector(t)
 		defer deps.Teardown()
-		f := createFeature(t, deps)
+		f, c := createFeatureAndCustomer(t, deps)
 
 		// Let's create an entitlement
 		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:       namespace,
-			FeatureID:       f.ID,
-			FeatureKey:      f.Key,
-			SubjectKey:      "subject1",
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        namespace,
+			FeatureID:        f.ID,
+			FeatureKey:       f.Key,
+			UsageAttribution: c.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
@@ -449,15 +452,15 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		_, deps := setupConnector(t)
 		defer deps.Teardown()
-		f := createFeature(t, deps)
+		f, c := createFeatureAndCustomer(t, deps)
 
 		// Let's create an entitlement
 		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:       namespace,
-			FeatureID:       f.ID,
-			FeatureKey:      f.Key,
-			SubjectKey:      "subject1",
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        namespace,
+			FeatureID:        f.ID,
+			FeatureKey:       f.Key,
+			UsageAttribution: c.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
@@ -506,15 +509,15 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		_, deps := setupConnector(t)
 		defer deps.Teardown()
-		f := createFeature(t, deps)
+		f, c := createFeatureAndCustomer(t, deps)
 
 		// Create an entitlement with monthly usage period
 		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:       namespace,
-			FeatureID:       f.ID,
-			FeatureKey:      f.Key,
-			SubjectKey:      "subject1",
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        namespace,
+			FeatureID:        f.ID,
+			FeatureKey:       f.Key,
+			UsageAttribution: c.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,
@@ -640,14 +643,16 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		c := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 		// Create entitlement
 
 		ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:       namespace,
-			FeatureID:       f.ID,
-			FeatureKey:      f.Key,
-			SubjectKey:      "subject1",
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        namespace,
+			FeatureID:        f.ID,
+			FeatureKey:       f.Key,
+			UsageAttribution: c.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   now,

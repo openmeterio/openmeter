@@ -76,7 +76,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		Namespace:          model.Namespace,
 		FeatureID:          feature.ID,
 		FeatureKey:         feature.Key,
-		SubjectKey:         model.SubjectKey,
+		UsageAttribution:   model.UsageAttribution,
 		EntitlementType:    model.EntitlementType,
 		Metadata:           model.Metadata,
 		Annotations:        model.Annotations,

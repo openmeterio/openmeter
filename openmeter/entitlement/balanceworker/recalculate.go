@@ -350,7 +350,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 
 	calculatedAt := time.Now()
 
-	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, ent.Namespace, ent.SubjectKey, ent.ID, calculatedAt)
+	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, ent.Namespace, ent.Customer.ID, ent.ID, calculatedAt)
 	if err != nil {
 		return empty, fmt.Errorf("failed to get entitlement value: %w", err)
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -40,13 +41,13 @@ func TestGetEntitlementBalance(t *testing.T) {
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature feature.Feature) entitlement.CreateEntitlementRepoInputs {
+	getEntitlement := func(t *testing.T, feature feature.Feature, usageAttribution streaming.CustomerUsageAttribution) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
 		input := entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			FeatureKey:       feature.Key,
-			SubjectKey:       "subject1",
+			UsageAttribution: usageAttribution,
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
@@ -77,7 +78,10 @@ func TestGetEntitlementBalance(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
-				inp := getEntitlement(t, feature)
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				// create entitlement in db
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
@@ -103,8 +107,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, getEntitlement(t, feature))
+				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, getEntitlement(t, feature, cust.GetUsageAttribution()))
 				assert.NoError(t, err)
 
 				queryTime := startTime.Add(time.Hour)
@@ -131,8 +138,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				inp := getEntitlement(t, feature)
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
@@ -173,8 +183,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				inp := getEntitlement(t, feature)
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
@@ -229,8 +242,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				inp := getEntitlement(t, feature)
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodDaily, // we need a faster recurrence as we wont save snapshots in the current usage period
@@ -339,8 +355,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				inp := getEntitlement(t, feature)
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodMonth,
@@ -465,8 +484,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				inp := getEntitlement(t, feature)
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodDaily, // we need a faster recurrence as we wont save snapshots in the current usage period
@@ -577,13 +599,13 @@ func TestGetEntitlementHistory(t *testing.T) {
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature feature.Feature) entitlement.CreateEntitlementRepoInputs {
+	getEntitlement := func(t *testing.T, feature feature.Feature, usageAttribution streaming.CustomerUsageAttribution) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
 		input := entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			FeatureKey:       feature.Key,
-			SubjectKey:       "subject1",
+			UsageAttribution: usageAttribution,
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
@@ -614,8 +636,11 @@ func TestGetEntitlementHistory(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				inp := getEntitlement(t, feature)
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
@@ -799,8 +824,11 @@ func TestGetEntitlementHistory(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				inp := getEntitlement(t, feature)
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
@@ -894,8 +922,11 @@ func TestGetEntitlementHistory(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				inp := getEntitlement(t, feature)
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
@@ -983,8 +1014,11 @@ func TestGetEntitlementHistory(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				inp := getEntitlement(t, feature)
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				startOfMeasurement := startTime.Add(time.Minute * 29)
 				inp.MeasureUsageFrom = lo.ToPtr(startOfMeasurement)
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
@@ -1073,8 +1107,11 @@ func TestGetEntitlementHistory(t *testing.T) {
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 				assert.NoError(t, err)
 
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+
 				// create entitlement in db
-				inp := getEntitlement(t, feature)
+				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)

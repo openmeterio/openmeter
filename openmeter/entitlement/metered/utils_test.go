@@ -9,12 +9,15 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -25,6 +28,9 @@ import (
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	"github.com/openmeterio/openmeter/openmeter/subject"
+	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
+	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -47,6 +53,8 @@ type dependencies struct {
 	streamingConnector     *streamingtestutils.MockStreamingConnector
 	creditConnector        credit.CreditConnector
 	meterAdapter           *meteradapter.TestAdapter
+	subjectService         subject.Service
+	customerService        customer.Adapter
 }
 
 // Teardown cleans up the dependencies
@@ -157,6 +165,18 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		tracer,
 	)
 
+	subjectRepo, err := subjectadapter.New(dbClient)
+	require.NoError(t, err)
+
+	subjectService, err := subjectservice.New(subjectRepo)
+	require.NoError(t, err)
+
+	customerService, err := customeradapter.New(customeradapter.Config{
+		Client: dbClient,
+		Logger: testLogger,
+	})
+	require.NoError(t, err)
+
 	return connector, &dependencies{
 		dbClient,
 		pgDriver,
@@ -171,6 +191,8 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		streamingConnector,
 		creditConnector,
 		meterAdapter,
+		subjectService,
+		customerService,
 	}
 }
 
@@ -180,4 +202,26 @@ func assertUsagePeriodInputsEquals(t *testing.T, expected, actual *entitlement.U
 	assert.NotNil(t, actual, "actual is nil")
 	assert.Equal(t, expected.GetValue().Interval, actual.GetValue().Interval, "periods do not match")
 	assert.Equal(t, expected.GetValue().Anchor.Format(time.RFC3339), actual.GetValue().Anchor.Format(time.RFC3339), "anchors do not match")
+}
+
+func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Adapter, ns string, subjectKey string) *customer.Customer {
+	t.Helper()
+	_, err := subjectService.Create(context.Background(), subject.CreateInput{
+		Namespace: ns,
+		Key:       subjectKey,
+	})
+	require.NoError(t, err)
+
+	cust, err := customerService.CreateCustomer(context.Background(), customer.CreateCustomerInput{
+		Namespace: ns,
+		CustomerMutate: customer.CustomerMutate{
+			Key: lo.ToPtr(subjectKey),
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{subjectKey},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	return cust
 }

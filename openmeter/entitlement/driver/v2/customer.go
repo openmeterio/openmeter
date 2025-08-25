@@ -81,13 +81,8 @@ func (h *customerEntitlementHandler) CreateCustomerEntitlement() CreateCustomerE
 				return request, err
 			}
 
-			subjectKey, err := cus.UsageAttribution.GetSubjectKey()
-			if err != nil {
-				return request, commonhttp.NewHTTPError(http.StatusConflict, err)
-			}
-
 			// Reuse v1 parser to build entitlement create inputs using the subject key
-			return entitlementdriver.ParseAPICreateInput(inp, ns, subjectKey)
+			return entitlementdriver.ParseAPICreateInput(inp, ns, cus.GetUsageAttribution())
 		},
 		func(ctx context.Context, request CreateCustomerEntitlementHandlerRequest) (CreateCustomerEntitlementHandlerResponse, error) {
 			ent, err := h.connector.CreateEntitlement(ctx, request)

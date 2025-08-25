@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -38,7 +39,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input en
 			return nil, &feature.FeatureNotFoundError{ID: *featureIdOrKey}
 		}
 
-		err = c.lockUniqueScope(ctx, input.SubjectKey, feat.Key)
+		err = c.lockUniqueScope(ctx, input.UsageAttribution.ID, feat.Key)
 		if err != nil {
 			return nil, err
 		}
@@ -50,8 +51,8 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input en
 		// We set ActiveFrom so it's deterministic from this point on, even if there's a delay until entitlement gets persisted and assigned a CreatedAt
 		input.ActiveFrom = &activeFromTime
 
-		// Get scheduled entitlements for subject-feature pair
-		scheduledEnts, err := c.entitlementRepo.GetScheduledEntitlements(ctx, input.Namespace, input.SubjectKey, feat.Key, activeFromTime)
+		// Get scheduled entitlements for customer-feature pair
+		scheduledEnts, err := c.entitlementRepo.GetScheduledEntitlements(ctx, input.Namespace, input.UsageAttribution.ID, feat.Key, activeFromTime)
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +70,11 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input en
 			GenericProperties: entitlement.GenericProperties{
 				ID:         newEntitlementId,
 				FeatureKey: *input.FeatureKey,
-				SubjectKey: input.SubjectKey,
+				Customer: &customer.Customer{
+					ManagedResource: models.ManagedResource{
+						ID: input.UsageAttribution.ID,
+					},
+				},
 				ManagedModel: models.ManagedModel{
 					CreatedAt: activeFromTime,
 				},
@@ -159,19 +164,19 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 			return nil, fmt.Errorf("inconsistency error, feature is nil: %s", *featureIdOrKey)
 		}
 
-		err = c.lockUniqueScope(ctx, input.SubjectKey, feat.Key)
+		err = c.lockUniqueScope(ctx, input.UsageAttribution.ID, feat.Key)
 		if err != nil {
 			return nil, err
 		}
 
-		// Validate that old a new entitlement belong to same feature & subject
+		// Validate that old a new entitlement belong to same feature & customer
 
 		if feat.Key != oldEnt.FeatureKey {
 			return nil, models.NewGenericValidationError(fmt.Errorf("old and new entitlements belong to different features"))
 		}
 
-		if input.SubjectKey != oldEnt.SubjectKey {
-			return nil, models.NewGenericValidationError(fmt.Errorf("old and new entitlements belong to different subjects"))
+		if input.UsageAttribution.ID != oldEnt.Customer.ID {
+			return nil, models.NewGenericValidationError(fmt.Errorf("old and new entitlements belong to different customers"))
 		}
 
 		// To override we close the old entitlement as inactive and create the new one
@@ -200,8 +205,8 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 	})
 }
 
-func (c *entitlementConnector) lockUniqueScope(ctx context.Context, subjectKey string, featureKey string) error {
-	key, err := NewEntitlementUniqueScopeLock(featureKey, subjectKey)
+func (c *entitlementConnector) lockUniqueScope(ctx context.Context, customerID string, featureKey string) error {
+	key, err := NewEntitlementUniqueScopeLock(featureKey, customerID)
 	if err != nil {
 		return err
 	}

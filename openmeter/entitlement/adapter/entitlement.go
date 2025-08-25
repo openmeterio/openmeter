@@ -84,7 +84,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 	)
 }
 
-func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, featureKey string, at time.Time) (*entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) GetActiveEntitlementOfCustomerAt(ctx context.Context, namespace string, customerID string, featureKey string, at time.Time) (*entitlement.Entitlement, error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
@@ -102,10 +102,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 					db_entitlement.HasCustomerWith(
 						customerdb.Namespace(namespace),
 						customerNotDeletedAt(at),
-						customerdb.HasSubjectsWith(
-							customersubjectsdb.SubjectKey(subjectKey),
-							customersubjectsdb.DeletedAtIsNil(),
-						),
+						customerdb.ID(customerID),
 					),
 					db_entitlement.Namespace(namespace),
 					db_entitlement.FeatureKey(featureKey),
@@ -123,13 +120,6 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 				return nil, err
 			}
 
-			if res.Edges.Subject == nil || res.Edges.Subject.Key != subjectKey {
-				return nil, fmt.Errorf("entitlement subject mismatch: expected %s", subjectKey)
-			}
-			if res.Edges.Customer == nil {
-				return nil, fmt.Errorf("entitlement %s has no customer", res.ID)
-			}
-
 			return repo.mapEntitlementEntity(res)
 		},
 	)
@@ -143,28 +133,32 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 			// Resolve SubjectKey to CustomerID by looking up the customer via usage attribution
 			cust, err := repo.db.Customer.Query().
 				Where(customerdb.Namespace(ent.Namespace)).
+				Where(customerdb.ID(ent.UsageAttribution.ID)).
 				Where(customerdb.DeletedAtIsNil()).
-				Where(customerdb.HasSubjectsWith(
-					customersubjectsdb.SubjectKey(ent.SubjectKey),
-					customersubjectsdb.DeletedAtIsNil(),
-				)).
 				Only(ctx)
 			if err != nil {
-				if db.IsNotSingular(err) {
-					return nil, entitlement.NewSubjectCustomerConflictError(ent.Namespace, ent.SubjectKey)
-				}
-				return nil, fmt.Errorf("failed to resolve subject key %s to customer: %w", ent.SubjectKey, err)
+				return nil, fmt.Errorf("failed to resolve customer: %w", err)
+			}
+
+			custEnt, err := customeradapter.CustomerFromDBEntity(*cust)
+			if err != nil {
+				return nil, fmt.Errorf("failed to map customer: %w", err)
+			}
+
+			subjectKey, err := custEnt.UsageAttribution.GetSubjectKey()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get subject key: %w", err)
 			}
 
 			// Resolve Subject entity to set subject_id and subject_key
 			subj, err := repo.db.Subject.Query().
 				Where(
-					db_subject.Key(ent.SubjectKey),
+					db_subject.Key(subjectKey),
 					db_subject.Namespace(ent.Namespace),
 				).
 				Only(ctx)
 			if err != nil {
-				return nil, fmt.Errorf("failed to load subject %s: %w", ent.SubjectKey, err)
+				return nil, fmt.Errorf("failed to load subject %s: %w", subjectKey, err)
 			}
 
 			cmd := repo.db.Entitlement.Create().
@@ -174,7 +168,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				SetMetadata(ent.Metadata).
 				SetCustomerID(cust.ID).
 				SetSubjectID(subj.ID).
-				SetSubjectKey(ent.SubjectKey).
+				SetSubjectKey(subjectKey).
 				SetFeatureKey(ent.FeatureKey).
 				SetNillableMeasureUsageFrom(ent.MeasureUsageFrom).
 				SetNillableIssueAfterReset(ent.IssueAfterReset).
@@ -325,7 +319,7 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 		})
 }
 
-func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) GetActiveEntitlementsOfCustomer(ctx context.Context, namespace string, customerId string, at time.Time) ([]entitlement.Entitlement, error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
@@ -343,10 +337,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Contex
 					db_entitlement.HasCustomerWith(
 						customerdb.Namespace(namespace),
 						customerNotDeletedAt(at),
-						customerdb.HasSubjectsWith(
-							customersubjectsdb.SubjectKey(subjectKey),
-							customersubjectsdb.DeletedAtIsNil(),
-						),
+						customerdb.ID(customerId),
 					),
 					db_entitlement.Namespace(namespace),
 				).
@@ -357,13 +348,6 @@ func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Contex
 
 			result := make([]entitlement.Entitlement, 0, len(res))
 			for _, e := range res {
-				if e.Edges.Subject == nil || e.Edges.Subject.Key != subjectKey {
-					return nil, fmt.Errorf("entitlement %s subject mismatch: expected %s", e.ID, subjectKey)
-				}
-				if e.Edges.Customer == nil {
-					return nil, fmt.Errorf("entitlement %s has no customer", e.ID)
-				}
-
 				mapped, err := repo.mapEntitlementEntity(e)
 				if err != nil {
 					return nil, err
@@ -372,27 +356,6 @@ func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Contex
 			}
 
 			return result, nil
-		},
-	)
-}
-
-func (a *entitlementDBAdapter) HasEntitlementForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error) {
-	return entutils.TransactingRepo(
-		ctx,
-		a,
-		func(ctx context.Context, repo *entitlementDBAdapter) (bool, error) {
-			exists, err := repo.db.Entitlement.Query().
-				Where(
-					db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
-					db_entitlement.Namespace(namespace),
-					db_entitlement.HasFeatureWith(db_feature.MeterSlugEQ(meterSlug)),
-				).
-				Exist(ctx)
-			if err != nil {
-				return false, err
-			}
-
-			return exists, nil
 		},
 	)
 }
@@ -937,7 +900,7 @@ func (a *entitlementDBAdapter) ListNamespacesWithActiveEntitlements(ctx context.
 	)
 }
 
-func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, namespace string, subjectKey string, featureKey string, starting time.Time) ([]entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, namespace string, customerID string, featureKey string, starting time.Time) ([]entitlement.Entitlement, error) {
 	res, err := entutils.TransactingRepo(
 		ctx,
 		a,
@@ -962,10 +925,7 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 					db_entitlement.HasCustomerWith(
 						customerdb.Namespace(namespace),
 						customerNotDeletedAt(nowTS),
-						customerdb.HasSubjectsWith(
-							customersubjectsdb.SubjectKey(subjectKey),
-							customersubjectsdb.DeletedAtIsNil(),
-						),
+						customerdb.ID(customerID),
 					),
 					db_entitlement.FeatureKey(featureKey),
 				).Order(

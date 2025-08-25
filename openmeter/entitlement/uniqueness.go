@@ -20,7 +20,7 @@ import (
 // 1. E.ActiveFromTime <= T and E.ActiveToTime > T
 // 2. E.ActiveFromTime <= T and E.ActiveToTime is nil
 //
-// For a set of unique entitlements S, where all E in S share the same feature (by key) and subject:
+// For a set of unique entitlements S, where all E in S share the same feature (by key) and customer:
 // 1. Let T1 be the first ActiveFromTime for any E in S sorted ascending
 // 2. Let T2 be the last ActiveToTime for any E in S sorted ascending
 //
@@ -34,7 +34,7 @@ func ValidateUniqueConstraint(ents []Entitlement) error {
 		slices.Sort(keys)
 		return fmt.Errorf("entitlements must belong to the same feature, found %v", keys)
 	}
-	if grouped := lo.GroupBy(ents, func(e Entitlement) string { return e.SubjectKey }); len(grouped) > 1 {
+	if grouped := lo.GroupBy(ents, func(e Entitlement) string { return e.Customer.ID }); len(grouped) > 1 {
 		keys := lo.Keys(grouped)
 		slices.Sort(keys)
 		return fmt.Errorf("entitlements must belong to the same subject, found %v", keys)
