@@ -208,7 +208,7 @@ model Customer {
    * Mapping to attribute metered usage to the customer
    */
   @summary("Usage Attribution")
-  usageAttribution: CustomerUsageAttribution;
+  usageAttribution?: CustomerUsageAttribution;
 
   /**
    * The primary email address of the customer.
@@ -265,7 +265,6 @@ model CustomerUsageAttribution {
    * @TODO allow multiple subjects
    */
   @summary("SubjectKeys")
-  @minItems(1)
   @maxItems(1)
   subjectKeys: string[];
 }

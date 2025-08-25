@@ -6703,13 +6703,13 @@ export const createCustomerBody = zod
       .object({
         subjectKeys: zod
           .array(zod.coerce.string())
-          .min(1)
           .max(createCustomerBodyUsageAttributionSubjectKeysMax)
           .describe('The subjects that are attributed to the customer.'),
       })
       .describe(
         'Mapping to attribute metered usage to the customer.\nOne customer can have multiple subjects,\nbut one subject can only belong to one customer.'
       )
+      .optional()
       .describe('Mapping to attribute metered usage to the customer'),
   })
   .describe('Resource create operation model.')
@@ -6933,13 +6933,13 @@ export const updateCustomerBody = zod
       .object({
         subjectKeys: zod
           .array(zod.coerce.string())
-          .min(1)
           .max(updateCustomerBodyUsageAttributionSubjectKeysMax)
           .describe('The subjects that are attributed to the customer.'),
       })
       .describe(
         'Mapping to attribute metered usage to the customer.\nOne customer can have multiple subjects,\nbut one subject can only belong to one customer.'
       )
+      .optional()
       .describe('Mapping to attribute metered usage to the customer'),
   })
   .describe('Resource update operation model.')
@@ -12898,7 +12898,6 @@ export const createStripeCheckoutSessionBody = zod
               .object({
                 subjectKeys: zod
                   .array(zod.coerce.string())
-                  .min(1)
                   .max(
                     createStripeCheckoutSessionBodyCustomerUsageAttributionSubjectKeysMax
                   )
@@ -12909,6 +12908,7 @@ export const createStripeCheckoutSessionBody = zod
               .describe(
                 'Mapping to attribute metered usage to the customer.\nOne customer can have multiple subjects,\nbut one subject can only belong to one customer.'
               )
+              .optional()
               .describe('Mapping to attribute metered usage to the customer'),
           })
           .describe('Resource create operation model.'),

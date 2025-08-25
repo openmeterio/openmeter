@@ -3918,7 +3918,7 @@ export interface components {
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
        */
-      usageAttribution: components['schemas']['CustomerUsageAttribution']
+      usageAttribution?: components['schemas']['CustomerUsageAttribution']
       /**
        * Primary Email
        * @description The primary email address of the customer.
@@ -4024,7 +4024,7 @@ export interface components {
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
        */
-      usageAttribution: components['schemas']['CustomerUsageAttribution']
+      usageAttribution?: components['schemas']['CustomerUsageAttribution']
       /**
        * Primary Email
        * @description The primary email address of the customer.
@@ -4113,7 +4113,7 @@ export interface components {
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
        */
-      usageAttribution: components['schemas']['CustomerUsageAttribution']
+      usageAttribution?: components['schemas']['CustomerUsageAttribution']
       /**
        * Primary Email
        * @description The primary email address of the customer.
