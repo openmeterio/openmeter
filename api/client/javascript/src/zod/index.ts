@@ -6741,7 +6741,7 @@ export const listCustomersQueryParams = zod.object({
   key: zod.coerce
     .string()
     .optional()
-    .describe('Filter customers by key.\nCase-sensitive exact match.'),
+    .describe('Filter customers by key.\nCase-insensitive partial match.'),
   name: zod.coerce
     .string()
     .optional()

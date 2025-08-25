@@ -12179,7 +12179,7 @@ components:
       required: false
       description: |-
         Filter customers by key.
-        Case-sensitive exact match.
+        Case-insensitive partial match.
       schema:
         type: string
       explode: false

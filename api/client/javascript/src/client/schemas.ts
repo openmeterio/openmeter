@@ -10677,7 +10677,7 @@ export interface components {
     /** @description Include deleted customers. */
     'queryCustomerList.includeDeleted': boolean
     /** @description Filter customers by key.
-     *     Case-sensitive exact match. */
+     *     Case-insensitive partial match. */
     'queryCustomerList.key': string
     /** @description Filter customers by name.
      *     Case-insensitive partial match. */
@@ -15077,7 +15077,7 @@ export interface operations {
         /** @description Include deleted customers. */
         includeDeleted?: components['parameters']['queryCustomerList.includeDeleted']
         /** @description Filter customers by key.
-         *     Case-sensitive exact match. */
+         *     Case-insensitive partial match. */
         key?: components['parameters']['queryCustomerList.key']
         /** @description Filter customers by name.
          *     Case-insensitive partial match. */
