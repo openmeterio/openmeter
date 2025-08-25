@@ -392,7 +392,15 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 
 	query := a.db.Customer.Query().
 		Where(customerdb.Namespace(input.Namespace)).
-		Where(customerdb.HasSubjectsWith(customersubjectsdb.SubjectKey(input.SubjectKey))).
+		Where(
+			customerdb.Or(
+				// We lookup the customer by subject key in the subjects table
+				customerdb.HasSubjectsWith(customersubjectsdb.SubjectKey(input.SubjectKey)),
+				// Or we lookup the customer by ID or key
+				customerdb.ID(input.SubjectKey),
+				customerdb.Key(input.SubjectKey),
+			),
+		).
 		Where(customerdb.DeletedAtIsNil())
 	query = withSubjects(query)
 	query = withActiveSubscription(query)

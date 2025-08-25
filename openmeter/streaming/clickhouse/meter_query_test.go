@@ -21,6 +21,7 @@ func TestQueryMeter(t *testing.T) {
 	windowSize := meter.WindowSizeHour
 
 	tests := []struct {
+		testName string
 		query    queryMeter
 		wantSQL  string
 		wantArgs []interface{}
@@ -50,6 +51,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1", []string{"subject1"}, from.Unix(), to.Unix()},
 		},
 		{ // Aggregate all available data
+			testName: "aggregate all available data",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -69,6 +71,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
 		{ // Aggregate with count aggregation
+			testName: "aggregate with count aggregation",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -87,6 +90,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
 		{ // Aggregate with LATEST aggregation
+			testName: "aggregate with LATEST aggregation",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -106,6 +110,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
 		{ // Aggregate data from start
+			testName: "aggregate data from start",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -126,6 +131,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1", from.Unix()},
 		},
 		{ // Aggregate data between period
+			testName: "aggregate data between period",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -147,6 +153,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1", from.Unix(), to.Unix()},
 		},
 		{ // Aggregate data between period, groupped by window size
+			testName: "aggregate data between period, groupped by window size",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -169,6 +176,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1", from.Unix(), to.Unix()},
 		},
 		{ // Aggregate data between period in a different timezone, groupped by window size
+			testName: "aggregate data between period in a different timezone, groupped by window size",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -192,6 +200,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1", from.Unix(), to.Unix()},
 		},
 		{ // Aggregate data for a single subject
+			testName: "aggregate data for a single subject",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -213,6 +222,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1", []string{"subject1"}},
 		},
 		{ // Aggregate data for a single subject and group by additional fields
+			testName: "aggregate data for a single subject and group by additional fields",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -234,6 +244,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1", []string{"subject1"}},
 		},
 		{ // Aggregate data for a multiple subjects
+			testName: "aggregate data for a multiple subjects",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -255,6 +266,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1", []string{"subject1", "subject2"}},
 		},
 		{ // Select customer ID
+			testName: "select customer ID",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -291,10 +303,11 @@ func TestQueryMeter(t *testing.T) {
 				},
 				GroupBy: []string{"customer_id"},
 			},
-			wantSQL:  "WITH map('subject1', 'customer1', 'subject2', 'customer2') as subject_to_customer_id SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, subject_to_customer_id[om_events.subject] AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.subject IN (?) GROUP BY customer_id",
-			wantArgs: []interface{}{"my_namespace", "event1", []string{"subject1", "subject2"}},
+			wantSQL:  "WITH map('customer1', 'customer1', 'subject1', 'customer1', 'customer2', 'customer2', 'subject2', 'customer2') as subject_to_customer_id SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, subject_to_customer_id[om_events.subject] AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.subject IN (?) GROUP BY customer_id",
+			wantArgs: []interface{}{"my_namespace", "event1", []string{"customer1", "subject1", "customer2", "subject2"}},
 		},
 		{ // Filter by customer ID without group by
+			testName: "filter by customer ID without group by",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -331,9 +344,10 @@ func TestQueryMeter(t *testing.T) {
 				},
 			},
 			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.subject IN (?)",
-			wantArgs: []interface{}{"my_namespace", "event1", []string{"subject1", "subject2"}},
+			wantArgs: []interface{}{"my_namespace", "event1", []string{"customer1", "subject1", "customer2", "subject2"}},
 		},
 		{ // Filter by both customer and subject
+			testName: "filter by both customer and subject",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -360,8 +374,8 @@ func TestQueryMeter(t *testing.T) {
 				FilterSubject: []string{"subject1"},
 				GroupBy:       []string{"customer_id"},
 			},
-			wantSQL:  "WITH map('subject1', 'customer1', 'subject2', 'customer1') as subject_to_customer_id SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, subject_to_customer_id[om_events.subject] AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.subject IN (?) AND om_events.subject IN (?) GROUP BY customer_id",
-			wantArgs: []interface{}{"my_namespace", "event1", []string{"subject1", "subject2"}, []string{"subject1"}},
+			wantSQL:  "WITH map('customer1', 'customer1', 'subject1', 'customer1', 'subject2', 'customer1') as subject_to_customer_id SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value, subject_to_customer_id[om_events.subject] AS customer_id FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.subject IN (?) AND om_events.subject IN (?) GROUP BY customer_id",
+			wantArgs: []interface{}{"my_namespace", "event1", []string{"customer1", "subject1", "subject2"}, []string{"subject1"}},
 		},
 		{ // Aggregate data with filtering for a single group and single value
 			query: queryMeter{
@@ -384,6 +398,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
 		{ // Aggregate data with filtering for a single group and multiple values
+			testName: "aggregate data with filtering for a single group and multiple values",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -404,6 +419,7 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
 		{ // Aggregate data with filtering for multiple groups and multiple values
+			testName: "aggregate data with filtering for multiple groups and multiple values",
 			query: queryMeter{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
@@ -426,7 +442,7 @@ func TestQueryMeter(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run("", func(t *testing.T) {
+		t.Run(tt.testName, func(t *testing.T) {
 			gotSql, gotArgs, err := tt.query.toSQL()
 			if err != nil {
 				t.Error(err)
