@@ -59,9 +59,10 @@ type EntitlementValue struct {
 type SnapshotEvent struct {
 	Entitlement entitlement.Entitlement `json:"entitlement"`
 	Namespace   models.NamespaceID      `json:"namespace"`
-	Subject     subject.Subject         `json:"subject"`
-	Feature     feature.Feature         `json:"feature"`
-	Customer    *customer.Customer      `json:"customer,omitempty"`
+	// Deprecated: will be removed when deprecating subjects
+	Subject  subject.Subject   `json:"subject"`
+	Customer customer.Customer `json:"customer"`
+	Feature  feature.Feature   `json:"feature"`
 	// Operation is delete if the entitlement gets deleted, in that case the balance object is empty
 	Operation ValueOperationType `json:"operation"`
 
@@ -88,7 +89,7 @@ func (e SnapshotEvent) EventName() string {
 }
 
 func (e SnapshotEvent) EventMetadata() metadata.EventMetadata {
-	if e.Customer != nil {
+	if e.Customer.ID != "" {
 		return metadata.EventMetadata{
 			Subject: metadata.ComposeResourcePath(
 				e.Namespace.ID,
@@ -99,7 +100,8 @@ func (e SnapshotEvent) EventMetadata() metadata.EventMetadata {
 	}
 
 	return metadata.EventMetadata{
-		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntitySubjectKey, e.Subject.Key),
+		Source:  metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityEntitlement, e.Entitlement.ID),
+		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityCustomer, e.Customer.ID),
 	}
 }
 
@@ -126,10 +128,8 @@ func (e SnapshotEvent) Validate() error {
 		errs = append(errs, errors.New("feature ID must be set"))
 	}
 
-	if e.Customer != nil {
-		if err := e.Customer.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if err := e.Customer.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if e.CalculatedAt == nil {
@@ -147,11 +147,13 @@ func (e SnapshotEvent) Validate() error {
 }
 
 // NewSnapshotEvent builds a SnapshotEvent deriving the namespace from the entitlement.
-func NewSnapshotEvent(ent entitlement.Entitlement, subj subject.Subject, feat feature.Feature, op ValueOperationType, calculatedAt *time.Time, value *EntitlementValue, currentUsagePeriod *timeutil.ClosedPeriod) SnapshotEvent {
+// Though customer and subject properties are in theory present on the entitlement, this constructor uses separate arguments to populate them.
+func NewSnapshotEvent(ent entitlement.Entitlement, subj subject.Subject, customer customer.Customer, feat feature.Feature, op ValueOperationType, calculatedAt *time.Time, value *EntitlementValue, currentUsagePeriod *timeutil.ClosedPeriod) SnapshotEvent {
 	return SnapshotEvent{
 		Entitlement:        ent,
 		Namespace:          models.NamespaceID{ID: ent.Namespace},
 		Subject:            subj,
+		Customer:           customer,
 		Feature:            feat,
 		Operation:          op,
 		CalculatedAt:       calculatedAt,

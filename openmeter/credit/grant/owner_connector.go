@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,14 +16,7 @@ type Owner struct {
 	Meter              meter.Meter
 	DefaultQueryParams streaming.QueryParams
 	ResetBehavior      ResetBehavior
-}
-
-func (o Owner) GetSubjectKey() (string, error) {
-	subjectKey, ok := lo.First(o.DefaultQueryParams.FilterSubject)
-	if !ok {
-		return "", fmt.Errorf("no subject key found for owner %s", o.ID)
-	}
-	return subjectKey, nil
+	StreamingCustomer  streaming.Customer
 }
 
 type EndCurrentUsagePeriodParams struct {

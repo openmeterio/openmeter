@@ -116,7 +116,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input en
 			return nil, err
 		}
 
-		err = c.publisher.Publish(ctx, entitlement.NewEntitlementCreatedEventPayload(*ent))
+		err = c.publisher.Publish(ctx, entitlement.NewEntitlementCreatedEventPayloadV2(*ent))
 		if err != nil {
 			return nil, err
 		}

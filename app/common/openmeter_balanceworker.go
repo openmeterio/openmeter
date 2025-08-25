@@ -85,14 +85,13 @@ func NewBalanceWorkerOptions(
 	repo balanceworker.BalanceWorkerRepository,
 	notificationService notification.Service,
 	subjectService subject.Service,
+	customerService customer.Service,
 	logger *slog.Logger,
 	filterStateStorage balanceworker.FilterStateStorage,
-	customerService customer.Service,
 ) balanceworker.WorkerOptions {
 	return balanceworker.WorkerOptions{
-		SystemEventsTopic: eventConfig.SystemEvents.Topic,
-		IngestEventsTopic: eventConfig.IngestEvents.Topic,
-
+		SystemEventsTopic:   eventConfig.SystemEvents.Topic,
+		IngestEventsTopic:   eventConfig.IngestEvents.Topic,
 		Router:              routerOptions,
 		EventBus:            eventBus,
 		Entitlement:         entitlements,

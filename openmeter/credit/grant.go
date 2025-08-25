@@ -88,8 +88,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
 		}
 
-		// publish v2 event (customer-centric)
-		event := grant.NewCreatedEventV2FromGrant(*g, owner.DefaultQueryParams.FilterCustomer[0].GetUsageAttribution().ID)
+		event := grant.NewCreatedEventV2FromGrant(*g, owner.StreamingCustomer)
 
 		if err := m.Publisher.Publish(ctx, event); err != nil {
 			return nil, err
@@ -143,8 +142,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
 		}
 
-		// publish v2 event (customer-centric)
-		return nil, m.Publisher.Publish(ctx, grant.NewVoidedEventV2FromGrant(g, owner.DefaultQueryParams.FilterCustomer[0].GetUsageAttribution().ID, now))
+		return nil, m.Publisher.Publish(ctx, grant.NewVoidedEventV2FromGrant(g, owner.StreamingCustomer, now))
 	})
 	return err
 }

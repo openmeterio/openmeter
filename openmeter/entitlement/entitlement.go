@@ -347,6 +347,11 @@ type GenericProperties struct {
 	OriginalUsagePeriodAnchor *time.Time             `json:"originalUsagePeriodAnchor,omitempty"`
 }
 
+func (e GenericProperties) Validate() error {
+	// TODO: there are no clear validation requirements now but lets implement the interface
+	return nil
+}
+
 // ActiveFromTime returns the time the entitlement is active from. Its either the ActiveFrom field or the CreatedAt field
 func (e GenericProperties) ActiveFromTime() time.Time {
 	return defaultx.WithDefault(e.ActiveFrom, e.CreatedAt)

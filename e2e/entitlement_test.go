@@ -372,18 +372,12 @@ func TestEntitlementISOUsagePeriod(t *testing.T) {
 		defer cancel()
 
 		meterSlug := "entitlement_uc_meter"
-		subject := "ent_customer_2"
+		customer := "ent_customer_2"
+		subject := customer + "-subject"
 		var featureId string
 		var entitlementId string
 
-		// ensure subject exists
-		{
-			resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{
-				api.SubjectUpsert{Key: subject},
-			})
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, resp.StatusCode())
-		}
+		CreateCustomerWithSubject(t, client, customer, subject)
 
 		iv2w := &api.RecurringPeriodInterval{}
 		require.Nil(t, iv2w.FromRecurringPeriodInterval0("P2W"))
@@ -463,17 +457,11 @@ func TestEntitlementWithLatestAggregation(t *testing.T) {
 
 	meterSlug := "entitlement_latest_meter"
 	subject := "ent_latest_customer"
+	customer := "ent_latest_customer"
 	var featureId string
 	var entitlementId string
 
-	// ensure subject exists
-	{
-		resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{
-			api.SubjectUpsert{Key: subject},
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode())
-	}
+	CreateCustomerWithSubject(t, client, customer, subject)
 
 	apiMONTH := &api.RecurringPeriodInterval{}
 	require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))

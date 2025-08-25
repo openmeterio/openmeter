@@ -21,6 +21,18 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
+type customerIOTA int
+
+func (c customerIOTA) Key() string {
+	return fmt.Sprintf("customer-%d", c)
+}
+
+const (
+	customer1 customerIOTA = iota
+	customer2
+	customer3
+)
+
 func TestIngest(t *testing.T) {
 	client := initClient(t)
 
@@ -736,7 +748,6 @@ func TestQuery(t *testing.T) {
 
 func TestCredit(t *testing.T) {
 	client := initClient(t)
-	subjectKey := "customer-1"
 	meterSlug := "credit_test_meter"
 	var featureId string
 	var featureKey string
@@ -749,16 +760,11 @@ func TestCredit(t *testing.T) {
 	apiYEAR := &api.RecurringPeriodInterval{}
 	require.NoError(t, apiYEAR.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumYEAR))
 
-	t.Run("Create Subject", func(t *testing.T) {
-		resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
-			api.SubjectUpsert{
-				Key:         subjectKey,
-				DisplayName: lo.ToPtr("Credit Test Subject"),
-			},
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode())
-	})
+	customerKey := customer1.Key()
+	subjectKey := customerKey
+
+	// Let's create a customer with a subject
+	CreateCustomerWithSubject(t, client, customerKey, subjectKey)
 
 	t.Run("Create Feature", func(t *testing.T) {
 		randKey := fmt.Sprintf("credit_test_feature_%d", time.Now().Unix())
@@ -846,18 +852,10 @@ func TestCredit(t *testing.T) {
 	})
 
 	t.Run("Create a Entitlement With Default Grants", func(t *testing.T) {
+		randCustomerKey := ulid.Make().String()
 		randSubjectKey := ulid.Make().String()
 
-		t.Run("Should create the random subject", func(t *testing.T) {
-			resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
-				api.SubjectUpsert{
-					Key:         randSubjectKey,
-					DisplayName: lo.ToPtr("Credit Test Subject"),
-				},
-			})
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, resp.StatusCode())
-		})
+		CreateCustomerWithSubject(t, client, randCustomerKey, randSubjectKey)
 
 		measureUsageFrom := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
 		muf := &api.MeasureUsageFrom{}
@@ -904,15 +902,10 @@ func TestCredit(t *testing.T) {
 	})
 	t.Run("Create a Entitlement With MeasureUsageFrom enum", func(t *testing.T) {
 		randSubject := ulid.Make().String()
+		randCustomerKey := ulid.Make().String()
 
-		// ensure subject exists
-		{
-			resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
-				api.SubjectUpsert{Key: randSubject},
-			})
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, resp.StatusCode())
-		}
+		CreateCustomerWithSubject(t, client, randCustomerKey, randSubject)
+
 		periodAnchor := time.Now().Truncate(time.Minute).Add(-time.Hour).In(time.UTC)
 		muf := &api.MeasureUsageFrom{}
 		err := muf.FromMeasureUsageFromPreset(api.MeasureUsageFromPresetCurrentPeriodStart)
@@ -1143,20 +1136,15 @@ func TestCredit(t *testing.T) {
 			require.Equal(t, http.StatusNoContent, resetResp.StatusCode())
 		})
 
-		subject2 := "credit-customer-2-key"
+		customer2Key := customer2.Key()
+		subject2 := customer2Key
 		// we have to wait after the reset
 		time.Sleep(time.Minute)
 		time.Sleep(time.Second * 10)
 
 		t.Run("Create entitlement with automatic grant issuing", func(t *testing.T) {
-			// ensure subject exists
-			{
-				resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
-					api.SubjectUpsert{Key: subject2},
-				})
-				require.NoError(t, err)
-				require.Equal(t, http.StatusOK, resp.StatusCode())
-			}
+			CreateCustomerWithSubject(t, client, customer2Key, subject2)
+
 			meteredEntitlement := api.EntitlementMeteredCreateInputs{
 				Type:      "metered",
 				FeatureId: &featureId,
@@ -1201,16 +1189,9 @@ func TestCredit(t *testing.T) {
 		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
 		require.NoError(t, err)
 
-		subject := "test-override"
+		subject := customer3.Key()
 
-		// ensure subject exists
-		{
-			resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
-				api.SubjectUpsert{Key: subject},
-			})
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, resp.StatusCode())
-		}
+		CreateCustomerWithSubject(t, client, subject, subject)
 
 		// create an entitlement
 		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, *body)

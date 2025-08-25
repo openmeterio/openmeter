@@ -17,7 +17,7 @@ type EntitlementValuePayloadBase struct {
 	Feature     api.Feature            `json:"feature"`
 	Subject     api.Subject            `json:"subject"`
 	Value       api.EntitlementValue   `json:"value"`
-	Customer    *api.Customer          `json:"customer,omitempty"`
+	Customer    api.Customer           `json:"customer"`
 }
 
 type BalanceThresholdPayload struct {
