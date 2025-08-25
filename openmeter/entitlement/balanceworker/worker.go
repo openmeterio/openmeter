@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
@@ -45,6 +46,7 @@ type WorkerOptions struct {
 	// External connectors
 	NotificationService notification.Service
 	Subject             subject.Service
+	Customer            customer.Service
 
 	MetricMeter metric.Meter
 
@@ -84,6 +86,14 @@ func (o *WorkerOptions) Validate() error {
 
 	if o.NotificationService == nil {
 		return errors.New("notification service is required")
+	}
+
+	if o.Customer == nil {
+		return errors.New("customer service is required")
+	}
+
+	if o.Subject == nil {
+		return errors.New("subject service is required")
 	}
 
 	if err := o.FilterStateStorage.Validate(); err != nil {
@@ -202,6 +212,18 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				))
 		}),
 
+		// Entitlement created event v2
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementCreatedEventV2) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementEvent(
+					ctx,
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.Entitlement.ID},
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.Entitlement.ID)),
+					WithEventAt(event.Entitlement.ManagedModel.CreatedAt),
+				))
+		}),
+
 		// Entitlement deleted event
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementDeletedEvent) error {
 			return w.opts.EventBus.
@@ -210,6 +232,18 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
 					WithEventAt(lo.FromPtrOr(event.DeletedAt, time.Now())),
+				))
+		}),
+
+		// Entitlement deleted event v2
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementDeletedEventV2) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementEvent(
+					ctx,
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.Entitlement.ID},
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.Entitlement.ID)),
+					WithEventAt(lo.FromPtrOr(event.Entitlement.ManagedModel.DeletedAt, time.Now())),
 				))
 		}),
 
@@ -225,15 +259,15 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				))
 		}),
 
-		// Grant created event v2 (customer-centric)
+		// Grant created event v2
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *grant.CreatedEventV2) error {
 			return w.opts.EventBus.
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
-					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
-					WithEventAt(event.CreatedAt),
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.Grant.OwnerID},
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.Grant.OwnerID, metadata.EntityGrant, event.Grant.ID)),
+					WithEventAt(event.Grant.ManagedModel.CreatedAt),
 				))
 		}),
 
@@ -249,15 +283,15 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				))
 		}),
 
-		// Grant voided event v2 (customer-centric)
+		// Grant voided event v2
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *grant.VoidedEventV2) error {
 			return w.opts.EventBus.
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
-					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID)),
-					WithEventAt(event.UpdatedAt),
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.Grant.OwnerID},
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.Grant.OwnerID, metadata.EntityGrant, event.Grant.ID)),
+					WithEventAt(event.Grant.ManagedModel.UpdatedAt),
 				))
 		}),
 

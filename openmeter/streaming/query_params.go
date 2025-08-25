@@ -67,6 +67,7 @@ func (p *QueryParams) Validate() error {
 // Customer is a customer that can be used in a meter query
 type Customer interface {
 	GetUsageAttribution() CustomerUsageAttribution
+	// TODO(galexi): add a method to get the customer ID
 }
 
 // CustomerUsageAttribution holds customer fields that map usage to a customer

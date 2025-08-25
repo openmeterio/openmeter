@@ -107,7 +107,7 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 			return nil, err
 		}
 
-		err = c.publisher.Publish(ctx, entitlement.NewEntitlementDeletedEventPayload(*ent))
+		err = c.publisher.Publish(ctx, entitlement.NewEntitlementDeletedEventPayloadV2(*ent))
 		if err != nil {
 			return nil, err
 		}

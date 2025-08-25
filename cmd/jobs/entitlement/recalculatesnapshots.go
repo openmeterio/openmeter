@@ -26,6 +26,8 @@ func NewRecalculateBalanceSnapshotsCommand() *cobra.Command {
 				NotificationService: internal.App.NotificationService,
 				FilterStateStorage:  filterStateStorage,
 				Logger:              internal.App.Logger,
+				Customer:            internal.App.Customer,
+				Subject:             internal.App.Subject,
 			})
 			if err != nil {
 				return err

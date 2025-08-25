@@ -15,8 +15,10 @@ const (
 type EntitlementValuePayloadBase struct {
 	Entitlement api.EntitlementMetered `json:"entitlement"`
 	Feature     api.Feature            `json:"feature"`
-	Subject     api.Subject            `json:"subject"`
-	Value       api.EntitlementValue   `json:"value"`
+	// Deprecated: will be removed when deprecating subjects
+	Subject  api.Subject          `json:"subject"`
+	Customer api.Customer         `json:"customer"`
+	Value    api.EntitlementValue `json:"value"`
 }
 
 type BalanceThresholdPayload struct {

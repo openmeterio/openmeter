@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -430,6 +431,28 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	subjectAdapter, err := common.NewSubjectAdapter(client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	subjectService, err := common.NewSubjectService(subjectAdapter)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
 		GlobalInitializer:             globalInitializer,
 		Migrator:                      migrator,
@@ -455,6 +478,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Plan:                          planService,
 		Secret:                        secretserviceService,
 		Subscription:                  subscriptionServiceWithWorkflow,
+		Subject:                       subjectService,
 		StreamingConnector:            connector,
 	}
 	return application, func() {
@@ -496,6 +520,7 @@ type Application struct {
 	Plan                          plan.Service
 	Secret                        secret.Service
 	Subscription                  common.SubscriptionServiceWithWorkflow
+	Subject                       subject.Service
 	StreamingConnector            streaming.Connector
 }
 
