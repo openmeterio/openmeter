@@ -43,7 +43,7 @@ func TestPlan(t *testing.T) {
 			PhoneNumber: lo.ToPtr("1234567890"),
 			PostalCode:  lo.ToPtr("12345"),
 		},
-		UsageAttribution: api.CustomerUsageAttribution{
+		UsageAttribution: &api.CustomerUsageAttribution{
 			SubjectKeys: []string{"test_customer_subject_1"},
 		},
 	})
@@ -68,7 +68,7 @@ func TestPlan(t *testing.T) {
 			PhoneNumber: lo.ToPtr("1234567890"),
 			PostalCode:  lo.ToPtr("12345"),
 		},
-		UsageAttribution: api.CustomerUsageAttribution{
+		UsageAttribution: &api.CustomerUsageAttribution{
 			SubjectKeys: []string{"test_customer_subject_2"},
 		},
 	})
@@ -102,7 +102,7 @@ func TestPlan(t *testing.T) {
 			PhoneNumber: lo.ToPtr("1234567890"),
 			PostalCode:  lo.ToPtr("12345"),
 		},
-		UsageAttribution: api.CustomerUsageAttribution{
+		UsageAttribution: &api.CustomerUsageAttribution{
 			SubjectKeys: []string{"test_customer_subject_abused"},
 		},
 	})
@@ -947,7 +947,7 @@ func TestPlan(t *testing.T) {
 				PhoneNumber: lo.ToPtr("1234567890"),
 				PostalCode:  lo.ToPtr("12345"),
 			},
-			UsageAttribution: api.CustomerUsageAttribution{
+			UsageAttribution: &api.CustomerUsageAttribution{
 				SubjectKeys: []string{"test_customer_subject_3"},
 			},
 		})

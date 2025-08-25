@@ -15,16 +15,22 @@ import (
 
 func MapCustomerCreate(body api.CustomerCreate) customer.CustomerMutate {
 	var metadata *models.Metadata
-
 	if body.Metadata != nil {
 		metadata = lo.ToPtr(models.NewMetadata(*body.Metadata))
+	}
+
+	var usageAttribution *customer.CustomerUsageAttribution
+	if body.UsageAttribution != nil {
+		usageAttribution = &customer.CustomerUsageAttribution{
+			SubjectKeys: body.UsageAttribution.SubjectKeys,
+		}
 	}
 
 	return customer.CustomerMutate{
 		Key:              body.Key,
 		Name:             body.Name,
 		Description:      body.Description,
-		UsageAttribution: customer.CustomerUsageAttribution(body.UsageAttribution),
+		UsageAttribution: lo.FromPtrOr(usageAttribution, customer.CustomerUsageAttribution{}),
 		PrimaryEmail:     body.PrimaryEmail,
 		BillingAddress:   MapAddress(body.BillingAddress),
 		Currency:         mapCurrency(body.Currency),
@@ -34,15 +40,22 @@ func MapCustomerCreate(body api.CustomerCreate) customer.CustomerMutate {
 
 func MapCustomerReplaceUpdate(body api.CustomerReplaceUpdate) customer.CustomerMutate {
 	var metadata *models.Metadata
-
 	if body.Metadata != nil {
 		metadata = lo.ToPtr(models.NewMetadata(*body.Metadata))
 	}
+
+	var usageAttribution *customer.CustomerUsageAttribution
+	if body.UsageAttribution != nil {
+		usageAttribution = &customer.CustomerUsageAttribution{
+			SubjectKeys: body.UsageAttribution.SubjectKeys,
+		}
+	}
+
 	return customer.CustomerMutate{
 		Key:              body.Key,
 		Name:             body.Name,
 		Description:      body.Description,
-		UsageAttribution: customer.CustomerUsageAttribution(body.UsageAttribution),
+		UsageAttribution: lo.FromPtrOr(usageAttribution, customer.CustomerUsageAttribution{}),
 		PrimaryEmail:     body.PrimaryEmail,
 		BillingAddress:   MapAddress(body.BillingAddress),
 		Currency:         mapCurrency(body.Currency),
@@ -113,17 +126,19 @@ func FromAnnotations(annotations models.Annotations) *api.Annotations {
 func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscription, expand []api.CustomerExpand) (api.Customer, error) {
 	// Map the customer to the API Customer
 	apiCustomer := api.Customer{
-		Id:               c.ManagedResource.ID,
-		Key:              c.Key,
-		Name:             c.Name,
-		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
-		PrimaryEmail:     c.PrimaryEmail,
-		Description:      c.Description,
-		CreatedAt:        c.CreatedAt,
-		UpdatedAt:        c.UpdatedAt,
-		DeletedAt:        c.DeletedAt,
-		Metadata:         FromMetadata(lo.FromPtr(c.Metadata)),
-		Annotations:      FromAnnotations(lo.FromPtr(c.Annotation)),
+		Id:   c.ManagedResource.ID,
+		Key:  c.Key,
+		Name: c.Name,
+		UsageAttribution: &api.CustomerUsageAttribution{
+			SubjectKeys: c.UsageAttribution.SubjectKeys,
+		},
+		PrimaryEmail: c.PrimaryEmail,
+		Description:  c.Description,
+		CreatedAt:    c.CreatedAt,
+		UpdatedAt:    c.UpdatedAt,
+		DeletedAt:    c.DeletedAt,
+		Metadata:     FromMetadata(lo.FromPtr(c.Metadata)),
+		Annotations:  FromAnnotations(lo.FromPtr(c.Annotation)),
 	}
 
 	if c.BillingAddress != nil {

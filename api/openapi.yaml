@@ -14526,7 +14526,6 @@ components:
         - name
         - createdAt
         - updatedAt
-        - usageAttribution
       properties:
         id:
           type: string
@@ -14713,7 +14712,6 @@ components:
       type: object
       required:
         - name
-        - usageAttribution
       properties:
         name:
           type: string
@@ -14827,7 +14825,6 @@ components:
       type: object
       required:
         - name
-        - usageAttribution
       properties:
         name:
           type: string
@@ -14889,7 +14886,6 @@ components:
           type: array
           items:
             type: string
-          minItems: 1
           maxItems: 1
           description: The subjects that are attributed to the customer.
           title: SubjectKeys
