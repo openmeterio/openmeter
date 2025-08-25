@@ -12,13 +12,13 @@ import (
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (w *Worker) handleBatchedIngestEvent(ctx context.Context, ingestEvent ingestevents.EventBatchedIngest) error {
-	affectedEntitlements, err := w.opts.Repo.ListAffectedEntitlements(ctx,
+func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) error {
+	affectedEntitlements, err := w.opts.Repo.ListEntitlementsAffectedByIngestEvents(ctx,
 		[]IngestEventQueryFilter{
 			{
-				Namespace:  ingestEvent.Namespace.ID,
-				SubjectKey: ingestEvent.SubjectKey,
-				MeterSlugs: ingestEvent.MeterSlugs,
+				Namespace:    event.Namespace.ID,
+				EventSubject: event.SubjectKey,
+				MeterSlugs:   event.MeterSlugs,
 			},
 		})
 	if err != nil {
@@ -32,8 +32,8 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, ingestEvent inges
 			ctx,
 			pkgmodels.NamespacedID{Namespace: ent.Namespace, ID: ent.EntitlementID},
 			WithSource(metadata.ComposeResourcePath(ent.Namespace, metadata.EntityEvent)),
-			WithEventAt(ingestEvent.StoredAt),
-			WithRawIngestedEvents(ingestEvent.RawEvents),
+			WithEventAt(event.StoredAt),
+			WithRawIngestedEvents(event.RawEvents),
 		)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("handling entitlement event for %s: %w", ent.EntitlementID, err))

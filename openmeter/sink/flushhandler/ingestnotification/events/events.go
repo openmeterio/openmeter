@@ -17,6 +17,8 @@ const (
 type EventBatchedIngest struct {
 	Namespace  models.NamespaceID `json:"namespace"`
 	SubjectKey string             `json:"subjectKey"`
+	// We could add the customerID here, could make sense if something apart from the balanceworker is interested in the customerID
+	// CustomerID string `json:"customerID"`
 
 	// MeterSlugs contain the list of slugs that are affected by the event. We
 	// should not use meterIDs as they are not something present in the open source

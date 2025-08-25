@@ -115,7 +115,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 					db_entitlement.Or(db_entitlement.DeletedAtGT(at), db_entitlement.DeletedAtIsNil()),
 					db_entitlement.HasCustomerWith(
 						customerdb.Namespace(namespace),
-						customerdb.DeletedAtIsNil(),
+						customerNotDeletedAt(at),
 						customerdb.HasSubjectsWith(
 							customersubjectsdb.SubjectKey(subjectKey),
 							customersubjectsdb.DeletedAtIsNil(),
@@ -307,16 +307,16 @@ func (a *entitlementDBAdapter) DeactivateEntitlement(ctx context.Context, entitl
 
 // TODO[OM-1009]: This returns all the entitlements even the expired ones, for billing we would need to have a range for
 // the batch ingested events. Let's narrow down the list of entitlements active during that period.
-func (a *entitlementDBAdapter) ListAffectedEntitlements(ctx context.Context, eventFilters []balanceworker.IngestEventQueryFilter) ([]balanceworker.IngestEventDataResponse, error) {
-	return entutils.TransactingRepo[[]balanceworker.IngestEventDataResponse, *entitlementDBAdapter](
+func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx context.Context, eventFilters []balanceworker.IngestEventQueryFilter) ([]balanceworker.ListAffectedEntitlementsResponse, error) {
+	return entutils.TransactingRepo[[]balanceworker.ListAffectedEntitlementsResponse, *entitlementDBAdapter](
 		ctx,
 		a,
-		func(ctx context.Context, repo *entitlementDBAdapter) ([]balanceworker.IngestEventDataResponse, error) {
+		func(ctx context.Context, repo *entitlementDBAdapter) ([]balanceworker.ListAffectedEntitlementsResponse, error) {
 			if len(eventFilters) == 0 {
 				return nil, fmt.Errorf("no eventFilters provided")
 			}
 
-			result := make([]balanceworker.IngestEventDataResponse, 0)
+			result := make([]balanceworker.ListAffectedEntitlementsResponse, 0)
 
 			for _, pair := range eventFilters {
 				entities, err := repo.db.Entitlement.Query().
@@ -324,25 +324,31 @@ func (a *entitlementDBAdapter) ListAffectedEntitlements(ctx context.Context, eve
 						db_entitlement.Namespace(pair.Namespace),
 						db_entitlement.HasCustomerWith(
 							customerdb.Namespace(pair.Namespace),
-							customerdb.DeletedAtIsNil(),
+							customerNotDeletedAt(clock.Now()),
 							customerdb.HasSubjectsWith(
-								customersubjectsdb.SubjectKey(pair.SubjectKey),
+								customersubjectsdb.SubjectKey(pair.EventSubject),
 								customersubjectsdb.DeletedAtIsNil(),
 							),
 						),
 						db_entitlement.HasFeatureWith(db_feature.MeterSlugIn(pair.MeterSlugs...)),
 					).
 					WithFeature().
+					WithCustomer().
 					All(ctx)
 				if err != nil {
 					return nil, err
 				}
 
 				for _, e := range entities {
-					result = append(result, balanceworker.IngestEventDataResponse{
+					if e.Edges.Customer == nil {
+						return nil, fmt.Errorf("entitlement %s has no customer", e.ID)
+					}
+
+					result = append(result, balanceworker.ListAffectedEntitlementsResponse{
 						Namespace:     e.Namespace,
 						EntitlementID: e.ID,
-						SubjectKey:    pair.SubjectKey,
+						SubjectKey:    pair.EventSubject,
+						CustomerID:    e.Edges.Customer.ID,
 						MeterSlug:     e.Edges.Feature.MeterSlug,
 					})
 				}
@@ -369,7 +375,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Contex
 					db_entitlement.Or(db_entitlement.DeletedAtGT(at), db_entitlement.DeletedAtIsNil()),
 					db_entitlement.HasCustomerWith(
 						customerdb.Namespace(namespace),
-						customerdb.DeletedAtIsNil(),
+						customerNotDeletedAt(at),
 						customerdb.HasSubjectsWith(
 							customersubjectsdb.SubjectKey(subjectKey),
 							customersubjectsdb.DeletedAtIsNil(),
@@ -452,7 +458,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 							customersubjectsdb.SubjectKeyIn(params.SubjectKeys...),
 							customersubjectsdb.DeletedAtIsNil(),
 						),
-						customerdb.DeletedAtIsNil(),
+						customerNotDeletedAt(clock.Now()),
 					),
 				)
 				// Preload only matching subjects to help mapping determine the subject key
@@ -965,6 +971,7 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (*[]entitlement.Entitlement, error) {
+			nowTS := clock.Now()
 			query := repo.db.Entitlement.Query().WithCustomer()
 			query = withAllUsageResets(query, []string{namespace})
 			res, err := query.
@@ -975,11 +982,11 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 					),
 				).
 				Where(
-					db_entitlement.Or(db_entitlement.DeletedAtIsNil(), db_entitlement.DeletedAtGT(clock.Now())),
+					db_entitlement.Or(db_entitlement.DeletedAtIsNil(), db_entitlement.DeletedAtGT(nowTS)),
 					db_entitlement.Namespace(namespace),
 					db_entitlement.HasCustomerWith(
 						customerdb.Namespace(namespace),
-						customerdb.DeletedAtIsNil(),
+						customerNotDeletedAt(nowTS),
 						customerdb.HasSubjectsWith(
 							customersubjectsdb.SubjectKey(subjectKey),
 							customersubjectsdb.DeletedAtIsNil(),
@@ -1035,6 +1042,13 @@ func entitlementActiveBetween(from, to time.Time) []predicate.Entitlement {
 			db_entitlement.ActiveToGT(from),
 		),
 	}
+}
+
+func customerNotDeletedAt(at time.Time) predicate.Customer {
+	return customerdb.Or(
+		customerdb.DeletedAtGT(at),
+		customerdb.DeletedAtIsNil(),
+	)
 }
 
 // EntitlementActiveAt is exposed to be used for subscription adapter

@@ -60,6 +60,7 @@ func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher eventbu
 
 // OnFlushSuccess takes a look at the incoming messages and in case something is
 // affecting a ledger balance it will create the relevant event.
+// We could resolve the customers in the event processing / generation instead of in the handlers. There are pros and cons to both.
 func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMessage) error {
 	var finalErr error
 
