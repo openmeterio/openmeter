@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -65,6 +66,7 @@ type handler struct {
 	streamingService streaming.Connector
 	meterService     meter.Service
 	featureService   feature.FeatureConnector
+	customerService  customer.Service
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	featureSwitches  config.BillingFeatureSwitchesConfiguration
 	options          []httptransport.HandlerOption
@@ -89,6 +91,7 @@ func New(
 	streamingService streaming.Connector,
 	featureService feature.FeatureConnector,
 	meterService meter.Service,
+	customerService customer.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
@@ -100,5 +103,6 @@ func New(
 		streamingService: streamingService,
 		meterService:     meterService,
 		featureService:   featureService,
+		customerService:  customerService,
 	}
 }

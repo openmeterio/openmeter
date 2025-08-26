@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -111,10 +112,24 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 				meterGroupByFilters[k] = []string{v}
 			}
 
+			// Get the customer
+			customer, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerID: lo.ToPtr(invoice.CustomerID()),
+			})
+			if err != nil {
+				return GetInvoiceLineCostResponse{}, err
+			}
+
+			if customer == nil {
+				return GetInvoiceLineCostResponse{}, fmt.Errorf("customer cannot be nil")
+			}
+
+			// Query the meter
 			meterQueryParams := streaming.QueryParams{
-				From:          &line.Period.Start,
-				To:            &line.Period.End,
-				FilterGroupBy: meterGroupByFilters,
+				From:           &line.Period.Start,
+				To:             &line.Period.End,
+				FilterGroupBy:  meterGroupByFilters,
+				FilterCustomer: []streaming.Customer{*customer},
 			}
 
 			if request.Params.GroupBy != nil {
