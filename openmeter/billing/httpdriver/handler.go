@@ -49,7 +49,7 @@ type InvoiceHandler interface {
 }
 
 type InvoiceCostHandler interface {
-	GetInvoiceFeatureCost() GetInvoiceFeatureCostHandler
+	GetInvoiceLineCost() GetInvoiceLineCostHandler
 }
 
 type CustomerOverrideHandler interface {

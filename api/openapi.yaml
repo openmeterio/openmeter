@@ -2219,9 +2219,9 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing
-  /api/v1/billing/invoices/{invoiceId}/features/{featureKey}/cost:
+  /api/v1/billing/invoices/{invoiceId}/lines/{lineId}/cost:
     get:
-      operationId: getInvoiceFeatureCost
+      operationId: getInvoiceLineCost
       summary: Get an invoice feature cost
       description: Get an invoice feature cost.
       parameters:
@@ -2232,21 +2232,21 @@ paths:
             type: string
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
             example: 01G65Z755AFWAKHE12NY0CQ9FH
-        - name: featureKey
+        - name: lineId
           in: path
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/GetInvoiceFeatureCostParam.windowSize'
-        - $ref: '#/components/parameters/GetInvoiceFeatureCostParam.windowTimeZone'
-        - $ref: '#/components/parameters/GetInvoiceFeatureCostParam.groupBy'
+        - $ref: '#/components/parameters/GetInvoiceLineCostParam.windowSize'
+        - $ref: '#/components/parameters/GetInvoiceLineCostParam.windowTimeZone'
+        - $ref: '#/components/parameters/GetInvoiceLineCostParam.groupBy'
       responses:
         '200':
           description: The request has succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InvoiceFeatureCost'
+                $ref: '#/components/schemas/InvoiceLineCost'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -12191,7 +12191,7 @@ components:
         $ref: '#/components/schemas/FeatureOrderBy'
       explode: false
       style: form
-    GetInvoiceFeatureCostParam.groupBy:
+    GetInvoiceLineCostParam.groupBy:
       name: groupBy
       in: query
       required: false
@@ -12205,7 +12205,7 @@ components:
         items:
           type: string
       style: form
-    GetInvoiceFeatureCostParam.windowSize:
+    GetInvoiceLineCostParam.windowSize:
       name: windowSize
       in: query
       required: false
@@ -12217,7 +12217,7 @@ components:
         $ref: '#/components/schemas/WindowSize'
       explode: false
       style: form
-    GetInvoiceFeatureCostParam.windowTimeZone:
+    GetInvoiceLineCostParam.windowTimeZone:
       name: windowTimeZone
       in: query
       required: false
@@ -18831,83 +18831,6 @@ components:
         - preceding
         - workflow.apps
       description: InvoiceExpand specifies the parts of the invoice to expand in the list output.
-    InvoiceFeatureCost:
-      type: object
-      required:
-        - from
-        - to
-        - costPerUnit
-        - totalUsage
-        - totalCost
-        - currency
-        - rows
-      properties:
-        from:
-          type: string
-          format: date-time
-          description: The start of the period the value is aggregated over.
-          example: '2023-01-01T01:01:01.001Z'
-        to:
-          type: string
-          format: date-time
-          description: The end of the period the value is aggregated over.
-          example: '2023-01-01T01:01:01.001Z'
-        costPerUnit:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The cost per unit of the feature for the invoice.
-        totalUsage:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The total usage of the feature for the invoice.
-        totalCost:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The total cost of the feature for the invoice.
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: Currency of the cost.
-        rows:
-          type: array
-          items:
-            $ref: '#/components/schemas/InvoiceFeatureCostRow'
-          description: The rows of the feature cost for the invoice.
-      description: InvoiceFeatureCost is the cost of a feature for an invoice.
-    InvoiceFeatureCostRow:
-      type: object
-      required:
-        - windowStart
-        - windowEnd
-        - usage
-        - cost
-        - groupBy
-      properties:
-        windowStart:
-          type: string
-          format: date-time
-          description: The start of the window the value is aggregated over.
-          example: '2023-01-01T01:01:01.001Z'
-        windowEnd:
-          type: string
-          format: date-time
-          description: The end of the window the value is aggregated over.
-          example: '2023-01-01T01:01:01.001Z'
-        usage:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The usage of the feature for the invoice.
-        cost:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The cost of the feature for the invoice.
-        groupBy:
-          type: object
-          additionalProperties:
-            type: string
-            nullable: true
-          description: The group by values the value is aggregated over.
-      description: InvoiceFeatureCostRow is a row of the feature cost for the invoice.
     InvoiceGenericDocumentRef:
       type: object
       required:
@@ -19334,6 +19257,83 @@ components:
         InvoiceLine represents a single item or service sold to the customer.
 
         This is a base class for all line types, and should not be used directly.
+    InvoiceLineCost:
+      type: object
+      required:
+        - from
+        - to
+        - costPerUnit
+        - totalUsage
+        - totalCost
+        - currency
+        - rows
+      properties:
+        from:
+          type: string
+          format: date-time
+          description: The start of the period the value is aggregated over.
+          example: '2023-01-01T01:01:01.001Z'
+        to:
+          type: string
+          format: date-time
+          description: The end of the period the value is aggregated over.
+          example: '2023-01-01T01:01:01.001Z'
+        costPerUnit:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The cost per unit of the feature for the invoice.
+        totalUsage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total usage of the feature for the invoice.
+        totalCost:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total cost of the feature for the invoice.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Currency of the cost.
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineCostRow'
+          description: The rows of the feature cost for the invoice.
+      description: InvoiceLineCost is the cost of a feature for an invoice.
+    InvoiceLineCostRow:
+      type: object
+      required:
+        - windowStart
+        - windowEnd
+        - usage
+        - cost
+        - groupBy
+      properties:
+        windowStart:
+          type: string
+          format: date-time
+          description: The start of the window the value is aggregated over.
+          example: '2023-01-01T01:01:01.001Z'
+        windowEnd:
+          type: string
+          format: date-time
+          description: The end of the window the value is aggregated over.
+          example: '2023-01-01T01:01:01.001Z'
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage of the feature for the invoice.
+        cost:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The cost of the feature for the invoice.
+        groupBy:
+          type: object
+          additionalProperties:
+            type: string
+            nullable: true
+          description: The group by values the value is aggregated over.
+      description: InvoiceLineCostRow is a row of the feature cost for the invoice.
     InvoiceLineDiscounts:
       type: object
       properties:

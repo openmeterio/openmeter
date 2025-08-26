@@ -70,13 +70,13 @@ func (a *Router) GetInvoice(w http.ResponseWriter, r *http.Request, invoiceId st
 	}).ServeHTTP(w, r)
 }
 
-// Get an invoice feature cost
-// (GET /api/v1/billing/invoices/{invoiceId}/features/{featureIdOrKey}/cost)
-func (a *Router) GetInvoiceFeatureCost(w http.ResponseWriter, r *http.Request, invoiceId string, featureKey string, params api.GetInvoiceFeatureCostParams) {
-	a.billingHandler.GetInvoiceFeatureCost().With(httpdriver.GetInvoiceFeatureCostParams{
-		InvoiceID:  invoiceId,
-		FeatureKey: featureKey,
-		Params:     params,
+// Get an invoice line cost
+// (GET /api/v1/billing/invoices/{invoiceId}/lines/{lineId}/cost)
+func (a *Router) GetInvoiceLineCost(w http.ResponseWriter, r *http.Request, invoiceId string, lineId string, params api.GetInvoiceLineCostParams) {
+	a.billingHandler.GetInvoiceLineCost().With(httpdriver.GetInvoiceLineCostParams{
+		InvoiceID: invoiceId,
+		LineID:    lineId,
+		Params:    params,
 	}).ServeHTTP(w, r)
 }
 
