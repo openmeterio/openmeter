@@ -9851,9 +9851,15 @@ export const createNotificationRuleBody = zod
             zod
               .object({
                 type: zod
-                  .enum(['PERCENT', 'NUMBER'])
+                  .enum([
+                    'PERCENT',
+                    'NUMBER',
+                    'balance_value',
+                    'usage_percentage',
+                    'usage_value',
+                  ])
                   .describe(
-                    'Type of the rule in the balance threshold specification.'
+                    'Type of the rule in the balance threshold specification:\n* `balance_value`: threshold defined by the remaining balance value based on usage and the total of grants in the current usage period\n* `usage_percentage`: threshold defined by the usage percentage compared to the total of grants in the current usage period\n* `usage_value`: threshold defined by the usage value in the current usage period\n* `NUMBER` (**deprecated**): see `usage_value`\n* `PERCENT` (**deprecated**): see `usage_percentage`'
                   )
                   .describe('Type of the threshold.'),
                 value: zod.coerce.number().describe('Value of the threshold.'),
@@ -10047,9 +10053,15 @@ export const updateNotificationRuleBody = zod
             zod
               .object({
                 type: zod
-                  .enum(['PERCENT', 'NUMBER'])
+                  .enum([
+                    'PERCENT',
+                    'NUMBER',
+                    'balance_value',
+                    'usage_percentage',
+                    'usage_value',
+                  ])
                   .describe(
-                    'Type of the rule in the balance threshold specification.'
+                    'Type of the rule in the balance threshold specification:\n* `balance_value`: threshold defined by the remaining balance value based on usage and the total of grants in the current usage period\n* `usage_percentage`: threshold defined by the usage percentage compared to the total of grants in the current usage period\n* `usage_value`: threshold defined by the usage value in the current usage period\n* `NUMBER` (**deprecated**): see `usage_value`\n* `PERCENT` (**deprecated**): see `usage_percentage`'
                   )
                   .describe('Type of the threshold.'),
                 value: zod.coerce.number().describe('Value of the threshold.'),

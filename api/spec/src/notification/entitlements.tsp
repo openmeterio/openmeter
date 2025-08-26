@@ -130,19 +130,30 @@ model NotificationRuleBalanceThresholdValue {
    * Type of the threshold.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @example(NotificationRuleBalanceThresholdValueType.NUMBER)
+  @example(NotificationRuleBalanceThresholdValueType.usage_value)
   type: NotificationRuleBalanceThresholdValueType;
 }
 
 /**
- * Type of the rule in the balance threshold specification.
+ * Type of the rule in the balance threshold specification:
+ *   * `balance_value`: threshold defined by the remaining balance value based on usage and the total of grants in the current usage period
+ *   * `usage_percentage`: threshold defined by the usage percentage compared to the total of grants in the current usage period
+ *   * `usage_value`: threshold defined by the usage value in the current usage period
+ *   * `NUMBER` (**deprecated**): see `usage_value`
+ *   * `PERCENT` (**deprecated**): see `usage_percentage`
  */
 @summary("Notification balance threshold type")
 @friendlyName("NotificationRuleBalanceThresholdValueType")
-@extension("x-enum-varnames", #["Percent", "Number"])
+@extension(
+  "x-enum-varnames",
+  #["Percent", "Number", "BalanceValue", "UsagePercentage", "UsageValue"]
+)
 enum NotificationRuleBalanceThresholdValueType {
   PERCENT,
   NUMBER,
+  balance_value,
+  usage_percentage,
+  usage_value,
 }
 
 /**
