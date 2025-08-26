@@ -10,7 +10,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -19,6 +23,7 @@ type Handler interface {
 	ProfileHandler
 	InvoiceLineHandler
 	InvoiceHandler
+	InvoiceCostHandler
 	CustomerOverrideHandler
 }
 
@@ -44,6 +49,10 @@ type InvoiceHandler interface {
 	SimulateInvoice() SimulateInvoiceHandler
 }
 
+type InvoiceCostHandler interface {
+	GetInvoiceLineCost() GetInvoiceLineCostHandler
+}
+
 type CustomerOverrideHandler interface {
 	ListCustomerOverrides() ListCustomerOverridesHandler
 	UpsertCustomerOverride() UpsertCustomerOverrideHandler
@@ -54,6 +63,10 @@ type CustomerOverrideHandler interface {
 type handler struct {
 	service          billing.Service
 	appService       app.Service
+	streamingService streaming.Connector
+	meterService     meter.Service
+	featureService   feature.FeatureConnector
+	customerService  customer.Service
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	featureSwitches  config.BillingFeatureSwitchesConfiguration
 	options          []httptransport.HandlerOption
@@ -75,6 +88,10 @@ func New(
 	service billing.Service,
 	appService app.Service,
 	stripeAppService appstripe.Service,
+	streamingService streaming.Connector,
+	featureService feature.FeatureConnector,
+	meterService meter.Service,
+	customerService customer.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
@@ -83,5 +100,9 @@ func New(
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		featureSwitches:  featureSwitches,
+		streamingService: streamingService,
+		meterService:     meterService,
+		featureService:   featureService,
+		customerService:  customerService,
 	}
 }
