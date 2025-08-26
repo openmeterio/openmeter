@@ -130,8 +130,10 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) {
-			// Resolve SubjectKey to CustomerID by looking up the customer via usage attribution
 			cust, err := repo.db.Customer.Query().
+				WithSubjects(func(csq *db.CustomerSubjectsQuery) {
+					csq.Where(customersubjectsdb.DeletedAtIsNil())
+				}).
 				Where(customerdb.Namespace(ent.Namespace)).
 				Where(customerdb.ID(ent.UsageAttribution.ID)).
 				Where(customerdb.DeletedAtIsNil()).
