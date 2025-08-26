@@ -266,9 +266,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	s.Env.StripeAppClient().
 		On("GetCustomer", nonExistingStripeCustomerID).
-		Return(stripeclient.StripeCustomer{}, stripeclient.StripeCustomerNotFoundError{
-			StripeCustomerID: nonExistingStripeCustomerID,
-		})
+		Return(stripeclient.StripeCustomer{}, stripeclient.NewStripeCustomerNotFoundError(nonExistingStripeCustomerID))
 
 	defer s.Env.StripeAppClient().Restore()
 
@@ -294,9 +292,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	s.Env.StripeAppClient().
 		On("GetPaymentMethod", nonExistingStripePaymentMethodID).
-		Return(stripeclient.StripePaymentMethod{}, stripeclient.StripePaymentMethodNotFoundError{
-			StripePaymentMethodID: nonExistingStripePaymentMethodID,
-		})
+		Return(stripeclient.StripePaymentMethod{}, stripeclient.NewStripePaymentMethodNotFoundError(nonExistingStripePaymentMethodID))
 
 	defer s.Env.StripeAppClient().Restore()
 

@@ -18,9 +18,7 @@ func (c *stripeAppClient) GetCustomer(ctx context.Context, stripeCustomerID stri
 	if err != nil {
 		// Stripe customer not found error
 		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
-			return StripeCustomer{}, StripeCustomerNotFoundError{
-				StripeCustomerID: stripeCustomerID,
-			}
+			return StripeCustomer{}, NewStripeCustomerNotFoundError(stripeCustomerID)
 		}
 
 		return StripeCustomer{}, c.providerError(err)

@@ -182,9 +182,7 @@ func (c *stripeAppClient) GetPaymentMethod(ctx context.Context, stripePaymentMet
 		// Stripe customer not found error
 		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
 			if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
-				return StripePaymentMethod{}, StripePaymentMethodNotFoundError{
-					StripePaymentMethodID: stripePaymentMethodID,
-				}
+				return StripePaymentMethod{}, NewStripePaymentMethodNotFoundError(stripePaymentMethodID)
 			}
 		}
 
@@ -227,8 +225,15 @@ func toStripePaymentMethod(stripePaymentMethod *stripe.PaymentMethod) StripePaym
 // providerError returns a typed error for stripe provider errors
 func (c *stripeAppClient) providerError(err error) error {
 	if stripeErr, ok := err.(*stripe.Error); ok {
-		if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
-			// Update app status to unauthorized
+		switch stripeErr.HTTPStatusCode {
+		// Let's reflect back invalid request errors to the client.
+		case http.StatusBadRequest:
+			return models.NewGenericValidationError(
+				fmt.Errorf("stripe error: %s, request log url: %s", stripeErr.Msg, stripeErr.RequestLogURL),
+			)
+		// Let's reflect back unauthorized errors to the client.
+		// We also update the app status to unauthorized.
+		case http.StatusUnauthorized:
 			status := app.AppStatusUnauthorized
 
 			err = c.appService.UpdateAppStatus(context.Background(), app.UpdateAppStatusInput{
@@ -244,13 +249,13 @@ func (c *stripeAppClient) providerError(err error) error {
 				c.appID.Namespace,
 				errors.New(stripeErr.Msg),
 			)
+		default:
+			return app.NewAppProviderError(
+				&c.appID,
+				c.appID.Namespace,
+				errors.New(stripeErr.Msg),
+			)
 		}
-
-		return app.NewAppProviderError(
-			&c.appID,
-			c.appID.Namespace,
-			errors.New(stripeErr.Msg),
-		)
 	}
 
 	return err

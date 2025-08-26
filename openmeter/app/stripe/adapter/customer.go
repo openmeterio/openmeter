@@ -69,7 +69,7 @@ func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripee
 	// Check if the Stripe customer exists in the stripe account
 	_, err = stripeAppClient.GetCustomer(ctx, input.StripeCustomerID)
 	if err != nil {
-		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
+		if stripeclient.IsStripeCustomerNotFoundError(err) {
 			return app.NewAppCustomerPreConditionError(
 				input.AppID,
 				app.AppTypeStripe,
@@ -85,7 +85,7 @@ func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripee
 	if input.StripeDefaultPaymentMethodID != nil {
 		paymentMethod, err := stripeAppClient.GetPaymentMethod(ctx, *input.StripeDefaultPaymentMethodID)
 		if err != nil {
-			if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
+			if stripeclient.IsStripePaymentMethodNotFoundError(err) {
 				return app.NewAppProviderPreConditionError(
 					input.AppID,
 					fmt.Sprintf("stripe payment method %s not found in stripe account: %s", *input.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),

@@ -18,11 +18,10 @@ import (
 )
 
 const (
-	invoiceLineMetadataID                   = "om_line_id"
-	invoiceLineMetadataType                 = "om_line_type"
-	invoiceLineMetadataTypeLine             = "line"
-	invoiceLineMetadataTypeDiscount         = "discount"
-	stripeErrCodeCustomerTaxLocationInvalid = "customer_tax_location_invalid"
+	invoiceLineMetadataID           = "om_line_id"
+	invoiceLineMetadataType         = "om_line_type"
+	invoiceLineMetadataTypeLine     = "line"
+	invoiceLineMetadataTypeDiscount = "discount"
 )
 
 var _ billing.InvoicingApp = (*App)(nil)
@@ -104,9 +103,9 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 	if err != nil {
 		// If customer tax location is invalid but tax is not enforced,
 		// we can finalize the invoice without tax calculation.
-		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripeErrCodeCustomerTaxLocationInvalid {
+		if stripeclient.IsStripeInvoiceCustomerTaxLocationInvalidError(err) {
 			if invoice.Workflow.Config.Tax.Enforced {
-				return nil, fmt.Errorf("tax enforced but stripe tax returns error: %s", stripeErr.Msg)
+				return nil, fmt.Errorf("tax enforced but stripe tax returns error: %w", err)
 			}
 
 			// We can finalize the invoice without tax calculation.
