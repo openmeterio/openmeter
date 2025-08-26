@@ -70,6 +70,16 @@ func (a *Router) GetInvoice(w http.ResponseWriter, r *http.Request, invoiceId st
 	}).ServeHTTP(w, r)
 }
 
+// Get an invoice feature cost
+// (GET /api/v1/billing/invoices/{invoiceId}/features/{featureIdOrKey}/cost)
+func (a *Router) GetInvoiceFeatureCost(w http.ResponseWriter, r *http.Request, invoiceId string, featureKey string, params api.GetInvoiceFeatureCostParams) {
+	a.billingHandler.GetInvoiceFeatureCost().With(httpdriver.GetInvoiceFeatureCostParams{
+		InvoiceID:  invoiceId,
+		FeatureKey: featureKey,
+		Params:     params,
+	}).ServeHTTP(w, r)
+}
+
 // Snapshot quantities for usage based line items
 // (POST /api/v1/billing/invoices/{invoiceId}/snapshot-quantities)
 func (a *Router) SnapshotQuantitiesInvoiceAction(w http.ResponseWriter, r *http.Request, invoiceId string) {
