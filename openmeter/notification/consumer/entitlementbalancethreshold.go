@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/zeebo/xxh3"
 	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
@@ -90,7 +91,10 @@ func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot
 
 		// Check 2: fetch the last event for the same period and validate if we need to send a new notification
 
-		periodDedupeHash := b.getPeriodsDeduplicationHash(balSnapshot, rule.ID)
+		dedupHash, err := NewBalanceEventDedupHash(balSnapshot, rule.ID, *threshold)
+		if err != nil {
+			return fmt.Errorf("failed to generate deduplication hash: %w", err)
+		}
 
 		// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
 		lastEvents, err := b.Notification.ListEvents(ctx, notification.ListEventsInput{
@@ -103,17 +107,17 @@ func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot
 			From: balSnapshot.Entitlement.CurrentUsagePeriod.From,
 			To:   balSnapshot.Entitlement.CurrentUsagePeriod.To,
 
-			DeduplicationHashes: []string{periodDedupeHash},
+			DeduplicationHashes: []string{dedupHash.V1(), dedupHash.V2()},
 			OrderBy:             notification.OrderByCreatedAt,
 			Order:               sortx.OrderDesc,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to list events [dedup.key=%s]: %w", periodDedupeHash, err)
+			return fmt.Errorf("failed to list events [dedup.hash.v1=%s dedup.hash.v2=%s]: %w", dedupHash.V1(), dedupHash.V2(), err)
 		}
 
 		createEventInput := createBalanceThresholdEventInput{
 			Snapshot:   balSnapshot,
-			DedupeHash: periodDedupeHash,
+			DedupeHash: dedupHash.V2(),
 			Threshold:  *threshold,
 			RuleID:     rule.ID,
 		}
@@ -247,37 +251,113 @@ func (b *EntitlementSnapshotHandler) isBalanceThresholdEvent(event snapshot.Snap
 	return true
 }
 
-// getPeriodsDeduplicationHash generates a hash that the handler can use to deduplicate the events. Right now the hash is unique
-// for a single entitlement usage period. We can use this to fetch the previous events for the same period and validate
-// if we need to send a new notification.
-func (b *EntitlementSnapshotHandler) getPeriodsDeduplicationHash(snapshot snapshot.SnapshotEvent, ruleID string) string {
-	// Note: this should not happen, but let's be safe here
+type ThresholdKind string
+
+const (
+	ThresholdKindUsageThreshold   ThresholdKind = "usage"
+	ThresholdKindBalanceThreshold ThresholdKind = "balance"
+)
+
+func thresholdKindFromThreshold(t notification.BalanceThreshold) (ThresholdKind, error) {
+	switch t.Type {
+	case api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
+		return ThresholdKindBalanceThreshold, nil
+	case api.NotificationRuleBalanceThresholdValueTypePercent, api.NotificationRuleBalanceThresholdValueTypeNumber:
+		fallthrough
+	case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.NotificationRuleBalanceThresholdValueTypeUsageValue:
+		return ThresholdKindUsageThreshold, nil
+	default:
+		return "", fmt.Errorf("unknown threshold type: %s", t.Type)
+	}
+}
+
+type BalanceEventDedupHash struct {
+	currentUsagePeriodFrom time.Time
+	currentUsagePeriodTo   time.Time
+	notificationRuleID     string
+	thresholdKind          ThresholdKind
+	namespaceID            string
+	subjectKey             string
+	entitlementID          string
+	featureID              string
+	measureUsageFrom       time.Time
+
+	v1 *string
+	v2 *string
+}
+
+func NewBalanceEventDedupHash(snapshot snapshot.SnapshotEvent, ruleID string, threshold notification.BalanceThreshold) (*BalanceEventDedupHash, error) {
 	currentUsagePeriod := lo.FromPtrOr(
 		snapshot.Entitlement.CurrentUsagePeriod, timeutil.ClosedPeriod{
 			From: time.Time{},
 			To:   time.Time{},
 		})
 
+	thresholdKind, err := thresholdKindFromThreshold(threshold)
+	if err != nil {
+		return nil, err
+	}
+
+	return &BalanceEventDedupHash{
+		currentUsagePeriodFrom: currentUsagePeriod.From,
+		currentUsagePeriodTo:   currentUsagePeriod.To,
+		notificationRuleID:     ruleID,
+		thresholdKind:          thresholdKind,
+		namespaceID:            snapshot.Namespace.ID,
+		subjectKey:             snapshot.Subject.Key,
+		entitlementID:          snapshot.Entitlement.ID,
+		featureID:              snapshot.Feature.ID,
+		measureUsageFrom:       lo.FromPtrOr(snapshot.Entitlement.MeasureUsageFrom, time.Time{}),
+	}, nil
+}
+
+func (d BalanceEventDedupHash) V1() string {
+	if d.v1 != nil {
+		return *d.v1
+	}
+
 	source := strings.Join([]string{
-		ruleID,
-		snapshot.Namespace.ID,
-		currentUsagePeriod.From.UTC().Format(time.RFC3339),
-		currentUsagePeriod.To.UTC().Format(time.RFC3339),
-		snapshot.Subject.Key,
-		snapshot.Entitlement.ID,
-		snapshot.Feature.ID,
-		lo.FromPtrOr(snapshot.Entitlement.MeasureUsageFrom, time.Time{}).UTC().Format(time.RFC3339),
+		d.notificationRuleID,
+		d.namespaceID,
+		d.currentUsagePeriodFrom.UTC().Format(time.RFC3339),
+		d.currentUsagePeriodTo.UTC().Format(time.RFC3339),
+		d.subjectKey,
+		d.entitlementID,
+		d.featureID,
+		d.measureUsageFrom.UTC().Format(time.RFC3339),
 	}, "/")
 
 	h := sha256.New()
 
 	h.Write([]byte(source))
 
-	bs := h.Sum(nil)
-
 	// bsnap == balance.snapshot
 	// v1 == version 1 (in case we need to change the hashing strategy)
-	return fmt.Sprintf("bsnap_v1_%x", bs)
+	d.v1 = lo.ToPtr(fmt.Sprintf("bsnap_v1_%x", h.Sum(nil)))
+
+	return *d.v1
+}
+
+func (d BalanceEventDedupHash) V2() string {
+	if d.v2 != nil {
+		return *d.v2
+	}
+
+	source := strings.Join([]string{
+		string(d.thresholdKind),
+		d.notificationRuleID,
+		d.namespaceID,
+		d.currentUsagePeriodFrom.UTC().Format(time.RFC3339),
+		d.currentUsagePeriodTo.UTC().Format(time.RFC3339),
+		d.subjectKey,
+		d.entitlementID,
+		d.featureID,
+		d.measureUsageFrom.UTC().Format(time.RFC3339),
+	}, "")
+
+	d.v2 = lo.ToPtr(fmt.Sprintf("bsnap_v2_%x", xxh3.HashString128(source).Bytes()))
+
+	return *d.v2
 }
 
 type numericThreshold struct {
