@@ -65,11 +65,10 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input enti
 
 // OverrideEntitlement replaces an existing entitlement with a new one.
 func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, customerID string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
-	// Validate input
-	// TODO(galexi): add back validation
-	// if subject != input.SubjectKey {
-	// 	return nil, models.NewGenericValidationError(fmt.Errorf("subject keys do not match"))
-	// }
+	// Validate customer match in input
+	if customerID != input.UsageAttribution.ID {
+		return nil, entitlement.ErrEntitlementCreatePropertyMismatch.WithAttr("customer_id", customerID).WithAttr("usage_attribution_id", input.UsageAttribution.ID)
+	}
 
 	// Find the entitlement to override
 	oldEnt, err := c.GetEntitlementOfCustomerAt(ctx, input.Namespace, customerID, entitlementIdOrFeatureKey, clock.Now())
