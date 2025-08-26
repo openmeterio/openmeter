@@ -918,6 +918,16 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// Mock the stripe client to return the created invoice.
 		invoice.ExternalIDs.Invoicing = "stripe-invoice-id"
 
+		// We don't use the stripe.Error directly because it's already wrapped in the error returned by the client.
+		// We just create it here to give more context to the test.
+		stripeErrMock := &stripe.Error{
+			Type:          "invalid_request_error",
+			Code:          stripe.ErrorCodeCustomerTaxLocationInvalid,
+			DocURL:        "https://stripe.com/docs/error-codes/customer-tax-location-invalid",
+			Msg:           "When `automatic_tax[enabled]=true`, enough customer location information must be provided to accurately determine tax rates for the customer.",
+			RequestLogURL: "https://dashboard.stripe.com/test/logs/req_abcd?t=1746741453",
+		}
+
 		// Mock the stripe client for finalize invoice.
 		// 1. We return a Stripe Tax error.
 		s.StripeAppClient.
@@ -926,13 +936,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				StripeInvoiceID: invoice.ExternalIDs.Invoicing,
 			}).
 			Once().
-			Return(&stripe.Invoice{}, &stripe.Error{
-				Type:          "invalid_request_error",
-				Code:          stripe.ErrorCodeCustomerTaxLocationInvalid,
-				DocURL:        "https://stripe.com/docs/error-codes/customer-tax-location-invalid",
-				Msg:           "When `automatic_tax[enabled]=true`, enough customer location information must be provided to accurately determine tax rates for the customer.",
-				RequestLogURL: "https://dashboard.stripe.com/test/logs/req_abcd?t=1746741453",
-			})
+			Return(&stripe.Invoice{}, stripeclient.NewStripeInvoiceCustomerTaxLocationInvalidError(invoice.ExternalIDs.Invoicing, stripeErrMock.Msg))
 
 		// 2. We update the invoice to disable tax calculation.
 		s.StripeAppClient.
