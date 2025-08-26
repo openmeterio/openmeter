@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -14,43 +16,42 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 type (
-	GetInvoiceFeatureCostResponse = api.InvoiceFeatureCost
-	GetInvoiceFeatureCostParams   struct {
-		InvoiceID  string
-		FeatureKey string
-		Params     api.GetInvoiceFeatureCostParams
+	GetInvoiceLineCostResponse = api.InvoiceLineCost
+	GetInvoiceLineCostParams   struct {
+		InvoiceID string
+		LineID    string
+		Params    api.GetInvoiceLineCostParams
 	}
-	GetInvoiceFeatureCostHandler httptransport.HandlerWithArgs[GetInvoiceFeatureCostRequest, GetInvoiceFeatureCostResponse, GetInvoiceFeatureCostParams]
+	GetInvoiceLineCostHandler httptransport.HandlerWithArgs[GetInvoiceLineCostRequest, GetInvoiceLineCostResponse, GetInvoiceLineCostParams]
 )
 
-type GetInvoiceFeatureCostRequest struct {
-	InvoiceID  billing.InvoiceID
-	FeatureKey string
-	Params     api.GetInvoiceFeatureCostParams
+type GetInvoiceLineCostRequest struct {
+	InvoiceID billing.InvoiceID
+	LineID    string
+	Params    api.GetInvoiceLineCostParams
 }
 
-func (h *handler) GetInvoiceFeatureCost() GetInvoiceFeatureCostHandler {
+func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params GetInvoiceFeatureCostParams) (GetInvoiceFeatureCostRequest, error) {
+		func(ctx context.Context, r *http.Request, params GetInvoiceLineCostParams) (GetInvoiceLineCostRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return GetInvoiceFeatureCostRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return GetInvoiceLineCostRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			return GetInvoiceFeatureCostRequest{
+			return GetInvoiceLineCostRequest{
 				InvoiceID: billing.InvoiceID{
 					ID:        params.InvoiceID,
 					Namespace: ns,
 				},
-				FeatureKey: params.FeatureKey,
-				Params:     params.Params,
+				LineID: params.LineID,
+				Params: params.Params,
 			}, nil
 		},
-		func(ctx context.Context, request GetInvoiceFeatureCostRequest) (GetInvoiceFeatureCostResponse, error) {
+		func(ctx context.Context, request GetInvoiceLineCostRequest) (GetInvoiceLineCostResponse, error) {
 			// Get the invoice
 			invoice, err := h.service.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: request.InvoiceID,
@@ -60,7 +61,7 @@ func (h *handler) GetInvoiceFeatureCost() GetInvoiceFeatureCostHandler {
 				},
 			})
 			if err != nil {
-				return GetInvoiceFeatureCostResponse{}, err
+				return GetInvoiceLineCostResponse{}, err
 			}
 
 			// Find the line with the feature key
@@ -69,29 +70,29 @@ func (h *handler) GetInvoiceFeatureCost() GetInvoiceFeatureCostHandler {
 					return false
 				}
 
-				return line.UsageBased.FeatureKey == request.FeatureKey
+				return line.ID == request.LineID
 			})
 			if !ok {
-				return GetInvoiceFeatureCostResponse{}, models.NewGenericNotFoundError(
-					fmt.Errorf("feature not found in invoice: %s", request.FeatureKey),
+				return GetInvoiceLineCostResponse{}, models.NewGenericNotFoundError(
+					fmt.Errorf("line not found in invoice: %s", request.LineID),
 				)
 			}
 
 			if line.UsageBased == nil {
-				return GetInvoiceFeatureCostResponse{}, models.NewGenericConflictError(
-					fmt.Errorf("invoice line is not usage based for feature: %s", request.FeatureKey),
+				return GetInvoiceLineCostResponse{}, models.NewGenericConflictError(
+					fmt.Errorf("not a usage based line: %s", request.LineID),
 				)
 			}
 
 			// Get the feature
-			feature, err := h.featureService.GetFeature(ctx, request.InvoiceID.Namespace, request.FeatureKey, false)
+			feature, err := h.featureService.GetFeature(ctx, request.InvoiceID.Namespace, line.UsageBased.FeatureKey, false)
 			if err != nil {
-				return GetInvoiceFeatureCostResponse{}, err
+				return GetInvoiceLineCostResponse{}, err
 			}
 
 			if feature.MeterSlug == nil {
-				return GetInvoiceFeatureCostResponse{}, models.NewGenericConflictError(
-					fmt.Errorf("feature has no meter: %s", request.FeatureKey),
+				return GetInvoiceLineCostResponse{}, models.NewGenericConflictError(
+					fmt.Errorf("no meter for feature: %s", line.UsageBased.FeatureKey),
 				)
 			}
 
@@ -101,7 +102,7 @@ func (h *handler) GetInvoiceFeatureCost() GetInvoiceFeatureCostHandler {
 				IDOrSlug:  *feature.MeterSlug,
 			})
 			if err != nil {
-				return GetInvoiceFeatureCostResponse{}, err
+				return GetInvoiceLineCostResponse{}, err
 			}
 
 			// Convert the feature's meter group by filters to a map of filter group by
@@ -128,7 +129,7 @@ func (h *handler) GetInvoiceFeatureCost() GetInvoiceFeatureCostHandler {
 				tz, err := time.LoadLocation(*request.Params.WindowTimeZone)
 				if err != nil {
 					err := fmt.Errorf("invalid time zone: %w", err)
-					return GetInvoiceFeatureCostResponse{}, models.NewGenericValidationError(err)
+					return GetInvoiceLineCostResponse{}, models.NewGenericValidationError(err)
 				}
 				meterQueryParams.WindowTimeZone = tz
 			}
@@ -136,7 +137,7 @@ func (h *handler) GetInvoiceFeatureCost() GetInvoiceFeatureCostHandler {
 			// Get usage for the line
 			usageRows, err := h.streamingService.QueryMeter(ctx, request.InvoiceID.Namespace, met, meterQueryParams)
 			if err != nil {
-				return GetInvoiceFeatureCostResponse{}, err
+				return GetInvoiceLineCostResponse{}, err
 			}
 
 			// Get the cost per unit
@@ -147,13 +148,13 @@ func (h *handler) GetInvoiceFeatureCost() GetInvoiceFeatureCostHandler {
 			}
 
 			// Calculate the cost for each window
-			rows := make([]api.InvoiceFeatureCostRow, 0, len(usageRows))
+			rows := make([]api.InvoiceLineCostRow, 0, len(usageRows))
 
 			for _, row := range usageRows {
 				usage := alpacadecimal.NewFromFloat(row.Value)
 				cost := usage.Mul(costPerUnit)
 
-				rows = append(rows, api.InvoiceFeatureCostRow{
+				rows = append(rows, api.InvoiceLineCostRow{
 					WindowStart: row.WindowStart,
 					WindowEnd:   row.WindowEnd,
 					Usage:       usage.String(),
@@ -162,7 +163,7 @@ func (h *handler) GetInvoiceFeatureCost() GetInvoiceFeatureCostHandler {
 				})
 			}
 
-			return api.InvoiceFeatureCost{
+			return api.InvoiceLineCost{
 				From:        line.Period.Start,
 				To:          line.Period.End,
 				Currency:    string(line.Currency),
@@ -172,10 +173,10 @@ func (h *handler) GetInvoiceFeatureCost() GetInvoiceFeatureCostHandler {
 				Rows:        rows,
 			}, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[GetInvoiceFeatureCostResponse](http.StatusOK),
+		commonhttp.JSONResponseEncoderWithStatus[GetInvoiceLineCostResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("GetInvoiceFeatureCost"),
+			httptransport.WithOperationName("GetInvoiceLineCost"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)

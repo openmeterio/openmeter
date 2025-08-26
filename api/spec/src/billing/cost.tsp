@@ -20,25 +20,25 @@ interface InvoiceCostHandler {
    * Get an invoice feature cost.
    */
   @get
-  @route("/api/v1/billing/invoices/{invoiceId}/features/{featureKey}/cost")
+  @route("/api/v1/billing/invoices/{invoiceId}/lines/{lineId}/cost")
   @summary("Get an invoice feature cost")
-  @operationId("getInvoiceFeatureCost")
-  getInvoiceFeatureCost(
+  @operationId("getInvoiceLineCost")
+  getInvoiceLineCost(
     @path
     invoiceId: ULID,
 
     @path
-    featureKey: string,
+    lineId: string,
 
-    ...GetInvoiceFeatureCostParam,
-  ): InvoiceFeatureCost | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+    ...GetInvoiceLineCostParam,
+  ): InvoiceLineCost | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
 /**
- * InvoiceFeatureCost is the cost of a feature for an invoice.
+ * InvoiceLineCost is the cost of a feature for an invoice.
  */
-@friendlyName("InvoiceFeatureCost")
-model InvoiceFeatureCost {
+@friendlyName("InvoiceLineCost")
+model InvoiceLineCost {
   /**
    * The start of the period the value is aggregated over.
    */
@@ -72,14 +72,14 @@ model InvoiceFeatureCost {
   /**
    * The rows of the feature cost for the invoice.
    */
-  rows: InvoiceFeatureCostRow[];
+  rows: InvoiceLineCostRow[];
 }
 
 /**
- * InvoiceFeatureCostRow is a row of the feature cost for the invoice.
+ * InvoiceLineCostRow is a row of the feature cost for the invoice.
  */
-@friendlyName("InvoiceFeatureCostRow")
-model InvoiceFeatureCostRow {
+@friendlyName("InvoiceLineCostRow")
+model InvoiceLineCostRow {
   /**
    * The start of the window the value is aggregated over.
    */
@@ -107,10 +107,10 @@ model InvoiceFeatureCostRow {
 }
 
 /**
- * GetInvoiceFeatureCostParam is the parameter for the getInvoiceFeatureCost endpoint.
+ * GetInvoiceLineCostParam is the parameter for the getInvoiceLineCost endpoint.
  */
-@friendlyName("GetInvoiceFeatureCostParam")
-model GetInvoiceFeatureCostParam {
+@friendlyName("GetInvoiceLineCostParam")
+model GetInvoiceLineCostParam {
   /**
    * If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
    *
