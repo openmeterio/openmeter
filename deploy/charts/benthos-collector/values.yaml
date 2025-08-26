@@ -179,3 +179,46 @@ caRootCertificates: {}
 #    -----BEGIN CERTIFICATE-----
 #    ...
 #    -----END CERTIFICATE-----
+
+# -- Sidecar health probe configuration.
+sidecarHealth:
+  # -- Specifies whether the sidecar health probe should be enabled.
+  enabled: true
+
+  # -- Container image for the prober HTTP server
+  image: "python:3.12-alpine"
+
+  # -- Image pull policy
+  imagePullPolicy: IfNotPresent
+
+  # -- Port where the sidecar serves GET /health
+  port: 8081
+
+  # -- Target to probe. If empty, defaults to "$(OPENMETER_URL)"
+  probeUrl: ""
+
+  # -- Consider responses in this inclusive range as "OK"
+  expectMinStatus: 200
+
+  # -- Consider responses in this inclusive range as "OK"
+  expectMaxStatus: 299
+
+  # -- HTTP timeout (seconds) for the probe request
+  timeoutSeconds: 3
+
+  # -- Sidecar probe settings (Kubernetes probes)
+  liveness:
+    periodSeconds: 30
+    timeoutSeconds: 3
+    failureThreshold: 3
+    initialDelaySeconds: 0
+
+  # -- Sidecar readiness probe settings (Kubernetes probes)
+  readiness:
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+    initialDelaySeconds: 0
+
+  # -- Resource requests/limits for the sidecar
+  resources: {}

@@ -32,6 +32,7 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
+        # --- Main Redpanda Connect / Benthos container ---
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
@@ -58,29 +59,17 @@ spec:
             {{- end }}
           env:
             - name: K8S_POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
             - name: K8S_POD_UID
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.uid
+              valueFrom: { fieldRef: { fieldPath: metadata.uid } }
             - name: K8S_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
             - name: K8S_APP_INSTANCE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.labels['app.kubernetes.io/instance']
+              valueFrom: { fieldRef: { fieldPath: metadata.labels['app.kubernetes.io/instance'] } }
             - name: K8S_APP_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.labels['app.kubernetes.io/name']
+              valueFrom: { fieldRef: { fieldPath: metadata.labels['app.kubernetes.io/name'] } }
             - name: K8S_APP_VERSION
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.labels['app.kubernetes.io/version']
+              valueFrom: { fieldRef: { fieldPath: metadata.labels['app.kubernetes.io/version'] } }
             - name: LEADER_ELECTION
               value: {{ .Values.leaderElection.enabled | quote }}
             - name: LEASE_DURATION
@@ -121,6 +110,87 @@ spec:
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
+
+        # --- Sidecar: dependency reachability /health probe ---
+        {{- if .Values.sidecarHealth.enabled }}
+        - name: reachability-prober
+          image: {{ .Values.sidecarHealth.image | quote }}
+          imagePullPolicy: {{ .Values.sidecarHealth.imagePullPolicy | default "IfNotPresent" | quote }}
+          env:
+            - name: PROBE_URL
+              value: {{ (default "$(OPENMETER_URL)" .Values.sidecarHealth.probeUrl) | quote }}
+            - name: PORT
+              value: {{ .Values.sidecarHealth.port | quote }}
+            - name: PROBE_TIMEOUT
+              value: {{ .Values.sidecarHealth.timeoutSeconds | quote }}
+            - name: EXPECT_MIN_STATUS
+              value: {{ .Values.sidecarHealth.expectMinStatus | default "200" | quote }}
+            - name: EXPECT_MAX_STATUS
+              value: {{ .Values.sidecarHealth.expectMaxStatus | default "499" | quote }}
+            {{- if .Values.sidecarHealth.extraEnv }}
+            {{- toYaml .Values.sidecarHealth.extraEnv | nindent 12 }}
+            {{- end }}
+          {{- if .Values.sidecarHealth.envFrom }}
+          envFrom:
+            {{- toYaml .Values.sidecarHealth.envFrom | nindent 12 }}
+          {{- end }}
+          command: ["python","-u","-c"]
+          args:
+            - |
+              import os, sys, urllib.request
+              from http.server import BaseHTTPRequestHandler, HTTPServer
+
+              URL     = os.getenv("PROBE_URL", "https://openmeter.cloud")
+              TIMEOUT = float(os.getenv("PROBE_TIMEOUT","3"))
+              MIN_OK  = int(os.getenv("EXPECT_MIN_STATUS","200"))
+              MAX_OK  = int(os.getenv("EXPECT_MAX_STATUS","499"))
+              PORT    = int(os.getenv("PORT","8081"))
+
+              class H(BaseHTTPRequestHandler):
+                  def do_GET(self): self._serve()
+                  def do_HEAD(self): self._serve()
+                  def _serve(self):
+                      if self.path != "/health":
+                          self.send_response(404); self.end_headers(); return
+                      code = 503
+                      try:
+                          req = urllib.request.Request(URL, method="GET")
+                          with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                              code = 200 if (MIN_OK <= r.status <= MAX_OK) else 503
+                      except Exception:
+                          code = 503
+                      self.send_response(code); self.end_headers()
+                  def log_message(self, *_): pass
+
+              HTTPServer(("", PORT), H).serve_forever()
+          ports:
+            - name: health
+              containerPort: {{ .Values.sidecarHealth.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: health
+            periodSeconds: {{ .Values.sidecarHealth.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.sidecarHealth.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.sidecarHealth.liveness.failureThreshold }}
+            {{- if .Values.sidecarHealth.liveness.initialDelaySeconds }}
+            initialDelaySeconds: {{ .Values.sidecarHealth.liveness.initialDelaySeconds }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: health
+            periodSeconds: {{ .Values.sidecarHealth.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.sidecarHealth.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.sidecarHealth.readiness.failureThreshold }}
+            {{- if .Values.sidecarHealth.readiness.initialDelaySeconds }}
+            initialDelaySeconds: {{ .Values.sidecarHealth.readiness.initialDelaySeconds }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.sidecarHealth.resources | nindent 12 }}
+          {{- end }}
+
       volumes:
         - name: config
           secret:
