@@ -80,7 +80,7 @@ func (c *stripeAppClient) CreatePortalSession(ctx context.Context, input CreateP
 		Locale:        input.Locale,
 	})
 	if err != nil {
-		return PortalSession{}, err
+		return PortalSession{}, c.providerError(err)
 	}
 
 	stripePortalSession := PortalSession{

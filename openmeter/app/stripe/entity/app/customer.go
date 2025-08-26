@@ -46,7 +46,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 	// Check if the customer exists in Stripe
 	stripeCustomer, err := stripeClient.GetCustomer(ctx, stripeCustomerData.StripeCustomerID)
 	if err != nil {
-		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
+		if stripeclient.IsStripeCustomerNotFoundError(err) {
 			return app.NewAppCustomerPreConditionError(
 				a.GetID(),
 				a.GetType(),

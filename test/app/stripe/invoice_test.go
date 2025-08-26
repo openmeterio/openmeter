@@ -928,7 +928,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			Once().
 			Return(&stripe.Invoice{}, &stripe.Error{
 				Type:          "invalid_request_error",
-				Code:          "customer_tax_location_invalid",
+				Code:          stripe.ErrorCodeCustomerTaxLocationInvalid,
 				DocURL:        "https://stripe.com/docs/error-codes/customer-tax-location-invalid",
 				Msg:           "When `automatic_tax[enabled]=true`, enough customer location information must be provided to accurately determine tax rates for the customer.",
 				RequestLogURL: "https://dashboard.stripe.com/test/logs/req_abcd?t=1746741453",

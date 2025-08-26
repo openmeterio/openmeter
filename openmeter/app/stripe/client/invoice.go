@@ -58,7 +58,12 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 	// regardless of whether it succeeds or fails. Subsequent requests with the same key return the same result, including 500 errors.
 	params.SetIdempotencyKey(fmt.Sprintf("invoice-create-%s", input.InvoiceID))
 
-	return c.client.Invoices.New(params)
+	invoice, err := c.client.Invoices.New(params)
+	if err != nil {
+		return nil, c.providerError(err)
+	}
+
+	return invoice, nil
 }
 
 // UpdateInvoice updates a Stripe invoice Stripe.
@@ -74,7 +79,12 @@ func (c *stripeAppClient) UpdateInvoice(ctx context.Context, input UpdateInvoice
 		StatementDescriptor: input.StatementDescriptor,
 	}
 
-	return c.client.Invoices.Update(input.StripeInvoiceID, params)
+	invoice, err := c.client.Invoices.Update(input.StripeInvoiceID, params)
+	if err != nil {
+		return nil, c.providerError(err)
+	}
+
+	return invoice, nil
 }
 
 // DeleteInvoice deletes a Stripe invoice.
@@ -85,7 +95,11 @@ func (c *stripeAppClient) DeleteInvoice(ctx context.Context, input DeleteInvoice
 	}
 
 	_, err := c.client.Invoices.Del(input.StripeInvoiceID, nil)
-	return err
+	if err != nil {
+		return c.providerError(err)
+	}
+
+	return nil
 }
 
 // FinalizeInvoice finalizes a Stripe invoice.
@@ -94,9 +108,19 @@ func (c *stripeAppClient) FinalizeInvoice(ctx context.Context, input FinalizeInv
 		return nil, fmt.Errorf("stripe finalize invoice: invalid input: %w", err)
 	}
 
-	return c.client.Invoices.FinalizeInvoice(input.StripeInvoiceID, &stripe.InvoiceFinalizeInvoiceParams{
+	invoice, err := c.client.Invoices.FinalizeInvoice(input.StripeInvoiceID, &stripe.InvoiceFinalizeInvoiceParams{
 		AutoAdvance: lo.ToPtr(input.AutoAdvance),
 	})
+	if err != nil {
+		// Stripe customer tax location invalid error
+		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeCustomerTaxLocationInvalid {
+			return nil, NewStripeInvoiceCustomerTaxLocationInvalidError(input.StripeInvoiceID, stripeErr.Msg)
+		}
+
+		return nil, c.providerError(err)
+	}
+
+	return invoice, nil
 }
 
 // GetInvoice gets an invoice from Stripe.
@@ -105,7 +129,12 @@ func (c *stripeAppClient) GetInvoice(ctx context.Context, input GetInvoiceInput)
 		return nil, fmt.Errorf("stripe get invoice: invalid input: %w", err)
 	}
 
-	return c.client.Invoices.Get(input.StripeInvoiceID, nil)
+	invoice, err := c.client.Invoices.Get(input.StripeInvoiceID, nil)
+	if err != nil {
+		return nil, c.providerError(err)
+	}
+
+	return invoice, nil
 }
 
 // CreateInvoiceInput is the input for creating a new invoice in Stripe.

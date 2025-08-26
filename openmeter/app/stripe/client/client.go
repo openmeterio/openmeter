@@ -149,19 +149,26 @@ func (c *stripeClient) GetAccount(ctx context.Context) (StripeAccount, error) {
 // providerError returns a typed error for stripe provider errors
 func (c *stripeClient) providerError(err error) error {
 	if stripeErr, ok := err.(*stripe.Error); ok {
-		if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
+		switch stripeErr.HTTPStatusCode {
+		// Let's reflect back invalid request errors to the client.
+		case http.StatusBadRequest:
+			return models.NewGenericValidationError(
+				fmt.Errorf("stripe error: %s, request log url: %s", stripeErr.Msg, stripeErr.RequestLogURL),
+			)
+		// Let's reflect back unauthorized errors to the client.
+		case http.StatusUnauthorized:
 			return app.NewAppProviderAuthenticationError(
 				nil,
 				c.namespace,
 				errors.New(stripeErr.Msg),
 			)
+		default:
+			return app.NewAppProviderError(
+				nil,
+				c.namespace,
+				errors.New(stripeErr.Msg),
+			)
 		}
-
-		return app.NewAppProviderError(
-			nil,
-			c.namespace,
-			errors.New(stripeErr.Msg),
-		)
 	}
 
 	return err
