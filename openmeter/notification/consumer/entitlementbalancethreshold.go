@@ -1,11 +1,11 @@
 package consumer
 
 import (
-	"cmp"
 	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"iter"
 	"log/slog"
 	"strings"
 	"time"
@@ -64,7 +64,10 @@ func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, 
 		}
 
 		if err = b.handleRule(ctx, event, rule); err != nil {
-			errs = append(errs, err)
+			errs = append(
+				errs,
+				fmt.Errorf("failed to handle event for rule [namespace=%s notification_rule.id=%s entitlement.id=%s]: %w", rule.Namespace, rule.ID, event.Entitlement.ID, err),
+			)
 		}
 	}
 
@@ -74,76 +77,94 @@ func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, 
 func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot snapshot.SnapshotEvent, rule notification.Rule) error {
 	// Check 1: do we have a threshold we should create an event for?
 
-	threshold, err := getHighestMatchingThreshold(rule.Config.BalanceThreshold.Thresholds, *balSnapshot.Value)
+	thresholds, err := getActiveThresholdsWithHighestPriority(rule.Config.BalanceThreshold.Thresholds, *balSnapshot.Value)
 	if err != nil {
-		return fmt.Errorf("failed to get highest matching threshold: %w", err)
+		return fmt.Errorf("failed to calculate active thresholds: %w", err)
 	}
 
-	if threshold == nil {
-		// No matching threshold found => nothing to create an event on
-		return nil
-	}
-
-	// Check 2: fetch the last event for the same period and validate if we need to send a new notification
-
-	periodDedupeHash := b.getPeriodsDeduplicationHash(balSnapshot, rule.ID)
-
-	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
-	lastEvents, err := b.Notification.ListEvents(ctx, notification.ListEventsInput{
-		Page: pagination.Page{
-			PageSize:   1,
-			PageNumber: 1,
-		},
-		Namespaces: []string{balSnapshot.Namespace.ID},
-
-		From: balSnapshot.Entitlement.CurrentUsagePeriod.From,
-		To:   balSnapshot.Entitlement.CurrentUsagePeriod.To,
-
-		DeduplicationHashes: []string{periodDedupeHash},
-		OrderBy:             notification.OrderByCreatedAt,
-		Order:               sortx.OrderDesc,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to list events: %w", err)
-	}
-
-	createEventInput := createBalanceThresholdEventInput{
-		Snapshot:   balSnapshot,
-		DedupeHash: periodDedupeHash,
-		Threshold:  *threshold,
-		RuleID:     rule.ID,
-	}
-
-	if len(lastEvents.Items) == 0 {
-		// we need to trigger the event, as we have hit a threshold, and have no previous event
-		return b.createEvent(ctx, createEventInput)
-	}
-
-	lastEvent := lastEvents.Items[0]
-
-	if lastEvent.Payload.Type != notification.EventTypeBalanceThreshold {
-		// This should never happen, but let's log it and trigger the event, so that we have a better reference point
-		// in place
-		b.Logger.ErrorContext(ctx, "last event is not a balance threshold event", slog.String("event_id", lastEvent.ID))
-		return b.createEvent(ctx, createEventInput)
-	}
-
-	lastEventActualValue, err := getBalanceThreshold(
-		lastEvent.Payload.BalanceThreshold.Threshold,
-		lastEvent.Payload.BalanceThreshold.Value)
-	if err != nil {
-		if err == ErrNoBalanceAvailable {
-			// In case there are no grants, percentage all percentage rules would match, so let's instead
-			// wait until we have some credits to calculate the actual value
-			b.Logger.Warn("no balance available skipping event creation", "last_event_id", lastEvent.ID)
-			return nil
+	for _, threshold := range thresholds.Iter() {
+		if threshold == nil {
+			// Skip nil thresholds as there might be scenarios where only usage or balance thresholds are being active.
+			continue
 		}
-		return fmt.Errorf("failed to calculate actual value from last event: %w", err)
-	}
 
-	if lastEventActualValue.BalanceThreshold != *threshold {
-		// The last event was triggered by a different threshold, so we need to trigger a new event
-		return b.createEvent(ctx, createEventInput)
+		// Check 2: fetch the last event for the same period and validate if we need to send a new notification
+
+		periodDedupeHash := b.getPeriodsDeduplicationHash(balSnapshot, rule.ID)
+
+		// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
+		lastEvents, err := b.Notification.ListEvents(ctx, notification.ListEventsInput{
+			Page: pagination.Page{
+				PageSize:   1,
+				PageNumber: 1,
+			},
+			Namespaces: []string{balSnapshot.Namespace.ID},
+
+			From: balSnapshot.Entitlement.CurrentUsagePeriod.From,
+			To:   balSnapshot.Entitlement.CurrentUsagePeriod.To,
+
+			DeduplicationHashes: []string{periodDedupeHash},
+			OrderBy:             notification.OrderByCreatedAt,
+			Order:               sortx.OrderDesc,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list events [dedup.key=%s]: %w", periodDedupeHash, err)
+		}
+
+		createEventInput := createBalanceThresholdEventInput{
+			Snapshot:   balSnapshot,
+			DedupeHash: periodDedupeHash,
+			Threshold:  *threshold,
+			RuleID:     rule.ID,
+		}
+
+		if len(lastEvents.Items) == 0 {
+			// we need to trigger the event, as we have hit a threshold and have no previous event
+			err = b.createEvent(ctx, createEventInput)
+			if err != nil {
+				return fmt.Errorf("failed to create event: %w", err)
+			}
+
+			continue
+		}
+
+		lastEvent := lastEvents.Items[0]
+
+		if lastEvent.Payload.Type != notification.EventTypeBalanceThreshold {
+			// This should never happen, but let's log it and trigger the event, so that we have a better reference point
+			// in place
+			b.Logger.ErrorContext(ctx, "last event is not a balance threshold event", slog.String("event.id", lastEvent.ID))
+
+			err = b.createEvent(ctx, createEventInput)
+			if err != nil {
+				return fmt.Errorf("failed to create event: %w", err)
+			}
+
+			continue
+		}
+
+		lastEventActualValue, err := getNumericThreshold(
+			lastEvent.Payload.BalanceThreshold.Threshold,
+			lastEvent.Payload.BalanceThreshold.Value)
+		if err != nil {
+			if errors.Is(err, ErrNoBalanceAvailable) {
+				// In case there are no grants, percentage all percentage rules would match, so let's instead
+				// wait until we have some credits to calculate the actual value
+				b.Logger.Warn("no balance available skipping event creation", "last_event_id", lastEvent.ID)
+
+				continue
+			}
+
+			return fmt.Errorf("failed to calculate actual value from last event: %w", err)
+		}
+
+		if lastEventActualValue.BalanceThreshold != *threshold {
+			// The last event was triggered by a different threshold, so we need to trigger a new event
+			err = b.createEvent(ctx, createEventInput)
+			if err != nil {
+				return fmt.Errorf("failed to create event: %w", err)
+			}
+		}
 	}
 
 	return nil
@@ -259,27 +280,33 @@ func (b *EntitlementSnapshotHandler) getPeriodsDeduplicationHash(snapshot snapsh
 	return fmt.Sprintf("bsnap_v1_%x", bs)
 }
 
-type balanceThreshold struct {
+type numericThreshold struct {
 	notification.BalanceThreshold
 
-	// NumericThreshold always contains the credit value of the threshold regardless if it's a percentage
-	// or a number threshold
-	NumericThreshold float64
+	// ThresholdValue always contains the credit value of the threshold regardless if it's a percentage
+	// or a value threshold
+	ThresholdValue float64
+
+	// Active is true if the threshold value has been reached, otherwise it is false.
+	Active bool
 }
 
-func getTotalGrantsFromValue(value api.EntitlementValue) float64 {
-	return *value.Balance + *value.Usage - lo.FromPtrOr(value.Overage, 0)
-}
-
-func getBalanceThreshold(threshold notification.BalanceThreshold, eValue api.EntitlementValue) (balanceThreshold, error) {
+func getNumericThreshold(threshold notification.BalanceThreshold, value api.EntitlementValue) (*numericThreshold, error) {
 	switch threshold.Type {
+	// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsageValue
 	case api.NotificationRuleBalanceThresholdValueTypeNumber:
-		return balanceThreshold{
+		fallthrough
+	case api.NotificationRuleBalanceThresholdValueTypeUsageValue:
+		return &numericThreshold{
 			BalanceThreshold: threshold,
-			NumericThreshold: threshold.Value,
+			ThresholdValue:   threshold.Value,
+			Active:           threshold.Value <= lo.FromPtr(value.Usage),
 		}, nil
+	// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsagePercentage
 	case api.NotificationRuleBalanceThresholdValueTypePercent:
-		totalGrants := getTotalGrantsFromValue(eValue)
+		fallthrough
+	case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage:
+		totalGrants := lo.FromPtr(value.Balance) + lo.FromPtr(value.Usage) - lo.FromPtr(value.Overage)
 
 		// In case there are no grants yet, we can't calculate the actual value, we are filtering out the
 		// thresholds to prevent event triggering in the following scenario:
@@ -289,57 +316,104 @@ func getBalanceThreshold(threshold notification.BalanceThreshold, eValue api.Ent
 		//
 		// As this would mean that we would trigger a notification for the first activity for 100%
 		if totalGrants == 0 {
-			return balanceThreshold{}, ErrNoBalanceAvailable
+			return nil, ErrNoBalanceAvailable
 		}
 
-		return balanceThreshold{
-			BalanceThreshold: threshold,
-			NumericThreshold: totalGrants * threshold.Value / 100,
-		}, nil
+		thresholdValue := totalGrants * threshold.Value / 100
 
+		return &numericThreshold{
+			BalanceThreshold: threshold,
+			ThresholdValue:   thresholdValue,
+			Active:           thresholdValue <= lo.FromPtr(value.Usage),
+		}, nil
+	case api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
+		return &numericThreshold{
+			BalanceThreshold: threshold,
+			ThresholdValue:   threshold.Value,
+			Active:           threshold.Value >= lo.FromPtr(value.Balance),
+		}, nil
 	default:
-		return balanceThreshold{}, errors.New("unknown threshold type")
+		return nil, errors.New("unknown threshold type")
 	}
 }
 
-func getHighestMatchingThreshold(thresholds []notification.BalanceThreshold, eValue snapshot.EntitlementValue) (*notification.BalanceThreshold, error) {
-	// Let's normalize the thresholds in a single slice with percentages already calculated
-	actualValues := make([]balanceThreshold, 0, len(thresholds))
+type activeThresholds struct {
+	Usage   *notification.BalanceThreshold
+	Balance *notification.BalanceThreshold
+}
+
+func (a activeThresholds) Iter() iter.Seq2[int, *notification.BalanceThreshold] {
+	thresholds := []*notification.BalanceThreshold{a.Usage, a.Balance}
+
+	return func(yield func(int, *notification.BalanceThreshold) bool) {
+		for i := 0; i <= len(thresholds)-1; i++ {
+			if !yield(i, thresholds[i]) {
+				return
+			}
+		}
+	}
+}
+
+func getActiveThresholdsWithHighestPriority(thresholds []notification.BalanceThreshold, value snapshot.EntitlementValue) (*activeThresholds, error) {
+	var (
+		usage   *numericThreshold
+		balance *numericThreshold
+	)
 
 	for _, threshold := range thresholds {
-		actualValue, err := getBalanceThreshold(threshold, api.EntitlementValue(eValue))
+		numThreshold, err := getNumericThreshold(threshold, api.EntitlementValue(value))
 		if err != nil {
-			if err == ErrNoBalanceAvailable {
+			if errors.Is(err, ErrNoBalanceAvailable) {
 				continue
 			}
 
 			return nil, err
 		}
 
-		actualValues = append(actualValues, actualValue)
-	}
-
-	// Now we have the actual values, let's sort by the thresholds ensuring that we have stable storing between percentages
-	// and numbers
-
-	slices.SortFunc(actualValues, func(b1, b2 balanceThreshold) int {
-		result := cmp.Compare(b1.NumericThreshold, b2.NumericThreshold)
-		if result != 0 {
-			return result
+		// Skip non-active thresholds
+		if !numThreshold.Active {
+			continue
 		}
 
-		// If the actual values are the same, let's sort by the underlying representation (percentage ends up being the "bigger" one)
-		return cmp.Compare(b1.Type, b2.Type)
-	})
-
-	var highest *notification.BalanceThreshold
-	for _, threshold := range actualValues {
-		if threshold.NumericThreshold > *eValue.Usage {
-			break
+		switch numThreshold.BalanceThreshold.Type {
+		case api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
+			if balance == nil {
+				balance = numThreshold
+			} else if balance.ThresholdValue > numThreshold.ThresholdValue {
+				balance = numThreshold
+			}
+		// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsagePercentage
+		case api.NotificationRuleBalanceThresholdValueTypePercent:
+			fallthrough
+		case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage:
+			if usage == nil {
+				usage = numThreshold
+			} else if usage.ThresholdValue <= numThreshold.ThresholdValue {
+				usage = numThreshold
+			}
+		// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsageValue
+		case api.NotificationRuleBalanceThresholdValueTypeNumber:
+			fallthrough
+		case api.NotificationRuleBalanceThresholdValueTypeUsageValue:
+			if usage == nil {
+				usage = numThreshold
+			} else if usage.ThresholdValue < numThreshold.ThresholdValue {
+				usage = numThreshold
+			}
+		default:
+			return nil, fmt.Errorf("unknown balance threshold type: %s", numThreshold.BalanceThreshold.Type)
 		}
-
-		highest = &threshold.BalanceThreshold
 	}
 
-	return highest, nil
+	result := &activeThresholds{}
+
+	if usage != nil {
+		result.Usage = lo.ToPtr(usage.BalanceThreshold)
+	}
+
+	if balance != nil {
+		result.Balance = lo.ToPtr(balance.BalanceThreshold)
+	}
+
+	return result, nil
 }

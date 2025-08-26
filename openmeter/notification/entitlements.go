@@ -31,8 +31,11 @@ func (b BalanceThresholdPayload) Validate() error {
 }
 
 const (
-	BalanceThresholdTypeNumber  = api.NotificationRuleBalanceThresholdValueTypeNumber
-	BalanceThresholdTypePercent = api.NotificationRuleBalanceThresholdValueTypePercent
+	BalanceThresholdTypeNumber          = api.NotificationRuleBalanceThresholdValueTypeNumber
+	BalanceThresholdTypePercent         = api.NotificationRuleBalanceThresholdValueTypePercent
+	BalanceThresholdTypeUsagePercentage = api.NotificationRuleBalanceThresholdValueTypeUsagePercentage
+	BalanceThresholdTypeBalanceValue    = api.NotificationRuleBalanceThresholdValueTypeBalanceValue
+	BalanceThresholdTypeUsageValue      = api.NotificationRuleBalanceThresholdValueTypeUsageValue
 )
 
 type (
@@ -57,6 +60,8 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Servic
 	for _, threshold := range b.Thresholds {
 		switch threshold.Type {
 		case BalanceThresholdTypeNumber, BalanceThresholdTypePercent:
+			fallthrough
+		case BalanceThresholdTypeBalanceValue, BalanceThresholdTypeUsageValue, BalanceThresholdTypeUsagePercentage:
 			if threshold.Value <= 0 {
 				return ValidationError{
 					Err: fmt.Errorf("invalid threshold with type %s: value must be greater than 0: %.2f",
