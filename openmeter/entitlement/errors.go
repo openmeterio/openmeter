@@ -66,3 +66,10 @@ type ForbiddenError struct {
 func (e *ForbiddenError) Error() string {
 	return fmt.Sprintf("forbidden: %s", e.Message)
 }
+
+const ErrCodeEntitlementCreatePropertyMismatch models.ErrorCode = "entitlement_create_property_mismatch"
+
+var ErrEntitlementCreatePropertyMismatch = models.NewValidationIssue(
+	ErrCodeEntitlementCreatePropertyMismatch,
+	"entitlement create property mismatch",
+)

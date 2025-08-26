@@ -39,18 +39,13 @@ type entitlementEventV2EntitlementLiteral struct {
 	MetadataModel   models.MetadataModel   `json:"metadataModel"`
 	Annotations     models.Annotations     `json:"annotations"`
 
-	// ActiveFrom allows entitlements to be scheduled for future activation.
-	// If not set, the entitlement is active immediately.
 	ActiveFrom *time.Time `json:"activeFrom,omitempty"`
-	// ActiveTo allows entitlements to be descheduled for future activation.
-	// If not set, the entitlement is active until deletion.
-	ActiveTo *time.Time `json:"activeTo,omitempty"`
+	ActiveTo   *time.Time `json:"activeTo,omitempty"`
 
 	ID         string `json:"id,omitempty"`
 	FeatureID  string `json:"featureId,omitempty"`
 	FeatureKey string `json:"featureKey,omitempty"`
 
-	// TODO(galexi): consolidate to only keeping Customer on the entitlement
 	SubjectKey string             `json:"subjectKey,omitempty"`
 	Subject    subject.Subject    `json:"subject,omitempty"`
 	Customer   *customer.Customer `json:"customer,omitempty"`

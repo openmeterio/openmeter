@@ -365,18 +365,7 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
-			// TODO(galexi): once entitlements and customers are integrated, entitlementservice will manage this
-			cust, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
-				CustomerID: &customer.CustomerID{
-					Namespace: request.CustomerID.Namespace,
-					ID:        request.CustomerID.ID,
-				},
-			})
-			if err != nil {
-				return GetCustomerEntitlementValueResponse{}, err
-			}
-
-			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, cust.ID, request.FeatureKey, clock.Now())
+			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, clock.Now())
 			if err != nil {
 				if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 					val = &entitlement.NoAccessValue{}
@@ -424,13 +413,7 @@ func (h *handler) GetCustomerAccess() GetCustomerAccessHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerAccessRequest) (GetCustomerAccessResponse, error) {
-			// TODO(galexi): once entitlements and customers are integrated, entitlementservice will manage this
-			cust, err := h.service.GetCustomer(ctx, request)
-			if err != nil {
-				return GetCustomerAccessResponse{}, err
-			}
-
-			access, err := h.entitlementService.GetAccess(ctx, cust.Namespace, cust.ID)
+			access, err := h.entitlementService.GetAccess(ctx, request.CustomerID.Namespace, request.CustomerID.ID)
 			if err != nil {
 				return GetCustomerAccessResponse{}, err
 			}

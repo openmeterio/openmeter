@@ -345,7 +345,6 @@ type GenericProperties struct {
 	FeatureID  string `json:"featureId,omitempty"`
 	FeatureKey string `json:"featureKey,omitempty"`
 
-	// TODO(galexi): consolidate to only keeping Customer on the entitlement
 	SubjectKey string             `json:"subjectKey,omitempty"`
 	Subject    subject.Subject    `json:"subject,omitempty"`
 	Customer   *customer.Customer `json:"customer,omitempty"`
