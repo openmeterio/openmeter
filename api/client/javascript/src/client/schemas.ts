@@ -7592,6 +7592,8 @@ export interface components {
       readonly feature: components['schemas']['Feature']
       /** Subject */
       readonly subject: components['schemas']['Subject']
+      /** Customer */
+      readonly customer: components['schemas']['Customer']
       /** Entitlement Value */
       readonly value: components['schemas']['EntitlementValue']
       /** Threshold */
@@ -7641,6 +7643,8 @@ export interface components {
       readonly feature: components['schemas']['Feature']
       /** Subject */
       readonly subject: components['schemas']['Subject']
+      /** Customer */
+      readonly customer: components['schemas']['Customer']
       /** Entitlement Value */
       readonly value: components['schemas']['EntitlementValue']
     }

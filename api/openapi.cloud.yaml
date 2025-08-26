@@ -19493,6 +19493,7 @@ components:
         - entitlement
         - feature
         - subject
+        - customer
         - value
         - threshold
       properties:
@@ -19510,6 +19511,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/Subject'
           title: Subject
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/Customer'
+          title: Customer
           readOnly: true
         value:
           allOf:
@@ -19576,6 +19582,7 @@ components:
         - entitlement
         - feature
         - subject
+        - customer
         - value
       properties:
         entitlement:
@@ -19592,6 +19599,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/Subject'
           title: Subject
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/Customer'
+          title: Customer
           readOnly: true
         value:
           allOf:
