@@ -33,6 +33,8 @@ func CreateCustomerWithSubject(t *testing.T, client *api.ClientWithResponses, cu
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
+	require.Equal(t, []string{subjectKey}, resp.JSON201.UsageAttribution.SubjectKeys)
+
 	// Then create the subject
 	{
 		resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{
