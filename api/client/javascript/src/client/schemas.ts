@@ -7604,16 +7604,26 @@ export interface components {
       value: number
       /**
        * @description Type of the threshold.
-       * @example NUMBER
+       * @example usage_value
        */
       type: components['schemas']['NotificationRuleBalanceThresholdValueType']
     }
     /**
      * Notification balance threshold type
-     * @description Type of the rule in the balance threshold specification.
+     * @description Type of the rule in the balance threshold specification:
+     *     * `balance_value`: threshold defined by the remaining balance value based on usage and the total of grants in the current usage period
+     *     * `usage_percentage`: threshold defined by the usage percentage compared to the total of grants in the current usage period
+     *     * `usage_value`: threshold defined by the usage value in the current usage period
+     *     * `NUMBER` (**deprecated**): see `usage_value`
+     *     * `PERCENT` (**deprecated**): see `usage_percentage`
      * @enum {string}
      */
-    NotificationRuleBalanceThresholdValueType: 'PERCENT' | 'NUMBER'
+    NotificationRuleBalanceThresholdValueType:
+      | 'PERCENT'
+      | 'NUMBER'
+      | 'balance_value'
+      | 'usage_percentage'
+      | 'usage_value'
     /** @description Union type for requests creating new notification rule with certain type. */
     NotificationRuleCreateRequest:
       | components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
