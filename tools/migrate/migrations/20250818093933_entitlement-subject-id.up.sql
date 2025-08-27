@@ -17,6 +17,23 @@ SET subject_id = t.subject_id
 FROM tt t
 WHERE e.id = t.entitlement_id;
 
+-- Now, let's create a new subject for each entitlement that doesn't have a subject_id and set the subject_id in the entitlements table
+WITH new_subjects AS (
+    INSERT INTO subjects (id, key, namespace, created_at)
+    SELECT DISTINCT ON (e.subject_key, e.namespace)
+        om_func_generate_ulid(),
+        e.subject_key,
+        e.namespace,
+        e.created_at
+    FROM entitlements e
+    WHERE e.subject_id IS NULL
+    RETURNING id, key, namespace
+)
+UPDATE entitlements e
+SET subject_id = s.id
+FROM new_subjects s
+WHERE e.subject_key = s.key AND e.namespace = s.namespace AND e.subject_id IS NULL;
+
 -- atlas:nolint MF104
 ALTER TABLE "entitlements" ALTER COLUMN "subject_id" SET NOT NULL;
 
