@@ -13,7 +13,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.1
 	github.com/IBM/sarama v1.45.2
 	github.com/ThreeDotsLabs/watermill v1.4.7
-	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.0.6
+	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.1.0
 	github.com/XSAM/otelsql v0.39.0
 	github.com/alpacahq/alpacadecimal v0.0.8
 	github.com/avast/retry-go/v4 v4.6.1
@@ -518,7 +518,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/klog/v2 v2.130.1 // indirect
+	k8s.io/klog/v2 v2.130.1
 	modernc.org/libc v1.66.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
