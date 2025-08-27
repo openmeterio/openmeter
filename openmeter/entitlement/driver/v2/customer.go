@@ -11,38 +11,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
-	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
-
-// CustomerEntitlementHandler exposes V2 customer entitlement endpoints
-type CustomerEntitlementHandler interface {
-	CreateCustomerEntitlement() CreateCustomerEntitlementHandler
-	ListCustomerEntitlements() ListCustomerEntitlementsHandler
-}
-
-type customerEntitlementHandler struct {
-	namespaceDecoder namespacedriver.NamespaceDecoder
-	options          []httptransport.HandlerOption
-	connector        entitlement.Connector
-	customerService  customer.Service
-}
-
-func NewCustomerEntitlementHandler(
-	connector entitlement.Connector,
-	customerService customer.Service,
-	namespaceDecoder namespacedriver.NamespaceDecoder,
-	options ...httptransport.HandlerOption,
-) CustomerEntitlementHandler {
-	return &customerEntitlementHandler{
-		namespaceDecoder: namespaceDecoder,
-		options:          options,
-		connector:        connector,
-		customerService:  customerService,
-	}
-}
 
 type (
 	CreateCustomerEntitlementHandlerRequest  = entitlement.CreateEntitlementInputs
@@ -202,6 +175,198 @@ func (h *customerEntitlementHandler) ListCustomerEntitlements() ListCustomerEnti
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listCustomerEntitlementsV2"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
+		)...,
+	)
+}
+
+type (
+	GetCustomerEntitlementHandlerParams struct {
+		CustomerIDOrKey           string
+		EntitlementIdOrFeatureKey string
+	}
+	GetCustomerEntitlementHandlerRequest struct {
+		CustomerIDOrKey           string
+		EntitlementIdOrFeatureKey string
+		Namespace                 string
+	}
+	GetCustomerEntitlementHandlerResponse = *api.EntitlementV2
+)
+
+type GetCustomerEntitlementHandler httptransport.HandlerWithArgs[GetCustomerEntitlementHandlerRequest, GetCustomerEntitlementHandlerResponse, GetCustomerEntitlementHandlerParams]
+
+func (h *customerEntitlementHandler) GetCustomerEntitlement() GetCustomerEntitlementHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params GetCustomerEntitlementHandlerParams) (GetCustomerEntitlementHandlerRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetCustomerEntitlementHandlerRequest{}, err
+			}
+
+			return GetCustomerEntitlementHandlerRequest{
+				CustomerIDOrKey:           params.CustomerIDOrKey,
+				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
+				Namespace:                 ns,
+			}, nil
+		},
+		func(ctx context.Context, request GetCustomerEntitlementHandlerRequest) (GetCustomerEntitlementHandlerResponse, error) {
+			// First we resolve the customer
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					Namespace: request.Namespace,
+					IDOrKey:   request.CustomerIDOrKey,
+				},
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			// Then we resolve the entitlement
+			entitlement, err := h.connector.GetEntitlementOfCustomerAt(ctx, request.Namespace, cus.ID, request.EntitlementIdOrFeatureKey, clock.Now())
+			if err != nil {
+				return nil, err
+			}
+
+			return ParserV2.ToAPIGenericV2(entitlement, entitlement.Customer.ID, entitlement.Customer.Key)
+		},
+		commonhttp.JSONResponseEncoder[GetCustomerEntitlementHandlerResponse],
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("getCustomerEntitlementV2"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
+		)...,
+	)
+}
+
+type (
+	DeleteCustomerEntitlementHandlerParams struct {
+		CustomerIDOrKey           string
+		EntitlementIdOrFeatureKey string
+	}
+	DeleteCustomerEntitlementHandlerRequest struct {
+		CustomerIDOrKey           string
+		EntitlementIdOrFeatureKey string
+		Namespace                 string
+	}
+	DeleteCustomerEntitlementHandlerResponse = interface{}
+)
+
+type DeleteCustomerEntitlementHandler httptransport.HandlerWithArgs[DeleteCustomerEntitlementHandlerRequest, DeleteCustomerEntitlementHandlerResponse, DeleteCustomerEntitlementHandlerParams]
+
+func (h *customerEntitlementHandler) DeleteCustomerEntitlement() DeleteCustomerEntitlementHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params DeleteCustomerEntitlementHandlerParams) (DeleteCustomerEntitlementHandlerRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return DeleteCustomerEntitlementHandlerRequest{}, err
+			}
+
+			return DeleteCustomerEntitlementHandlerRequest{
+				CustomerIDOrKey:           params.CustomerIDOrKey,
+				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
+				Namespace:                 ns,
+			}, nil
+		},
+		func(ctx context.Context, request DeleteCustomerEntitlementHandlerRequest) (DeleteCustomerEntitlementHandlerResponse, error) {
+			// First we resolve the customer
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					Namespace: request.Namespace,
+					IDOrKey:   request.CustomerIDOrKey,
+				},
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			ent, err := h.connector.GetEntitlementOfCustomerAt(ctx, request.Namespace, cus.ID, request.EntitlementIdOrFeatureKey, clock.Now())
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, h.connector.DeleteEntitlement(ctx, request.Namespace, ent.ID, clock.Now())
+		},
+		commonhttp.JSONResponseEncoderWithStatus[DeleteCustomerEntitlementHandlerResponse](http.StatusNoContent),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("deleteCustomerEntitlementV2"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
+		)...,
+	)
+}
+
+type (
+	OverrideCustomerEntitlementHandlerParams struct {
+		CustomerIDOrKey           string
+		EntitlementIdOrFeatureKey string
+	}
+	OverrideCustomerEntitlementHandlerRequest struct {
+		CustomerID                string
+		EntitlementIDOrFeatureKey string
+		Namespace                 string
+		Inputs                    entitlement.CreateEntitlementInputs
+	}
+	OverrideCustomerEntitlementHandlerResponse = *api.EntitlementV2
+)
+
+type OverrideCustomerEntitlementHandler httptransport.HandlerWithArgs[OverrideCustomerEntitlementHandlerRequest, OverrideCustomerEntitlementHandlerResponse, OverrideCustomerEntitlementHandlerParams]
+
+func (h *customerEntitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntitlementHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params OverrideCustomerEntitlementHandlerParams) (OverrideCustomerEntitlementHandlerRequest, error) {
+			var def OverrideCustomerEntitlementHandlerRequest
+
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return OverrideCustomerEntitlementHandlerRequest{}, err
+			}
+
+			apiInp := &api.EntitlementCreateInputs{}
+			if err := commonhttp.JSONRequestBodyDecoder(r, &apiInp); err != nil {
+				return OverrideCustomerEntitlementHandlerRequest{}, err
+			}
+
+			// Resolve customer
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					Namespace: ns,
+					IDOrKey:   params.CustomerIDOrKey,
+				},
+			})
+			if err != nil {
+				return def, err
+			}
+
+			// Reuse v1 parser to build entitlement create inputs using the subject key
+			createInp, err := entitlementdriver.ParseAPICreateInput(apiInp, ns, cus.GetUsageAttribution())
+			if err != nil {
+				return OverrideCustomerEntitlementHandlerRequest{}, err
+			}
+
+			return OverrideCustomerEntitlementHandlerRequest{
+				CustomerID:                cus.ID,
+				EntitlementIDOrFeatureKey: params.EntitlementIdOrFeatureKey,
+				Namespace:                 ns,
+				Inputs:                    createInp,
+			}, nil
+		},
+		func(ctx context.Context, request OverrideCustomerEntitlementHandlerRequest) (OverrideCustomerEntitlementHandlerResponse, error) {
+			oldEnt, err := h.connector.GetEntitlementOfCustomerAt(ctx, request.Namespace, request.CustomerID, request.EntitlementIDOrFeatureKey, clock.Now())
+			if err != nil {
+				return nil, err
+			}
+
+			ent, err := h.connector.OverrideEntitlement(ctx, request.CustomerID, oldEnt.ID, request.Inputs)
+			if err != nil {
+				return nil, err
+			}
+
+			return ParserV2.ToAPIGenericV2(ent, ent.Customer.ID, ent.Customer.Key)
+		},
+		commonhttp.JSONResponseEncoder[OverrideCustomerEntitlementHandlerResponse],
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("overrideCustomerEntitlementV2"),
 			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)

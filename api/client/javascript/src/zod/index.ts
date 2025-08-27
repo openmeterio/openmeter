@@ -17249,6 +17249,7 @@ export const listCustomerEntitlementsV2QueryParams = zod.object({
 
 /**
  * Get entitlement by feature key. For checking entitlement access, use the /value endpoint instead.
+If featureKey is used, the entitlement is resolved for the current timestamp.
  * @summary Get customer entitlement
  */
 export const getCustomerEntitlementV2PathEntitlementIdOrFeatureKeyMax = 64

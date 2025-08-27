@@ -161,25 +161,38 @@ func (a *Router) ListCustomerEntitlementsV2(w http.ResponseWriter, r *http.Reque
 // Get customer entitlement
 // (GET /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey})
 func (a *Router) GetCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
-	unimplemented.GetCustomerEntitlementV2(w, r, customerIdOrKey, featureKey)
+	a.entitlementV2Handler.GetCustomerEntitlement().With(entitlementdriverv2.GetCustomerEntitlementHandlerParams{
+		CustomerIDOrKey:           customerIdOrKey,
+		EntitlementIdOrFeatureKey: featureKey,
+	}).ServeHTTP(w, r)
 }
 
 // Delete customer entitlement
-// (DELETE /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey})
-func (a *Router) DeleteCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
-	unimplemented.DeleteCustomerEntitlementV2(w, r, customerIdOrKey, featureKey)
+// (DELETE /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey})
+func (a *Router) DeleteCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, entitlementIdOrFeatureKey string) {
+	a.entitlementV2Handler.DeleteCustomerEntitlement().With(entitlementdriverv2.DeleteCustomerEntitlementHandlerParams{
+		CustomerIDOrKey:           customerIdOrKey,
+		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
+	}).ServeHTTP(w, r)
 }
 
 // Override customer entitlement
 // (PUT /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey}/override)
 func (a *Router) OverrideCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
-	unimplemented.OverrideCustomerEntitlementV2(w, r, customerIdOrKey, featureKey)
+	a.entitlementV2Handler.OverrideCustomerEntitlement().With(entitlementdriverv2.OverrideCustomerEntitlementHandlerParams{
+		CustomerIDOrKey:           customerIdOrKey,
+		EntitlementIdOrFeatureKey: featureKey,
+	}).ServeHTTP(w, r)
 }
 
 // List customer entitlement grants
 // (GET /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey}/grants)
 func (a *Router) ListCustomerEntitlementGrantsV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.ListCustomerEntitlementGrantsV2Params) {
-	unimplemented.ListCustomerEntitlementGrantsV2(w, r, customerIdOrKey, featureKey, params)
+	a.entitlementV2Handler.ListCustomerEntitlementGrants().With(entitlementdriverv2.ListCustomerEntitlementGrantsHandlerParams{
+		CustomerIDOrKey:           customerIdOrKey,
+		EntitlementIdOrFeatureKey: featureKey,
+		Params:                    params,
+	}).ServeHTTP(w, r)
 }
 
 // Create customer entitlement grant

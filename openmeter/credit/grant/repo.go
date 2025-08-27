@@ -20,6 +20,7 @@ const (
 	OrderByExpiresAt   OrderBy = "expires_at"
 	OrderByEffectiveAt OrderBy = "effective_at"
 	OrderByOwner       OrderBy = "owner_id" // check
+	OrderByDefault     OrderBy = OrderByCreatedAt
 )
 
 func (f OrderBy) Values() []OrderBy {

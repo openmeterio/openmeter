@@ -2,6 +2,7 @@ package meteredentitlement
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/samber/lo"
@@ -12,8 +13,36 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+type ListEntitlementGrantsOrderBy grant.OrderBy
+
+type ListEntitlementGrantsParams struct {
+	CustomerID                string
+	EntitlementIDOrFeatureKey string
+	OrderBy                   grant.OrderBy
+	Order                     sortx.Order
+	Page                      pagination.Page
+}
+
+func (p ListEntitlementGrantsParams) Validate() error {
+	if err := p.Page.Validate(); err != nil {
+		return err
+	}
+
+	if p.CustomerID == "" {
+		return fmt.Errorf("customerID is required")
+	}
+
+	if p.EntitlementIDOrFeatureKey == "" {
+		return fmt.Errorf("entitlementIDOrFeatureKey is required")
+	}
+
+	return nil
+}
 
 // CreateGrant creates a grant for a given entitlement
 //
@@ -52,44 +81,46 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, customerI
 		return EntitlementGrant{}, err
 	}
 
-	eg, err := GrantFromCreditGrant(*g)
+	eg, err := GrantFromCreditGrant(*g, clock.Now())
 	return *eg, err
 }
 
 // ListEntitlementGrants lists all grants for a given entitlement
-//
-// You can list grants for inactive entitlements by passing the entitlement ID
-func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string, customerID string, entitlementIdOrFeatureKey string) ([]EntitlementGrant, error) {
-	// Find the matching entitlement, first by ID, then by feature key
-	ent, err := e.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: entitlementIdOrFeatureKey})
-	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
-		ent, err = e.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, namespace, customerID, entitlementIdOrFeatureKey, clock.Now())
-	}
-	if err != nil {
-		return nil, err
+func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string, params ListEntitlementGrantsParams) (pagination.PagedResponse[EntitlementGrant], error) {
+	var def pagination.PagedResponse[EntitlementGrant]
+
+	if err := params.Validate(); err != nil {
+		return def, err
 	}
 
-	// check that we own the grant
+	// Find the matching entitlement, first by ID, then by feature key
+	ent, err := e.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: params.EntitlementIDOrFeatureKey})
+	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+		ent, err = e.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, namespace, params.CustomerID, params.EntitlementIDOrFeatureKey, clock.Now())
+	}
+	if err != nil {
+		return def, err
+	}
+
 	grants, err := e.grantRepo.ListGrants(ctx, grant.ListParams{
 		Namespace:      ent.Namespace,
 		OwnerID:        convert.ToPointer(ent.ID),
 		IncludeDeleted: false,
-		OrderBy:        grant.OrderByCreatedAt,
+		OrderBy:        params.OrderBy,
+		Order:          params.Order,
+		Page:           params.Page,
 	})
 	if err != nil {
-		return nil, err
+		return def, err
 	}
 
-	ents := make([]EntitlementGrant, 0, len(grants.Items))
-	for _, grant := range grants.Items {
-		g, err := GrantFromCreditGrant(grant)
+	return pagination.MapPagedResponseError(grants, func(grant grant.Grant) (EntitlementGrant, error) {
+		g, err := GrantFromCreditGrant(grant, clock.Now())
 		if err != nil {
-			return nil, err
+			return EntitlementGrant{}, err
 		}
-		ents = append(ents, *g)
-	}
-
-	return ents, nil
+		return *g, nil
+	})
 }
 
 type EntitlementGrant struct {
@@ -107,10 +138,10 @@ type EntitlementGrant struct {
 	MinRolloverAmount float64    `json:"minRolloverAmount"`
 }
 
-func GrantFromCreditGrant(grant grant.Grant) (*EntitlementGrant, error) {
+func GrantFromCreditGrant(grant grant.Grant, now time.Time) (*EntitlementGrant, error) {
 	g := &EntitlementGrant{}
 	if grant.Recurrence != nil {
-		next, err := grant.Recurrence.NextAfter(clock.Now(), timeutil.Inclusive)
+		next, err := grant.Recurrence.NextAfter(now, timeutil.Inclusive)
 		if err != nil {
 			return nil, err
 		}

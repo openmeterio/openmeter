@@ -10653,7 +10653,9 @@ paths:
     get:
       operationId: getCustomerEntitlementV2
       summary: Get customer entitlement
-      description: Get entitlement by feature key. For checking entitlement access, use the /value endpoint instead.
+      description: |-
+        Get entitlement by feature key. For checking entitlement access, use the /value endpoint instead.
+        If featureKey is used, the entitlement is resolved for the current timestamp.
       parameters:
         - name: customerIdOrKey
           in: path
