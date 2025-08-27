@@ -269,7 +269,8 @@ model EntitlementSharedFields {
   type: EntitlementType;
 
   /**
-   * The identifier key unique to the subject
+   * The identifier key unique to the subject.
+   * NOTE: Subjects are being deprecated, please use the new customer APIs.
    */
   @example("customer-1")
   subjectKey: Key;
@@ -357,7 +358,7 @@ model EntitlementMetered {
  * Entitlement template of a boolean entitlement.
  */
 @friendlyName("EntitlementBoolean")
-model EntitlementBoolean extends EntitlementSharedFields {
+model EntitlementBoolean {
   type: EntitlementType.boolean;
   ...OmitProperties<
     EntitlementBooleanCreateInputs,
