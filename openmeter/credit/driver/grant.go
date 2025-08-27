@@ -12,6 +12,7 @@ import (
 	entitlement_httpdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -105,7 +106,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 
 			apiGrants := make([]api.EntitlementGrant, 0, len(grants.Items))
 			for _, grant := range grants.Items {
-				entitlementGrant, err := meteredentitlement.GrantFromCreditGrant(grant)
+				entitlementGrant, err := meteredentitlement.GrantFromCreditGrant(grant, clock.Now())
 				if err != nil {
 					return response, err
 				}

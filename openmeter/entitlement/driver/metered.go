@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -199,13 +200,17 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 			}
 
 			// TODO: validate that entitlement belongs to subject
-			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey)
+			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, meteredentitlement.ListEntitlementGrantsParams{
+				CustomerID:                cust.ID,
+				EntitlementIDOrFeatureKey: request.EntitlementIdOrFeatureKey,
+				Page:                      pagination.NewPage(1, 1000),
+			})
 			if err != nil {
 				return nil, err
 			}
 
-			apiGrants := make([]api.EntitlementGrant, 0, len(grants))
-			for _, grant := range grants {
+			apiGrants := make([]api.EntitlementGrant, 0, len(grants.Items))
+			for _, grant := range grants.Items {
 				apiGrant := MapEntitlementGrantToAPI(&grant)
 
 				apiGrants = append(apiGrants, apiGrant)

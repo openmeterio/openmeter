@@ -757,8 +757,8 @@ func (n NoopEntitlementBalanceConnector) CreateGrant(ctx context.Context, namesp
 	return meteredentitlement.EntitlementGrant{}, nil
 }
 
-func (n NoopEntitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string) ([]meteredentitlement.EntitlementGrant, error) {
-	return []meteredentitlement.EntitlementGrant{}, nil
+func (n NoopEntitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, namespace string, params meteredentitlement.ListEntitlementGrantsParams) (pagination.PagedResponse[meteredentitlement.EntitlementGrant], error) {
+	return pagination.PagedResponse[meteredentitlement.EntitlementGrant]{}, nil
 }
 
 func (n NoopEntitlementBalanceConnector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {

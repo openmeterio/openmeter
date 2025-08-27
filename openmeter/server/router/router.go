@@ -280,6 +280,7 @@ func NewRouter(config Config) (*Router, error) {
 	// V2 entitlement handler for customer-scoped operations
 	router.entitlementV2Handler = entitlementdriverv2.NewCustomerEntitlementHandler(
 		config.EntitlementConnector,
+		config.EntitlementBalanceConnector,
 		config.Customer,
 		staticNamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
