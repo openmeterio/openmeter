@@ -19,12 +19,13 @@ WHERE e.id = t.entitlement_id;
 
 -- Now, let's create a new subject for each entitlement that doesn't have a subject_id and set the subject_id in the entitlements table
 WITH new_subjects AS (
-    INSERT INTO subjects (id, key, namespace, created_at)
+    INSERT INTO subjects (id, key, namespace, created_at, updated_at)
     SELECT DISTINCT ON (e.subject_key, e.namespace)
         om_func_generate_ulid(),
         e.subject_key,
         e.namespace,
-        e.created_at
+        e.created_at,
+        e.updated_at
     FROM entitlements e
     WHERE e.subject_id IS NULL
     RETURNING id, key, namespace
