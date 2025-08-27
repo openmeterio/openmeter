@@ -144,20 +144,21 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	sort.Strings(groupBy)
 
 	query := queryMeter{
-		Database:        c.config.Database,
-		EventsTableName: c.config.EventsTableName,
-		Namespace:       namespace,
-		Meter:           meter,
-		From:            params.From,
-		To:              params.To,
-		FilterCustomer:  params.FilterCustomer,
-		FilterSubject:   params.FilterSubject,
-		FilterGroupBy:   params.FilterGroupBy,
-		GroupBy:         groupBy,
-		WindowSize:      params.WindowSize,
-		WindowTimeZone:  params.WindowTimeZone,
-		QuerySettings:   c.config.MeterQuerySettings,
-		EnablePrewhere:  c.config.EnablePrewhere,
+		Database:         c.config.Database,
+		EventsTableName:  c.config.EventsTableName,
+		Namespace:        namespace,
+		Meter:            meter,
+		From:             params.From,
+		To:               params.To,
+		IgnoreLateEvents: params.IgnoreLateEvents,
+		FilterCustomer:   params.FilterCustomer,
+		FilterSubject:    params.FilterSubject,
+		FilterGroupBy:    params.FilterGroupBy,
+		GroupBy:          groupBy,
+		WindowSize:       params.WindowSize,
+		WindowTimeZone:   params.WindowTimeZone,
+		QuerySettings:    c.config.MeterQuerySettings,
+		EnablePrewhere:   c.config.EnablePrewhere,
 	}
 
 	// Load cached rows if any
