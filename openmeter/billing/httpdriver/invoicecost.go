@@ -130,6 +130,8 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 				To:             &line.Period.End,
 				FilterGroupBy:  meterGroupByFilters,
 				FilterCustomer: []streaming.Customer{*customer},
+				// We ignore late events because the data is ingested after the invoice is collected
+				IgnoreLateEvents: invoice.CollectionAt,
 			}
 
 			if request.Params.GroupBy != nil {
