@@ -55,6 +55,11 @@ type Grant struct {
 	Recurrence *timeutil.Recurrence `json:"recurrence,omitempty"`
 }
 
+func (g Grant) Validate() error {
+	// TODO: there are no clear validation requirements now but lets implement the interface
+	return nil
+}
+
 // Calculates expiration from effectiveAt and Expiration.
 func (g Grant) GetExpiration() time.Time {
 	return g.Expiration.GetExpiration(g.EffectiveAt)

@@ -715,7 +715,7 @@ func (n NoopEntitlementConnector) GetEntitlementValue(ctx context.Context, names
 	return nil, nil
 }
 
-func (n NoopEntitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]entitlement.Entitlement, error) {
+func (n NoopEntitlementConnector) GetEntitlementsOfCustomer(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]entitlement.Entitlement, error) {
 	return []entitlement.Entitlement{}, nil
 }
 
@@ -723,7 +723,7 @@ func (n NoopEntitlementConnector) ListEntitlements(ctx context.Context, params e
 	return pagination.PagedResponse[entitlement.Entitlement]{}, nil
 }
 
-func (n NoopEntitlementConnector) GetEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {
+func (n NoopEntitlementConnector) GetEntitlementOfCustomerAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
 }
 
@@ -757,8 +757,8 @@ func (n NoopEntitlementBalanceConnector) CreateGrant(ctx context.Context, namesp
 	return meteredentitlement.EntitlementGrant{}, nil
 }
 
-func (n NoopEntitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string) ([]meteredentitlement.EntitlementGrant, error) {
-	return []meteredentitlement.EntitlementGrant{}, nil
+func (n NoopEntitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, namespace string, params meteredentitlement.ListEntitlementGrantsParams) (pagination.PagedResponse[meteredentitlement.EntitlementGrant], error) {
+	return pagination.PagedResponse[meteredentitlement.EntitlementGrant]{}, nil
 }
 
 func (n NoopEntitlementBalanceConnector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {

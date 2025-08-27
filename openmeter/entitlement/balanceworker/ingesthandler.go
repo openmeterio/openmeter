@@ -13,12 +13,12 @@ import (
 )
 
 func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) error {
-	affectedEntitlements, err := w.repo.ListAffectedEntitlements(ctx,
+	affectedEntitlements, err := w.repo.ListEntitlementsAffectedByIngestEvents(ctx,
 		[]IngestEventQueryFilter{
 			{
-				Namespace:  event.Namespace.ID,
-				SubjectKey: event.SubjectKey,
-				MeterSlugs: event.MeterSlugs,
+				Namespace:    event.Namespace.ID,
+				EventSubject: event.SubjectKey,
+				MeterSlugs:   event.MeterSlugs,
 			},
 		})
 	if err != nil {

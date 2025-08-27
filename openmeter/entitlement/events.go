@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
-	"github.com/openmeterio/openmeter/openmeter/event/models"
+	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
@@ -12,18 +12,26 @@ const (
 	EventSubsystem metadata.EventSubsystem = "entitlement"
 )
 
-type entitlementEvent struct {
+// Events based on entitlementEventV1 should slowly be removed. The issue with this old pattern is that domain models
+// are embedded inside the event, which means that domain changes break previous events.
+// Future versions (starting with v2) will declare the event using only primitives.
+// Deprecated: use events_v2.go instead
+type entitlementEventV1 struct {
 	Entitlement
-	Namespace models.NamespaceID `json:"namespace"`
+	Namespace eventmodels.NamespaceID `json:"namespace"`
 }
 
-func (e entitlementEvent) Validate() error {
+func (e entitlementEventV1) Validate() error {
 	if e.ID == "" {
 		return errors.New("ID must not be empty")
 	}
 
-	if e.SubjectKey == "" {
-		return errors.New("subjectKey must not be empty")
+	if err := e.Subject.Validate(); err != nil {
+		return err
+	}
+
+	if err := e.Customer.Validate(); err != nil {
+		return err
 	}
 
 	if err := e.Namespace.Validate(); err != nil {
@@ -33,7 +41,16 @@ func (e entitlementEvent) Validate() error {
 	return nil
 }
 
-type EntitlementCreatedEvent entitlementEvent
+func (e entitlementEventV1) ToDomainEntitlement() Entitlement {
+	return e.Entitlement
+}
+
+func (e EntitlementDeletedEvent) ToDomainEntitlement() Entitlement {
+	return entitlementEventV1(e).ToDomainEntitlement()
+}
+
+// Deprecated: use EntitlementCreatedEventV2 instead
+type EntitlementCreatedEvent entitlementEventV1
 
 var (
 	_ marshaler.Event = EntitlementCreatedEvent{}
@@ -46,7 +63,7 @@ var (
 )
 
 func (e EntitlementCreatedEvent) Validate() error {
-	return entitlementEvent(e).Validate()
+	return entitlementEventV1(e).Validate()
 }
 
 func (e EntitlementCreatedEvent) EventName() string {
@@ -60,7 +77,8 @@ func (e EntitlementCreatedEvent) EventMetadata() metadata.EventMetadata {
 	}
 }
 
-type EntitlementDeletedEvent entitlementEvent
+// Deprecated: use EntitlementDeletedEventV2 instead
+type EntitlementDeletedEvent entitlementEventV1
 
 var (
 	_ marshaler.Event = EntitlementDeletedEvent{}
@@ -73,7 +91,7 @@ var (
 )
 
 func (e EntitlementDeletedEvent) Validate() error {
-	return entitlementEvent(e).Validate()
+	return entitlementEventV1(e).Validate()
 }
 
 func (e EntitlementDeletedEvent) EventName() string {

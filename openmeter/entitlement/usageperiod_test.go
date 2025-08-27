@@ -58,6 +58,9 @@ func TestUsagePeriodValidation(t *testing.T) {
 }
 
 func TestUsagePeriodGetPeriodAt(t *testing.T) {
+	clock.ResetTime()
+	clock.UnFreeze()
+
 	t.Run("should return recurrence.GetPeriodAt for single recurrence value", func(t *testing.T) {
 		now := clock.Now()
 
@@ -87,11 +90,10 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 
 	t.Run("should return the first period if querying before the first recurrence", func(t *testing.T) {
 		now := clock.Now()
-		startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
 		t1 := now.AddDate(0, -3, 0)
 		t2 := now
-
+		startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 		t1StartOfDay := time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
 
 		rec1 := timeutil.Recurrence{
@@ -117,10 +119,25 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should return the first period even when queried for past
-		require.Equal(t, timeutil.ClosedPeriod{
+		expected := timeutil.ClosedPeriod{
 			From: t1,
 			To:   t1StartOfDay.Add(time.Hour).AddDate(0, 1, 0),
-		}, period, "looked for ts %s", timeInPast)
+		}
+
+		if t1.Sub(t1StartOfDay) <= time.Hour {
+			expected.To = t1StartOfDay.Add(time.Hour)
+		}
+
+		require.Equal(t, expected, period, `
+		now: %s
+		startOfDay: %s
+		t1: %s
+		t1StartOfDay: %s
+		t2: %s
+		timeInPast: %s
+		expected: %+v
+		got: %+v
+		`, now, startOfDay, t1, t1StartOfDay, t2, timeInPast, expected, period)
 	})
 
 	t.Run("should find the correct recurrence to use when multiple are present", func(t *testing.T) {

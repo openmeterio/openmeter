@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
@@ -14,6 +15,8 @@ import (
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -27,6 +30,9 @@ import (
 	productcatalogrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	"github.com/openmeterio/openmeter/openmeter/subject"
+	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
+	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -56,6 +62,9 @@ type Dependencies struct {
 
 	FeatureRepo      feature.FeatureRepo
 	FeatureConnector feature.FeatureConnector
+
+	CustomerService customer.Adapter
+	SubjectService  subject.Service
 
 	Log *slog.Logger
 }
@@ -181,6 +190,18 @@ func setupDependencies(t *testing.T) Dependencies {
 		locker,
 	)
 
+	subjectRepo, err := subjectadapter.New(dbClient)
+	require.NoError(t, err)
+
+	subjectService, err := subjectservice.New(subjectRepo)
+	require.NoError(t, err)
+
+	customerService, err := customeradapter.New(customeradapter.Config{
+		Client: dbClient,
+		Logger: log,
+	})
+	require.NoError(t, err)
+
 	return Dependencies{
 		DBClient:  dbClient,
 		PGDriver:  driver.PGDriver,
@@ -203,6 +224,31 @@ func setupDependencies(t *testing.T) Dependencies {
 		FeatureRepo:      featureRepo,
 		FeatureConnector: featureConnector,
 
+		CustomerService: customerService,
+		SubjectService:  subjectService,
+
 		Log: log,
 	}
+}
+
+func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Adapter, ns string, subjectKey string) *customer.Customer {
+	t.Helper()
+	_, err := subjectService.Create(context.Background(), subject.CreateInput{
+		Namespace: ns,
+		Key:       subjectKey,
+	})
+	require.NoError(t, err)
+
+	cust, err := customerService.CreateCustomer(context.Background(), customer.CreateCustomerInput{
+		Namespace: ns,
+		CustomerMutate: customer.CustomerMutate{
+			Key: lo.ToPtr(subjectKey),
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{subjectKey},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	return cust
 }

@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/filters"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
@@ -54,6 +55,7 @@ var (
 type RecalculatorOptions struct {
 	Entitlement *registry.Entitlement
 	Subject     subject.Service
+	Customer    customer.Service
 	EventBus    eventbus.Publisher
 	MetricMeter metric.Meter
 
@@ -81,6 +83,14 @@ func (o RecalculatorOptions) Validate() error {
 		errs = append(errs, errors.New("missing notification service"))
 	}
 
+	if o.Customer == nil {
+		errs = append(errs, errors.New("missing customer service"))
+	}
+
+	if o.Subject == nil {
+		errs = append(errs, errors.New("missing subject service"))
+	}
+
 	if err := o.FilterStateStorage.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("filter state storage: %w", err))
 	}
@@ -95,8 +105,8 @@ func (o RecalculatorOptions) Validate() error {
 type Recalculator struct {
 	opts RecalculatorOptions
 
-	featureCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedID, feature.Feature]
-	subjectCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedKey, subject.Subject]
+	featureCache         *lrux.CacheWithItemTTL[pkgmodels.NamespacedID, feature.Feature]
+	customerSubjectCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedID, customerAndSubject]
 
 	entitlementFilters *EntitlementFilters
 
@@ -148,7 +158,7 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create feature cache: %w", err)
 	}
 
-	res.subjectCache, err = lrux.NewCacheWithItemTTL(defaultLRUCacheSize, res.getSubjectByKey, lrux.WithTTL(defaultCacheTTL))
+	res.customerSubjectCache, err = lrux.NewCacheWithItemTTL(defaultLRUCacheSize, res.getCustomerAndSubject, lrux.WithTTL(defaultCacheTTL))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create subject ID cache: %w", err)
 	}
@@ -269,9 +279,9 @@ func (r *Recalculator) sendEntitlementEvent(ctx context.Context, ent entitlement
 func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent entitlement.Entitlement) (sendEntitlementEventResult, error) {
 	empty := sendEntitlementEventResult{}
 
-	subject, err := r.subjectCache.Get(ctx, pkgmodels.NamespacedKey{
+	custSubj, err := r.customerSubjectCache.Get(ctx, pkgmodels.NamespacedID{
 		Namespace: ent.Namespace,
-		Key:       ent.SubjectKey,
+		ID:        ent.Customer.ID,
 	})
 	if err != nil {
 		return empty, err
@@ -294,7 +304,9 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 			Namespace: models.NamespaceID{
 				ID: ent.Namespace,
 			},
-			Subject:   subject,
+			Subject:   custSubj.Subject,
+			Customer:  custSubj.Customer,
+			Value:     nil, // explicit nil for deleted events
 			Feature:   feature,
 			Operation: snapshot.ValueOperationDelete,
 
@@ -312,9 +324,9 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent entitlement.Entitlement) (sendEntitlementEventResult, error) {
 	empty := sendEntitlementEventResult{}
 
-	subject, err := r.subjectCache.Get(ctx, pkgmodels.NamespacedKey{
+	custSubj, err := r.customerSubjectCache.Get(ctx, pkgmodels.NamespacedID{
 		Namespace: ent.Namespace,
-		Key:       ent.SubjectKey,
+		ID:        ent.Customer.ID,
 	})
 	if err != nil {
 		return empty, err
@@ -330,7 +342,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 
 	calculatedAt := time.Now()
 
-	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, ent.Namespace, ent.SubjectKey, ent.ID, calculatedAt)
+	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, ent.Namespace, ent.Customer.ID, ent.ID, calculatedAt)
 	if err != nil {
 		return empty, fmt.Errorf("failed to get entitlement value: %w", err)
 	}
@@ -353,7 +365,8 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 			Namespace: models.NamespaceID{
 				ID: ent.Namespace,
 			},
-			Subject:   subject,
+			Subject:   custSubj.Subject,
+			Customer:  custSubj.Customer,
 			Feature:   feature,
 			Operation: snapshot.ValueOperationUpdate,
 
@@ -369,13 +382,16 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 	}, r.opts.EventBus.Publish(ctx, event)
 }
 
-func (r *Recalculator) getSubjectByKey(ctx context.Context, namespacedKey pkgmodels.NamespacedKey) (subject.Subject, error) {
-	subject, err := resolveSubjectIfExists(ctx, r.opts.Subject, namespacedKey)
+func (r *Recalculator) getCustomerAndSubject(ctx context.Context, namespacedId pkgmodels.NamespacedID) (customerAndSubject, error) {
+	cust, subj, err := resolveCustomerAndSubject(ctx, r.opts.Customer, r.opts.Subject, namespacedId.Namespace, namespacedId.ID)
 	if err != nil {
-		return subject, err
+		return customerAndSubject{}, err
 	}
 
-	return subject, nil
+	return customerAndSubject{
+		Customer: cust,
+		Subject:  subj,
+	}, nil
 }
 
 func (r *Recalculator) getFeature(ctx context.Context, featureID pkgmodels.NamespacedID) (feature.Feature, error) {
@@ -385,4 +401,10 @@ func (r *Recalculator) getFeature(ctx context.Context, featureID pkgmodels.Names
 	}
 
 	return *feat, nil
+}
+
+// customerAndSubject is a helper struct to be used in the cache
+type customerAndSubject struct {
+	Customer customer.Customer
+	Subject  subject.Subject
 }

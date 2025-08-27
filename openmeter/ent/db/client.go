@@ -4625,6 +4625,22 @@ func (c *CustomerClient) QuerySubscription(_m *Customer) *SubscriptionQuery {
 	return query
 }
 
+// QueryEntitlements queries the entitlements edge of a Customer.
+func (c *CustomerClient) QueryEntitlements(_m *Customer) *EntitlementQuery {
+	query := (&EntitlementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, id),
+			sqlgraph.To(entitlement.Table, entitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.EntitlementsTable, customer.EntitlementsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CustomerClient) Hooks() []Hook {
 	return c.hooks.Customer
@@ -4980,6 +4996,22 @@ func (c *EntitlementClient) QueryFeature(_m *Entitlement) *FeatureQuery {
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
 			sqlgraph.To(feature.Table, feature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.FeatureTable, entitlement.FeatureColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomer queries the customer edge of a Entitlement.
+func (c *EntitlementClient) QueryCustomer(_m *Entitlement) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.CustomerTable, entitlement.CustomerColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

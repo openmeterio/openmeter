@@ -32,6 +32,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.BalanceWorkerAdapter,
 		common.ClickHouse,
 		common.Config,
+		common.Customer,
 		common.Database,
 		common.Feature,
 		common.Framework,

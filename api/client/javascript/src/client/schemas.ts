@@ -2193,6 +2193,7 @@ export interface paths {
     /**
      * Get customer entitlement
      * @description Get entitlement by feature key. For checking entitlement access, use the /value endpoint instead.
+     *     If featureKey is used, the entitlement is resolved for the current timestamp.
      */
     get: operations['getCustomerEntitlementV2']
     put?: never
@@ -7592,6 +7593,8 @@ export interface components {
       readonly feature: components['schemas']['Feature']
       /** Subject */
       readonly subject: components['schemas']['Subject']
+      /** Customer */
+      readonly customer: components['schemas']['Customer']
       /** Entitlement Value */
       readonly value: components['schemas']['EntitlementValue']
       /** Threshold */
@@ -7641,6 +7644,8 @@ export interface components {
       readonly feature: components['schemas']['Feature']
       /** Subject */
       readonly subject: components['schemas']['Subject']
+      /** Customer */
+      readonly customer: components['schemas']['Customer']
       /** Entitlement Value */
       readonly value: components['schemas']['EntitlementValue']
     }

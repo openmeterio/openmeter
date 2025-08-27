@@ -11,7 +11,6 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -65,14 +64,14 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input enti
 }
 
 // OverrideEntitlement replaces an existing entitlement with a new one.
-func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
-	// Validate input
-	if subject != input.SubjectKey {
-		return nil, models.NewGenericValidationError(fmt.Errorf("subject keys do not match"))
+func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, customerID string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	// Validate customer match in input
+	if customerID != input.UsageAttribution.ID {
+		return nil, entitlement.ErrEntitlementCreatePropertyMismatch.WithAttr("customer_id", customerID).WithAttr("usage_attribution_id", input.UsageAttribution.ID)
 	}
 
 	// Find the entitlement to override
-	oldEnt, err := c.GetEntitlementOfSubjectAt(ctx, input.Namespace, subject, entitlementIdOrFeatureKey, clock.Now())
+	oldEnt, err := c.GetEntitlementOfCustomerAt(ctx, input.Namespace, customerID, entitlementIdOrFeatureKey, clock.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -108,12 +107,7 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 			return nil, err
 		}
 
-		err = c.publisher.Publish(ctx, entitlement.EntitlementDeletedEvent{
-			Entitlement: *ent,
-			Namespace: eventmodels.NamespaceID{
-				ID: namespace,
-			},
-		})
+		err = c.publisher.Publish(ctx, entitlement.NewEntitlementDeletedEventPayloadV2(*ent))
 		if err != nil {
 			return nil, err
 		}
@@ -125,20 +119,20 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 	return err
 }
 
-func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]entitlement.Entitlement, error) {
-	return c.entitlementRepo.GetActiveEntitlementsOfSubject(ctx, namespace, subjectKey, at)
+func (c *entitlementConnector) GetEntitlementsOfCustomer(ctx context.Context, namespace string, customerId string, at time.Time) ([]entitlement.Entitlement, error) {
+	return c.entitlementRepo.GetActiveEntitlementsOfCustomer(ctx, namespace, customerId, at)
 }
 
-func (c *entitlementConnector) GetEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {
+func (c *entitlementConnector) GetEntitlementOfCustomerAt(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {
 	ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: idOrFeatureKey})
 	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
-		ent, err = c.entitlementRepo.GetActiveEntitlementOfSubjectAt(ctx, namespace, subjectKey, idOrFeatureKey, at)
+		ent, err = c.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, namespace, customerID, idOrFeatureKey, at)
 	}
 	return ent, err
 }
 
-func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (entitlement.EntitlementValue, error) {
-	ent, err := c.GetEntitlementOfSubjectAt(ctx, namespace, subjectKey, idOrFeatureKey, at)
+func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (entitlement.EntitlementValue, error) {
+	ent, err := c.GetEntitlementOfCustomerAt(ctx, namespace, customerID, idOrFeatureKey, at)
 	if err != nil {
 		return nil, err
 	}
@@ -164,10 +158,10 @@ func (c *entitlementConnector) ListEntitlements(ctx context.Context, params enti
 	return c.entitlementRepo.ListEntitlements(ctx, params)
 }
 
-func (c *entitlementConnector) GetAccess(ctx context.Context, namespace string, subjectKey string) (entitlement.Access, error) {
+func (c *entitlementConnector) GetAccess(ctx context.Context, namespace string, customerId string) (entitlement.Access, error) {
 	now := clock.Now()
 
-	entitlements, err := c.GetEntitlementsOfSubject(ctx, namespace, subjectKey, now)
+	entitlements, err := c.GetEntitlementsOfCustomer(ctx, namespace, customerId, now)
 	if err != nil {
 		return entitlement.Access{}, err
 	}
@@ -200,7 +194,7 @@ func (c *entitlementConnector) GetAccess(ctx context.Context, namespace string, 
 			defer sem.Release(weight)
 
 			// Get the entitlement value
-			entValue, err := c.GetEntitlementValue(ctx, namespace, subjectKey, entit.ID, now)
+			entValue, err := c.GetEntitlementValue(ctx, namespace, customerId, entit.ID, now)
 			if err != nil {
 				return fmt.Errorf("failed to get entitlement value for ID %s: %w", entit.ID, err)
 			}

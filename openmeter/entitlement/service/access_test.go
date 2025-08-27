@@ -11,7 +11,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -40,12 +39,8 @@ func TestGetAccess(t *testing.T) {
 		featureKey := "test"
 		ns := "ns1"
 
-		// First, create the subject
-		_, err := deps.subjectService.Create(context.Background(), subject.CreateInput{
-			Namespace: ns,
-			Key:       subjectKey,
-		})
-		require.NoError(t, err)
+		// First, create the subject and the customer
+		cust := createCustomerAndSubject(t, deps, ns, subjectKey)
 
 		// Then set up a feature and an entitlement
 		feat, err := deps.featureRepo.CreateFeature(context.Background(), feature.CreateFeatureInputs{
@@ -59,11 +54,11 @@ func TestGetAccess(t *testing.T) {
 
 		// Let's create a bool entitlement
 		ent, err := conn.CreateEntitlement(context.Background(), entitlement.CreateEntitlementInputs{
-			Namespace:       ns,
-			SubjectKey:      subjectKey,
-			FeatureKey:      &featureKey,
-			FeatureID:       &feat.ID,
-			EntitlementType: entitlement.EntitlementTypeBoolean,
+			Namespace:        ns,
+			UsageAttribution: cust.GetUsageAttribution(),
+			FeatureKey:       &featureKey,
+			FeatureID:        &feat.ID,
+			EntitlementType:  entitlement.EntitlementTypeBoolean,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, ent)
@@ -72,7 +67,7 @@ func TestGetAccess(t *testing.T) {
 		clock.SetTime(clock.Now().Add(time.Hour))
 
 		// Let's get the access
-		access, err := conn.GetAccess(context.Background(), ns, subjectKey)
+		access, err := conn.GetAccess(context.Background(), ns, cust.ID)
 		require.NoError(t, err)
 		require.Len(t, access.Entitlements, 1)
 		require.NotNil(t, access.Entitlements[featureKey])
@@ -93,11 +88,7 @@ func TestGetAccess(t *testing.T) {
 		ns := "ns1"
 
 		// First, create the subject
-		_, err := deps.subjectService.Create(context.Background(), subject.CreateInput{
-			Namespace: ns,
-			Key:       subjectKey,
-		})
-		require.NoError(t, err)
+		cust := createCustomerAndSubject(t, deps, ns, subjectKey)
 
 		count := 5
 		entIds := make([]string, count)
@@ -112,11 +103,11 @@ func TestGetAccess(t *testing.T) {
 			require.NotNil(t, feat)
 
 			ent, err := conn.CreateEntitlement(context.Background(), entitlement.CreateEntitlementInputs{
-				Namespace:       ns,
-				SubjectKey:      subjectKey,
-				FeatureKey:      lo.ToPtr(fmt.Sprintf("test-%d", i)),
-				FeatureID:       &feat.ID,
-				EntitlementType: entitlement.EntitlementTypeBoolean,
+				Namespace:        ns,
+				UsageAttribution: cust.GetUsageAttribution(),
+				FeatureKey:       lo.ToPtr(fmt.Sprintf("test-%d", i)),
+				FeatureID:        &feat.ID,
+				EntitlementType:  entitlement.EntitlementTypeBoolean,
 			})
 			require.NoError(t, err)
 			require.NotNil(t, ent)
@@ -128,7 +119,7 @@ func TestGetAccess(t *testing.T) {
 		clock.SetTime(clock.Now().Add(time.Hour))
 
 		// Let's get the access
-		access, err := conn.GetAccess(context.Background(), ns, subjectKey)
+		access, err := conn.GetAccess(context.Background(), ns, cust.ID)
 		require.NoError(t, err)
 		require.Len(t, access.Entitlements, count)
 		for _, ent := range access.Entitlements {
@@ -149,11 +140,7 @@ func TestGetAccess(t *testing.T) {
 		ns := "ns1"
 
 		// First, create the subject
-		_, err := deps.subjectService.Create(context.Background(), subject.CreateInput{
-			Namespace: ns,
-			Key:       subjectKey,
-		})
-		require.NoError(t, err)
+		cust := createCustomerAndSubject(t, deps, ns, subjectKey)
 
 		// Let's make a bool entitlement
 		feat, err := deps.featureRepo.CreateFeature(context.Background(), feature.CreateFeatureInputs{
@@ -166,11 +153,11 @@ func TestGetAccess(t *testing.T) {
 		require.NotNil(t, feat)
 
 		ent, err := conn.CreateEntitlement(context.Background(), entitlement.CreateEntitlementInputs{
-			Namespace:       ns,
-			SubjectKey:      subjectKey,
-			FeatureKey:      lo.ToPtr("test-bool"),
-			FeatureID:       &feat.ID,
-			EntitlementType: entitlement.EntitlementTypeBoolean,
+			Namespace:        ns,
+			UsageAttribution: cust.GetUsageAttribution(),
+			FeatureKey:       lo.ToPtr("test-bool"),
+			FeatureID:        &feat.ID,
+			EntitlementType:  entitlement.EntitlementTypeBoolean,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, ent)
@@ -186,12 +173,12 @@ func TestGetAccess(t *testing.T) {
 		require.NotNil(t, feat)
 
 		ent, err = conn.CreateEntitlement(context.Background(), entitlement.CreateEntitlementInputs{
-			Namespace:       ns,
-			SubjectKey:      subjectKey,
-			FeatureKey:      lo.ToPtr("test-static"),
-			FeatureID:       &feat.ID,
-			EntitlementType: entitlement.EntitlementTypeStatic,
-			Config:          []byte(`{"value": 10}`),
+			Namespace:        ns,
+			UsageAttribution: cust.GetUsageAttribution(),
+			FeatureKey:       lo.ToPtr("test-static"),
+			FeatureID:        &feat.ID,
+			EntitlementType:  entitlement.EntitlementTypeStatic,
+			Config:           []byte(`{"value": 10}`),
 		})
 		require.NoError(t, err)
 		require.NotNil(t, ent)
@@ -207,11 +194,11 @@ func TestGetAccess(t *testing.T) {
 		require.NotNil(t, feat)
 
 		ent, err = conn.CreateEntitlement(context.Background(), entitlement.CreateEntitlementInputs{
-			Namespace:       ns,
-			SubjectKey:      subjectKey,
-			FeatureKey:      lo.ToPtr("test-metered"),
-			FeatureID:       &feat.ID,
-			EntitlementType: entitlement.EntitlementTypeMetered,
+			Namespace:        ns,
+			UsageAttribution: cust.GetUsageAttribution(),
+			FeatureKey:       lo.ToPtr("test-metered"),
+			FeatureID:        &feat.ID,
+			EntitlementType:  entitlement.EntitlementTypeMetered,
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
 				Anchor:   now,
@@ -228,7 +215,7 @@ func TestGetAccess(t *testing.T) {
 		clock.SetTime(clock.Now().Add(time.Hour))
 
 		// Let's get the access
-		access, err := conn.GetAccess(context.Background(), ns, subjectKey)
+		access, err := conn.GetAccess(context.Background(), ns, cust.ID)
 		require.NoError(t, err)
 
 		require.Len(t, access.Entitlements, 3)
@@ -254,11 +241,7 @@ func TestGetAccess(t *testing.T) {
 		ns := "ns1"
 
 		// First, create the subject
-		_, err := deps.subjectService.Create(context.Background(), subject.CreateInput{
-			Namespace: ns,
-			Key:       subjectKey,
-		})
-		require.NoError(t, err)
+		cust := createCustomerAndSubject(t, deps, ns, subjectKey)
 
 		count := 20
 		entIds := make([]string, count)
@@ -273,11 +256,11 @@ func TestGetAccess(t *testing.T) {
 			require.NotNil(t, feat)
 
 			ent, err := conn.CreateEntitlement(context.Background(), entitlement.CreateEntitlementInputs{
-				Namespace:       ns,
-				SubjectKey:      subjectKey,
-				FeatureKey:      lo.ToPtr(fmt.Sprintf("test-%d", i)),
-				FeatureID:       &feat.ID,
-				EntitlementType: entitlement.EntitlementTypeBoolean,
+				Namespace:        ns,
+				UsageAttribution: cust.GetUsageAttribution(),
+				FeatureKey:       lo.ToPtr(fmt.Sprintf("test-%d", i)),
+				FeatureID:        &feat.ID,
+				EntitlementType:  entitlement.EntitlementTypeBoolean,
 			})
 			require.NoError(t, err)
 			require.NotNil(t, ent)
@@ -289,7 +272,7 @@ func TestGetAccess(t *testing.T) {
 		clock.SetTime(clock.Now().Add(time.Hour))
 
 		// Let's get the access
-		access, err := conn.GetAccess(context.Background(), ns, subjectKey)
+		access, err := conn.GetAccess(context.Background(), ns, cust.ID)
 		require.NoError(t, err)
 		require.Len(t, access.Entitlements, count)
 		for _, ent := range access.Entitlements {

@@ -10653,7 +10653,9 @@ paths:
     get:
       operationId: getCustomerEntitlementV2
       summary: Get customer entitlement
-      description: Get entitlement by feature key. For checking entitlement access, use the /value endpoint instead.
+      description: |-
+        Get entitlement by feature key. For checking entitlement access, use the /value endpoint instead.
+        If featureKey is used, the entitlement is resolved for the current timestamp.
       parameters:
         - name: customerIdOrKey
           in: path
@@ -20180,6 +20182,7 @@ components:
         - entitlement
         - feature
         - subject
+        - customer
         - value
         - threshold
       properties:
@@ -20197,6 +20200,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/Subject'
           title: Subject
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/Customer'
+          title: Customer
           readOnly: true
         value:
           allOf:
@@ -20263,6 +20271,7 @@ components:
         - entitlement
         - feature
         - subject
+        - customer
         - value
       properties:
         entitlement:
@@ -20279,6 +20288,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/Subject'
           title: Subject
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/Customer'
+          title: Customer
           readOnly: true
         value:
           allOf:

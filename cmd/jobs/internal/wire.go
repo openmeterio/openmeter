@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
@@ -59,6 +60,7 @@ type Application struct {
 	Plan                          plan.Service
 	Secret                        secret.Service
 	Subscription                  common.SubscriptionServiceWithWorkflow
+	Subject                       subject.Service
 	StreamingConnector            streaming.Connector
 }
 
@@ -70,6 +72,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ClickHouse,
 		common.Config,
 		common.Customer,
+		common.Subject,
 		common.Database,
 		common.Entitlement,
 		common.Framework,

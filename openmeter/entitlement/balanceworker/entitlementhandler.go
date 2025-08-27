@@ -81,6 +81,8 @@ func getOptions(opts ...handleOption) handleEntitlementEventOptions {
 	return options
 }
 
+// BalanceWorker simply calculates the entitlement value when a relevant lifecycle change occurs (e.g. granting, voiding, entitlement creation, etc...), thus we can have a unified handler for multiple event types.
+// The handler usually fetches the live state of dependent resources which helps with migration across event versions.
 func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID pkgmodels.NamespacedID, options ...handleOption) (marshaler.Event, error) {
 	calculatedAt := time.Now()
 
@@ -98,6 +100,7 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID pkgmo
 		return nil, nil
 	}
 
+	// We re-fetch the entitlement (even though it's included in the raw events we process) so it conforms to the latest version / schema of the entitlement entity
 	entitlements, err := w.entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
 		Namespaces:     []string{entitlementID.Namespace},
 		IDs:            []string{entitlementID.ID},
@@ -150,13 +153,7 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		(entitlementEntity.ActiveTo != nil && entitlementEntity.ActiveTo.Before(calculatedAt)) {
 		// entitlement got deleted while processing changes => let's create a delete event so that we are not working
 
-		snapshot, err := w.createDeletedSnapshotEvent(ctx,
-			entitlement.EntitlementDeletedEvent{
-				Entitlement: *entitlementEntity,
-				Namespace: models.NamespaceID{
-					ID: entitlementEntity.Namespace,
-				},
-			}, calculatedAt)
+		snapshot, err := w.createDeletedSnapshotEvent(ctx, entitlementEntity, calculatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create entitlement delete snapshot event: %w", err)
 		}
@@ -254,12 +251,9 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	subject, err := resolveSubjectIfExists(ctx, w.opts.Subject, pkgmodels.NamespacedKey{
-		Namespace: in.Entitlement.Namespace,
-		Key:       in.Entitlement.SubjectKey,
-	})
+	cust, subj, err := resolveCustomerAndSubject(ctx, w.opts.Customer, w.opts.Subject, in.Entitlement.Namespace, in.Entitlement.Customer.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get subject ID: %w", err)
+		return nil, fmt.Errorf("failed to get customer and subject: %w", err)
 	}
 
 	event := marshaler.WithSource(
@@ -269,7 +263,8 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 			Namespace: models.NamespaceID{
 				ID: in.Entitlement.Namespace,
 			},
-			Subject:   subject,
+			Subject:   subj,
+			Customer:  cust,
 			Feature:   *in.Feature,
 			Operation: lo.FromPtrOr(in.OverrideOperation, snapshot.ValueOperationUpdate),
 
@@ -290,7 +285,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 
 	calculationStart := time.Now()
 
-	value, err := w.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.SubjectKey, entitlementEntity.ID, calculatedAt)
+	value, err := w.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.Customer.ID, entitlementEntity.ID, calculatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entitlement value: %w", err)
 	}
@@ -318,37 +313,33 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 	})
 }
 
-func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitlement.EntitlementDeletedEvent, calculationTime time.Time) (marshaler.Event, error) {
-	namespace := delEvent.Namespace.ID
+func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, entitlementEntity *entitlement.Entitlement, calculationTime time.Time) (marshaler.Event, error) {
+	namespace := entitlementEntity.Namespace
 
-	feature, err := w.entitlement.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, feature.IncludeArchivedFeatureTrue)
+	feature, err := w.entitlement.Feature.GetFeature(ctx, namespace, entitlementEntity.FeatureID, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
-	subject, err := resolveSubjectIfExists(ctx, w.opts.Subject, pkgmodels.NamespacedKey{
-		Namespace: namespace,
-		Key:       delEvent.SubjectKey,
-	})
+	cust, subj, err := resolveCustomerAndSubject(ctx, w.opts.Customer, w.opts.Subject, namespace, entitlementEntity.Customer.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get subject: %w", err)
+		return nil, fmt.Errorf("failed to get customer and subject: %w", err)
 	}
 
+	// Build snapshot payload via constructor (namespace derived from entitlement)
+	snap := snapshot.NewSnapshotEvent(
+		*entitlementEntity,
+		subj,
+		cust,
+		*feature,
+		snapshot.ValueOperationDelete,
+		convert.ToPointer(calculationTime),
+		nil,
+		entitlementEntity.CurrentUsagePeriod,
+	)
 	event := marshaler.WithSource(
-		metadata.ComposeResourcePath(namespace, metadata.EntityEntitlement, delEvent.ID),
-		snapshot.SnapshotEvent{
-			Entitlement: delEvent.Entitlement,
-			Namespace: models.NamespaceID{
-				ID: namespace,
-			},
-			Subject:   subject,
-			Feature:   *feature,
-			Operation: snapshot.ValueOperationDelete,
-
-			CalculatedAt: convert.ToPointer(calculationTime),
-
-			CurrentUsagePeriod: delEvent.CurrentUsagePeriod,
-		},
+		metadata.ComposeResourcePath(namespace, metadata.EntityEntitlement, entitlementEntity.ID),
+		snap,
 	)
 
 	return event, nil
