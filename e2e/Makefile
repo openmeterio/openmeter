@@ -29,7 +29,7 @@ env-local-up:
 		-f docker-compose.infra.yaml \
 		-f docker-compose.openmeter.yaml \
 		-f docker-compose.openmeter-local.yaml \
-		up -d
+		up -d --build --force-recreate
 
 .PHONY: help
 .DEFAULT_GOAL := help
