@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -39,7 +40,14 @@ func TestGetAccess(t *testing.T) {
 		featureKey := "test"
 		ns := "ns1"
 
-		// Lets set up a feature and an entitlement
+		// First, create the subject
+		_, err := deps.subjectService.Create(context.Background(), subject.CreateInput{
+			Namespace: ns,
+			Key:       subjectKey,
+		})
+		require.NoError(t, err)
+
+		// Then set up a feature and an entitlement
 		feat, err := deps.featureRepo.CreateFeature(context.Background(), feature.CreateFeatureInputs{
 			Key:       featureKey,
 			Name:      "test",
@@ -83,6 +91,13 @@ func TestGetAccess(t *testing.T) {
 
 		subjectKey := "test"
 		ns := "ns1"
+
+		// First, create the subject
+		_, err := deps.subjectService.Create(context.Background(), subject.CreateInput{
+			Namespace: ns,
+			Key:       subjectKey,
+		})
+		require.NoError(t, err)
 
 		count := 5
 		entIds := make([]string, count)
@@ -132,6 +147,13 @@ func TestGetAccess(t *testing.T) {
 		defer clock.ResetTime()
 		subjectKey := "test"
 		ns := "ns1"
+
+		// First, create the subject
+		_, err := deps.subjectService.Create(context.Background(), subject.CreateInput{
+			Namespace: ns,
+			Key:       subjectKey,
+		})
+		require.NoError(t, err)
 
 		// Let's make a bool entitlement
 		feat, err := deps.featureRepo.CreateFeature(context.Background(), feature.CreateFeatureInputs{
@@ -230,6 +252,13 @@ func TestGetAccess(t *testing.T) {
 
 		subjectKey := "test"
 		ns := "ns1"
+
+		// First, create the subject
+		_, err := deps.subjectService.Create(context.Background(), subject.CreateInput{
+			Namespace: ns,
+			Key:       subjectKey,
+		})
+		require.NoError(t, err)
 
 		count := 20
 		entIds := make([]string, count)

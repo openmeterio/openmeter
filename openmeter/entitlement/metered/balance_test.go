@@ -558,6 +558,8 @@ func TestGetEntitlementBalance(t *testing.T) {
 			t.Parallel()
 			connector, deps := setupConnector(t)
 			defer deps.Teardown()
+			ctx := context.Background()
+			_, _ = deps.dbClient.Subject.Create().SetNamespace(namespace).SetKey("subject1").Save(ctx)
 			tc.run(t, connector, deps)
 		})
 	}
@@ -1152,6 +1154,8 @@ func TestGetEntitlementHistory(t *testing.T) {
 			t.Parallel()
 			connector, deps := setupConnector(t)
 			defer deps.Teardown()
+			ctx := context.Background()
+			_, _ = deps.dbClient.Subject.Create().SetNamespace(namespace).SetKey("subject1").Save(ctx)
 			tc.run(t, connector, deps)
 		})
 	}

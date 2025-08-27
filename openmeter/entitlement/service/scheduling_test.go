@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -67,6 +68,13 @@ func TestScheduling(t *testing.T) {
 					Namespace: "ns1",
 				})
 
+				assert.Nil(t, err)
+
+				// Create subject
+				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
+					Namespace: "ns1",
+					Key:       "subject1",
+				})
 				assert.Nil(t, err)
 
 				// From after To
@@ -134,6 +142,13 @@ func TestScheduling(t *testing.T) {
 
 				assert.Nil(t, err)
 
+				// Create subject
+				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
+					Namespace: "ns1",
+					Key:       "subject1",
+				})
+				assert.Nil(t, err)
+
 				ent, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
@@ -172,6 +187,13 @@ func TestScheduling(t *testing.T) {
 					Namespace: "ns1",
 				})
 
+				assert.Nil(t, err)
+
+				// Create subject
+				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
+					Namespace: "ns1",
+					Key:       "subject1",
+				})
 				assert.Nil(t, err)
 
 				// Create first entitlement
@@ -225,6 +247,13 @@ func TestScheduling(t *testing.T) {
 					Namespace: "ns1",
 				})
 
+				assert.Nil(t, err)
+
+				// Create subject
+				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
+					Namespace: "ns1",
+					Key:       "subject1",
+				})
 				assert.Nil(t, err)
 
 				// Create first entitlement
@@ -282,6 +311,13 @@ func TestScheduling(t *testing.T) {
 
 				assert.Nil(t, err)
 
+				// Create subject
+				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
+					Namespace: "ns1",
+					Key:       "subject1",
+				})
+				assert.Nil(t, err)
+
 				// Create first entitlement
 				ent1, err := conn.ScheduleEntitlement(
 					ctx,
@@ -328,6 +364,13 @@ func TestScheduling(t *testing.T) {
 					MeterSlug: lo.ToPtr("meter1"),
 				})
 
+				assert.Nil(t, err)
+
+				// Create subject
+				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
+					Namespace: "ns1",
+					Key:       "subject1",
+				})
 				assert.Nil(t, err)
 
 				t.Run("Boolean entitlement", func(t *testing.T) {

@@ -6,6 +6,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -76,7 +78,7 @@ type CreateEntitlementInputs struct {
 	Namespace       string             `json:"namespace"`
 	FeatureID       *string            `json:"featureId"`
 	FeatureKey      *string            `json:"featureKey"`
-	SubjectKey      string             `json:"subjectKey"`
+	SubjectKey      string             `json:"subjectKey"` // Note: This is still SubjectKey since customer.UsageAttribution only has keys, not hard references to subjects. The adapter resolves SubjectKey to SubjectID.
 	EntitlementType EntitlementType    `json:"type"`
 	Metadata        map[string]string  `json:"metadata,omitempty"`
 	Annotations     models.Annotations `json:"annotations,omitempty"`
@@ -330,12 +332,16 @@ type GenericProperties struct {
 	// If not set, the entitlement is active until deletion.
 	ActiveTo *time.Time `json:"activeTo,omitempty"`
 
-	ID              string          `json:"id,omitempty"`
-	FeatureID       string          `json:"featureId,omitempty"`
-	FeatureKey      string          `json:"featureKey,omitempty"`
-	SubjectKey      string          `json:"subjectKey,omitempty"`
-	EntitlementType EntitlementType `json:"type,omitempty"`
+	ID         string `json:"id,omitempty"`
+	FeatureID  string `json:"featureId,omitempty"`
+	FeatureKey string `json:"featureKey,omitempty"`
 
+	// TODO(galexi): consolidate to only keeping Customer on the entitlement
+	SubjectKey string             `json:"subjectKey,omitempty"`
+	Subject    subject.Subject    `json:"subject,omitempty"`
+	Customer   *customer.Customer `json:"customer,omitempty"`
+
+	EntitlementType           EntitlementType        `json:"type,omitempty"`
 	UsagePeriod               *UsagePeriod           `json:"usagePeriod,omitempty"`
 	CurrentUsagePeriod        *timeutil.ClosedPeriod `json:"currentUsagePeriod,omitempty"`
 	OriginalUsagePeriodAnchor *time.Time             `json:"originalUsagePeriodAnchor,omitempty"`

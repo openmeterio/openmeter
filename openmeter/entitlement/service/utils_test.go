@@ -19,6 +19,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	"github.com/openmeterio/openmeter/openmeter/subject"
+	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
+	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -66,6 +69,7 @@ type dependencies struct {
 	entDriver          *entdriver.EntPostgresDriver
 	featureRepo        feature.FeatureRepo
 	streamingConnector *streamingtestutils.MockStreamingConnector
+	subjectService     subject.Service
 }
 
 // Teardown cleans up the dependencies
@@ -136,12 +140,24 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 		Locker: locker,
 	})
 
+	// Create subject adapter and service
+	subjectAdapter, err := subjectadapter.New(dbClient)
+	if err != nil {
+		t.Fatalf("failed to create subject adapter: %v", err)
+	}
+
+	subjectService, err := subjectservice.New(subjectAdapter)
+	if err != nil {
+		t.Fatalf("failed to create subject service: %v", err)
+	}
+
 	deps := &dependencies{
 		dbClient:           dbClient,
 		pgDriver:           pgDriver,
 		entDriver:          entDriver,
 		featureRepo:        entitlementRegistry.FeatureRepo,
 		streamingConnector: streamingConnector,
+		subjectService:     subjectService,
 	}
 
 	return entitlementRegistry.Entitlement, deps

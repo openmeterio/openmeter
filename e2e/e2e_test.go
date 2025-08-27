@@ -24,6 +24,17 @@ import (
 func TestIngest(t *testing.T) {
 	client := initClient(t)
 
+	// ensure subject exists
+	{
+		resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+			api.SubjectUpsert{
+				Key: "customer-1",
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
+
 	// Make clickhouse's job easier by sending events within a fix time range
 	now := time.Now()
 
@@ -67,6 +78,17 @@ func TestIngest(t *testing.T) {
 // and treat application/cloudevents-batch+json if it's an array of events.
 func TestIngestContentTypeApplicationJSON(t *testing.T) {
 	client := initClient(t)
+
+	// ensure subject exists
+	{
+		resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+			api.SubjectUpsert{
+				Key: "customer-1",
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
 
 	tm := time.Now().Add(-time.Hour).Format(time.RFC3339)
 	eventType := "ingest_content_type_application_json"
@@ -135,6 +157,17 @@ func TestIngestContentTypeApplicationJSON(t *testing.T) {
 func TestBatchIngest(t *testing.T) {
 	client := initClient(t)
 
+	// ensure subject exists
+	{
+		resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+			api.SubjectUpsert{
+				Key: "customer-1",
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
+
 	// Make clickhouse's job easier by sending events within a fix time range
 	now := time.Now()
 
@@ -186,6 +219,17 @@ func TestInvalidIngest(t *testing.T) {
 	eventType := "ingest_invalid"
 	subject := eventType
 	meterKey := eventType
+
+	// ensure subject exists
+	{
+		resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+			api.SubjectUpsert{
+				Key: subject,
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
 
 	getTime := func() time.Time {
 		timeIdx++
@@ -376,6 +420,17 @@ func TestInvalidIngest(t *testing.T) {
 func TestDedupe(t *testing.T) {
 	client := initClient(t)
 
+	// ensure subject exists
+	{
+		resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+			api.SubjectUpsert{
+				Key: "customer-1",
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
+
 	// Make clickhouse's job easier by sending events within a fix time range
 	now := time.Now()
 
@@ -416,6 +471,15 @@ func TestQuery(t *testing.T) {
 
 	// Reproducible random data
 	const customerCount = 5
+
+	// ensure subjects exist
+	for i := 1; i <= customerCount; i++ {
+		resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+			api.SubjectUpsert{Key: fmt.Sprintf("customer-%d", i)},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
 	paths := []string{"/", "/about", "/users", "/contact"}
 	faker := gofakeit.New(8675309)
 	randTime := faker.DateRange(time.Date(2023, time.May, 6, 0, 0, 0, 0, time.UTC), faker.FutureDate().UTC())
@@ -672,7 +736,7 @@ func TestQuery(t *testing.T) {
 
 func TestCredit(t *testing.T) {
 	client := initClient(t)
-	subject := "customer-1"
+	subjectKey := "customer-1"
 	meterSlug := "credit_test_meter"
 	var featureId string
 	var featureKey string
@@ -684,6 +748,17 @@ func TestCredit(t *testing.T) {
 
 	apiYEAR := &api.RecurringPeriodInterval{}
 	require.NoError(t, apiYEAR.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumYEAR))
+
+	t.Run("Create Subject", func(t *testing.T) {
+		resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+			api.SubjectUpsert{
+				Key:         subjectKey,
+				DisplayName: lo.ToPtr("Credit Test Subject"),
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	})
 
 	t.Run("Create Feature", func(t *testing.T) {
 		randKey := fmt.Sprintf("credit_test_feature_%d", time.Now().Unix())
@@ -735,7 +810,7 @@ func TestCredit(t *testing.T) {
 		body := &api.CreateEntitlementJSONRequestBody{}
 		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
 		require.NoError(t, err)
-		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, *body)
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), subjectKey, *body)
 
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
@@ -743,7 +818,7 @@ func TestCredit(t *testing.T) {
 		metered, err := resp.JSON201.AsEntitlementMetered()
 		require.NoError(t, err)
 
-		require.Equal(t, metered.SubjectKey, subject)
+		require.Equal(t, metered.SubjectKey, subjectKey)
 		entitlementId = metered.Id
 		eCreatedAt = metered.CreatedAt
 	})
@@ -760,7 +835,7 @@ func TestCredit(t *testing.T) {
 		body := &api.CreateEntitlementJSONRequestBody{}
 		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
 		require.NoError(t, err)
-		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, *body)
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), subjectKey, *body)
 
 		require.NoError(t, err)
 		require.Equal(t, http.StatusConflict, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
@@ -771,7 +846,19 @@ func TestCredit(t *testing.T) {
 	})
 
 	t.Run("Create a Entitlement With Default Grants", func(t *testing.T) {
-		randSubject := ulid.Make().String()
+		randSubjectKey := ulid.Make().String()
+
+		t.Run("Should create the random subject", func(t *testing.T) {
+			resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+				api.SubjectUpsert{
+					Key:         randSubjectKey,
+					DisplayName: lo.ToPtr("Credit Test Subject"),
+				},
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+		})
+
 		measureUsageFrom := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
 		muf := &api.MeasureUsageFrom{}
 		err := muf.FromMeasureUsageFromTime(measureUsageFrom)
@@ -790,7 +877,7 @@ func TestCredit(t *testing.T) {
 		body := &api.CreateEntitlementJSONRequestBody{}
 		err = body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
 		require.NoError(t, err)
-		resp, err := client.CreateEntitlementWithResponse(context.Background(), randSubject, *body)
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), randSubjectKey, *body)
 
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
@@ -798,11 +885,11 @@ func TestCredit(t *testing.T) {
 		metered, err := resp.JSON201.AsEntitlementMetered()
 		require.NoError(t, err)
 
-		require.Equal(t, randSubject, metered.SubjectKey)
+		require.Equal(t, randSubjectKey, metered.SubjectKey)
 		require.Equal(t, measureUsageFrom, metered.MeasureUsageFrom)
 
 		// fetch grants for entitlement
-		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), randSubject, metered.Id, nil)
+		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), randSubjectKey, metered.Id, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)
@@ -817,6 +904,15 @@ func TestCredit(t *testing.T) {
 	})
 	t.Run("Create a Entitlement With MeasureUsageFrom enum", func(t *testing.T) {
 		randSubject := ulid.Make().String()
+
+		// ensure subject exists
+		{
+			resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+				api.SubjectUpsert{Key: randSubject},
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+		}
 		periodAnchor := time.Now().Truncate(time.Minute).Add(-time.Hour).In(time.UTC)
 		muf := &api.MeasureUsageFrom{}
 		err := muf.FromMeasureUsageFromPreset(api.MeasureUsageFromPresetCurrentPeriodStart)
@@ -853,7 +949,7 @@ func TestCredit(t *testing.T) {
 		minRolloverAmount := 0.0
 
 		// Create grant
-		resp, err := client.CreateGrantWithResponse(context.Background(), subject, entitlementId, api.EntitlementGrantCreateInput{
+		resp, err := client.CreateGrantWithResponse(context.Background(), subjectKey, entitlementId, api.EntitlementGrantCreateInput{
 			Amount:      100,
 			EffectiveAt: effectiveAt,
 			Expiration: api.ExpirationPeriod{
@@ -920,7 +1016,7 @@ func TestCredit(t *testing.T) {
 			ev.SetSource("credit-test")
 			ev.SetType("credit_event")
 			ev.SetTime(ts)
-			ev.SetSubject(subject)
+			ev.SetSubject(subjectKey)
 			_ = ev.SetData("application/json", map[string]string{
 				"model": model,
 			})
@@ -950,7 +1046,7 @@ func TestCredit(t *testing.T) {
 		// Wait for events to be processed, fail on network errors
 		testutils.EventuallyWithTf(t, func(c *assert.CollectT, saveErr func(err any)) {
 			resp, err := client.QueryMeterWithResponse(context.Background(), meterSlug, &api.QueryMeterParams{
-				Subject: &[]string{subject},
+				Subject: &[]string{subjectKey},
 			})
 			saveErr(err)
 			assert.NoError(c, err)
@@ -971,7 +1067,7 @@ func TestCredit(t *testing.T) {
 
 	t.Run("Entitlement Value", func(t *testing.T) {
 		// Get grants
-		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject, entitlementId, nil)
+		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subjectKey, entitlementId, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)
@@ -986,7 +1082,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, features, 1)
 
-		resp, err := client.GetEntitlementValueWithResponse(context.Background(), subject, entitlementId, &api.GetEntitlementValueParams{
+		resp, err := client.GetEntitlementValueWithResponse(context.Background(), subjectKey, entitlementId, &api.GetEntitlementValueParams{
 			Time: convert.ToPointer(eCreatedAt.Add(time.Minute * 2)),
 		})
 		require.NoError(t, err)
@@ -1015,7 +1111,7 @@ func TestCredit(t *testing.T) {
 			effectiveAt := time.Now().Truncate(time.Minute)
 
 			// Get grants
-			grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject, entitlementId, nil)
+			grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subjectKey, entitlementId, nil)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 			require.NotNil(t, grantListResp.JSON200)
@@ -1031,7 +1127,7 @@ func TestCredit(t *testing.T) {
 			require.Len(t, features, 1)
 
 			// Reset usage
-			resetResp, err := client.ResetEntitlementUsageWithResponse(context.Background(), subject, entitlementId, api.ResetEntitlementUsageJSONRequestBody{
+			resetResp, err := client.ResetEntitlementUsageWithResponse(context.Background(), subjectKey, entitlementId, api.ResetEntitlementUsageJSONRequestBody{
 				EffectiveAt: &effectiveAt,
 			})
 
@@ -1045,6 +1141,14 @@ func TestCredit(t *testing.T) {
 		time.Sleep(time.Second * 10)
 
 		t.Run("Create entitlement with automatic grant issuing", func(t *testing.T) {
+			// ensure subject exists
+			{
+				resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+					api.SubjectUpsert{Key: subject2},
+				})
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, resp.StatusCode())
+			}
 			meteredEntitlement := api.EntitlementMeteredCreateInputs{
 				Type:      "metered",
 				FeatureId: &featureId,
@@ -1091,6 +1195,15 @@ func TestCredit(t *testing.T) {
 
 		subject := "test-override"
 
+		// ensure subject exists
+		{
+			resp, err := client.UpsertSubjectWithResponse(context.Background(), api.UpsertSubjectJSONRequestBody{
+				api.SubjectUpsert{Key: subject},
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+		}
+
 		// create an entitlement
 		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, *body)
 		require.NoError(t, err)
@@ -1121,7 +1234,7 @@ func TestCredit(t *testing.T) {
 		// should return 2 entitlements for subject for feature
 		resp, err := client.ListEntitlementsWithResponse(context.Background(), &api.ListEntitlementsParams{
 			EntitlementType: &[]string{"metered"},
-			Subject:         &[]string{subject},
+			Subject:         &[]string{subjectKey},
 			Feature:         &[]string{featureKey},
 			Page:            convert.ToPointer(1),
 			PageSize:        convert.ToPointer(10),
@@ -1140,7 +1253,7 @@ func TestCredit(t *testing.T) {
 		// should return 0 entitlements due to unused types
 		resp, err = client.ListEntitlementsWithResponse(context.Background(), &api.ListEntitlementsParams{
 			EntitlementType: &[]string{"static", "boolean"},
-			Subject:         &[]string{subject},
+			Subject:         &[]string{subjectKey},
 			Feature:         &[]string{featureKey},
 			Page:            convert.ToPointer(1),
 			PageSize:        convert.ToPointer(10),
@@ -1159,7 +1272,7 @@ func TestCredit(t *testing.T) {
 		// should return 400 for invalid type
 		resp, err = client.ListEntitlementsWithResponse(context.Background(), &api.ListEntitlementsParams{
 			EntitlementType: &[]string{"INVALID_STR"},
-			Subject:         &[]string{subject},
+			Subject:         &[]string{subjectKey},
 			Feature:         &[]string{featureKey},
 			Page:            convert.ToPointer(1),
 			PageSize:        convert.ToPointer(10),

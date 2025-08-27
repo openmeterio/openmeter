@@ -34,6 +34,15 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 	var featureId string
 	var entitlementId string
 
+	// ensure subject exists
+	{
+		resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{
+			api.SubjectUpsert{Key: subject},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
+
 	apiMONTH := &api.RecurringPeriodInterval{}
 	require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
 
@@ -193,6 +202,15 @@ func TestEntitlementISOUsagePeriod(t *testing.T) {
 		var featureId string
 		var entitlementId string
 
+		// ensure subject exists
+		{
+			resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{
+				api.SubjectUpsert{Key: subject},
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+		}
+
 		iv2w := &api.RecurringPeriodInterval{}
 		require.Nil(t, iv2w.FromRecurringPeriodInterval0("P2W"))
 
@@ -273,6 +291,15 @@ func TestEntitlementWithLatestAggregation(t *testing.T) {
 	subject := "ent_latest_customer"
 	var featureId string
 	var entitlementId string
+
+	// ensure subject exists
+	{
+		resp, err := client.UpsertSubjectWithResponse(ctx, api.UpsertSubjectJSONRequestBody{
+			api.SubjectUpsert{Key: subject},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
 
 	apiMONTH := &api.RecurringPeriodInterval{}
 	require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))

@@ -39,6 +39,8 @@ const (
 	FieldFeatureKey = "feature_key"
 	// FieldSubjectKey holds the string denoting the subject_key field in the database.
 	FieldSubjectKey = "subject_key"
+	// FieldSubjectID holds the string denoting the subject_id field in the database.
+	FieldSubjectID = "subject_id"
 	// FieldMeasureUsageFrom holds the string denoting the measure_usage_from field in the database.
 	FieldMeasureUsageFrom = "measure_usage_from"
 	// FieldIssueAfterReset holds the string denoting the issue_after_reset field in the database.
@@ -71,6 +73,8 @@ const (
 	EdgeSubscriptionItem = "subscription_item"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
 	EdgeFeature = "feature"
+	// EdgeSubject holds the string denoting the subject edge name in mutations.
+	EdgeSubject = "subject"
 	// Table holds the table name of the entitlement in the database.
 	Table = "entitlements"
 	// UsageResetTable is the table that holds the usage_reset relation/edge.
@@ -108,6 +112,13 @@ const (
 	FeatureInverseTable = "features"
 	// FeatureColumn is the table column denoting the feature relation/edge.
 	FeatureColumn = "feature_id"
+	// SubjectTable is the table that holds the subject relation/edge.
+	SubjectTable = "entitlements"
+	// SubjectInverseTable is the table name for the Subject entity.
+	// It exists in this package in order to avoid circular dependency with the "subject" package.
+	SubjectInverseTable = "subjects"
+	// SubjectColumn is the table column denoting the subject relation/edge.
+	SubjectColumn = "subject_id"
 )
 
 // Columns holds all SQL columns for entitlement fields.
@@ -124,6 +135,7 @@ var Columns = []string{
 	FieldActiveTo,
 	FieldFeatureKey,
 	FieldSubjectKey,
+	FieldSubjectID,
 	FieldMeasureUsageFrom,
 	FieldIssueAfterReset,
 	FieldIssueAfterResetPriority,
@@ -250,6 +262,11 @@ func BySubjectKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubjectKey, opts...).ToFunc()
 }
 
+// BySubjectID orders the results by the subject_id field.
+func BySubjectID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubjectID, opts...).ToFunc()
+}
+
 // ByMeasureUsageFrom orders the results by the measure_usage_from field.
 func ByMeasureUsageFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeasureUsageFrom, opts...).ToFunc()
@@ -362,6 +379,13 @@ func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newFeatureStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// BySubjectField orders the results by subject field.
+func BySubjectField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubjectStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newUsageResetStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -395,5 +419,12 @@ func newFeatureStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FeatureInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
+	)
+}
+func newSubjectStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubjectInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SubjectTable, SubjectColumn),
 	)
 }

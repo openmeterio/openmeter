@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -30,6 +31,7 @@ var _ Handler = (*handler)(nil)
 
 type handler struct {
 	service             customer.Service
+	entitlementService  entitlement.Connector
 	subscriptionService subscription.Service
 	namespaceDecoder    namespacedriver.NamespaceDecoder
 	options             []httptransport.HandlerOption
@@ -48,12 +50,14 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	service customer.Service,
 	subscriptionService subscription.Service,
+	entitlementService entitlement.Connector,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
 		service:             service,
 		subscriptionService: subscriptionService,
 		namespaceDecoder:    namespaceDecoder,
+		entitlementService:  entitlementService,
 		options:             options,
 	}
 }

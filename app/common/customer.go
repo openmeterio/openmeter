@@ -38,9 +38,8 @@ func NewCustomerService(
 	}
 
 	service, err := customerservice.New(customerservice.Config{
-		Adapter:              customerAdapter,
-		EntitlementConnector: entRegistry.Entitlement,
-		Publisher:            eventPublisher,
+		Adapter:   customerAdapter,
+		Publisher: eventPublisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)

@@ -4,11 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -106,49 +102,6 @@ func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 	}
 
 	return updatedCustomer, nil
-}
-
-// GetEntitlementValue gets an entitlement value
-func (s *Service) GetEntitlementValue(ctx context.Context, input customer.GetEntitlementValueInput) (entitlement.EntitlementValue, error) {
-	cust, err := s.GetCustomer(ctx, customer.GetCustomerInput{
-		CustomerID: &customer.CustomerID{
-			Namespace: input.CustomerID.Namespace,
-			ID:        input.CustomerID.ID,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	subjectKey, err := cust.UsageAttribution.GetSubjectKey()
-	if err != nil {
-		return nil, models.NewGenericConflictError(fmt.Errorf("failed to get subject key: %w", err))
-	}
-
-	val, err := s.entitlementConnector.GetEntitlementValue(ctx, input.CustomerID.Namespace, subjectKey, input.FeatureKey, clock.Now())
-	if err != nil {
-		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
-			return &entitlement.NoAccessValue{}, nil
-		}
-
-		return nil, err
-	}
-
-	return val, nil
-}
-
-func (s *Service) GetCustomerAccess(ctx context.Context, input customer.GetCustomerInput) (entitlement.Access, error) {
-	cust, err := s.GetCustomer(ctx, input)
-	if err != nil {
-		return entitlement.Access{}, err
-	}
-
-	subjectKey, err := cust.UsageAttribution.GetSubjectKey()
-	if err != nil {
-		return entitlement.Access{}, models.NewGenericConflictError(fmt.Errorf("failed to get subject key: %w", err))
-	}
-
-	return s.entitlementConnector.GetAccess(ctx, cust.Namespace, subjectKey)
 }
 
 // CustomerExists checks if a customer exists

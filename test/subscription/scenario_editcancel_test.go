@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
@@ -105,7 +106,14 @@ func TestEditingAndCanceling(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Third, let's create the customer
+	// Third, let's create the subjects first
+	_, err = tDeps.SubjectService.Create(ctx, subject.CreateInput{
+		Namespace: namespace,
+		Key:       "subject_1",
+	})
+	require.NoError(t, err)
+
+	// Then create the customer
 	c, err := tDeps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
 		CustomerMutate: customer.CustomerMutate{
@@ -123,15 +131,24 @@ func TestEditingAndCanceling(t *testing.T) {
 		Version: &p.Version,
 	})
 
-	// And let's create extra customers
+	// And let's create extra customers (with their subjects)
 	custs := []*customer.Customer{}
 	for i := 0; i < 10; i++ {
+		// Create subject first
+		subjectKey := fmt.Sprintf("subject_%d", i+2)
+		_, err := tDeps.SubjectService.Create(ctx, subject.CreateInput{
+			Namespace: namespace,
+			Key:       subjectKey,
+		})
+		require.NoError(t, err)
+
+		// Then create customer
 		c, err := tDeps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 			Namespace: namespace,
 			CustomerMutate: customer.CustomerMutate{
 				Name: "Test Customer",
 				UsageAttribution: customer.CustomerUsageAttribution{
-					SubjectKeys: []string{fmt.Sprintf("subject_%d", i+2)},
+					SubjectKeys: []string{subjectKey},
 				},
 			},
 		})

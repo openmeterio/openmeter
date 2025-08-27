@@ -144,9 +144,8 @@ func (s *BaseSuite) SetupSuite() {
 	require.NoError(t, err)
 
 	customerService, err := customerservice.New(customerservice.Config{
-		Adapter:              customerAdapter,
-		EntitlementConnector: entitlementRegistry.Entitlement,
-		Publisher:            publisher,
+		Adapter:   customerAdapter,
+		Publisher: publisher,
 	})
 	require.NoError(t, err)
 	s.CustomerService = customerService

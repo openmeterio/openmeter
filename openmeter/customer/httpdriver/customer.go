@@ -10,11 +10,14 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -363,7 +366,30 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
-			val, err := h.service.GetEntitlementValue(ctx, request)
+			// TODO(galexi): once entitlements and customers are integrated, entitlementservice will manage this
+			cust, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerID: &customer.CustomerID{
+					Namespace: request.CustomerID.Namespace,
+					ID:        request.CustomerID.ID,
+				},
+			})
+			if err != nil {
+				return GetCustomerEntitlementValueResponse{}, err
+			}
+
+			subjectKey, err := cust.UsageAttribution.GetSubjectKey()
+			if err != nil {
+				return GetCustomerEntitlementValueResponse{}, models.NewGenericConflictError(fmt.Errorf("failed to get subject key: %w", err))
+			}
+
+			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, subjectKey, request.FeatureKey, clock.Now())
+			if err != nil {
+				if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+					val = &entitlement.NoAccessValue{}
+					err = nil
+				}
+			}
+
 			if err != nil {
 				return GetCustomerEntitlementValueResponse{}, err
 			}
@@ -404,7 +430,18 @@ func (h *handler) GetCustomerAccess() GetCustomerAccessHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerAccessRequest) (GetCustomerAccessResponse, error) {
-			access, err := h.service.GetCustomerAccess(ctx, request)
+			// TODO(galexi): once entitlements and customers are integrated, entitlementservice will manage this
+			cust, err := h.service.GetCustomer(ctx, request)
+			if err != nil {
+				return GetCustomerAccessResponse{}, err
+			}
+
+			subjectKey, err := cust.UsageAttribution.GetSubjectKey()
+			if err != nil {
+				return GetCustomerAccessResponse{}, models.NewGenericConflictError(fmt.Errorf("failed to get subject key: %w", err))
+			}
+
+			access, err := h.entitlementService.GetAccess(ctx, cust.Namespace, subjectKey)
 			if err != nil {
 				return GetCustomerAccessResponse{}, err
 			}
