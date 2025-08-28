@@ -35,7 +35,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/huandu/go-sqlbuilder v1.36.0
+	github.com/huandu/go-sqlbuilder v1.36.1
 	github.com/invopop/gobl v0.220.6
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/jmattheis/goverter v1.9.1
