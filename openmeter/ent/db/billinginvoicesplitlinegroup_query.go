@@ -799,41 +799,41 @@ type BillingInvoiceSplitLineGroupGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (bislggb *BillingInvoiceSplitLineGroupGroupBy) Aggregate(fns ...AggregateFunc) *BillingInvoiceSplitLineGroupGroupBy {
-	bislggb.fns = append(bislggb.fns, fns...)
-	return bislggb
+func (_g *BillingInvoiceSplitLineGroupGroupBy) Aggregate(fns ...AggregateFunc) *BillingInvoiceSplitLineGroupGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bislggb *BillingInvoiceSplitLineGroupGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bislggb.build.ctx, ent.OpQueryGroupBy)
-	if err := bislggb.build.prepareQuery(ctx); err != nil {
+func (_g *BillingInvoiceSplitLineGroupGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingInvoiceSplitLineGroupQuery, *BillingInvoiceSplitLineGroupGroupBy](ctx, bislggb.build, bislggb, bislggb.build.inters, v)
+	return scanWithInterceptors[*BillingInvoiceSplitLineGroupQuery, *BillingInvoiceSplitLineGroupGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (bislggb *BillingInvoiceSplitLineGroupGroupBy) sqlScan(ctx context.Context, root *BillingInvoiceSplitLineGroupQuery, v any) error {
+func (_g *BillingInvoiceSplitLineGroupGroupBy) sqlScan(ctx context.Context, root *BillingInvoiceSplitLineGroupQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(bislggb.fns))
-	for _, fn := range bislggb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*bislggb.flds)+len(bislggb.fns))
-		for _, f := range *bislggb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*bislggb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bislggb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -847,27 +847,27 @@ type BillingInvoiceSplitLineGroupSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (bislgs *BillingInvoiceSplitLineGroupSelect) Aggregate(fns ...AggregateFunc) *BillingInvoiceSplitLineGroupSelect {
-	bislgs.fns = append(bislgs.fns, fns...)
-	return bislgs
+func (_s *BillingInvoiceSplitLineGroupSelect) Aggregate(fns ...AggregateFunc) *BillingInvoiceSplitLineGroupSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bislgs *BillingInvoiceSplitLineGroupSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bislgs.ctx, ent.OpQuerySelect)
-	if err := bislgs.prepareQuery(ctx); err != nil {
+func (_s *BillingInvoiceSplitLineGroupSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingInvoiceSplitLineGroupQuery, *BillingInvoiceSplitLineGroupSelect](ctx, bislgs.BillingInvoiceSplitLineGroupQuery, bislgs, bislgs.inters, v)
+	return scanWithInterceptors[*BillingInvoiceSplitLineGroupQuery, *BillingInvoiceSplitLineGroupSelect](ctx, _s.BillingInvoiceSplitLineGroupQuery, _s, _s.inters, v)
 }
 
-func (bislgs *BillingInvoiceSplitLineGroupSelect) sqlScan(ctx context.Context, root *BillingInvoiceSplitLineGroupQuery, v any) error {
+func (_s *BillingInvoiceSplitLineGroupSelect) sqlScan(ctx context.Context, root *BillingInvoiceSplitLineGroupQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(bislgs.fns))
-	for _, fn := range bislgs.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*bislgs.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -875,7 +875,7 @@ func (bislgs *BillingInvoiceSplitLineGroupSelect) sqlScan(ctx context.Context, r
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bislgs.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

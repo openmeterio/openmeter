@@ -5,6 +5,6 @@ package runtime
 // The schema-stitching logic is generated in github.com/openmeterio/openmeter/openmeter/ent/db/runtime.go
 
 const (
-	Version = "v0.14.5-0.20250325141242-9db6f4df431f"           // Version of ent codegen.
-	Sum     = "h1:AAfmRfBzbqJtKJ/eY31atgFcnFt5Hzf1EaXTQA8ICrw=" // Sum of ent codegen.
+	Version = "v0.14.5"                                         // Version of ent codegen.
+	Sum     = "h1:Rj2WOYJtCkWyFo6a+5wB3EfBRP0rnx1fMk6gGA0UUe4=" // Sum of ent codegen.
 )

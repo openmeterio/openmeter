@@ -480,41 +480,41 @@ type Example2GroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (eb *Example2GroupBy) Aggregate(fns ...AggregateFunc) *Example2GroupBy {
-	eb.fns = append(eb.fns, fns...)
-	return eb
+func (_g *Example2GroupBy) Aggregate(fns ...AggregateFunc) *Example2GroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (eb *Example2GroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, eb.build.ctx, ent.OpQueryGroupBy)
-	if err := eb.build.prepareQuery(ctx); err != nil {
+func (_g *Example2GroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*Example2Query, *Example2GroupBy](ctx, eb.build, eb, eb.build.inters, v)
+	return scanWithInterceptors[*Example2Query, *Example2GroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (eb *Example2GroupBy) sqlScan(ctx context.Context, root *Example2Query, v any) error {
+func (_g *Example2GroupBy) sqlScan(ctx context.Context, root *Example2Query, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(eb.fns))
-	for _, fn := range eb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*eb.flds)+len(eb.fns))
-		for _, f := range *eb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*eb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := eb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -528,27 +528,27 @@ type Example2Select struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (e *Example2Select) Aggregate(fns ...AggregateFunc) *Example2Select {
-	e.fns = append(e.fns, fns...)
-	return e
+func (_s *Example2Select) Aggregate(fns ...AggregateFunc) *Example2Select {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (e *Example2Select) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, e.ctx, ent.OpQuerySelect)
-	if err := e.prepareQuery(ctx); err != nil {
+func (_s *Example2Select) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*Example2Query, *Example2Select](ctx, e.Example2Query, e, e.inters, v)
+	return scanWithInterceptors[*Example2Query, *Example2Select](ctx, _s.Example2Query, _s, _s.inters, v)
 }
 
-func (e *Example2Select) sqlScan(ctx context.Context, root *Example2Query, v any) error {
+func (_s *Example2Select) sqlScan(ctx context.Context, root *Example2Query, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(e.fns))
-	for _, fn := range e.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*e.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -556,7 +556,7 @@ func (e *Example2Select) sqlScan(ctx context.Context, root *Example2Query, v any
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := e.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

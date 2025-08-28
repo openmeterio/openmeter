@@ -793,41 +793,41 @@ type SubscriptionPhaseGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (spgb *SubscriptionPhaseGroupBy) Aggregate(fns ...AggregateFunc) *SubscriptionPhaseGroupBy {
-	spgb.fns = append(spgb.fns, fns...)
-	return spgb
+func (_g *SubscriptionPhaseGroupBy) Aggregate(fns ...AggregateFunc) *SubscriptionPhaseGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (spgb *SubscriptionPhaseGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, spgb.build.ctx, ent.OpQueryGroupBy)
-	if err := spgb.build.prepareQuery(ctx); err != nil {
+func (_g *SubscriptionPhaseGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*SubscriptionPhaseQuery, *SubscriptionPhaseGroupBy](ctx, spgb.build, spgb, spgb.build.inters, v)
+	return scanWithInterceptors[*SubscriptionPhaseQuery, *SubscriptionPhaseGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (spgb *SubscriptionPhaseGroupBy) sqlScan(ctx context.Context, root *SubscriptionPhaseQuery, v any) error {
+func (_g *SubscriptionPhaseGroupBy) sqlScan(ctx context.Context, root *SubscriptionPhaseQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(spgb.fns))
-	for _, fn := range spgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*spgb.flds)+len(spgb.fns))
-		for _, f := range *spgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*spgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := spgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -841,27 +841,27 @@ type SubscriptionPhaseSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (sps *SubscriptionPhaseSelect) Aggregate(fns ...AggregateFunc) *SubscriptionPhaseSelect {
-	sps.fns = append(sps.fns, fns...)
-	return sps
+func (_s *SubscriptionPhaseSelect) Aggregate(fns ...AggregateFunc) *SubscriptionPhaseSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (sps *SubscriptionPhaseSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, sps.ctx, ent.OpQuerySelect)
-	if err := sps.prepareQuery(ctx); err != nil {
+func (_s *SubscriptionPhaseSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*SubscriptionPhaseQuery, *SubscriptionPhaseSelect](ctx, sps.SubscriptionPhaseQuery, sps, sps.inters, v)
+	return scanWithInterceptors[*SubscriptionPhaseQuery, *SubscriptionPhaseSelect](ctx, _s.SubscriptionPhaseQuery, _s, _s.inters, v)
 }
 
-func (sps *SubscriptionPhaseSelect) sqlScan(ctx context.Context, root *SubscriptionPhaseQuery, v any) error {
+func (_s *SubscriptionPhaseSelect) sqlScan(ctx context.Context, root *SubscriptionPhaseQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(sps.fns))
-	for _, fn := range sps.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*sps.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -869,7 +869,7 @@ func (sps *SubscriptionPhaseSelect) sqlScan(ctx context.Context, root *Subscript
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := sps.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

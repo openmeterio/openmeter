@@ -797,41 +797,41 @@ type SubscriptionItemGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (sigb *SubscriptionItemGroupBy) Aggregate(fns ...AggregateFunc) *SubscriptionItemGroupBy {
-	sigb.fns = append(sigb.fns, fns...)
-	return sigb
+func (_g *SubscriptionItemGroupBy) Aggregate(fns ...AggregateFunc) *SubscriptionItemGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (sigb *SubscriptionItemGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, sigb.build.ctx, ent.OpQueryGroupBy)
-	if err := sigb.build.prepareQuery(ctx); err != nil {
+func (_g *SubscriptionItemGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*SubscriptionItemQuery, *SubscriptionItemGroupBy](ctx, sigb.build, sigb, sigb.build.inters, v)
+	return scanWithInterceptors[*SubscriptionItemQuery, *SubscriptionItemGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (sigb *SubscriptionItemGroupBy) sqlScan(ctx context.Context, root *SubscriptionItemQuery, v any) error {
+func (_g *SubscriptionItemGroupBy) sqlScan(ctx context.Context, root *SubscriptionItemQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(sigb.fns))
-	for _, fn := range sigb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*sigb.flds)+len(sigb.fns))
-		for _, f := range *sigb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*sigb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := sigb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -845,27 +845,27 @@ type SubscriptionItemSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (sis *SubscriptionItemSelect) Aggregate(fns ...AggregateFunc) *SubscriptionItemSelect {
-	sis.fns = append(sis.fns, fns...)
-	return sis
+func (_s *SubscriptionItemSelect) Aggregate(fns ...AggregateFunc) *SubscriptionItemSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (sis *SubscriptionItemSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, sis.ctx, ent.OpQuerySelect)
-	if err := sis.prepareQuery(ctx); err != nil {
+func (_s *SubscriptionItemSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*SubscriptionItemQuery, *SubscriptionItemSelect](ctx, sis.SubscriptionItemQuery, sis, sis.inters, v)
+	return scanWithInterceptors[*SubscriptionItemQuery, *SubscriptionItemSelect](ctx, _s.SubscriptionItemQuery, _s, _s.inters, v)
 }
 
-func (sis *SubscriptionItemSelect) sqlScan(ctx context.Context, root *SubscriptionItemQuery, v any) error {
+func (_s *SubscriptionItemSelect) sqlScan(ctx context.Context, root *SubscriptionItemQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(sis.fns))
-	for _, fn := range sis.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*sis.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -873,7 +873,7 @@ func (sis *SubscriptionItemSelect) sqlScan(ctx context.Context, root *Subscripti
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := sis.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

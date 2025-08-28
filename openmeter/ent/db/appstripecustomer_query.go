@@ -634,41 +634,41 @@ type AppStripeCustomerGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (ascgb *AppStripeCustomerGroupBy) Aggregate(fns ...AggregateFunc) *AppStripeCustomerGroupBy {
-	ascgb.fns = append(ascgb.fns, fns...)
-	return ascgb
+func (_g *AppStripeCustomerGroupBy) Aggregate(fns ...AggregateFunc) *AppStripeCustomerGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (ascgb *AppStripeCustomerGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ascgb.build.ctx, ent.OpQueryGroupBy)
-	if err := ascgb.build.prepareQuery(ctx); err != nil {
+func (_g *AppStripeCustomerGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AppStripeCustomerQuery, *AppStripeCustomerGroupBy](ctx, ascgb.build, ascgb, ascgb.build.inters, v)
+	return scanWithInterceptors[*AppStripeCustomerQuery, *AppStripeCustomerGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (ascgb *AppStripeCustomerGroupBy) sqlScan(ctx context.Context, root *AppStripeCustomerQuery, v any) error {
+func (_g *AppStripeCustomerGroupBy) sqlScan(ctx context.Context, root *AppStripeCustomerQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(ascgb.fns))
-	for _, fn := range ascgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*ascgb.flds)+len(ascgb.fns))
-		for _, f := range *ascgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*ascgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := ascgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -682,27 +682,27 @@ type AppStripeCustomerSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (ascs *AppStripeCustomerSelect) Aggregate(fns ...AggregateFunc) *AppStripeCustomerSelect {
-	ascs.fns = append(ascs.fns, fns...)
-	return ascs
+func (_s *AppStripeCustomerSelect) Aggregate(fns ...AggregateFunc) *AppStripeCustomerSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (ascs *AppStripeCustomerSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ascs.ctx, ent.OpQuerySelect)
-	if err := ascs.prepareQuery(ctx); err != nil {
+func (_s *AppStripeCustomerSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AppStripeCustomerQuery, *AppStripeCustomerSelect](ctx, ascs.AppStripeCustomerQuery, ascs, ascs.inters, v)
+	return scanWithInterceptors[*AppStripeCustomerQuery, *AppStripeCustomerSelect](ctx, _s.AppStripeCustomerQuery, _s, _s.inters, v)
 }
 
-func (ascs *AppStripeCustomerSelect) sqlScan(ctx context.Context, root *AppStripeCustomerQuery, v any) error {
+func (_s *AppStripeCustomerSelect) sqlScan(ctx context.Context, root *AppStripeCustomerQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(ascs.fns))
-	for _, fn := range ascs.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*ascs.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -710,7 +710,7 @@ func (ascs *AppStripeCustomerSelect) sqlScan(ctx context.Context, root *AppStrip
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := ascs.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
