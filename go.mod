@@ -12,7 +12,7 @@ require (
 	github.com/AppsFlyer/go-sundheit v0.6.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.1
 	github.com/IBM/sarama v1.45.2
-	github.com/ThreeDotsLabs/watermill v1.4.7
+	github.com/ThreeDotsLabs/watermill v1.5.0
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.1.0
 	github.com/XSAM/otelsql v0.39.0
 	github.com/alpacahq/alpacadecimal v0.0.8
@@ -292,7 +292,6 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/bwmarrin/discordgo v0.29.0 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
-	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
