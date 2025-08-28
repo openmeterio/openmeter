@@ -8,7 +8,7 @@ toolchain go1.24.2
 replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527-c72029d4b634
 
 require (
-	entgo.io/ent v0.14.5-0.20250325141242-9db6f4df431f
+	entgo.io/ent v0.14.5
 	github.com/AppsFlyer/go-sundheit v0.6.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.1
 	github.com/IBM/sarama v1.45.2
