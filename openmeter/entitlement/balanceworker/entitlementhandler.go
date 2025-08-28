@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/filters"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
@@ -18,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -254,23 +256,40 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	subject, err := resolveSubjectIfExists(ctx, w.opts.Subject, pkgmodels.NamespacedKey{
+	sub, err := w.opts.Subject.GetByKey(ctx, pkgmodels.NamespacedKey{
 		Namespace: in.Entitlement.Namespace,
 		Key:       in.Entitlement.SubjectKey,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get subject ID: %w", err)
+		if !pkgmodels.IsGenericNotFoundError(err) {
+			return nil, fmt.Errorf("failed to get subject: %w", err)
+		}
+
+		sub = subject.Subject{
+			Key: in.Entitlement.SubjectKey,
+		}
 	}
 
-	event := marshaler.WithSource(
+	cus, err := w.opts.Customer.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  in.Entitlement.Namespace,
+		SubjectKey: in.Entitlement.SubjectKey,
+	})
+	if err != nil {
+		if !pkgmodels.IsGenericNotFoundError(err) {
+			return nil, fmt.Errorf("failed to get customer: %w", err)
+		}
+	}
+
+	return marshaler.WithSource(
 		in.Source,
 		snapshot.SnapshotEvent{
 			Entitlement: *in.Entitlement,
 			Namespace: models.NamespaceID{
 				ID: in.Entitlement.Namespace,
 			},
-			Subject:   subject,
+			Subject:   sub,
 			Feature:   *in.Feature,
+			Customer:  cus,
 			Operation: lo.FromPtrOr(in.OverrideOperation, snapshot.ValueOperationUpdate),
 
 			CalculatedAt: &in.CalculatedAt,
@@ -278,8 +297,7 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 			Value:              in.Value,
 			CurrentUsagePeriod: in.Entitlement.CurrentUsagePeriod,
 		},
-	)
-	return event, nil
+	), nil
 }
 
 func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *entitlement.Entitlement, calculatedAt time.Time, opts handleEntitlementEventOptions) (marshaler.Event, error) {
@@ -318,38 +336,51 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 	})
 }
 
-func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitlement.EntitlementDeletedEvent, calculationTime time.Time) (marshaler.Event, error) {
-	namespace := delEvent.Namespace.ID
-
-	feat, err := w.opts.Entitlement.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, feature.IncludeArchivedFeatureTrue)
+func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, event entitlement.EntitlementDeletedEvent, calculationTime time.Time) (marshaler.Event, error) {
+	feat, err := w.opts.Entitlement.Feature.GetFeature(ctx, event.Namespace.ID, event.FeatureID, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
-	subject, err := resolveSubjectIfExists(ctx, w.opts.Subject, pkgmodels.NamespacedKey{
-		Namespace: namespace,
-		Key:       delEvent.SubjectKey,
+	sub, err := w.opts.Subject.GetByKey(ctx, pkgmodels.NamespacedKey{
+		Namespace: event.Namespace.ID,
+		Key:       event.SubjectKey,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get subject: %w", err)
+		if !pkgmodels.IsGenericNotFoundError(err) {
+			return nil, fmt.Errorf("failed to get subject: %w", err)
+		}
+
+		sub = subject.Subject{
+			Key: event.SubjectKey,
+		}
 	}
 
-	event := marshaler.WithSource(
-		metadata.ComposeResourcePath(namespace, metadata.EntityEntitlement, delEvent.ID),
+	cus, err := w.opts.Customer.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  event.Entitlement.Namespace,
+		SubjectKey: event.Entitlement.SubjectKey,
+	})
+	if err != nil {
+		if !pkgmodels.IsGenericNotFoundError(err) {
+			return nil, fmt.Errorf("failed to get customer: %w", err)
+		}
+	}
+
+	return marshaler.WithSource(
+		metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
 		snapshot.SnapshotEvent{
-			Entitlement: delEvent.Entitlement,
+			Entitlement: event.Entitlement,
 			Namespace: models.NamespaceID{
-				ID: namespace,
+				ID: event.Namespace.ID,
 			},
-			Subject:   subject,
+			Subject:   sub,
 			Feature:   *feat,
+			Customer:  cus,
 			Operation: snapshot.ValueOperationDelete,
 
 			CalculatedAt: convert.ToPointer(calculationTime),
 
-			CurrentUsagePeriod: delEvent.CurrentUsagePeriod,
+			CurrentUsagePeriod: event.CurrentUsagePeriod,
 		},
-	)
-
-	return event, nil
+	), nil
 }

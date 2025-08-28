@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/filters"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
@@ -54,6 +55,7 @@ var (
 type RecalculatorOptions struct {
 	Entitlement *registry.Entitlement
 	Subject     subject.Service
+	Customer    customer.Service
 	EventBus    eventbus.Publisher
 	MetricMeter metric.Meter
 
@@ -66,7 +68,15 @@ func (o RecalculatorOptions) Validate() error {
 	var errs []error
 
 	if o.Entitlement == nil {
-		errs = append(errs, errors.New("missing entitlement registry"))
+		errs = append(errs, errors.New("entitlements service is required"))
+	}
+
+	if o.Subject == nil {
+		errs = append(errs, errors.New("subject service is required"))
+	}
+
+	if o.Customer == nil {
+		errs = append(errs, errors.New("customer service is required"))
 	}
 
 	if o.EventBus == nil {
@@ -97,6 +107,8 @@ type Recalculator struct {
 
 	featureCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedID, feature.Feature]
 	subjectCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedKey, subject.Subject]
+
+	subjectCustomerCache *lrux.CacheWithItemTTL[pkgmodels.NamespacedKey, *customer.Customer]
 
 	entitlementFilters *EntitlementFilters
 
@@ -151,6 +163,11 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 	res.subjectCache, err = lrux.NewCacheWithItemTTL(defaultLRUCacheSize, res.getSubjectByKey, lrux.WithTTL(defaultCacheTTL))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create subject ID cache: %w", err)
+	}
+
+	res.subjectCustomerCache, err = lrux.NewCacheWithItemTTL(defaultLRUCacheSize, res.getCustomerForSubject, lrux.WithTTL(defaultCacheTTL))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create subject customer cache: %w", err)
 	}
 
 	return res, nil
@@ -285,6 +302,14 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 		return empty, err
 	}
 
+	cus, err := r.subjectCustomerCache.Get(ctx, pkgmodels.NamespacedKey{
+		Namespace: ent.Namespace,
+		Key:       ent.SubjectKey,
+	})
+	if err != nil {
+		return empty, err
+	}
+
 	calculatedAt := time.Now()
 
 	event := marshaler.WithSource(
@@ -296,6 +321,7 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 			},
 			Subject:   sub,
 			Feature:   feat,
+			Customer:  cus,
 			Operation: snapshot.ValueOperationDelete,
 
 			CalculatedAt: convert.ToPointer(calculatedAt),
@@ -328,6 +354,14 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 		return empty, err
 	}
 
+	cus, err := r.subjectCustomerCache.Get(ctx, pkgmodels.NamespacedKey{
+		Namespace: ent.Namespace,
+		Key:       ent.SubjectKey,
+	})
+	if err != nil {
+		return empty, err
+	}
+
 	calculatedAt := time.Now()
 
 	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, ent.Namespace, ent.SubjectKey, ent.ID, calculatedAt)
@@ -355,6 +389,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 			},
 			Subject:   sub,
 			Feature:   feat,
+			Customer:  cus,
 			Operation: snapshot.ValueOperationUpdate,
 
 			CalculatedAt: &calculatedAt,
@@ -370,9 +405,15 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 }
 
 func (r *Recalculator) getSubjectByKey(ctx context.Context, namespacedKey pkgmodels.NamespacedKey) (subject.Subject, error) {
-	sub, err := resolveSubjectIfExists(ctx, r.opts.Subject, namespacedKey)
+	sub, err := r.opts.Subject.GetByKey(ctx, namespacedKey)
 	if err != nil {
-		return sub, err
+		if !pkgmodels.IsGenericNotFoundError(err) {
+			return subject.Subject{}, fmt.Errorf("failed to get subject: %w", err)
+		}
+
+		sub = subject.Subject{
+			Key: namespacedKey.Key,
+		}
 	}
 
 	return sub, nil
@@ -385,4 +426,18 @@ func (r *Recalculator) getFeature(ctx context.Context, featureID pkgmodels.Names
 	}
 
 	return *feat, nil
+}
+
+func (r *Recalculator) getCustomerForSubject(ctx context.Context, namespacedKey pkgmodels.NamespacedKey) (*customer.Customer, error) {
+	cus, err := r.opts.Customer.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  namespacedKey.Namespace,
+		SubjectKey: namespacedKey.Key,
+	})
+	if err != nil {
+		if !pkgmodels.IsGenericNotFoundError(err) {
+			return nil, fmt.Errorf("failed to get customer: %w", err)
+		}
+	}
+
+	return cus, nil
 }

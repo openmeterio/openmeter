@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
@@ -45,6 +46,7 @@ type WorkerOptions struct {
 	// External connectors
 	NotificationService notification.Service
 	Subject             subject.Service
+	Customer            customer.Service
 
 	MetricMeter metric.Meter
 
@@ -84,6 +86,14 @@ func (o *WorkerOptions) Validate() error {
 
 	if o.NotificationService == nil {
 		return errors.New("notification service is required")
+	}
+
+	if o.Subject == nil {
+		return errors.New("subject service is required")
+	}
+
+	if o.Customer == nil {
+		return errors.New("customer service is required")
 	}
 
 	if err := o.FilterStateStorage.Validate(); err != nil {

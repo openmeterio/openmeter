@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
@@ -60,6 +61,7 @@ type SnapshotEvent struct {
 	Namespace   models.NamespaceID      `json:"namespace"`
 	Subject     subject.Subject         `json:"subject"`
 	Feature     feature.Feature         `json:"feature"`
+	Customer    *customer.Customer      `json:"customer,omitempty"`
 	// Operation is delete if the entitlement gets deleted, in that case the balance object is empty
 	Operation ValueOperationType `json:"operation"`
 
@@ -86,6 +88,16 @@ func (e SnapshotEvent) EventName() string {
 }
 
 func (e SnapshotEvent) EventMetadata() metadata.EventMetadata {
+	if e.Customer != nil {
+		return metadata.EventMetadata{
+			Subject: metadata.ComposeResourcePath(
+				e.Namespace.ID,
+				metadata.EntityCustomer, e.Customer.ID,
+				metadata.EntitySubjectKey, e.Subject.Key,
+			),
+		}
+	}
+
 	return metadata.EventMetadata{
 		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntitySubjectKey, e.Subject.Key),
 	}
@@ -112,6 +124,12 @@ func (e SnapshotEvent) Validate() error {
 
 	if e.Feature.ID == "" {
 		errs = append(errs, errors.New("feature ID must be set"))
+	}
+
+	if e.Customer != nil {
+		if err := e.Customer.Validate(); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	if e.CalculatedAt == nil {
