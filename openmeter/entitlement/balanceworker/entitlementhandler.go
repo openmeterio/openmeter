@@ -98,7 +98,7 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID pkgmo
 		return nil, nil
 	}
 
-	entitlements, err := w.entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+	entitlements, err := w.opts.Entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
 		Namespaces:     []string{entitlementID.Namespace},
 		IDs:            []string{entitlementID.ID},
 		IncludeDeleted: true,
@@ -283,14 +283,14 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 }
 
 func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *entitlement.Entitlement, calculatedAt time.Time, opts handleEntitlementEventOptions) (marshaler.Event, error) {
-	feat, err := w.entitlement.Feature.GetFeature(ctx, entitlementEntity.Namespace, entitlementEntity.FeatureID, feature.IncludeArchivedFeatureTrue)
+	feat, err := w.opts.Entitlement.Feature.GetFeature(ctx, entitlementEntity.Namespace, entitlementEntity.FeatureID, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
 	calculationStart := time.Now()
 
-	value, err := w.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.SubjectKey, entitlementEntity.ID, calculatedAt)
+	value, err := w.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.SubjectKey, entitlementEntity.ID, calculatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entitlement value: %w", err)
 	}
@@ -321,7 +321,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitlement.EntitlementDeletedEvent, calculationTime time.Time) (marshaler.Event, error) {
 	namespace := delEvent.Namespace.ID
 
-	feat, err := w.entitlement.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, feature.IncludeArchivedFeatureTrue)
+	feat, err := w.opts.Entitlement.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}

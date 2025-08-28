@@ -13,7 +13,7 @@ import (
 )
 
 func (w *Worker) handleBatchedIngestEvent(ctx context.Context, ingestEvent ingestevents.EventBatchedIngest) error {
-	affectedEntitlements, err := w.repo.ListAffectedEntitlements(ctx,
+	affectedEntitlements, err := w.opts.Repo.ListAffectedEntitlements(ctx,
 		[]IngestEventQueryFilter{
 			{
 				Namespace:  ingestEvent.Namespace.ID,
@@ -57,7 +57,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, ingestEvent inges
 }
 
 func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, namespace string, meterSlugs []string, subject string) ([]pkgmodels.NamespacedID, error) {
-	featuresByMeter, err := w.entitlement.Feature.ListFeatures(ctx, feature.ListFeaturesParams{
+	featuresByMeter, err := w.opts.Entitlement.Feature.ListFeatures(ctx, feature.ListFeaturesParams{
 		Namespace:  namespace,
 		MeterSlugs: meterSlugs,
 	})
@@ -70,7 +70,7 @@ func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, name
 		featureIDs = append(featureIDs, feat.ID)
 	}
 
-	entitlements, err := w.entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+	entitlements, err := w.opts.Entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
 		Namespaces:  []string{namespace},
 		SubjectKeys: []string{subject},
 		FeatureIDs:  featureIDs,

@@ -94,10 +94,8 @@ func (o *WorkerOptions) Validate() error {
 }
 
 type Worker struct {
-	opts        WorkerOptions
-	entitlement *registry.Entitlement
-	repo        BalanceWorkerRepository
-	router      *message.Router
+	opts   WorkerOptions
+	router *message.Router
 
 	filters *EntitlementFilters
 
@@ -137,10 +135,8 @@ func New(opts WorkerOptions) (*Worker, error) {
 	}
 
 	worker := &Worker{
-		opts:        opts,
-		entitlement: opts.Entitlement,
-		repo:        opts.Repo,
-		filters:     filters,
+		opts:    opts,
+		filters: filters,
 	}
 
 	if err := worker.initMetrics(); err != nil {
