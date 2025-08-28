@@ -92,36 +92,38 @@ func (e SnapshotEvent) EventMetadata() metadata.EventMetadata {
 }
 
 func (e SnapshotEvent) Validate() error {
+	var errs []error
+
 	if err := e.Operation.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if e.Entitlement.ID == "" {
-		return errors.New("entitlementId is required")
+		errs = append(errs, errors.New("entitlementId is required"))
 	}
 
 	if err := e.Namespace.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if err := e.Subject.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if e.Feature.ID == "" {
-		return errors.New("feature ID must be set")
+		errs = append(errs, errors.New("feature ID must be set"))
 	}
 
 	if e.CalculatedAt == nil {
-		return errors.New("calculatedAt is required ")
+		errs = append(errs, errors.New("calculatedAt is required "))
 	}
 
 	switch e.Operation {
 	case ValueOperationUpdate, ValueOperationReset:
 		if e.Value == nil {
-			return errors.New("balance is required for balance update/reset")
+			errs = append(errs, errors.New("balance is required for balance update/reset"))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
