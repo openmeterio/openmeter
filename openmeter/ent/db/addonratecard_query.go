@@ -637,41 +637,41 @@ type AddonRateCardGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (arcgb *AddonRateCardGroupBy) Aggregate(fns ...AggregateFunc) *AddonRateCardGroupBy {
-	arcgb.fns = append(arcgb.fns, fns...)
-	return arcgb
+func (_g *AddonRateCardGroupBy) Aggregate(fns ...AggregateFunc) *AddonRateCardGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (arcgb *AddonRateCardGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, arcgb.build.ctx, ent.OpQueryGroupBy)
-	if err := arcgb.build.prepareQuery(ctx); err != nil {
+func (_g *AddonRateCardGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AddonRateCardQuery, *AddonRateCardGroupBy](ctx, arcgb.build, arcgb, arcgb.build.inters, v)
+	return scanWithInterceptors[*AddonRateCardQuery, *AddonRateCardGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (arcgb *AddonRateCardGroupBy) sqlScan(ctx context.Context, root *AddonRateCardQuery, v any) error {
+func (_g *AddonRateCardGroupBy) sqlScan(ctx context.Context, root *AddonRateCardQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(arcgb.fns))
-	for _, fn := range arcgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*arcgb.flds)+len(arcgb.fns))
-		for _, f := range *arcgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*arcgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := arcgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -685,27 +685,27 @@ type AddonRateCardSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (arcs *AddonRateCardSelect) Aggregate(fns ...AggregateFunc) *AddonRateCardSelect {
-	arcs.fns = append(arcs.fns, fns...)
-	return arcs
+func (_s *AddonRateCardSelect) Aggregate(fns ...AggregateFunc) *AddonRateCardSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (arcs *AddonRateCardSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, arcs.ctx, ent.OpQuerySelect)
-	if err := arcs.prepareQuery(ctx); err != nil {
+func (_s *AddonRateCardSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AddonRateCardQuery, *AddonRateCardSelect](ctx, arcs.AddonRateCardQuery, arcs, arcs.inters, v)
+	return scanWithInterceptors[*AddonRateCardQuery, *AddonRateCardSelect](ctx, _s.AddonRateCardQuery, _s, _s.inters, v)
 }
 
-func (arcs *AddonRateCardSelect) sqlScan(ctx context.Context, root *AddonRateCardQuery, v any) error {
+func (_s *AddonRateCardSelect) sqlScan(ctx context.Context, root *AddonRateCardQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(arcs.fns))
-	for _, fn := range arcs.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*arcs.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -713,7 +713,7 @@ func (arcs *AddonRateCardSelect) sqlScan(ctx context.Context, root *AddonRateCar
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := arcs.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

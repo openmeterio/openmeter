@@ -936,41 +936,41 @@ type EntitlementGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (egb *EntitlementGroupBy) Aggregate(fns ...AggregateFunc) *EntitlementGroupBy {
-	egb.fns = append(egb.fns, fns...)
-	return egb
+func (_g *EntitlementGroupBy) Aggregate(fns ...AggregateFunc) *EntitlementGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (egb *EntitlementGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, egb.build.ctx, ent.OpQueryGroupBy)
-	if err := egb.build.prepareQuery(ctx); err != nil {
+func (_g *EntitlementGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*EntitlementQuery, *EntitlementGroupBy](ctx, egb.build, egb, egb.build.inters, v)
+	return scanWithInterceptors[*EntitlementQuery, *EntitlementGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (egb *EntitlementGroupBy) sqlScan(ctx context.Context, root *EntitlementQuery, v any) error {
+func (_g *EntitlementGroupBy) sqlScan(ctx context.Context, root *EntitlementQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(egb.fns))
-	for _, fn := range egb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*egb.flds)+len(egb.fns))
-		for _, f := range *egb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*egb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := egb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -984,27 +984,27 @@ type EntitlementSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (es *EntitlementSelect) Aggregate(fns ...AggregateFunc) *EntitlementSelect {
-	es.fns = append(es.fns, fns...)
-	return es
+func (_s *EntitlementSelect) Aggregate(fns ...AggregateFunc) *EntitlementSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (es *EntitlementSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, es.ctx, ent.OpQuerySelect)
-	if err := es.prepareQuery(ctx); err != nil {
+func (_s *EntitlementSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*EntitlementQuery, *EntitlementSelect](ctx, es.EntitlementQuery, es, es.inters, v)
+	return scanWithInterceptors[*EntitlementQuery, *EntitlementSelect](ctx, _s.EntitlementQuery, _s, _s.inters, v)
 }
 
-func (es *EntitlementSelect) sqlScan(ctx context.Context, root *EntitlementQuery, v any) error {
+func (_s *EntitlementSelect) sqlScan(ctx context.Context, root *EntitlementQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(es.fns))
-	for _, fn := range es.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*es.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -1012,7 +1012,7 @@ func (es *EntitlementSelect) sqlScan(ctx context.Context, root *EntitlementQuery
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := es.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

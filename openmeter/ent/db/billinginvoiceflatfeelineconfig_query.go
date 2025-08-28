@@ -480,41 +480,41 @@ type BillingInvoiceFlatFeeLineConfigGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (bifflcgb *BillingInvoiceFlatFeeLineConfigGroupBy) Aggregate(fns ...AggregateFunc) *BillingInvoiceFlatFeeLineConfigGroupBy {
-	bifflcgb.fns = append(bifflcgb.fns, fns...)
-	return bifflcgb
+func (_g *BillingInvoiceFlatFeeLineConfigGroupBy) Aggregate(fns ...AggregateFunc) *BillingInvoiceFlatFeeLineConfigGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bifflcgb *BillingInvoiceFlatFeeLineConfigGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bifflcgb.build.ctx, ent.OpQueryGroupBy)
-	if err := bifflcgb.build.prepareQuery(ctx); err != nil {
+func (_g *BillingInvoiceFlatFeeLineConfigGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingInvoiceFlatFeeLineConfigQuery, *BillingInvoiceFlatFeeLineConfigGroupBy](ctx, bifflcgb.build, bifflcgb, bifflcgb.build.inters, v)
+	return scanWithInterceptors[*BillingInvoiceFlatFeeLineConfigQuery, *BillingInvoiceFlatFeeLineConfigGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (bifflcgb *BillingInvoiceFlatFeeLineConfigGroupBy) sqlScan(ctx context.Context, root *BillingInvoiceFlatFeeLineConfigQuery, v any) error {
+func (_g *BillingInvoiceFlatFeeLineConfigGroupBy) sqlScan(ctx context.Context, root *BillingInvoiceFlatFeeLineConfigQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(bifflcgb.fns))
-	for _, fn := range bifflcgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*bifflcgb.flds)+len(bifflcgb.fns))
-		for _, f := range *bifflcgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*bifflcgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bifflcgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -528,27 +528,27 @@ type BillingInvoiceFlatFeeLineConfigSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (bifflcs *BillingInvoiceFlatFeeLineConfigSelect) Aggregate(fns ...AggregateFunc) *BillingInvoiceFlatFeeLineConfigSelect {
-	bifflcs.fns = append(bifflcs.fns, fns...)
-	return bifflcs
+func (_s *BillingInvoiceFlatFeeLineConfigSelect) Aggregate(fns ...AggregateFunc) *BillingInvoiceFlatFeeLineConfigSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (bifflcs *BillingInvoiceFlatFeeLineConfigSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bifflcs.ctx, ent.OpQuerySelect)
-	if err := bifflcs.prepareQuery(ctx); err != nil {
+func (_s *BillingInvoiceFlatFeeLineConfigSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*BillingInvoiceFlatFeeLineConfigQuery, *BillingInvoiceFlatFeeLineConfigSelect](ctx, bifflcs.BillingInvoiceFlatFeeLineConfigQuery, bifflcs, bifflcs.inters, v)
+	return scanWithInterceptors[*BillingInvoiceFlatFeeLineConfigQuery, *BillingInvoiceFlatFeeLineConfigSelect](ctx, _s.BillingInvoiceFlatFeeLineConfigQuery, _s, _s.inters, v)
 }
 
-func (bifflcs *BillingInvoiceFlatFeeLineConfigSelect) sqlScan(ctx context.Context, root *BillingInvoiceFlatFeeLineConfigQuery, v any) error {
+func (_s *BillingInvoiceFlatFeeLineConfigSelect) sqlScan(ctx context.Context, root *BillingInvoiceFlatFeeLineConfigQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(bifflcs.fns))
-	for _, fn := range bifflcs.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*bifflcs.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -556,7 +556,7 @@ func (bifflcs *BillingInvoiceFlatFeeLineConfigSelect) sqlScan(ctx context.Contex
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := bifflcs.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()

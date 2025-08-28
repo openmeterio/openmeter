@@ -631,41 +631,41 @@ type AppStripeGroupBy struct {
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (asgb *AppStripeGroupBy) Aggregate(fns ...AggregateFunc) *AppStripeGroupBy {
-	asgb.fns = append(asgb.fns, fns...)
-	return asgb
+func (_g *AppStripeGroupBy) Aggregate(fns ...AggregateFunc) *AppStripeGroupBy {
+	_g.fns = append(_g.fns, fns...)
+	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (asgb *AppStripeGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, asgb.build.ctx, ent.OpQueryGroupBy)
-	if err := asgb.build.prepareQuery(ctx); err != nil {
+func (_g *AppStripeGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
+	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AppStripeQuery, *AppStripeGroupBy](ctx, asgb.build, asgb, asgb.build.inters, v)
+	return scanWithInterceptors[*AppStripeQuery, *AppStripeGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (asgb *AppStripeGroupBy) sqlScan(ctx context.Context, root *AppStripeQuery, v any) error {
+func (_g *AppStripeGroupBy) sqlScan(ctx context.Context, root *AppStripeQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
-	aggregation := make([]string, 0, len(asgb.fns))
-	for _, fn := range asgb.fns {
+	aggregation := make([]string, 0, len(_g.fns))
+	for _, fn := range _g.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
 	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(*asgb.flds)+len(asgb.fns))
-		for _, f := range *asgb.flds {
+		columns := make([]string, 0, len(*_g.flds)+len(_g.fns))
+		for _, f := range *_g.flds {
 			columns = append(columns, selector.C(f))
 		}
 		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
-	selector.GroupBy(selector.Columns(*asgb.flds...)...)
+	selector.GroupBy(selector.Columns(*_g.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := asgb.build.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _g.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
@@ -679,27 +679,27 @@ type AppStripeSelect struct {
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (ass *AppStripeSelect) Aggregate(fns ...AggregateFunc) *AppStripeSelect {
-	ass.fns = append(ass.fns, fns...)
-	return ass
+func (_s *AppStripeSelect) Aggregate(fns ...AggregateFunc) *AppStripeSelect {
+	_s.fns = append(_s.fns, fns...)
+	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (ass *AppStripeSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ass.ctx, ent.OpQuerySelect)
-	if err := ass.prepareQuery(ctx); err != nil {
+func (_s *AppStripeSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
+	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AppStripeQuery, *AppStripeSelect](ctx, ass.AppStripeQuery, ass, ass.inters, v)
+	return scanWithInterceptors[*AppStripeQuery, *AppStripeSelect](ctx, _s.AppStripeQuery, _s, _s.inters, v)
 }
 
-func (ass *AppStripeSelect) sqlScan(ctx context.Context, root *AppStripeQuery, v any) error {
+func (_s *AppStripeSelect) sqlScan(ctx context.Context, root *AppStripeQuery, v any) error {
 	selector := root.sqlQuery(ctx)
-	aggregation := make([]string, 0, len(ass.fns))
-	for _, fn := range ass.fns {
+	aggregation := make([]string, 0, len(_s.fns))
+	for _, fn := range _s.fns {
 		aggregation = append(aggregation, fn(selector))
 	}
-	switch n := len(*ass.selector.flds); {
+	switch n := len(*_s.selector.flds); {
 	case n == 0 && len(aggregation) > 0:
 		selector.Select(aggregation...)
 	case n != 0 && len(aggregation) > 0:
@@ -707,7 +707,7 @@ func (ass *AppStripeSelect) sqlScan(ctx context.Context, root *AppStripeQuery, v
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := ass.driver.Query(ctx, query, args, rows); err != nil {
+	if err := _s.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
