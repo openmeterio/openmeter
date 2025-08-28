@@ -11,6 +11,7 @@ import (
 	"github.com/oklog/run"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
@@ -86,6 +87,7 @@ func NewBalanceWorkerOptions(
 	subjectService subject.Service,
 	logger *slog.Logger,
 	filterStateStorage balanceworker.FilterStateStorage,
+	customerService customer.Service,
 ) balanceworker.WorkerOptions {
 	return balanceworker.WorkerOptions{
 		SystemEventsTopic: eventConfig.SystemEvents.Topic,
@@ -96,6 +98,7 @@ func NewBalanceWorkerOptions(
 		Entitlement:         entitlements,
 		Repo:                repo,
 		Subject:             subjectService,
+		Customer:            customerService,
 		Logger:              logger,
 		MetricMeter:         routerOptions.MetricMeter,
 		NotificationService: notificationService,

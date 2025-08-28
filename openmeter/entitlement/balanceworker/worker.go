@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
@@ -45,6 +46,7 @@ type WorkerOptions struct {
 	// External connectors
 	NotificationService notification.Service
 	Subject             subject.Service
+	Customer            customer.Service
 
 	MetricMeter metric.Meter
 
@@ -86,6 +88,14 @@ func (o *WorkerOptions) Validate() error {
 		return errors.New("notification service is required")
 	}
 
+	if o.Subject == nil {
+		return errors.New("subject service is required")
+	}
+
+	if o.Customer == nil {
+		return errors.New("customer service is required")
+	}
+
 	if err := o.FilterStateStorage.Validate(); err != nil {
 		return fmt.Errorf("filter state storage: %w", err)
 	}
@@ -94,10 +104,8 @@ func (o *WorkerOptions) Validate() error {
 }
 
 type Worker struct {
-	opts        WorkerOptions
-	entitlement *registry.Entitlement
-	repo        BalanceWorkerRepository
-	router      *message.Router
+	opts   WorkerOptions
+	router *message.Router
 
 	filters *EntitlementFilters
 
@@ -137,29 +145,27 @@ func New(opts WorkerOptions) (*Worker, error) {
 	}
 
 	worker := &Worker{
-		opts:        opts,
-		entitlement: opts.Entitlement,
-		repo:        opts.Repo,
-		filters:     filters,
+		opts:    opts,
+		filters: filters,
 	}
 
 	if err := worker.initMetrics(); err != nil {
 		return nil, fmt.Errorf("failed to init metrics: %w", err)
 	}
 
-	router, err := router.NewDefaultRouter(opts.Router)
+	r, err := router.NewDefaultRouter(opts.Router)
 	if err != nil {
 		return nil, err
 	}
 
-	worker.router = router
+	worker.router = r
 
 	eventHandler, err := worker.eventHandler(opts.Router.MetricMeter)
 	if err != nil {
 		return nil, err
 	}
 
-	router.AddNoPublisherHandler(
+	r.AddNoPublisherHandler(
 		"balance_worker_system_events",
 		opts.SystemEventsTopic,
 		opts.Router.Subscriber,
@@ -167,7 +173,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 	)
 
 	if opts.SystemEventsTopic != opts.IngestEventsTopic {
-		router.AddNoPublisherHandler(
+		r.AddNoPublisherHandler(
 			"balance_worker_ingest_events",
 			opts.IngestEventsTopic,
 			opts.Router.Subscriber,

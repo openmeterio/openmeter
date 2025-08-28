@@ -222,13 +222,13 @@ func (b *HighWatermarkRedisBackend) Record(ctx context.Context, req RecordLastCa
 			IsDeleted:     req.IsDeleted,
 		}
 
-		json, err := json.Marshal(newEntry)
+		data, err := json.Marshal(newEntry)
 		if err != nil {
 			return err
 		}
 
 		_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-			return pipe.SetEx(ctx, cacheKey, string(json), b.Expiration).Err()
+			return pipe.SetEx(ctx, cacheKey, string(data), b.Expiration).Err()
 		})
 
 		return err

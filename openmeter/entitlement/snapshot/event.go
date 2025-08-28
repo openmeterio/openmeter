@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
@@ -60,6 +61,7 @@ type SnapshotEvent struct {
 	Namespace   models.NamespaceID      `json:"namespace"`
 	Subject     subject.Subject         `json:"subject"`
 	Feature     feature.Feature         `json:"feature"`
+	Customer    *customer.Customer      `json:"customer,omitempty"`
 	// Operation is delete if the entitlement gets deleted, in that case the balance object is empty
 	Operation ValueOperationType `json:"operation"`
 
@@ -86,42 +88,60 @@ func (e SnapshotEvent) EventName() string {
 }
 
 func (e SnapshotEvent) EventMetadata() metadata.EventMetadata {
+	if e.Customer != nil {
+		return metadata.EventMetadata{
+			Subject: metadata.ComposeResourcePath(
+				e.Namespace.ID,
+				metadata.EntityCustomer, e.Customer.ID,
+				metadata.EntitySubjectKey, e.Subject.Key,
+			),
+		}
+	}
+
 	return metadata.EventMetadata{
 		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntitySubjectKey, e.Subject.Key),
 	}
 }
 
 func (e SnapshotEvent) Validate() error {
+	var errs []error
+
 	if err := e.Operation.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if e.Entitlement.ID == "" {
-		return errors.New("entitlementId is required")
+		errs = append(errs, errors.New("entitlementId is required"))
 	}
 
 	if err := e.Namespace.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if err := e.Subject.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if e.Feature.ID == "" {
-		return errors.New("feature ID must be set")
+		errs = append(errs, errors.New("feature ID must be set"))
+	}
+
+	if e.Customer != nil {
+		if err := e.Customer.Validate(); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	if e.CalculatedAt == nil {
-		return errors.New("calculatedAt is required ")
+		errs = append(errs, errors.New("calculatedAt is required "))
 	}
 
 	switch e.Operation {
 	case ValueOperationUpdate, ValueOperationReset:
 		if e.Value == nil {
-			return errors.New("balance is required for balance update/reset")
+			errs = append(errs, errors.New("balance is required for balance update/reset"))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
