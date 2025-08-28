@@ -12,47 +12,48 @@ import (
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) error {
+func (w *Worker) handleBatchedIngestEvent(ctx context.Context, ingestEvent ingestevents.EventBatchedIngest) error {
 	affectedEntitlements, err := w.repo.ListAffectedEntitlements(ctx,
 		[]IngestEventQueryFilter{
 			{
-				Namespace:  event.Namespace.ID,
-				SubjectKey: event.SubjectKey,
-				MeterSlugs: event.MeterSlugs,
+				Namespace:  ingestEvent.Namespace.ID,
+				SubjectKey: ingestEvent.SubjectKey,
+				MeterSlugs: ingestEvent.MeterSlugs,
 			},
 		})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list affected entitlements: %w", err)
 	}
 
-	var handlingError error
+	var errs []error
 
-	for _, entitlement := range affectedEntitlements {
+	for _, ent := range affectedEntitlements {
 		event, err := w.handleEntitlementEvent(
 			ctx,
-			pkgmodels.NamespacedID{Namespace: entitlement.Namespace, ID: entitlement.EntitlementID},
-			WithSource(metadata.ComposeResourcePath(entitlement.Namespace, metadata.EntityEvent)),
-			WithEventAt(event.StoredAt),
-			WithRawIngestedEvents(event.RawEvents),
+			pkgmodels.NamespacedID{Namespace: ent.Namespace, ID: ent.EntitlementID},
+			WithSource(metadata.ComposeResourcePath(ent.Namespace, metadata.EntityEvent)),
+			WithEventAt(ingestEvent.StoredAt),
+			WithRawIngestedEvents(ingestEvent.RawEvents),
 		)
 		if err != nil {
-			err = fmt.Errorf("handling entitlement event for %s: %w", entitlement.EntitlementID, err)
-			handlingError = errors.Join(handlingError, err)
+			errs = append(errs, fmt.Errorf("handling entitlement event for %s: %w", ent.EntitlementID, err))
+
 			continue
 		}
 
-		if err := w.opts.EventBus.Publish(ctx, event); err != nil {
-			handlingError = errors.Join(handlingError, fmt.Errorf("handling entitlement event for %s: %w", entitlement.EntitlementID, err))
+		if err = w.opts.EventBus.Publish(ctx, event); err != nil {
+			errs = append(errs, fmt.Errorf("handling entitlement event for %s: %w", ent.EntitlementID, err))
 		}
 	}
 
-	if handlingError != nil {
-		// This is a warning, as we might succeed retrying the event later. The DLQ Telemetry middleware will properly log
+	err = errors.Join(errs...)
+	if err != nil {
+		// This is a warning, as we might succeed in retrying the event later. The DLQ Telemetry middleware will properly log
 		// the error.
-		w.opts.Logger.WarnContext(ctx, "error handling batched ingest event", "error", handlingError)
+		w.opts.Logger.WarnContext(ctx, "error handling batched ingest event", "error", err)
 	}
 
-	return handlingError
+	return err
 }
 
 func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, namespace string, meterSlugs []string, subject string) ([]pkgmodels.NamespacedID, error) {
@@ -65,8 +66,8 @@ func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, name
 	}
 
 	featureIDs := make([]string, 0, len(featuresByMeter.Items))
-	for _, feature := range featuresByMeter.Items {
-		featureIDs = append(featureIDs, feature.ID)
+	for _, feat := range featuresByMeter.Items {
+		featureIDs = append(featureIDs, feat.ID)
 	}
 
 	entitlements, err := w.entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
@@ -79,10 +80,10 @@ func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, name
 	}
 
 	entitlementIDs := make([]pkgmodels.NamespacedID, 0, len(entitlements.Items))
-	for _, entitlement := range entitlements.Items {
+	for _, ent := range entitlements.Items {
 		entitlementIDs = append(entitlementIDs, pkgmodels.NamespacedID{
-			ID:        entitlement.ID,
-			Namespace: entitlement.Namespace,
+			ID:        ent.ID,
+			Namespace: ent.Namespace,
 		})
 	}
 

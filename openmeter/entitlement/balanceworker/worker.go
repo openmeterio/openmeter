@@ -147,19 +147,19 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, fmt.Errorf("failed to init metrics: %w", err)
 	}
 
-	router, err := router.NewDefaultRouter(opts.Router)
+	r, err := router.NewDefaultRouter(opts.Router)
 	if err != nil {
 		return nil, err
 	}
 
-	worker.router = router
+	worker.router = r
 
 	eventHandler, err := worker.eventHandler(opts.Router.MetricMeter)
 	if err != nil {
 		return nil, err
 	}
 
-	router.AddNoPublisherHandler(
+	r.AddNoPublisherHandler(
 		"balance_worker_system_events",
 		opts.SystemEventsTopic,
 		opts.Router.Subscriber,
@@ -167,7 +167,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 	)
 
 	if opts.SystemEventsTopic != opts.IngestEventsTopic {
-		router.AddNoPublisherHandler(
+		r.AddNoPublisherHandler(
 			"balance_worker_ingest_events",
 			opts.IngestEventsTopic,
 			opts.Router.Subscriber,

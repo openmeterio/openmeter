@@ -150,7 +150,7 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		(entitlementEntity.ActiveTo != nil && entitlementEntity.ActiveTo.Before(calculatedAt)) {
 		// entitlement got deleted while processing changes => let's create a delete event so that we are not working
 
-		snapshot, err := w.createDeletedSnapshotEvent(ctx,
+		snap, err := w.createDeletedSnapshotEvent(ctx,
 			entitlement.EntitlementDeletedEvent{
 				Entitlement: *entitlementEntity,
 				Namespace: models.NamespaceID{
@@ -172,7 +172,7 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 			w.opts.Logger.WarnContext(ctx, "failed to record last calculation for deleted entitlement", "error", err, "entitlement", entitlementEntity.ID)
 		}
 
-		return snapshot, nil
+		return snap, nil
 	}
 
 	// Reset events are always recalculated asOf the time of reset, so that we have a snapshot of initial grants
@@ -182,15 +182,15 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 			return nil, fmt.Errorf("entitlement has no current usage period, cannot create snapshot event")
 		}
 
-		snapshot, err := w.createSnapshotEvent(ctx, entitlementEntity, entitlementEntity.CurrentUsagePeriod.From, opts)
+		snap, err := w.createSnapshotEvent(ctx, entitlementEntity, entitlementEntity.CurrentUsagePeriod.From, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)
 		}
 
-		return snapshot, nil
+		return snap, nil
 	}
 
-	snapshot, err := w.createSnapshotEvent(ctx, entitlementEntity, calculatedAt, opts)
+	snap, err := w.createSnapshotEvent(ctx, entitlementEntity, calculatedAt, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)
 	}
@@ -205,7 +205,7 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		w.opts.Logger.WarnContext(ctx, "failed to record last calculation for entitlement", "error", err, "entitlement", entitlementEntity.ID)
 	}
 
-	return snapshot, nil
+	return snap, nil
 }
 
 type snapshotToEventInput struct {
@@ -283,7 +283,7 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 }
 
 func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *entitlement.Entitlement, calculatedAt time.Time, opts handleEntitlementEventOptions) (marshaler.Event, error) {
-	feature, err := w.entitlement.Feature.GetFeature(ctx, entitlementEntity.Namespace, entitlementEntity.FeatureID, feature.IncludeArchivedFeatureTrue)
+	feat, err := w.entitlement.Feature.GetFeature(ctx, entitlementEntity.Namespace, entitlementEntity.FeatureID, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
@@ -310,7 +310,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 
 	return w.snapshotToEvent(ctx, snapshotToEventInput{
 		Entitlement:       entitlementEntity,
-		Feature:           feature,
+		Feature:           feat,
 		Value:             convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
 		CalculatedAt:      calculatedAt,
 		Source:            opts.source,
@@ -321,7 +321,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitlement.EntitlementDeletedEvent, calculationTime time.Time) (marshaler.Event, error) {
 	namespace := delEvent.Namespace.ID
 
-	feature, err := w.entitlement.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, feature.IncludeArchivedFeatureTrue)
+	feat, err := w.entitlement.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, feature.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
@@ -342,7 +342,7 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, delEvent entitl
 				ID: namespace,
 			},
 			Subject:   subject,
-			Feature:   *feature,
+			Feature:   *feat,
 			Operation: snapshot.ValueOperationDelete,
 
 			CalculatedAt: convert.ToPointer(calculationTime),

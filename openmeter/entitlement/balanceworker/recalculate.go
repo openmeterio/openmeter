@@ -269,7 +269,7 @@ func (r *Recalculator) sendEntitlementEvent(ctx context.Context, ent entitlement
 func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent entitlement.Entitlement) (sendEntitlementEventResult, error) {
 	empty := sendEntitlementEventResult{}
 
-	subject, err := r.subjectCache.Get(ctx, pkgmodels.NamespacedKey{
+	sub, err := r.subjectCache.Get(ctx, pkgmodels.NamespacedKey{
 		Namespace: ent.Namespace,
 		Key:       ent.SubjectKey,
 	})
@@ -277,7 +277,7 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 		return empty, err
 	}
 
-	feature, err := r.featureCache.Get(ctx, pkgmodels.NamespacedID{
+	feat, err := r.featureCache.Get(ctx, pkgmodels.NamespacedID{
 		Namespace: ent.Namespace,
 		ID:        ent.FeatureID,
 	})
@@ -294,8 +294,8 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 			Namespace: models.NamespaceID{
 				ID: ent.Namespace,
 			},
-			Subject:   subject,
-			Feature:   feature,
+			Subject:   sub,
+			Feature:   feat,
 			Operation: snapshot.ValueOperationDelete,
 
 			CalculatedAt: convert.ToPointer(calculatedAt),
@@ -312,7 +312,7 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent entitlement.Entitlement) (sendEntitlementEventResult, error) {
 	empty := sendEntitlementEventResult{}
 
-	subject, err := r.subjectCache.Get(ctx, pkgmodels.NamespacedKey{
+	sub, err := r.subjectCache.Get(ctx, pkgmodels.NamespacedKey{
 		Namespace: ent.Namespace,
 		Key:       ent.SubjectKey,
 	})
@@ -320,7 +320,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 		return empty, err
 	}
 
-	feature, err := r.featureCache.Get(ctx, pkgmodels.NamespacedID{
+	feat, err := r.featureCache.Get(ctx, pkgmodels.NamespacedID{
 		Namespace: ent.Namespace,
 		ID:        ent.FeatureID,
 	})
@@ -353,8 +353,8 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 			Namespace: models.NamespaceID{
 				ID: ent.Namespace,
 			},
-			Subject:   subject,
-			Feature:   feature,
+			Subject:   sub,
+			Feature:   feat,
 			Operation: snapshot.ValueOperationUpdate,
 
 			CalculatedAt: &calculatedAt,
@@ -370,12 +370,12 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 }
 
 func (r *Recalculator) getSubjectByKey(ctx context.Context, namespacedKey pkgmodels.NamespacedKey) (subject.Subject, error) {
-	subject, err := resolveSubjectIfExists(ctx, r.opts.Subject, namespacedKey)
+	sub, err := resolveSubjectIfExists(ctx, r.opts.Subject, namespacedKey)
 	if err != nil {
-		return subject, err
+		return sub, err
 	}
 
-	return subject, nil
+	return sub, nil
 }
 
 func (r *Recalculator) getFeature(ctx context.Context, featureID pkgmodels.NamespacedID) (feature.Feature, error) {
