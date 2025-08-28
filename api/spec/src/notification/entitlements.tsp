@@ -63,6 +63,10 @@ model NotificationEventEntitlementValuePayloadBase {
   @visibility(Lifecycle.Read)
   @summary("Entitlement Value")
   value: OpenMeter.Entitlements.EntitlementValue;
+
+  @visibility(Lifecycle.Read)
+  @summary("Customer")
+  customer?: OpenMeter.Customer.Customer;
 }
 
 /**

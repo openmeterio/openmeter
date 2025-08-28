@@ -7594,6 +7594,8 @@ export interface components {
       readonly subject: components['schemas']['Subject']
       /** Entitlement Value */
       readonly value: components['schemas']['EntitlementValue']
+      /** Customer */
+      readonly customer?: components['schemas']['Customer']
       /** Threshold */
       readonly threshold: components['schemas']['NotificationRuleBalanceThresholdValue']
     }
@@ -7643,6 +7645,8 @@ export interface components {
       readonly subject: components['schemas']['Subject']
       /** Entitlement Value */
       readonly value: components['schemas']['EntitlementValue']
+      /** Customer */
+      readonly customer?: components['schemas']['Customer']
     }
     /** @description Payload for notification event with `invoice.created` type. */
     NotificationEventInvoiceCreatedPayload: {
