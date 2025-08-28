@@ -3,6 +3,7 @@ package input
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"sync"
 	"time"
 
@@ -21,6 +22,7 @@ const (
 	fieldPrometheusQueries     = "queries"
 	fieldPrometheusSchedule    = "schedule"
 	fieldPrometheusQueryOffset = "query_offset"
+	fieldPrometheusHeaders     = "headers"
 )
 
 func prometheusInputConfig() *service.ConfigSpec {
@@ -48,12 +50,20 @@ func prometheusInputConfig() *service.ConfigSpec {
 			service.NewDurationField(fieldPrometheusQueryOffset).
 				Description("Indicates how far back in time the scraping should be done to account for delays in metric availability.").
 				Default("0s"),
+			service.NewStringMapField(fieldPrometheusHeaders).
+				Description("Optional HTTP headers to send with Prometheus queries. Useful for authentication or routing.").
+				Example(map[string]any{
+					"Authorization": "Basic <base64 encoded credentials>",
+				}).
+				Optional(),
 		).Example("Basic Configuration", "Collect Prometheus metrics with a scrape interval of 1 minute and a scrape offset of 30 seconds to account for delays in metric availability.", `
 input:
   prometheus:
     url: "${PROMETHEUS_URL:http://localhost:9090}"
     schedule: "0 * * * * *"
     query_offset: "1m"
+    headers:
+      Authorization: "Basic <base64 encoded credentials>"
     queries:
       - query:
           name: "node_cpu_usage"
@@ -92,6 +102,7 @@ type prometheusInput struct {
 	interval    time.Duration
 	schedule    string
 	queryOffset time.Duration
+	headers     map[string]string
 	scheduler   gocron.Scheduler
 	store       map[time.Time][]QueryResult
 	mu          sync.Mutex
@@ -113,6 +124,14 @@ func newPrometheusInput(conf *service.ParsedConfig, res *service.Resources) (*pr
 	queryOffset, err := conf.FieldDuration(fieldPrometheusQueryOffset)
 	if err != nil {
 		return nil, err
+	}
+
+	var headers map[string]string
+	if conf.Contains(fieldPrometheusHeaders) {
+		headers, err = conf.FieldStringMap(fieldPrometheusHeaders)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Parse queries
@@ -162,10 +181,19 @@ func newPrometheusInput(conf *service.ParsedConfig, res *service.Resources) (*pr
 		interval = secondRun.Sub(nextRun)
 	}
 
-	// Create Prometheus client
-	client, err := api.NewClient(api.Config{
+	// Create Prometheus client with custom headers
+	clientConfig := api.Config{
 		Address: url,
-	})
+	}
+
+	if len(headers) > 0 {
+		clientConfig.RoundTripper = &headerRoundTripper{
+			next:    api.DefaultRoundTripper,
+			headers: headers,
+		}
+	}
+
+	client, err := api.NewClient(clientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +211,7 @@ func newPrometheusInput(conf *service.ParsedConfig, res *service.Resources) (*pr
 		interval:    interval,
 		schedule:    schedule,
 		queryOffset: queryOffset,
+		headers:     headers,
 		scheduler:   scheduler,
 		store:       make(map[time.Time][]QueryResult),
 		mu:          sync.Mutex{},
@@ -356,4 +385,21 @@ func (in *prometheusInput) Close(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// headerRoundTripper is a http.RoundTripper that adds custom headers to requests
+type headerRoundTripper struct {
+	next    http.RoundTripper
+	headers map[string]string
+}
+
+// RoundTrip adds custom headers to the request
+func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	reqClone := req.Clone(req.Context())
+
+	for key, value := range h.headers {
+		reqClone.Header.Set(key, value)
+	}
+
+	return h.next.RoundTrip(reqClone)
 }
