@@ -530,17 +530,12 @@ func FromEventAsBalanceThresholdPayload(e notification.Event) (api.NotificationE
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
 		Type:      api.NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
-		Data: struct {
-			Entitlement api.EntitlementMetered                    `json:"entitlement"`
-			Feature     api.Feature                               `json:"feature"`
-			Subject     api.Subject                               `json:"subject"`
-			Threshold   api.NotificationRuleBalanceThresholdValue `json:"threshold"`
-			Value       api.EntitlementValue                      `json:"value"`
-		}{
+		Data: api.NotificationEventBalanceThresholdPayloadData{
 			Value:       e.Payload.BalanceThreshold.Value,
 			Entitlement: e.Payload.BalanceThreshold.Entitlement,
 			Feature:     e.Payload.BalanceThreshold.Feature,
 			Subject:     e.Payload.BalanceThreshold.Subject,
+			Customer:    e.Payload.BalanceThreshold.Customer,
 			Threshold:   e.Payload.BalanceThreshold.Threshold,
 		},
 	}, nil
@@ -560,6 +555,7 @@ func FromEventAsEntitlementResetPayload(e notification.Event) (api.NotificationE
 			Entitlement: e.Payload.EntitlementReset.Entitlement,
 			Feature:     e.Payload.EntitlementReset.Feature,
 			Subject:     e.Payload.EntitlementReset.Subject,
+			Customer:    e.Payload.BalanceThreshold.Customer,
 		},
 	}, nil
 }

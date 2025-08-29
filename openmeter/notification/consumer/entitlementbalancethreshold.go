@@ -15,6 +15,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
+	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
@@ -201,6 +202,15 @@ func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createB
 		annotations[notification.AnnotationEventFeatureID] = in.Snapshot.Feature.ID
 	}
 
+	var cus api.Customer
+
+	if in.Snapshot.Customer != nil {
+		cus, err = customerhttpdriver.CustomerToAPI(*in.Snapshot.Customer, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to map customer to API: %w", err)
+		}
+	}
+
 	_, err = b.Notification.CreateEvent(ctx, notification.CreateEventInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: in.Snapshot.Namespace.ID,
@@ -216,6 +226,7 @@ func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createB
 					Entitlement: *entitlementAPIEntity,
 					Feature:     productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature),
 					Subject:     subjecthttphandler.FromSubject(in.Snapshot.Subject),
+					Customer:    lo.EmptyableToPtr(cus),
 					Value:       (api.EntitlementValue)(*in.Snapshot.Value),
 				},
 				Threshold: in.Threshold,

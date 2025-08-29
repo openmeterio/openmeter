@@ -19516,6 +19516,11 @@ components:
             - $ref: '#/components/schemas/EntitlementValue'
           title: Entitlement Value
           readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/Customer'
+          title: Customer
+          readOnly: true
         threshold:
           allOf:
             - $ref: '#/components/schemas/NotificationRuleBalanceThresholdValue'
@@ -19597,6 +19602,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/EntitlementValue'
           title: Entitlement Value
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/Customer'
+          title: Customer
           readOnly: true
       description: Base data for any payload with entitlement entitlement value.
     NotificationEventInvoiceCreatedPayload:
