@@ -34,7 +34,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		now := clock.Now().UTC()
 
 		query := repo.db.Customer.Query().Where(customerdb.Namespace(input.Namespace))
-		query = withSubjects(query)
+		query = withSubjects(query, now)
 		query = withSubscription(query, now)
 
 		// Do not return deleted customers by default
@@ -306,9 +306,11 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
+		now := clock.Now().UTC()
+
 		query := repo.db.Customer.Query()
-		query = withSubjects(query)
-		query = withActiveSubscription(query)
+		query = withSubjects(query, now)
+		query = withSubscription(query, now)
 
 		if input.CustomerID != nil {
 			query = query.Where(customerdb.Namespace(input.CustomerID.Namespace))
@@ -370,12 +372,20 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
-		query := a.db.Customer.Query().
+		now := clock.Now().UTC()
+
+		query := repo.db.Customer.Query().
 			Where(customerdb.Namespace(input.Namespace)).
-			Where(customerdb.HasSubjectsWith(customersubjectsdb.SubjectKey(input.SubjectKey))).
+			Where(customerdb.HasSubjectsWith(
+				customersubjectsdb.SubjectKey(input.SubjectKey),
+				customersubjectsdb.Or(
+					customersubjectsdb.DeletedAtIsNil(),
+					customersubjectsdb.DeletedAtGT(now),
+				),
+			)).
 			Where(customerdb.DeletedAtIsNil())
-		query = withSubjects(query)
-		query = withActiveSubscription(query)
+		query = withSubjects(query, now)
+		query = withSubscription(query, now)
 
 		customerEntity, err := query.First(ctx)
 		if err != nil {
@@ -647,17 +657,13 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 }
 
 // withSubjects returns a query with the subjects
-func withSubjects(query *entdb.CustomerQuery) *entdb.CustomerQuery {
+func withSubjects(query *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
 	return query.WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
-		query.Where(customersubjectsdb.DeletedAtIsNil())
+		query.Where(customersubjectsdb.Or(
+			customersubjectsdb.DeletedAtIsNil(),
+			customersubjectsdb.DeletedAtGT(at),
+		))
 	})
-}
-
-// withActiveSubscription returns a query with the active subscription
-func withActiveSubscription(query *entdb.CustomerQuery) *entdb.CustomerQuery {
-	now := clock.Now().UTC()
-
-	return withSubscription(query, now)
 }
 
 // withSubscription returns a query with the subscription
