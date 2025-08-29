@@ -511,83 +511,58 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			return nil, fmt.Errorf("failed to update customer: %w", err)
 		}
 
-		// Add new subjects
-		var subjectsKeysToAdd []string
+		subKeysToRemove, subKeysToAdd := lo.Difference(
+			lo.Uniq(previousCustomer.UsageAttribution.SubjectKeys),
+			lo.Uniq(input.UsageAttribution.SubjectKeys),
+		)
 
-		for _, subjectKey := range input.UsageAttribution.SubjectKeys {
-			found := false
-
-			for _, existingSubjectKey := range previousCustomer.UsageAttribution.SubjectKeys {
-				if subjectKey == existingSubjectKey {
-					found = true
-					continue
+		// Add subjects
+		if len(subKeysToAdd) > 0 {
+			_, err = repo.db.CustomerSubjects.
+				CreateBulk(
+					lo.Map(
+						subKeysToAdd,
+						func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
+							return repo.db.CustomerSubjects.Create().
+								SetNamespace(input.CustomerID.Namespace).
+								SetCustomerID(input.CustomerID.ID).
+								SetSubjectKey(subjectKey)
+						},
+					)...,
+				).
+				Save(ctx)
+			if err != nil {
+				if entdb.IsConstraintError(err) {
+					return nil, customer.NewSubjectKeyConflictError(
+						input.CustomerID.Namespace,
+						subKeysToAdd,
+					)
 				}
-			}
 
-			if !found {
-				subjectsKeysToAdd = append(subjectsKeysToAdd, subjectKey)
+				return nil, fmt.Errorf("failed to add customer subjects: %w", err)
 			}
-		}
-
-		_, err = repo.db.CustomerSubjects.
-			CreateBulk(
-				lo.Map(
-					subjectsKeysToAdd,
-					func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
-						return repo.db.CustomerSubjects.Create().
-							SetNamespace(input.CustomerID.Namespace).
-							SetCustomerID(input.CustomerID.ID).
-							SetSubjectKey(subjectKey)
-					},
-				)...,
-			).
-			Save(ctx)
-		if err != nil {
-			if entdb.IsConstraintError(err) {
-				return nil, customer.NewSubjectKeyConflictError(
-					input.CustomerID.Namespace,
-					subjectsKeysToAdd,
-				)
-			}
-
-			return nil, fmt.Errorf("failed to add customer subjects: %w", err)
 		}
 
 		// Remove subjects
-		var subjectKeysToRemove []string
-
-		for _, existingSubjectKey := range previousCustomer.UsageAttribution.SubjectKeys {
-			found := false
-
-			for _, subjectKey := range input.UsageAttribution.SubjectKeys {
-				if subjectKey == existingSubjectKey {
-					found = true
-					continue
+		if len(subKeysToRemove) > 0 {
+			err = repo.db.CustomerSubjects.
+				Update().
+				Where(customersubjectsdb.CustomerID(input.CustomerID.ID)).
+				Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
+				Where(customersubjectsdb.SubjectKeyIn(subKeysToRemove...)).
+				Where(customersubjectsdb.DeletedAtIsNil()).
+				SetDeletedAt(clock.Now().UTC()).
+				Exec(ctx)
+			if err != nil {
+				if entdb.IsConstraintError(err) {
+					return nil, customer.NewSubjectKeyConflictError(
+						input.CustomerID.Namespace,
+						subKeysToRemove,
+					)
 				}
-			}
 
-			if !found {
-				subjectKeysToRemove = append(subjectKeysToRemove, existingSubjectKey)
+				return nil, fmt.Errorf("failed to remove customer subjects: %w", err)
 			}
-		}
-
-		err = repo.db.CustomerSubjects.
-			Update().
-			Where(customersubjectsdb.CustomerID(input.CustomerID.ID)).
-			Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
-			Where(customersubjectsdb.SubjectKeyIn(subjectKeysToRemove...)).
-			Where(customersubjectsdb.DeletedAtIsNil()).
-			SetDeletedAt(clock.Now().UTC()).
-			Exec(ctx)
-		if err != nil {
-			if entdb.IsConstraintError(err) {
-				return nil, customer.NewSubjectKeyConflictError(
-					input.CustomerID.Namespace,
-					subjectKeysToRemove,
-				)
-			}
-
-			return nil, fmt.Errorf("failed to remove customer subjects: %w", err)
 		}
 
 		if entity == nil {
@@ -612,7 +587,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 
 		// Loop through the existing subjects and add the ones that are not removed
 		for _, subjectKey := range previousCustomer.UsageAttribution.SubjectKeys {
-			if lo.Contains(subjectKeysToRemove, subjectKey) {
+			if lo.Contains(subKeysToRemove, subjectKey) {
 				continue
 			}
 
@@ -624,7 +599,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 		}
 
 		// Add the new subjects
-		for _, subjectKey := range subjectsKeysToAdd {
+		for _, subjectKey := range subKeysToAdd {
 			entity.Edges.Subjects = append(entity.Edges.Subjects, &entdb.CustomerSubjects{
 				Namespace:  input.CustomerID.Namespace,
 				CustomerID: input.CustomerID.ID,
