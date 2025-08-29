@@ -3,12 +3,15 @@ package customer
 import (
 	"context"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Service interface {
 	CustomerService
 	RequestValidatorService
+
+	models.ServiceHooks[Customer]
 }
 
 type RequestValidatorService interface {
