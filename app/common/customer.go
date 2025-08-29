@@ -62,13 +62,13 @@ func NewCustomerSubjectServiceHook(
 	subjectService subject.Service,
 	customerService customer.Service,
 	customerOverrideService billing.CustomerOverrideService,
-) (customerservicehooks.SubjectHook, error) {
+) (customerservicehooks.SubjectCustomerHook, error) {
 	if !config.EnableSubjectHook {
-		return new(customerservicehooks.NoopSubjectHook), nil
+		return new(customerservicehooks.NoopSubjectCustomerHook), nil
 	}
 
-	// Initialize the customer subject hook and register for subject service
-	h, err := customerservicehooks.NewSubjectHook(customerservicehooks.SubjectHookConfig{
+	// Initialize the subject customer hook and register it for Subject service
+	h, err := customerservicehooks.NewSubjectCustomerHook(customerservicehooks.SubjectCustomerHookConfig{
 		Customer:         customerService,
 		CustomerOverride: customerOverrideService,
 		Logger:           logger,

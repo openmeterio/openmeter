@@ -603,7 +603,7 @@ type Application struct {
 	Addon                       addon.Service
 	AppRegistry                 common.AppRegistry
 	Customer                    customer.Service
-	CustomerSubjectHook         hooks.SubjectHook
+	CustomerSubjectHook         hooks.SubjectCustomerHook
 	Billing                     billing.Service
 	EntClient                   *db.Client
 	EventPublisher              eventbus.Publisher

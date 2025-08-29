@@ -22,14 +22,14 @@ import (
 )
 
 type (
-	SubjectHook     = models.ServiceHook[subject.Subject]
-	NoopSubjectHook = models.NoopServiceHook[subject.Subject]
+	SubjectCustomerHook     = models.ServiceHook[subject.Subject]
+	NoopSubjectCustomerHook = models.NoopServiceHook[subject.Subject]
 )
 
-var _ models.ServiceHook[subject.Subject] = (*subjectHook)(nil)
+var _ models.ServiceHook[subject.Subject] = (*subjectCustomerHook)(nil)
 
-type subjectHook struct {
-	models.NoopServiceHook[subject.Subject]
+type subjectCustomerHook struct {
+	NoopSubjectCustomerHook
 
 	provisioner *CustomerProvisioner
 	logger      *slog.Logger
@@ -37,7 +37,7 @@ type subjectHook struct {
 	ignoreErrors bool
 }
 
-func (s subjectHook) provision(ctx context.Context, sub *subject.Subject) error {
+func (s subjectCustomerHook) provision(ctx context.Context, sub *subject.Subject) error {
 	err := s.provisioner.Provision(ctx, sub)
 	if err != nil {
 		if s.ignoreErrors {
@@ -54,15 +54,15 @@ func (s subjectHook) provision(ctx context.Context, sub *subject.Subject) error 
 	return nil
 }
 
-func (s subjectHook) PostCreate(ctx context.Context, sub *subject.Subject) error {
+func (s subjectCustomerHook) PostCreate(ctx context.Context, sub *subject.Subject) error {
 	return s.provision(ctx, sub)
 }
 
-func (s subjectHook) PostUpdate(ctx context.Context, sub *subject.Subject) error {
+func (s subjectCustomerHook) PostUpdate(ctx context.Context, sub *subject.Subject) error {
 	return s.provision(ctx, sub)
 }
 
-func NewSubjectHook(config SubjectHookConfig) (SubjectHook, error) {
+func NewSubjectCustomerHook(config SubjectCustomerHookConfig) (SubjectCustomerHook, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid subject hook config: %w", err)
 	}
@@ -76,14 +76,14 @@ func NewSubjectHook(config SubjectHookConfig) (SubjectHook, error) {
 		return nil, fmt.Errorf("failed to initialize customer provisioner: %w", err)
 	}
 
-	return &subjectHook{
+	return &subjectCustomerHook{
 		provisioner:  provisioner,
-		logger:       config.Logger.With("subsystem", "customer.subject.hook"),
+		logger:       config.Logger.With("subsystem", "subject_customer_provisioner"),
 		ignoreErrors: config.IgnoreErrors,
 	}, nil
 }
 
-type SubjectHookConfig struct {
+type SubjectCustomerHookConfig struct {
 	Customer         customer.Service
 	CustomerOverride billing.CustomerOverrideService
 	Logger           *slog.Logger
@@ -92,7 +92,7 @@ type SubjectHookConfig struct {
 	IgnoreErrors bool
 }
 
-func (c SubjectHookConfig) Validate() error {
+func (c SubjectCustomerHookConfig) Validate() error {
 	var errs []error
 
 	if c.Customer == nil {
