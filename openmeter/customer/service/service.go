@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ customer.Service = (*Service)(nil)
@@ -13,6 +14,12 @@ type Service struct {
 	adapter                  customer.Adapter
 	requestValidatorRegistry customer.RequestValidatorRegistry
 	publisher                eventbus.Publisher
+
+	hooks models.ServiceHookRegistry[customer.Customer]
+}
+
+func (s *Service) RegisterHooks(hooks ...models.ServiceHook[customer.Customer]) {
+	s.hooks.RegisterHooks(hooks...)
 }
 
 type Config struct {
@@ -41,5 +48,6 @@ func New(config Config) (*Service, error) {
 		adapter:                  config.Adapter,
 		requestValidatorRegistry: customer.NewRequestValidatorRegistry(),
 		publisher:                config.Publisher,
+		hooks:                    models.ServiceHookRegistry[customer.Customer]{},
 	}, nil
 }

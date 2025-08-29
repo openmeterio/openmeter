@@ -1022,6 +1022,8 @@ var _ customer.Service = (*NoopCustomerService)(nil)
 
 type NoopCustomerService struct{}
 
+func (n NoopCustomerService) RegisterHooks(_ ...models.ServiceHook[customer.Customer]) {}
+
 func (n NoopCustomerService) ListCustomers(ctx context.Context, params customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
 	return pagination.PagedResponse[customer.Customer]{}, nil
 }
