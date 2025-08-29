@@ -56,7 +56,13 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		}
 
 		if input.Subject != nil {
-			query = query.Where(customerdb.HasSubjectsWith(customersubjectsdb.SubjectKeyContainsFold(*input.Subject)))
+			query = query.Where(customerdb.HasSubjectsWith(
+				customersubjectsdb.SubjectKeyContainsFold(*input.Subject),
+				customersubjectsdb.Or(
+					customersubjectsdb.DeletedAtIsNil(),
+					customersubjectsdb.DeletedAtGT(now),
+				),
+			))
 		}
 
 		if input.PlanKey != nil {
