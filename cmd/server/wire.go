@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
@@ -43,40 +42,41 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	Addon                       addon.Service
-	AppRegistry                 common.AppRegistry
-	Customer                    customer.Service
-	CustomerSubjectHook         customerservicehooks.SubjectCustomerHook
-	Billing                     billing.Service
-	EntClient                   *db.Client
-	EventPublisher              eventbus.Publisher
-	EntitlementRegistry         *registry.Entitlement
-	FeatureConnector            feature.FeatureConnector
-	IngestCollector             ingest.Collector
-	IngestService               *ingest.Service
-	KafkaProducer               *kafka.Producer
-	KafkaMetrics                *kafkametrics.Metrics
-	KafkaIngestNamespaceHandler *kafkaingest.NamespaceHandler
-	Logger                      *slog.Logger
-	MetricMeter                 metric.Meter
-	MeterConfigInitializer      common.MeterConfigInitializer
-	MeterManageService          meter.ManageService
-	MeterEventService           meterevent.Service
-	NamespaceManager            *namespace.Manager
-	Notification                notification.Service
-	Plan                        plan.Service
-	PlanAddon                   planaddon.Service
-	Portal                      portal.Service
-	ProgressManager             progressmanager.Service
-	RouterHooks                 *server.RouterHooks
-	Secret                      secret.Service
-	SubjectService              subject.Service
-	Subscription                common.SubscriptionServiceWithWorkflow
-	StreamingConnector          streaming.Connector
-	TelemetryServer             common.TelemetryServer
-	TerminationChecker          *common.TerminationChecker
-	RuntimeMetricsCollector     common.RuntimeMetricsCollector
-	Tracer                      trace.Tracer
+	Addon                        addon.Service
+	AppRegistry                  common.AppRegistry
+	Customer                     customer.Service
+	CustomerSubjectHook          common.CustomerSubjectHook
+	CustomerSubjectValidatorHook common.CustomerSubjectValidatorHook
+	Billing                      billing.Service
+	EntClient                    *db.Client
+	EventPublisher               eventbus.Publisher
+	EntitlementRegistry          *registry.Entitlement
+	FeatureConnector             feature.FeatureConnector
+	IngestCollector              ingest.Collector
+	IngestService                *ingest.Service
+	KafkaProducer                *kafka.Producer
+	KafkaMetrics                 *kafkametrics.Metrics
+	KafkaIngestNamespaceHandler  *kafkaingest.NamespaceHandler
+	Logger                       *slog.Logger
+	MetricMeter                  metric.Meter
+	MeterConfigInitializer       common.MeterConfigInitializer
+	MeterManageService           meter.ManageService
+	MeterEventService            meterevent.Service
+	NamespaceManager             *namespace.Manager
+	Notification                 notification.Service
+	Plan                         plan.Service
+	PlanAddon                    planaddon.Service
+	Portal                       portal.Service
+	ProgressManager              progressmanager.Service
+	RouterHooks                  *server.RouterHooks
+	Secret                       secret.Service
+	SubjectService               subject.Service
+	Subscription                 common.SubscriptionServiceWithWorkflow
+	StreamingConnector           streaming.Connector
+	TelemetryServer              common.TelemetryServer
+	TerminationChecker           *common.TerminationChecker
+	RuntimeMetricsCollector      common.RuntimeMetricsCollector
+	Tracer                       trace.Tracer
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
@@ -88,6 +88,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Config,
 		common.Customer,
 		common.NewCustomerSubjectServiceHook,
+		common.NewCustomerSubjectValidatorServiceHook,
 		common.Database,
 		common.Entitlement,
 		common.Framework,
