@@ -56,19 +56,21 @@ func NewCustomerService(
 	return service, nil
 }
 
+type CustomerSubjectHook customerservicehooks.SubjectCustomerHook
+
 func NewCustomerSubjectServiceHook(
 	config config.CustomerConfiguration,
 	logger *slog.Logger,
 	subjectService subject.Service,
 	customerService customer.Service,
 	customerOverrideService billing.CustomerOverrideService,
-) (customerservicehooks.SubjectHook, error) {
+) (CustomerSubjectHook, error) {
 	if !config.EnableSubjectHook {
-		return new(customerservicehooks.NoopSubjectHook), nil
+		return new(customerservicehooks.NoopSubjectCustomerHook), nil
 	}
 
-	// Initialize the customer subject hook and register for subject service
-	h, err := customerservicehooks.NewSubjectHook(customerservicehooks.SubjectHookConfig{
+	// Initialize the subject customer hook and register it for Subject service
+	h, err := customerservicehooks.NewSubjectCustomerHook(customerservicehooks.SubjectCustomerHookConfig{
 		Customer:         customerService,
 		CustomerOverride: customerOverrideService,
 		Logger:           logger,
@@ -76,6 +78,27 @@ func NewCustomerSubjectServiceHook(
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer subject hook: %w", err)
+	}
+
+	subjectService.RegisterHooks(h)
+
+	return h, nil
+}
+
+type CustomerSubjectValidatorHook customerservicehooks.SubjectValidatorHook
+
+func NewCustomerSubjectValidatorServiceHook(
+	logger *slog.Logger,
+	subjectService subject.Service,
+	customerService customer.Service,
+) (CustomerSubjectValidatorHook, error) {
+	// Initialize the customer subject validator hook and register it for Subject service
+	h, err := customerservicehooks.NewSubjectValidatorHook(customerservicehooks.SubjectValidatorHookConfig{
+		Customer: customerService,
+		Logger:   logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create customer subject validator hook: %w", err)
 	}
 
 	subjectService.RegisterHooks(h)

@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
@@ -363,7 +362,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v3, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, subjectService, customerService, billingService)
+	customerSubjectHook, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, subjectService, customerService, billingService)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	customerSubjectValidatorHook, err := common.NewCustomerSubjectValidatorServiceHook(logger, subjectService, customerService)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -447,9 +456,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v4 := conf.Meters
+	v3 := conf.Meters
 	manageService := common.NewMeterManageService(adapter, manager, eventbusPublisher)
-	v5 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
+	v4 := common.NewMeterConfigInitializer(logger, v3, manageService, manager)
 	metereventService := common.NewMeterEventService(connector, customerService, service)
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
@@ -464,8 +473,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	notificationConfiguration := conf.Notification
 	webhookConfiguration := notificationConfiguration.Webhook
-	v6 := conf.Svix
-	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v6)
+	v5 := conf.Svix
+	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v5)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -512,8 +521,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v7 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
-	routerHooks := common.NewRouterHooks(v7)
+	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	routerHooks := common.NewRouterHooks(v6)
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
@@ -528,7 +537,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v8, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v7, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -544,42 +553,43 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	application := Application{
-		GlobalInitializer:           globalInitializer,
-		Migrator:                    migrator,
-		Addon:                       addonService,
-		AppRegistry:                 appRegistry,
-		Customer:                    customerService,
-		CustomerSubjectHook:         v3,
-		Billing:                     billingService,
-		EntClient:                   client,
-		EventPublisher:              eventbusPublisher,
-		EntitlementRegistry:         entitlement,
-		FeatureConnector:            featureConnector,
-		IngestCollector:             ingestCollector,
-		IngestService:               ingestService,
-		KafkaProducer:               producer,
-		KafkaMetrics:                metrics,
-		KafkaIngestNamespaceHandler: namespaceHandler,
-		Logger:                      logger,
-		MetricMeter:                 meter,
-		MeterConfigInitializer:      v5,
-		MeterManageService:          manageService,
-		MeterEventService:           metereventService,
-		NamespaceManager:            manager,
-		Notification:                notificationService,
-		Plan:                        planService,
-		PlanAddon:                   planaddonService,
-		Portal:                      portalService,
-		ProgressManager:             progressmanagerService,
-		RouterHooks:                 routerHooks,
-		Secret:                      secretserviceService,
-		SubjectService:              subjectService,
-		Subscription:                subscriptionServiceWithWorkflow,
-		StreamingConnector:          connector,
-		TelemetryServer:             v8,
-		TerminationChecker:          terminationChecker,
-		RuntimeMetricsCollector:     runtimeMetricsCollector,
-		Tracer:                      tracer,
+		GlobalInitializer:            globalInitializer,
+		Migrator:                     migrator,
+		Addon:                        addonService,
+		AppRegistry:                  appRegistry,
+		Customer:                     customerService,
+		CustomerSubjectHook:          customerSubjectHook,
+		CustomerSubjectValidatorHook: customerSubjectValidatorHook,
+		Billing:                      billingService,
+		EntClient:                    client,
+		EventPublisher:               eventbusPublisher,
+		EntitlementRegistry:          entitlement,
+		FeatureConnector:             featureConnector,
+		IngestCollector:              ingestCollector,
+		IngestService:                ingestService,
+		KafkaProducer:                producer,
+		KafkaMetrics:                 metrics,
+		KafkaIngestNamespaceHandler:  namespaceHandler,
+		Logger:                       logger,
+		MetricMeter:                  meter,
+		MeterConfigInitializer:       v4,
+		MeterManageService:           manageService,
+		MeterEventService:            metereventService,
+		NamespaceManager:             manager,
+		Notification:                 notificationService,
+		Plan:                         planService,
+		PlanAddon:                    planaddonService,
+		Portal:                       portalService,
+		ProgressManager:              progressmanagerService,
+		RouterHooks:                  routerHooks,
+		Secret:                       secretserviceService,
+		SubjectService:               subjectService,
+		Subscription:                 subscriptionServiceWithWorkflow,
+		StreamingConnector:           connector,
+		TelemetryServer:              v7,
+		TerminationChecker:           terminationChecker,
+		RuntimeMetricsCollector:      runtimeMetricsCollector,
+		Tracer:                       tracer,
 	}
 	return application, func() {
 		cleanup9()
@@ -600,40 +610,41 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	Addon                       addon.Service
-	AppRegistry                 common.AppRegistry
-	Customer                    customer.Service
-	CustomerSubjectHook         hooks.SubjectHook
-	Billing                     billing.Service
-	EntClient                   *db.Client
-	EventPublisher              eventbus.Publisher
-	EntitlementRegistry         *registry.Entitlement
-	FeatureConnector            feature.FeatureConnector
-	IngestCollector             ingest.Collector
-	IngestService               *ingest.Service
-	KafkaProducer               *kafka2.Producer
-	KafkaMetrics                *metrics.Metrics
-	KafkaIngestNamespaceHandler *kafkaingest.NamespaceHandler
-	Logger                      *slog.Logger
-	MetricMeter                 metric.Meter
-	MeterConfigInitializer      common.MeterConfigInitializer
-	MeterManageService          meter.ManageService
-	MeterEventService           meterevent.Service
-	NamespaceManager            *namespace.Manager
-	Notification                notification.Service
-	Plan                        plan.Service
-	PlanAddon                   planaddon.Service
-	Portal                      portal.Service
-	ProgressManager             progressmanager.Service
-	RouterHooks                 *server.RouterHooks
-	Secret                      secret.Service
-	SubjectService              subject.Service
-	Subscription                common.SubscriptionServiceWithWorkflow
-	StreamingConnector          streaming.Connector
-	TelemetryServer             common.TelemetryServer
-	TerminationChecker          *common.TerminationChecker
-	RuntimeMetricsCollector     common.RuntimeMetricsCollector
-	Tracer                      trace.Tracer
+	Addon                        addon.Service
+	AppRegistry                  common.AppRegistry
+	Customer                     customer.Service
+	CustomerSubjectHook          common.CustomerSubjectHook
+	CustomerSubjectValidatorHook common.CustomerSubjectValidatorHook
+	Billing                      billing.Service
+	EntClient                    *db.Client
+	EventPublisher               eventbus.Publisher
+	EntitlementRegistry          *registry.Entitlement
+	FeatureConnector             feature.FeatureConnector
+	IngestCollector              ingest.Collector
+	IngestService                *ingest.Service
+	KafkaProducer                *kafka2.Producer
+	KafkaMetrics                 *metrics.Metrics
+	KafkaIngestNamespaceHandler  *kafkaingest.NamespaceHandler
+	Logger                       *slog.Logger
+	MetricMeter                  metric.Meter
+	MeterConfigInitializer       common.MeterConfigInitializer
+	MeterManageService           meter.ManageService
+	MeterEventService            meterevent.Service
+	NamespaceManager             *namespace.Manager
+	Notification                 notification.Service
+	Plan                         plan.Service
+	PlanAddon                    planaddon.Service
+	Portal                       portal.Service
+	ProgressManager              progressmanager.Service
+	RouterHooks                  *server.RouterHooks
+	Secret                       secret.Service
+	SubjectService               subject.Service
+	Subscription                 common.SubscriptionServiceWithWorkflow
+	StreamingConnector           streaming.Connector
+	TelemetryServer              common.TelemetryServer
+	TerminationChecker           *common.TerminationChecker
+	RuntimeMetricsCollector      common.RuntimeMetricsCollector
+	Tracer                       trace.Tracer
 }
 
 func metadata(conf config.Configuration) common.Metadata {
