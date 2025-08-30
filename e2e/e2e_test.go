@@ -1043,14 +1043,22 @@ func TestCredit(t *testing.T) {
 			require.Equal(t, http.StatusNoContent, resp.StatusCode())
 		}
 
+		// NOTE: This is a temporary workaround to avoid data race condition in (assert|require).EventuallyWithTf function which
+		// was not triggered before `testify` v1.11.1. Which includes the change (https://github.com/stretchr/testify/pull/1427)
+		// that makes the EventuallyWithTf return early triggering the race condition in our case where the result of the condition
+		// from the previous tick is used to decide the result of the test.
+		// Remove this when the race condition is fixed in `testify`.
+		// Bare in mind his still can fail if sink-worker is is not running or the ingestion of the events takes longer than the sleep time.
+		time.Sleep(5 * time.Second)
+
 		// Wait for events to be processed, fail on network errors
 		testutils.EventuallyWithTf(t, func(c *assert.CollectT, saveErr func(err any)) {
 			resp, err := client.QueryMeterWithResponse(context.Background(), meterSlug, &api.QueryMeterParams{
 				Subject: &[]string{subjectKey},
 			})
 			saveErr(err)
-			assert.NoError(c, err)
-			assert.Equal(c, http.StatusOK, resp.StatusCode())
+			require.NoError(c, err)
+			require.Equal(c, http.StatusOK, resp.StatusCode())
 
 			require.GreaterOrEqual(t, len(resp.JSON200.Data), 1)
 
