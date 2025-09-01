@@ -324,6 +324,10 @@ type Line struct {
 	DBState *Line `json:"-"`
 }
 
+// Temporary type alias until we move the detailed line to its own entity, for now it just enhances
+// readability.
+type DetailedLine = Line
+
 func (i Line) LineID() LineID {
 	return LineID{
 		Namespace: i.Namespace,
