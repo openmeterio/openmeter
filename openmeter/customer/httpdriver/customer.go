@@ -413,7 +413,14 @@ func (h *handler) GetCustomerAccess() GetCustomerAccessHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerAccessRequest) (GetCustomerAccessResponse, error) {
-			access, err := h.entitlementService.GetAccess(ctx, request.CustomerID.Namespace, request.CustomerID.ID)
+			cust, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: request.CustomerIDOrKey,
+			})
+			if err != nil {
+				return GetCustomerAccessResponse{}, err
+			}
+
+			access, err := h.entitlementService.GetAccess(ctx, cust.Namespace, cust.ID)
 			if err != nil {
 				return GetCustomerAccessResponse{}, err
 			}
