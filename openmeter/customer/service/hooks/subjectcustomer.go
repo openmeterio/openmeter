@@ -275,7 +275,7 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 		cus, err = p.customer.UpdateCustomer(ctx, customer.UpdateCustomerInput{
 			CustomerID: customerID,
 			CustomerMutate: customer.CustomerMutate{
-				Key:              lo.ToPtr(lo.FromPtrOr(cus.Key, sub.Key)),
+				Key:              cus.Key,
 				Name:             lo.FromPtrOr(sub.DisplayName, cus.Name),
 				Description:      cus.Description,
 				UsageAttribution: cus.UsageAttribution,
