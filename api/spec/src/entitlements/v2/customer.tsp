@@ -53,6 +53,7 @@ interface CustomerEntitlements {
 
   /**
    * Get entitlement by feature key. For checking entitlement access, use the /value endpoint instead.
+   * If featureKey is used, the entitlement is resolved for the current timestamp.
    */
   @get
   @operationId("getCustomerEntitlementV2")

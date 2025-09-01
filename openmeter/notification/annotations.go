@@ -9,6 +9,9 @@ const (
 	AnnotationEventSubjectKey = "event.subject.key"
 	AnnotationEventSubjectID  = "event.subject.id"
 
+	AnnotationEventCustomerID  = "event.customer.id"
+	AnnotationEventCustomerKey = "event.customer.key"
+
 	// TODO[later]: deprecate this annotation and use a generic one
 	AnnotationBalanceEventDedupeHash = "event.balance.dedupe.hash"
 

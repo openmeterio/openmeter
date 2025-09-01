@@ -15,7 +15,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
-	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
+	customerhttphandler "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
@@ -190,6 +190,7 @@ func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createB
 
 	annotations := models.Annotations{
 		notification.AnnotationEventSubjectKey:        in.Snapshot.Subject.Key,
+		notification.AnnotationEventCustomerID:        in.Snapshot.Customer.ID,
 		notification.AnnotationEventFeatureKey:        in.Snapshot.Feature.Key,
 		notification.AnnotationBalanceEventDedupeHash: in.DedupeHash,
 	}
@@ -198,17 +199,29 @@ func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createB
 		annotations[notification.AnnotationEventSubjectID] = in.Snapshot.Subject.Id
 	}
 
+	if in.Snapshot.Customer.Key != nil {
+		annotations[notification.AnnotationEventCustomerKey] = *in.Snapshot.Customer.Key
+	}
+
 	if in.Snapshot.Feature.ID != "" {
 		annotations[notification.AnnotationEventFeatureID] = in.Snapshot.Feature.ID
 	}
 
-	var cus api.Customer
+	valueBase := notification.EntitlementValuePayloadBase{
+		Entitlement: *entitlementAPIEntity,
+		Feature:     productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature),
+		Subject:     subjecthttphandler.FromSubject(in.Snapshot.Subject),
+		Value:       (api.EntitlementValue)(*in.Snapshot.Value),
+	}
 
-	if in.Snapshot.Customer != nil {
-		cus, err = customerhttpdriver.CustomerToAPI(*in.Snapshot.Customer, nil, nil)
+	// TODO(OM-1508): As we're reusing the same event version, we need to add this temporary check
+	if in.Snapshot.Customer.ID != "" {
+		apiCustomer, err := customerhttphandler.CustomerToAPI(in.Snapshot.Customer, nil, nil)
 		if err != nil {
 			return fmt.Errorf("failed to map customer to API: %w", err)
 		}
+
+		valueBase.Customer = apiCustomer
 	}
 
 	_, err = b.Notification.CreateEvent(ctx, notification.CreateEventInput{
@@ -222,14 +235,8 @@ func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createB
 				Type: notification.EventTypeBalanceThreshold,
 			},
 			BalanceThreshold: &notification.BalanceThresholdPayload{
-				EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{
-					Entitlement: *entitlementAPIEntity,
-					Feature:     productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature),
-					Subject:     subjecthttphandler.FromSubject(in.Snapshot.Subject),
-					Customer:    lo.EmptyableToPtr(cus),
-					Value:       (api.EntitlementValue)(*in.Snapshot.Value),
-				},
-				Threshold: in.Threshold,
+				EntitlementValuePayloadBase: valueBase,
+				Threshold:                   in.Threshold,
 			},
 		},
 		RuleID:                   in.RuleID,

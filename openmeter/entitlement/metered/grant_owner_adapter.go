@@ -87,9 +87,20 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 		return def, fmt.Errorf("failed to get meter: %w", err)
 	}
 
-	queryParams := streaming.QueryParams{
-		FilterSubject: []string{ent.SubjectKey},
+	queryParams := streaming.QueryParams{}
+
+	// Require filtering by customer; error if missing
+	if ent.Customer == nil {
+		return def, models.NewGenericValidationError(fmt.Errorf("meter queries require customer filtering for entitlement %s", id.ID))
 	}
+
+	streamingCustomer := ownerCustomer{
+		id:          ent.Customer.ID,
+		key:         ent.Customer.Key,
+		subjectKeys: ent.Customer.UsageAttribution.SubjectKeys,
+	}
+
+	queryParams.FilterCustomer = []streaming.Customer{streamingCustomer}
 
 	if feature.MeterGroupByFilters != nil {
 		queryParams.FilterGroupBy = map[string][]string{}
@@ -105,6 +116,7 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 		ResetBehavior: grant.ResetBehavior{
 			PreserveOverage: mEnt.PreserveOverageAtReset,
 		},
+		StreamingCustomer: streamingCustomer,
 	}, nil
 }
 

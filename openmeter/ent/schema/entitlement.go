@@ -44,10 +44,13 @@ func (Entitlement) Fields() []ent.Field {
 			}
 			return nil
 		}).Immutable(),
-		field.String("subject_key").NotEmpty().Immutable(),
+		field.String("customer_id").Immutable().SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}),
 		field.String("subject_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
+		field.String("subject_key").NotEmpty().Immutable(),
 		field.Time("measure_usage_from").Optional().Nillable().Immutable(),
 		field.Float("issue_after_reset").Optional().Nillable().Immutable(),
 		field.Uint8("issue_after_reset_priority").Optional().Nillable().Immutable(),
@@ -74,8 +77,10 @@ func (Entitlement) Fields() []ent.Field {
 func (Entitlement) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
+		index.Fields("namespace", "customer_id"),
+		index.Fields("namespace", "subject_id"),
 		index.Fields("namespace", "subject_key"),
-		index.Fields("namespace", "id", "subject_key"),
+		index.Fields("namespace", "id", "customer_id"),
 		index.Fields("namespace", "feature_id", "id"),
 		index.Fields("namespace", "current_usage_period_end"),
 		// Index for collecting entitlements with due resets
@@ -102,19 +107,17 @@ func (Entitlement) Edges() []ent.Edge {
 			Required().
 			Unique().
 			Immutable(),
+		edge.From("customer", Customer.Type).
+			Ref("entitlements").
+			Field("customer_id").
+			Required().
+			Unique().
+			Immutable(),
 		edge.From("subject", Subject.Type).
 			Ref("entitlements").
 			Field("subject_id").
 			Required().
 			Unique().
 			Immutable(),
-		// FIXME: enable foreign key constraints
-		// Ent doesn't support foreign key constraints on non ID fields (key)
-		// https://github.com/ent/ent/issues/2549
-		// edge.From("key", Subject.Type).
-		// 	Ref("subject").
-		// 	Field("subject_key").
-		// 	Required().
-		// 	Immutable(),
 	}
 }

@@ -867,18 +867,14 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 	}
 
 	t := meta.EntitlementTemplate.Type()
-	subjectKey, err := opts.Customer.UsageAttribution.GetSubjectKey()
-	if err != nil {
-		return def, true, fmt.Errorf("failed to get subject key for customer %s: %w", opts.Customer.ID, err)
-	}
 
 	scheduleInput := entitlement.CreateEntitlementInputs{
-		EntitlementType: t,
-		Namespace:       opts.Customer.Namespace,
-		ActiveFrom:      lo.ToPtr(opts.Cadence.ActiveFrom),
-		ActiveTo:        opts.Cadence.ActiveTo,
-		FeatureKey:      meta.FeatureKey,
-		SubjectKey:      subjectKey,
+		EntitlementType:  t,
+		Namespace:        opts.Customer.Namespace,
+		ActiveFrom:       lo.ToPtr(opts.Cadence.ActiveFrom),
+		ActiveTo:         opts.Cadence.ActiveTo,
+		FeatureKey:       meta.FeatureKey,
+		UsageAttribution: opts.Customer.GetUsageAttribution(),
 	}
 
 	switch t {

@@ -13,6 +13,7 @@ import (
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -208,7 +209,7 @@ func mapPeriod(u *timeutil.ClosedPeriod) *api.Period {
 	}
 }
 
-func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
+func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttribution streaming.CustomerUsageAttribution) (entitlement.CreateEntitlementInputs, error) {
 	request := entitlement.CreateEntitlementInputs{}
 	if inp == nil {
 		return request, errors.New("input is nil")
@@ -230,7 +231,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 			Namespace:               ns,
 			FeatureID:               v.FeatureId,
 			FeatureKey:              v.FeatureKey,
-			SubjectKey:              subjectIdOrKey,
+			UsageAttribution:        usageAttribution,
 			EntitlementType:         entitlement.EntitlementTypeMetered,
 			IsSoftLimit:             v.IsSoftLimit,
 			IssueAfterReset:         v.IssueAfterReset,
@@ -279,12 +280,12 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 		}
 	case api.EntitlementStaticCreateInputs:
 		request = entitlement.CreateEntitlementInputs{
-			Namespace:       ns,
-			FeatureID:       v.FeatureId,
-			FeatureKey:      v.FeatureKey,
-			SubjectKey:      subjectIdOrKey,
-			EntitlementType: entitlement.EntitlementTypeStatic,
-			Config:          []byte(v.Config),
+			Namespace:        ns,
+			FeatureID:        v.FeatureId,
+			FeatureKey:       v.FeatureKey,
+			UsageAttribution: usageAttribution,
+			EntitlementType:  entitlement.EntitlementTypeStatic,
+			Config:           []byte(v.Config),
 		}
 		if v.UsagePeriod != nil {
 			iv, err := MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
@@ -304,11 +305,11 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 		}
 	case api.EntitlementBooleanCreateInputs:
 		request = entitlement.CreateEntitlementInputs{
-			Namespace:       ns,
-			FeatureID:       v.FeatureId,
-			FeatureKey:      v.FeatureKey,
-			SubjectKey:      subjectIdOrKey,
-			EntitlementType: entitlement.EntitlementTypeBoolean,
+			Namespace:        ns,
+			FeatureID:        v.FeatureId,
+			FeatureKey:       v.FeatureKey,
+			UsageAttribution: usageAttribution,
+			EntitlementType:  entitlement.EntitlementTypeBoolean,
 		}
 		if v.UsagePeriod != nil {
 			iv, err := MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)

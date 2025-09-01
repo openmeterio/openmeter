@@ -12,6 +12,9 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -48,14 +51,14 @@ func (m *mockTypeConnector) GetValue(ctx context.Context, entitlement *entitleme
 
 func (m *mockTypeConnector) BeforeCreate(ent entitlement.CreateEntitlementInputs, feature feature.Feature) (*entitlement.CreateEntitlementRepoInputs, error) {
 	return &entitlement.CreateEntitlementRepoInputs{
-		Namespace:       ent.Namespace,
-		FeatureID:       feature.ID,
-		FeatureKey:      feature.Key,
-		SubjectKey:      ent.SubjectKey,
-		EntitlementType: ent.EntitlementType,
-		Metadata:        ent.Metadata,
-		ActiveFrom:      ent.ActiveFrom,
-		ActiveTo:        ent.ActiveTo,
+		Namespace:        ent.Namespace,
+		FeatureID:        feature.ID,
+		FeatureKey:       feature.Key,
+		UsageAttribution: ent.UsageAttribution,
+		EntitlementType:  ent.EntitlementType,
+		Metadata:         ent.Metadata,
+		ActiveFrom:       ent.ActiveFrom,
+		ActiveTo:         ent.ActiveTo,
 	}, nil
 }
 
@@ -70,6 +73,7 @@ type dependencies struct {
 	featureRepo        feature.FeatureRepo
 	streamingConnector *streamingtestutils.MockStreamingConnector
 	subjectService     subject.Service
+	customerService    customer.Service
 }
 
 // Teardown cleans up the dependencies
@@ -151,6 +155,22 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 		t.Fatalf("failed to create subject service: %v", err)
 	}
 
+	customerAdapter, err := customeradapter.New(customeradapter.Config{
+		Client: dbClient,
+		Logger: testLogger,
+	})
+	if err != nil {
+		t.Fatalf("failed to create customer adapter: %v", err)
+	}
+
+	customerService, err := customerservice.New(customerservice.Config{
+		Adapter:   customerAdapter,
+		Publisher: eventbus.NewMock(t),
+	})
+	if err != nil {
+		t.Fatalf("failed to create customer service: %v", err)
+	}
+
 	deps := &dependencies{
 		dbClient:           dbClient,
 		pgDriver:           pgDriver,
@@ -158,7 +178,30 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 		featureRepo:        entitlementRegistry.FeatureRepo,
 		streamingConnector: streamingConnector,
 		subjectService:     subjectService,
+		customerService:    customerService,
 	}
 
 	return entitlementRegistry.Entitlement, deps
+}
+
+func createCustomerAndSubject(t *testing.T, deps *dependencies, ns string, subjectKey string) *customer.Customer {
+	t.Helper()
+	_, err := deps.subjectService.Create(context.Background(), subject.CreateInput{
+		Namespace: ns,
+		Key:       subjectKey,
+	})
+	require.NoError(t, err)
+
+	cust, err := deps.customerService.CreateCustomer(context.Background(), customer.CreateCustomerInput{
+		Namespace: ns,
+		CustomerMutate: customer.CustomerMutate{
+			Key: lo.ToPtr(subjectKey),
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{subjectKey},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	return cust
 }

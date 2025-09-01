@@ -46,7 +46,7 @@ func NewCustomerService(
 	}
 
 	// Create and register the entitlement validator
-	validator, err := entitlementvalidator.NewValidator(service, entRegistry.EntitlementRepo)
+	validator, err := entitlementvalidator.NewValidator(entRegistry.EntitlementRepo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entitlement validator: %w", err)
 	}

@@ -9,8 +9,11 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -38,10 +41,14 @@ type entitlementHandler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
 	connector        entitlement.Connector
+	customerService  customer.Service
+	subjectService   subject.Service
 }
 
 func NewEntitlementHandler(
 	connector entitlement.Connector,
+	customerService customer.Service,
+	subjectService subject.Service,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
 ) EntitlementHandler {
@@ -49,11 +56,17 @@ func NewEntitlementHandler(
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		connector:        connector,
+		customerService:  customerService,
+		subjectService:   subjectService,
 	}
 }
 
 type (
-	CreateEntitlementHandlerRequest  = entitlement.CreateEntitlementInputs
+	CreateEntitlementHandlerRequest = struct {
+		Inputs         entitlement.CreateEntitlementInputs
+		SubjectIdOrKey string
+		Namespace      string
+	}
 	CreateEntitlementHandlerResponse = *api.Entitlement
 	CreateEntitlementHandlerParams   = string
 )
@@ -62,9 +75,9 @@ type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHan
 
 func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 	return httptransport.NewHandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, string](
-		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
+		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (CreateEntitlementHandlerRequest, error) {
 			inp := &api.EntitlementCreateInputs{}
-			request := entitlement.CreateEntitlementInputs{}
+			request := CreateEntitlementHandlerRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &inp); err != nil {
 				return request, err
 			}
@@ -74,10 +87,27 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				return request, err
 			}
 
-			return ParseAPICreateInput(inp, ns, subjectIdOrKey)
+			// We'll populate the usageattribution in the handler down below, this is somewhat hacky
+			createInput, err := ParseAPICreateInput(inp, ns, streaming.CustomerUsageAttribution{})
+			if err != nil {
+				return request, err
+			}
+
+			request.Inputs = createInput
+			request.SubjectIdOrKey = subjectIdOrKey
+			request.Namespace = ns
+
+			return request, nil
 		},
 		func(ctx context.Context, request CreateEntitlementHandlerRequest) (CreateEntitlementHandlerResponse, error) {
-			res, err := h.connector.CreateEntitlement(ctx, request)
+			cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectIdOrKey)
+			if err != nil {
+				return nil, err
+			}
+
+			request.Inputs.UsageAttribution = cust.GetUsageAttribution()
+
+			res, err := h.connector.CreateEntitlement(ctx, request.Inputs)
 			if err != nil {
 				return nil, err
 			}
@@ -87,7 +117,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createEntitlement"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -121,7 +151,8 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 				return request, err
 			}
 
-			eInp, err := ParseAPICreateInput(inp, ns, params.SubjectIdOrKey)
+			// We'll populate the usageattribution in the handler down below, this is somewhat hacky
+			eInp, err := ParseAPICreateInput(inp, ns, streaming.CustomerUsageAttribution{})
 			if err != nil {
 				return request, err
 			}
@@ -133,7 +164,14 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 			return request, nil
 		},
 		func(ctx context.Context, request OverrideEntitlementHandlerRequest) (OverrideEntitlementHandlerResponse, error) {
-			ent, err := h.connector.GetEntitlementOfSubjectAt(ctx, request.Inputs.Namespace, request.SubjectIdOrKey, request.EntitlementIdOrFeatureKey, clock.Now())
+			cust, err := h.resolveCustomerFromSubject(ctx, request.Inputs.Namespace, request.SubjectIdOrKey)
+			if err != nil {
+				return nil, err
+			}
+
+			request.Inputs.UsageAttribution = cust.GetUsageAttribution()
+
+			ent, err := h.connector.GetEntitlementOfCustomerAt(ctx, request.Inputs.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, clock.Now())
 			if err != nil {
 				return nil, err
 			}
@@ -146,7 +184,7 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 				return nil, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 			}
 
-			res, err := h.connector.OverrideEntitlement(ctx, request.SubjectIdOrKey, request.EntitlementIdOrFeatureKey, request.Inputs)
+			res, err := h.connector.OverrideEntitlement(ctx, cust.ID, request.EntitlementIdOrFeatureKey, request.Inputs)
 			if err != nil {
 				return nil, err
 			}
@@ -156,7 +194,7 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("overrideEntitlement"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -193,7 +231,12 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementValueHandlerRequest) (api.EntitlementValue, error) {
-			entitlementValue, err := h.connector.GetEntitlementValue(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, request.At)
+			cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectKey)
+			if err != nil {
+				return api.EntitlementValue{}, err
+			}
+
+			entitlementValue, err := h.connector.GetEntitlementValue(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.At)
 			if err != nil {
 				return api.EntitlementValue{}, err
 			}
@@ -203,13 +246,16 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementValue"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
 
 type (
-	GetEntitlementsOfSubjectHandlerRequest  = models.NamespacedID
+	GetEntitlementsOfSubjectHandlerRequest = struct {
+		Namespace      string
+		SubjectIdOrKey string
+	}
 	GetEntitlementsOfSubjectHandlerResponse = []api.Entitlement
 	GetEntitlementsOfSubjectHandlerParams   struct {
 		SubjectIdOrKey string
@@ -224,16 +270,21 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 		func(ctx context.Context, r *http.Request, params GetEntitlementsOfSubjectHandlerParams) (GetEntitlementsOfSubjectHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return models.NamespacedID{}, err
+				return GetEntitlementsOfSubjectHandlerRequest{}, err
 			}
 
-			return models.NamespacedID{
-				Namespace: ns,
-				ID:        params.SubjectIdOrKey,
+			return GetEntitlementsOfSubjectHandlerRequest{
+				Namespace:      ns,
+				SubjectIdOrKey: params.SubjectIdOrKey,
 			}, nil
 		},
 		func(ctx context.Context, id GetEntitlementsOfSubjectHandlerRequest) (GetEntitlementsOfSubjectHandlerResponse, error) {
-			entitlements, err := h.connector.GetEntitlementsOfSubject(ctx, id.Namespace, id.ID, clock.Now())
+			cust, err := h.resolveCustomerFromSubject(ctx, id.Namespace, id.SubjectIdOrKey)
+			if err != nil {
+				return nil, err
+			}
+
+			entitlements, err := h.connector.GetEntitlementsOfCustomer(ctx, id.Namespace, cust.ID, clock.Now())
 			if err != nil {
 				return nil, err
 			}
@@ -253,7 +304,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementsOfSubject"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -365,7 +416,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listEntitlements"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -407,7 +458,7 @@ func (h *entitlementHandler) GetEntitlement() GetEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlement"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -449,7 +500,7 @@ func (h *entitlementHandler) GetEntitlementById() GetEntitlementByIdHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlement"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -500,7 +551,7 @@ func (h *entitlementHandler) DeleteEntitlement() DeleteEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deleteEntitlement"),
-			httptransport.WithErrorEncoder(getErrorEncoder()),
+			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
 }
@@ -512,4 +563,21 @@ func (h *entitlementHandler) resolveNamespace(ctx context.Context) (string, erro
 	}
 
 	return ns, nil
+}
+
+func (h *entitlementHandler) resolveCustomerFromSubject(ctx context.Context, namespace string, subjectIdOrKey string) (*customer.Customer, error) {
+	subj, err := h.subjectService.GetByIdOrKey(ctx, namespace, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	cust, err := h.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  namespace,
+		SubjectKey: subj.Key,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return cust, nil
 }

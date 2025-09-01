@@ -9,9 +9,11 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	entitlement_httpdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -24,6 +26,7 @@ import (
 type GrantHandler interface {
 	ListGrants() ListGrantsHandler
 	VoidGrant() VoidGrantHandler
+	ListGrantsV2() ListGrantsV2Handler
 }
 
 type grantHandler struct {
@@ -31,18 +34,21 @@ type grantHandler struct {
 	options          []httptransport.HandlerOption
 	grantConnector   credit.GrantConnector
 	grantRepo        grant.Repo
+	customerService  customer.Service
 }
 
 func NewGrantHandler(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	grantConnector credit.GrantConnector,
 	grantRepo grant.Repo,
+	customerService customer.Service,
 	options ...httptransport.HandlerOption,
 ) GrantHandler {
 	return &grantHandler{
 		namespaceDecoder: namespaceDecoder,
 		grantConnector:   grantConnector,
 		grantRepo:        grantRepo,
+		customerService:  customerService,
 		options:          options,
 	}
 }
@@ -105,12 +111,12 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 
 			apiGrants := make([]api.EntitlementGrant, 0, len(grants.Items))
 			for _, grant := range grants.Items {
-				entitlementGrant, err := meteredentitlement.GrantFromCreditGrant(grant)
+				entitlementGrant, err := meteredentitlement.GrantFromCreditGrant(grant, clock.Now())
 				if err != nil {
 					return response, err
 				}
 				// FIXME: not elegant but good for now, entitlement grants are all we have...
-				apiGrant := entitlement_httpdriver.MapEntitlementGrantToAPI(nil, entitlementGrant)
+				apiGrant := entitlement_httpdriver.MapEntitlementGrantToAPI(entitlementGrant)
 
 				apiGrants = append(apiGrants, apiGrant)
 			}
@@ -210,4 +216,98 @@ func (h *grantHandler) resolveNamespace(ctx context.Context) (string, error) {
 	}
 
 	return ns, nil
+}
+
+// V2 List Grants
+type (
+	ListGrantsV2HandlerRequest struct {
+		params grant.ListParams
+	}
+	ListGrantsV2HandlerResponse = api.GrantPaginatedResponse
+	ListGrantsV2HandlerParams   struct {
+		Params api.ListGrantsV2Params
+	}
+)
+type ListGrantsV2Handler httptransport.HandlerWithArgs[ListGrantsV2HandlerRequest, ListGrantsV2HandlerResponse, ListGrantsV2HandlerParams]
+
+func (h *grantHandler) ListGrantsV2() ListGrantsV2Handler {
+	return httptransport.NewHandlerWithArgs[ListGrantsV2HandlerRequest, ListGrantsV2HandlerResponse, ListGrantsV2HandlerParams](
+		func(ctx context.Context, r *http.Request, p ListGrantsV2HandlerParams) (ListGrantsV2HandlerRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ListGrantsV2HandlerRequest{}, err
+			}
+
+			// Build subject keys from customers if provided
+			subjectKeys := []string{}
+			if p.Params.Customer != nil {
+				for _, idOrKey := range *p.Params.Customer {
+					cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+						CustomerIDOrKey: &customer.CustomerIDOrKey{Namespace: ns, IDOrKey: idOrKey},
+					})
+					if err != nil {
+						return ListGrantsV2HandlerRequest{}, err
+					}
+					subjectKeys = append(subjectKeys, cus.UsageAttribution.SubjectKeys...)
+				}
+			}
+
+			req := grant.ListParams{
+				Namespace:        ns,
+				IncludeDeleted:   defaultx.WithDefault(p.Params.IncludeDeleted, false),
+				Order:            commonhttp.GetSortOrder(api.SortOrderASC, p.Params.Order),
+				OrderBy:          grant.OrderBy(strcase.CamelToSnake(defaultx.WithDefault((*string)(p.Params.OrderBy), string(grant.OrderByEffectiveAt)))),
+				FeatureIdsOrKeys: convert.DerefHeaderPtr[string](p.Params.Feature),
+				SubjectKeys:      subjectKeys,
+			}
+
+			// Pagination: support both page/pageSize and limit/offset
+			if p.Params.Page != nil || p.Params.PageSize != nil {
+				req.Page.PageNumber = defaultx.WithDefault(p.Params.Page, 1)
+				req.Page.PageSize = defaultx.WithDefault(p.Params.PageSize, 100)
+			} else {
+				req.Limit = defaultx.WithDefault(p.Params.Limit, 100)
+				req.Offset = defaultx.WithDefault(p.Params.Offset, 0)
+			}
+
+			return ListGrantsV2HandlerRequest{params: req}, nil
+		},
+		func(ctx context.Context, request ListGrantsV2HandlerRequest) (ListGrantsV2HandlerResponse, error) {
+			grants, err := h.grantRepo.ListGrants(ctx, request.params)
+			if err != nil {
+				return ListGrantsV2HandlerResponse{}, err
+			}
+
+			apiGrants := make([]api.EntitlementGrant, 0, len(grants.Items))
+			for _, g := range grants.Items {
+				entitlementGrant, err := meteredentitlement.GrantFromCreditGrant(g, clock.Now())
+				if err != nil {
+					return ListGrantsV2HandlerResponse{}, err
+				}
+				a := entitlement_httpdriver.MapEntitlementGrantToAPI(entitlementGrant)
+				apiGrants = append(apiGrants, a)
+			}
+
+			return api.GrantPaginatedResponse{
+				Items:      apiGrants,
+				TotalCount: grants.TotalCount,
+				Page:       grants.Page.PageNumber,
+				PageSize:   grants.Page.PageSize,
+			}, nil
+		},
+		commonhttp.JSONResponseEncoder[ListGrantsV2HandlerResponse],
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter, _ *http.Request) bool {
+				if models.IsGenericValidationError(err) {
+					commonhttp.NewHTTPError(
+						http.StatusBadRequest,
+						err,
+					).EncodeError(ctx, w)
+					return true
+				}
+				return commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w)
+			}),
+		)...,
+	)
 }

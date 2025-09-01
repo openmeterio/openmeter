@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-func getErrorEncoder() encoder.ErrorEncoder {
+func GetErrorEncoder() encoder.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 		// user errors
 		return commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) ||

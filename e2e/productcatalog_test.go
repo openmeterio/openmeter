@@ -985,7 +985,22 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 		require.NotNil(t, apiRes.JSON200)
 		require.NotNil(t, apiRes.JSON200.Items)
-		require.Equal(t, 4, len(apiRes.JSON200.Items))
+		require.GreaterOrEqual(t, len(apiRes.JSON200.Items), 3)
+
+		_, foundFirst := lo.Find(apiRes.JSON200.Items, func(item api.Customer) bool {
+			return item.Id == customer1.Id
+		})
+		require.True(t, foundFirst)
+
+		_, foundSecond := lo.Find(apiRes.JSON200.Items, func(item api.Customer) bool {
+			return item.Id == customer2.Id
+		})
+		require.True(t, foundSecond)
+
+		_, foundThird := lo.Find(apiRes.JSON200.Items, func(item api.Customer) bool {
+			return item.Id == customerAPIRes.JSON201.Id
+		})
+		require.True(t, foundThird)
 
 		// Now let's check the filtering works
 		apiRes, err = client.ListCustomersWithResponse(ctx, &api.ListCustomersParams{

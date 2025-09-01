@@ -82,6 +82,16 @@ meters:
     eventType: credit_event_uc
     valueProperty: $.value
     aggregation: UNIQUE_COUNT
+  - slug: entitlement_v2_meter
+    description: Meter for testing entitlements with unique count
+    eventType: entitlement_v2
+    valueProperty: $.value
+    aggregation: UNIQUE_COUNT
+  - slug: entitlement_parity_meter
+    description: Meter for testing entitlements parity
+    eventType: entitlement_parity
+    valueProperty: $.value
+    aggregation: UNIQUE_COUNT
   - slug: plan_meter
     description: Meter for testing plan metered feature
     eventType: plan_meter

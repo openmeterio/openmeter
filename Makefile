@@ -134,6 +134,13 @@ etoe: ## Run e2e tests
 	$(call print-target)
 	$(MAKE) -C e2e test-local
 
+.PHONY: etoe-slow
+etoe-slow: ## Run e2e tests with slow tests enabled
+	$(call print-target)
+	export RUN_SLOW_TESTS=1
+	$(MAKE) -C e2e test-local
+
+
 .PHONY: test
 test: ## Run tests
 	$(call print-target)

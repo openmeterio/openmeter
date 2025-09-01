@@ -30,5 +30,7 @@ func (a *Router) VoidGrant(w http.ResponseWriter, r *http.Request, grantId strin
 // List grants
 // (GET /api/v2/grants)
 func (a *Router) ListGrantsV2(w http.ResponseWriter, r *http.Request, params api.ListGrantsV2Params) {
-	unimplemented.ListGrantsV2(w, r, params)
+	a.creditHandler.ListGrantsV2().With(creditdriver.ListGrantsV2HandlerParams{
+		Params: params,
+	}).ServeHTTP(w, r)
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -39,8 +40,8 @@ type Connector interface {
 	ResetEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, highwatermark time.Time) ([]models.NamespacedID, error)
 
 	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
-	CreateGrant(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error)
-	ListEntitlementGrants(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string) ([]EntitlementGrant, error)
+	CreateGrant(ctx context.Context, namespace string, customerID string, entitlementIdOrFeatureKey string, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error)
+	ListEntitlementGrants(ctx context.Context, namespace string, params ListEntitlementGrantsParams) (pagination.PagedResponse[EntitlementGrant], error)
 }
 
 type MeteredEntitlementValue struct {
@@ -191,7 +192,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		Namespace:               model.Namespace,
 		FeatureID:               feature.ID,
 		FeatureKey:              feature.Key,
-		SubjectKey:              model.SubjectKey,
+		UsageAttribution:        model.UsageAttribution,
 		EntitlementType:         model.EntitlementType,
 		Metadata:                model.Metadata,
 		Annotations:             model.Annotations,

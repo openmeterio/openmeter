@@ -41,15 +41,18 @@ func TestGrantExpiringAtReset(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature)
 
+	// create customer and subject
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+
 	// Let's create a new entitlement for the feature
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T14:35:21Z"))
 	entitlement, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
-		Namespace:       "namespace-1",
-		FeatureID:       &feature.ID,
-		FeatureKey:      &feature.Key,
-		SubjectKey:      "subject-1",
-		EntitlementType: entitlement.EntitlementTypeMetered,
+		Namespace:        "namespace-1",
+		FeatureID:        &feature.ID,
+		FeatureKey:       &feature.Key,
+		UsageAttribution: cust.GetUsageAttribution(),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
 		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-06-28T14:48:00Z"),
@@ -190,15 +193,17 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature)
 
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+
 	// Let's create a new entitlement for the feature
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-02T09:41:14Z"))
 	entitlement, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
-		Namespace:       "namespace-1",
-		FeatureID:       &feature.ID,
-		FeatureKey:      &feature.Key,
-		SubjectKey:      "subject-1",
-		EntitlementType: entitlement.EntitlementTypeMetered,
+		Namespace:        "namespace-1",
+		FeatureID:        &feature.ID,
+		FeatureKey:       &feature.Key,
+		UsageAttribution: cust.GetUsageAttribution(),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
 		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-02T09:41:00Z"),
@@ -292,15 +297,17 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature)
 
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+
 	// Let's create a new entitlement for the feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T11:20:28Z"))
 	entitlement, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
-		Namespace:       "namespace-1",
-		FeatureID:       &feature.ID,
-		FeatureKey:      &feature.Key,
-		SubjectKey:      "subject-1",
-		IssueAfterReset: convert.ToPointer(500.0),
-		EntitlementType: entitlement.EntitlementTypeMetered,
+		Namespace:        "namespace-1",
+		FeatureID:        &feature.ID,
+		FeatureKey:       &feature.Key,
+		UsageAttribution: cust.GetUsageAttribution(),
+		IssueAfterReset:  convert.ToPointer(500.0),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
 		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
@@ -393,15 +400,17 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feat)
 
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+
 	// Let's create a new entitlement for the feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T11:20:28Z"))
 	ent, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
-		Namespace:       "namespace-1",
-		FeatureID:       &feat.ID,
-		FeatureKey:      &feat.Key,
-		SubjectKey:      "subject-1",
-		IssueAfterReset: convert.ToPointer(500.0),
-		EntitlementType: entitlement.EntitlementTypeMetered,
+		Namespace:        "namespace-1",
+		FeatureID:        &feat.ID,
+		FeatureKey:       &feat.Key,
+		UsageAttribution: cust.GetUsageAttribution(),
+		IssueAfterReset:  convert.ToPointer(500.0),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
 		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
@@ -429,15 +438,17 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature2)
 
+	cust2 := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-2")
+
 	// Let's create a new entitlement for feature2 for subject-2
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T14:20:28Z"))
 	ent2, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
-		Namespace:       "namespace-1",
-		FeatureID:       &feature2.ID,
-		FeatureKey:      &feature2.Key,
-		SubjectKey:      "subject-2",
-		IssueAfterReset: convert.ToPointer(500.0),
-		EntitlementType: entitlement.EntitlementTypeMetered,
+		Namespace:        "namespace-1",
+		FeatureID:        &feature2.ID,
+		FeatureKey:       &feature2.Key,
+		UsageAttribution: cust2.GetUsageAttribution(),
+		IssueAfterReset:  convert.ToPointer(500.0),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
 		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
@@ -465,14 +476,16 @@ func TestGrantingAfterOverage(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature)
 
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+
 	// Let's create a new entitlement for the feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"))
 	ent, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
-		Namespace:       "namespace-1",
-		FeatureID:       &feature.ID,
-		FeatureKey:      &feature.Key,
-		SubjectKey:      "subject-1",
-		EntitlementType: entitlement.EntitlementTypeMetered,
+		Namespace:        "namespace-1",
+		FeatureID:        &feature.ID,
+		FeatureKey:       &feature.Key,
+		UsageAttribution: cust.GetUsageAttribution(),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
 		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
@@ -574,14 +587,16 @@ func TestBalanceWorkerActiveToFromEntitlementsMapping(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature)
 
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+
 	// Let's create a new entitlement for the feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"))
 	ent1, err := deps.EntitlementConnector.ScheduleEntitlement(ctx, entitlement.CreateEntitlementInputs{
-		Namespace:       "namespace-1",
-		FeatureID:       &feature.ID,
-		FeatureKey:      &feature.Key,
-		SubjectKey:      "subject-1",
-		EntitlementType: entitlement.EntitlementTypeMetered,
+		Namespace:        "namespace-1",
+		FeatureID:        &feature.ID,
+		FeatureKey:       &feature.Key,
+		UsageAttribution: cust.GetUsageAttribution(),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
 		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
@@ -593,11 +608,11 @@ func TestBalanceWorkerActiveToFromEntitlementsMapping(t *testing.T) {
 	assert.NotNil(ent1)
 
 	ent2, err := deps.EntitlementConnector.ScheduleEntitlement(ctx, entitlement.CreateEntitlementInputs{
-		Namespace:       "namespace-1",
-		FeatureID:       &feature.ID,
-		FeatureKey:      &feature.Key,
-		SubjectKey:      "subject-1",
-		EntitlementType: entitlement.EntitlementTypeMetered,
+		Namespace:        "namespace-1",
+		FeatureID:        &feature.ID,
+		FeatureKey:       &feature.Key,
+		UsageAttribution: cust.GetUsageAttribution(),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
 		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
@@ -613,11 +628,14 @@ func TestBalanceWorkerActiveToFromEntitlementsMapping(t *testing.T) {
 	bwRepo, ok := deps.EntitlementRepo.(balanceworker.BalanceWorkerRepository)
 	assert.True(ok)
 
-	affectedEntitlements, err := bwRepo.ListAffectedEntitlements(ctx, []balanceworker.IngestEventQueryFilter{
+	subjKey, err := cust.UsageAttribution.GetSubjectKey()
+	assert.NoError(err)
+
+	affectedEntitlements, err := bwRepo.ListEntitlementsAffectedByIngestEvents(ctx, []balanceworker.IngestEventQueryFilter{
 		{
-			Namespace:  "namespace-1",
-			MeterSlugs: []string{"meter-1"},
-			SubjectKey: "subject-1",
+			Namespace:    "namespace-1",
+			MeterSlugs:   []string{"meter-1"},
+			EventSubject: subjKey,
 		},
 	})
 	assert.NoError(err)

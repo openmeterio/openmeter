@@ -53,25 +53,25 @@ type Connector interface {
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
 	ScheduleEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
 	// OverrideEntitlement replaces a currently active entitlement with a new one.
-	OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input CreateEntitlementInputs) (*Entitlement, error)
+	OverrideEntitlement(ctx context.Context, customerID string, entitlementIdOrFeatureKey string, input CreateEntitlementInputs) (*Entitlement, error)
 	// SupersedeEntitlement replaces an entitlement by scheduling a new one
 	SupersedeEntitlement(ctx context.Context, entitlementId string, input CreateEntitlementInputs) (*Entitlement, error)
 
 	GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error)
 	DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error
 
-	GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (EntitlementValue, error)
+	GetEntitlementValue(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (EntitlementValue, error)
 
-	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]Entitlement, error)
+	GetEntitlementsOfCustomer(ctx context.Context, namespace string, customerId string, at time.Time) ([]Entitlement, error)
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
 
-	// Attempts to get the entitlement in an ambiguous situation where it's unclear if the entitlement is referenced by ID or FeatureKey + SubjectKey.
-	// First attempts to resolve by ID, then by FeatureKey + SubjectKey.
+	// Attempts to get the entitlement in an ambiguous situation where it's unclear if the entitlement is referenced by ID or FeatureKey + CustomerID.
+	// First attempts to resolve by ID, then by FeatureKey + CustomerID.
 	//
 	// For consistency, it is forbidden for entitlements to be created for featueres the keys of which could be mistaken for entitlement IDs.
-	GetEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*Entitlement, error)
+	GetEntitlementOfCustomerAt(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (*Entitlement, error)
 
-	// GetAccess returns the access of a subject for a given namespace.
+	// GetAccess returns the access of a customer.
 	// It returns a map of featureKey to entitlement value + ID.
-	GetAccess(ctx context.Context, namespace string, subjectKey string) (Access, error)
+	GetAccess(ctx context.Context, namespace string, customerID string) (Access, error)
 }

@@ -535,7 +535,7 @@ func FromEventAsBalanceThresholdPayload(e notification.Event) (api.NotificationE
 			Entitlement: e.Payload.BalanceThreshold.Entitlement,
 			Feature:     e.Payload.BalanceThreshold.Feature,
 			Subject:     e.Payload.BalanceThreshold.Subject,
-			Customer:    e.Payload.BalanceThreshold.Customer,
+			Customer:    lo.ToPtr(e.Payload.BalanceThreshold.Customer),
 			Threshold:   e.Payload.BalanceThreshold.Threshold,
 		},
 	}, nil
@@ -555,7 +555,7 @@ func FromEventAsEntitlementResetPayload(e notification.Event) (api.NotificationE
 			Entitlement: e.Payload.EntitlementReset.Entitlement,
 			Feature:     e.Payload.EntitlementReset.Feature,
 			Subject:     e.Payload.EntitlementReset.Subject,
-			Customer:    e.Payload.BalanceThreshold.Customer,
+			Customer:    lo.ToPtr(e.Payload.BalanceThreshold.Customer),
 		},
 	}, nil
 }

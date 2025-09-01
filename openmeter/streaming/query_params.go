@@ -75,3 +75,7 @@ type CustomerUsageAttribution struct {
 	Key         *string
 	SubjectKeys []string
 }
+
+func (ua CustomerUsageAttribution) Equal(other CustomerUsageAttribution) bool {
+	return ua.ID == other.ID && ua.Key == other.Key && slices.Equal(ua.SubjectKeys, other.SubjectKeys)
+}

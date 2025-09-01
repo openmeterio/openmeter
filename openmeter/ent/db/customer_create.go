@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -343,6 +344,21 @@ func (_c *CustomerCreate) AddSubscription(v ...*Subscription) *CustomerCreate {
 	return _c.AddSubscriptionIDs(ids...)
 }
 
+// AddEntitlementIDs adds the "entitlements" edge to the Entitlement entity by IDs.
+func (_c *CustomerCreate) AddEntitlementIDs(ids ...string) *CustomerCreate {
+	_c.mutation.AddEntitlementIDs(ids...)
+	return _c
+}
+
+// AddEntitlements adds the "entitlements" edges to the Entitlement entity.
+func (_c *CustomerCreate) AddEntitlements(v ...*Entitlement) *CustomerCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddEntitlementIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (_c *CustomerCreate) Mutation() *CustomerMutation {
 	return _c.mutation
@@ -602,6 +618,22 @@ func (_c *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.EntitlementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.EntitlementsTable,
+			Columns: []string{customer.EntitlementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

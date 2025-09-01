@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -75,13 +76,13 @@ func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, currPeriod time
 }
 
 type CreateEntitlementInputs struct {
-	Namespace       string             `json:"namespace"`
-	FeatureID       *string            `json:"featureId"`
-	FeatureKey      *string            `json:"featureKey"`
-	SubjectKey      string             `json:"subjectKey"` // Note: This is still SubjectKey since customer.UsageAttribution only has keys, not hard references to subjects. The adapter resolves SubjectKey to SubjectID.
-	EntitlementType EntitlementType    `json:"type"`
-	Metadata        map[string]string  `json:"metadata,omitempty"`
-	Annotations     models.Annotations `json:"annotations,omitempty"`
+	Namespace        string                             `json:"namespace"`
+	FeatureID        *string                            `json:"featureId"`
+	FeatureKey       *string                            `json:"featureKey"`
+	UsageAttribution streaming.CustomerUsageAttribution `json:"usageAttribution"`
+	EntitlementType  EntitlementType                    `json:"type"`
+	Metadata         map[string]string                  `json:"metadata,omitempty"`
+	Annotations      models.Annotations                 `json:"annotations,omitempty"`
 
 	// ActiveFrom allows entitlements to be scheduled for future activation.
 	// If not set, the entitlement is active immediately.
@@ -114,7 +115,7 @@ func (c CreateEntitlementInputs) Equal(other CreateEntitlementInputs) bool {
 		return false
 	}
 
-	if !reflect.DeepEqual(c.SubjectKey, other.SubjectKey) {
+	if !c.UsageAttribution.Equal(other.UsageAttribution) {
 		return false
 	}
 
@@ -194,6 +195,14 @@ func (c CreateEntitlementInputs) Validate() error {
 		return fmt.Errorf("feature id or key must be set")
 	}
 
+	if c.UsageAttribution.ID == "" {
+		return fmt.Errorf("usage attribution must have an id")
+	}
+
+	if len(c.UsageAttribution.SubjectKeys) == 0 {
+		return fmt.Errorf("usage attribution must have at least one subject key")
+	}
+
 	// Let's validate the Scheduling Params
 	activeFromTime := defaultx.WithDefault(c.ActiveFrom, clock.Now())
 
@@ -239,14 +248,14 @@ type Entitlement struct {
 
 func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {
 	i := CreateEntitlementInputs{
-		Namespace:       e.Namespace,
-		FeatureID:       &e.FeatureID,
-		FeatureKey:      &e.FeatureKey,
-		SubjectKey:      e.SubjectKey,
-		EntitlementType: e.EntitlementType,
-		Metadata:        e.Metadata,
-		ActiveFrom:      e.ActiveFrom,
-		ActiveTo:        e.ActiveTo,
+		Namespace:        e.Namespace,
+		FeatureID:        &e.FeatureID,
+		FeatureKey:       &e.FeatureKey,
+		UsageAttribution: e.Customer.GetUsageAttribution(),
+		EntitlementType:  e.EntitlementType,
+		Metadata:         e.Metadata,
+		ActiveFrom:       e.ActiveFrom,
+		ActiveTo:         e.ActiveTo,
 		// MeasureUsageFrom:        &MeasureUsageFromInput{ts: e.MeasureUsageFrom},
 		IssueAfterReset:         e.IssueAfterReset,
 		IssueAfterResetPriority: e.IssueAfterResetPriority,
@@ -336,7 +345,6 @@ type GenericProperties struct {
 	FeatureID  string `json:"featureId,omitempty"`
 	FeatureKey string `json:"featureKey,omitempty"`
 
-	// TODO(galexi): consolidate to only keeping Customer on the entitlement
 	SubjectKey string             `json:"subjectKey,omitempty"`
 	Subject    subject.Subject    `json:"subject,omitempty"`
 	Customer   *customer.Customer `json:"customer,omitempty"`
@@ -345,6 +353,11 @@ type GenericProperties struct {
 	UsagePeriod               *UsagePeriod           `json:"usagePeriod,omitempty"`
 	CurrentUsagePeriod        *timeutil.ClosedPeriod `json:"currentUsagePeriod,omitempty"`
 	OriginalUsagePeriodAnchor *time.Time             `json:"originalUsagePeriodAnchor,omitempty"`
+}
+
+func (e GenericProperties) Validate() error {
+	// TODO: there are no clear validation requirements now but lets implement the interface
+	return nil
 }
 
 // ActiveFromTime returns the time the entitlement is active from. Its either the ActiveFrom field or the CreatedAt field

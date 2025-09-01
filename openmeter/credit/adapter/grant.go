@@ -9,6 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	db_entitlement "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	db_grant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -87,7 +89,15 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 	}
 
 	if len(params.SubjectKeys) > 0 {
-		query = query.Where(db_grant.HasEntitlementWith(db_entitlement.SubjectKeyIn(params.SubjectKeys...)))
+		query = query.Where(db_grant.HasEntitlementWith(
+			db_entitlement.HasCustomerWith(
+				customerdb.HasSubjectsWith(
+					customersubjectsdb.SubjectKeyIn(params.SubjectKeys...),
+					customersubjectsdb.DeletedAtIsNil(),
+				),
+				customerdb.DeletedAtIsNil(),
+			),
+		))
 	}
 
 	if len(params.FeatureIdsOrKeys) > 0 {

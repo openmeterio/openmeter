@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
-	"github.com/openmeterio/openmeter/openmeter/event/models"
+	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
@@ -13,15 +13,17 @@ const (
 	EventSubsystem metadata.EventSubsystem = "credit"
 )
 
-type grantEvent struct {
+// Events based on grantEventV1 should slowly be removed. The issue with this old pattern is that domain models
+// are embedded inside the event, which means that domain changes break previous events.
+// Future versions (starting with v2) will declare the event using only primitives.
+// Deprecated: use events_v2.go instead
+type grantEventV1 struct {
+	Namespace eventmodels.NamespaceID `json:"namespace"`
+	Subject   subject.SubjectKey      `json:"subject"`
 	Grant
-
-	Subject subject.SubjectKey `json:"subject"`
-	// Namespace from Grant cannot be used as it will never be serialized
-	Namespace models.NamespaceID `json:"namespace"`
 }
 
-func (g grantEvent) Validate() error {
+func (g grantEventV1) Validate() error {
 	// Basic sanity on grant
 	if g.Grant.ID == "" {
 		return errors.New("GrantID must be set")
@@ -42,14 +44,14 @@ func (g grantEvent) Validate() error {
 	return nil
 }
 
-func (e grantEvent) EventMetadata() metadata.EventMetadata {
+func (e grantEventV1) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
 		Source:  metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityEntitlement, e.OwnerID, metadata.EntityGrant, e.ID),
 		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntitySubjectKey, e.Subject.Key),
 	}
 }
 
-type CreatedEvent grantEvent
+type CreatedEvent grantEventV1
 
 var (
 	_ marshaler.Event = CreatedEvent{}
@@ -66,14 +68,14 @@ func (e CreatedEvent) EventName() string {
 }
 
 func (e CreatedEvent) EventMetadata() metadata.EventMetadata {
-	return grantEvent(e).EventMetadata()
+	return grantEventV1(e).EventMetadata()
 }
 
 func (e CreatedEvent) Validate() error {
-	return grantEvent(e).Validate()
+	return grantEventV1(e).Validate()
 }
 
-type VoidedEvent grantEvent
+type VoidedEvent grantEventV1
 
 var (
 	_ marshaler.Event = VoidedEvent{}
@@ -90,9 +92,9 @@ func (e VoidedEvent) EventName() string {
 }
 
 func (e VoidedEvent) EventMetadata() metadata.EventMetadata {
-	return grantEvent(e).EventMetadata()
+	return grantEventV1(e).EventMetadata()
 }
 
 func (e VoidedEvent) Validate() error {
-	return grantEvent(e).Validate()
+	return grantEventV1(e).Validate()
 }

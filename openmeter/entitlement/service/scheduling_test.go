@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/subject"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,6 +18,13 @@ import (
 )
 
 func TestScheduling(t *testing.T) {
+	dummyAttribution := streaming.CustomerUsageAttribution{
+		ID: "01K3HJMFE6FW7PS470BYZ3NCR2",
+		SubjectKeys: []string{
+			"subject1",
+		},
+	}
+
 	tt := []struct {
 		name string
 		fn   func(t *testing.T, conn entitlement.Connector, deps *dependencies)
@@ -29,11 +36,11 @@ func TestScheduling(t *testing.T) {
 				_, err := conn.CreateEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
-						ActiveFrom:      lo.ToPtr(testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")),
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: dummyAttribution,
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
+						ActiveFrom:       lo.ToPtr(testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")),
 					},
 				)
 				assert.EqualError(t, err, "activeTo and activeFrom are not supported in CreateEntitlement")
@@ -41,11 +48,11 @@ func TestScheduling(t *testing.T) {
 				_, err = conn.CreateEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
-						ActiveTo:        lo.ToPtr(testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")),
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: dummyAttribution,
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
+						ActiveTo:         lo.ToPtr(testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")),
 					},
 				)
 				assert.EqualError(t, err, "activeTo and activeFrom are not supported in CreateEntitlement")
@@ -71,20 +78,16 @@ func TestScheduling(t *testing.T) {
 				assert.Nil(t, err)
 
 				// Create subject
-				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
-					Namespace: "ns1",
-					Key:       "subject1",
-				})
-				assert.Nil(t, err)
+				cust := createCustomerAndSubject(t, deps, "ns1", "subject1")
 
 				// From after To
 				_, err = conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom),
 						ActiveTo:   lo.ToPtr(activeTo),
@@ -96,10 +99,10 @@ func TestScheduling(t *testing.T) {
 				_, err = conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom),
 						ActiveTo:   lo.ToPtr(activeFrom),
@@ -112,10 +115,10 @@ func TestScheduling(t *testing.T) {
 				_, err = conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveTo: lo.ToPtr(activeTo),
 					},
@@ -143,19 +146,15 @@ func TestScheduling(t *testing.T) {
 				assert.Nil(t, err)
 
 				// Create subject
-				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
-					Namespace: "ns1",
-					Key:       "subject1",
-				})
-				assert.Nil(t, err)
+				cust := createCustomerAndSubject(t, deps, "ns1", "subject1")
 
 				ent, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom),
 						ActiveTo:   lo.ToPtr(activeTo),
@@ -190,20 +189,16 @@ func TestScheduling(t *testing.T) {
 				assert.Nil(t, err)
 
 				// Create subject
-				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
-					Namespace: "ns1",
-					Key:       "subject1",
-				})
-				assert.Nil(t, err)
+				cust := createCustomerAndSubject(t, deps, "ns1", "subject1")
 
 				// Create first entitlement
 				_, err = conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 						ActiveTo:   lo.ToPtr(activeTo1),
@@ -215,10 +210,10 @@ func TestScheduling(t *testing.T) {
 				_, err = conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom2),
 						ActiveTo:   lo.ToPtr(activeTo2),
@@ -250,20 +245,16 @@ func TestScheduling(t *testing.T) {
 				assert.Nil(t, err)
 
 				// Create subject
-				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
-					Namespace: "ns1",
-					Key:       "subject1",
-				})
-				assert.Nil(t, err)
+				cust := createCustomerAndSubject(t, deps, "ns1", "subject1")
 
 				// Create first entitlement
 				ent1, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 						ActiveTo:   lo.ToPtr(activeTo1),
@@ -275,10 +266,10 @@ func TestScheduling(t *testing.T) {
 				_, err = conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom2),
 						ActiveTo:   lo.ToPtr(activeTo2),
@@ -312,20 +303,16 @@ func TestScheduling(t *testing.T) {
 				assert.Nil(t, err)
 
 				// Create subject
-				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
-					Namespace: "ns1",
-					Key:       "subject1",
-				})
-				assert.Nil(t, err)
+				cust := createCustomerAndSubject(t, deps, "ns1", "subject1")
 
 				// Create first entitlement
 				ent1, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 					},
@@ -336,10 +323,10 @@ func TestScheduling(t *testing.T) {
 				_, err = conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom2),
 						ActiveTo:   lo.ToPtr(activeTo2),
@@ -367,20 +354,18 @@ func TestScheduling(t *testing.T) {
 				assert.Nil(t, err)
 
 				// Create subject
-				_, err = deps.subjectService.Create(ctx, subject.CreateInput{
-					Namespace: "ns1",
-					Key:       "subject1",
-				})
-				assert.Nil(t, err)
+				cust1 := createCustomerAndSubject(t, deps, "ns1", "subject1")
+				cust2 := createCustomerAndSubject(t, deps, "ns1", "subject2")
+				cust3 := createCustomerAndSubject(t, deps, "ns1", "subject2")
 
 				t.Run("Boolean entitlement", func(t *testing.T) {
 					ent, err := conn.ScheduleEntitlement(
 						ctx,
 						entitlement.CreateEntitlementInputs{
-							Namespace:       "ns1",
-							FeatureKey:      lo.ToPtr("feature1"),
-							SubjectKey:      "subject1",
-							EntitlementType: entitlement.EntitlementTypeBoolean,
+							Namespace:        "ns1",
+							FeatureKey:       lo.ToPtr("feature1"),
+							UsageAttribution: cust1.GetUsageAttribution(),
+							EntitlementType:  entitlement.EntitlementTypeBoolean,
 							Annotations: models.Annotations{
 								"subscription.id": "sub_123",
 							},
@@ -397,10 +382,10 @@ func TestScheduling(t *testing.T) {
 					ent, err := conn.ScheduleEntitlement(
 						ctx,
 						entitlement.CreateEntitlementInputs{
-							Namespace:       "ns1",
-							FeatureKey:      lo.ToPtr("feature1"),
-							SubjectKey:      "subject2",
-							EntitlementType: entitlement.EntitlementTypeStatic,
+							Namespace:        "ns1",
+							FeatureKey:       lo.ToPtr("feature1"),
+							UsageAttribution: cust2.GetUsageAttribution(),
+							EntitlementType:  entitlement.EntitlementTypeStatic,
 							Annotations: models.Annotations{
 								"subscription.id": "sub_123",
 							},
@@ -418,10 +403,10 @@ func TestScheduling(t *testing.T) {
 					ent, err := conn.ScheduleEntitlement(
 						ctx,
 						entitlement.CreateEntitlementInputs{
-							Namespace:       "ns1",
-							FeatureKey:      lo.ToPtr("feature1"),
-							SubjectKey:      "subject3",
-							EntitlementType: entitlement.EntitlementTypeMetered,
+							Namespace:        "ns1",
+							FeatureKey:       lo.ToPtr("feature1"),
+							UsageAttribution: cust3.GetUsageAttribution(),
+							EntitlementType:  entitlement.EntitlementTypeMetered,
 							Annotations: models.Annotations{
 								"subscription.id": "sub_123",
 							},
@@ -451,6 +436,13 @@ func TestScheduling(t *testing.T) {
 }
 
 func TestSuperseding(t *testing.T) {
+	dummyAttribution := streaming.CustomerUsageAttribution{
+		ID: "01K3HJMFE6FW7PS470BYZ3NCR2",
+		SubjectKeys: []string{
+			"subject1",
+		},
+	}
+
 	tt := []struct {
 		name string
 		fn   func(t *testing.T, conn entitlement.Connector, deps *dependencies)
@@ -478,10 +470,10 @@ func TestSuperseding(t *testing.T) {
 					ctx,
 					"bogus-id",
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: dummyAttribution,
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 					},
@@ -511,10 +503,10 @@ func TestSuperseding(t *testing.T) {
 				ent1, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: dummyAttribution,
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 					},
@@ -526,10 +518,10 @@ func TestSuperseding(t *testing.T) {
 					ctx,
 					ent1.ID,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature2"), // invalid value
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature2"), // invalid value
+						UsageAttribution: dummyAttribution,
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1.Add(time.Hour)),
 					},
@@ -545,6 +537,9 @@ func TestSuperseding(t *testing.T) {
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
 
 				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
+
+				// Create customer
+				cust := createCustomerAndSubject(t, deps, "ns1", "subject1")
 
 				// Create feature
 				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
@@ -567,10 +562,10 @@ func TestSuperseding(t *testing.T) {
 				ent1, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 					},
@@ -582,10 +577,10 @@ func TestSuperseding(t *testing.T) {
 					ctx,
 					ent1.ID,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature2"), // invalid value
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature2"), // invalid value
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1.Add(time.Hour)),
 					},
@@ -609,16 +604,20 @@ func TestSuperseding(t *testing.T) {
 					Namespace: "ns1",
 				})
 
+				// Create customer
+				cust1 := createCustomerAndSubject(t, deps, "ns1", "subject1")
+				cust2 := createCustomerAndSubject(t, deps, "ns1", "subject2")
+
 				assert.Nil(t, err)
 
 				// Create first entitlement
 				ent1, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust1.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 					},
@@ -630,11 +629,11 @@ func TestSuperseding(t *testing.T) {
 					ctx,
 					ent1.ID,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject2", // invalid value
-						EntitlementType: entitlement.EntitlementTypeBoolean,
-						ActiveFrom:      lo.ToPtr(activeFrom1.Add(time.Hour)),
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust2.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
+						ActiveFrom:       lo.ToPtr(activeFrom1.Add(time.Hour)),
 					},
 				)
 				assert.EqualError(t, err, "validation error: old and new entitlements belong to different subjects")
@@ -656,16 +655,19 @@ func TestSuperseding(t *testing.T) {
 					Namespace: "ns1",
 				})
 
+				// Create customer
+				cust := createCustomerAndSubject(t, deps, "ns1", "subject1")
+
 				assert.Nil(t, err)
 
 				// Create first entitlement
 				ent1, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 					},
@@ -677,11 +679,11 @@ func TestSuperseding(t *testing.T) {
 					ctx,
 					ent1.ID,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
-						ActiveFrom:      lo.ToPtr(activeFrom1.Add(time.Hour)),
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
+						ActiveFrom:       lo.ToPtr(activeFrom1.Add(time.Hour)),
 					},
 				)
 				assert.Nil(t, err)
@@ -695,7 +697,7 @@ func TestSuperseding(t *testing.T) {
 			},
 		},
 		{
-			name: "Should error if entitlements are not overlapping",
+			name: "Should error if entitlements are not continuous",
 			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
 
@@ -712,14 +714,17 @@ func TestSuperseding(t *testing.T) {
 
 				assert.Nil(t, err)
 
+				// Create customer
+				cust := createCustomerAndSubject(t, deps, "ns1", "subject1")
+
 				// Create first entitlement
 				ent1, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 						ActiveTo:   lo.ToPtr(activeFrom1.Add(time.Hour)),
@@ -732,12 +737,12 @@ func TestSuperseding(t *testing.T) {
 					ctx,
 					ent1.ID,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
-						ActiveFrom:      lo.ToPtr(activeFrom1.Add(time.Hour * 2)),
-						ActiveTo:        lo.ToPtr(activeFrom1.Add(time.Hour * 3)),
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
+						ActiveFrom:       lo.ToPtr(activeFrom1.Add(time.Hour * 2)),
+						ActiveTo:         lo.ToPtr(activeFrom1.Add(time.Hour * 3)),
 					},
 				)
 				assert.EqualError(t, err, "validation error: new entitlement must be active before the old one ends")
@@ -759,14 +764,16 @@ func TestSuperseding(t *testing.T) {
 
 				assert.Nil(t, err)
 
+				cust := createCustomerAndSubject(t, deps, "ns1", "subject1")
+
 				// Create first entitlement
 				ent1, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 					},
@@ -782,10 +789,10 @@ func TestSuperseding(t *testing.T) {
 					ctx,
 					ent1.ID,
 					entitlement.CreateEntitlementInputs{
-						Namespace:       "ns1",
-						FeatureKey:      lo.ToPtr("feature1"),
-						SubjectKey:      "subject1",
-						EntitlementType: entitlement.EntitlementTypeBoolean,
+						Namespace:        "ns1",
+						FeatureKey:       lo.ToPtr("feature1"),
+						UsageAttribution: cust.GetUsageAttribution(),
+						EntitlementType:  entitlement.EntitlementTypeBoolean,
 					},
 				)
 				assert.Nil(t, err)

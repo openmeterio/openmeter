@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -29,14 +30,14 @@ type UpsertEntitlementCurrentPeriodElement struct {
 }
 
 type EntitlementRepo interface {
-	// GetActiveEntitlementsOfSubject returns all active entitlements of a subject at a given time
-	GetActiveEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]Entitlement, error)
+	// GetActiveEntitlementsOfCustomer returns all active entitlements of a customer at a given time
+	GetActiveEntitlementsOfCustomer(ctx context.Context, namespace string, customerID string, at time.Time) ([]Entitlement, error)
 
-	// GetActiveEntitlementOfSubjectAt returns the active entitlement of a subject at a given time by feature key
-	GetActiveEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, featureKey string, at time.Time) (*Entitlement, error)
+	// GetActiveEntitlementOfSubjectAt returns the active entitlement of a customer at a given time by feature key
+	GetActiveEntitlementOfCustomerAt(ctx context.Context, namespace string, customerID string, featureKey string, at time.Time) (*Entitlement, error)
 
-	// GetScheduledEntitlements returns all scheduled entitlements for a given subject-feature pair that become inactive after the given time, sorted by the time they become active
-	GetScheduledEntitlements(ctx context.Context, namespace string, subjectKey string, featureKey string, starting time.Time) ([]Entitlement, error)
+	// GetScheduledEntitlements returns all scheduled entitlements for a given customer-feature pair that become inactive after the given time, sorted by the time they become active
+	GetScheduledEntitlements(ctx context.Context, namespace string, customerID string, featureKey string, starting time.Time) ([]Entitlement, error)
 
 	// DeactivateEntitlement deactivates an entitlement by setting the activeTo time. If the entitlement is already deactivated, it returns an error.
 	DeactivateEntitlement(ctx context.Context, entitlementID models.NamespacedID, at time.Time) error
@@ -52,9 +53,6 @@ type EntitlementRepo interface {
 	// Active in this context means the entitlement is active at any point between now and the given time.
 	// If includeDeletedAfter is before the current time, it will include namespaces that have entitlements active at that instance.
 	ListNamespacesWithActiveEntitlements(ctx context.Context, includeDeletedAfter time.Time) ([]string, error)
-
-	// HasEntitlementForMeter returns true if the meter has any active or inactive entitlements
-	HasEntitlementForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error)
 
 	UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, params UpdateEntitlementUsagePeriodParams) error
 
@@ -78,14 +76,14 @@ type EntitlementRepo interface {
 }
 
 type CreateEntitlementRepoInputs struct {
-	Namespace       string            `json:"namespace"`
-	FeatureID       string            `json:"featureId"`
-	FeatureKey      string            `json:"featureKey"`
-	SubjectKey      string            `json:"subjectKey"` // Note: Adapter will resolve this to SubjectID when creating in DB
-	EntitlementType EntitlementType   `json:"type"`
-	Metadata        map[string]string `json:"metadata,omitempty"`
-	ActiveFrom      *time.Time        `json:"activeFrom,omitempty"`
-	ActiveTo        *time.Time        `json:"activeTo,omitempty"`
+	Namespace        string                             `json:"namespace"`
+	FeatureID        string                             `json:"featureId"`
+	FeatureKey       string                             `json:"featureKey"`
+	UsageAttribution streaming.CustomerUsageAttribution `json:"usageAttribution"`
+	EntitlementType  EntitlementType                    `json:"type"`
+	Metadata         map[string]string                  `json:"metadata,omitempty"`
+	ActiveFrom       *time.Time                         `json:"activeFrom,omitempty"`
+	ActiveTo         *time.Time                         `json:"activeTo,omitempty"`
 
 	Annotations models.Annotations `json:"annotations,omitempty"`
 

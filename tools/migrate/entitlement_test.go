@@ -106,6 +106,15 @@ func TestUsageResetAnchorTimesMigration(t *testing.T) {
 				},
 			},
 			{
+				// After subjects table is created, seed subjects used earlier so later migrations can backfill subject_id
+				version:   20250606115859, // subject_namespace.up.sql
+				direction: directionUp,
+				action: func(t *testing.T, db *sql.DB) {
+					_, err := db.Exec(`INSERT INTO subjects (namespace, id, key, created_at, updated_at) VALUES ('default', $1, 'subject_1', NOW(), NOW())`, ulid.Make().String())
+					require.NoError(t, err)
+				},
+			},
+			{
 				// Now we assert that the migration was successful
 				version:   20250220150245,
 				direction: directionUp,
@@ -388,6 +397,17 @@ func TestEntitlementSubscriptionAnnotationMigration(t *testing.T) {
 						entId.String(),
 					)
 					require.NoError(t, err)
+				},
+			},
+			{
+				// After subjects table exists, seed subjects used by created entitlements so later migrations succeed
+				version:   20250606115859,
+				direction: directionUp,
+				action: func(t *testing.T, db *sql.DB) {
+					for _, sk := range []string{"subject_1", "subject_2", "subject_3"} {
+						_, err := db.Exec(`INSERT INTO subjects (namespace, id, key, created_at, updated_at) VALUES ('default', $1, $2, NOW(), NOW())`, ulid.Make().String(), sk)
+						require.NoError(t, err)
+					}
 				},
 			},
 			{
@@ -801,6 +821,17 @@ func TestBooleanEntitlementCountAnnotationMigration(t *testing.T) {
 						entId3.String(),
 					)
 					require.NoError(t, err)
+				},
+			},
+			{
+				// After subjects table exists, seed subjects used by created entitlements so later migrations succeed
+				version:   20250606115859,
+				direction: directionUp,
+				action: func(t *testing.T, db *sql.DB) {
+					for _, sk := range []string{"subject_1", "subject_2", "subject_3"} {
+						_, err := db.Exec(`INSERT INTO subjects (namespace, id, key, created_at, updated_at) VALUES ('default', $1, $2, NOW(), NOW())`, ulid.Make().String(), sk)
+						require.NoError(t, err)
+					}
 				},
 			},
 			{
@@ -2249,6 +2280,97 @@ func TestEntitlementSubjectIdMigration(t *testing.T) {
 						validSubjectId.String(),
 					)
 					require.NoError(t, err, "should allow valid entitlement with proper subject_id")
+				},
+			},
+		},
+	}.Test(t)
+}
+
+func TestEntitlementCustomerLinkMigration(t *testing.T) {
+	featId := ulid.Make()
+	custId := ulid.Make()
+	entId := ulid.Make()
+	subjectId := ulid.Make()
+
+	runner{
+		stops: stops{
+			{
+				// Before our migration that adds and backfills customer_id
+				version:   20250818093933, // right before 20250821121421
+				direction: directionUp,
+				action: func(t *testing.T, db *sql.DB) {
+					// 1. Create feature
+					_, err := db.Exec(`
+						INSERT INTO features (namespace, id, key, name, created_at, updated_at)
+						VALUES ('default', $1, 'feat_1', 'Feature 1', NOW(), NOW())
+					`, featId.String())
+					require.NoError(t, err)
+
+					// 1b. Create subject referenced by subject_key 'subject_1'
+					_, err = db.Exec(`
+						INSERT INTO subjects (namespace, id, key, created_at, updated_at)
+						VALUES ('default', $1, 'subject_1', NOW(), NOW())
+					`, subjectId.String())
+					require.NoError(t, err)
+
+					// 2. Create customer
+					_, err = db.Exec(`
+						INSERT INTO customers (namespace, id, created_at, updated_at, key, name)
+						VALUES ('default', $1, NOW(), NOW(), 'cust_key', 'Customer 1')
+					`, custId.String())
+					require.NoError(t, err)
+
+					// 3. Map subject key to customer via customer_subjects (usage attribution)
+					_, err = db.Exec(`
+						INSERT INTO customer_subjects (namespace, customer_id, subject_key, created_at)
+						VALUES ('default', $1, 'subject_1', NOW())
+					`, custId.String())
+					require.NoError(t, err)
+
+					// 4. Create entitlement with subject_key and subject_id (no customer_id yet)
+					_, err = db.Exec(`
+						INSERT INTO entitlements (
+							namespace, id, created_at, updated_at, entitlement_type, feature_key, feature_id, subject_key, subject_id
+						) VALUES (
+							'default', $1, NOW(), NOW(), 'METERED', 'feat_1', $2, 'subject_1', $3
+						)`,
+						entId.String(),
+						featId.String(),
+						subjectId.String(),
+					)
+					require.NoError(t, err)
+				},
+			},
+			{
+				// After migration 20250821121421_entitlement-customer-link.up.sql
+				version:   20250821121421,
+				direction: directionUp,
+				action: func(t *testing.T, db *sql.DB) {
+					// customer_id must be backfilled and NOT NULL
+					var backfilledCustomerID string
+					err := db.QueryRow(`SELECT customer_id FROM entitlements WHERE id = $1`, entId.String()).Scan(&backfilledCustomerID)
+					require.NoError(t, err)
+					require.Equal(t, custId.String(), backfilledCustomerID)
+
+					// Enforce NOT NULL: inserting a new entitlement with NULL customer_id should fail
+					_, err = db.Exec(`
+						INSERT INTO entitlements (
+							namespace, id, created_at, updated_at, entitlement_type, feature_key, feature_id, subject_key, customer_id
+						) VALUES (
+							'default', $1, NOW(), NOW(), 'METERED', 'feat_1', $2, 'subject_2', NULL
+						)
+					`, ulid.Make().String(), featId.String())
+					require.Error(t, err)
+
+					// Enforce FK: inserting with random customer_id should fail
+					_, err = db.Exec(`
+						INSERT INTO entitlements (
+							namespace, id, created_at, updated_at, entitlement_type, feature_key, feature_id, subject_key, customer_id
+						) VALUES (
+							'default', $1, NOW(), NOW(), 'METERED', 'feat_1', $2, 'subject_3', $3
+						)
+					`, ulid.Make().String(), featId.String(), ulid.Make().String())
+					require.Error(t, err)
 				},
 			},
 		},
