@@ -31,6 +31,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subject"
+	"github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -523,6 +524,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	routerHooks := common.NewRouterHooks(v6)
+	v7, err := common.NewSubjectCustomerHook(subjectService, customerService, logger)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
@@ -537,7 +550,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v7, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v8, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -584,9 +597,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RouterHooks:                  routerHooks,
 		Secret:                       secretserviceService,
 		SubjectService:               subjectService,
+		SubjectCustomerHook:          v7,
 		Subscription:                 subscriptionServiceWithWorkflow,
 		StreamingConnector:           connector,
-		TelemetryServer:              v7,
+		TelemetryServer:              v8,
 		TerminationChecker:           terminationChecker,
 		RuntimeMetricsCollector:      runtimeMetricsCollector,
 		Tracer:                       tracer,
@@ -639,6 +653,7 @@ type Application struct {
 	RouterHooks                  *server.RouterHooks
 	Secret                       secret.Service
 	SubjectService               subject.Service
+	SubjectCustomerHook          hooks.CustomerSubjectHook
 	Subscription                 common.SubscriptionServiceWithWorkflow
 	StreamingConnector           streaming.Connector
 	TelemetryServer              common.TelemetryServer
