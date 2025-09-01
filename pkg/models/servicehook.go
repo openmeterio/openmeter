@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"fmt"
 	"sync"
 )
 
@@ -22,13 +23,35 @@ var (
 	_ ServiceHook[any]  = (*ServiceHookRegistry[any])(nil)
 )
 
+type loopKey string
+
+var loopVal = struct{}{}
+
 type ServiceHookRegistry[T any] struct {
 	hooks []ServiceHook[T]
 
 	mu sync.RWMutex
+
+	id loopKey
+
+	once sync.Once
+}
+
+func (r *ServiceHookRegistry[T]) init() {
+	r.once.Do(func() {
+		r.id = loopKey(fmt.Sprintf("service-hook-registry-%p", r))
+	})
 }
 
 func (r *ServiceHookRegistry[T]) PreUpdate(ctx context.Context, t *T) error {
+	r.init()
+
+	if v := ctx.Value(r.id); v != nil {
+		return nil
+	}
+
+	ctx = context.WithValue(ctx, r.id, loopVal)
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -42,6 +65,14 @@ func (r *ServiceHookRegistry[T]) PreUpdate(ctx context.Context, t *T) error {
 }
 
 func (r *ServiceHookRegistry[T]) PreDelete(ctx context.Context, t *T) error {
+	r.init()
+
+	if v := ctx.Value(r.id); v != nil {
+		return nil
+	}
+
+	ctx = context.WithValue(ctx, r.id, loopVal)
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -55,6 +86,14 @@ func (r *ServiceHookRegistry[T]) PreDelete(ctx context.Context, t *T) error {
 }
 
 func (r *ServiceHookRegistry[T]) PostCreate(ctx context.Context, t *T) error {
+	r.init()
+
+	if v := ctx.Value(r.id); v != nil {
+		return nil
+	}
+
+	ctx = context.WithValue(ctx, r.id, loopVal)
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -68,6 +107,14 @@ func (r *ServiceHookRegistry[T]) PostCreate(ctx context.Context, t *T) error {
 }
 
 func (r *ServiceHookRegistry[T]) PostUpdate(ctx context.Context, t *T) error {
+	r.init()
+
+	if v := ctx.Value(r.id); v != nil {
+		return nil
+	}
+
+	ctx = context.WithValue(ctx, r.id, loopVal)
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -81,6 +128,14 @@ func (r *ServiceHookRegistry[T]) PostUpdate(ctx context.Context, t *T) error {
 }
 
 func (r *ServiceHookRegistry[T]) PostDelete(ctx context.Context, t *T) error {
+	r.init()
+
+	if v := ctx.Value(r.id); v != nil {
+		return nil
+	}
+
+	ctx = context.WithValue(ctx, r.id, loopVal)
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

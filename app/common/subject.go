@@ -8,11 +8,13 @@ import (
 	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	"github.com/openmeterio/openmeter/openmeter/subject/manager"
 	"github.com/openmeterio/openmeter/openmeter/subject/service"
+	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 )
 
 var Subject = wire.NewSet(
@@ -55,4 +57,22 @@ func NewSubjectAdapter(
 	db *entdb.Client,
 ) (subject.Adapter, error) {
 	return adapter.New(db)
+}
+
+func NewSubjectCustomerHook(
+	subject subject.Service,
+	customer customer.Service,
+	logger *slog.Logger,
+) (subjecthooks.CustomerSubjectHook, error) {
+	h, err := subjecthooks.NewCustomerSubjectHook(subjecthooks.CustomerSubjectHookConfig{
+		Subject: subject,
+		Logger:  logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create customer subject hook: %w", err)
+	}
+
+	customer.RegisterHooks(h)
+
+	return h, nil
 }
