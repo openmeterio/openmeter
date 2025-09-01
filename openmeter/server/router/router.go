@@ -314,6 +314,7 @@ func NewRouter(config Config) (*Router, error) {
 		staticNamespaceDecoder,
 		config.GrantConnector,
 		config.GrantRepo,
+		config.Customer,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

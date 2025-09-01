@@ -198,7 +198,10 @@ func (a *Router) ListCustomerEntitlementGrantsV2(w http.ResponseWriter, r *http.
 // Create customer entitlement grant
 // (POST /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey}/grants)
 func (a *Router) CreateCustomerEntitlementGrantV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
-	unimplemented.CreateCustomerEntitlementGrantV2(w, r, customerIdOrKey, featureKey)
+	a.entitlementV2Handler.CreateCustomerEntitlementGrant().With(entitlementdriverv2.CreateCustomerEntitlementGrantHandlerParams{
+		CustomerIDOrKey:           customerIdOrKey,
+		EntitlementIdOrFeatureKey: featureKey,
+	}).ServeHTTP(w, r)
 }
 
 // Get entitlement value
@@ -213,11 +216,18 @@ func (a *Router) GetCustomerEntitlementValueV2(w http.ResponseWriter, r *http.Re
 // Get entitlement history
 // (GET /api/v2/customers/{customerId}/entitlements/{featureKey}/history)
 func (a *Router) GetCustomerEntitlementHistoryV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementHistoryV2Params) {
-	unimplemented.GetCustomerEntitlementHistoryV2(w, r, customerIdOrKey, featureKey, params)
+	a.entitlementV2Handler.GetCustomerEntitlementHistory().With(entitlementdriverv2.GetCustomerEntitlementHistoryHandlerParams{
+		CustomerIDOrKey:           customerIdOrKey,
+		EntitlementIdOrFeatureKey: featureKey,
+		Params:                    params,
+	}).ServeHTTP(w, r)
 }
 
 // Reset entitlement usage
 // (POST /api/v2/customers/{customerId}/entitlements/{featureKey}/reset)
 func (a *Router) ResetCustomerEntitlementUsageV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string) {
-	unimplemented.ResetCustomerEntitlementUsageV2(w, r, customerIdOrKey, featureKey)
+	a.entitlementV2Handler.ResetCustomerEntitlementUsage().With(entitlementdriverv2.ResetCustomerEntitlementUsageHandlerParams{
+		CustomerIDOrKey:           customerIdOrKey,
+		EntitlementIdOrFeatureKey: featureKey,
+	}).ServeHTTP(w, r)
 }

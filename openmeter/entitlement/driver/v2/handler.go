@@ -16,6 +16,9 @@ type CustomerEntitlementHandler interface {
 	DeleteCustomerEntitlement() DeleteCustomerEntitlementHandler
 	OverrideCustomerEntitlement() OverrideCustomerEntitlementHandler
 	ListCustomerEntitlementGrants() ListCustomerEntitlementGrantsHandler
+	CreateCustomerEntitlementGrant() CreateCustomerEntitlementGrantHandler
+	GetCustomerEntitlementHistory() GetCustomerEntitlementHistoryHandler
+	ResetCustomerEntitlementUsage() ResetCustomerEntitlementUsageHandler
 }
 
 type customerEntitlementHandler struct {
