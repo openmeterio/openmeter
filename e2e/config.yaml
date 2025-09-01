@@ -87,6 +87,11 @@ meters:
     eventType: entitlement_v2
     valueProperty: $.value
     aggregation: UNIQUE_COUNT
+  - slug: entitlement_parity_meter
+    description: Meter for testing entitlements parity
+    eventType: entitlement_parity
+    valueProperty: $.value
+    aggregation: UNIQUE_COUNT
   - slug: plan_meter
     description: Meter for testing plan metered feature
     eventType: plan_meter
