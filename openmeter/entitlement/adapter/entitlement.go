@@ -722,6 +722,9 @@ func (a *entitlementDBAdapter) UpsertEntitlementCurrentPeriods(ctx context.Conte
 					SetEntitlementType(ent.EntitlementType).
 					SetFeatureID(ent.FeatureID).
 					SetFeatureKey(ent.FeatureKey).
+					SetCustomerID(ent.CustomerID).
+					SetSubjectID(ent.SubjectID).
+					SetSubjectKey(ent.SubjectKey).
 					SetCurrentUsagePeriodStart(update.CurrentUsagePeriod.From).
 					SetCurrentUsagePeriodEnd(update.CurrentUsagePeriod.To)
 
