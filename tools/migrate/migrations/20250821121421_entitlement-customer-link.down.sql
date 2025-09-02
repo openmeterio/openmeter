@@ -9,8 +9,5 @@ ALTER TABLE "entitlements" DROP CONSTRAINT "entitlements_customers_entitlements"
 -- reverse: drop index "entitlement_namespace_id_subject_key" from table: "entitlements"
 CREATE INDEX "entitlement_namespace_id_subject_key" ON "entitlements" ("namespace", "id", "subject_key");
 
--- reverse: drop foreign key constraint
-ALTER TABLE "entitlements" DROP CONSTRAINT "entitlements_customers_entitlements";
-
 -- reverse: drop column "customer_id"
 ALTER TABLE "entitlements" DROP COLUMN "customer_id";
