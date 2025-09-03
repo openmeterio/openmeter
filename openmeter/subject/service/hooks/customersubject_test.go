@@ -1,6 +1,7 @@
-package hooks
+package hooks_test
 
 import (
+	"context"
 	"crypto/rand"
 	"log/slog"
 	"sync"
@@ -12,14 +13,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
+	subjectservicehooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -40,7 +45,7 @@ func Test_CustomerSubjectHook(t *testing.T) {
 
 	ctx := t.Context()
 
-	hook, err := NewCustomerSubjectHook(CustomerSubjectHookConfig{
+	hook, err := subjectservicehooks.NewCustomerSubjectHook(subjectservicehooks.CustomerSubjectHookConfig{
 		Subject: env.SubjectService,
 		Logger:  env.Logger,
 	})
@@ -117,7 +122,87 @@ func Test_CustomerSubjectHook(t *testing.T) {
 				})
 			}
 		})
+
+		t.Run("Conflict", func(t *testing.T) {
+			hook2, err := customerservicehooks.NewSubjectCustomerHook(customerservicehooks.SubjectCustomerHookConfig{
+				Customer:         env.CustomerService,
+				CustomerOverride: NoopCustomerOverrideService{},
+				Logger:           env.Logger,
+				IgnoreErrors:     false,
+			})
+			require.NoErrorf(t, err, "creating customer service hook should not fail")
+			require.NotNil(t, hook2, "customer service hook must not be nil")
+
+			env.SubjectService.RegisterHooks(hook2)
+
+			t.Run("CreateCustomer", func(t *testing.T) {
+				cus, err := env.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+					Namespace: namespace,
+					CustomerMutate: customer.CustomerMutate{
+						Key:  lo.ToPtr("example-inc-2"),
+						Name: "Example Inc.",
+						UsageAttribution: customer.CustomerUsageAttribution{
+							SubjectKeys: []string{
+								"example-inc-2",
+							},
+						},
+					},
+				})
+				require.NoErrorf(t, err, "creating customer should not fail")
+				assert.NotNilf(t, cus, "customer must not be nil")
+
+				sub, err := env.SubjectService.GetByKey(ctx, models.NamespacedKey{
+					Namespace: namespace,
+					Key:       cus.UsageAttribution.SubjectKeys[0],
+				})
+				require.NoErrorf(t, err, "getting subject should not fail")
+				assert.NotNilf(t, sub, "subejct must not be nil")
+			})
+
+			t.Run("CreateCustomer", func(t *testing.T) {
+				sub, err := env.SubjectService.Create(ctx, subject.CreateInput{
+					Namespace:   namespace,
+					Key:         "example-inc-3",
+					DisplayName: lo.ToPtr("Example Inc."),
+				})
+				require.NoErrorf(t, err, "creating subject should not fail")
+				assert.NotNilf(t, sub, "subject must not be nil")
+
+				cus, err := env.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+					CustomerKey: &customer.CustomerKey{
+						Namespace: namespace,
+						Key:       sub.Key,
+					},
+				})
+				require.NoErrorf(t, err, "creating customer should not fail")
+				assert.NotNilf(t, cus, "customer must not be nil")
+			})
+		})
 	})
+}
+
+var _ billing.CustomerOverrideService = (*NoopCustomerOverrideService)(nil)
+
+type NoopCustomerOverrideService struct{}
+
+func (n NoopCustomerOverrideService) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
+	return billing.CustomerOverrideWithDetails{}, nil
+}
+
+func (n NoopCustomerOverrideService) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
+	return nil
+}
+
+func (n NoopCustomerOverrideService) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
+	return billing.CustomerOverrideWithDetails{}, nil
+}
+
+func (n NoopCustomerOverrideService) GetCustomerApp(ctx context.Context, input billing.GetCustomerAppInput) (app.App, error) {
+	return nil, nil
+}
+
+func (n NoopCustomerOverrideService) ListCustomerOverrides(ctx context.Context, input billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {
+	return billing.ListCustomerOverridesResult{}, nil
 }
 
 func NewTestULID(t *testing.T) string {

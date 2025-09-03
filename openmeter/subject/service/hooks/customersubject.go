@@ -13,6 +13,23 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type contextKey struct{}
+
+var skipSubjectCustomerContextKey contextKey
+
+func NewContextWithSkipSubjectCustomer(ctx context.Context) context.Context {
+	return context.WithValue(ctx, skipSubjectCustomerContextKey, true)
+}
+
+func SkipSubjectCustomerFromContext(ctx context.Context) bool {
+	u, ok := ctx.Value(skipSubjectCustomerContextKey).(bool)
+	if !ok {
+		return false
+	}
+
+	return u
+}
+
 type (
 	CustomerSubjectHook     = models.ServiceHook[customer.Customer]
 	NoopCustomerSubjectHook = models.NoopServiceHook[customer.Customer]
@@ -92,6 +109,10 @@ type SubjectProvisioner struct {
 
 // EnsureSubjects ensures that Subjects are provisioned for each usage attribution entry.
 func (p SubjectProvisioner) EnsureSubjects(ctx context.Context, cus *customer.Customer) error {
+	if SkipSubjectCustomerFromContext(ctx) {
+		return nil
+	}
+
 	if cus == nil {
 		return errors.New("failed to provision subject for customer: customer is nil")
 	}
@@ -104,14 +125,15 @@ func (p SubjectProvisioner) EnsureSubjects(ctx context.Context, cus *customer.Cu
 		if err != nil {
 			if models.IsGenericNotFoundError(err) {
 				// Create Subject if it does not exist
-				_, err = p.subject.Create(ctx, subject.CreateInput{
-					Namespace: cus.Namespace,
-					Key:       subKey,
-					Metadata: lo.ToPtr(map[string]interface{}{
-						"createdBy":  "subject.provisioner",
-						"customerId": cus.ID,
-					}),
-				})
+				_, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx),
+					subject.CreateInput{
+						Namespace: cus.Namespace,
+						Key:       subKey,
+						Metadata: lo.ToPtr(map[string]interface{}{
+							"createdBy":  "subject.provisioner",
+							"customerId": cus.ID,
+						}),
+					})
 				if err != nil {
 					errs = append(errs,
 						fmt.Errorf("failed to create subject for customer [namespace=%s customer.id=%s customer.usage_attribution_key: %s]: %w",

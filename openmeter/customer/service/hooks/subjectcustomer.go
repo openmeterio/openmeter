@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subject"
+	subjectservicehooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -253,7 +254,7 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 	}
 
 	annotations := models.Annotations{
-		"createdBy": "customer.subject.hook",
+		"createdBy": "customer.provisioner",
 		"subjectId": sub.Id,
 	}
 
@@ -272,39 +273,41 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 		}
 
 		// Update Customer for Subject in case there is non to be found
-		cus, err = p.customer.UpdateCustomer(ctx, customer.UpdateCustomerInput{
-			CustomerID: customerID,
-			CustomerMutate: customer.CustomerMutate{
-				Key:              cus.Key,
-				Name:             lo.FromPtrOr(sub.DisplayName, cus.Name),
-				Description:      cus.Description,
-				UsageAttribution: cus.UsageAttribution,
-				PrimaryEmail:     cus.PrimaryEmail,
-				Currency:         cus.Currency,
-				BillingAddress:   cus.BillingAddress,
-				Metadata: func() *models.Metadata {
-					cm := lo.FromPtr(cus.Metadata)
+		cus, err = p.customer.UpdateCustomer(
+			subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx),
+			customer.UpdateCustomerInput{
+				CustomerID: customerID,
+				CustomerMutate: customer.CustomerMutate{
+					Key:              cus.Key,
+					Name:             lo.FromPtrOr(sub.DisplayName, cus.Name),
+					Description:      cus.Description,
+					UsageAttribution: cus.UsageAttribution,
+					PrimaryEmail:     cus.PrimaryEmail,
+					Currency:         cus.Currency,
+					BillingAddress:   cus.BillingAddress,
+					Metadata: func() *models.Metadata {
+						cm := lo.FromPtr(cus.Metadata)
 
-					if len(sub.Metadata) == 0 && len(cm) == 0 {
-						return nil
-					}
+						if len(sub.Metadata) == 0 && len(cm) == 0 {
+							return nil
+						}
 
-					return lo.ToPtr(cm.Merge(MetadataFromMap(sub.Metadata)))
-				}(),
-				Annotation: func() *models.Annotations {
-					if len(lo.FromPtr(cus.Annotation)) == 0 && len(annotations) == 0 {
-						return nil
-					}
+						return lo.ToPtr(cm.Merge(MetadataFromMap(sub.Metadata)))
+					}(),
+					Annotation: func() *models.Annotations {
+						if len(lo.FromPtr(cus.Annotation)) == 0 && len(annotations) == 0 {
+							return nil
+						}
 
-					m := make(models.Annotations)
+						m := make(models.Annotations)
 
-					maps.Copy(m, lo.FromPtr(cus.Annotation))
-					maps.Copy(m, annotations)
+						maps.Copy(m, lo.FromPtr(cus.Annotation))
+						maps.Copy(m, annotations)
 
-					return &m
-				}(),
-			},
-		})
+						return &m
+					}(),
+				},
+			})
 		if err != nil {
 			return nil, fmt.Errorf("failed to update customer for subject [namespace=%s customer.id=%s]: %w",
 				customerID.Namespace, customerID.ID, err)
@@ -314,28 +317,30 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 	}
 
 	// Create Customer for Subject in case there is none to be found
-	return p.customer.CreateCustomer(ctx, customer.CreateCustomerInput{
-		Namespace: sub.Namespace,
-		CustomerMutate: customer.CustomerMutate{
-			Key: func() *string {
-				if keyConflict {
-					return nil
-				}
+	return p.customer.CreateCustomer(
+		subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx),
+		customer.CreateCustomerInput{
+			Namespace: sub.Namespace,
+			CustomerMutate: customer.CustomerMutate{
+				Key: func() *string {
+					if keyConflict {
+						return nil
+					}
 
-				return lo.ToPtr(sub.Key)
-			}(),
-			Name:        lo.FromPtrOr(sub.DisplayName, sub.Key),
-			Description: nil,
-			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{sub.Key},
+					return lo.ToPtr(sub.Key)
+				}(),
+				Name:        lo.FromPtrOr(sub.DisplayName, sub.Key),
+				Description: nil,
+				UsageAttribution: customer.CustomerUsageAttribution{
+					SubjectKeys: []string{sub.Key},
+				},
+				PrimaryEmail:   nil,
+				Currency:       nil,
+				BillingAddress: nil,
+				Metadata:       lo.ToPtr(MetadataFromMap(sub.Metadata)),
+				Annotation:     &annotations,
 			},
-			PrimaryEmail:   nil,
-			Currency:       nil,
-			BillingAddress: nil,
-			Metadata:       lo.ToPtr(MetadataFromMap(sub.Metadata)),
-			Annotation:     &annotations,
-		},
-	})
+		})
 }
 
 type InvalidPaymentAppError struct {
@@ -388,6 +393,10 @@ func (p CustomerProvisioner) EnsureStripeCustomer(ctx context.Context, customerI
 }
 
 func (p CustomerProvisioner) Provision(ctx context.Context, sub *subject.Subject) error {
+	if subjectservicehooks.SkipSubjectCustomerFromContext(ctx) {
+		return nil
+	}
+
 	cus, err := p.EnsureCustomer(ctx, sub)
 	if err != nil {
 		return fmt.Errorf("failed to provision customer for subject [namespace=%s subject.id=%s subject.key=%s]: %w",
