@@ -183,8 +183,13 @@ func (m *Manager) Ensure(ctx context.Context, params ...*SubjectRef) error {
 func (m *Manager) scheduleCacheReload() {
 	m.logger.DebugContext(context.Background(), "scheduling cache reload")
 
+	interval := int(m.cacheReloadInterval) / 2
+	if interval < 0 {
+		interval = int(time.Minute)
+	}
+
 	// Add a random jitter to the reload interval so that the subjects are not refreshed at the same time
-	reloadInterval := m.cacheReloadInterval + time.Duration(rand.Intn(int(m.cacheReloadInterval)/2))
+	reloadInterval := m.cacheReloadInterval + time.Duration(rand.Intn(interval))
 
 	time.AfterFunc(reloadInterval, func() {
 		m.reloadCache(reloadDifferential)
@@ -221,6 +226,7 @@ func (m *Manager) reloadCache(mode reloadMode) {
 	)
 
 	refreshStartedAt := time.Now()
+	maxCreatedAt := time.Time{}
 
 	var maxFetchCount int
 	if mode == reloadPrefill {
@@ -243,7 +249,10 @@ func (m *Manager) reloadCache(mode reloadMode) {
 		}
 
 		subjectEntities, err = query.
-			Order(dbsubject.ByCreatedAt(sql.OrderDesc())).
+			Order(
+				dbsubject.ByCreatedAt(sql.OrderDesc()),
+				dbsubject.ByID(sql.OrderDesc()),
+			).
 			Offset(offset).
 			Limit(limit).
 			All(ctx)
@@ -254,6 +263,9 @@ func (m *Manager) reloadCache(mode reloadMode) {
 
 		// Add the subjects to the cache
 		for _, subjectEntity := range subjectEntities {
+			if maxCreatedAt.Before(subjectEntity.CreatedAt) {
+				maxCreatedAt = subjectEntity.CreatedAt
+			}
 			m.addToCache(subjectEntity.Namespace, subjectEntity.Key)
 		}
 
@@ -263,6 +275,10 @@ func (m *Manager) reloadCache(mode reloadMode) {
 		}
 
 		offset += len(subjectEntities)
+
+		if len(subjectEntities) == 0 {
+			break
+		}
 
 		// We can get marginally more items for prefetch, but it does not matter much
 		if maxFetchCount > 0 && offset >= maxFetchCount {
@@ -274,7 +290,13 @@ func (m *Manager) reloadCache(mode reloadMode) {
 		m.logger.Warn("fetched more subjects for differential reload than the cache size, expect heavy cache thrashing", "fetched_count", offset, "cache_size", m.cacheSize)
 	}
 
-	m.lastRefreshAt = &refreshStartedAt
+	if maxCreatedAt.IsZero() {
+		m.lastRefreshAt = &refreshStartedAt
+	} else {
+		m.lastRefreshAt = &maxCreatedAt
+	}
+
+	m.logger.Debug("last refresh at", "last_refresh_at", *m.lastRefreshAt)
 }
 
 // AddToCache adds a subject to the cache

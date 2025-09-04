@@ -68,7 +68,7 @@ func (c SubjectManagerConfig) Validate() error {
 func ConfigureSubject(v *viper.Viper) {
 	v.SetDefault("subject.manager.cacheReloadInterval", "5m")
 	v.SetDefault("subject.manager.cacheReloadTimeout", "2m")
-	v.SetDefault("subject.manager.cachePrefillCount", 60_000)
+	v.SetDefault("subject.manager.cachePrefillCount", 250_000)
 	v.SetDefault("subject.manager.cacheSize", 1_000_000)
 	v.SetDefault("subject.manager.paginationSize", 10000)
 }
