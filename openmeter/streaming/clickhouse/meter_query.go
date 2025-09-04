@@ -121,8 +121,21 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		case meterpkg.WindowSizeMonth:
 			selectColumns = append(
 				selectColumns,
-				fmt.Sprintf("tumbleStart(%s, toIntervalMonth(1), '%s') AS windowstart", timeColumn, tz),
-				fmt.Sprintf("tumbleEnd(%s, toIntervalMonth(1), '%s') AS windowend", timeColumn, tz),
+				// We need to convert the tumbleStart and tumbleEnd to DateTime, as otherwise we got a Date type. Given
+				// we are scanning the result into a time.Time, we will end up with the correct date in UTC. In case the timezone
+				// is not UTC, the returned values will be offset by the timezone difference.
+				//
+				// e.g.:
+				//  if timezone is Europe/Budapest, then if we are not casting to DateTime, then:
+				// 	 tumbleStart will return 2025-01-01 which will become 2025-01-01 00:00:00 in UTC
+				//   this is wrong, as in CET this is 2024-12-31 23:00:00
+				//  if we are casting to DateTime, then:
+				// 	 tumbleStart will return 2025-01-01 00:00:00 in Europe/Budapest
+
+				// Other queries are not affected by this, as for anything < Month, the result is always a DateTime (most probably due to
+				// DST changes).
+				fmt.Sprintf("toDateTime(tumbleStart(%s, toIntervalMonth(1), '%s'), '%s') AS windowstart", timeColumn, tz, tz),
+				fmt.Sprintf("toDateTime(tumbleEnd(%s, toIntervalMonth(1), '%s'), '%s') AS windowend", timeColumn, tz, tz),
 			)
 
 		default:
