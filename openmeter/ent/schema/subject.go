@@ -52,6 +52,8 @@ func (Subject) Indexes() []ent.Index {
 		index.Fields("key", "namespace").Unique(),
 		// we sort by display name
 		index.Fields("display_name"),
+		// so that we can fetch the recently created subjects
+		index.Fields("created_at"),
 	}
 }
 

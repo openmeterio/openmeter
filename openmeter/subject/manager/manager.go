@@ -5,13 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"sync"
+	"math/rand"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	dbsubject "github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 )
 
@@ -19,6 +21,7 @@ import (
 type Config struct {
 	CacheReloadInterval time.Duration
 	CacheReloadTimeout  time.Duration
+	CachePrefillCount   int
 	CacheSize           int
 	Ent                 *db.Client
 	Logger              *slog.Logger
@@ -33,6 +36,14 @@ func (c *Config) validate() error {
 
 	if c.CacheReloadTimeout <= 0 {
 		return errors.New("cache reload timeout must be greater than 0")
+	}
+
+	if c.CachePrefillCount <= 0 {
+		return errors.New("cache prefill count must be greater than 0")
+	}
+
+	if c.CachePrefillCount > c.CacheSize {
+		return errors.New("cache prefill count must be less than or equal to cache size")
 	}
 
 	if c.CacheSize <= 0 {
@@ -71,13 +82,17 @@ func NewManager(config *Config) (*Manager, error) {
 		cache:               expirable.NewLRU[string, struct{}](config.CacheSize, nil, 0),
 		cacheReloadInterval: config.CacheReloadInterval,
 		cacheReloadTimeout:  config.CacheReloadTimeout,
+		cachePrefillCount:   config.CachePrefillCount,
+		cacheSize:           config.CacheSize,
 		logger:              config.Logger.WithGroup("subject-manager"),
-		mux:                 sync.RWMutex{},
 		paginationSize:      config.PaginationSize,
 	}
 
 	// Initialize cache and schedule next reload
-	manager.reloadCache()
+	config.Logger.Info("preheating subject manager cache", "cache_size", config.CacheSize, "cache_prefill_count", config.CachePrefillCount)
+	start := time.Now()
+	manager.reloadCache(reloadPrefill)
+	config.Logger.Info("subject manager cache preheated", "duration.seconds", time.Since(start).Seconds())
 
 	return manager, nil
 }
@@ -88,9 +103,11 @@ type Manager struct {
 	cache               *expirable.LRU[string, struct{}]
 	cacheReloadInterval time.Duration
 	cacheReloadTimeout  time.Duration
+	cachePrefillCount   int
+	cacheSize           int
 	logger              *slog.Logger
-	mux                 sync.RWMutex
 	paginationSize      int
+	lastRefreshAt       *time.Time
 }
 
 // EventBatchedIngestHandlerFactory returns a handler for batched ingest events
@@ -165,11 +182,26 @@ func (m *Manager) Ensure(ctx context.Context, params ...*SubjectRef) error {
 // scheduleCacheReload schedules a reload of the subjects
 func (m *Manager) scheduleCacheReload() {
 	m.logger.DebugContext(context.Background(), "scheduling cache reload")
-	time.AfterFunc(m.cacheReloadInterval, m.reloadCache)
+
+	// Add a random jitter to the reload interval so that the subjects are not refreshed at the same time
+	reloadInterval := m.cacheReloadInterval + time.Duration(rand.Intn(int(m.cacheReloadInterval)/2))
+
+	time.AfterFunc(reloadInterval, func() {
+		m.reloadCache(reloadDifferential)
+	})
 }
 
+type reloadMode int
+
+const (
+	// reloadPrefill reloads the cache for up to PrefillMaxItems subjects
+	reloadPrefill reloadMode = iota
+	// reloadDifferential reloads the cache for the subjects that were created after the last refresh
+	reloadDifferential
+)
+
 // reloadCache reloads the cache of subjects
-func (m *Manager) reloadCache() {
+func (m *Manager) reloadCache(mode reloadMode) {
 	ctx := context.Background()
 
 	// Set a timeout for the cache reload
@@ -188,13 +220,30 @@ func (m *Manager) reloadCache() {
 		err             error
 	)
 
-	// We pre-build the next cache to avoid having an empty cache during the reload
-	nextCache := make(map[string]struct{})
+	refreshStartedAt := time.Now()
+
+	var maxFetchCount int
+	if mode == reloadPrefill {
+		maxFetchCount = m.cachePrefillCount
+	} else {
+		maxFetchCount = m.cacheSize
+	}
 
 	// Get all subjects via pagination
 	for {
-		subjectEntities, err = m.ent.Subject.
-			Query().
+		query := m.ent.Subject.Query()
+
+		if mode == reloadDifferential {
+			if m.lastRefreshAt != nil {
+				query = query.Where(dbsubject.CreatedAtGT(*m.lastRefreshAt))
+			} else {
+				m.logger.Warn("no lastRefreshAt is set, fetching subjects from the last 24 hours")
+				query = query.Where(dbsubject.CreatedAtGT(time.Now().Add(-24 * time.Hour)))
+			}
+		}
+
+		subjectEntities, err = query.
+			Order(dbsubject.ByCreatedAt(sql.OrderDesc())).
 			Offset(offset).
 			Limit(limit).
 			All(ctx)
@@ -205,8 +254,7 @@ func (m *Manager) reloadCache() {
 
 		// Add the subjects to the cache
 		for _, subjectEntity := range subjectEntities {
-			key := getCacheKey(subjectEntity.Namespace, subjectEntity.Key)
-			nextCache[key] = struct{}{}
+			m.addToCache(subjectEntity.Namespace, subjectEntity.Key)
 		}
 
 		// Stop pagination if there are no more subjects
@@ -214,33 +262,28 @@ func (m *Manager) reloadCache() {
 			break
 		}
 
-		offset += limit
+		offset += len(subjectEntities)
+
+		// We can get marginally more items for prefetch, but it does not matter much
+		if maxFetchCount > 0 && offset >= maxFetchCount {
+			break
+		}
 	}
 
-	// Replace cache
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
-	m.cache.Purge()
-
-	for key := range nextCache {
-		m.cache.Add(key, struct{}{})
+	if offset >= maxFetchCount && mode == reloadDifferential {
+		m.logger.Warn("fetched more subjects for differential reload than the cache size, expect heavy cache thrashing", "fetched_count", offset, "cache_size", m.cacheSize)
 	}
+
+	m.lastRefreshAt = &refreshStartedAt
 }
 
 // AddToCache adds a subject to the cache
 func (m *Manager) addToCache(namespace, key string) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	m.cache.Add(getCacheKey(namespace, key), struct{}{})
 }
 
 // GetFromCache gets a subject from the cache if it exists
 func (m *Manager) getFromCache(namespace, key string) bool {
-	m.mux.RLock()
-	defer m.mux.RUnlock()
-
 	_, ok := m.cache.Get(getCacheKey(namespace, key))
 
 	return ok
