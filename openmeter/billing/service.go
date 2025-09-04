@@ -67,7 +67,7 @@ type InvoiceService interface {
 	SnapshotQuantities(ctx context.Context, input SnapshotQuantitiesInput) (Invoice, error)
 	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (Invoice, error)
 	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (Invoice, error)
-	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error
+	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) (Invoice, error)
 	// UpdateInvoice updates an invoice as a whole
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)
 

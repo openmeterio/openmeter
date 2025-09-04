@@ -221,7 +221,7 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 
 			patches = append(patches, newLinePatches...)
 
-			invoiceUpdater := NewInvoiceUpdater(h.billingService)
+			invoiceUpdater := NewInvoiceUpdater(h.billingService, h.logger)
 			if err := invoiceUpdater.ApplyPatches(ctx, customerID, patches); err != nil {
 				return fmt.Errorf("updating invoices: %w", err)
 			}

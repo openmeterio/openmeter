@@ -1804,14 +1804,14 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				validationError := billing.NewValidationError("delete-failed", "invoice cannot be deleted")
 				mockApp.OnDeleteInvoice(validationError)
 
-				err := s.BillingService.DeleteInvoice(ctx, out[0].InvoiceID())
-				require.Error(s.T(), err)
-				require.ErrorAs(s.T(), err, &billing.ValidationError{})
+				invoice, err := s.BillingService.DeleteInvoice(ctx, out[0].InvoiceID())
+				require.NoError(s.T(), err)
 
-				validationIssue := billing.ValidationIssue{}
-				require.True(s.T(), errors.As(err, &validationIssue))
-				require.Equal(s.T(), validationIssue.Code, validationError.Code)
-				require.Equal(s.T(), validationIssue.Message, validationError.Message)
+				require.Len(s.T(), invoice.ValidationIssues, 1)
+				require.Equal(s.T(), validationError.Code, invoice.ValidationIssues[0].Code)
+				require.Equal(s.T(), validationError.Message, invoice.ValidationIssues[0].Message)
+				require.Equal(s.T(), validationError.Severity, invoice.ValidationIssues[0].Severity)
+				require.Equal(s.T(), "app.sandbox.invoiceCustomers.delete", string(invoice.ValidationIssues[0].Component))
 
 				deletedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 					Invoice: out[0].InvoiceID(),

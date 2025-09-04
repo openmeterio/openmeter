@@ -332,8 +332,25 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteInvoiceRequest) (DeleteInvoiceResponse, error) {
-			if err := h.service.DeleteInvoice(ctx, request); err != nil {
+			invoice, err := h.service.DeleteInvoice(ctx, request)
+			if err != nil {
 				return DeleteInvoiceResponse{}, err
+			}
+
+			// Given we are doing background processing, we might be in any delete.* state, but in case we ended up in delete.failed let's have
+			// proper return code for the API (otherwise we would return 200)
+			if invoice.Status == billing.InvoiceStatusDeleteFailed {
+				// If we have validation issues we return them as the deletion sync handler
+				// yields validation errors
+				if len(invoice.ValidationIssues) > 0 {
+					return DeleteInvoiceResponse{}, billing.ValidationError{
+						Err: invoice.ValidationIssues.AsError(),
+					}
+				}
+
+				return DeleteInvoiceResponse{}, billing.ValidationError{
+					Err: fmt.Errorf("%w [status=%s]", billing.ErrInvoiceDeleteFailed, invoice.Status),
+				}
 			}
 
 			return DeleteInvoiceResponse{}, nil
