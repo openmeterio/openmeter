@@ -94,7 +94,7 @@ func (c *Connector) createTable(ctx context.Context) error {
 
 func (c *Connector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]streaming.RawEvent, error) {
 	if namespace == "" {
-		return nil, fmt.Errorf("namespace is required")
+		return nil, models.NewGenericValidationError(fmt.Errorf("namespace is required"))
 	}
 
 	events, err := c.queryEventsTable(ctx, namespace, params)
@@ -111,7 +111,7 @@ func (c *Connector) ListEvents(ctx context.Context, namespace string, params str
 
 func (c *Connector) ListEventsV2(ctx context.Context, params streaming.ListEventsV2Params) ([]streaming.RawEvent, error) {
 	if err := params.Validate(); err != nil {
-		return nil, err
+		return nil, models.NewGenericValidationError(err)
 	}
 
 	events, err := c.queryEventsTableV2(ctx, params)
