@@ -832,9 +832,9 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 	})
 }
 
-func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) error {
+func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) (billing.Invoice, error) {
 	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
+		return billing.Invoice{}, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -844,30 +844,17 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 		Invoice: input,
 	})
 	if err != nil {
-		return err
+		return billing.Invoice{}, err
 	}
 
-	invoice, err = s.executeTriggerOnInvoice(ctx, input, billing.TriggerDelete)
-	if err != nil {
-		return err
-	}
-
-	// Given we are doing background processing, we might be in any delete.* state
-	if invoice.Status == billing.InvoiceStatusDeleteFailed {
-		// If we have validation issues we return them as the deletion sync handler
-		// yields validation errors
-		if len(invoice.ValidationIssues) > 0 {
-			return billing.ValidationError{
-				Err: invoice.ValidationIssues.AsError(),
-			}
-		}
-
-		return billing.ValidationError{
-			Err: fmt.Errorf("%w [status=%s]", billing.ErrInvoiceDeleteFailed, invoice.Status),
+	if invoice.Status == billing.InvoiceStatusGathering {
+		// TODO: If this becomes a UX problem we can always edit the invoice to delete all the gathering lines
+		return billing.Invoice{}, billing.ValidationError{
+			Err: fmt.Errorf("gathering invoice[%s]: %w", invoice.ID, billing.ErrInvoiceCannotDeleteGathering),
 		}
 	}
 
-	return err
+	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerDelete)
 }
 
 func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.Invoice, error) {

@@ -3,6 +3,8 @@ package billingworkersubscription
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"strings"
 
 	"github.com/samber/lo"
 
@@ -16,11 +18,13 @@ import (
 
 type InvoiceUpdater struct {
 	billingService billing.Service
+	logger         *slog.Logger
 }
 
-func NewInvoiceUpdater(billingService billing.Service) *InvoiceUpdater {
+func NewInvoiceUpdater(billingService billing.Service, logger *slog.Logger) *InvoiceUpdater {
 	return &InvoiceUpdater{
 		billingService: billingService,
+		logger:         logger,
 	}
 }
 
@@ -222,8 +226,20 @@ func (u *InvoiceUpdater) updateMutableInvoice(ctx context.Context, invoice billi
 		}
 
 		// The invoice has no lines, so let's just delete it
-		if err := u.billingService.DeleteInvoice(ctx, updatedInvoice.InvoiceID()); err != nil {
+		invoice, err := u.billingService.DeleteInvoice(ctx, updatedInvoice.InvoiceID())
+		if err != nil {
 			return fmt.Errorf("deleting empty invoice: %w", err)
+		}
+
+		if invoice.Status == billing.InvoiceStatusDeleteFailed {
+			u.logger.WarnContext(ctx, "empty invoice deletion failed",
+				"invoice.id", invoice.ID,
+				"invoice.namespace", invoice.Namespace,
+				"validation_issues", strings.Join(
+					lo.Map(invoice.ValidationIssues, func(i billing.ValidationIssue, _ int) string {
+						return fmt.Sprintf("[id=%s] %s: %s", i.ID, i.Code, i.Message)
+					}),
+					", "))
 		}
 	}
 

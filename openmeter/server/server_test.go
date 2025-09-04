@@ -1456,8 +1456,8 @@ func (n NoopBillingService) RetryInvoice(ctx context.Context, input billing.Retr
 	return billing.Invoice{}, nil
 }
 
-func (n NoopBillingService) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) error {
-	return nil
+func (n NoopBillingService) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
 }
 
 func (n NoopBillingService) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.Invoice, error) {
