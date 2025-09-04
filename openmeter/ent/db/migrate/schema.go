@@ -2141,6 +2141,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{SubjectsColumns[3]},
 			},
+			{
+				Name:    "subject_created_at_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubjectsColumns[6], SubjectsColumns[0]},
+			},
 		},
 	}
 	// SubscriptionsColumns holds the columns for the "subscriptions" table.

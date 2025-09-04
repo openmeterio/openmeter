@@ -43,6 +43,7 @@ func NewSubjectManager(
 		Logger:              logger,
 		CacheReloadInterval: subjectConfig.CacheReloadInterval,
 		CacheReloadTimeout:  subjectConfig.CacheReloadTimeout,
+		CachePrefillCount:   subjectConfig.CachePrefillCount,
 		CacheSize:           subjectConfig.CacheSize,
 		PaginationSize:      subjectConfig.PaginationSize,
 	})

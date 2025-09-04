@@ -399,8 +399,9 @@ func TestComplete(t *testing.T) {
 			Manager: SubjectManagerConfig{
 				CacheReloadInterval: 5 * time.Minute,
 				CacheReloadTimeout:  2 * time.Minute,
-				CacheSize:           1000000,
-				PaginationSize:      10000,
+				CachePrefillCount:   250_000,
+				CacheSize:           1_000_000,
+				PaginationSize:      10_000,
 			},
 		},
 		Customer: CustomerConfiguration{

@@ -28,6 +28,7 @@ func (c SubjectConfig) Validate() error {
 type SubjectManagerConfig struct {
 	CacheReloadInterval time.Duration `mapstructure:"cacheReloadInterval"`
 	CacheReloadTimeout  time.Duration `mapstructure:"cacheReloadTimeout"`
+	CachePrefillCount   int           `mapstructure:"cachePrefillCount"`
 	CacheSize           int           `mapstructure:"cacheSize"`
 	PaginationSize      int           `mapstructure:"paginationSize"`
 }
@@ -42,6 +43,14 @@ func (c SubjectManagerConfig) Validate() error {
 
 	if c.CacheReloadTimeout <= 0 {
 		errs = append(errs, errors.New("cache reload timeout must be greater than 0"))
+	}
+
+	if c.CachePrefillCount <= 0 {
+		errs = append(errs, errors.New("cache prefill count must be greater than 0"))
+	}
+
+	if c.CachePrefillCount > c.CacheSize {
+		errs = append(errs, errors.New("cache prefill count must be less than or equal to cache size"))
 	}
 
 	if c.CacheSize <= 0 {
@@ -59,6 +68,7 @@ func (c SubjectManagerConfig) Validate() error {
 func ConfigureSubject(v *viper.Viper) {
 	v.SetDefault("subject.manager.cacheReloadInterval", "5m")
 	v.SetDefault("subject.manager.cacheReloadTimeout", "2m")
-	v.SetDefault("subject.manager.cacheSize", 1000000)
+	v.SetDefault("subject.manager.cachePrefillCount", 250_000)
+	v.SetDefault("subject.manager.cacheSize", 1_000_000)
 	v.SetDefault("subject.manager.paginationSize", 10000)
 }
