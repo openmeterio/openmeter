@@ -14,6 +14,7 @@ import (
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -125,7 +126,9 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 			)
 
 		default:
-			return "", nil, fmt.Errorf("invalid window size type: %s", *d.WindowSize)
+			return "", nil, models.NewGenericValidationError(
+				fmt.Errorf("invalid window size type: %s", *d.WindowSize),
+			)
 		}
 
 		groupByColumns = append(groupByColumns, "windowstart", "windowend")
@@ -155,7 +158,9 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	case meterpkg.MeterAggregationLatest:
 		sqlAggregation = "argMax"
 	default:
-		return "", []interface{}{}, fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation)
+		return "", []interface{}{}, models.NewGenericValidationError(
+			fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation),
+		)
 	}
 
 	switch d.Meter.Aggregation {
@@ -216,14 +221,18 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 		for _, groupByKey := range groupByKeys {
 			if _, ok := d.Meter.GroupBy[groupByKey]; !ok {
-				return "", nil, fmt.Errorf("meter does not have group by: %s", groupByKey)
+				return "", nil, models.NewGenericValidationError(
+					fmt.Errorf("meter does not have group by: %s", groupByKey),
+				)
 			}
 
 			groupByJSONPath := sqlbuilder.Escape(d.Meter.GroupBy[groupByKey])
 
 			values := d.FilterGroupBy[groupByKey]
 			if len(values) == 0 {
-				return "", nil, fmt.Errorf("empty filter for group by: %s", groupByKey)
+				return "", nil, models.NewGenericValidationError(
+					fmt.Errorf("empty filter for group by: %s", groupByKey),
+				)
 			}
 			mapFunc := func(value string) string {
 				column := fmt.Sprintf("JSON_VALUE(%s, '%s')", getColumn("data"), groupByJSONPath)
