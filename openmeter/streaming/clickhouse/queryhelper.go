@@ -43,6 +43,12 @@ func selectCustomerIdColumn(eventsTableName string, customers []streaming.Custom
 		}
 	}
 
+	// If there are no values, we return an empty customer id column
+	// This can happen if none of the customers has key or usage attribution subjects
+	if len(values) == 0 {
+		return query.SelectMore("'' AS customer_id")
+	}
+
 	// Name of the map (dictionary)
 
 	mapSQL := fmt.Sprintf("WITH map(%s) as %s", strings.Join(values, ", "), subjectToCustomerIDDictionary)
@@ -81,6 +87,12 @@ func customersWhere(eventsTableName string, customers []streaming.Customer, quer
 		for _, subjectKey := range customer.GetUsageAttribution().SubjectKeys {
 			subjects = append(subjects, sqlbuilder.Escape(subjectKey))
 		}
+	}
+
+	// If there are no subjects, we return an empty subject filter
+	// This can happen if none of the customers has key or usage attribution subjects
+	if len(subjects) == 0 {
+		return query
 	}
 
 	return query.Where(query.In(subjectColumn, subjects))
