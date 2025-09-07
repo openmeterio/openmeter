@@ -12,6 +12,9 @@ import (
 	"strings"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
+	otelcodes "go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
@@ -34,6 +37,7 @@ type subjectCustomerHook struct {
 
 	provisioner *CustomerProvisioner
 	logger      *slog.Logger
+	tracer      trace.Tracer
 
 	ignoreErrors bool
 }
@@ -56,11 +60,33 @@ func (s subjectCustomerHook) provision(ctx context.Context, sub *subject.Subject
 }
 
 func (s subjectCustomerHook) PostCreate(ctx context.Context, sub *subject.Subject) error {
-	return s.provision(ctx, sub)
+	ctx, span := s.tracer.Start(ctx, "subject_customer_hook.post_create")
+	defer span.End()
+
+	err := s.provision(ctx, sub)
+	if err != nil {
+		span.SetStatus(otelcodes.Error, "failed to provision customer for subject")
+		span.RecordError(err)
+	} else {
+		span.SetStatus(otelcodes.Ok, "customer provisioned for subject")
+	}
+
+	return err
 }
 
 func (s subjectCustomerHook) PostUpdate(ctx context.Context, sub *subject.Subject) error {
-	return s.provision(ctx, sub)
+	ctx, span := s.tracer.Start(ctx, "subject_customer_hook.post_update")
+	defer span.End()
+
+	err := s.provision(ctx, sub)
+	if err != nil {
+		span.SetStatus(otelcodes.Error, "failed to provision customer for subject")
+		span.RecordError(err)
+	} else {
+		span.SetStatus(otelcodes.Ok, "customer provisioned for subject")
+	}
+
+	return err
 }
 
 func NewSubjectCustomerHook(config SubjectCustomerHookConfig) (SubjectCustomerHook, error) {
@@ -72,6 +98,7 @@ func NewSubjectCustomerHook(config SubjectCustomerHookConfig) (SubjectCustomerHo
 		Customer:         config.Customer,
 		CustomerOverride: config.CustomerOverride,
 		Logger:           config.Logger,
+		Tracer:           config.Tracer,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize customer provisioner: %w", err)
@@ -80,6 +107,7 @@ func NewSubjectCustomerHook(config SubjectCustomerHookConfig) (SubjectCustomerHo
 	return &subjectCustomerHook{
 		provisioner:  provisioner,
 		logger:       config.Logger.With("subsystem", "subject_customer_provisioner"),
+		tracer:       config.Tracer,
 		ignoreErrors: config.IgnoreErrors,
 	}, nil
 }
@@ -88,6 +116,7 @@ type SubjectCustomerHookConfig struct {
 	Customer         customer.Service
 	CustomerOverride billing.CustomerOverrideService
 	Logger           *slog.Logger
+	Tracer           trace.Tracer
 
 	// IgnoreErrors if set to true makes the hooks ignore (not returning error)
 	IgnoreErrors bool
@@ -106,6 +135,10 @@ func (c SubjectCustomerHookConfig) Validate() error {
 
 	if c.Logger == nil {
 		errs = append(errs, fmt.Errorf("logger is required"))
+	}
+
+	if c.Tracer == nil {
+		errs = append(errs, fmt.Errorf("tracer is required"))
 	}
 
 	return errors.Join(errs...)
@@ -149,6 +182,7 @@ type CustomerProvisionerConfig struct {
 	Customer         customer.Service
 	CustomerOverride billing.CustomerOverrideService
 	Logger           *slog.Logger
+	Tracer           trace.Tracer
 }
 
 func (c CustomerProvisionerConfig) Validate() error {
@@ -166,6 +200,10 @@ func (c CustomerProvisionerConfig) Validate() error {
 		errs = append(errs, fmt.Errorf("logger is required"))
 	}
 
+	if c.Tracer == nil {
+		errs = append(errs, fmt.Errorf("tracer is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -178,6 +216,7 @@ func NewCustomerProvisioner(config CustomerProvisionerConfig) (*CustomerProvisio
 		customer:         config.Customer,
 		customerOverride: config.CustomerOverride,
 		logger:           config.Logger.With("subsystem", "customer.provisioner"),
+		tracer:           config.Tracer,
 	}, nil
 }
 
@@ -185,6 +224,7 @@ type CustomerProvisioner struct {
 	customer         customer.Service
 	customerOverride billing.CustomerOverrideService
 	logger           *slog.Logger
+	tracer           trace.Tracer
 }
 
 var ErrCustomerKeyConflict = errors.New("customer key conflict")
@@ -236,6 +276,26 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 		return nil, errors.New("failed to provision customer for subject: subject is nil")
 	}
 
+	var err error
+
+	ctx, span := p.tracer.Start(ctx, "customer_provisioner.ensure_customer")
+	defer func() {
+		if err != nil {
+			span.SetStatus(otelcodes.Error, err.Error())
+			span.RecordError(err)
+		} else {
+			span.SetStatus(otelcodes.Ok, "customer provisioned for subject")
+		}
+
+		span.End()
+	}()
+
+	span.SetAttributes(
+		attribute.String("subject.id", sub.Id),
+		attribute.String("subject.key", sub.Key),
+		attribute.String("subject.stripe_customer_id", lo.FromPtrOr(sub.StripeCustomerId, "nil")),
+	)
+
 	var keyConflict bool
 
 	cus, err := p.getCustomerForSubject(ctx, sub)
@@ -263,6 +323,11 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 	}
 
 	if cus != nil {
+		span.AddEvent("found customer", trace.WithAttributes(
+			attribute.String("customer.id", cus.ID),
+			attribute.String("customer.key", lo.FromPtrOr(cus.Key, "nil")),
+		))
+
 		if CmpSubjectCustomer(sub, cus) {
 			return cus, nil
 		}
@@ -313,11 +378,13 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 				customerID.Namespace, customerID.ID, err)
 		}
 
+		span.AddEvent("updated customer")
+
 		return cus, nil
 	}
 
 	// Create Customer for Subject in case there is none to be found
-	return p.customer.CreateCustomer(
+	cus, err = p.customer.CreateCustomer(
 		subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx),
 		customer.CreateCustomerInput{
 			Namespace: sub.Namespace,
@@ -341,6 +408,17 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 				Annotation:     &annotations,
 			},
 		})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create customer for subject [namespace=%s subject.key=%s]: %w",
+			sub.Namespace, sub.Key, err)
+	}
+
+	span.AddEvent("created customer", trace.WithAttributes(
+		attribute.String("customer.id", cus.ID),
+		attribute.String("customer.key", lo.FromPtrOr(cus.Key, "nil")),
+	))
+
+	return cus, err
 }
 
 type InvalidPaymentAppError struct {
@@ -353,6 +431,25 @@ func (e InvalidPaymentAppError) Error() string {
 }
 
 func (p CustomerProvisioner) EnsureStripeCustomer(ctx context.Context, customerID customer.CustomerID, stripeCustomerID string) error {
+	var err error
+
+	ctx, span := p.tracer.Start(ctx, "customer_provisioner.ensure_stripe_customer")
+	defer func() {
+		if err != nil {
+			span.SetStatus(otelcodes.Error, err.Error())
+			span.RecordError(err)
+		} else {
+			span.SetStatus(otelcodes.Ok, "stripe customer provisioned")
+		}
+
+		span.End()
+	}()
+
+	span.SetAttributes(
+		attribute.String("customer.id", customerID.ID),
+		attribute.String("customer.namespace", customerID.Namespace),
+	)
+
 	customerOverride, err := p.customerOverride.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: customerID,
 		Expand: billing.CustomerOverrideExpand{
@@ -365,6 +462,11 @@ func (p CustomerProvisioner) EnsureStripeCustomer(ctx context.Context, customerI
 	}
 
 	profile := customerOverride.MergedProfile
+
+	span.AddEvent("fetched customer billing profile", trace.WithAttributes(
+		attribute.String("profile.id", profile.ID),
+		attribute.String("profile.namespace", profile.Namespace),
+	))
 
 	if profile.Apps == nil {
 		return fmt.Errorf("failed to setup stripe customer id for customer [namespace=%s customer.id=%s]: apps profile is nil",
@@ -388,6 +490,11 @@ func (p CustomerProvisioner) EnsureStripeCustomer(ctx context.Context, customerI
 		return fmt.Errorf("failed to setup stripe customer id for customer [namespace=%s customer.id=%s]: %w",
 			customerID.Namespace, customerID.ID, err)
 	}
+
+	span.AddEvent("updated stripe customer data", trace.WithAttributes(
+		attribute.String("app.id", profile.Apps.Payment.GetID().ID),
+		attribute.String("app.namespace", profile.Apps.Payment.GetID().Namespace),
+	))
 
 	return nil
 }

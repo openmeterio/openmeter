@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -61,6 +62,7 @@ type CustomerSubjectHook customerservicehooks.SubjectCustomerHook
 func NewCustomerSubjectServiceHook(
 	config config.CustomerConfiguration,
 	logger *slog.Logger,
+	tracer trace.Tracer,
 	subjectService subject.Service,
 	customerService customer.Service,
 	customerOverrideService billing.CustomerOverrideService,
@@ -74,6 +76,7 @@ func NewCustomerSubjectServiceHook(
 		Customer:         customerService,
 		CustomerOverride: customerOverrideService,
 		Logger:           logger,
+		Tracer:           tracer,
 		IgnoreErrors:     config.IgnoreErrors,
 	})
 	if err != nil {

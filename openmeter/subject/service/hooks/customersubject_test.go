@@ -12,6 +12,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -48,6 +50,7 @@ func Test_CustomerSubjectHook(t *testing.T) {
 	hook, err := subjectservicehooks.NewCustomerSubjectHook(subjectservicehooks.CustomerSubjectHookConfig{
 		Subject: env.SubjectService,
 		Logger:  env.Logger,
+		Tracer:  env.Tracer,
 	})
 	require.NoError(t, err, "creating customer subject provisioner hook should not fail")
 	require.NotNilf(t, hook, "customer subject provisioner hook must not be nil")
@@ -128,6 +131,7 @@ func Test_CustomerSubjectHook(t *testing.T) {
 				Customer:         env.CustomerService,
 				CustomerOverride: NoopCustomerOverrideService{},
 				Logger:           env.Logger,
+				Tracer:           env.Tracer,
 				IgnoreErrors:     false,
 			})
 			require.NoErrorf(t, err, "creating customer service hook should not fail")
@@ -215,6 +219,7 @@ var NewTestNamespace = NewTestULID
 
 type TestEnv struct {
 	Logger          *slog.Logger
+	Tracer          trace.Tracer
 	SubjectService  subject.Service
 	CustomerService customer.Service
 
@@ -260,6 +265,8 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	// Init logger
 	logger := testutils.NewDiscardLogger(t)
 
+	tracer := noop.NewTracerProvider().Tracer("test_env")
+
 	// Init database
 	db := testutils.InitPostgresDB(t)
 	client := db.EntDriver.Client()
@@ -298,6 +305,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 
 	return &TestEnv{
 		Logger:          logger,
+		Tracer:          tracer,
 		SubjectService:  subjectService,
 		CustomerService: customerService,
 		Client:          client,
