@@ -12,11 +12,16 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entcustomervalidator "github.com/openmeterio/openmeter/openmeter/entitlement/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	subject "github.com/openmeterio/openmeter/openmeter/subject"
+	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
+	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptioncustomer "github.com/openmeterio/openmeter/openmeter/subscription/validators/customer"
@@ -32,6 +37,9 @@ const (
 type TestEnv interface {
 	Customer() customer.Service
 	Subscription() subscription.Service
+	Entitlement() entitlement.Connector
+	Feature() feature.FeatureConnector
+	Subject() subject.Service
 
 	Close() error
 }
@@ -41,6 +49,9 @@ var _ TestEnv = (*testEnv)(nil)
 type testEnv struct {
 	customer     customer.Service
 	subscription subscription.Service
+	entitlement  entitlement.Connector
+	feature      feature.FeatureConnector
+	subject      subject.Service
 
 	closerFunc func() error
 }
@@ -55,6 +66,18 @@ func (n testEnv) Customer() customer.Service {
 
 func (n testEnv) Subscription() subscription.Service {
 	return n.subscription
+}
+
+func (n testEnv) Entitlement() entitlement.Connector {
+	return n.entitlement
+}
+
+func (n testEnv) Feature() feature.FeatureConnector {
+	return n.feature
+}
+
+func (n testEnv) Subject() subject.Service {
+	return n.subject
 }
 
 const (
@@ -118,6 +141,18 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 
 	customerService.RegisterRequestValidator(entValidator)
 
+	// Subject
+	subjectAdapter, err := subjectadapter.New(dbDeps.DBClient)
+	if err != nil {
+		return nil, err
+	}
+
+	subjectService, err := subjectservice.New(subjectAdapter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Subscription
 	subsDeps := subscriptiontestutils.NewService(t, dbDeps)
 
 	subsCustValidator, err := subscriptioncustomer.NewValidator(subsDeps.SubscriptionService, customerService)
@@ -135,6 +170,9 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	return &testEnv{
 		customer:     customerService,
 		closerFunc:   closerFunc,
+		entitlement:  entitlementRegistry.Entitlement,
+		feature:      entitlementRegistry.Feature,
 		subscription: subsDeps.SubscriptionService,
+		subject:      subjectService,
 	}, nil
 }

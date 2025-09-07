@@ -20,6 +20,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
@@ -45,6 +46,7 @@ func BillingService(
 	appService app.Service,
 	billingAdapter billing.Adapter,
 	customerService customer.Service,
+	entitlementRegistry *registry.Entitlement,
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
 	streamingConnector streaming.Connector,
@@ -76,7 +78,7 @@ func BillingService(
 		return nil, err
 	}
 
-	validator, err := billingcustomer.NewValidator(service, handler, subscriptionServices.Service)
+	validator, err := billingcustomer.NewValidator(service, entitlementRegistry.Entitlement, handler, subscriptionServices.Service)
 	if err != nil {
 		return nil, err
 	}

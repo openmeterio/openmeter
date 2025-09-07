@@ -13,9 +13,12 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
+	subject "github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -734,7 +737,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	sub, err := subService.Create(ctx, s.namespace, spec)
 	require.Nil(t, err)
 
-	// Delete the customer
+	// Delete the customer with active subscription should return validation error
 	require.Equal(t, sub.CustomerId, customerId.ID, "Subscription customer ID must match")
 	err = custService.DeleteCustomer(ctx, customerId)
 
@@ -767,6 +770,54 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	require.True(t, models.IsGenericNotFoundError(err), "Deleting customer again must return not found error")
 
 	// Should allow to create a customer with the same subject keys
-	_, err = custService.CreateCustomer(ctx, input)
+	createdCustomer, err := custService.CreateCustomer(ctx, input)
 	require.NoError(t, err, "Creating a customer with the same subject keys must not return error")
+	require.NotNil(t, createdCustomer, "Created customer must not be nil")
+
+	// Delete the customer with active entitlement should return validation error
+	entitlementService := s.Env.Entitlement()
+	featureService := s.Env.Feature()
+	subjectService := s.Env.Subject()
+
+	feature, err := featureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: s.namespace,
+		Key:       "test-feature",
+		Name:      "Test Feature",
+	})
+	require.NoError(t, err, "Creating feature must not return error")
+	require.NotNil(t, feature, "Feature must not be nil")
+
+	// Note: As of writing this test, we need to create the subject manually
+	subject, err := subjectService.Create(ctx, subject.CreateInput{
+		Namespace: s.namespace,
+		Key:       createdCustomer.GetUsageAttribution().SubjectKeys[0],
+	})
+	require.NoError(t, err, "Creating subject must not return error")
+	require.NotNil(t, subject, "Subject must not be nil")
+
+	entitlement, err := entitlementService.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
+		Namespace:        s.namespace,
+		FeatureID:        lo.ToPtr(feature.ID),
+		EntitlementType:  entitlement.EntitlementTypeBoolean,
+		UsageAttribution: createdCustomer.GetUsageAttribution(),
+	})
+	require.NoError(t, err, "Creating entitlement must not return error")
+	require.NotNil(t, entitlement, "Entitlement must not be nil")
+
+	err = custService.DeleteCustomer(ctx, createdCustomer.GetID())
+	require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}), "Deleting customer with active entitlement must return validation error, got %T", err)
+	require.EqualError(
+		t,
+		err,
+		fmt.Sprintf("validation error: conflict error: customer %s still has active entitlements, please remove them before deleting the customer", createdCustomer.ID),
+		"Deleting customer with active entitlement must return error",
+	)
+
+	// Delete the entitlement
+	err = entitlementService.DeleteEntitlement(ctx, s.namespace, entitlement.ID, clock.Now())
+	require.NoError(t, err, "Deleting entitlement must not return error")
+
+	// Deleting the customer is now allowed
+	err = custService.DeleteCustomer(ctx, createdCustomer.GetID())
+	require.NoError(t, err, "Deleting customer must not return error")
 }
