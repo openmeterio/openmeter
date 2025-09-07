@@ -43,42 +43,44 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	Addon                        addon.Service
-	AppRegistry                  common.AppRegistry
-	Customer                     customer.Service
-	CustomerSubjectHook          common.CustomerSubjectHook
-	CustomerSubjectValidatorHook common.CustomerSubjectValidatorHook
-	Billing                      billing.Service
-	EntClient                    *db.Client
-	EventPublisher               eventbus.Publisher
-	EntitlementRegistry          *registry.Entitlement
-	FeatureConnector             feature.FeatureConnector
-	IngestCollector              ingest.Collector
-	IngestService                *ingest.Service
-	KafkaProducer                *kafka.Producer
-	KafkaMetrics                 *kafkametrics.Metrics
-	KafkaIngestNamespaceHandler  *kafkaingest.NamespaceHandler
-	Logger                       *slog.Logger
-	MetricMeter                  metric.Meter
-	MeterConfigInitializer       common.MeterConfigInitializer
-	MeterManageService           meter.ManageService
-	MeterEventService            meterevent.Service
-	NamespaceManager             *namespace.Manager
-	Notification                 notification.Service
-	Plan                         plan.Service
-	PlanAddon                    planaddon.Service
-	Portal                       portal.Service
-	ProgressManager              progressmanager.Service
-	RouterHooks                  *server.RouterHooks
-	Secret                       secret.Service
-	SubjectService               subject.Service
-	SubjectCustomerHook          subjecthooks.CustomerSubjectHook
-	Subscription                 common.SubscriptionServiceWithWorkflow
-	StreamingConnector           streaming.Connector
-	TelemetryServer              common.TelemetryServer
-	TerminationChecker           *common.TerminationChecker
-	RuntimeMetricsCollector      common.RuntimeMetricsCollector
-	Tracer                       trace.Tracer
+	Addon                            addon.Service
+	AppRegistry                      common.AppRegistry
+	Customer                         customer.Service
+	CustomerSubjectHook              common.CustomerSubjectHook
+	CustomerSubjectValidatorHook     common.CustomerSubjectValidatorHook
+	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
+	Billing                          billing.Service
+	EntClient                        *db.Client
+	EventPublisher                   eventbus.Publisher
+	EntitlementRegistry              *registry.Entitlement
+	FeatureConnector                 feature.FeatureConnector
+	IngestCollector                  ingest.Collector
+	IngestService                    *ingest.Service
+	KafkaProducer                    *kafka.Producer
+	KafkaMetrics                     *kafkametrics.Metrics
+	KafkaIngestNamespaceHandler      *kafkaingest.NamespaceHandler
+	Logger                           *slog.Logger
+	MetricMeter                      metric.Meter
+	MeterConfigInitializer           common.MeterConfigInitializer
+	MeterManageService               meter.ManageService
+	MeterEventService                meterevent.Service
+	NamespaceManager                 *namespace.Manager
+	Notification                     notification.Service
+	Plan                             plan.Service
+	PlanAddon                        planaddon.Service
+	Portal                           portal.Service
+	ProgressManager                  progressmanager.Service
+	RouterHooks                      *server.RouterHooks
+	Secret                           secret.Service
+	SubjectService                   subject.Service
+	SubjectCustomerHook              subjecthooks.CustomerSubjectHook
+	SubjectEntitlementValidatorHook  subjecthooks.EntitlementValidatorHook
+	Subscription                     common.SubscriptionServiceWithWorkflow
+	StreamingConnector               streaming.Connector
+	TelemetryServer                  common.TelemetryServer
+	TerminationChecker               *common.TerminationChecker
+	RuntimeMetricsCollector          common.RuntimeMetricsCollector
+	Tracer                           trace.Tracer
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
@@ -91,6 +93,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Customer,
 		common.NewCustomerSubjectServiceHook,
 		common.NewCustomerSubjectValidatorServiceHook,
+		common.NewCustomerEntitlementValidatorServiceHook,
 		common.Database,
 		common.Entitlement,
 		common.Framework,
@@ -117,6 +120,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ServerProvisionTopics,
 		common.Subject,
 		common.NewSubjectCustomerHook,
+		common.NewSubjectEntitlementValidatorHook,
 		common.Telemetry,
 		common.NewTerminationChecker,
 		common.WatermillNoPublisher,
