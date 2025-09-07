@@ -9,12 +9,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 )
 
 var _ customer.RequestValidator = (*Validator)(nil)
 
-func NewValidator(billingService billing.Service, syncService *billingworkersubscription.Handler, subscriptionService subscription.Service) (*Validator, error) {
+func NewValidator(billingService billing.Service, entitlementService entitlement.Connector, syncService *billingworkersubscription.Handler, subscriptionService subscription.Service) (*Validator, error) {
 	if billingService == nil {
 		return nil, fmt.Errorf("billing service is required")
 	}
@@ -25,6 +26,7 @@ func NewValidator(billingService billing.Service, syncService *billingworkersubs
 
 	return &Validator{
 		billingService:      billingService,
+		entitlementService:  entitlementService,
 		syncService:         syncService,
 		subscriptionService: subscriptionService,
 	}, nil
@@ -33,6 +35,7 @@ func NewValidator(billingService billing.Service, syncService *billingworkersubs
 type Validator struct {
 	customer.NoopRequestValidator
 	billingService      billing.Service
+	entitlementService  entitlement.Connector
 	syncService         *billingworkersubscription.Handler
 	subscriptionService subscription.Service
 }
@@ -87,6 +90,15 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 		if !inv.Status.IsFinal() {
 			errs = append(errs, fmt.Errorf("invoice %s is not in final state, please either delete the invoice or mark it uncollectible", inv.ID))
 		}
+	}
+
+	// Check if the customer has any entitlements
+	access, err := v.entitlementService.GetAccess(ctx, input.Namespace, input.ID)
+	if err != nil {
+		return err
+	}
+	if len(access.Entitlements) > 0 {
+		errs = append(errs, fmt.Errorf("customer has entitlements, please remove them before deleting the customer"))
 	}
 
 	return errors.Join(errs...)
