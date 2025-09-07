@@ -29,9 +29,6 @@ func selectCustomerIdColumn(eventsTableName string, customers []streaming.Custom
 	for _, customer := range customers {
 		customerIDSQL := fmt.Sprintf("'%s'", customer.GetUsageAttribution().ID)
 
-		// We map the customer id to the customer id
-		values = append(values, customerIDSQL, customerIDSQL)
-
 		// We map the customer key to the customer id if it exists
 		if customer.GetUsageAttribution().Key != nil {
 			customerKeySQL := fmt.Sprintf("'%s'", sqlbuilder.Escape(*customer.GetUsageAttribution().Key))
@@ -75,9 +72,6 @@ func customersWhere(eventsTableName string, customers []streaming.Customer, quer
 
 	// Collect all the subjects from the customers
 	for _, customer := range customers {
-		// Add the customer id to the filter
-		subjects = append(subjects, customer.GetUsageAttribution().ID)
-
 		// Add the customer key to the filter if it exists
 		if customer.GetUsageAttribution().Key != nil {
 			subjects = append(subjects, *customer.GetUsageAttribution().Key)
