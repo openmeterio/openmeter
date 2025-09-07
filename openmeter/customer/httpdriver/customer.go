@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -258,6 +259,16 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 			})
 			if err != nil {
 				return DeleteCustomerRequest{}, err
+			}
+
+			// Check if the customer has any entitlements
+			access, err := h.entitlementService.GetAccess(ctx, cus.Namespace, cus.ID)
+			if err != nil {
+				return DeleteCustomerRequest{}, err
+			}
+
+			if len(access.Entitlements) > 0 {
+				return DeleteCustomerRequest{}, models.NewGenericForbiddenError(fmt.Errorf("customer has entitlements, please remove them before deleting the customer"))
 			}
 
 			return cus.GetID(), nil
