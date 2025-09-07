@@ -546,6 +546,11 @@ func FromEventAsEntitlementResetPayload(e notification.Event) (api.NotificationE
 		return api.NotificationEventResetPayload{}, fmt.Errorf("entitlement reset is nil")
 	}
 
+	var customer *api.Customer
+	if e.Payload.BalanceThreshold != nil {
+		customer = lo.ToPtr(e.Payload.BalanceThreshold.Customer)
+	}
+
 	return api.NotificationEventResetPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
@@ -555,7 +560,7 @@ func FromEventAsEntitlementResetPayload(e notification.Event) (api.NotificationE
 			Entitlement: e.Payload.EntitlementReset.Entitlement,
 			Feature:     e.Payload.EntitlementReset.Feature,
 			Subject:     e.Payload.EntitlementReset.Subject,
-			Customer:    lo.ToPtr(e.Payload.BalanceThreshold.Customer),
+			Customer:    customer,
 		},
 	}, nil
 }
