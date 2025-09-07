@@ -126,8 +126,8 @@ func TestQueryEventsTable(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "WITH map('customer1', 'customer1', 'subject1', 'customer1', 'subject2', 'customer1', 'customer2', 'customer2', 'subject3', 'customer2') as subject_to_customer_id SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id, subject_to_customer_id[om_events.subject] AS customer_id FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND om_events.subject IN (?) ORDER BY time DESC LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", from.Unix(), []string{"customer1", "subject1", "subject2", "customer2", "subject3"}, 100},
+			wantSQL:  "WITH map('subject1', 'customer1', 'subject2', 'customer1', 'subject3', 'customer2') as subject_to_customer_id SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id, subject_to_customer_id[om_events.subject] AS customer_id FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND om_events.subject IN (?) ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", from.Unix(), []string{"subject1", "subject2", "subject3"}, 100},
 		},
 	}
 
