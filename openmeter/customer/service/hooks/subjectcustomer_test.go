@@ -11,6 +11,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -42,6 +44,7 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 		customer:         env.CustomerService,
 		customerOverride: nil,
 		logger:           env.Logger,
+		tracer:           env.Tracer,
 	}
 
 	ctx := t.Context()
@@ -274,6 +277,7 @@ var NewTestNamespace = NewTestULID
 
 type TestEnv struct {
 	Logger          *slog.Logger
+	Tracer          trace.Tracer
 	SubjectService  subject.Service
 	CustomerService customer.Service
 
@@ -319,6 +323,8 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	// Init logger
 	logger := testutils.NewDiscardLogger(t)
 
+	tracer := noop.NewTracerProvider().Tracer("test_env")
+
 	// Init database
 	db := testutils.InitPostgresDB(t)
 	client := db.EntDriver.Client()
@@ -357,6 +363,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 
 	return &TestEnv{
 		Logger:          logger,
+		Tracer:          tracer,
 		SubjectService:  subjectService,
 		CustomerService: customerService,
 		Client:          client,
