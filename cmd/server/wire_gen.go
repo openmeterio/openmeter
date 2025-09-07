@@ -363,7 +363,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	customerSubjectHook, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, subjectService, customerService, billingService)
+	customerSubjectHook, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, tracer, subjectService, customerService, billingService)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -534,7 +534,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	routerHooks := common.NewRouterHooks(v6)
-	v7, err := common.NewSubjectCustomerHook(subjectService, customerService, logger)
+	v7, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
 	if err != nil {
 		cleanup8()
 		cleanup7()

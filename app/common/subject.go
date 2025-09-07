@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -65,10 +66,12 @@ func NewSubjectCustomerHook(
 	subject subject.Service,
 	customer customer.Service,
 	logger *slog.Logger,
+	tracer trace.Tracer,
 ) (subjecthooks.CustomerSubjectHook, error) {
 	h, err := subjecthooks.NewCustomerSubjectHook(subjecthooks.CustomerSubjectHookConfig{
 		Subject: subject,
 		Logger:  logger,
+		Tracer:  tracer,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer subject hook: %w", err)
