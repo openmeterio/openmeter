@@ -105,3 +105,22 @@ func NewCustomerSubjectValidatorServiceHook(
 
 	return h, nil
 }
+
+type CustomerEntitlementValidatorHook customerservicehooks.EntitlementValidatorHook
+
+func NewCustomerEntitlementValidatorServiceHook(
+	logger *slog.Logger,
+	entitlementRegistry *registry.Entitlement,
+	customerService customer.Service,
+) (CustomerEntitlementValidatorHook, error) {
+	h, err := customerservicehooks.NewEntitlementValidatorHook(customerservicehooks.EntitlementValidatorHookConfig{
+		EntitlementService: entitlementRegistry.Entitlement,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create customer entitlement validator hook: %w", err)
+	}
+
+	customerService.RegisterHooks(h)
+
+	return h, nil
+}

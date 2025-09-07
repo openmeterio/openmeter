@@ -383,6 +383,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	customerEntitlementValidatorHook, err := common.NewCustomerEntitlementValidatorServiceHook(logger, entitlement, customerService)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	dedupeConfiguration := conf.Dedupe
 	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger, commonMetadata)
 	if err != nil {
@@ -536,6 +546,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	v8, err := common.NewSubjectEntitlementValidatorHook(logger, entitlement, subjectService)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
@@ -550,7 +572,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v8, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v9, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -566,44 +588,46 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	application := Application{
-		GlobalInitializer:            globalInitializer,
-		Migrator:                     migrator,
-		Addon:                        addonService,
-		AppRegistry:                  appRegistry,
-		Customer:                     customerService,
-		CustomerSubjectHook:          customerSubjectHook,
-		CustomerSubjectValidatorHook: customerSubjectValidatorHook,
-		Billing:                      billingService,
-		EntClient:                    client,
-		EventPublisher:               eventbusPublisher,
-		EntitlementRegistry:          entitlement,
-		FeatureConnector:             featureConnector,
-		IngestCollector:              ingestCollector,
-		IngestService:                ingestService,
-		KafkaProducer:                producer,
-		KafkaMetrics:                 metrics,
-		KafkaIngestNamespaceHandler:  namespaceHandler,
-		Logger:                       logger,
-		MetricMeter:                  meter,
-		MeterConfigInitializer:       v4,
-		MeterManageService:           manageService,
-		MeterEventService:            metereventService,
-		NamespaceManager:             manager,
-		Notification:                 notificationService,
-		Plan:                         planService,
-		PlanAddon:                    planaddonService,
-		Portal:                       portalService,
-		ProgressManager:              progressmanagerService,
-		RouterHooks:                  routerHooks,
-		Secret:                       secretserviceService,
-		SubjectService:               subjectService,
-		SubjectCustomerHook:          v7,
-		Subscription:                 subscriptionServiceWithWorkflow,
-		StreamingConnector:           connector,
-		TelemetryServer:              v8,
-		TerminationChecker:           terminationChecker,
-		RuntimeMetricsCollector:      runtimeMetricsCollector,
-		Tracer:                       tracer,
+		GlobalInitializer:                globalInitializer,
+		Migrator:                         migrator,
+		Addon:                            addonService,
+		AppRegistry:                      appRegistry,
+		Customer:                         customerService,
+		CustomerSubjectHook:              customerSubjectHook,
+		CustomerSubjectValidatorHook:     customerSubjectValidatorHook,
+		CustomerEntitlementValidatorHook: customerEntitlementValidatorHook,
+		Billing:                          billingService,
+		EntClient:                        client,
+		EventPublisher:                   eventbusPublisher,
+		EntitlementRegistry:              entitlement,
+		FeatureConnector:                 featureConnector,
+		IngestCollector:                  ingestCollector,
+		IngestService:                    ingestService,
+		KafkaProducer:                    producer,
+		KafkaMetrics:                     metrics,
+		KafkaIngestNamespaceHandler:      namespaceHandler,
+		Logger:                           logger,
+		MetricMeter:                      meter,
+		MeterConfigInitializer:           v4,
+		MeterManageService:               manageService,
+		MeterEventService:                metereventService,
+		NamespaceManager:                 manager,
+		Notification:                     notificationService,
+		Plan:                             planService,
+		PlanAddon:                        planaddonService,
+		Portal:                           portalService,
+		ProgressManager:                  progressmanagerService,
+		RouterHooks:                      routerHooks,
+		Secret:                           secretserviceService,
+		SubjectService:                   subjectService,
+		SubjectCustomerHook:              v7,
+		SubjectEntitlementValidatorHook:  v8,
+		Subscription:                     subscriptionServiceWithWorkflow,
+		StreamingConnector:               connector,
+		TelemetryServer:                  v9,
+		TerminationChecker:               terminationChecker,
+		RuntimeMetricsCollector:          runtimeMetricsCollector,
+		Tracer:                           tracer,
 	}
 	return application, func() {
 		cleanup9()
@@ -624,42 +648,44 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	Addon                        addon.Service
-	AppRegistry                  common.AppRegistry
-	Customer                     customer.Service
-	CustomerSubjectHook          common.CustomerSubjectHook
-	CustomerSubjectValidatorHook common.CustomerSubjectValidatorHook
-	Billing                      billing.Service
-	EntClient                    *db.Client
-	EventPublisher               eventbus.Publisher
-	EntitlementRegistry          *registry.Entitlement
-	FeatureConnector             feature.FeatureConnector
-	IngestCollector              ingest.Collector
-	IngestService                *ingest.Service
-	KafkaProducer                *kafka2.Producer
-	KafkaMetrics                 *metrics.Metrics
-	KafkaIngestNamespaceHandler  *kafkaingest.NamespaceHandler
-	Logger                       *slog.Logger
-	MetricMeter                  metric.Meter
-	MeterConfigInitializer       common.MeterConfigInitializer
-	MeterManageService           meter.ManageService
-	MeterEventService            meterevent.Service
-	NamespaceManager             *namespace.Manager
-	Notification                 notification.Service
-	Plan                         plan.Service
-	PlanAddon                    planaddon.Service
-	Portal                       portal.Service
-	ProgressManager              progressmanager.Service
-	RouterHooks                  *server.RouterHooks
-	Secret                       secret.Service
-	SubjectService               subject.Service
-	SubjectCustomerHook          hooks.CustomerSubjectHook
-	Subscription                 common.SubscriptionServiceWithWorkflow
-	StreamingConnector           streaming.Connector
-	TelemetryServer              common.TelemetryServer
-	TerminationChecker           *common.TerminationChecker
-	RuntimeMetricsCollector      common.RuntimeMetricsCollector
-	Tracer                       trace.Tracer
+	Addon                            addon.Service
+	AppRegistry                      common.AppRegistry
+	Customer                         customer.Service
+	CustomerSubjectHook              common.CustomerSubjectHook
+	CustomerSubjectValidatorHook     common.CustomerSubjectValidatorHook
+	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
+	Billing                          billing.Service
+	EntClient                        *db.Client
+	EventPublisher                   eventbus.Publisher
+	EntitlementRegistry              *registry.Entitlement
+	FeatureConnector                 feature.FeatureConnector
+	IngestCollector                  ingest.Collector
+	IngestService                    *ingest.Service
+	KafkaProducer                    *kafka2.Producer
+	KafkaMetrics                     *metrics.Metrics
+	KafkaIngestNamespaceHandler      *kafkaingest.NamespaceHandler
+	Logger                           *slog.Logger
+	MetricMeter                      metric.Meter
+	MeterConfigInitializer           common.MeterConfigInitializer
+	MeterManageService               meter.ManageService
+	MeterEventService                meterevent.Service
+	NamespaceManager                 *namespace.Manager
+	Notification                     notification.Service
+	Plan                             plan.Service
+	PlanAddon                        planaddon.Service
+	Portal                           portal.Service
+	ProgressManager                  progressmanager.Service
+	RouterHooks                      *server.RouterHooks
+	Secret                           secret.Service
+	SubjectService                   subject.Service
+	SubjectCustomerHook              hooks.CustomerSubjectHook
+	SubjectEntitlementValidatorHook  hooks.EntitlementValidatorHook
+	Subscription                     common.SubscriptionServiceWithWorkflow
+	StreamingConnector               streaming.Connector
+	TelemetryServer                  common.TelemetryServer
+	TerminationChecker               *common.TerminationChecker
+	RuntimeMetricsCollector          common.RuntimeMetricsCollector
+	Tracer                           trace.Tracer
 }
 
 func metadata(conf config.Configuration) common.Metadata {

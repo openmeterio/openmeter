@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	"github.com/openmeterio/openmeter/openmeter/subject/manager"
@@ -74,6 +75,23 @@ func NewSubjectCustomerHook(
 	}
 
 	customer.RegisterHooks(h)
+
+	return h, nil
+}
+
+func NewSubjectEntitlementValidatorHook(
+	logger *slog.Logger,
+	entitlementRegistry *registry.Entitlement,
+	subjectService subject.Service,
+) (subjecthooks.EntitlementValidatorHook, error) {
+	h, err := subjecthooks.NewEntitlementValidatorHook(subjecthooks.EntitlementValidatorHookConfig{
+		EntitlementService: entitlementRegistry.Entitlement,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create subject entitlement validator hook: %w", err)
+	}
+
+	subjectService.RegisterHooks(h)
 
 	return h, nil
 }
