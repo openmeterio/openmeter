@@ -155,7 +155,7 @@ func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot
 			if errors.Is(err, ErrNoBalanceAvailable) {
 				// In case there are no grants, percentage all percentage rules would match, so let's instead
 				// wait until we have some credits to calculate the actual value
-				b.Logger.Warn("no balance available skipping event creation", "last_event_id", lastEvent.ID)
+				b.Logger.WarnContext(ctx, "no balance available skipping event creation", "last_event_id", lastEvent.ID)
 
 				continue
 			}

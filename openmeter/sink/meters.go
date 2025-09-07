@@ -88,7 +88,7 @@ func (n *NamespacedMeterCache) start(ctx context.Context) {
 		case <-periodicRefetchTicker.C:
 			updatedCache, err := n.fetchMeters(ctx)
 			if err != nil {
-				n.logger.Error("failed to fetch meters", "error", err)
+				n.logger.ErrorContext(ctx, "failed to fetch meters", "error", err)
 				continue
 			}
 
@@ -132,13 +132,13 @@ func (n *NamespacedMeterCache) updateCache(meters map[string]MetersByType) {
 }
 
 // GetAffectedMeters gets the list of meters that are affected by an event
-func (n *NamespacedMeterCache) GetAffectedMeters(_ context.Context, m *sinkmodels.SinkMessage) ([]*meter.Meter, error) {
+func (n *NamespacedMeterCache) GetAffectedMeters(ctx context.Context, m *sinkmodels.SinkMessage) ([]*meter.Meter, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 
 	namespaceStore, ok := n.namespaces[m.Namespace]
 	if !ok || namespaceStore == nil {
-		n.logger.Warn("no namespace store found for namespace", "namespace", m.Namespace)
+		n.logger.WarnContext(ctx, "no namespace store found for namespace", "namespace", m.Namespace)
 		return nil, nil
 	}
 

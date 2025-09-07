@@ -42,11 +42,11 @@ func (s subjectCustomerHook) provision(ctx context.Context, sub *subject.Subject
 	err := s.provisioner.Provision(ctx, sub)
 	if err != nil {
 		if s.ignoreErrors {
-			s.logger.Warn("failed to provision customer for subject", "error", err)
+			s.logger.WarnContext(ctx, "failed to provision customer for subject", "error", err)
 
 			return nil
 		} else {
-			s.logger.Error("failed to provision customer for subject", "error", err)
+			s.logger.ErrorContext(ctx, "failed to provision customer for subject", "error", err)
 
 			return err
 		}
@@ -421,7 +421,7 @@ func (p CustomerProvisioner) Provision(ctx context.Context, sub *subject.Subject
 				return err
 			}
 
-			p.logger.Warn(err.Error())
+			p.logger.WarnContext(ctx, err.Error())
 		}
 	}
 
