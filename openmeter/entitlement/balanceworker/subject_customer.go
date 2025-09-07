@@ -33,5 +33,9 @@ func resolveCustomerAndSubject(ctx context.Context, customerService customer.Ser
 		return customer.Customer{}, subject.Subject{}, fmt.Errorf("failed to get subject: %w", err)
 	}
 
-	return *cust, subj, nil
+	if subj == nil {
+		return customer.Customer{}, subject.Subject{}, fmt.Errorf("subject not found: %s", subjKey)
+	}
+
+	return *cust, *subj, nil
 }

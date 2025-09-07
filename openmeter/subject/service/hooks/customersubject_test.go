@@ -81,7 +81,7 @@ func Test_CustomerSubjectHook(t *testing.T) {
 
 			for _, subKey := range cus.UsageAttribution.SubjectKeys {
 				t.Run("GetSubject", func(t *testing.T) {
-					sub, err = env.SubjectService.GetByKey(ctx, models.NamespacedKey{
+					sub, err := env.SubjectService.GetByKey(ctx, models.NamespacedKey{
 						Namespace: namespace,
 						Key:       subKey,
 					})

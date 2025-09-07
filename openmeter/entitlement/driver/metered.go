@@ -413,6 +413,10 @@ func (h *meteredEntitlementHandler) resolveCustomerFromSubject(ctx context.Conte
 		return nil, err
 	}
 
+	if subj == nil {
+		return nil, fmt.Errorf("subject not found: %s", subjectIdOrKey)
+	}
+
 	cust, err := h.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
 		Namespace:  namespace,
 		SubjectKey: subj.Key,

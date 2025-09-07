@@ -1532,16 +1532,16 @@ func (n NoopSubjectService) Update(ctx context.Context, input subject.UpdateInpu
 	return subject.Subject{}, nil
 }
 
-func (n NoopSubjectService) GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (subject.Subject, error) {
-	return subject.Subject{}, nil
+func (n NoopSubjectService) GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (*subject.Subject, error) {
+	return nil, nil
 }
 
-func (n NoopSubjectService) GetById(ctx context.Context, id models.NamespacedID) (subject.Subject, error) {
-	return subject.Subject{}, nil
+func (n NoopSubjectService) GetById(ctx context.Context, id models.NamespacedID) (*subject.Subject, error) {
+	return nil, nil
 }
 
-func (n NoopSubjectService) GetByKey(ctx context.Context, key models.NamespacedKey) (subject.Subject, error) {
-	return subject.Subject{}, nil
+func (n NoopSubjectService) GetByKey(ctx context.Context, key models.NamespacedKey) (*subject.Subject, error) {
+	return nil, nil
 }
 
 func (n NoopSubjectService) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.PagedResponse[subject.Subject], error) {

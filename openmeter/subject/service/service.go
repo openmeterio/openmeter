@@ -60,7 +60,7 @@ func (s *Service) Update(ctx context.Context, input subject.UpdateInput) (subjec
 	}
 
 	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {
-		sub, err := s.subjectAdapter.GetById(ctx, models.NamespacedID{
+		fetchedSubject, err := s.subjectAdapter.GetById(ctx, models.NamespacedID{
 			Namespace: input.Namespace,
 			ID:        input.ID,
 		})
@@ -68,11 +68,15 @@ func (s *Service) Update(ctx context.Context, input subject.UpdateInput) (subjec
 			return subject.Subject{}, err
 		}
 
-		if err = s.hooks.PreUpdate(ctx, &sub); err != nil {
+		if fetchedSubject == nil {
+			return subject.Subject{}, models.NewGenericNotFoundError(fmt.Errorf("subject not found: %s", input.ID))
+		}
+
+		if err = s.hooks.PreUpdate(ctx, fetchedSubject); err != nil {
 			return subject.Subject{}, err
 		}
 
-		sub, err = s.subjectAdapter.Update(ctx, input)
+		sub, err := s.subjectAdapter.Update(ctx, input)
 		if err != nil {
 			return subject.Subject{}, err
 		}
@@ -86,30 +90,30 @@ func (s *Service) Update(ctx context.Context, input subject.UpdateInput) (subjec
 }
 
 // GetByIdOrKey gets a subject by ID or key
-func (s *Service) GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (subject.Subject, error) {
-	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {
+func (s *Service) GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (*subject.Subject, error) {
+	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (*subject.Subject, error) {
 		return s.subjectAdapter.GetByIdOrKey(ctx, orgId, idOrKey)
 	})
 }
 
 // GetById gets a subject by ID
-func (s *Service) GetById(ctx context.Context, id models.NamespacedID) (subject.Subject, error) {
+func (s *Service) GetById(ctx context.Context, id models.NamespacedID) (*subject.Subject, error) {
 	if err := id.Validate(); err != nil {
-		return subject.Subject{}, fmt.Errorf("invalid id: %w", models.NewGenericValidationError(err))
+		return nil, fmt.Errorf("invalid id: %w", models.NewGenericValidationError(err))
 	}
 
-	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {
+	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (*subject.Subject, error) {
 		return s.subjectAdapter.GetById(ctx, id)
 	})
 }
 
 // GetByKey gets a subject by key
-func (s *Service) GetByKey(ctx context.Context, key models.NamespacedKey) (subject.Subject, error) {
+func (s *Service) GetByKey(ctx context.Context, key models.NamespacedKey) (*subject.Subject, error) {
 	if err := key.Validate(); err != nil {
-		return subject.Subject{}, fmt.Errorf("invalid key: %w", models.NewGenericValidationError(err))
+		return nil, fmt.Errorf("invalid key: %w", models.NewGenericValidationError(err))
 	}
 
-	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {
+	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (*subject.Subject, error) {
 		return s.subjectAdapter.GetByKey(ctx, key)
 	})
 }
@@ -133,7 +137,12 @@ func (s *Service) Delete(ctx context.Context, id models.NamespacedID) error {
 			return err
 		}
 
-		if err = s.hooks.PreDelete(ctx, &sub); err != nil {
+		if sub == nil {
+			// Deletion of non-existing subjects is a no-op
+			return nil
+		}
+
+		if err = s.hooks.PreDelete(ctx, sub); err != nil {
 			return err
 		}
 
@@ -141,7 +150,7 @@ func (s *Service) Delete(ctx context.Context, id models.NamespacedID) error {
 			return err
 		}
 
-		if err = s.hooks.PostDelete(ctx, &sub); err != nil {
+		if err = s.hooks.PostDelete(ctx, sub); err != nil {
 			return err
 		}
 

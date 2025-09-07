@@ -98,21 +98,25 @@ func (a *adapter) Update(ctx context.Context, input subject.UpdateInput) (subjec
 			return subject.Subject{}, fmt.Errorf("failed to get updated subject: %w", err)
 		}
 
-		return sub, nil
+		if sub == nil {
+			return subject.Subject{}, fmt.Errorf("updated subject not found: %s", input.ID)
+		}
+
+		return *sub, nil
 	})
 }
 
 // Get returns subject entity from database
-func (a *adapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string) (subject.Subject, error) {
+func (a *adapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string) (*subject.Subject, error) {
 	if namespace == "" {
-		return subject.Subject{}, models.NewGenericValidationError(errors.New("namespace is required"))
+		return nil, models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
 	if idOrKey == "" {
-		return subject.Subject{}, models.NewGenericValidationError(errors.New("id or key is required"))
+		return nil, models.NewGenericValidationError(errors.New("id or key is required"))
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*subject.Subject, error) {
 		entity, err := tx.db.Subject.Query().
 			Where(
 				entsubject.Namespace(namespace),
@@ -123,13 +127,11 @@ func (a *adapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey st
 			).
 			All(ctx)
 		if err != nil {
-			return subject.Subject{}, fmt.Errorf("failed to get subject: %w", err)
+			return nil, fmt.Errorf("failed to get subject: %w", err)
 		}
 
 		if len(entity) == 0 {
-			return subject.Subject{}, models.NewGenericNotFoundError(
-				fmt.Errorf("subject not found: %s", idOrKey),
-			)
+			return nil, nil
 		}
 
 		// Let's be deterministic regarding always preferring the ID match over the key match
@@ -139,7 +141,7 @@ func (a *adapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey st
 			})
 
 			if found {
-				return mapEntity(subjectByID), nil
+				return lo.ToPtr(mapEntity(subjectByID)), nil
 			}
 
 			subjectByKey, found := lo.Find(entity, func(item *db.Subject) bool {
@@ -147,63 +149,57 @@ func (a *adapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey st
 			})
 
 			if found {
-				return mapEntity(subjectByKey), nil
+				return lo.ToPtr(mapEntity(subjectByKey)), nil
 			}
 
-			return subject.Subject{}, models.NewGenericNotFoundError(
-				fmt.Errorf("subject not found: %s", idOrKey),
-			)
+			return nil, nil
 		}
 
-		return mapEntity(entity[0]), nil
+		return lo.ToPtr(mapEntity(entity[0])), nil
 	})
 }
 
-func (a *adapter) GetByKey(ctx context.Context, key models.NamespacedKey) (subject.Subject, error) {
+func (a *adapter) GetByKey(ctx context.Context, key models.NamespacedKey) (*subject.Subject, error) {
 	if err := key.Validate(); err != nil {
-		return subject.Subject{}, fmt.Errorf("invalid key: %w", models.NewGenericValidationError(err))
+		return nil, fmt.Errorf("invalid key: %w", models.NewGenericValidationError(err))
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*subject.Subject, error) {
 		entity, err := tx.db.Subject.Query().
 			Where(entsubject.Namespace(key.Namespace)).
 			Where(entsubject.Key(key.Key)).
 			All(ctx)
 		if err != nil {
-			return subject.Subject{}, fmt.Errorf("failed to get subject: %w", err)
+			return nil, fmt.Errorf("failed to get subject: %w", err)
 		}
 
 		if len(entity) == 0 {
-			return subject.Subject{}, models.NewGenericNotFoundError(
-				fmt.Errorf("subject not found: %s", key.Key),
-			)
+			return nil, nil
 		}
 
-		return mapEntity(entity[0]), nil
+		return lo.ToPtr(mapEntity(entity[0])), nil
 	})
 }
 
-func (a *adapter) GetById(ctx context.Context, id models.NamespacedID) (subject.Subject, error) {
+func (a *adapter) GetById(ctx context.Context, id models.NamespacedID) (*subject.Subject, error) {
 	if err := id.Validate(); err != nil {
-		return subject.Subject{}, fmt.Errorf("invalid id: %w", models.NewGenericValidationError(err))
+		return nil, fmt.Errorf("invalid id: %w", models.NewGenericValidationError(err))
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*subject.Subject, error) {
 		entity, err := tx.db.Subject.Query().
 			Where(entsubject.Namespace(id.Namespace)).
 			Where(entsubject.ID(id.ID)).
 			All(ctx)
 		if err != nil {
-			return subject.Subject{}, fmt.Errorf("failed to get subject: %w", err)
+			return nil, fmt.Errorf("failed to get subject: %w", err)
 		}
 
 		if len(entity) == 0 {
-			return subject.Subject{}, models.NewGenericNotFoundError(
-				fmt.Errorf("subject not found: %s", id.ID),
-			)
+			return nil, nil
 		}
 
-		return mapEntity(entity[0]), nil
+		return lo.ToPtr(mapEntity(entity[0])), nil
 	})
 }
 

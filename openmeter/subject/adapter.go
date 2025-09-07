@@ -12,9 +12,9 @@ import (
 type Adapter interface {
 	Create(ctx context.Context, input CreateInput) (Subject, error)
 	Update(ctx context.Context, input UpdateInput) (Subject, error)
-	GetByIdOrKey(ctx context.Context, namespace string, idOrKey string) (Subject, error)
-	GetByKey(ctx context.Context, key models.NamespacedKey) (Subject, error)
-	GetById(ctx context.Context, id models.NamespacedID) (Subject, error)
+	GetByIdOrKey(ctx context.Context, namespace string, idOrKey string) (*Subject, error)
+	GetByKey(ctx context.Context, key models.NamespacedKey) (*Subject, error)
+	GetById(ctx context.Context, id models.NamespacedID) (*Subject, error)
 	List(ctx context.Context, namespace string, params ListParams) (pagination.PagedResponse[Subject], error)
 	Delete(ctx context.Context, id models.NamespacedID) error
 

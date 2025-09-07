@@ -55,8 +55,12 @@ func (h *handler) GetSubject() GetSubjectHandler {
 				return GetSubjectResponse{}, fmt.Errorf("failed to get subject: %w", err)
 			}
 
+			if sub == nil {
+				return GetSubjectResponse{}, models.NewGenericNotFoundError(fmt.Errorf("subject not found: %s", request.subjectIdOrKey))
+			}
+
 			// Respond with subject
-			return FromSubject(sub), nil
+			return FromSubject(*sub), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetSubjectResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -294,6 +298,10 @@ func (h *handler) DeleteSubject() DeleteSubjectHandler {
 			subjectEntity, err := h.subjectService.GetByIdOrKey(ctx, request.namespace, request.SubjectIdOrKey)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subject: %w", err)
+			}
+
+			if subjectEntity == nil {
+				return nil, nil
 			}
 
 			// Validate that there are no active entitlements for the subject

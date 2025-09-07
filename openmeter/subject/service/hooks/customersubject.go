@@ -123,28 +123,29 @@ func (p SubjectProvisioner) EnsureSubjects(ctx context.Context, cus *customer.Cu
 		// Check if the subject exists
 		sub, err := p.subject.GetByIdOrKey(ctx, cus.Namespace, subKey)
 		if err != nil {
-			if models.IsGenericNotFoundError(err) {
-				// Create Subject if it does not exist
-				_, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx),
-					subject.CreateInput{
-						Namespace: cus.Namespace,
-						Key:       subKey,
-						Metadata: lo.ToPtr(map[string]interface{}{
-							"createdBy":  "subject.provisioner",
-							"customerId": cus.ID,
-						}),
-					})
-				if err != nil {
-					errs = append(errs,
-						fmt.Errorf("failed to create subject for customer [namespace=%s customer.id=%s customer.usage_attribution_key: %s]: %w",
-							cus.Namespace, cus.ID, subKey, err),
-					)
-				}
 
-				continue
+			errs = append(errs,
+				fmt.Errorf("failed to create subject for customer [namespace=%s customer.id=%s customer.usage_attribution_key: %s]: %w",
+					cus.Namespace, cus.ID, subKey, err),
+			)
+
+			continue
+		}
+
+		if sub == nil {
+			// Create Subject if it does not exist
+			_, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx),
+				subject.CreateInput{
+					Namespace: cus.Namespace,
+					Key:       subKey,
+					Metadata: lo.ToPtr(map[string]interface{}{
+						"createdBy":  "subject.provisioner",
+						"customerId": cus.ID,
+					}),
+				})
+			if err != nil {
+				errs = append(errs, err)
 			}
-
-			errs = append(errs, err)
 
 			continue
 		}
