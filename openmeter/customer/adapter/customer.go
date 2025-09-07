@@ -103,7 +103,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		result := make([]customer.Customer, 0, len(paged.Items))
 		for _, item := range paged.Items {
 			if item == nil {
-				a.logger.Warn("invalid query result: nil customer received")
+				a.logger.WarnContext(ctx, "invalid query result: nil customer received")
 				continue
 			}
 			cust, err := CustomerFromDBEntity(*item)

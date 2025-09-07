@@ -239,7 +239,7 @@ func (b *HighWatermarkRedisBackend) Record(ctx context.Context, req RecordLastCa
 	//
 	// We are just ignoring the TxFailedErr as in such cases we have a recent highwatermark cache entry either ways
 	if errors.Is(err, redis.TxFailedErr) {
-		b.Logger.Info("high watermark cache update skipped due to parallel updates", "entry.key", cacheKey, "entry.highwatermark", req.CalculatedAt, "entry.isdeleted", req.IsDeleted)
+		b.Logger.InfoContext(ctx, "high watermark cache update skipped due to parallel updates", "entry.key", cacheKey, "entry.highwatermark", req.CalculatedAt, "entry.isdeleted", req.IsDeleted)
 		return nil
 	}
 

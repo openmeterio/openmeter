@@ -65,7 +65,7 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 			StripeInvoiceID: input.Invoice.ID,
 		})
 		if err != nil {
-			logger.Error("failed to get stripe invoice", "error", err)
+			logger.ErrorContext(ctx, "failed to get stripe invoice", "error", err)
 			return err
 		}
 	}
@@ -73,7 +73,7 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 	if input.ShouldTriggerOnEvent != nil {
 		shouldTrigger, err := input.ShouldTriggerOnEvent(stripeInvoice)
 		if err != nil {
-			logger.Error("failed to determine if event should trigger", "error", err)
+			logger.ErrorContext(ctx, "failed to determine if event should trigger", "error", err)
 		}
 
 		if !shouldTrigger {
