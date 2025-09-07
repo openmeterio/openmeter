@@ -24,6 +24,8 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldCustomerDeletedAt holds the string denoting the customer_deleted_at field in the database.
+	FieldCustomerDeletedAt = "customer_deleted_at"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
 	// Table holds the table name of the customersubjects in the database.
@@ -45,6 +47,7 @@ var Columns = []string{
 	FieldSubjectKey,
 	FieldCreatedAt,
 	FieldDeletedAt,
+	FieldCustomerDeletedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -99,6 +102,11 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByCustomerDeletedAt orders the results by the customer_deleted_at field.
+func ByCustomerDeletedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerDeletedAt, opts...).ToFunc()
 }
 
 // ByCustomerField orders the results by customer field.

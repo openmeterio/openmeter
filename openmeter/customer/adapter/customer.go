@@ -293,7 +293,8 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 			Where(customersubjectsdb.CustomerID(input.ID)).
 			Where(customersubjectsdb.Namespace(input.Namespace)).
 			Where(customersubjectsdb.DeletedAtIsNil()).
-			SetDeletedAt(deletedAt).
+			Where(customersubjectsdb.CustomerDeletedAtIsNil()).
+			SetCustomerDeletedAt(deletedAt).
 			Exec(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to delete customer subjects: %w", err)

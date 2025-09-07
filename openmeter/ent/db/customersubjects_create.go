@@ -69,6 +69,20 @@ func (_c *CustomerSubjectsCreate) SetNillableDeletedAt(v *time.Time) *CustomerSu
 	return _c
 }
 
+// SetCustomerDeletedAt sets the "customer_deleted_at" field.
+func (_c *CustomerSubjectsCreate) SetCustomerDeletedAt(v time.Time) *CustomerSubjectsCreate {
+	_c.mutation.SetCustomerDeletedAt(v)
+	return _c
+}
+
+// SetNillableCustomerDeletedAt sets the "customer_deleted_at" field if the given value is not nil.
+func (_c *CustomerSubjectsCreate) SetNillableCustomerDeletedAt(v *time.Time) *CustomerSubjectsCreate {
+	if v != nil {
+		_c.SetCustomerDeletedAt(*v)
+	}
+	return _c
+}
+
 // SetCustomer sets the "customer" edge to the Customer entity.
 func (_c *CustomerSubjectsCreate) SetCustomer(v *Customer) *CustomerSubjectsCreate {
 	return _c.SetCustomerID(v.ID)
@@ -190,6 +204,10 @@ func (_c *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.Cre
 		_spec.SetField(customersubjects.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := _c.mutation.CustomerDeletedAt(); ok {
+		_spec.SetField(customersubjects.FieldCustomerDeletedAt, field.TypeTime, value)
+		_node.CustomerDeletedAt = &value
+	}
 	if nodes := _c.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -277,6 +295,24 @@ func (u *CustomerSubjectsUpsert) ClearDeletedAt() *CustomerSubjectsUpsert {
 	return u
 }
 
+// SetCustomerDeletedAt sets the "customer_deleted_at" field.
+func (u *CustomerSubjectsUpsert) SetCustomerDeletedAt(v time.Time) *CustomerSubjectsUpsert {
+	u.Set(customersubjects.FieldCustomerDeletedAt, v)
+	return u
+}
+
+// UpdateCustomerDeletedAt sets the "customer_deleted_at" field to the value that was provided on create.
+func (u *CustomerSubjectsUpsert) UpdateCustomerDeletedAt() *CustomerSubjectsUpsert {
+	u.SetExcluded(customersubjects.FieldCustomerDeletedAt)
+	return u
+}
+
+// ClearCustomerDeletedAt clears the value of the "customer_deleted_at" field.
+func (u *CustomerSubjectsUpsert) ClearCustomerDeletedAt() *CustomerSubjectsUpsert {
+	u.SetNull(customersubjects.FieldCustomerDeletedAt)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -349,6 +385,27 @@ func (u *CustomerSubjectsUpsertOne) UpdateDeletedAt() *CustomerSubjectsUpsertOne
 func (u *CustomerSubjectsUpsertOne) ClearDeletedAt() *CustomerSubjectsUpsertOne {
 	return u.Update(func(s *CustomerSubjectsUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetCustomerDeletedAt sets the "customer_deleted_at" field.
+func (u *CustomerSubjectsUpsertOne) SetCustomerDeletedAt(v time.Time) *CustomerSubjectsUpsertOne {
+	return u.Update(func(s *CustomerSubjectsUpsert) {
+		s.SetCustomerDeletedAt(v)
+	})
+}
+
+// UpdateCustomerDeletedAt sets the "customer_deleted_at" field to the value that was provided on create.
+func (u *CustomerSubjectsUpsertOne) UpdateCustomerDeletedAt() *CustomerSubjectsUpsertOne {
+	return u.Update(func(s *CustomerSubjectsUpsert) {
+		s.UpdateCustomerDeletedAt()
+	})
+}
+
+// ClearCustomerDeletedAt clears the value of the "customer_deleted_at" field.
+func (u *CustomerSubjectsUpsertOne) ClearCustomerDeletedAt() *CustomerSubjectsUpsertOne {
+	return u.Update(func(s *CustomerSubjectsUpsert) {
+		s.ClearCustomerDeletedAt()
 	})
 }
 
@@ -590,6 +647,27 @@ func (u *CustomerSubjectsUpsertBulk) UpdateDeletedAt() *CustomerSubjectsUpsertBu
 func (u *CustomerSubjectsUpsertBulk) ClearDeletedAt() *CustomerSubjectsUpsertBulk {
 	return u.Update(func(s *CustomerSubjectsUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetCustomerDeletedAt sets the "customer_deleted_at" field.
+func (u *CustomerSubjectsUpsertBulk) SetCustomerDeletedAt(v time.Time) *CustomerSubjectsUpsertBulk {
+	return u.Update(func(s *CustomerSubjectsUpsert) {
+		s.SetCustomerDeletedAt(v)
+	})
+}
+
+// UpdateCustomerDeletedAt sets the "customer_deleted_at" field to the value that was provided on create.
+func (u *CustomerSubjectsUpsertBulk) UpdateCustomerDeletedAt() *CustomerSubjectsUpsertBulk {
+	return u.Update(func(s *CustomerSubjectsUpsert) {
+		s.UpdateCustomerDeletedAt()
+	})
+}
+
+// ClearCustomerDeletedAt clears the value of the "customer_deleted_at" field.
+func (u *CustomerSubjectsUpsertBulk) ClearCustomerDeletedAt() *CustomerSubjectsUpsertBulk {
+	return u.Update(func(s *CustomerSubjectsUpsert) {
+		s.ClearCustomerDeletedAt()
 	})
 }
 

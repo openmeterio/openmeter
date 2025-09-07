@@ -48,6 +48,26 @@ func (_u *CustomerSubjectsUpdate) ClearDeletedAt() *CustomerSubjectsUpdate {
 	return _u
 }
 
+// SetCustomerDeletedAt sets the "customer_deleted_at" field.
+func (_u *CustomerSubjectsUpdate) SetCustomerDeletedAt(v time.Time) *CustomerSubjectsUpdate {
+	_u.mutation.SetCustomerDeletedAt(v)
+	return _u
+}
+
+// SetNillableCustomerDeletedAt sets the "customer_deleted_at" field if the given value is not nil.
+func (_u *CustomerSubjectsUpdate) SetNillableCustomerDeletedAt(v *time.Time) *CustomerSubjectsUpdate {
+	if v != nil {
+		_u.SetCustomerDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearCustomerDeletedAt clears the value of the "customer_deleted_at" field.
+func (_u *CustomerSubjectsUpdate) ClearCustomerDeletedAt() *CustomerSubjectsUpdate {
+	_u.mutation.ClearCustomerDeletedAt()
+	return _u
+}
+
 // Mutation returns the CustomerSubjectsMutation object of the builder.
 func (_u *CustomerSubjectsUpdate) Mutation() *CustomerSubjectsMutation {
 	return _u.mutation
@@ -106,6 +126,12 @@ func (_u *CustomerSubjectsUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(customersubjects.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.CustomerDeletedAt(); ok {
+		_spec.SetField(customersubjects.FieldCustomerDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.CustomerDeletedAtCleared() {
+		_spec.ClearField(customersubjects.FieldCustomerDeletedAt, field.TypeTime)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{customersubjects.Label}
@@ -143,6 +169,26 @@ func (_u *CustomerSubjectsUpdateOne) SetNillableDeletedAt(v *time.Time) *Custome
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *CustomerSubjectsUpdateOne) ClearDeletedAt() *CustomerSubjectsUpdateOne {
 	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetCustomerDeletedAt sets the "customer_deleted_at" field.
+func (_u *CustomerSubjectsUpdateOne) SetCustomerDeletedAt(v time.Time) *CustomerSubjectsUpdateOne {
+	_u.mutation.SetCustomerDeletedAt(v)
+	return _u
+}
+
+// SetNillableCustomerDeletedAt sets the "customer_deleted_at" field if the given value is not nil.
+func (_u *CustomerSubjectsUpdateOne) SetNillableCustomerDeletedAt(v *time.Time) *CustomerSubjectsUpdateOne {
+	if v != nil {
+		_u.SetCustomerDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearCustomerDeletedAt clears the value of the "customer_deleted_at" field.
+func (_u *CustomerSubjectsUpdateOne) ClearCustomerDeletedAt() *CustomerSubjectsUpdateOne {
+	_u.mutation.ClearCustomerDeletedAt()
 	return _u
 }
 
@@ -233,6 +279,12 @@ func (_u *CustomerSubjectsUpdateOne) sqlSave(ctx context.Context) (_node *Custom
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(customersubjects.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.CustomerDeletedAt(); ok {
+		_spec.SetField(customersubjects.FieldCustomerDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.CustomerDeletedAtCleared() {
+		_spec.ClearField(customersubjects.FieldCustomerDeletedAt, field.TypeTime)
 	}
 	_node = &CustomerSubjects{config: _u.config}
 	_spec.Assign = _node.assignValues

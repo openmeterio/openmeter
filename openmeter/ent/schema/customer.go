@@ -96,6 +96,9 @@ func (CustomerSubjects) Fields() []ent.Field {
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
+		field.Time("customer_deleted_at").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -105,7 +108,7 @@ func (CustomerSubjects) Indexes() []ent.Index {
 		index.Fields("namespace", "subject_key").
 			Annotations(
 				// Partial index: We skip the index on active non deleted customer subjects.
-				entsql.IndexWhere("deleted_at IS NULL"),
+				entsql.IndexWhere("deleted_at IS NULL AND customer_deleted_at IS NULL"),
 			).
 			Unique(),
 	}

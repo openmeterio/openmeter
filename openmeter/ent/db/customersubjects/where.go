@@ -80,6 +80,11 @@ func DeletedAt(v time.Time) predicate.CustomerSubjects {
 	return predicate.CustomerSubjects(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// CustomerDeletedAt applies equality check predicate on the "customer_deleted_at" field. It's identical to CustomerDeletedAtEQ.
+func CustomerDeletedAt(v time.Time) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldEQ(FieldCustomerDeletedAt, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.CustomerSubjects {
 	return predicate.CustomerSubjects(sql.FieldEQ(FieldNamespace, v))
@@ -363,6 +368,56 @@ func DeletedAtIsNil() predicate.CustomerSubjects {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.CustomerSubjects {
 	return predicate.CustomerSubjects(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// CustomerDeletedAtEQ applies the EQ predicate on the "customer_deleted_at" field.
+func CustomerDeletedAtEQ(v time.Time) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldEQ(FieldCustomerDeletedAt, v))
+}
+
+// CustomerDeletedAtNEQ applies the NEQ predicate on the "customer_deleted_at" field.
+func CustomerDeletedAtNEQ(v time.Time) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldNEQ(FieldCustomerDeletedAt, v))
+}
+
+// CustomerDeletedAtIn applies the In predicate on the "customer_deleted_at" field.
+func CustomerDeletedAtIn(vs ...time.Time) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldIn(FieldCustomerDeletedAt, vs...))
+}
+
+// CustomerDeletedAtNotIn applies the NotIn predicate on the "customer_deleted_at" field.
+func CustomerDeletedAtNotIn(vs ...time.Time) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldNotIn(FieldCustomerDeletedAt, vs...))
+}
+
+// CustomerDeletedAtGT applies the GT predicate on the "customer_deleted_at" field.
+func CustomerDeletedAtGT(v time.Time) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldGT(FieldCustomerDeletedAt, v))
+}
+
+// CustomerDeletedAtGTE applies the GTE predicate on the "customer_deleted_at" field.
+func CustomerDeletedAtGTE(v time.Time) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldGTE(FieldCustomerDeletedAt, v))
+}
+
+// CustomerDeletedAtLT applies the LT predicate on the "customer_deleted_at" field.
+func CustomerDeletedAtLT(v time.Time) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldLT(FieldCustomerDeletedAt, v))
+}
+
+// CustomerDeletedAtLTE applies the LTE predicate on the "customer_deleted_at" field.
+func CustomerDeletedAtLTE(v time.Time) predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldLTE(FieldCustomerDeletedAt, v))
+}
+
+// CustomerDeletedAtIsNil applies the IsNil predicate on the "customer_deleted_at" field.
+func CustomerDeletedAtIsNil() predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldIsNull(FieldCustomerDeletedAt))
+}
+
+// CustomerDeletedAtNotNil applies the NotNil predicate on the "customer_deleted_at" field.
+func CustomerDeletedAtNotNil() predicate.CustomerSubjects {
+	return predicate.CustomerSubjects(sql.FieldNotNull(FieldCustomerDeletedAt))
 }
 
 // HasCustomer applies the HasEdge predicate on the "customer" edge.

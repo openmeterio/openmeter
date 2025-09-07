@@ -1359,6 +1359,7 @@ var (
 		{Name: "subject_key", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "customer_deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// CustomerSubjectsTable holds the schema information for the "customer_subjects" table.
@@ -1369,7 +1370,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "customer_subjects_customers_subjects",
-				Columns:    []*schema.Column{CustomerSubjectsColumns[5]},
+				Columns:    []*schema.Column{CustomerSubjectsColumns[6]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -1383,14 +1384,14 @@ var (
 			{
 				Name:    "customersubjects_namespace_customer_id_deleted_at",
 				Unique:  false,
-				Columns: []*schema.Column{CustomerSubjectsColumns[1], CustomerSubjectsColumns[5], CustomerSubjectsColumns[4]},
+				Columns: []*schema.Column{CustomerSubjectsColumns[1], CustomerSubjectsColumns[6], CustomerSubjectsColumns[4]},
 			},
 			{
 				Name:    "customersubjects_namespace_subject_key",
 				Unique:  true,
 				Columns: []*schema.Column{CustomerSubjectsColumns[1], CustomerSubjectsColumns[2]},
 				Annotation: &entsql.IndexAnnotation{
-					Where: "deleted_at IS NULL",
+					Where: "deleted_at IS NULL AND customer_deleted_at IS NULL",
 				},
 			},
 		},

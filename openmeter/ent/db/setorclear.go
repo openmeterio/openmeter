@@ -2015,6 +2015,20 @@ func (u *CustomerSubjectsUpdateOne) SetOrClearDeletedAt(value *time.Time) *Custo
 	return u.SetDeletedAt(*value)
 }
 
+func (u *CustomerSubjectsUpdate) SetOrClearCustomerDeletedAt(value *time.Time) *CustomerSubjectsUpdate {
+	if value == nil {
+		return u.ClearCustomerDeletedAt()
+	}
+	return u.SetCustomerDeletedAt(*value)
+}
+
+func (u *CustomerSubjectsUpdateOne) SetOrClearCustomerDeletedAt(value *time.Time) *CustomerSubjectsUpdateOne {
+	if value == nil {
+		return u.ClearCustomerDeletedAt()
+	}
+	return u.SetCustomerDeletedAt(*value)
+}
+
 func (u *EntitlementUpdate) SetOrClearMetadata(value *map[string]string) *EntitlementUpdate {
 	if value == nil {
 		return u.ClearMetadata()

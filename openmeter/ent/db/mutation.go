@@ -31111,19 +31111,20 @@ func (m *CustomerMutation) ResetEdge(name string) error {
 // CustomerSubjectsMutation represents an operation that mutates the CustomerSubjects nodes in the graph.
 type CustomerSubjectsMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *int
-	namespace       *string
-	subject_key     *string
-	created_at      *time.Time
-	deleted_at      *time.Time
-	clearedFields   map[string]struct{}
-	customer        *string
-	clearedcustomer bool
-	done            bool
-	oldValue        func(context.Context) (*CustomerSubjects, error)
-	predicates      []predicate.CustomerSubjects
+	op                  Op
+	typ                 string
+	id                  *int
+	namespace           *string
+	subject_key         *string
+	created_at          *time.Time
+	deleted_at          *time.Time
+	customer_deleted_at *time.Time
+	clearedFields       map[string]struct{}
+	customer            *string
+	clearedcustomer     bool
+	done                bool
+	oldValue            func(context.Context) (*CustomerSubjects, error)
+	predicates          []predicate.CustomerSubjects
 }
 
 var _ ent.Mutation = (*CustomerSubjectsMutation)(nil)
@@ -31417,6 +31418,55 @@ func (m *CustomerSubjectsMutation) ResetDeletedAt() {
 	delete(m.clearedFields, customersubjects.FieldDeletedAt)
 }
 
+// SetCustomerDeletedAt sets the "customer_deleted_at" field.
+func (m *CustomerSubjectsMutation) SetCustomerDeletedAt(t time.Time) {
+	m.customer_deleted_at = &t
+}
+
+// CustomerDeletedAt returns the value of the "customer_deleted_at" field in the mutation.
+func (m *CustomerSubjectsMutation) CustomerDeletedAt() (r time.Time, exists bool) {
+	v := m.customer_deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerDeletedAt returns the old "customer_deleted_at" field's value of the CustomerSubjects entity.
+// If the CustomerSubjects object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CustomerSubjectsMutation) OldCustomerDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerDeletedAt: %w", err)
+	}
+	return oldValue.CustomerDeletedAt, nil
+}
+
+// ClearCustomerDeletedAt clears the value of the "customer_deleted_at" field.
+func (m *CustomerSubjectsMutation) ClearCustomerDeletedAt() {
+	m.customer_deleted_at = nil
+	m.clearedFields[customersubjects.FieldCustomerDeletedAt] = struct{}{}
+}
+
+// CustomerDeletedAtCleared returns if the "customer_deleted_at" field was cleared in this mutation.
+func (m *CustomerSubjectsMutation) CustomerDeletedAtCleared() bool {
+	_, ok := m.clearedFields[customersubjects.FieldCustomerDeletedAt]
+	return ok
+}
+
+// ResetCustomerDeletedAt resets all changes to the "customer_deleted_at" field.
+func (m *CustomerSubjectsMutation) ResetCustomerDeletedAt() {
+	m.customer_deleted_at = nil
+	delete(m.clearedFields, customersubjects.FieldCustomerDeletedAt)
+}
+
 // ClearCustomer clears the "customer" edge to the Customer entity.
 func (m *CustomerSubjectsMutation) ClearCustomer() {
 	m.clearedcustomer = true
@@ -31478,7 +31528,7 @@ func (m *CustomerSubjectsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerSubjectsMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.namespace != nil {
 		fields = append(fields, customersubjects.FieldNamespace)
 	}
@@ -31493,6 +31543,9 @@ func (m *CustomerSubjectsMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, customersubjects.FieldDeletedAt)
+	}
+	if m.customer_deleted_at != nil {
+		fields = append(fields, customersubjects.FieldCustomerDeletedAt)
 	}
 	return fields
 }
@@ -31512,6 +31565,8 @@ func (m *CustomerSubjectsMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case customersubjects.FieldDeletedAt:
 		return m.DeletedAt()
+	case customersubjects.FieldCustomerDeletedAt:
+		return m.CustomerDeletedAt()
 	}
 	return nil, false
 }
@@ -31531,6 +31586,8 @@ func (m *CustomerSubjectsMutation) OldField(ctx context.Context, name string) (e
 		return m.OldCreatedAt(ctx)
 	case customersubjects.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case customersubjects.FieldCustomerDeletedAt:
+		return m.OldCustomerDeletedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown CustomerSubjects field %s", name)
 }
@@ -31575,6 +31632,13 @@ func (m *CustomerSubjectsMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetDeletedAt(v)
 		return nil
+	case customersubjects.FieldCustomerDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerDeletedAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown CustomerSubjects field %s", name)
 }
@@ -31608,6 +31672,9 @@ func (m *CustomerSubjectsMutation) ClearedFields() []string {
 	if m.FieldCleared(customersubjects.FieldDeletedAt) {
 		fields = append(fields, customersubjects.FieldDeletedAt)
 	}
+	if m.FieldCleared(customersubjects.FieldCustomerDeletedAt) {
+		fields = append(fields, customersubjects.FieldCustomerDeletedAt)
+	}
 	return fields
 }
 
@@ -31624,6 +31691,9 @@ func (m *CustomerSubjectsMutation) ClearField(name string) error {
 	switch name {
 	case customersubjects.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case customersubjects.FieldCustomerDeletedAt:
+		m.ClearCustomerDeletedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown CustomerSubjects nullable field %s", name)
@@ -31647,6 +31717,9 @@ func (m *CustomerSubjectsMutation) ResetField(name string) error {
 		return nil
 	case customersubjects.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case customersubjects.FieldCustomerDeletedAt:
+		m.ResetCustomerDeletedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown CustomerSubjects field %s", name)
