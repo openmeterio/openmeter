@@ -107,6 +107,7 @@ func (r Recurrence) iterateFromNextAfterInclusive(t time.Time) (RecurrenceIterat
 
 		// Calculate the inclusive nextAfter value
 		for res.After(t) {
+			// TODO: Right now we cannot iterate backwards past 1733, please fix this.
 			if ic <= -MAX_SAFE_ITERATIONS {
 				return RecurrenceIterator{}, fmt.Errorf("recurrence.NextAfter: too many iterations")
 			}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	dbbalancesnapshot "github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -47,7 +48,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			FeatureID:        feature.ID,
 			FeatureKey:       feature.Key,
 			UsageAttribution: usageAttribution,
-			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
+			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1983-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
@@ -562,7 +563,10 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Equal(t, 0.0, entBalance.Overage)
 
 				// FIXME: we shouldn't check things that the contract is unable to tell us
-				snaps, err := deps.dbClient.BalanceSnapshot.Query().All(ctx)
+				snaps, err := deps.dbClient.BalanceSnapshot.
+					Query().
+					Where(dbbalancesnapshot.OwnerID(entitlement.ID)).
+					All(ctx)
 				require.NoError(t, err)
 				assert.Len(t, snaps, 2) // one for the initial and one we made last time
 			},
@@ -571,6 +575,8 @@ func TestGetEntitlementBalance(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
+			deps.streamingConnector.Reset()
+
 			tc.run(t, connector, deps)
 		})
 	}
@@ -595,7 +601,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 			FeatureID:        feature.ID,
 			FeatureKey:       feature.Key,
 			UsageAttribution: usageAttribution,
-			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
+			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1983-01-05T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
@@ -1175,6 +1181,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
+			deps.streamingConnector.Reset()
 			tc.run(t, connector, deps)
 		})
 	}

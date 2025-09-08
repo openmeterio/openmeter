@@ -41,7 +41,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			FeatureID:        feature.ID,
 			FeatureKey:       feature.Key,
 			UsageAttribution: usageAttribution,
-			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
+			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1983-12-24T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
@@ -966,6 +966,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
+			deps.streamingConnector.Reset()
 			tc.run(t, connector, deps)
 		})
 	}
