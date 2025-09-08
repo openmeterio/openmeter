@@ -469,6 +469,7 @@ func TestEntitlementLoadsSubjectAndCustomerAndPreservesAcrossTypedMapping(t *tes
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 		})),
+		IsSoftLimit: lo.ToPtr(true),
 	})
 	require.NoError(t, err)
 
