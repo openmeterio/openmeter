@@ -87,9 +87,7 @@ func (s *Service) Update(ctx context.Context, input subject.UpdateInput) (subjec
 
 // GetByIdOrKey gets a subject by ID or key
 func (s *Service) GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (subject.Subject, error) {
-	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {
-		return s.subjectAdapter.GetByIdOrKey(ctx, orgId, idOrKey)
-	})
+	return s.subjectAdapter.GetByIdOrKey(ctx, orgId, idOrKey)
 }
 
 // GetById gets a subject by ID
@@ -98,9 +96,7 @@ func (s *Service) GetById(ctx context.Context, id models.NamespacedID) (subject.
 		return subject.Subject{}, fmt.Errorf("invalid id: %w", models.NewGenericValidationError(err))
 	}
 
-	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {
-		return s.subjectAdapter.GetById(ctx, id)
-	})
+	return s.subjectAdapter.GetById(ctx, id)
 }
 
 // GetByKey gets a subject by key
@@ -109,16 +105,12 @@ func (s *Service) GetByKey(ctx context.Context, key models.NamespacedKey) (subje
 		return subject.Subject{}, fmt.Errorf("invalid key: %w", models.NewGenericValidationError(err))
 	}
 
-	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {
-		return s.subjectAdapter.GetByKey(ctx, key)
-	})
+	return s.subjectAdapter.GetByKey(ctx, key)
 }
 
 // List lists subjects
 func (s *Service) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.PagedResponse[subject.Subject], error) {
-	return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (pagination.PagedResponse[subject.Subject], error) {
-		return s.subjectAdapter.List(ctx, orgId, params)
-	})
+	return s.subjectAdapter.List(ctx, orgId, params)
 }
 
 // Delete deletes a subject by ID
