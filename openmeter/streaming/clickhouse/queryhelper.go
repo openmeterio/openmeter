@@ -84,9 +84,7 @@ func customersWhere(eventsTableName string, customers []streaming.Customer, quer
 		}
 
 		// Add each subject key to the filter
-		for _, subjectKey := range customer.GetUsageAttribution().SubjectKeys {
-			subjects = append(subjects, subjectKey)
-		}
+		subjects = append(subjects, customer.GetUsageAttribution().SubjectKeys...)
 	}
 
 	// If there are no subjects, we return an empty subject filter
