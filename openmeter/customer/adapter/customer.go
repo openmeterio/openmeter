@@ -41,7 +41,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		if !input.IncludeDeleted {
 			query = query.Where(customerdb.Or(
 				customerdb.DeletedAtIsNil(),
-				customerdb.DeletedAtGT(now),
+				customerdb.DeletedAtGTE(now),
 			))
 		}
 
@@ -63,7 +63,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 				customersubjectsdb.SubjectKeyContainsFold(*input.Subject),
 				customersubjectsdb.Or(
 					customersubjectsdb.DeletedAtIsNil(),
-					customersubjectsdb.DeletedAtGT(now),
+					customersubjectsdb.DeletedAtGTE(now),
 				),
 			))
 		}
@@ -543,6 +543,8 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			lo.Uniq(input.UsageAttribution.SubjectKeys),
 		)
 
+		now := clock.Now().UTC()
+
 		// Add subjects
 		if len(subKeysToAdd) > 0 {
 			_, err = repo.db.CustomerSubjects.
@@ -553,7 +555,8 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 							return repo.db.CustomerSubjects.Create().
 								SetNamespace(input.CustomerID.Namespace).
 								SetCustomerID(input.CustomerID.ID).
-								SetSubjectKey(subjectKey)
+								SetSubjectKey(subjectKey).
+								SetCreatedAt(now)
 						},
 					)...,
 				).
@@ -578,7 +581,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
 				Where(customersubjectsdb.SubjectKeyIn(subKeysToRemove...)).
 				Where(customersubjectsdb.DeletedAtIsNil()).
-				SetDeletedAt(clock.Now().UTC()).
+				SetDeletedAt(now).
 				Exec(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
@@ -665,7 +668,7 @@ func withSubjects(q *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
 						sql.IsNull(ct.C(customerdb.FieldDeletedAt)),
 						sql.Or(
 							sql.IsNull(s.C(customersubjectsdb.FieldDeletedAt)),
-							sql.GT(s.C(customersubjectsdb.FieldDeletedAt), at),
+							sql.GTE(s.C(customersubjectsdb.FieldDeletedAt), at),
 						),
 					),
 				),
