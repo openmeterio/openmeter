@@ -165,7 +165,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, err
 	}
 
-	r.AddNoPublisherHandler(
+	r.AddConsumerHandler(
 		"balance_worker_system_events",
 		opts.SystemEventsTopic,
 		opts.Router.Subscriber,
@@ -173,7 +173,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 	)
 
 	if opts.SystemEventsTopic != opts.IngestEventsTopic {
-		r.AddNoPublisherHandler(
+		r.AddConsumerHandler(
 			"balance_worker_ingest_events",
 			opts.IngestEventsTopic,
 			opts.Router.Subscriber,
