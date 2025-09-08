@@ -36,7 +36,10 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+		randName := testutils.NameGenerator.Generate()
+
+		// create customer and subject
+		cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 		return f, cust
 	}
@@ -643,7 +646,10 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		c := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+		randName := testutils.NameGenerator.Generate()
+
+		// create customer and subject
+		c := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 		// Create entitlement
 

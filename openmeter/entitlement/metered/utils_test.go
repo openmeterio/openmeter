@@ -201,23 +201,25 @@ func assertUsagePeriodInputsEquals(t *testing.T, expected, actual *entitlement.U
 	assert.NotNil(t, expected, "expected is nil")
 	assert.NotNil(t, actual, "actual is nil")
 	assert.Equal(t, expected.GetValue().Interval, actual.GetValue().Interval, "periods do not match")
-	assert.Equal(t, expected.GetValue().Anchor.Format(time.RFC3339), actual.GetValue().Anchor.Format(time.RFC3339), "anchors do not match")
+	assert.Equal(t, expected.GetValue().Anchor.UTC().Format(time.RFC3339), actual.GetValue().Anchor.UTC().Format(time.RFC3339), "anchors do not match")
 }
 
-func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Adapter, ns string, subjectKey string) *customer.Customer {
+func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Adapter, ns, key, name string) *customer.Customer {
 	t.Helper()
-	_, err := subjectService.Create(context.Background(), subject.CreateInput{
+
+	_, err := subjectService.Create(t.Context(), subject.CreateInput{
 		Namespace: ns,
-		Key:       subjectKey,
+		Key:       key,
 	})
 	require.NoError(t, err)
 
-	cust, err := customerService.CreateCustomer(context.Background(), customer.CreateCustomerInput{
+	cust, err := customerService.CreateCustomer(t.Context(), customer.CreateCustomerInput{
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
-			Key: lo.ToPtr(subjectKey),
+			Key:  lo.ToPtr(key),
+			Name: name,
 			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{subjectKey},
+				SubjectKeys: []string{key},
 			},
 		},
 	})
