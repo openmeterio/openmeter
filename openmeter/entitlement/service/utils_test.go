@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
@@ -31,7 +30,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Meant to work for boolean entitlements
@@ -74,6 +72,7 @@ type dependencies struct {
 	streamingConnector *streamingtestutils.MockStreamingConnector
 	subjectService     subject.Service
 	customerService    customer.Service
+	meterService       meter.ManageService
 }
 
 // Teardown cleans up the dependencies
@@ -89,25 +88,9 @@ var m sync.Mutex
 func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 	testLogger := testutils.NewLogger(t)
 
-	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		ManagedResource: models.ManagedResource{
-			ID: ulid.Make().String(),
-			NamespacedModel: models.NamespacedModel{
-				Namespace: "ns1",
-			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
-			},
-			Name: "Meter 1",
-		},
-		Key:           "meter1",
-		Aggregation:   meter.MeterAggregationSum,
-		EventType:     "test",
-		ValueProperty: lo.ToPtr("$.value"),
-	}})
+	meterService, err := meteradapter.NewManage(nil)
 	if err != nil {
-		t.Fatalf("failed to create meter adapter: %v", err)
+		t.Fatalf("failed to create meter service: %v", err)
 	}
 
 	// create isolated pg db for tests
@@ -136,7 +119,7 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 		StreamingConnector: streamingConnector,
 		Logger:             testLogger,
 		Tracer:             noop.NewTracerProvider().Tracer("test"),
-		MeterService:       meterAdapter,
+		MeterService:       meterService,
 		Publisher:          eventbus.NewMock(t),
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: datetime.ISODurationString("P1D"),
@@ -179,25 +162,28 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 		streamingConnector: streamingConnector,
 		subjectService:     subjectService,
 		customerService:    customerService,
+		meterService:       meterService,
 	}
 
 	return entitlementRegistry.Entitlement, deps
 }
 
-func createCustomerAndSubject(t *testing.T, deps *dependencies, ns string, subjectKey string) *customer.Customer {
+func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Service, ns, key, name string) *customer.Customer {
 	t.Helper()
-	_, err := deps.subjectService.Create(context.Background(), subject.CreateInput{
+
+	_, err := subjectService.Create(t.Context(), subject.CreateInput{
 		Namespace: ns,
-		Key:       subjectKey,
+		Key:       key,
 	})
 	require.NoError(t, err)
 
-	cust, err := deps.customerService.CreateCustomer(context.Background(), customer.CreateCustomerInput{
+	cust, err := customerService.CreateCustomer(t.Context(), customer.CreateCustomerInput{
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
-			Key: lo.ToPtr(subjectKey),
+			Key:  lo.ToPtr(key),
+			Name: name,
 			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{subjectKey},
+				SubjectKeys: []string{key},
 			},
 		},
 	})
