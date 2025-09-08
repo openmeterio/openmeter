@@ -1,6 +1,7 @@
 package subscriptiontestutils
 
 import (
+	"log/slog"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
@@ -25,6 +27,7 @@ import (
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subject"
+	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionaddonrepo "github.com/openmeterio/openmeter/openmeter/subscription/addon/repo"
@@ -113,8 +116,49 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	)
 
 	customerAdapter := NewCustomerAdapter(t, dbDeps)
-	customer := NewCustomerService(t, dbDeps)
+	customerService := NewCustomerService(t, dbDeps)
 	subjectService := NewSubjectService(t, dbDeps)
+
+	// Hooks
+
+	// Subject hooks
+
+	subjectCustomerHook, err := subjecthooks.NewCustomerSubjectHook(subjecthooks.CustomerSubjectHookConfig{
+		Subject: subjectService,
+		Logger:  logger,
+		Tracer:  noop.NewTracerProvider().Tracer("test_env"),
+	})
+	require.NoError(t, err)
+	customerService.RegisterHooks(subjectCustomerHook)
+
+	subjectEntitlementValidatorHook, err := subjecthooks.NewEntitlementValidatorHook(subjecthooks.EntitlementValidatorHookConfig{
+		EntitlementService: entitlementRegistry.Entitlement,
+	})
+	require.NoError(t, err)
+	subjectService.RegisterHooks(subjectEntitlementValidatorHook)
+
+	// customer hooks
+	customerSubjectHook, err := customerservicehooks.NewSubjectCustomerHook(customerservicehooks.SubjectCustomerHookConfig{
+		Customer:         customerService,
+		CustomerOverride: NoopCustomerOverrideService{},
+		Logger:           logger,
+		Tracer:           noop.NewTracerProvider().Tracer("test_env"),
+	})
+	require.NoError(t, err)
+	subjectService.RegisterHooks(customerSubjectHook)
+
+	customerSubjectValidatorHook, err := customerservicehooks.NewSubjectValidatorHook(customerservicehooks.SubjectValidatorHookConfig{
+		Customer: customerService,
+		Logger:   slog.Default(),
+	})
+	require.NoError(t, err)
+	subjectService.RegisterHooks(customerSubjectValidatorHook)
+
+	entitlementValidatorHook, err := customerservicehooks.NewEntitlementValidatorHook(customerservicehooks.EntitlementValidatorHookConfig{
+		EntitlementService: entitlementRegistry.Entitlement,
+	})
+	require.NoError(t, err)
+	customerService.RegisterHooks(entitlementValidatorHook)
 
 	planRepo, err := planrepo.New(planrepo.Config{
 		Client: dbDeps.DBClient,
@@ -136,7 +180,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		SubscriptionRepo:      subRepo,
 		SubscriptionPhaseRepo: subPhaseRepo,
 		SubscriptionItemRepo:  subItemRepo,
-		CustomerService:       customer,
+		CustomerService:       customerService,
 		EntitlementAdapter:    entitlementAdapter,
 		FeatureService:        entitlementRegistry.Feature,
 		TransactionManager:    subItemRepo,
@@ -189,7 +233,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 
 	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            svc,
-		CustomerService:    customer,
+		CustomerService:    customerService,
 		TransactionManager: subItemRepo,
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
@@ -200,7 +244,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		SubscriptionService:      svc,
 		WorkflowService:          workflowSvc,
 		CustomerAdapter:          customerAdapter,
-		CustomerService:          customer,
+		CustomerService:          customerService,
 		SubjectService:           subjectService,
 		FeatureConnector:         NewTestFeatureConnector(entitlementRegistry.Feature),
 		EntitlementAdapter:       entitlementAdapter,
