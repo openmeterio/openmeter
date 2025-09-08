@@ -4500,13 +4500,12 @@ func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithm
 				},
 				{
 					Start: s.mustParseTime("2025-03-02T00:00:00Z"),
-					End:   s.mustParseTime("2025-03-28T00:00:00Z"), // TODO: once we implement sticky recurrence (sticking to end of month) this should be 03-31
+					End:   s.mustParseTime("2025-03-31T00:00:00Z"),
 				},
 			},
 
 			InvoiceAt: mo.Some([]time.Time{
 				s.mustParseTime("2025-01-31T00:00:00Z"),
-				// TODO: Once the period fix is there, this should be 03-31
 				s.mustParseTime("2025-03-02T00:00:00Z"),
 			}),
 		},
