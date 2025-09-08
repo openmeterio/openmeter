@@ -39,7 +39,10 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 
 		// Do not return deleted customers by default
 		if !input.IncludeDeleted {
-			query = query.Where(customerdb.DeletedAtIsNil())
+			query = query.Where(customerdb.Or(
+				customerdb.DeletedAtIsNil(),
+				customerdb.DeletedAtGTE(now),
+			))
 		}
 
 		// Filters
@@ -60,7 +63,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 				customersubjectsdb.SubjectKeyContainsFold(*input.Subject),
 				customersubjectsdb.Or(
 					customersubjectsdb.DeletedAtIsNil(),
-					customersubjectsdb.DeletedAtGT(now),
+					customersubjectsdb.DeletedAtGTE(now),
 				),
 			))
 		}
@@ -223,7 +226,8 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 						return repo.db.CustomerSubjects.Create().
 							SetNamespace(customerEntity.Namespace).
 							SetCustomerID(customerEntity.ID).
-							SetSubjectKey(subjectKey)
+							SetSubjectKey(subjectKey).
+							SetCreatedAt(customerEntity.CreatedAt)
 					},
 				)...,
 			).
@@ -329,9 +333,11 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 			query = query.Where(customerdb.Namespace(input.CustomerIDOrKey.Namespace))
 			query = query.Where(customerdb.Or(
 				customerdb.ID(input.CustomerIDOrKey.IDOrKey),
-				customerdb.Key(input.CustomerIDOrKey.IDOrKey),
+				customerdb.And(
+					customerdb.Key(input.CustomerIDOrKey.IDOrKey),
+					customerdb.DeletedAtIsNil(),
+				),
 			))
-			query = query.Where(customerdb.DeletedAtIsNil())
 			query = query.Order(customerdb.ByID(sql.OrderAsc()))
 		} else {
 			return nil, models.NewGenericValidationError(
@@ -365,8 +371,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 		}
 
 		return CustomerFromDBEntity(*entity)
-	},
-	)
+	})
 }
 
 // GetCustomerByUsageAttribution gets a customer by usage attribution
@@ -421,6 +426,20 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
+		// Get the customer to diff the subjects
+		previousCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &input.CustomerID,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if previousCustomer != nil && previousCustomer.DeletedAt != nil {
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("cannot updated already deleted customer [namespace=%s customer.id=%s]", input.CustomerID.Namespace, input.CustomerID.ID),
+			)
+		}
+
 		// Check if the key is not an ID of another customer
 		if input.Key != nil {
 			count, err := repo.db.Customer.Query().
@@ -456,14 +475,6 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 					fmt.Errorf("key %s overlaps with subject of another customer: %s", *input.Key, conflictingCustomerIDs[0].CustomerID),
 				)
 			}
-		}
-
-		// Get the customer to diff the subjects
-		previousCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput{
-			CustomerID: &input.CustomerID,
-		})
-		if err != nil {
-			return nil, err
 		}
 
 		query := repo.db.Customer.UpdateOneID(previousCustomer.ID).
@@ -532,6 +543,8 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			lo.Uniq(input.UsageAttribution.SubjectKeys),
 		)
 
+		now := clock.Now().UTC()
+
 		// Add subjects
 		if len(subKeysToAdd) > 0 {
 			_, err = repo.db.CustomerSubjects.
@@ -542,7 +555,8 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 							return repo.db.CustomerSubjects.Create().
 								SetNamespace(input.CustomerID.Namespace).
 								SetCustomerID(input.CustomerID.ID).
-								SetSubjectKey(subjectKey)
+								SetSubjectKey(subjectKey).
+								SetCreatedAt(now)
 						},
 					)...,
 				).
@@ -567,7 +581,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
 				Where(customersubjectsdb.SubjectKeyIn(subKeysToRemove...)).
 				Where(customersubjectsdb.DeletedAtIsNil()).
-				SetDeletedAt(clock.Now().UTC()).
+				SetDeletedAt(now).
 				Exec(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
@@ -633,17 +647,33 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 		}
 
 		return cus, nil
-	},
-	)
+	})
 }
 
 // withSubjects returns a query with the subjects
-func withSubjects(query *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
-	return query.WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
-		query.Where(customersubjectsdb.Or(
-			customersubjectsdb.DeletedAtIsNil(),
-			customersubjectsdb.DeletedAtGT(at),
-		))
+func withSubjects(q *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
+	return q.WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
+		query.Where(func(s *sql.Selector) {
+			ct := sql.Table(customerdb.Table)
+
+			s.Join(ct).On(ct.C(customerdb.FieldID), s.C(customersubjectsdb.FieldCustomerID))
+
+			s.Where(
+				sql.Or(
+					sql.And(
+						sql.NotNull(ct.C(customerdb.FieldDeletedAt)),
+						sql.ColumnsEQ(s.C(customersubjectsdb.FieldDeletedAt), ct.C(customerdb.FieldDeletedAt)),
+					),
+					sql.And(
+						sql.IsNull(ct.C(customerdb.FieldDeletedAt)),
+						sql.Or(
+							sql.IsNull(s.C(customersubjectsdb.FieldDeletedAt)),
+							sql.GTE(s.C(customersubjectsdb.FieldDeletedAt), at),
+						),
+					),
+				),
+			)
+		})
 	})
 }
 

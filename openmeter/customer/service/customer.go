@@ -14,9 +14,7 @@ var _ customer.Service = (*Service)(nil)
 
 // ListCustomers lists customers
 func (s *Service) ListCustomers(ctx context.Context, input customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.PagedResponse[customer.Customer], error) {
-		return s.adapter.ListCustomers(ctx, input)
-	})
+	return s.adapter.ListCustomers(ctx, input)
 }
 
 // CreateCustomer creates a customer
@@ -107,16 +105,12 @@ func (s *Service) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 
 // GetCustomer gets a customer
 func (s *Service) GetCustomer(ctx context.Context, input customer.GetCustomerInput) (*customer.Customer, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*customer.Customer, error) {
-		return s.adapter.GetCustomer(ctx, input)
-	})
+	return s.adapter.GetCustomer(ctx, input)
 }
 
 // GetCustomerByUsageAttribution gets a customer by usage attribution
 func (s *Service) GetCustomerByUsageAttribution(ctx context.Context, input customer.GetCustomerByUsageAttributionInput) (*customer.Customer, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*customer.Customer, error) {
-		return s.adapter.GetCustomerByUsageAttribution(ctx, input)
-	})
+	return s.adapter.GetCustomerByUsageAttribution(ctx, input)
 }
 
 // UpdateCustomer updates a customer
