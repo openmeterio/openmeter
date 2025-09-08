@@ -51,7 +51,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 				a.GetID(),
 				a.GetType(),
 				&customerID,
-				fmt.Sprintf("stripe customer %s not found in stripe account %s", stripeCustomerData.StripeCustomerID, stripeAppData.StripeAccountID),
+				fmt.Sprintf("stripe customer not found in stripe account [stripe.customer_id=%s stripe.account_id=%s]", stripeCustomerData.StripeCustomerID, stripeAppData.StripeAccountID),
 			)
 		}
 
