@@ -108,6 +108,13 @@ func (CustomerSubjects) Indexes() []ent.Index {
 				entsql.IndexWhere("deleted_at IS NULL"),
 			).
 			Unique(),
+		// These two indexes are best picked up by ent's `.WithCustomer()`... edges where it generates
+		// ...WHERE id IN (SELECT ...) type queries.
+		index.Fields("deleted_at"),
+		index.Fields("subject_key"),
+		// For other common queries based on analytics
+		index.Fields("customer_id"),
+		index.Fields("deleted_at", "customer_id"),
 	}
 }
 

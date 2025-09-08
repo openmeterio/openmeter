@@ -1393,6 +1393,26 @@ var (
 					Where: "deleted_at IS NULL",
 				},
 			},
+			{
+				Name:    "customersubjects_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{CustomerSubjectsColumns[4]},
+			},
+			{
+				Name:    "customersubjects_subject_key",
+				Unique:  false,
+				Columns: []*schema.Column{CustomerSubjectsColumns[2]},
+			},
+			{
+				Name:    "customersubjects_customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{CustomerSubjectsColumns[5]},
+			},
+			{
+				Name:    "customersubjects_deleted_at_customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{CustomerSubjectsColumns[4], CustomerSubjectsColumns[5]},
+			},
 		},
 	}
 	// EntitlementsColumns holds the columns for the "entitlements" table.
