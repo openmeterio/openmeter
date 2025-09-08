@@ -105,7 +105,7 @@ func New(opts Options) (*Consumer, error) {
 		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
 	}
 
-	_ = r.AddNoPublisherHandler(
+	_ = r.AddConsumerHandler(
 		"notification_consumer_system_events",
 		opts.SystemEventsTopic,
 		opts.Router.Subscriber,

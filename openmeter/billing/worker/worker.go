@@ -113,7 +113,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 
 	worker.nonPublishingHandler = eventHandler
 
-	router.AddNoPublisherHandler(
+	router.AddConsumerHandler(
 		"billing_worker_system_events",
 		opts.SystemEventsTopic,
 		opts.Router.Subscriber,

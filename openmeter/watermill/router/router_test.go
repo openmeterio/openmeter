@@ -223,14 +223,14 @@ func TestDefaultRouter(t *testing.T) {
 
 			const topicName = "testTopic"
 
-			router.AddNoPublisherHandler(
+			router.AddConsumerHandler(
 				"test",
 				topicName,
 				inMemoryPubSub,
 				handler.Handle,
 			)
 
-			router.AddNoPublisherHandler(
+			router.AddConsumerHandler(
 				"test-dlq",
 				options.Config.DLQ.Topic,
 				inMemoryPubSub,
