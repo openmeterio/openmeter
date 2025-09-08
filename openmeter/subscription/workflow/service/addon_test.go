@@ -392,7 +392,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		cust2, err := deps.CustomerAdapter.CreateCustomer(context.Background(), customer.CreateCustomerInput{
+		cust2, err := deps.CustomerService.CreateCustomer(context.Background(), customer.CreateCustomerInput{
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			CustomerMutate: customer.CustomerMutate{
 				Name:         "another",
