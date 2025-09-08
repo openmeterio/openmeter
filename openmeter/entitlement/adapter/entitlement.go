@@ -139,6 +139,12 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				Where(customerdb.DeletedAtIsNil()).
 				Only(ctx)
 			if err != nil {
+				if db.IsNotFound(err) {
+					return nil, models.NewGenericNotFoundError(
+						fmt.Errorf("customer with id %s not found in %s namespace", ent.UsageAttribution.ID, ent.Namespace),
+					)
+				}
+
 				return nil, fmt.Errorf("failed to resolve customer: %w", err)
 			}
 
@@ -160,6 +166,12 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				).
 				Only(ctx)
 			if err != nil {
+				if db.IsNotFound(err) {
+					return nil, models.NewGenericNotFoundError(
+						fmt.Errorf("subject with key %s not found in %s namespace", subjectKey, ent.Namespace),
+					)
+				}
+
 				return nil, fmt.Errorf("failed to load subject %s: %w", subjectKey, err)
 			}
 
@@ -214,6 +226,11 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				Where(db_entitlement.ID(res.ID)).
 				Only(ctx)
 			if err != nil {
+				if db.IsNotFound(err) {
+					return nil, models.NewGenericNotFoundError(
+						fmt.Errorf("entitlement with id %s not found in %s namespace", res.ID, res.Namespace),
+					)
+				}
 				return nil, fmt.Errorf("failed to query created entitlement with edges: %w", err)
 			}
 

@@ -92,14 +92,5 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 		}
 	}
 
-	// Check if the customer has any entitlements
-	access, err := v.entitlementService.GetAccess(ctx, input.Namespace, input.ID)
-	if err != nil {
-		return err
-	}
-	if len(access.Entitlements) > 0 {
-		errs = append(errs, fmt.Errorf("customer has entitlements, please remove them before deleting the customer"))
-	}
-
 	return errors.Join(errs...)
 }
