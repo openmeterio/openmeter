@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -196,6 +197,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 				return UpdateCustomerRequest{}, err
 			}
 
+			// TODO: we should not allow key identifier for mutable operations
 			// Get the customer
 			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
 				CustomerIDOrKey: &customer.CustomerIDOrKey{
@@ -205,6 +207,13 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 			})
 			if err != nil {
 				return UpdateCustomerRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return UpdateCustomerRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
 			}
 
 			req := UpdateCustomerRequest{
@@ -249,6 +258,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 				return DeleteCustomerRequest{}, err
 			}
 
+			// TODO: we should not allow key identifier for mutable operations
 			// Get the customer
 			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
 				CustomerIDOrKey: &customer.CustomerIDOrKey{
@@ -258,6 +268,13 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 			})
 			if err != nil {
 				return DeleteCustomerRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return DeleteCustomerRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
 			}
 
 			return cus.GetID(), nil
@@ -310,16 +327,16 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 		},
 		func(ctx context.Context, request GetCustomerRequest) (GetCustomerResponse, error) {
 			// Get the customer
-			customer, err := h.service.GetCustomer(ctx, request)
+			cus, err := h.service.GetCustomer(ctx, request)
 			if err != nil {
 				return GetCustomerResponse{}, err
 			}
 
-			if customer == nil {
+			if cus == nil {
 				return GetCustomerResponse{}, fmt.Errorf("failed to get customer")
 			}
 
-			return h.mapCustomerWithSubscriptionsToAPI(ctx, *customer, request.Expand)
+			return h.mapCustomerWithSubscriptionsToAPI(ctx, *cus, request.Expand)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -357,6 +374,13 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 			})
 			if err != nil {
 				return GetCustomerEntitlementValueRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return GetCustomerEntitlementValueRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
 			}
 
 			return GetCustomerEntitlementValueRequest{
@@ -413,14 +437,21 @@ func (h *handler) GetCustomerAccess() GetCustomerAccessHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerAccessRequest) (GetCustomerAccessResponse, error) {
-			cust, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
 				CustomerIDOrKey: request.CustomerIDOrKey,
 			})
 			if err != nil {
 				return GetCustomerAccessResponse{}, err
 			}
 
-			access, err := h.entitlementService.GetAccess(ctx, cust.Namespace, cust.ID)
+			if cus != nil && cus.IsDeleted() {
+				return GetCustomerAccessResponse{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
+			}
+
+			access, err := h.entitlementService.GetAccess(ctx, cus.Namespace, cus.ID)
 			if err != nil {
 				return GetCustomerAccessResponse{}, err
 			}

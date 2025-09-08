@@ -10,7 +10,7 @@ import (
 )
 
 func resolveCustomerAndSubject(ctx context.Context, customerService customer.Service, subjectService subject.Service, namespace string, customerID string) (customer.Customer, subject.Subject, error) {
-	cust, err := customerService.GetCustomer(ctx, customer.GetCustomerInput{
+	cus, err := customerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customer.CustomerID{
 			Namespace: namespace,
 			ID:        customerID,
@@ -20,7 +20,19 @@ func resolveCustomerAndSubject(ctx context.Context, customerService customer.Ser
 		return customer.Customer{}, subject.Subject{}, fmt.Errorf("failed to get customer: %w", err)
 	}
 
-	subjKey, err := cust.UsageAttribution.GetSubjectKey()
+	if cus != nil && cus.IsDeleted() {
+		return customer.Customer{}, subject.Subject{}, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+		)
+	}
+
+	if cus == nil {
+		return customer.Customer{}, subject.Subject{}, models.NewGenericNotFoundError(
+			fmt.Errorf("customer not found [namespace=%s customer.id=%s]", namespace, customerID),
+		)
+	}
+
+	subjKey, err := cus.UsageAttribution.GetSubjectKey()
 	if err != nil {
 		return customer.Customer{}, subject.Subject{}, fmt.Errorf("failed to get subject key for customer %s: %w", customerID, err)
 	}
@@ -33,5 +45,5 @@ func resolveCustomerAndSubject(ctx context.Context, customerService customer.Ser
 		return customer.Customer{}, subject.Subject{}, fmt.Errorf("failed to get subject: %w", err)
 	}
 
-	return *cust, subj, nil
+	return *cus, subj, nil
 }

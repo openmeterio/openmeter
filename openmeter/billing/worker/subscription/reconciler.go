@@ -103,7 +103,7 @@ func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.Na
 		return fmt.Errorf("failed to get subscription: %w", err)
 	}
 
-	customer, err := r.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+	cus, err := r.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customer.CustomerID{
 			ID:        subsView.Customer.ID,
 			Namespace: subsID.Namespace,
@@ -113,8 +113,10 @@ func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.Na
 		return fmt.Errorf("failed to get customer: %w", err)
 	}
 
-	if customer.DeletedAt != nil {
+	// TODO: remove this check to make sure that deleted customers are fully invoiced
+	if cus != nil && cus.IsDeleted() {
 		r.logger.WarnContext(ctx, "customer is deleted, skipping reconciliation", "customer_id", subsView.Customer.ID)
+
 		return nil
 	}
 

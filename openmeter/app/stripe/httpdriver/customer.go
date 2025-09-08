@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -48,6 +49,13 @@ func (h *handler) GetCustomerStripeAppData() GetCustomerStripeAppDataHandler {
 			})
 			if err != nil {
 				return GetCustomerStripeAppDataRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return GetCustomerStripeAppDataRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
 			}
 
 			// Construct the request
@@ -107,6 +115,13 @@ func (h *handler) UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandl
 			})
 			if err != nil {
 				return UpsertCustomerStripeAppDataRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return UpsertCustomerStripeAppDataRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
 			}
 
 			return UpsertCustomerStripeAppDataRequest{
@@ -182,6 +197,13 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 			})
 			if err != nil {
 				return CreateStripeCustomerPortalSessionRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return CreateStripeCustomerPortalSessionRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
 			}
 
 			// Create request

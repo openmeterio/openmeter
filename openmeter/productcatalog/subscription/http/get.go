@@ -98,6 +98,12 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 				return ListCustomerSubscriptionsRequest{}, err
 			}
 
+			if cus != nil && cus.IsDeleted() {
+				return ListCustomerSubscriptionsRequest{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
+			}
+
 			return ListCustomerSubscriptionsRequest{
 				CustomerID: cus.GetID(),
 				Page:       pagination.NewPageFromRef(params.Params.Page, params.Params.PageSize),

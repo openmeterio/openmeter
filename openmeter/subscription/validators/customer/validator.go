@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ customer.RequestValidator = (*Validator)(nil)
@@ -60,6 +61,18 @@ func (v *Validator) ValidateUpdateCustomer(ctx context.Context, input customer.U
 		})
 		if err != nil {
 			return err
+		}
+
+		if currentCustomer != nil && currentCustomer.IsDeleted() {
+			return models.NewGenericPreConditionFailedError(
+				fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", currentCustomer.Namespace, currentCustomer.ID),
+			)
+		}
+
+		if currentCustomer == nil {
+			return models.NewGenericNotFoundError(
+				fmt.Errorf("customer [namespace=%s customer.id=%s]", input.CustomerID.Namespace, input.CustomerID.ID),
+			)
 		}
 
 		// Let's check the two subjectKey arrays are the same

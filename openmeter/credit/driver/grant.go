@@ -3,6 +3,7 @@ package creditdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 
@@ -248,6 +249,14 @@ func (h *grantHandler) ListGrantsV2() ListGrantsV2Handler {
 					if err != nil {
 						return ListGrantsV2HandlerRequest{}, err
 					}
+
+					if cus != nil && cus.IsDeleted() {
+						return ListGrantsV2HandlerRequest{},
+							models.NewGenericPreConditionFailedError(
+								fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+							)
+					}
+
 					subjectKeys = append(subjectKeys, cus.UsageAttribution.SubjectKeys...)
 				}
 			}

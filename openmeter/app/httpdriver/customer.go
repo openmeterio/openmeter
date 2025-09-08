@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -49,6 +50,13 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 			})
 			if err != nil {
 				return ListCustomerDataRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return ListCustomerDataRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
 			}
 
 			req := ListCustomerDataRequest{
@@ -117,17 +125,12 @@ type (
 func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params UpsertCustomerDataParams) (UpsertCustomerDataRequest, error) {
-			body := []api.CustomerAppData{}
-			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return UpsertCustomerDataRequest{}, fmt.Errorf("field to decode upsert customer data request: %w", err)
-			}
-
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return UpsertCustomerDataRequest{}, err
 			}
 
-			// Get the customer
+			// Get the customer and ensure we do not update customer data if the customer is already deleted
 			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 				CustomerIDOrKey: &customer.CustomerIDOrKey{
 					IDOrKey:   params.CustomerIdOrKey,
@@ -136,6 +139,20 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 			})
 			if err != nil {
 				return UpsertCustomerDataRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return UpsertCustomerDataRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
+			}
+
+			var body []api.CustomerAppData
+
+			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+				return UpsertCustomerDataRequest{},
+					fmt.Errorf("field to decode upsert customer data request: %w", err)
 			}
 
 			return UpsertCustomerDataRequest{
@@ -202,6 +219,13 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 			})
 			if err != nil {
 				return DeleteCustomerDataRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return DeleteCustomerDataRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
 			}
 
 			return DeleteCustomerDataRequest{

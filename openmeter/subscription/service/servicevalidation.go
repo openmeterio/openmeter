@@ -90,7 +90,7 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 	}
 
 	// Fetch the customer & validate the customer
-	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+	cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customer.CustomerID{
 			Namespace: currentView.Subscription.Namespace,
 			ID:        currentView.Subscription.CustomerId,
@@ -100,11 +100,17 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 		return err
 	}
 
-	if cust == nil {
+	if cus != nil && cus.IsDeleted() {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+		)
+	}
+
+	if cus == nil {
 		return fmt.Errorf("customer is nil")
 	}
 
-	if _, err := cust.UsageAttribution.GetSubjectKey(); err != nil {
+	if _, err := cus.UsageAttribution.GetSubjectKey(); err != nil {
 		if newSpec.HasEntitlements() {
 			return models.NewGenericValidationError(errors.New("customer has no subject but subscription has entitlements"))
 		}
@@ -115,9 +121,9 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 	}
 
 	if newSpec.HasBillables() {
-		if cust.Currency != nil {
-			if string(*cust.Currency) != string(newSpec.Currency) {
-				return models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cust.Currency, newSpec.Currency))
+		if cus.Currency != nil {
+			if string(*cus.Currency) != string(newSpec.Currency) {
+				return models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cus.Currency, newSpec.Currency))
 			}
 		}
 	}

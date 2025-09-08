@@ -80,7 +80,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	def := subscription.Subscription{}
 
 	// Fetch the customer & validate the customer
-	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+	cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customer.CustomerID{
 			Namespace: namespace,
 			ID:        spec.CustomerId,
@@ -90,11 +90,17 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		return def, err
 	}
 
-	if cust == nil {
+	if cus != nil && cus.IsDeleted() {
+		return def, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+		)
+	}
+
+	if cus == nil {
 		return def, fmt.Errorf("customer is nil")
 	}
 
-	if err := s.validateCreate(ctx, *cust, spec); err != nil {
+	if err := s.validateCreate(ctx, *cus, spec); err != nil {
 		return def, err
 	}
 
@@ -120,7 +126,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 				return def, fmt.Errorf("failed to get phase cadence: %w", err)
 			}
 
-			if _, err := s.createPhase(ctx, *cust, *phase, sub, phaseCadence); err != nil {
+			if _, err := s.createPhase(ctx, *cus, *phase, sub, phaseCadence); err != nil {
 				return def, err
 			}
 		}
@@ -373,7 +379,7 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 		return def, err
 	}
 
-	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+	cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customer.CustomerID{
 			Namespace: sub.Namespace,
 			ID:        sub.CustomerId,
@@ -382,7 +388,14 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 	if err != nil {
 		return def, err
 	}
-	if cust == nil {
+
+	if cus != nil && cus.IsDeleted() {
+		return def, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+		)
+	}
+
+	if cus == nil {
 		return def, fmt.Errorf("customer is nil")
 	}
 
@@ -431,7 +444,7 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 
 	view, err := subscription.NewSubscriptionView(
 		sub,
-		*cust,
+		*cus,
 		phases,
 		items,
 		ents,
@@ -462,7 +475,7 @@ func (s *service) List(ctx context.Context, input subscription.ListSubscriptions
 }
 
 func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscription.Subscription, currentSpec subscription.SubscriptionSpec) error {
-	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+	cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customer.CustomerID{
 			Namespace: sub.Namespace,
 			ID:        sub.CustomerId,
@@ -472,24 +485,30 @@ func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscr
 		return fmt.Errorf("failed to get customer: %w", err)
 	}
 
-	if cust == nil {
+	if cus != nil && cus.IsDeleted() {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+		)
+	}
+
+	if cus == nil {
 		return fmt.Errorf("customer is nil")
 	}
 
 	// Let's set the customer's currency to the subscription currency for paid subscriptions (if not already set)
-	if cust.Currency == nil && currentSpec.HasBillables() {
+	if cus.Currency == nil && currentSpec.HasBillables() {
 		if _, err := s.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
-			CustomerID: cust.GetID(),
+			CustomerID: cus.GetID(),
 			CustomerMutate: customer.CustomerMutate{
-				Name:             cust.Name,
-				Key:              cust.Key,
-				Description:      cust.Description,
-				UsageAttribution: cust.UsageAttribution,
-				PrimaryEmail:     cust.PrimaryEmail,
-				BillingAddress:   cust.BillingAddress,
+				Name:             cus.Name,
+				Key:              cus.Key,
+				Description:      cus.Description,
+				UsageAttribution: cus.UsageAttribution,
+				PrimaryEmail:     cus.PrimaryEmail,
+				BillingAddress:   cus.BillingAddress,
 				Currency:         &currentSpec.Currency,
-				Metadata:         cust.Metadata,
-				Annotation:       cust.Annotation,
+				Metadata:         cus.Metadata,
+				Annotation:       cus.Annotation,
 			},
 		}); err != nil {
 			return fmt.Errorf("failed to update customer currency: %w", err)

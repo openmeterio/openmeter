@@ -65,6 +65,10 @@ func (s *Service) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 				input.Namespace, input.ID, err)
 		}
 
+		if cus != nil && cus.IsDeleted() {
+			return nil
+		}
+
 		// Run pre delete hooks
 		if err = s.hooks.PreDelete(ctx, cus); err != nil {
 			return err
@@ -127,6 +131,12 @@ func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 		if err != nil {
 			return nil, fmt.Errorf("failed to get customer [namespace=%s customer.id=%s]: %w",
 				input.CustomerID.Namespace, input.CustomerID.ID, err)
+		}
+
+		if cus != nil && cus.IsDeleted() {
+			return nil, models.NewGenericPreConditionFailedError(
+				fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+			)
 		}
 
 		// Run pre update hooks

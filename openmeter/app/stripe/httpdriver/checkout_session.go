@@ -90,6 +90,13 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 					return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("failed to get customer by key: %w", err)
 				}
 
+				if cus != nil && cus.IsDeleted() {
+					return CreateAppStripeCheckoutSessionRequest{},
+						models.NewGenericPreConditionFailedError(
+							fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+						)
+				}
+
 				customerId = lo.ToPtr(cus.GetID())
 			}
 

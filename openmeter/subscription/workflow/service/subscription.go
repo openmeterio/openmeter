@@ -25,7 +25,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 		}
 
 		// Let's find the customer
-		cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+		cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 			CustomerID: &customer.CustomerID{
 				Namespace: inp.Namespace,
 				ID:        inp.CustomerID,
@@ -35,7 +35,13 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			return def, fmt.Errorf("failed to fetch customer: %w", err)
 		}
 
-		if cust == nil {
+		if cus != nil && cus.IsDeleted() {
+			return def, models.NewGenericPreConditionFailedError(
+				fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+			)
+		}
+
+		if cus == nil {
 			return def, fmt.Errorf("unexpected nil customer")
 		}
 
@@ -53,7 +59,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 
 		// Let's create the new Spec
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
+			CustomerId:    cus.ID,
 			Currency:      plan.Currency(),
 			ActiveFrom:    activeFrom,
 			MetadataModel: inp.MetadataModel,

@@ -3,6 +3,7 @@ package entitlementdriverv2
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -52,6 +54,12 @@ func (h *customerEntitlementHandler) CreateCustomerEntitlement() CreateCustomerE
 			})
 			if err != nil {
 				return request, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return request, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
 			}
 
 			// Reuse v1 parser to build entitlement create inputs using the subject key
@@ -107,6 +115,12 @@ func (h *customerEntitlementHandler) ListCustomerEntitlements() ListCustomerEnti
 			})
 			if err != nil {
 				return entitlement.ListEntitlementsParams{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return entitlement.ListEntitlementsParams{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
 			}
 
 			// Build list params
@@ -221,6 +235,12 @@ func (h *customerEntitlementHandler) GetCustomerEntitlement() GetCustomerEntitle
 				return nil, err
 			}
 
+			if cus != nil && cus.IsDeleted() {
+				return nil, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
+			}
+
 			// Then we resolve the entitlement
 			entitlement, err := h.connector.GetEntitlementOfCustomerAt(ctx, request.Namespace, cus.ID, request.EntitlementIdOrFeatureKey, clock.Now())
 			if err != nil {
@@ -279,6 +299,12 @@ func (h *customerEntitlementHandler) DeleteCustomerEntitlement() DeleteCustomerE
 				return nil, err
 			}
 
+			if cus != nil && cus.IsDeleted() {
+				return request, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
+			}
+
 			ent, err := h.connector.GetEntitlementOfCustomerAt(ctx, request.Namespace, cus.ID, request.EntitlementIdOrFeatureKey, clock.Now())
 			if err != nil {
 				return nil, err
@@ -335,6 +361,12 @@ func (h *customerEntitlementHandler) OverrideCustomerEntitlement() OverrideCusto
 			})
 			if err != nil {
 				return def, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return def, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
 			}
 
 			// Reuse v1 parser to build entitlement create inputs using the subject key
