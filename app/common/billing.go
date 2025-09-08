@@ -78,7 +78,7 @@ func BillingService(
 		return nil, err
 	}
 
-	validator, err := billingcustomer.NewValidator(service, entitlementRegistry.Entitlement, handler, subscriptionServices.Service)
+	validator, err := billingcustomer.NewValidator(service, handler, subscriptionServices.Service)
 	if err != nil {
 		return nil, err
 	}
