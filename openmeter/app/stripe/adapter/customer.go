@@ -129,7 +129,7 @@ func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripee
 			SetStripeCustomerID(input.StripeCustomerID).
 			SetNillableStripeDefaultPaymentMethodID(input.StripeDefaultPaymentMethodID).
 			// Upsert
-			OnConflictColumns(appstripecustomerdb.FieldNamespace, appstripecustomerdb.FieldAppID, appstripecustomerdb.FieldCustomerID).
+			OnConflictColumns(appstripecustomerdb.FieldNamespace, appstripecustomerdb.FieldAppID, appstripecustomerdb.FieldCustomerID, appstripecustomerdb.FieldStripeCustomerID).
 			UpdateStripeCustomerID().
 			UpdateStripeDefaultPaymentMethodID().
 			Exec(ctx)
