@@ -205,5 +205,11 @@ func (h *handler) getCustomer(ctx context.Context, namespace string, id *string,
 		return nil, err
 	}
 
+	if cus != nil && cus.IsDeleted() {
+		return nil, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+		)
+	}
+
 	return cus, nil
 }

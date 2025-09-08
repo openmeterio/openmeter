@@ -2,6 +2,7 @@ package entitlementdriverv2
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -54,7 +55,7 @@ func (h *customerEntitlementHandler) ListCustomerEntitlementGrants() ListCustome
 			}, nil
 		},
 		func(ctx context.Context, request ListCustomerEntitlementGrantsHandlerRequest) (ListCustomerEntitlementGrantsHandlerResponse, error) {
-			cust, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 				CustomerIDOrKey: &customer.CustomerIDOrKey{
 					Namespace: request.Namespace,
 					IDOrKey:   request.CustomerIDOrKey,
@@ -64,8 +65,14 @@ func (h *customerEntitlementHandler) ListCustomerEntitlementGrants() ListCustome
 				return ListCustomerEntitlementGrantsHandlerResponse{}, err
 			}
 
+			if cus != nil && cus.IsDeleted() {
+				return ListCustomerEntitlementGrantsHandlerResponse{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
+			}
+
 			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, meteredentitlement.ListEntitlementGrantsParams{
-				CustomerID:                cust.ID,
+				CustomerID:                cus.ID,
 				EntitlementIDOrFeatureKey: request.EntitlementIdOrFeatureKey,
 				OrderBy:                   grant.OrderBy(lo.CoalesceOrEmpty(string(lo.FromPtr(request.Params.OrderBy)), string(grant.OrderByDefault))),
 				Order:                     sortx.Order(lo.CoalesceOrEmpty(string(lo.FromPtr(request.Params.Order)), string(sortx.OrderDefault))),
@@ -135,11 +142,17 @@ func (h *customerEntitlementHandler) CreateCustomerEntitlementGrant() CreateCust
 				return req, err
 			}
 
-			cust, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 				CustomerIDOrKey: &customer.CustomerIDOrKey{Namespace: ns, IDOrKey: params.CustomerIDOrKey},
 			})
 			if err != nil {
 				return req, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return req, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
 			}
 
 			grantInput := meteredentitlement.CreateEntitlementGrantInputs{
@@ -172,7 +185,7 @@ func (h *customerEntitlementHandler) CreateCustomerEntitlementGrant() CreateCust
 			}
 
 			req = CreateCustomerEntitlementGrantHandlerRequest{
-				CustomerID:                cust.ID,
+				CustomerID:                cus.ID,
 				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
 				Namespace:                 ns,
 				GrantInput:                grantInput,
@@ -233,6 +246,12 @@ func (h *customerEntitlementHandler) GetCustomerEntitlementHistory() GetCustomer
 			})
 			if err != nil {
 				return def, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return def, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
 			}
 
 			// Resolve entitlement ID from feature key for the given customer
@@ -350,6 +369,12 @@ func (h *customerEntitlementHandler) ResetCustomerEntitlementUsage() ResetCustom
 			})
 			if err != nil {
 				return ResetCustomerEntitlementUsageHandlerRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return ResetCustomerEntitlementUsageHandlerRequest{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
 			}
 
 			// Resolve entitlement

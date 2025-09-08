@@ -376,6 +376,13 @@ func (a *adapter) CreateCheckoutSession(ctx context.Context, input appstripeenti
 			if err != nil {
 				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get customer: %w", err)
 			}
+
+			if targetCustomer != nil && targetCustomer.IsDeleted() {
+				return appstripeentity.CreateCheckoutSessionOutput{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", targetCustomer.Namespace, targetCustomer.ID),
+					)
+			}
 		}
 
 		// Create a customer if create input is provided

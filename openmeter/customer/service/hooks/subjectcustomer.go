@@ -254,6 +254,12 @@ func (p CustomerProvisioner) getCustomerForSubject(ctx context.Context, sub *sub
 		return nil, err
 	}
 
+	if cus != nil && cus.IsDeleted() {
+		return nil, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+		)
+	}
+
 	// Return Customer if it has the Subject in usage attribution.
 	// There are cases where the Customer and the Subject have the same key,
 	// while the Subject is not included in the Customers usage attribution.

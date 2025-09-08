@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -44,6 +45,10 @@ func (c Customer) GetID() CustomerID {
 		Namespace: c.Namespace,
 		ID:        c.ID,
 	}
+}
+
+func (c Customer) IsDeleted() bool {
+	return c.DeletedAt != nil && c.DeletedAt.Before(clock.Now())
 }
 
 // Validate validates the customer
