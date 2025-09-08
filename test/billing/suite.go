@@ -234,9 +234,10 @@ func (s *BaseSuite) SetupSuite() {
 
 	// customer hooks
 	customerSubjectHook, err := customerservicehooks.NewSubjectCustomerHook(customerservicehooks.SubjectCustomerHookConfig{
-		Customer: customerService,
-		Logger:   slog.Default(),
-		Tracer:   noop.NewTracerProvider().Tracer("test_env"),
+		Customer:         customerService,
+		CustomerOverride: billingService,
+		Logger:           slog.Default(),
+		Tracer:           noop.NewTracerProvider().Tracer("test_env"),
 	})
 	require.NoError(t, err)
 	subjectService.RegisterHooks(customerSubjectHook)
