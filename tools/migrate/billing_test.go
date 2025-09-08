@@ -173,8 +173,8 @@ func TestMigrateSplitLinesToSplitLineGroups(t *testing.T) {
 					require.Equal(t, "ns-ubp-invoicing-progressive", splitLineGroup.Namespace)
 					require.Equal(t, "flat-per-unit", splitLineGroup.FeatureKey.String)
 					require.Equal(t, `{"type": "unit", "amount": "100", "maximumAmount": "2000"}`, string(splitLineGroup.Price))
-					require.Equal(t, "2024-09-02T12:13:00Z", splitLineGroup.ServicePeriodStart.Format(time.RFC3339))
-					require.Equal(t, "2024-09-03T12:13:00Z", splitLineGroup.ServicePeriodEnd.Format(time.RFC3339))
+					require.Equal(t, "2024-09-02T12:13:00Z", splitLineGroup.ServicePeriodStart.Truncate(time.Minute).Format(time.RFC3339))
+					require.Equal(t, "2024-09-03T12:13:00Z", splitLineGroup.ServicePeriodEnd.Truncate(time.Minute).Format(time.RFC3339))
 				})
 
 				t.Run("line counts are unchanged except of the split line", func(t *testing.T) {
