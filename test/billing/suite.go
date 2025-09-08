@@ -17,6 +17,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -30,6 +31,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
@@ -37,6 +39,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	"github.com/openmeterio/openmeter/openmeter/subject"
+	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
+	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
+	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -63,6 +69,7 @@ type BaseSuite struct {
 	MockStreamingConnector *streamingtestutils.MockStreamingConnector
 
 	CustomerService customer.Service
+	SubjectService  subject.Service
 
 	AppService app.Service
 	SandboxApp *appsandbox.MockableFactory
@@ -135,6 +142,14 @@ func (s *BaseSuite) SetupSuite() {
 	s.FeatureRepo = entitlementRegistry.FeatureRepo
 	s.FeatureService = entitlementRegistry.Feature
 
+	// Subject
+	subjectAdapter, err := subjectadapter.New(dbClient)
+	require.NoError(t, err)
+
+	subjectService, err := subjectservice.New(subjectAdapter)
+	require.NoError(t, err)
+	s.SubjectService = subjectService
+
 	// Customer
 
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
@@ -198,6 +213,47 @@ func (s *BaseSuite) SetupSuite() {
 	require.NoError(t, err)
 
 	s.SandboxApp = sandboxApp
+
+	// Hooks
+
+	// Subject hooks
+
+	subjectCustomerHook, err := subjecthooks.NewCustomerSubjectHook(subjecthooks.CustomerSubjectHookConfig{
+		Subject: subjectService,
+		Logger:  slog.Default(),
+		Tracer:  noop.NewTracerProvider().Tracer("test_env"),
+	})
+	require.NoError(t, err)
+	customerService.RegisterHooks(subjectCustomerHook)
+
+	subjectEntitlementValidatorHook, err := subjecthooks.NewEntitlementValidatorHook(subjecthooks.EntitlementValidatorHookConfig{
+		EntitlementService: entitlementRegistry.Entitlement,
+	})
+	require.NoError(t, err)
+	subjectService.RegisterHooks(subjectEntitlementValidatorHook)
+
+	// customer hooks
+	customerSubjectHook, err := customerservicehooks.NewSubjectCustomerHook(customerservicehooks.SubjectCustomerHookConfig{
+		Customer:         customerService,
+		CustomerOverride: billingService,
+		Logger:           slog.Default(),
+		Tracer:           noop.NewTracerProvider().Tracer("test_env"),
+	})
+	require.NoError(t, err)
+	subjectService.RegisterHooks(customerSubjectHook)
+
+	customerSubjectValidatorHook, err := customerservicehooks.NewSubjectValidatorHook(customerservicehooks.SubjectValidatorHookConfig{
+		Customer: customerService,
+		Logger:   slog.Default(),
+	})
+	require.NoError(t, err)
+	subjectService.RegisterHooks(customerSubjectValidatorHook)
+
+	entitlementValidatorHook, err := customerservicehooks.NewEntitlementValidatorHook(customerservicehooks.EntitlementValidatorHookConfig{
+		EntitlementService: entitlementRegistry.Entitlement,
+	})
+	require.NoError(t, err)
+	customerService.RegisterHooks(entitlementValidatorHook)
 }
 
 func (s *BaseSuite) InstallSandboxApp(t *testing.T, ns string) app.App {
