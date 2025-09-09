@@ -8,6 +8,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
@@ -64,6 +65,7 @@ func NewCustomerSubjectServiceHook(
 	tracer trace.Tracer,
 	subjectService subject.Service,
 	customerService customer.Service,
+	customerOverrideService billing.CustomerOverrideService,
 ) (CustomerSubjectHook, error) {
 	if !config.EnableSubjectHook {
 		return new(customerservicehooks.NoopSubjectCustomerHook), nil
@@ -71,10 +73,11 @@ func NewCustomerSubjectServiceHook(
 
 	// Initialize the subject customer hook and register it for Subject service
 	h, err := customerservicehooks.NewSubjectCustomerHook(customerservicehooks.SubjectCustomerHookConfig{
-		Customer:     customerService,
-		Logger:       logger,
-		Tracer:       tracer,
-		IgnoreErrors: config.IgnoreErrors,
+		Customer:         customerService,
+		CustomerOverride: customerOverrideService,
+		Logger:           logger,
+		Tracer:           tracer,
+		IgnoreErrors:     config.IgnoreErrors,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer subject hook: %w", err)
