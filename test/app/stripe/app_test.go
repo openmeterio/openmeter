@@ -27,7 +27,8 @@ func TestAppStripe(t *testing.T) {
 	// Test suite covering the stripe app
 	t.Run("AppStripe", func(t *testing.T) {
 		testSuite := AppHandlerTestSuite{
-			Env: env,
+			Env:       env,
+			namespace: "app-handler-test",
 		}
 
 		t.Run("Create", func(t *testing.T) {
