@@ -350,10 +350,13 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 		}
 
 		fullServicePeriod, err := item.Spec.GetFullServicePeriodAt(
-			it.phaseCadence,
-			item.SubscriptionItem.CadencedModel,
-			at,
-			it.sub.Spec.BillingAnchor,
+			subscription.GetFullServicePeriodAtInput{
+				SubscriptionCadence:  it.sub.Subscription.CadencedModel,
+				PhaseCadence:         it.phaseCadence,
+				ItemCadence:          item.SubscriptionItem.CadencedModel,
+				At:                   at,
+				AlignedBillingAnchor: it.sub.Spec.BillingAnchor,
+			},
 		)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to get full service period", slog.Any("error", err))
@@ -447,10 +450,13 @@ func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.Subscripti
 	}
 
 	fullServicePeriod, err := item.Spec.GetFullServicePeriodAt(
-		it.phaseCadence,
-		itemCadence,
-		itemCadence.ActiveFrom,
-		billingPeriod.From, // we can just use the billing period start as that's already aligned
+		subscription.GetFullServicePeriodAtInput{
+			SubscriptionCadence:  it.sub.Subscription.CadencedModel,
+			PhaseCadence:         it.phaseCadence,
+			ItemCadence:          itemCadence,
+			At:                   itemCadence.ActiveFrom,
+			AlignedBillingAnchor: billingPeriod.From,
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get full service period at %s: %w", item.SubscriptionItem.ActiveFrom, err)
