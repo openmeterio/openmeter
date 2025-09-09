@@ -773,7 +773,7 @@ type GetFullServicePeriodAtInput struct {
 }
 
 func (i GetFullServicePeriodAtInput) isEndOfSubscription() bool {
-	return lo.Ternary(i.SubscriptionCadence.ActiveTo == nil, false, i.SubscriptionCadence.ActiveTo.Equal(i.At))
+	return lo.TernaryF(i.SubscriptionCadence.ActiveTo == nil, func() bool { return false }, func() bool { return i.SubscriptionCadence.ActiveTo.Equal(i.At) })
 }
 
 func (i GetFullServicePeriodAtInput) Validate() error {
