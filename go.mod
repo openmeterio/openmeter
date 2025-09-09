@@ -14,7 +14,7 @@ require (
 	github.com/IBM/sarama v1.46.0
 	github.com/ThreeDotsLabs/watermill v1.5.1
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.1.0
-	github.com/XSAM/otelsql v0.39.0
+	github.com/XSAM/otelsql v0.40.0
 	github.com/alpacahq/alpacadecimal v0.0.8
 	github.com/avast/retry-go/v4 v4.6.1
 	github.com/bhmj/jsonslice v1.1.3
@@ -67,7 +67,6 @@ require (
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.20.1
-	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/stretchr/testify v1.11.1
 	github.com/stripe/stripe-go/v80 v80.2.1
 	github.com/svix/svix-webhooks v1.76.1
