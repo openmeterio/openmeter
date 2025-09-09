@@ -61,9 +61,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 		func(ctx context.Context, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) {
 			res, err := withAllUsageResets(repo.db.Entitlement.Query(), []string{entitlementID.Namespace}).
 				WithCustomer(func(q *db.CustomerQuery) {
-					q.WithSubjects(func(csq *db.CustomerSubjectsQuery) {
-						csq.Where(customersubjectsdb.DeletedAtIsNil())
-					})
+					customeradapter.WithSubjects(q, clock.Now())
 				}).
 				WithSubject().
 				Where(
@@ -91,9 +89,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfCustomerAt(ctx context.Cont
 		func(ctx context.Context, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) {
 			res, err := withAllUsageResets(repo.db.Entitlement.Query(), []string{namespace}).
 				WithCustomer(func(q *db.CustomerQuery) {
-					q.WithSubjects(func(csq *db.CustomerSubjectsQuery) {
-						csq.Where(customersubjectsdb.DeletedAtIsNil())
-					})
+					customeradapter.WithSubjects(q, clock.Now())
 				}).
 				WithSubject().
 				Where(EntitlementActiveAt(at)...).
@@ -220,7 +216,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 			// Query the created entitlement back with customer and subject edges loaded
 			entWithEdges, err := repo.db.Entitlement.Query().
 				WithCustomer(func(q *db.CustomerQuery) {
-					q.WithSubjects(func(csq *db.CustomerSubjectsQuery) { csq.Where(customersubjectsdb.DeletedAtIsNil()) })
+					customeradapter.WithSubjects(q, clock.Now())
 				}).
 				WithSubject().
 				Where(db_entitlement.ID(res.ID)).
@@ -345,9 +341,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementsOfCustomer(ctx context.Conte
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]entitlement.Entitlement, error) {
 			res, err := withAllUsageResets(repo.db.Entitlement.Query(), []string{namespace}).
 				WithCustomer(func(q *db.CustomerQuery) {
-					q.WithSubjects(func(csq *db.CustomerSubjectsQuery) {
-						csq.Where(customersubjectsdb.DeletedAtIsNil())
-					})
+					customeradapter.WithSubjects(q, clock.Now())
 				}).
 				WithSubject().
 				Where(EntitlementActiveAt(at)...).
@@ -385,9 +379,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (pagination.PagedResponse[entitlement.Entitlement], error) {
 			query := repo.db.Entitlement.Query().WithSubject().WithCustomer(func(q *db.CustomerQuery) {
-				q.WithSubjects(func(csq *db.CustomerSubjectsQuery) {
-					csq.Where(customersubjectsdb.DeletedAtIsNil())
-				})
+				customeradapter.WithSubjects(q, clock.Now())
 			})
 
 			if len(params.Namespaces) > 0 {
@@ -783,9 +775,7 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]entitlement.Entitlement, error) {
 			query := withAllUsageResets(repo.db.Entitlement.Query(), params.Namespaces).
 				WithCustomer(func(q *db.CustomerQuery) {
-					q.WithSubjects(func(csq *db.CustomerSubjectsQuery) {
-						csq.Where(customersubjectsdb.DeletedAtIsNil())
-					})
+					customeradapter.WithSubjects(q, clock.Now())
 				}).
 				WithSubject().
 				Where(EntitlementActiveAt(params.Highwatermark)...).
@@ -929,9 +919,7 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 		func(ctx context.Context, repo *entitlementDBAdapter) (*[]entitlement.Entitlement, error) {
 			nowTS := clock.Now()
 			query := repo.db.Entitlement.Query().WithSubject().WithCustomer(func(q *db.CustomerQuery) {
-				q.WithSubjects(func(csq *db.CustomerSubjectsQuery) {
-					csq.Where(customersubjectsdb.DeletedAtIsNil())
-				})
+				customeradapter.WithSubjects(q, clock.Now())
 			})
 			query = withAllUsageResets(query, []string{namespace})
 			res, err := query.
