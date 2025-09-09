@@ -42,7 +42,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 	assert.NotNil(feature)
 
 	// create customer and subject
-	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1", "Subject 1")
 
 	// Let's create a new entitlement for the feature
 
@@ -193,7 +193,7 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature)
 
-	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1", "Subject 1")
 
 	// Let's create a new entitlement for the feature
 
@@ -297,7 +297,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature)
 
-	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1", "Subject 1")
 
 	// Let's create a new entitlement for the feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T11:20:28Z"))
@@ -400,7 +400,7 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feat)
 
-	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1", "Subject 1")
 
 	// Let's create a new entitlement for the feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T11:20:28Z"))
@@ -438,7 +438,7 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature2)
 
-	cust2 := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-2")
+	cust2 := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-2", "Subject 2")
 
 	// Let's create a new entitlement for feature2 for subject-2
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T14:20:28Z"))
@@ -476,7 +476,7 @@ func TestGrantingAfterOverage(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature)
 
-	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1", "Subject 1")
 
 	// Let's create a new entitlement for the feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"))
@@ -587,7 +587,7 @@ func TestBalanceWorkerActiveToFromEntitlementsMapping(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(feature)
 
-	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1")
+	cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, "namespace-1", "subject-1", "Subject 1")
 
 	// Let's create a new entitlement for the feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"))
