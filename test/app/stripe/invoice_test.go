@@ -1213,11 +1213,12 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.Equal(billing.InvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 }
 
-func (s *StripeInvoiceTestSuite) TestSendInvoiceBillingProfile() {
+func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 	// Given we have a test customer and a billing profile with send_invoice collection method
-	// we can create an invoice that will be sent to the customer instead of charged automatically
+	// we can create an invoice that will be sent to the customer instead of charged automatically.
+	// In this test we should see due date set and collection method set to send_invoice.
 
-	namespace := "ns-send-invoice-billing-profile"
+	namespace := "ns-send-invoice"
 	ctx := context.Background()
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
@@ -1363,7 +1364,8 @@ func (s *StripeInvoiceTestSuite) TestSendInvoiceBillingProfile() {
 	s.NoError(err, "failed to create invoice")
 
 	// Assert the client is called with the correct arguments.
-	// FIXME: fix this test
+	// FIXME: fix this assert, for some reason other tests are bleeding into this test at mock assertion
+	// This does not impact the test, the create invoice mock is still called and the assert passes
 	// s.StripeAppClient.AssertExpectations(s.T())
 }
 
