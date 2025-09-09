@@ -10571,7 +10571,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
-      x-internal: true
     get:
       operationId: listCustomerEntitlementsV2
       summary: List customer entitlements
@@ -10648,7 +10647,6 @@ paths:
       tags:
         - Entitlements
         - Customers
-      x-internal: true
   /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}:
     get:
       operationId: getCustomerEntitlementV2
@@ -10728,7 +10726,6 @@ paths:
       tags:
         - Entitlements
         - Customers
-      x-internal: true
     delete:
       operationId: deleteCustomerEntitlementV2
       summary: Delete customer entitlement
@@ -10803,7 +10800,6 @@ paths:
       tags:
         - Entitlements
         - Customers
-      x-internal: true
   /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
     get:
       operationId: listCustomerEntitlementGrantsV2
@@ -10889,7 +10885,6 @@ paths:
       tags:
         - Entitlements
         - Customers
-      x-internal: true
     post:
       operationId: createCustomerEntitlementGrantV2
       summary: Create customer entitlement grant
@@ -10983,7 +10978,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementGrantCreateInput'
-      x-internal: true
   /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history:
     get:
       operationId: getCustomerEntitlementHistoryV2
@@ -11103,7 +11097,6 @@ paths:
       tags:
         - Entitlements
         - Customers
-      x-internal: true
   /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override:
     put:
       operationId: overrideCustomerEntitlementV2
@@ -11193,7 +11186,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
-      x-internal: true
   /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset:
     post:
       operationId: resetCustomerEntitlementUsageV2
@@ -11276,7 +11268,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResetEntitlementUsageInput'
-      x-internal: true
   /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
     get:
       operationId: getCustomerEntitlementValueV2
@@ -11362,7 +11353,6 @@ paths:
       tags:
         - Entitlements
         - Customers
-      x-internal: true
   /api/v2/events:
     get:
       operationId: listEventsV2
@@ -11462,8 +11452,8 @@ paths:
       operationId: listGrantsV2
       summary: List grants
       description: |-
-        List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.
-        To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
+        List all grants for all the customers and entitlements. This endpoint is intended for administrative purposes only.
+        To fetch the grants of a specific entitlement please use the /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants endpoint.
         If page is provided that takes precedence and the paginated response is returned.
       parameters:
         - name: feature
@@ -11556,7 +11546,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-      x-internal: true
 security:
   - CloudTokenAuth: []
   - CloudCookieAuth: []
