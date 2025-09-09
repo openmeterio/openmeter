@@ -13,14 +13,13 @@ namespace OpenMeter.Entitlements.V2;
 @tag("Entitlements")
 interface Grants {
   /**
-   * List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.
-   * To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
+   * List all grants for all the customers and entitlements. This endpoint is intended for administrative purposes only.
+   * To fetch the grants of a specific entitlement please use the /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants endpoint.
    * If page is provided that takes precedence and the paginated response is returned.
    */
   @get
   @operationId("listGrantsV2")
   @summary("List grants")
-  @extension("x-internal", true)
   list(
     /**
      * Filtering by multiple features.
