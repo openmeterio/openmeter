@@ -34,7 +34,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		now := clock.Now().UTC()
 
 		query := repo.db.Customer.Query().Where(customerdb.Namespace(input.Namespace))
-		query = withSubjects(query, now)
+		query = WithSubjects(query, now)
 		query = withSubscription(query, now)
 
 		// Do not return deleted customers by default
@@ -319,7 +319,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 		now := clock.Now().UTC()
 
 		query := repo.db.Customer.Query()
-		query = withSubjects(query, now)
+		query = WithSubjects(query, now)
 		query = withSubscription(query, now)
 
 		if input.CustomerID != nil {
@@ -395,7 +395,7 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 				),
 			)).
 			Where(customerdb.DeletedAtIsNil())
-		query = withSubjects(query, now)
+		query = WithSubjects(query, now)
 		query = withSubscription(query, now)
 
 		customerEntity, err := query.First(ctx)
@@ -650,8 +650,8 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 	})
 }
 
-// withSubjects returns a query with the subjects
-func withSubjects(q *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
+// WithSubjects returns a query with the subjects
+func WithSubjects(q *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
 	return q.WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
 		query.Where(func(s *sql.Selector) {
 			ct := sql.Table(customerdb.Table)
