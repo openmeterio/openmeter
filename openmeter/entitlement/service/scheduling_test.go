@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -472,14 +473,14 @@ func TestSuperseding(t *testing.T) {
 					"bogus-id",
 					entitlement.CreateEntitlementInputs{
 						Namespace:        namespace,
-						FeatureKey:       lo.ToPtr("feature1"),
+						FeatureKey:       lo.ToPtr(feat.Key),
 						UsageAttribution: dummyAttribution,
 						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 					},
 				)
-				assert.EqualError(t, err, "entitlement not found bogus-id in namespace ns1")
+				assert.EqualError(t, err, fmt.Sprintf("entitlement not found bogus-id in namespace %s", namespace))
 			},
 		},
 		{
@@ -491,19 +492,27 @@ func TestSuperseding(t *testing.T) {
 
 				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
 
+				randName := testutils.NameGenerator.Generate()
+
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
+
 				// Create first entitlement
 				ent1, err := conn.ScheduleEntitlement(
 					ctx,
 					entitlement.CreateEntitlementInputs{
 						Namespace:        namespace,
-						FeatureKey:       lo.ToPtr("feature1"),
-						UsageAttribution: dummyAttribution,
+						FeatureKey:       lo.ToPtr(feat.Key),
+						UsageAttribution: cust.GetUsageAttribution(),
 						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1),
 					},
 				)
-				assert.NoError(t, err)
+				require.NoError(t, err)
+				require.NotNil(t, ent1)
+
+				invalidFeatureKey := "invalid-feature-key"
 
 				// Supersede entitlement
 				_, err = conn.SupersedeEntitlement(
@@ -511,14 +520,14 @@ func TestSuperseding(t *testing.T) {
 					ent1.ID,
 					entitlement.CreateEntitlementInputs{
 						Namespace:        namespace,
-						FeatureKey:       lo.ToPtr("feature2"), // invalid value
-						UsageAttribution: dummyAttribution,
+						FeatureKey:       lo.ToPtr(invalidFeatureKey), // invalid value
+						UsageAttribution: cust.GetUsageAttribution(),
 						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						// 12h in future
 						ActiveFrom: lo.ToPtr(activeFrom1.Add(time.Hour)),
 					},
 				)
-				assert.EqualError(t, err, "feature not found: feature2")
+				assert.EqualError(t, err, fmt.Sprintf("feature not found: %s", invalidFeatureKey))
 			},
 		},
 		{
@@ -574,21 +583,12 @@ func TestSuperseding(t *testing.T) {
 
 				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
 
-				// Create feature
-				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
-					Name:      feat.Key,
-					Key:       feat.Key,
-					Namespace: namespace,
-				})
-
 				// create customer and subject
 				randName1 := testutils.NameGenerator.Generate()
 				cust1 := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName1.Key, randName1.Name)
 
 				randName2 := testutils.NameGenerator.Generate()
 				cust2 := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName2.Key, randName2.Name)
-
-				assert.Nil(t, err)
 
 				// Create first entitlement
 				ent1, err := conn.ScheduleEntitlement(
@@ -602,7 +602,8 @@ func TestSuperseding(t *testing.T) {
 						ActiveFrom: lo.ToPtr(activeFrom1),
 					},
 				)
-				assert.Nil(t, err)
+				require.NoError(t, err)
+				require.NotNil(t, ent1)
 
 				// Supersede entitlement
 				_, err = conn.SupersedeEntitlement(
@@ -616,7 +617,7 @@ func TestSuperseding(t *testing.T) {
 						ActiveFrom:       lo.ToPtr(activeFrom1.Add(time.Hour)),
 					},
 				)
-				assert.EqualError(t, err, "validation error: old and new entitlements belong to different subjects")
+				assert.EqualError(t, err, "validation error: old and new entitlements belong to different customers")
 			},
 		},
 		{
@@ -627,13 +628,6 @@ func TestSuperseding(t *testing.T) {
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
 
 				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-03T12:00:00Z")
-
-				// Create feature
-				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
-					Name:      feat.Key,
-					Key:       feat.Key,
-					Namespace: namespace,
-				})
 
 				// create customer and subject
 				randName := testutils.NameGenerator.Generate()
