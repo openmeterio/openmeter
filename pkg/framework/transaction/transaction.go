@@ -90,7 +90,6 @@ func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, 
 			err = errors.Join(err, rerr)
 		}
 
-		slog.InfoContext(ctx, "rolling back transaction, due to error returned by callback", "error", err, "stacktrace", string(debug.Stack()))
 		return def, err
 	}
 
