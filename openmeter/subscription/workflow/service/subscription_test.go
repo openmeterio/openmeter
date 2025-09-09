@@ -29,7 +29,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestCreateFromPlan(t *testing.T) {
@@ -90,41 +89,6 @@ func TestCreateFromPlan(t *testing.T) {
 						}
 					}
 				}
-			},
-		},
-		{
-			Name: "Should normalize billing anchor to the closest iteration",
-			Handler: func(t *testing.T, deps testCaseDeps) {
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-
-				cad := deps.Plan.ToCreateSubscriptionPlanInput().BillingCadence
-
-				activeFrom := deps.CurrentTime
-
-				billingAnchor := activeFrom.Add(time.Hour)
-
-				cadRec, err := timeutil.NewRecurrenceFromISODuration(cad, billingAnchor)
-				require.Nil(t, err)
-
-				// Let's set an anchor one hour after the activeFrom, which will then be set to one iteration before
-
-				expectedBillingAnchor, err := cadRec.Iterator().Prev()
-				require.Nil(t, err)
-
-				subView, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
-					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
-						Timing: subscription.Timing{
-							Custom: &deps.CurrentTime,
-						},
-					},
-					CustomerID:    deps.Customer.ID,
-					Namespace:     subscriptiontestutils.ExampleNamespace,
-					BillingAnchor: &billingAnchor,
-				}, deps.Plan)
-				require.Nil(t, err)
-
-				require.Equal(t, expectedBillingAnchor, subView.Subscription.BillingAnchor)
 			},
 		},
 	}
@@ -1034,7 +998,7 @@ func TestChangeToPlan(t *testing.T) {
 				CustomerId:    curr.CustomerId,
 				Currency:      deps.Plan2.Currency(),
 				ActiveFrom:    testutils.GetRFC3339Time(t, "2021-02-01T00:00:00Z"),
-				BillingAnchor: sub.Subscription.BillingAnchor.AddDate(0, 1, 0), // shift 1 month due to normalization
+				BillingAnchor: sub.Subscription.BillingAnchor,
 				ActiveTo:      nil,
 			})
 			require.Nil(t, err)
@@ -1302,7 +1266,7 @@ func TestEditCombinations(t *testing.T) {
 		// - grants left
 		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
 			// Let's create an example subscription
-			_, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			_, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
 				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 					Timing: subscription.Timing{
 						Custom: &deps.CurrentTime,
@@ -1316,7 +1280,7 @@ func TestEditCombinations(t *testing.T) {
 
 			// Now that we've got a subscription we'll use raw SQL to do the rest, this is the hacky part
 
-			res, err := deps.DBDeps.DBClient.ExecContext(context.Background(), `DELETE FROM subscriptions`)
+			res, err := deps.DBDeps.DBClient.ExecContext(t.Context(), `DELETE FROM subscriptions`)
 			require.Nil(t, err)
 
 			affected, err := res.RowsAffected()
@@ -1325,7 +1289,7 @@ func TestEditCombinations(t *testing.T) {
 
 			// Now let's query the DB, lets encapsulate in inline functions for referential integrity
 			func() {
-				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM subscription_phases`)
+				rows, err := deps.DBDeps.DBClient.QueryContext(t.Context(), `SELECT COUNT(*) FROM subscription_phases`)
 				require.Nil(t, err)
 				defer rows.Close()
 
@@ -1337,7 +1301,7 @@ func TestEditCombinations(t *testing.T) {
 			}()
 
 			func() {
-				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM subscription_items`)
+				rows, err := deps.DBDeps.DBClient.QueryContext(t.Context(), `SELECT COUNT(*) FROM subscription_items`)
 				require.Nil(t, err)
 				defer rows.Close()
 
@@ -1349,7 +1313,7 @@ func TestEditCombinations(t *testing.T) {
 			}()
 
 			func() {
-				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM entitlements`)
+				rows, err := deps.DBDeps.DBClient.QueryContext(t.Context(), `SELECT COUNT(*) FROM entitlements`)
 				require.Nil(t, err)
 				defer rows.Close()
 
@@ -1361,7 +1325,7 @@ func TestEditCombinations(t *testing.T) {
 			}()
 
 			func() {
-				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM grants`)
+				rows, err := deps.DBDeps.DBClient.QueryContext(t.Context(), `SELECT COUNT(*) FROM grants`)
 				require.Nil(t, err)
 				defer rows.Close()
 
@@ -1377,7 +1341,7 @@ func TestEditCombinations(t *testing.T) {
 			// - plans
 			// - features
 			func() {
-				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM customers`)
+				rows, err := deps.DBDeps.DBClient.QueryContext(t.Context(), `SELECT COUNT(*) FROM customers`)
 				require.Nil(t, err)
 				defer rows.Close()
 
@@ -1389,7 +1353,7 @@ func TestEditCombinations(t *testing.T) {
 			}()
 
 			func() {
-				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM plans`)
+				rows, err := deps.DBDeps.DBClient.QueryContext(t.Context(), `SELECT COUNT(*) FROM plans`)
 				require.Nil(t, err)
 				defer rows.Close()
 
@@ -1401,7 +1365,7 @@ func TestEditCombinations(t *testing.T) {
 			}()
 
 			func() {
-				rows, err := deps.DBDeps.DBClient.QueryContext(context.Background(), `SELECT COUNT(*) FROM features`)
+				rows, err := deps.DBDeps.DBClient.QueryContext(t.Context(), `SELECT COUNT(*) FROM features`)
 				require.Nil(t, err)
 				defer rows.Close()
 

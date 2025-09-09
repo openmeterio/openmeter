@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
-	"github.com/openmeterio/openmeter/openmeter/subject"
 	subscription "github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -28,7 +27,7 @@ import (
 
 func TestBillingOnFirstOfMonth(t *testing.T) {
 	// Let's declare our variables
-	// note: this namespace is hardcoded in the test framework
+	// note: this namespace is hardcoded in the test framework (TuriP: why on earth is it hardcoded in the test framework?)
 	namespace := "test-namespace"
 
 	startOfSub := testutils.GetRFC3339Time(t, "2025-06-15T12:00:00Z")
@@ -149,13 +148,6 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 
 	// 3rd, let's create the billing profile
 	_, err = tDeps.billingService.CreateProfile(ctx, minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()))
-	require.NoError(t, err)
-
-	// 3rd, let's create the subject first
-	_, err = tDeps.SubjectService.Create(ctx, subject.CreateInput{
-		Namespace: namespace,
-		Key:       "subject_1",
-	})
 	require.NoError(t, err)
 
 	// Then create the customer

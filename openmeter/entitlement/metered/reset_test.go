@@ -41,7 +41,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			FeatureID:        feature.ID,
 			FeatureKey:       feature.Key,
 			UsageAttribution: usageAttribution,
-			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
+			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1983-12-24T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
@@ -52,10 +52,18 @@ func TestResetEntitlementUsage(t *testing.T) {
 		}
 
 		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(time.Now()) // This should be calculated properly when testing batch resets
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input
 	}
+
+	connector, deps := setupConnector(t)
+	defer deps.Teardown()
+
+	// create featute in db
+	feat, err := deps.featureRepo.CreateFeature(t.Context(), exampleFeature)
+	require.NoError(t, err)
+	require.NotEmpty(t, feat)
 
 	tt := []struct {
 		name string
@@ -69,28 +77,26 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				resetTime := startTime.Add(time.Hour * 3)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
-				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				require.NoError(t, err)
 
 				// some usage on ledger, should be inconsequential
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
 
 				startingBalance, err := connector.ResetEntitlementUsage(ctx,
-					models.NamespacedID{Namespace: namespace, ID: entitlement.ID},
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
 					meteredentitlement.ResetEntitlementUsageParams{
 						At: resetTime,
 					})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Equal(t, 0.0, startingBalance.UsageInPeriod) // cannot be usage
 				assert.Equal(t, 0.0, startingBalance.Balance)       // no balance as there are no grants
@@ -103,18 +109,17 @@ func TestResetEntitlementUsage(t *testing.T) {
 				ctx := context.Background()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
-				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				require.NoError(t, err)
+				assert.NotNil(t, ent)
 
 				// some usage on ledger, should be inconsequential
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
@@ -122,7 +127,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// resetTime before start of measurement
 				resetTime := startTime.Add(-time.Hour)
 				_, err = connector.ResetEntitlementUsage(ctx,
-					models.NamespacedID{Namespace: namespace, ID: entitlement.ID},
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
 					meteredentitlement.ResetEntitlementUsageParams{
 						At: resetTime,
 					})
@@ -134,19 +139,16 @@ func TestResetEntitlementUsage(t *testing.T) {
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
 				startTime := getAnchor(t)
-
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// some usage on ledger, should be inconsequential
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
@@ -160,7 +162,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					EntitlementID:       ent.ID,
 					UsagePeriodInterval: ent.UsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Interval.ISOString(),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// resetTime before prior reset time
 				resetTime := priorResetTime.Add(-time.Minute)
@@ -178,19 +180,16 @@ func TestResetEntitlementUsage(t *testing.T) {
 				ctx := context.Background()
 				now := time.Now().Truncate(time.Minute)
 				aDayAgo := now.Add(-time.Hour * 24)
-
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &aDayAgo
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// some usage on ledger, should be inconsequential
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, aDayAgo.Add(time.Minute))
@@ -211,18 +210,16 @@ func TestResetEntitlementUsage(t *testing.T) {
 				ctx := context.Background()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// we force snapshot creation the intended way by checking the balance
 
@@ -235,7 +232,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					EffectiveAt: startTime.Add(time.Hour * 2),
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// some usage on ledger, should be inconsequential
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
@@ -288,18 +285,16 @@ func TestResetEntitlementUsage(t *testing.T) {
 				ctx := context.Background()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// issue grants
 				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -359,16 +354,13 @@ func TestResetEntitlementUsage(t *testing.T) {
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
 				startTime := getAnchor(t)
-
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
@@ -434,19 +426,16 @@ func TestResetEntitlementUsage(t *testing.T) {
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
 				startTime := getAnchor(t)
-
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// issue grants
 				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -458,7 +447,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					ExpiresAt:        startTime.AddDate(0, 0, 3),
 					ResetMaxRollover: 1000, // full amount can be rolled over
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
 					OwnerID:     ent.ID,
@@ -471,7 +460,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					ResetMaxRollover: 500,
 					ResetMinRollover: 500,
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// usage on ledger that will cause overage
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 2600, startTime.Add(time.Minute))
@@ -485,7 +474,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 						PreserveOverage: convert.ToPointer(true),
 					})
 
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
 				assert.Equal(t, 0.0, balanceAfterReset.Balance)       // (1000 + 1000 - 2600) + 500 = -100 => 0
 				assert.Equal(t, 100.0, balanceAfterReset.Overage)     // Overage is carried to new period
@@ -496,7 +485,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Equal(t, balance.Map{
 					g1.ID: 0,
@@ -509,22 +498,19 @@ func TestResetEntitlementUsage(t *testing.T) {
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
 				startTime := getAnchor(t)
-
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, startTime.Format(time.RFC3339), ent.LastReset.Format(time.RFC3339))
 
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
@@ -536,11 +522,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 					meteredentitlement.ResetEntitlementUsageParams{
 						At: resetTime,
 					})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// validate that lastReset time is properly set
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, resetTime.Format(time.RFC3339), ent.LastReset.Format(time.RFC3339))
 			},
 		},
@@ -549,19 +535,16 @@ func TestResetEntitlementUsage(t *testing.T) {
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
 				startTime := getAnchor(t)
-
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// issue grants
 				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -573,7 +556,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					ExpiresAt:        startTime.AddDate(0, 0, 3),
 					ResetMaxRollover: 1000, // full amount can be rolled over
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
 					OwnerID:          ent.ID,
@@ -584,7 +567,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					ExpiresAt:        startTime.AddDate(0, 0, 3),
 					ResetMaxRollover: 100, // full amount can be rolled over
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// usage on ledger that will be deducted from g1
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
@@ -597,7 +580,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 						At: resetTime1,
 					})
 
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
 				assert.Equal(t, 500.0, balanceAfterReset.Balance)     // 1000 - 600 = 400 rolled over + MAX(1000 - 0, 100)=100 = 500
 				assert.Equal(t, 0.0, balanceAfterReset.Overage)       // no overage
@@ -608,7 +591,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime1)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Equal(t, balance.Map{
 					g1.ID: 400,
@@ -625,7 +608,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					ExpiresAt:        resetTime1.AddDate(0, 0, 3),
 					ResetMaxRollover: 1000, // full amount can be rolled over
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// add usage after reset 1
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 300, resetTime1.Add(time.Minute*10))
@@ -638,7 +621,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 						At: resetTime2,
 					})
 
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
 				assert.Equal(t, 1200.0, balanceAfterReset.Balance)    // 1000 + 500 - 300 = 1200
 				assert.Equal(t, 0.0, balanceAfterReset.Overage)       // no overage
@@ -649,7 +632,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime2)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Equal(t, balance.Map{
 					g1.ID: 100,
@@ -667,19 +650,17 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// add 0 usage so meter is found in mock
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 0, startTime)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// issue grants
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -691,7 +672,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					ExpiresAt:        startTime.AddDate(0, 0, 3),
 					ResetMaxRollover: 0, // full amount can be rolled over
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// do a reset
 				resetTime := startTime.Add(time.Hour * 5)
@@ -702,7 +683,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					})
 
 				// assert balance after reset is 0 for grant
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
 				assert.Equal(t, 0.0, balanceAfterReset.Balance)       // 1000 - 1000 = 0
 
@@ -716,18 +697,18 @@ func TestResetEntitlementUsage(t *testing.T) {
 					ExpiresAt:        resetTime.AddDate(0, 0, 3),
 					ResetMaxRollover: 1000, // full amount can be rolled over
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// fetch balance for reset & grant, balance should be full grant amount
 				balanceAfterReset, err = connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
 				assert.Equal(t, g2.Amount, balanceAfterReset.Balance) // 1000 - 0 = 1000
 
 				// fetch balance for AFTER reset & grant, balance should be full grant amount
 				balanceAfterReset, err = connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime.Add(time.Minute))
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
 				assert.Equal(t, g2.Amount, balanceAfterReset.Balance) // 1000 - 0 = 1000
@@ -743,18 +724,16 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// add 0 usage so meter is found in mock
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 0, startTime)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// issue grants
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -766,7 +745,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					ExpiresAt:        resetTime,
 					ResetMaxRollover: 1000, // full amount can be rolled over
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// do a reset
 				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx,
@@ -776,7 +755,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					})
 
 				// assert balance after reset is 0 for grant
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
 				assert.Equal(t, 0.0, balanceAfterReset.Balance)       // Grant expires at reset time so we should see no balance
 			},
@@ -787,15 +766,13 @@ func TestResetEntitlementUsage(t *testing.T) {
 				ctx := context.Background()
 				startTime := time.Now().Add(-12 * time.Hour).Truncate(time.Minute)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				anchor := startTime.Add(time.Hour)
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
@@ -807,7 +784,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}
 
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
 
@@ -819,9 +796,9 @@ func TestResetEntitlementUsage(t *testing.T) {
 						RetainAnchor: true,
 					})
 
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assertUsagePeriodInputsEquals(t, inp.UsagePeriod, ent.UsagePeriod.GetOriginalValueAsUsagePeriodInput())
 			},
 		},
@@ -831,15 +808,13 @@ func TestResetEntitlementUsage(t *testing.T) {
 				ctx := context.Background()
 				startTime := time.Now().Add(-12 * time.Hour).Truncate(time.Minute)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				anchor := startTime.Add(time.Hour)
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewStartingUsagePeriodInput(timeutil.Recurrence{
@@ -851,7 +826,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}
 
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
 
@@ -862,12 +837,12 @@ func TestResetEntitlementUsage(t *testing.T) {
 						At: resetTime,
 					})
 
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				uInpNow, _, err := ent.UsagePeriod.GetUsagePeriodInputAt(clock.Now())
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assertUsagePeriodInputsEquals(t, lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodDaily,
@@ -880,16 +855,13 @@ func TestResetEntitlementUsage(t *testing.T) {
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
 				startTime := time.Now().Add(-12 * time.Hour).Truncate(time.Minute)
-
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				anchor := startTime.Add(time.Hour)
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
@@ -901,7 +873,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}
 
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
 
@@ -912,12 +884,12 @@ func TestResetEntitlementUsage(t *testing.T) {
 						At: resetTime,
 					})
 
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				uInpNow, _, err := ent.UsagePeriod.GetUsagePeriodInputAt(clock.Now())
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assertUsagePeriodInputsEquals(t, lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodDaily,
@@ -949,15 +921,13 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// Let's time-travel to the start time so resources have existed for a while
 				clock.SetTime(entitlementTime)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &entitlementTime
 				anchor := entitlementTime
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
@@ -966,7 +936,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}))
 
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// Let's time travel back to the current time
 				clock.SetTime(startTime)
@@ -978,13 +948,13 @@ func TestResetEntitlementUsage(t *testing.T) {
 						RetainAnchor: false,
 					})
 
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				uInpNow, _, err := ent.UsagePeriod.GetUsagePeriodInputAt(clock.Now())
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assertUsagePeriodInputsEquals(t, lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodDaily,
@@ -995,10 +965,8 @@ func TestResetEntitlementUsage(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			connector, deps := setupConnector(t)
-			defer deps.Teardown()
+			deps.streamingConnector.Reset()
 			tc.run(t, connector, deps)
 		})
 	}

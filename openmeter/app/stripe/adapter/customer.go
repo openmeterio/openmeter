@@ -129,12 +129,19 @@ func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripee
 			SetStripeCustomerID(input.StripeCustomerID).
 			SetNillableStripeDefaultPaymentMethodID(input.StripeDefaultPaymentMethodID).
 			// Upsert
-			OnConflictColumns(appstripecustomerdb.FieldNamespace, appstripecustomerdb.FieldAppID, appstripecustomerdb.FieldCustomerID, appstripecustomerdb.FieldStripeCustomerID).
+			OnConflictColumns(appstripecustomerdb.FieldNamespace, appstripecustomerdb.FieldAppID, appstripecustomerdb.FieldCustomerID).
 			UpdateStripeCustomerID().
 			UpdateStripeDefaultPaymentMethodID().
 			Exec(ctx)
 		if err != nil {
 			if entdb.IsConstraintError(err) {
+				a.logger.WarnContext(ctx, "failed to upsert app stripe customer data",
+					"error", err,
+					"app_id", input.AppID.ID,
+					"customer_id", input.CustomerID.ID,
+					"stripe_customer_id", input.StripeCustomerID,
+				)
+
 				return nil, app.NewAppCustomerPreConditionError(
 					input.AppID,
 					app.AppTypeStripe,

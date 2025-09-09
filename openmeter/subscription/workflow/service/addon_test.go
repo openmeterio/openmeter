@@ -31,11 +31,7 @@ import (
 func TestAddAddon(t *testing.T) {
 	now := testutils.GetRFC3339Time(t, "2025-04-01T00:00:00Z")
 
-	type testCaseDeps struct {
-		deps subscriptiontestutils.SubscriptionDependencies
-	}
-
-	runWithDeps := func(fn func(t *testing.T, deps testCaseDeps)) func(t *testing.T) {
+	runWithDeps := func(fn func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies)) func(t *testing.T) {
 		return func(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
@@ -44,14 +40,14 @@ func TestAddAddon(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			fn(t, testCaseDeps{deps: deps})
+			fn(t, deps)
 		}
 	}
 
-	t.Run("Should error on invalid input", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+	t.Run("Should error on invalid input", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
-			deps.deps,
+			deps,
 			subscriptiontestutils.GetExamplePlanInput(t),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -64,7 +60,7 @@ func TestAddAddon(t *testing.T) {
 			),
 		)
 
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add.ID,
@@ -77,17 +73,17 @@ func TestAddAddon(t *testing.T) {
 		expectedErr := addonInp.Validate()
 		require.NotNil(t, expectedErr)
 
-		_, _, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		_, _, err := deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.Error(t, err)
 
 		require.True(t, models.IsGenericValidationError(err))
 		require.ErrorContains(t, err, expectedErr.Error())
 	}))
 
-	t.Run("Should error if the subscription is inactive or in wrong state", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+	t.Run("Should error if the subscription is inactive or in wrong state", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
-			deps.deps,
+			deps,
 			subscriptiontestutils.GetExamplePlanInput(t),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -101,10 +97,10 @@ func TestAddAddon(t *testing.T) {
 		)
 
 		// Let's create a subscription from the plan
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		// Let's cancel the subscription
-		_, err := deps.deps.SubscriptionService.Cancel(context.Background(), subView.Subscription.NamespacedID, subscription.Timing{
+		_, err := deps.SubscriptionService.Cancel(context.Background(), subView.Subscription.NamespacedID, subscription.Timing{
 			Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 		})
 		require.NoError(t, err)
@@ -118,18 +114,18 @@ func TestAddAddon(t *testing.T) {
 			},
 		}
 
-		_, _, err = deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		_, _, err = deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.Error(t, err)
 		require.ErrorAs(t, err, lo.ToPtr(&models.GenericForbiddenError{}))
 		require.True(t, models.IsGenericForbiddenError(err))
 		require.ErrorContains(t, err, "state canceled not allowed")
 	}))
 
-	t.Run("Should add a new addon to a subscription that already has a different addon", runWithDeps(func(t *testing.T, deps testCaseDeps) {
-		_ = deps.deps.FeatureConnector.CreateExampleFeatures(t)
+	t.Run("Should add a new addon to a subscription that already has a different addon", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+		_ = deps.FeatureConnector.CreateExampleFeatures(t)
 
 		// Let's create a plan
-		p, err := deps.deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.BuildTestPlan(t).
+		p, err := deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.BuildTestPlan(t).
 			AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
 			Build())
 		require.Nil(t, err)
@@ -145,14 +141,14 @@ func TestAddAddon(t *testing.T) {
 			subscriptiontestutils.ExampleAddonRateCard5.Clone(),
 		)
 
-		add1 := deps.deps.AddonService.CreateTestAddon(t, addonInp)
+		add1 := deps.AddonService.CreateTestAddon(t, addonInp)
 
 		addonInp.Key = "some-new-key"
 
-		add2 := deps.deps.AddonService.CreateTestAddon(t, addonInp)
+		add2 := deps.AddonService.CreateTestAddon(t, addonInp)
 
 		// Let's link both addons to the plan
-		_, err = deps.deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+		_, err = deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: subscriptiontestutils.ExampleNamespace,
 			},
@@ -162,7 +158,7 @@ func TestAddAddon(t *testing.T) {
 		})
 		require.Nil(t, err, "received error: %s", err)
 
-		_, err = deps.deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
+		_, err = deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: subscriptiontestutils.ExampleNamespace,
 			},
@@ -174,7 +170,7 @@ func TestAddAddon(t *testing.T) {
 
 		// Let's publish the plan
 
-		p, err = deps.deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
+		p, err = deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
 			NamespacedID: p.NamespacedID,
 			EffectivePeriod: productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(clock.Now()),
@@ -185,13 +181,13 @@ func TestAddAddon(t *testing.T) {
 
 		// Let's create a subscription from the plan
 
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, &plansubscription.Plan{
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, &plansubscription.Plan{
 			Plan: p.AsProductCatalogPlan(),
 			Ref:  &p.NamespacedID,
 		}, now)
 
 		// Let's add the first addon
-		_, _, err = deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
+		_, _, err = deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add1.ID,
 			InitialQuantity: 1,
 			Timing: subscription.Timing{
@@ -201,7 +197,7 @@ func TestAddAddon(t *testing.T) {
 		require.NoError(t, err)
 
 		// Now let's add the second addon
-		subView, _, err = deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
+		subView, _, err = deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add2.ID,
 			InitialQuantity: 1,
 			Timing: subscription.Timing{
@@ -215,10 +211,10 @@ func TestAddAddon(t *testing.T) {
 		require.Equal(t, 200.0, *item.Entitlement.Entitlement.IssueAfterReset)
 	}))
 
-	t.Run("Should sync subscription with new addons contents", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+	t.Run("Should sync subscription with new addons contents", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
-			deps.deps,
+			deps,
 			subscriptiontestutils.GetExamplePlanInput(t),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -232,7 +228,7 @@ func TestAddAddon(t *testing.T) {
 		)
 
 		// Let's create a subscription from the plan
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		ogView := subView
 		require.NotNil(t, ogView)
@@ -247,7 +243,7 @@ func TestAddAddon(t *testing.T) {
 			},
 		}
 
-		subView, subAdd, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		subView, subAdd, err := deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.NoError(t, err)
 
 		// Let's figure out what the expected spec should be
@@ -270,10 +266,10 @@ func TestAddAddon(t *testing.T) {
 		subscriptiontestutils.SpecsEqual(t, newSpec, spec)
 	}))
 
-	t.Run("Should return conflict error if subscription already has that addon purchased", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+	t.Run("Should return conflict error if subscription already has that addon purchased", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
-			deps.deps,
+			deps,
 			subscriptiontestutils.GetExamplePlanInput(t),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -286,7 +282,7 @@ func TestAddAddon(t *testing.T) {
 			),
 		)
 
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add.ID,
@@ -296,10 +292,10 @@ func TestAddAddon(t *testing.T) {
 			},
 		}
 
-		_, _, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		_, _, err := deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.NoError(t, err)
 
-		_, _, err = deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		_, _, err = deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.Error(t, err)
 		require.ErrorAs(t, err, lo.ToPtr(&models.GenericConflictError{}))
 		require.True(t, models.IsGenericConflictError(err))
@@ -309,11 +305,7 @@ func TestAddAddon(t *testing.T) {
 func TestChangeAddonQuantity(t *testing.T) {
 	now := testutils.GetRFC3339Time(t, "2025-04-01T00:00:00Z")
 
-	type testCaseDeps struct {
-		deps subscriptiontestutils.SubscriptionDependencies
-	}
-
-	runWithDeps := func(fn func(t *testing.T, deps testCaseDeps)) func(t *testing.T) {
+	runWithDeps := func(fn func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies)) func(t *testing.T) {
 		return func(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
@@ -322,14 +314,14 @@ func TestChangeAddonQuantity(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			fn(t, testCaseDeps{deps: deps})
+			fn(t, deps)
 		}
 	}
 
-	t.Run("Should error if SubscriptionAddon and Subscription are in different namespaces", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+	t.Run("Should error if SubscriptionAddon and Subscription are in different namespaces", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
-			deps.deps,
+			deps,
 			subscriptiontestutils.GetExamplePlanInput(t),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -342,7 +334,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			),
 		)
 
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add.ID,
@@ -352,7 +344,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		subView, subAdd, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		subView, subAdd, err := deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.NoError(t, err)
 
 		changeTime := now.AddDate(0, 0, 1)
@@ -368,16 +360,16 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		_, _, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
+		_, _, err = deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
 		require.Error(t, err)
 		require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
 		require.True(t, models.IsGenericValidationError(err))
 	}))
 
-	t.Run("Should error if SubscriptionAddon doesn't belong to Subscription", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+	t.Run("Should error if SubscriptionAddon doesn't belong to Subscription", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
-			deps.deps,
+			deps,
 			subscriptiontestutils.GetExamplePlanInput(t),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -390,7 +382,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			),
 		)
 
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add.ID,
@@ -400,7 +392,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		cust2, err := deps.deps.CustomerAdapter.CreateCustomer(context.Background(), customer.CreateCustomerInput{
+		cust2, err := deps.CustomerService.CreateCustomer(context.Background(), customer.CreateCustomerInput{
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			CustomerMutate: customer.CustomerMutate{
 				Name:         "another",
@@ -413,7 +405,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		subView2, err := deps.deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		subView2, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
 			Namespace:  cust2.Namespace,
 			CustomerID: cust2.ID,
 			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
@@ -425,10 +417,10 @@ func TestChangeAddonQuantity(t *testing.T) {
 		}, p)
 		require.NoError(t, err)
 
-		subView, _, err = deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		subView, _, err = deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.NoError(t, err)
 
-		subView2, subAdd2, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView2.Subscription.NamespacedID, addonInp)
+		subView2, subAdd2, err := deps.WorkflowService.AddAddon(context.Background(), subView2.Subscription.NamespacedID, addonInp)
 		require.NoError(t, err)
 
 		changeTime := now.AddDate(0, 0, 1)
@@ -442,16 +434,16 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		_, _, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
+		_, _, err = deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
 		require.Error(t, err)
 		require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
 		require.True(t, models.IsGenericValidationError(err))
 	}))
 
-	t.Run("Should error if the subscription is inactive or in wrong state", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+	t.Run("Should error if the subscription is inactive or in wrong state", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
-			deps.deps,
+			deps,
 			subscriptiontestutils.GetExamplePlanInput(t),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -465,7 +457,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 		)
 
 		// Let's create a subscription from the plan
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		// Let's add an addon to the subscription
 		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
@@ -476,11 +468,11 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		_, subAdd, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		_, subAdd, err := deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.NoError(t, err)
 
 		// Let's cancel the subscription
-		_, err = deps.deps.SubscriptionService.Cancel(context.Background(), subView.Subscription.NamespacedID, subscription.Timing{
+		_, err = deps.SubscriptionService.Cancel(context.Background(), subView.Subscription.NamespacedID, subscription.Timing{
 			Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 		})
 		require.NoError(t, err)
@@ -494,17 +486,17 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		_, _, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
+		_, _, err = deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
 		require.Error(t, err)
 		require.ErrorAs(t, err, lo.ToPtr(&models.GenericForbiddenError{}))
 		require.True(t, models.IsGenericForbiddenError(err))
 		require.ErrorContains(t, err, "state canceled not allowed")
 	}))
 
-	t.Run("Should update the quantity of the addon", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+	t.Run("Should update the quantity of the addon", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
-			deps.deps,
+			deps,
 			subscriptiontestutils.BuildTestPlan(t).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
 				Build(),
@@ -518,7 +510,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			),
 		)
 
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		addonInp := subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add.ID,
@@ -528,7 +520,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		subView, subAdd, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		subView, subAdd, err := deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.NoError(t, err)
 
 		changeTime := now.AddDate(0, 0, 1)
@@ -541,7 +533,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		subView, subAdd, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
+		subView, subAdd, err = deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
 		require.NoError(t, err)
 
 		require.Len(t, subAdd.Quantities.GetTimes(), 2)
@@ -551,14 +543,14 @@ func TestChangeAddonQuantity(t *testing.T) {
 		require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()], 2)
 	}))
 
-	t.Run("Should not combine two subsequent identical items (present due to an edit) when changing the quantity after an addon is already purchased", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+	t.Run("Should not combine two subsequent identical items (present due to an edit) when changing the quantity after an addon is already purchased", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		twoMonths := datetime.MustParseDuration(t, "P2M")
 
 		twoMonthsFromNow, _ := twoMonths.AddTo(now)
 
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
-			deps.deps,
+			deps,
 			subscriptiontestutils.BuildTestPlan(t).
 				SetMeta(productcatalog.PlanMeta{
 					Name:           "Test Plan",
@@ -583,7 +575,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			),
 		)
 
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		// Now let's edit the sub
 		ogItem := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()][0].Spec
@@ -592,7 +584,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 		}
 
-		subView, err := deps.deps.WorkflowService.EditRunning(context.Background(), subView.Subscription.NamespacedID, []subscription.Patch{
+		subView, err := deps.WorkflowService.EditRunning(context.Background(), subView.Subscription.NamespacedID, []subscription.Patch{
 			patch.PatchRemoveItem{
 				PhaseKey: ogItem.PhaseKey,
 				ItemKey:  ogItem.ItemKey,
@@ -617,7 +609,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		subView, subAdd, err := deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
+		subView, subAdd, err := deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, addonInp)
 		require.NoError(t, err)
 
 		// assert that its still two items
@@ -632,7 +624,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 			},
 		}
 
-		subView, subAdd, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
+		subView, subAdd, err = deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInp)
 		require.NoError(t, err)
 
 		// Now it should be three items: original two with addon included + 3rd without the addon after 3 months
@@ -657,11 +649,7 @@ func stripFeatureIDs(spec *subscription.SubscriptionSpec) {
 func TestAddonCombinations(t *testing.T) {
 	now := testutils.GetRFC3339Time(t, "2025-04-01T00:00:00Z")
 
-	type testCaseDeps struct {
-		deps subscriptiontestutils.SubscriptionDependencies
-	}
-
-	runWithDeps := func(fn func(t *testing.T, deps testCaseDeps)) func(t *testing.T) {
+	runWithDeps := func(fn func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies)) func(t *testing.T) {
 		return func(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
@@ -670,11 +658,11 @@ func TestAddonCombinations(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			fn(t, testCaseDeps{deps: deps})
+			fn(t, deps)
 		}
 	}
 
-	t.Run("Should handle repeated add/remove of single instance addon with dynamic price", runWithDeps(func(t *testing.T, deps testCaseDeps) {
+	t.Run("Should handle repeated add/remove of single instance addon with dynamic price", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		// Create a plan with mixed rate cards
 		planInput := subscriptiontestutils.BuildTestPlan(t).
 			AddPhase(nil,
@@ -707,7 +695,7 @@ func TestAddonCombinations(t *testing.T) {
 			Build()
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
-			deps.deps,
+			deps,
 			planInput,
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -737,13 +725,13 @@ func TestAddonCombinations(t *testing.T) {
 		)
 
 		// Create a subscription from the plan
-		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		// Add the addon initially
 		addTime := now
 		var subAdd subscriptionaddon.SubscriptionAddon
 		var err error
-		subView, subAdd, err = deps.deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
+		subView, subAdd, err = deps.WorkflowService.AddAddon(context.Background(), subView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
 			AddonID:         add.ID,
 			InitialQuantity: 1,
 			Timing: subscription.Timing{
@@ -766,7 +754,7 @@ func TestAddonCombinations(t *testing.T) {
 					Custom: lo.ToPtr(clock.Now()),
 				},
 			}
-			subView, _, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInpZero)
+			subView, _, err = deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInpZero)
 			require.NoError(t, err, "failed to change addon quantity to 0 on iteration %d", i)
 
 			// Let's pass time
@@ -780,7 +768,7 @@ func TestAddonCombinations(t *testing.T) {
 					Custom: lo.ToPtr(clock.Now()),
 				},
 			}
-			subView, subAdd, err = deps.deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInpOne)
+			subView, subAdd, err = deps.WorkflowService.ChangeAddonQuantity(context.Background(), subView.Subscription.NamespacedID, changeInpOne)
 			require.NoError(t, err, "failed to change addon quantity to 1 on iteration %d", i)
 
 			// Let's pass time

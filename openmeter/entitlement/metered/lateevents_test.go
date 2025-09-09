@@ -238,8 +238,10 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
 		assert.NoError(t, err)
 
+		randName := testutils.NameGenerator.Generate()
+
 		// create customer and subject
-		cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+		cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 		// create entitlement in db
 		inp := getEntitlement(t, feature, cust.GetUsageAttribution())

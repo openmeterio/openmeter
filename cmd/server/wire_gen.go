@@ -363,7 +363,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	customerSubjectHook, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, tracer, subjectService, customerService, billingService)
+	customerSubjectHook, err := common.NewCustomerSubjectServiceHook(customerConfiguration, logger, tracer, subjectService, customerService)
 	if err != nil {
 		cleanup6()
 		cleanup5()

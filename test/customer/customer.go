@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
-	subject "github.com/openmeterio/openmeter/openmeter/subject"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -765,9 +765,9 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	require.NoError(t, err, "Getting a deleted customer must not return error")
 	require.NotNil(t, getCustomer.DeletedAt, "DeletedAt must not be nil")
 
-	// Delete the customer again should return not found error
+	// Delete the customer by id again should not return an error
 	err = custService.DeleteCustomer(ctx, customerId)
-	require.True(t, models.IsGenericNotFoundError(err), "Deleting customer again must return not found error")
+	require.NoError(t, err, "Deleting customer by id must not return an error")
 
 	// Should allow to create a customer with the same subject keys
 	createdCustomer, err := custService.CreateCustomer(ctx, input)

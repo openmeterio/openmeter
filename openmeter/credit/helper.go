@@ -27,7 +27,7 @@ func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.Nam
 
 	bal, err := m.BalanceSnapshotService.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
-		if _, ok := err.(*balance.NoSavedBalanceForOwnerError); ok {
+		if _, ok := lo.ErrorsAs[*balance.NoSavedBalanceForOwnerError](err); ok {
 			// if no snapshot is found we have to calculate from start of time on all grants and usage
 			m.Logger.Debug(fmt.Sprintf("no saved balance found for owner %s before %s, calculating from start of time", owner.ID, at))
 

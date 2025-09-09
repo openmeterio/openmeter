@@ -284,9 +284,8 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		require.NoError(s.T(), err)
 		lines[0].Children = childrenWithIDReuse
 
-		// Not set => should be ignored
-		lines[1].Children = billing.LineChildren{}
 		// Set to empty array => detailed lines should be deleted
+		lines[1].Children = billing.LineChildren{}
 		lines[2].Children = billing.NewLineChildren([]*billing.Line{})
 
 		// When we persist the changes
@@ -314,11 +313,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 				return *l.ChildUniqueReferenceID == "ref1"
 			}).UpdatedAt)
 
-		require.Len(s.T(), lines[1].Children, 1)
-		require.ElementsMatch(s.T(),
-			[]string{"ref1"},
-			getUniqReferenceNames(lines[1].Children))
-
+		require.Len(s.T(), lines[1].Children, 0)
 		require.Len(s.T(), lines[2].Children, 0)
 	})
 

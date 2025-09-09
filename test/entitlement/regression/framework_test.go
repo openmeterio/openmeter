@@ -231,21 +231,22 @@ func setupDependencies(t *testing.T) Dependencies {
 	}
 }
 
-func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Adapter, ns string, subjectKey string) *customer.Customer {
+func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Adapter, ns, key, name string) *customer.Customer {
 	t.Helper()
 	_, err := subjectService.Create(context.Background(), subject.CreateInput{
 		Namespace: ns,
-		Key:       subjectKey,
+		Key:       key,
 	})
 	require.NoError(t, err)
 
 	cust, err := customerService.CreateCustomer(context.Background(), customer.CreateCustomerInput{
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
-			Key: lo.ToPtr(subjectKey),
+			Key: lo.ToPtr(key),
 			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{subjectKey},
+				SubjectKeys: []string{key},
 			},
+			Name: name,
 		},
 	})
 	require.NoError(t, err)

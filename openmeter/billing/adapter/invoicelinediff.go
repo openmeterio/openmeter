@@ -196,11 +196,6 @@ func diffInvoiceLines(lines []*billing.Line) (*invoiceLineDiff, error) {
 
 	// Let's figure out what we need to do about child lines
 	for _, childUpdate := range childUpdates {
-		// If the children are not present, we don't need to do anything (a.k.a. do not touch)
-		if len(childUpdate.Children) == 0 {
-			continue
-		}
-
 		if err := getChildrenActions(
 			childUpdate.DBState.Children,
 			childUpdate.Children,

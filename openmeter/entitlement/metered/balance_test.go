@@ -1,7 +1,6 @@
 package meteredentitlement_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	dbbalancesnapshot "github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -48,7 +48,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			FeatureID:        feature.ID,
 			FeatureKey:       feature.Key,
 			UsageAttribution: usageAttribution,
-			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
+			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1983-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
@@ -59,10 +59,20 @@ func TestGetEntitlementBalance(t *testing.T) {
 		}
 
 		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(time.Now())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input
 	}
+
+	connector, deps := setupConnector(t)
+	defer deps.Teardown()
+
+	// create featute in db
+	feat, err := deps.featureRepo.CreateFeature(t.Context(), exampleFeature)
+	require.NoError(t, err)
+
+	_, err = deps.dbClient.Subject.Create().SetNamespace(namespace).SetKey("subject1").Save(t.Context())
+	require.NoError(t, err)
 
 	tt := []struct {
 		name string
@@ -71,27 +81,25 @@ func TestGetEntitlementBalance(t *testing.T) {
 		{
 			name: "Should ignore usage before start of measurement",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				// create entitlement in db
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// register usage for meter & feature
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(-time.Minute))
 
 				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, startTime.Add(time.Hour))
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Equal(t, 0.0, entBalance.UsageInPeriod)
 				assert.Equal(t, 0.0, entBalance.Overage)
@@ -100,19 +108,17 @@ func TestGetEntitlementBalance(t *testing.T) {
 		{
 			name: "Should return overage if there's no active grant",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, getEntitlement(t, feature, cust.GetUsageAttribution()))
-				assert.NoError(t, err)
+				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, getEntitlement(t, feat, cust.GetUsageAttribution()))
+				require.NoError(t, err)
 
 				queryTime := startTime.Add(time.Hour)
 
@@ -121,7 +127,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, queryTime.Add(time.Minute))
 
 				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Equal(t, 100.0, entBalance.UsageInPeriod)
 				assert.Equal(t, 100.0, entBalance.Overage)
@@ -130,22 +136,20 @@ func TestGetEntitlementBalance(t *testing.T) {
 		{
 			name: "Should return overage until very first grant after reset",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// add dummy usage so meter is found
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 0, startTime.Add(-time.Minute))
@@ -158,7 +162,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 						At: resetTime,
 					},
 				)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// usage on ledger that will be deducted
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 600, resetTime.Add(time.Minute))
@@ -167,7 +171,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				queryTime := resetTime.Add(time.Hour)
 				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, queryTime)
 
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, 600.0, entBalance.UsageInPeriod)
 				assert.Equal(t, 600.0, entBalance.Overage)
 				assert.Equal(t, 0.0, entBalance.Balance)
@@ -176,21 +180,19 @@ func TestGetEntitlementBalance(t *testing.T) {
 		{
 			name: "Should return correct usage and balance",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				queryTime := startTime.Add(time.Hour)
 
@@ -207,7 +209,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					EffectiveAt: startTime,
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
 					OwnerID:     entitlement.ID,
@@ -217,10 +219,10 @@ func TestGetEntitlementBalance(t *testing.T) {
 					EffectiveAt: queryTime.Add(time.Hour),
 					ExpiresAt:   queryTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Equal(t, 100.0, entBalance.UsageInPeriod)
 				assert.Equal(t, 900.0, entBalance.Balance)
@@ -230,7 +232,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		{
 			name: "Should save new snapshot",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
 				clock.SetTime(startTime)
 				defer clock.ResetTime()
@@ -238,22 +240,20 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// register usage so meter is found
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 1, startTime.AddDate(5, 0, 0))
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodDaily, // we need a faster recurrence as we wont save snapshots in the current usage period
 					Anchor:   inp.UsagePeriod.GetValue().Anchor,
 				}))
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				queryTime := startTime.AddDate(0, 0, 9) // longer than grace period for saving snapshots
 
@@ -272,7 +272,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					EffectiveAt:      startTime,
 					ExpiresAt:        startTime.AddDate(0, 0, 10),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// register usage for meter & feature
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, g1.EffectiveAt.Add(time.Minute))
@@ -293,13 +293,13 @@ func TestGetEntitlementBalance(t *testing.T) {
 							At:      g1.EffectiveAt,
 						},
 					})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				clock.SetTime(queryTime)
 
 				// get last vaild snapshot
 				snap1, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, balance.Snapshot{
 					Usage: balance.SnapshottedUsage{
 						Since: startTime,
@@ -313,7 +313,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				}, snap1)
 
 				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// validate balance calc for good measure
 				assert.Equal(t, 0.0, entBalance.UsageInPeriod)
@@ -321,7 +321,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Equal(t, 0.0, entBalance.Overage)
 
 				snap2, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// check snapshots
 				assert.NotEqual(t, snap1.At, snap2.At)
@@ -341,7 +341,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		{
 			name: "Should save snapshot with correct usage data for period",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				// TODO: let's revert this once we have fixed the period calculation
 				// startTime := getAnchor(t)
 				startTime := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -351,22 +351,20 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// register usage so meter is found
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 1, startTime.AddDate(5, 0, 0)) // far in future
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodMonth,
 					Anchor:   inp.UsagePeriod.GetValue().Anchor,
 				}))
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				queryTime := startTime.AddDate(0, 1, 9) // will fall in next usageperiod
 
@@ -385,7 +383,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					EffectiveAt:      startTime,
 					ExpiresAt:        startTime.AddDate(1, 0, 0), // far future
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// add a balance snapshot
 				err = deps.balanceSnapshotService.Save(
@@ -403,7 +401,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 							At:      g1.EffectiveAt,
 						},
 					})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// register usage for meter & feature in first period
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, g1.EffectiveAt.Add(time.Minute))
@@ -422,7 +420,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					EffectiveAt:      startTime.AddDate(0, 1, 2), // After the second round of usage is in
 					ExpiresAt:        startTime.AddDate(1, 0, 0),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// register usage for meter & feature in second period after grant
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, startTime.AddDate(0, 1, 3))
@@ -431,7 +429,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 
 				// get last vaild snapshot
 				snap1, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				// Should be the first and only snapshot we created
 				assert.Equal(t, balance.Snapshot{
 					Usage: balance.SnapshottedUsage{
@@ -446,7 +444,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				}, snap1)
 
 				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// validate balance calc for good measure
 				assert.Equal(t, 400.0, entBalance.UsageInPeriod)
@@ -454,7 +452,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Equal(t, 0.0, entBalance.Overage)
 
 				snap2, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// check snapshots
 				assert.NotEqual(t, snap1.At, snap2.At)
@@ -475,27 +473,25 @@ func TestGetEntitlementBalance(t *testing.T) {
 		{
 			name: "Should not save the same snapshot over and over again",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
 				clock.SetTime(startTime)
 				defer clock.ResetTime()
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodDaily, // we need a faster recurrence as we wont save snapshots in the current usage period
 					Anchor:   inp.UsagePeriod.GetValue().Anchor,
 				}))
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				queryTime := startTime.AddDate(0, 0, 10) // longer than grace period for saving snapshots
 
@@ -514,7 +510,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					EffectiveAt:      startTime,
 					ExpiresAt:        startTime.AddDate(0, 5, 0),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// register usage for meter & feature
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, g1.EffectiveAt.Add(time.Minute*5))
@@ -531,16 +527,16 @@ func TestGetEntitlementBalance(t *testing.T) {
 							At:      g1.EffectiveAt,
 						},
 					})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// get last vaild snapshot
 				snap1, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				clock.SetTime(queryTime)
 
 				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// validate balance calc for good measure
 				assert.Equal(t, 0.0, entBalance.UsageInPeriod)
@@ -548,7 +544,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Equal(t, 0.0, entBalance.Overage)
 
 				snap2, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// check snapshots
 				assert.NotEqual(t, snap1.At, snap2.At)
@@ -559,7 +555,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 
 				// run the calc again
 				entBalance, err = connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// validate balance calc for good measure
 				assert.Equal(t, 0.0, entBalance.UsageInPeriod)
@@ -567,21 +563,20 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Equal(t, 0.0, entBalance.Overage)
 
 				// FIXME: we shouldn't check things that the contract is unable to tell us
-				snaps, err := deps.dbClient.BalanceSnapshot.Query().All(ctx)
-				assert.NoError(t, err)
+				snaps, err := deps.dbClient.BalanceSnapshot.
+					Query().
+					Where(dbbalancesnapshot.OwnerID(entitlement.ID)).
+					All(ctx)
+				require.NoError(t, err)
 				assert.Len(t, snaps, 2) // one for the initial and one we made last time
 			},
 		},
 	}
 
 	for _, tc := range tt {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			connector, deps := setupConnector(t)
-			defer deps.Teardown()
-			ctx := context.Background()
-			_, _ = deps.dbClient.Subject.Create().SetNamespace(namespace).SetKey("subject1").Save(ctx)
+			deps.streamingConnector.Reset()
+
 			tc.run(t, connector, deps)
 		})
 	}
@@ -606,7 +601,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 			FeatureID:        feature.ID,
 			FeatureKey:       feature.Key,
 			UsageAttribution: usageAttribution,
-			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
+			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1983-01-05T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
@@ -617,10 +612,19 @@ func TestGetEntitlementHistory(t *testing.T) {
 		}
 
 		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(time.Now())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input
 	}
+
+	connector, deps := setupConnector(t)
+	defer deps.Teardown()
+
+	_, _ = deps.dbClient.Subject.Create().SetNamespace(namespace).SetKey("subject1").Save(t.Context())
+
+	// create featute in db
+	feat, err := deps.featureRepo.CreateFeature(t.Context(), exampleFeature)
+	require.NoError(t, err)
 
 	tt := []struct {
 		name string
@@ -629,21 +633,19 @@ func TestGetEntitlementHistory(t *testing.T) {
 		{
 			name: "Should return windowed history",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				queryTime := startTime.Add(time.Hour * 12)
 
@@ -665,7 +667,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: startTime,
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// grant falling on 3h window
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -676,7 +678,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: startTime.Add(time.Hour * 3),
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// grant between windows
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -687,7 +689,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: startTime.Add(time.Hour * 5).Add(time.Minute * 30),
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				t.Run("Should return correct value for the entire period", func(t *testing.T) {
 					windowedHistory, burndownHistory, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, meteredentitlement.BalanceHistoryParams{
@@ -778,7 +780,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 						WindowTimeZone: *time.UTC,
 						WindowSize:     meteredentitlement.WindowSizeHour,
 					})
-					assert.NoError(t, err)
+					require.NoError(t, err)
 
 					// check returned burndownhistory
 					segments := burndownHistory.Segments()
@@ -817,21 +819,19 @@ func TestGetEntitlementHistory(t *testing.T) {
 		{
 			name: "If start time is not specified we are defaulting to the last reset",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// grant at start
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -842,7 +842,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: startTime,
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// register usage for meter & feature
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
@@ -856,7 +856,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 						RetainAnchor: true,
 					},
 				)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				queryTime := startTime.Add(time.Hour * 12)
 
@@ -876,14 +876,14 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: resetTime,
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				windowedHistory, burndownHistory, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, meteredentitlement.BalanceHistoryParams{
 					To:             &queryTime,
 					WindowTimeZone: *time.UTC,
 					WindowSize:     meteredentitlement.WindowSizeHour,
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Len(t, windowedHistory, 10)
 
@@ -915,21 +915,19 @@ func TestGetEntitlementHistory(t *testing.T) {
 		{
 			name: "If start time is not specified we are defaulting to NEXT WINDOW after start of measurement if there were no manual resets",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// grant at start
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -940,7 +938,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: startTime,
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// grant again later
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -951,7 +949,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: startTime.Add(time.Hour * 2),
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// register usage for meter & feature
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
@@ -970,7 +968,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					WindowTimeZone: *time.UTC,
 					WindowSize:     meteredentitlement.WindowSizeHour,
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Len(t, windowedHistory, 12)
 
@@ -1007,22 +1005,20 @@ func TestGetEntitlementHistory(t *testing.T) {
 		{
 			name: "If start time is not specified we are defaulting to NEXT WINDOWED after start of measurement if there were no manual resets and measurement starts not at a window boundary",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				startOfMeasurement := startTime.Add(time.Minute * 29)
 				inp.MeasureUsageFrom = lo.ToPtr(startOfMeasurement)
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// grant at start
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -1033,7 +1029,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: startOfMeasurement,
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// grant again later
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -1044,7 +1040,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: startTime.Add(time.Hour * 2),
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// register usage for meter & feature
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startOfMeasurement.Add(time.Minute))
@@ -1063,7 +1059,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					WindowTimeZone: *time.UTC,
 					WindowSize:     meteredentitlement.WindowSizeHour,
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.Len(t, windowedHistory, 11)
 
@@ -1100,21 +1096,19 @@ func TestGetEntitlementHistory(t *testing.T) {
 		{
 			name: "Should return history if WINDOWSIZE and entitlements events dont align",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
 
-				// create featute in db
-				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
+				randName := testutils.NameGenerator.Generate()
 
 				// create customer and subject
-				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "subject1")
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
 
 				// create entitlement in db
-				inp := getEntitlement(t, feature, cust.GetUsageAttribution())
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// We'll query with WINDOWSIZE_DAY, so lets use 12h precision for the different events
 
@@ -1127,7 +1121,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: startTime,
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// register usage for meter & feature
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Hour))
@@ -1141,7 +1135,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 						RetainAnchor: true,
 					},
 				)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				queryTime := startTime.AddDate(0, 0, 2)
 
@@ -1159,7 +1153,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					EffectiveAt: resetTime,
 					ExpiresAt:   startTime.AddDate(0, 0, 3),
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				windowedHistory, burndownHistory, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, meteredentitlement.BalanceHistoryParams{
 					To:             &queryTime,
@@ -1167,7 +1161,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					WindowTimeZone: *time.UTC,
 					WindowSize:     meteredentitlement.WindowSizeDay,
 				})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// check returned burndownhistory
 				segments := burndownHistory.Segments()
@@ -1186,13 +1180,8 @@ func TestGetEntitlementHistory(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			connector, deps := setupConnector(t)
-			defer deps.Teardown()
-			ctx := context.Background()
-			_, _ = deps.dbClient.Subject.Create().SetNamespace(namespace).SetKey("subject1").Save(ctx)
+			deps.streamingConnector.Reset()
 			tc.run(t, connector, deps)
 		})
 	}
