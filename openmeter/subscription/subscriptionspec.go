@@ -764,54 +764,81 @@ func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) mode
 	}
 }
 
+type GetFullServicePeriodAtInput struct {
+	SubscriptionCadence  models.CadencedModel
+	PhaseCadence         models.CadencedModel
+	ItemCadence          models.CadencedModel
+	At                   time.Time
+	AlignedBillingAnchor time.Time
+}
+
+func (i GetFullServicePeriodAtInput) isEndOfSubscription() bool {
+	return lo.Ternary(i.SubscriptionCadence.ActiveTo == nil, false, i.SubscriptionCadence.ActiveTo.Equal(i.At))
+}
+
+func (i GetFullServicePeriodAtInput) Validate() error {
+	if i.At.IsZero() {
+		return fmt.Errorf("at is zero")
+	}
+
+	if i.AlignedBillingAnchor.IsZero() {
+		return fmt.Errorf("aligned billing anchor is zero")
+	}
+
+	if !i.SubscriptionCadence.AsPeriod().ContainsInclusive(i.At) {
+		return fmt.Errorf("subscription is not active at %s: [%s, %s]", i.At, i.SubscriptionCadence.ActiveFrom, i.SubscriptionCadence.ActiveTo)
+	}
+
+	// We might attempt to bill these
+	isEndOfSubscription := i.isEndOfSubscription()
+
+	if !i.PhaseCadence.IsActiveAt(i.At) && !isEndOfSubscription {
+		return fmt.Errorf("phase is not active at %s: [%s, %s]", i.At, i.PhaseCadence.ActiveFrom, i.PhaseCadence.ActiveTo)
+	}
+
+	// We might attempt to bill these
+	isZeroLengthLastItem := i.At.Equal(i.ItemCadence.ActiveFrom) && i.ItemCadence.ActiveTo != nil && i.ItemCadence.ActiveFrom.Equal(*i.ItemCadence.ActiveTo)
+
+	if !i.ItemCadence.IsActiveAt(i.At) && !isZeroLengthLastItem {
+		return fmt.Errorf("item is not active at %s: [%s, %s]", i.At, i.ItemCadence.ActiveFrom, i.ItemCadence.ActiveTo)
+	}
+
+	return nil
+}
+
 // GetFullServicePeriodAt returns the full service period for an item at a given time
 // To get the de-facto service period, use the intersection of the item's activity with the returned period.
 func (s SubscriptionItemSpec) GetFullServicePeriodAt(
-	phaseCadence models.CadencedModel,
-	itemCadence models.CadencedModel,
-	at time.Time,
-	alignedBillingAnchor time.Time,
+	inp GetFullServicePeriodAtInput,
 ) (timeutil.ClosedPeriod, error) {
-	if alignedBillingAnchor.IsZero() {
-		return timeutil.ClosedPeriod{}, fmt.Errorf("aligned billing anchor is zero")
-	}
-
-	if !s.RateCard.AsMeta().IsBillable() {
-		return timeutil.ClosedPeriod{}, fmt.Errorf("item is not billable")
-	}
-
-	if !itemCadence.IsActiveAt(at) && !itemCadence.ActiveFrom.Equal(at) {
-		return timeutil.ClosedPeriod{}, fmt.Errorf("item is not active at %s: [%s, %s]", at, itemCadence.ActiveFrom, itemCadence.ActiveTo)
-	}
-
-	if !phaseCadence.IsActiveAt(at) {
-		return timeutil.ClosedPeriod{}, fmt.Errorf("phase is not active at %s", at)
+	if err := inp.Validate(); err != nil {
+		return timeutil.ClosedPeriod{}, err
 	}
 
 	billingCadence := s.RateCard.GetBillingCadence()
 	if billingCadence == nil {
-		end := itemCadence.ActiveFrom
+		end := inp.ItemCadence.ActiveFrom
 
-		if itemCadence.ActiveTo != nil {
-			end = *itemCadence.ActiveTo
+		if inp.ItemCadence.ActiveTo != nil {
+			end = *inp.ItemCadence.ActiveTo
 		}
 
-		if phaseCadence.ActiveTo != nil {
-			end = *phaseCadence.ActiveTo
+		if inp.PhaseCadence.ActiveTo != nil {
+			end = *inp.PhaseCadence.ActiveTo
 		}
 
 		return timeutil.ClosedPeriod{
-			From: itemCadence.ActiveFrom,
+			From: inp.ItemCadence.ActiveFrom,
 			To:   end,
 		}, nil
 	}
 
-	rec, err := timeutil.NewRecurrenceFromISODuration(*billingCadence, alignedBillingAnchor)
+	rec, err := timeutil.NewRecurrenceFromISODuration(*billingCadence, inp.AlignedBillingAnchor)
 	if err != nil {
 		return timeutil.ClosedPeriod{}, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 	}
 
-	return rec.GetPeriodAt(at)
+	return rec.GetPeriodAt(inp.At)
 }
 
 func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
