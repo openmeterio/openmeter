@@ -3,7 +3,9 @@ package appstripeentityapp
 import (
 	"context"
 	"fmt"
+	"math"
 	"sort"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -184,8 +186,20 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Set the days until due if the invoice is sent
 	if invoice.Workflow.Config.Payment.CollectionMethod == billing.CollectionMethodSendInvoice {
-		daysUntilDue := invoice.Workflow.Config.Invoicing.DueAfter.Days()
-		createInvoiceParams.DaysUntilDue = lo.ToPtr(int64(daysUntilDue))
+		daysUntilDue, _, ok := invoice.Workflow.Config.Invoicing.DueAfter.DaysDecimal().Int64(0)
+		if !ok {
+			return nil, fmt.Errorf("failed to get days until due")
+		}
+
+		// This is a workaround to handle the case when someone defines the due in months like P1M instead of days like P30D.
+		// With P1M the library will truncate the period to 0 days, which is not what we want.
+		// Defining due in days like P30D is preferred over P1M.
+		if daysUntilDue == 0 {
+			futureDueAt, _ := invoice.Workflow.Config.Invoicing.DueAfter.AddTo(time.Now())
+			daysUntilDue = int64(math.Round(time.Until(futureDueAt).Hours() / 24))
+		}
+
+		createInvoiceParams.DaysUntilDue = lo.ToPtr(daysUntilDue)
 	}
 
 	stripeInvoice, err := stripeClient.CreateInvoice(ctx, createInvoiceParams)
