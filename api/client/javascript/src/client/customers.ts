@@ -361,13 +361,14 @@ export class CustomerEntitlements {
   constructor(private client: Client<paths, `${string}/${string}`>) {}
 
   /**
-   * Get the value of an entitlement for a customer
+   * Get the value of an entitlement for a customer (legacy v1)
+   * @deprecated Use value for the v2 API instead.
    * @param customerIdOrKey - The ID or Key of the customer
    * @param featureKey - The key of the feature
    * @param signal - An optional abort signal
    * @returns The value of the entitlement
    */
-  public async value(
+  public async valueV1(
     customerIdOrKey: operations['getCustomerEntitlementValue']['parameters']['path']['customerIdOrKey'],
     featureKey: operations['getCustomerEntitlementValue']['parameters']['path']['featureKey'],
     options?: RequestOptions
@@ -376,6 +377,192 @@ export class CustomerEntitlements {
       '/api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/value',
       {
         params: { path: { customerIdOrKey, featureKey } },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * List customer entitlements
+   * @param customerIdOrKey - The ID or Key of the customer
+   * @param query - The query parameters
+   * @param options - Optional request options
+   * @returns The list of customer entitlements
+   */
+  public async list(
+    customerIdOrKey: operations['listCustomerEntitlementsV2']['parameters']['path']['customerIdOrKey'],
+    query?: operations['listCustomerEntitlementsV2']['parameters']['query'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET(
+      '/api/v2/customers/{customerIdOrKey}/entitlements',
+      {
+        params: {
+          path: { customerIdOrKey },
+          query,
+        },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Create a customer entitlement
+   * @param customerIdOrKey - The ID or Key of the customer
+   * @param entitlement - The entitlement to create
+   * @param options - Optional request options
+   * @returns The created entitlement
+   */
+  public async create(
+    customerIdOrKey: operations['createCustomerEntitlementV2']['parameters']['path']['customerIdOrKey'],
+    entitlement: operations['createCustomerEntitlementV2']['requestBody']['content']['application/json'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.POST(
+      '/api/v2/customers/{customerIdOrKey}/entitlements',
+      {
+        body: entitlement,
+        params: {
+          path: { customerIdOrKey },
+        },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Get a customer entitlement
+   * @param customerIdOrKey - The ID or Key of the customer
+   * @param entitlementIdOrFeatureKey - The ID or feature key of the entitlement
+   * @param options - Optional request options
+   * @returns The customer entitlement
+   */
+  public async get(
+    customerIdOrKey: operations['getCustomerEntitlementV2']['parameters']['path']['customerIdOrKey'],
+    entitlementIdOrFeatureKey: operations['getCustomerEntitlementV2']['parameters']['path']['entitlementIdOrFeatureKey'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET(
+      '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}',
+      {
+        params: {
+          path: { customerIdOrKey, entitlementIdOrFeatureKey },
+        },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Delete a customer entitlement
+   * @param customerIdOrKey - The ID or Key of the customer
+   * @param entitlementIdOrFeatureKey - The ID or feature key of the entitlement
+   * @param options - Optional request options
+   * @returns The deleted entitlement
+   */
+  public async delete(
+    customerIdOrKey: operations['deleteCustomerEntitlementV2']['parameters']['path']['customerIdOrKey'],
+    entitlementIdOrFeatureKey: operations['deleteCustomerEntitlementV2']['parameters']['path']['entitlementIdOrFeatureKey'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.DELETE(
+      '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}',
+      {
+        params: {
+          path: { customerIdOrKey, entitlementIdOrFeatureKey },
+        },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Get customer entitlement value (v2)
+   * @param customerIdOrKey - The ID or Key of the customer
+   * @param entitlementIdOrFeatureKey - The ID or feature key of the entitlement
+   * @param query - The query parameters
+   * @param options - Optional request options
+   * @returns The entitlement value
+   */
+  public async value(
+    customerIdOrKey: operations['getCustomerEntitlementValueV2']['parameters']['path']['customerIdOrKey'],
+    entitlementIdOrFeatureKey: operations['getCustomerEntitlementValueV2']['parameters']['path']['entitlementIdOrFeatureKey'],
+    query?: operations['getCustomerEntitlementValueV2']['parameters']['query'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET(
+      '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value',
+      {
+        params: {
+          path: { customerIdOrKey, entitlementIdOrFeatureKey },
+          query,
+        },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * List customer entitlement grants
+   * @param customerIdOrKey - The ID or Key of the customer
+   * @param entitlementIdOrFeatureKey - The ID or feature key of the entitlement
+   * @param query - The query parameters
+   * @param options - Optional request options
+   * @returns The list of grants
+   */
+  public async listGrants(
+    customerIdOrKey: operations['listCustomerEntitlementGrantsV2']['parameters']['path']['customerIdOrKey'],
+    entitlementIdOrFeatureKey: operations['listCustomerEntitlementGrantsV2']['parameters']['path']['entitlementIdOrFeatureKey'],
+    query?: operations['listCustomerEntitlementGrantsV2']['parameters']['query'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET(
+      '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants',
+      {
+        params: {
+          path: { customerIdOrKey, entitlementIdOrFeatureKey },
+          query,
+        },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Create customer entitlement grant
+   * @param customerIdOrKey - The ID or Key of the customer
+   * @param entitlementIdOrFeatureKey - The ID or feature key of the entitlement
+   * @param grant - The grant to create
+   * @param options - Optional request options
+   * @returns The created grant
+   */
+  public async createGrant(
+    customerIdOrKey: operations['createCustomerEntitlementGrantV2']['parameters']['path']['customerIdOrKey'],
+    entitlementIdOrFeatureKey: operations['createCustomerEntitlementGrantV2']['parameters']['path']['entitlementIdOrFeatureKey'],
+    grant: operations['createCustomerEntitlementGrantV2']['requestBody']['content']['application/json'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.POST(
+      '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants',
+      {
+        body: grant,
+        params: {
+          path: { customerIdOrKey, entitlementIdOrFeatureKey },
+        },
         ...options,
       }
     )

@@ -335,18 +335,42 @@ export class Grants {
   }
 
   /**
-   * List all grants
+   * List all grants (legacy v1)
    * List all grants for all the subjects and entitlements.
+   *
+   * @deprecated Use listAll for the v2 API instead.
+   * @param query - The query parameters
+   * @param options - The request options
+   * @returns The grants
+   */
+  public async listAllV1(
+    query?: operations['listGrants']['parameters']['query'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET('/api/v1/grants', {
+      params: {
+        query,
+      },
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * List all grants
+   * List all grants for all the customers and entitlements. This endpoint is intended for administrative purposes only.
+   * To fetch the grants of a specific entitlement please use the customer entitlements grants endpoint.
    *
    * @param query - The query parameters
    * @param options - The request options
    * @returns The grants
    */
   public async listAll(
-    query?: operations['listGrants']['parameters']['query'],
+    query?: operations['listGrantsV2']['parameters']['query'],
     options?: RequestOptions
   ) {
-    const resp = await this.client.GET('/api/v1/grants', {
+    const resp = await this.client.GET('/api/v2/grants', {
       params: {
         query,
       },
