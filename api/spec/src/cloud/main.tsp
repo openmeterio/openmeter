@@ -98,7 +98,7 @@ using TypeSpec.OpenAPI;
 @tagMetadata(
   "Subscriptions",
   #{
-    description: "With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).",
+    description: "With Subscriptions, you can easily start, cancel, and manage customer subscriptions. For example, provisioning them on a specific plan or assigning custom rate cards.",
   }
 )
 namespace OpenMeterCloud;
