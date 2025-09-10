@@ -62,10 +62,19 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Servic
 		switch threshold.Type {
 		case BalanceThresholdTypeNumber, BalanceThresholdTypePercent:
 			fallthrough
-		case BalanceThresholdTypeBalanceValue, BalanceThresholdTypeUsageValue, BalanceThresholdTypeUsagePercentage:
+		case BalanceThresholdTypeUsageValue, BalanceThresholdTypeUsagePercentage:
 			if threshold.Value <= 0 {
 				return ValidationError{
 					Err: fmt.Errorf("invalid threshold with type %s: value must be greater than 0: %.2f",
+						threshold.Type,
+						threshold.Value,
+					),
+				}
+			}
+		case BalanceThresholdTypeBalanceValue:
+			if threshold.Value < 0 {
+				return ValidationError{
+					Err: fmt.Errorf("invalid threshold with type %s: value must be greater than or equal to 0: %.2f",
 						threshold.Type,
 						threshold.Value,
 					),
