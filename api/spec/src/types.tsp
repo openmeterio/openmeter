@@ -207,12 +207,26 @@ model Archiveable {
   archivedAt?: DateTime;
 }
 
+// This is a reasonably good RE2-safe ISO8601 duration pattern that allows fractional components (though overly permissive)
+// It matches patterns such as
+// - P1Y
+// - P1.5Y
+// - P1Y2M1D
+// - P1Y2MT <= invalid: must have time component defined after T
+// - P1Y2MT1H2S
+// - P1Y2.3MT1.4H2S <= invalid: spec only allows for a single fractional component
+//
+// A stricter alternative that doesn't allow fractional components is: ^P(?:\d+Y)?(?:\d+M)?(?:\d+W)?(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+S)?)?$
+// ^before using the stricter pattern make sure to double escape the backslashes
+@pattern("^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$")
+scalar ISO8601Duration extends string;
+
 /**
  * Period duration for the recurrence
  */
 @friendlyName("RecurringPeriodInterval")
 union RecurringPeriodInterval {
-  duration,
+  ISO8601Duration,
   RecurringPeriodIntervalEnum,
 }
 
