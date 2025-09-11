@@ -382,3 +382,112 @@ export class Grants {
     return transformResponse(resp)
   }
 }
+
+/**
+ * Entitlements V2
+ * @description With Entitlements, you can define and enforce usage limits, implement quota-based pricing, and manage access to features in your application.
+ */
+export class EntitlementsV2 {
+  public grants: GrantsV2
+
+  constructor(private client: Client<paths, `${string}/${string}`>) {
+    this.grants = new GrantsV2(client)
+  }
+
+  /**
+   * List all entitlements for all customers and features
+   * @description This endpoint is intended for administrative purposes only.
+   * To fetch entitlements of a specific customer, use the customer entitlements endpoint.
+   * @param options - Request options including query parameters
+   * @returns List of entitlements
+   */
+  public async list(
+    options?: RequestOptions & {
+      query?: operations['listEntitlementsV2']['parameters']['query']
+    }
+  ) {
+    const resp = await this.client.GET('/api/v2/entitlements', {
+      params: {
+        query: options?.query,
+      },
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Get entitlement by ID
+   * @param entitlementId - The ID of the entitlement
+   * @param options - Request options
+   * @returns The entitlement
+   */
+  public async get(
+    entitlementId: operations['getEntitlementByIdV2']['parameters']['path']['entitlementId'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET('/api/v2/entitlements/{entitlementId}', {
+      params: {
+        path: { entitlementId },
+      },
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
+}
+
+/**
+ * Grants
+ */
+export class GrantsV2 {
+  constructor(private client: Client<paths, `${string}/${string}`>) {}
+
+  /**
+   * List all grants for all customers and entitlements
+   * @description This endpoint is intended for administrative purposes only.
+   * To fetch grants of a specific entitlement, use the customer entitlements grants endpoint.
+   * @param options - Request options including query parameters
+   * @returns List of grants
+   */
+  public async list(
+    options?: RequestOptions & {
+      query?: operations['listGrantsV2']['parameters']['query']
+    }
+  ) {
+    const resp = await this.client.GET('/api/v2/grants', {
+      params: {
+        query: options?.query,
+      },
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Void a grant (legacy method using V1 endpoint)
+   * @description Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations.
+   * Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed
+   * to the grant will remain, but future usage cannot be burnt down from the grant.
+   * @param grantId - The ID of the grant
+   * @param options - Request options
+   * @returns The voided grant
+   * @deprecated This method uses the legacy V1 endpoint. Consider using customer-specific grant operations instead.
+   */
+  public async void(
+    grantId: operations['voidGrant']['parameters']['path']['grantId'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.DELETE('/api/v1/grants/{grantId}', {
+      params: {
+        path: {
+          grantId,
+        },
+      },
+      ...options,
+    })
+
+    return transformResponse(resp)
+  }
+}
