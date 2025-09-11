@@ -2331,6 +2331,48 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v2/entitlements': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List all entitlements
+     * @description List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.
+     *     To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
+     *     If page is provided that takes precedence and the paginated response is returned.
+     */
+    get: operations['listEntitlementsV2']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v2/entitlements/{entitlementId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get entitlement by id
+     * @description Get entitlement by id.
+     */
+    get: operations['getEntitlementByIdV2']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v2/events': {
     parameters: {
       query?: never
@@ -25939,6 +25981,222 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['EntitlementValue']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  listEntitlementsV2: {
+    parameters: {
+      query?: {
+        /** @description Filtering by multiple features.
+         *
+         *     Usage: `?feature=feature-1&feature=feature-2` */
+        feature?: string[]
+        /** @description Filtering by multiple customers.
+         *
+         *     Usage: `?customer=customer-1&customer-3` */
+        customerKeys?: string[]
+        /** @description Filtering by multiple customers.
+         *
+         *     Usage: `?customer=01K4WAQ0J99ZZ0MD75HXR112H8&customer=01K4WAQ0J99ZZ0MD75HXR112H9` */
+        customerIds?: string[]
+        /** @description Filtering by multiple entitlement types.
+         *
+         *     Usage: `?entitlementType=metered&entitlementType=boolean` */
+        entitlementType?: components['schemas']['EntitlementType'][]
+        /** @description Exclude inactive entitlements in the response (those scheduled for later or earlier) */
+        excludeInactive?: boolean
+        /** @description Page index.
+         *
+         *     Default is 1. */
+        page?: components['parameters']['Pagination.page']
+        /** @description The maximum number of items per page.
+         *
+         *     Default is 100. */
+        pageSize?: components['parameters']['Pagination.pageSize']
+        /** @description Number of items to skip.
+         *
+         *     Default is 0. */
+        offset?: components['parameters']['LimitOffset.offset']
+        /** @description Number of items to return.
+         *
+         *     Default is 100. */
+        limit?: components['parameters']['LimitOffset.limit']
+        /** @description The order direction. */
+        order?: components['parameters']['EntitlementOrderByOrdering.order']
+        /** @description The order by field. */
+        orderBy?: components['parameters']['EntitlementOrderByOrdering.orderBy']
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['EntitlementV2PaginatedResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  getEntitlementByIdV2: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        entitlementId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['EntitlementV2']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */

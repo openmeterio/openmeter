@@ -33,6 +33,8 @@ type ListEntitlementsParams struct {
 	IDs                 []string
 	Namespaces          []string
 	SubjectKeys         []string
+	CustomerIDs         []string
+	CustomerKeys        []string
 	FeatureIDs          []string
 	FeatureKeys         []string
 	FeatureIDsOrKeys    []string

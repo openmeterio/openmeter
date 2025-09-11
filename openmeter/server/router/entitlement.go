@@ -140,6 +140,20 @@ func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, custo
 }
 
 // ------------------------------------------------------------
+// Entitlement APIs (V2)
+// ------------------------------------------------------------
+
+func (a *Router) ListEntitlementsV2(w http.ResponseWriter, r *http.Request, params api.ListEntitlementsV2Params) {
+	a.entitlementV2Handler.ListEntitlements().With(params).ServeHTTP(w, r)
+}
+
+func (a *Router) GetEntitlementByIdV2(w http.ResponseWriter, r *http.Request, entitlementId string) {
+	a.entitlementV2Handler.GetEntitlement().With(entitlementdriverv2.GetEntitlementHandlerParams{
+		EntitlementId: entitlementId,
+	}).ServeHTTP(w, r)
+}
+
+// ------------------------------------------------------------
 // Customer Entitlement APIs (V2)
 // ------------------------------------------------------------
 

@@ -4,7 +4,77 @@ import "@typespec/openapi3";
 import "..";
 import "../..";
 
+using TypeSpec.Http;
+using TypeSpec.OpenAPI;
+
 namespace OpenMeter.Entitlements.V2;
+
+@route("/api/v2/entitlements")
+@tag("Entitlements")
+interface Entitlements {
+  /**
+   * List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.
+   * To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
+   * If page is provided that takes precedence and the paginated response is returned.
+   */
+  @get
+  @operationId("listEntitlementsV2")
+  @summary("List all entitlements")
+  list(
+    /**
+     * Filtering by multiple features.
+     *
+     * Usage: `?feature=feature-1&feature=feature-2`
+     */
+    @query(#{ explode: true })
+    feature?: string[],
+
+    /**
+     * Filtering by multiple customers.
+     *
+     * Usage: `?customer=customer-1&customer-3`
+     */
+    @query(#{ explode: true })
+    customerKeys?: string[],
+
+    /**
+     * Filtering by multiple customers.
+     *
+     * Usage: `?customer=01K4WAQ0J99ZZ0MD75HXR112H8&customer=01K4WAQ0J99ZZ0MD75HXR112H9`
+     */
+    @query(#{ explode: true })
+    customerIds?: string[],
+
+    /**
+     * Filtering by multiple entitlement types.
+     *
+     * Usage: `?entitlementType=metered&entitlementType=boolean`
+     */
+    @query(#{ explode: true })
+    entitlementType?: EntitlementType[],
+
+    /**
+     * Exclude inactive entitlements in the response (those scheduled for later or earlier)
+     */
+    @query
+    excludeInactive?: boolean = false,
+
+    ...OpenMeter.QueryPagination,
+    ...OpenMeter.QueryLimitOffset,
+    ...OpenMeter.QueryOrdering<EntitlementOrderBy>,
+  ): OpenMeter.PaginatedResponse<EntitlementV2> | OpenMeter.CommonErrors;
+
+  /**
+   * Get entitlement by id.
+   */
+  @get
+  @operationId("getEntitlementByIdV2")
+  @summary("Get entitlement by id")
+  get(
+    @path
+    entitlementId: ULID,
+  ): EntitlementV2 | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+}
 
 /**
  * Entitlement templates are used to define the entitlements of a plan.

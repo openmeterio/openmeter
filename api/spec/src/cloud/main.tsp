@@ -212,6 +212,10 @@ namespace OpenMeterCloud.Entitlements {
     @route("/api/v2/grants")
     @tag("Entitlements")
     interface Grants extends OpenMeter.Entitlements.V2.Grants {}
+
+    @route("/api/v2/entitlements")
+    @tag("Entitlements")
+    interface Entitlements extends OpenMeter.Entitlements.V2.Entitlements {}
   }
 }
 

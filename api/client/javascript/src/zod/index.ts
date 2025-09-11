@@ -17980,6 +17980,99 @@ export const getCustomerEntitlementValueV2QueryParams = zod.object({
 })
 
 /**
+ * List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.
+To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
+If page is provided that takes precedence and the paginated response is returned.
+ * @summary List all entitlements
+ */
+export const listEntitlementsV2QueryExcludeInactiveDefault = false
+export const listEntitlementsV2QueryPageDefault = 1
+export const listEntitlementsV2QueryPageSizeDefault = 100
+export const listEntitlementsV2QueryPageSizeMax = 1000
+export const listEntitlementsV2QueryOffsetDefault = 0
+export const listEntitlementsV2QueryOffsetMin = 0
+export const listEntitlementsV2QueryLimitDefault = 100
+export const listEntitlementsV2QueryLimitMax = 1000
+
+export const listEntitlementsV2QueryParams = zod.object({
+  customerIds: zod
+    .array(zod.coerce.string())
+    .optional()
+    .describe(
+      'Filtering by multiple customers.\n\nUsage: `?customer=01K4WAQ0J99ZZ0MD75HXR112H8&customer=01K4WAQ0J99ZZ0MD75HXR112H9`'
+    ),
+  customerKeys: zod
+    .array(zod.coerce.string())
+    .optional()
+    .describe(
+      'Filtering by multiple customers.\n\nUsage: `?customer=customer-1&customer-3`'
+    ),
+  entitlementType: zod
+    .array(
+      zod
+        .enum(['metered', 'boolean', 'static'])
+        .describe('Type of the entitlement.')
+    )
+    .optional()
+    .describe(
+      'Filtering by multiple entitlement types.\n\nUsage: `?entitlementType=metered&entitlementType=boolean`'
+    ),
+  excludeInactive: zod.coerce
+    .boolean()
+    .optional()
+    .describe(
+      'Exclude inactive entitlements in the response (those scheduled for later or earlier)'
+    ),
+  feature: zod
+    .array(zod.coerce.string())
+    .optional()
+    .describe(
+      'Filtering by multiple features.\n\nUsage: `?feature=feature-1&feature=feature-2`'
+    ),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listEntitlementsV2QueryLimitMax)
+    .default(listEntitlementsV2QueryLimitDefault)
+    .describe('Number of items to return.\n\nDefault is 100.'),
+  offset: zod.coerce
+    .number()
+    .min(listEntitlementsV2QueryOffsetMin)
+    .optional()
+    .describe('Number of items to skip.\n\nDefault is 0.'),
+  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  orderBy: zod
+    .enum(['createdAt', 'updatedAt'])
+    .optional()
+    .describe('The order by field.'),
+  page: zod.coerce
+    .number()
+    .min(1)
+    .default(listEntitlementsV2QueryPageDefault)
+    .describe('Page index.\n\nDefault is 1.'),
+  pageSize: zod.coerce
+    .number()
+    .min(1)
+    .max(listEntitlementsV2QueryPageSizeMax)
+    .default(listEntitlementsV2QueryPageSizeDefault)
+    .describe('The maximum number of items per page.\n\nDefault is 100.'),
+})
+
+/**
+ * Get entitlement by id.
+ * @summary Get entitlement by id
+ */
+export const getEntitlementByIdV2PathEntitlementIdRegExp = new RegExp(
+  '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
+)
+
+export const getEntitlementByIdV2Params = zod.object({
+  entitlementId: zod.coerce
+    .string()
+    .regex(getEntitlementByIdV2PathEntitlementIdRegExp),
+})
+
+/**
  * List ingested events with advanced filtering and cursor pagination.
  * @summary List ingested events
  */

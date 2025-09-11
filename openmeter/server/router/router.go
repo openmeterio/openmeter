@@ -232,7 +232,7 @@ type Router struct {
 	debugHandler              debug_httpdriver.DebugHandler
 	customerHandler           customerhttpdriver.CustomerHandler
 	entitlementHandler        entitlementdriver.EntitlementHandler
-	entitlementV2Handler      entitlementdriverv2.CustomerEntitlementHandler
+	entitlementV2Handler      entitlementdriverv2.EntitlementHandler
 	meterHandler              meterhttphandler.Handler
 	meterEventHandler         metereventhttphandler.Handler
 	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
@@ -278,7 +278,7 @@ func NewRouter(config Config) (*Router, error) {
 	)
 
 	// V2 entitlement handler for customer-scoped operations
-	router.entitlementV2Handler = entitlementdriverv2.NewCustomerEntitlementHandler(
+	router.entitlementV2Handler = entitlementdriverv2.NewEntitlementHandler(
 		config.EntitlementConnector,
 		config.EntitlementBalanceConnector,
 		config.Customer,
