@@ -25,6 +25,8 @@ type Customer struct {
 	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
 	Metadata         *models.Metadata         `json:"metadata,omitempty"`
 	Annotation       *models.Annotations      `json:"annotations,omitempty"`
+
+	ActiveSubscriptionIDs []string
 }
 
 // GetUsageAttribution returns the customer usage attribution

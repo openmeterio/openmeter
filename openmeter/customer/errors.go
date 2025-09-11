@@ -105,3 +105,14 @@ var ErrCustomerSubjectKeyNotSingular = models.NewValidationIssue(
 func NewErrCustomerSubjectKeyNotSingular(subjectKeys []string) error {
 	return ErrCustomerSubjectKeyNotSingular.WithAttr("subject_keys", subjectKeys)
 }
+
+const ErrCodeDeletingCustomerWithActiveSubscriptions models.ErrorCode = "deleting_customer_with_active_subscriptions"
+
+var ErrDeletingCustomerWithActiveSubscriptions = models.NewValidationIssue(
+	ErrCodeDeletingCustomerWithActiveSubscriptions,
+	"cannot delete customer with active subscriptions",
+)
+
+func NewErrDeletingCustomerWithActiveSubscriptions(subscriptionIDs []string) error {
+	return ErrDeletingCustomerWithActiveSubscriptions.WithAttr("subscriptions", subscriptionIDs)
+}

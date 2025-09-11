@@ -35,7 +35,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 
 		query := repo.db.Customer.Query().Where(customerdb.Namespace(input.Namespace))
 		query = WithSubjects(query, now)
-		query = withSubscription(query, now)
+		query = withActiveSubscriptions(query, now)
 
 		// Do not return deleted customers by default
 		if !input.IncludeDeleted {
@@ -313,7 +313,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 
 		query := repo.db.Customer.Query()
 		query = WithSubjects(query, now)
-		query = withSubscription(query, now)
+		query = withActiveSubscriptions(query, now)
 
 		if input.CustomerID != nil {
 			query = query.Where(customerdb.Namespace(input.CustomerID.Namespace))
@@ -389,7 +389,7 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 			)).
 			Where(customerdb.DeletedAtIsNil())
 		query = WithSubjects(query, now)
-		query = withSubscription(query, now)
+		query = withActiveSubscriptions(query, now)
 
 		customerEntity, err := query.First(ctx)
 		if err != nil {
@@ -625,8 +625,8 @@ func WithSubjects(q *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
 	})
 }
 
-// withSubscription returns a query with the subscription
-func withSubscription(query *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
+// withActiveSubscriptions returns a query with the subscription
+func withActiveSubscriptions(query *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
 	return query.WithSubscription(func(query *entdb.SubscriptionQuery) {
 		applyActiveSubscriptionFilter(query, at)
 		query.WithPlan()
