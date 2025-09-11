@@ -12467,7 +12467,9 @@ export const createEntitlementBody = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(createEntitlementBodyUsagePeriodIntervalRegExpTwo),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -12520,7 +12522,9 @@ export const createEntitlementBody = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(createEntitlementBodyUsagePeriodIntervalRegExpSix),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -12569,7 +12573,9 @@ export const createEntitlementBody = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(createEntitlementBodyUsagePeriodIntervalRegExpOnezero),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -12702,7 +12708,9 @@ export const createGrantBody = zod
           .describe('A date-time anchor to base the recurring period on.'),
         interval: zod
           .union([
-            zod.coerce.string(),
+            zod.coerce
+              .string()
+              .regex(createGrantBodyRecurrenceIntervalRegExpTwo),
             zod
               .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
               .describe(
@@ -12843,7 +12851,9 @@ export const overrideEntitlementBody = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(overrideEntitlementBodyUsagePeriodIntervalRegExpTwo),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -12896,7 +12906,9 @@ export const overrideEntitlementBody = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(overrideEntitlementBodyUsagePeriodIntervalRegExpSix),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -12945,7 +12957,11 @@ export const overrideEntitlementBody = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(
+                    overrideEntitlementBodyUsagePeriodIntervalRegExpOnezero
+                  ),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -17067,7 +17083,11 @@ export const createCustomerEntitlementV2Body = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(
+                    createCustomerEntitlementV2BodyUsagePeriodIntervalRegExpTwo
+                  ),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -17120,7 +17140,11 @@ export const createCustomerEntitlementV2Body = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(
+                    createCustomerEntitlementV2BodyUsagePeriodIntervalRegExpSix
+                  ),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -17169,7 +17193,11 @@ export const createCustomerEntitlementV2Body = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(
+                    createCustomerEntitlementV2BodyUsagePeriodIntervalRegExpOnezero
+                  ),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -17493,7 +17521,11 @@ export const createCustomerEntitlementGrantV2Body = zod
           .describe('A date-time anchor to base the recurring period on.'),
         interval: zod
           .union([
-            zod.coerce.string(),
+            zod.coerce
+              .string()
+              .regex(
+                createCustomerEntitlementGrantV2BodyRecurrenceIntervalRegExpTwo
+              ),
             zod
               .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
               .describe(
@@ -17722,7 +17754,11 @@ export const overrideCustomerEntitlementV2Body = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(
+                    overrideCustomerEntitlementV2BodyUsagePeriodIntervalRegExpTwo
+                  ),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -17775,7 +17811,11 @@ export const overrideCustomerEntitlementV2Body = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(
+                    overrideCustomerEntitlementV2BodyUsagePeriodIntervalRegExpSix
+                  ),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
@@ -17824,7 +17864,11 @@ export const overrideCustomerEntitlementV2Body = zod
               .describe('A date-time anchor to base the recurring period on.'),
             interval: zod
               .union([
-                zod.coerce.string(),
+                zod.coerce
+                  .string()
+                  .regex(
+                    overrideCustomerEntitlementV2BodyUsagePeriodIntervalRegExpOnezero
+                  ),
                 zod
                   .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
                   .describe(
