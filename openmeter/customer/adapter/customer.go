@@ -685,27 +685,6 @@ func withSubscription(query *entdb.CustomerQuery, at time.Time) *entdb.CustomerQ
 	})
 }
 
-func (a *adapter) CustomerExists(ctx context.Context, customerID customer.CustomerID) error {
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
-		count, err := repo.db.Customer.Query().
-			Where(customerdb.Namespace(customerID.Namespace)).
-			Where(customerdb.ID(customerID.ID)).
-			Where(customerdb.DeletedAtIsNil()).
-			Count(ctx)
-		if err != nil {
-			return err
-		}
-
-		if count == 0 {
-			return models.NewGenericNotFoundError(
-				fmt.Errorf("customer with id %s not found in %s namespace", customerID.ID, customerID.Namespace),
-			)
-		}
-
-		return nil
-	})
-}
-
 func applyActiveSubscriptionFilter(query *entdb.SubscriptionQuery, at time.Time) {
 	query.Where(activeSubscriptionFilter(at)...)
 }
