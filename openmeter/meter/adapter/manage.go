@@ -124,7 +124,7 @@ func (a *Adapter) HasActiveFeatureForMeter(ctx context.Context, namespace, key s
 			ctx,
 			a,
 			func(ctx context.Context, repo *Adapter) (bool, error) {
-				exists, err := a.db.Feature.Query().
+				exists, err := repo.db.Feature.Query().
 					Where(featuredb.Namespace(namespace)).
 					Where(featuredb.MeterSlug(key)).
 					Where(featuredb.Or(featuredb.ArchivedAtIsNil(), featuredb.ArchivedAtGT(clock.Now()))).
@@ -166,7 +166,7 @@ func (a *Adapter) ListFeaturesForMeter(ctx context.Context, namespace, key strin
 			ctx,
 			a,
 			func(ctx context.Context, repo *Adapter) ([]feature.Feature, error) {
-				featureRows, err := a.db.Feature.Query().
+				featureRows, err := repo.db.Feature.Query().
 					Where(featuredb.Namespace(namespace)).
 					Where(featuredb.MeterSlug(key)).
 					Where(featuredb.And(

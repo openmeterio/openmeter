@@ -112,7 +112,7 @@ func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripee
 	// Start transaction
 	_, err = entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
 		// Make sure the customer has an app relationship
-		err := a.appService.EnsureCustomer(ctx, app.EnsureCustomerInput{
+		err := repo.appService.EnsureCustomer(ctx, app.EnsureCustomerInput{
 			AppID:      input.AppID,
 			CustomerID: input.CustomerID,
 		})
@@ -207,7 +207,7 @@ func (a *adapter) DeleteStripeCustomerData(ctx context.Context, input appstripee
 		}
 
 		// Delete app customer relationship
-		err = a.appService.DeleteCustomer(ctx, app.DeleteCustomerInput{
+		err = repo.appService.DeleteCustomer(ctx, app.DeleteCustomerInput{
 			AppID:      input.AppID,
 			CustomerID: input.CustomerID,
 		})
