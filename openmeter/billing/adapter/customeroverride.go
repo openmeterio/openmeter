@@ -113,7 +113,7 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 
 func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideAdapterInput) (*billing.CustomerOverride, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.CustomerOverride, error) {
-		query := a.db.BillingCustomerOverride.Query().
+		query := tx.db.BillingCustomerOverride.Query().
 			Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
 			Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
 			WithBillingProfile(func(bpq *db.BillingProfileQuery) {
@@ -135,7 +135,7 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 
 		if dbCustomerOverride.BillingProfileID == nil {
 			// Let's fetch the default billing profile
-			dbDefaultProfile, err := a.db.BillingProfile.Query().
+			dbDefaultProfile, err := tx.db.BillingProfile.Query().
 				Where(billingprofile.Namespace(input.Customer.Namespace)).
 				Where(billingprofile.Default(true)).
 				Where(billingprofile.DeletedAtIsNil()).
@@ -158,7 +158,7 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 	// Warning: We need to use the customer db parts as for the UI (and for a good API) we need to
 	// be able to filter based on customer fields too.
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.ListCustomerOverridesAdapterResult, error) {
-		query := a.db.Customer.Query().
+		query := tx.db.Customer.Query().
 			Where(dbcustomer.NamespaceEQ(input.Namespace)).
 			Where(dbcustomer.DeletedAtIsNil())
 
