@@ -215,10 +215,14 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 			return nil, fmt.Errorf("failed to create customer: %w", err)
 		}
 
+		if customerEntity == nil {
+			return nil, fmt.Errorf("invalid query result: nil customer received")
+		}
+
 		// Create customer subjects
 		// TODO: customer.AddSubjects produces an invalid database query so we create it separately in a transaction.
 		// The number and shape of the queries executed is the same, it's a devex thing only.
-		customerSubjects, err := repo.db.CustomerSubjects.
+		_, err = repo.db.CustomerSubjects.
 			CreateBulk(
 				lo.Map(
 					input.UsageAttribution.SubjectKeys,
@@ -243,23 +247,12 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 			return nil, fmt.Errorf("failed to create customer: failed to add subject keys: %w", err)
 		}
 
-		if customerEntity == nil {
-			return nil, fmt.Errorf("invalid query result: nil customer received")
-		}
-
-		// When creating a customer it's not possible for it to have a subscription,
-		// so we don't need to fetch it here.
-
-		customerEntity.Edges.Subjects = customerSubjects
-		cus, err := CustomerFromDBEntity(*customerEntity)
-		if err != nil {
-			return cus, fmt.Errorf("failed to convert customer: %w", err)
-		}
-		if cus == nil {
-			return cus, fmt.Errorf("invalid query result: nil customer received")
-		}
-
-		return cus, nil
+		return repo.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &customer.CustomerID{
+				ID:        customerEntity.ID,
+				Namespace: customerEntity.Namespace,
+			},
+		})
 	})
 }
 
@@ -538,6 +531,10 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			return nil, fmt.Errorf("failed to update customer: %w", err)
 		}
 
+		if entity == nil {
+			return nil, fmt.Errorf("invalid query result: nil customer received")
+		}
+
 		subKeysToRemove, subKeysToAdd := lo.Difference(
 			lo.Uniq(previousCustomer.UsageAttribution.SubjectKeys),
 			lo.Uniq(input.UsageAttribution.SubjectKeys),
@@ -595,58 +592,9 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			}
 		}
 
-		if entity == nil {
-			return nil, fmt.Errorf("invalid query result: nil customer received")
-		}
-
-		// Let's fetch the Subscription if present
-		subsQuery := repo.db.Subscription.Query()
-		applyActiveSubscriptionFilter(subsQuery, clock.Now().UTC())
-		subsEnt, err := subsQuery.
-			WithPlan().
-			Where(subscriptiondb.CustomerID(entity.ID)).
-			Only(ctx)
-		if err == nil && subsEnt != nil {
-			entity.Edges.Subscription = []*entdb.Subscription{subsEnt}
-		} else if !entdb.IsNotFound(err) {
-			return nil, fmt.Errorf("failed to fetch customer subscription: %w", err)
-		}
-
-		// Final subject keys
-		entity.Edges.Subjects = []*entdb.CustomerSubjects{}
-
-		// Loop through the existing subjects and add the ones that are not removed
-		for _, subjectKey := range previousCustomer.UsageAttribution.SubjectKeys {
-			if lo.Contains(subKeysToRemove, subjectKey) {
-				continue
-			}
-
-			entity.Edges.Subjects = append(entity.Edges.Subjects, &entdb.CustomerSubjects{
-				Namespace:  input.CustomerID.Namespace,
-				CustomerID: input.CustomerID.ID,
-				SubjectKey: subjectKey,
-			})
-		}
-
-		// Add the new subjects
-		for _, subjectKey := range subKeysToAdd {
-			entity.Edges.Subjects = append(entity.Edges.Subjects, &entdb.CustomerSubjects{
-				Namespace:  input.CustomerID.Namespace,
-				CustomerID: input.CustomerID.ID,
-				SubjectKey: subjectKey,
-			})
-		}
-
-		cus, err := CustomerFromDBEntity(*entity)
-		if err != nil {
-			return cus, fmt.Errorf("failed to convert customer: %w", err)
-		}
-
-		if cus == nil {
-			return cus, fmt.Errorf("invalid query result: nil customer received")
-		}
-
-		return cus, nil
+		return repo.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &input.CustomerID,
+		})
 	})
 }
 
