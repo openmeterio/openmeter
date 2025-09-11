@@ -17980,9 +17980,8 @@ export const getCustomerEntitlementValueV2QueryParams = zod.object({
 })
 
 /**
- * List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.
-To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
-If page is provided that takes precedence and the paginated response is returned.
+ * List all entitlements for all the customers and features. This endpoint is intended for administrative purposes only.
+To fetch the entitlements of a specific subject please use the /api/v2/customers/{customerIdOrKey}/entitlements endpoint.
  * @summary List all entitlements
  */
 export const listEntitlementsV2QueryExcludeInactiveDefault = false
