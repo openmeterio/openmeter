@@ -8,7 +8,7 @@ import { Apps } from './apps.js'
 import { Billing } from './billing.js'
 import { Customers } from './customers.js'
 import { Debug } from './debug.js'
-import { Entitlements } from './entitlements.js'
+import { Entitlements, EntitlementsV2 } from './entitlements.js'
 import { Events } from './events.js'
 import { Features } from './features.js'
 import { Info } from './info.js'
@@ -53,7 +53,8 @@ export class OpenMeter {
   public billing: Billing
   public customers: Customers
   public debug: Debug
-  public entitlements: Entitlements
+  public entitlementsV1: Entitlements
+  public entitlements: EntitlementsV2
   public events: Events
   public features: Features
   public info: Info
@@ -90,7 +91,8 @@ export class OpenMeter {
     this.billing = new Billing(this.client)
     this.customers = new Customers(this.client)
     this.debug = new Debug(this.client)
-    this.entitlements = new Entitlements(this.client)
+    this.entitlementsV1 = new Entitlements(this.client)
+    this.entitlements = new EntitlementsV2(this.client)
     this.events = new Events(this.client)
     this.features = new Features(this.client)
     this.info = new Info(this.client)
