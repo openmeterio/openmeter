@@ -17998,13 +17998,13 @@ export const listEntitlementsV2QueryParams = zod.object({
     .array(zod.coerce.string())
     .optional()
     .describe(
-      'Filtering by multiple customers.\n\nUsage: `?customer=01K4WAQ0J99ZZ0MD75HXR112H8&customer=01K4WAQ0J99ZZ0MD75HXR112H9`'
+      'Filtering by multiple customers.\n\nUsage: `?customerIds=01K4WAQ0J99ZZ0MD75HXR112H8&customerIds=01K4WAQ0J99ZZ0MD75HXR112H9`'
     ),
   customerKeys: zod
     .array(zod.coerce.string())
     .optional()
     .describe(
-      'Filtering by multiple customers.\n\nUsage: `?customer=customer-1&customer-3`'
+      'Filtering by multiple customers.\n\nUsage: `?customerKeys=customer-1&customerKeys=customer-3`'
     ),
   entitlementType: zod
     .array(

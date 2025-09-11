@@ -31,7 +31,7 @@ interface Entitlements {
     /**
      * Filtering by multiple customers.
      *
-     * Usage: `?customer=customer-1&customer-3`
+     * Usage: `?customerKeys=customer-1&customerKeys=customer-3`
      */
     @query(#{ explode: true })
     customerKeys?: string[],
@@ -39,7 +39,7 @@ interface Entitlements {
     /**
      * Filtering by multiple customers.
      *
-     * Usage: `?customer=01K4WAQ0J99ZZ0MD75HXR112H8&customer=01K4WAQ0J99ZZ0MD75HXR112H9`
+     * Usage: `?customerIds=01K4WAQ0J99ZZ0MD75HXR112H8&customerIds=01K4WAQ0J99ZZ0MD75HXR112H9`
      */
     @query(#{ explode: true })
     customerIds?: string[],

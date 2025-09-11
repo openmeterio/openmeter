@@ -26065,11 +26065,11 @@ export interface operations {
         feature?: string[]
         /** @description Filtering by multiple customers.
          *
-         *     Usage: `?customer=customer-1&customer-3` */
+         *     Usage: `?customerKeys=customer-1&customerKeys=customer-3` */
         customerKeys?: string[]
         /** @description Filtering by multiple customers.
          *
-         *     Usage: `?customer=01K4WAQ0J99ZZ0MD75HXR112H8&customer=01K4WAQ0J99ZZ0MD75HXR112H9` */
+         *     Usage: `?customerIds=01K4WAQ0J99ZZ0MD75HXR112H8&customerIds=01K4WAQ0J99ZZ0MD75HXR112H9` */
         customerIds?: string[]
         /** @description Filtering by multiple entitlement types.
          *
