@@ -237,10 +237,6 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				return nil, fmt.Errorf("failed to query created entitlement with edges: %w", err)
 			}
 
-			if err := repo.validateSubjectKeysMatch(entWithEdges); err != nil {
-				return nil, err
-			}
-
 			return repo.mapEntitlementEntity(entWithEdges)
 		},
 	)
@@ -548,10 +544,6 @@ func (a *entitlementDBAdapter) mapEntitlementEntity(e *db.Entitlement) (*entitle
 		return nil, fmt.Errorf("entitlement %s has no customer", e.ID)
 	}
 
-	if err := a.validateSubjectKeysMatch(e); err != nil {
-		return nil, err
-	}
-
 	ent := &entitlement.Entitlement{
 		GenericProperties: entitlement.GenericProperties{
 			NamespacedModel: models.NamespacedModel{
@@ -667,29 +659,6 @@ func (a *entitlementDBAdapter) mapEntitlementEntity(e *db.Entitlement) (*entitle
 	}
 
 	return ent, nil
-}
-
-func (a *entitlementDBAdapter) validateSubjectKeysMatch(e *db.Entitlement) error {
-	if e.Edges.Customer == nil {
-		return fmt.Errorf("entitlement %s has no customer", e.ID)
-	}
-
-	if e.Edges.Subject == nil {
-		return fmt.Errorf("entitlement %s has no subject", e.ID)
-	}
-
-	found := false
-	for _, cs := range e.Edges.Customer.Edges.Subjects {
-		if cs != nil && cs.SubjectKey == e.Edges.Subject.Key {
-			found = true
-			break
-		}
-	}
-	if !found {
-		return fmt.Errorf("entitlement %s customer mapping does not reference subject %s", e.ID, e.Edges.Subject.Key)
-	}
-
-	return nil
 }
 
 func (a *entitlementDBAdapter) UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, params entitlement.UpdateEntitlementUsagePeriodParams) error {
