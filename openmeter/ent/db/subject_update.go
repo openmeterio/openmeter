@@ -29,6 +29,32 @@ func (_u *SubjectUpdate) Where(ps ...predicate.Subject) *SubjectUpdate {
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SubjectUpdate) SetUpdatedAt(v time.Time) *SubjectUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *SubjectUpdate) SetDeletedAt(v time.Time) *SubjectUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *SubjectUpdate) SetNillableDeletedAt(v *time.Time) *SubjectUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *SubjectUpdate) ClearDeletedAt() *SubjectUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
 // SetKey sets the "key" field.
 func (_u *SubjectUpdate) SetKey(v string) *SubjectUpdate {
 	_u.mutation.SetKey(v)
@@ -92,12 +118,6 @@ func (_u *SubjectUpdate) SetMetadata(v map[string]interface{}) *SubjectUpdate {
 // ClearMetadata clears the value of the "metadata" field.
 func (_u *SubjectUpdate) ClearMetadata() *SubjectUpdate {
 	_u.mutation.ClearMetadata()
-	return _u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SubjectUpdate) SetUpdatedAt(v time.Time) *SubjectUpdate {
-	_u.mutation.SetUpdatedAt(v)
 	return _u
 }
 
@@ -200,6 +220,15 @@ func (_u *SubjectUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(subject.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(subject.FieldDeletedAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.Key(); ok {
 		_spec.SetField(subject.FieldKey, field.TypeString, value)
 	}
@@ -220,9 +249,6 @@ func (_u *SubjectUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(subject.FieldMetadata, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _u.mutation.EntitlementsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -289,6 +315,32 @@ type SubjectUpdateOne struct {
 	mutation *SubjectMutation
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SubjectUpdateOne) SetUpdatedAt(v time.Time) *SubjectUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *SubjectUpdateOne) SetDeletedAt(v time.Time) *SubjectUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *SubjectUpdateOne) SetNillableDeletedAt(v *time.Time) *SubjectUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *SubjectUpdateOne) ClearDeletedAt() *SubjectUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
 // SetKey sets the "key" field.
 func (_u *SubjectUpdateOne) SetKey(v string) *SubjectUpdateOne {
 	_u.mutation.SetKey(v)
@@ -352,12 +404,6 @@ func (_u *SubjectUpdateOne) SetMetadata(v map[string]interface{}) *SubjectUpdate
 // ClearMetadata clears the value of the "metadata" field.
 func (_u *SubjectUpdateOne) ClearMetadata() *SubjectUpdateOne {
 	_u.mutation.ClearMetadata()
-	return _u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SubjectUpdateOne) SetUpdatedAt(v time.Time) *SubjectUpdateOne {
-	_u.mutation.SetUpdatedAt(v)
 	return _u
 }
 
@@ -490,6 +536,15 @@ func (_u *SubjectUpdateOne) sqlSave(ctx context.Context) (_node *Subject, err er
 			}
 		}
 	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(subject.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(subject.FieldDeletedAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.Key(); ok {
 		_spec.SetField(subject.FieldKey, field.TypeString, value)
 	}
@@ -510,9 +565,6 @@ func (_u *SubjectUpdateOne) sqlSave(ctx context.Context) (_node *Subject, err er
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(subject.FieldMetadata, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(subject.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _u.mutation.EntitlementsCleared() {
 		edge := &sqlgraph.EdgeSpec{

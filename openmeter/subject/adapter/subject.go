@@ -4,13 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	entsubject "github.com/openmeterio/openmeter/openmeter/ent/db/subject"
+	entitlementdb "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	subjectdb "github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/subject"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -56,8 +59,10 @@ func (a *adapter) Update(ctx context.Context, input subject.UpdateInput) (subjec
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {
 		query := tx.db.Subject.Update().
-			Where(entsubject.Namespace(input.Namespace)).
-			Where(entsubject.ID(input.ID))
+			Where(
+				subjectdb.Namespace(input.Namespace),
+				subjectdb.ID(input.ID),
+			)
 
 		// FIXME: this pattern is unique to this adapter, and should be refactored
 		// Check if field is present in body
@@ -92,13 +97,11 @@ func (a *adapter) Update(ctx context.Context, input subject.UpdateInput) (subjec
 			return subject.Subject{}, fmt.Errorf("failed to update subject: %w", err)
 		}
 
-		// Get the updated entity
-		sub, err := a.GetByIdOrKey(ctx, input.Namespace, input.ID)
-		if err != nil {
-			return subject.Subject{}, fmt.Errorf("failed to get updated subject: %w", err)
-		}
-
-		return sub, nil
+		// Return the updated entity
+		return tx.GetById(ctx, models.NamespacedID{
+			Namespace: input.Namespace,
+			ID:        input.ID,
+		})
 	})
 }
 
@@ -113,49 +116,35 @@ func (a *adapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey st
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {
-		entity, err := tx.db.Subject.Query().
+		now := clock.Now().UTC()
+
+		sub, err := tx.db.Subject.Query().
 			Where(
-				entsubject.Namespace(namespace),
-				entsubject.Or(
-					entsubject.ID(idOrKey),
-					entsubject.Key(idOrKey),
+				subjectdb.Namespace(namespace),
+				subjectdb.Or(
+					subjectdb.ID(idOrKey),
+					subjectdb.And(
+						subjectdb.Key(idOrKey),
+						subjectdb.Or(
+							subjectdb.DeletedAtIsNil(),
+							subjectdb.DeletedAtGTE(now),
+						),
+					),
 				),
 			).
-			All(ctx)
+			First(ctx)
 		if err != nil {
-			return subject.Subject{}, fmt.Errorf("failed to get subject: %w", err)
-		}
-
-		if len(entity) == 0 {
-			return subject.Subject{}, models.NewGenericNotFoundError(
-				fmt.Errorf("subject not found: %s", idOrKey),
-			)
-		}
-
-		// Let's be deterministic regarding always preferring the ID match over the key match
-		if len(entity) > 1 {
-			subjectByID, found := lo.Find(entity, func(item *db.Subject) bool {
-				return item.ID == idOrKey
-			})
-
-			if found {
-				return mapEntity(subjectByID), nil
+			if db.IsNotFound(err) {
+				return subject.Subject{}, models.NewGenericNotFoundError(
+					fmt.Errorf("subject not found [namespace=%s subject.idOrKey=%s]", namespace, idOrKey),
+				)
 			}
 
-			subjectByKey, found := lo.Find(entity, func(item *db.Subject) bool {
-				return item.Key == idOrKey
-			})
-
-			if found {
-				return mapEntity(subjectByKey), nil
-			}
-
-			return subject.Subject{}, models.NewGenericNotFoundError(
-				fmt.Errorf("subject not found: %s", idOrKey),
-			)
+			return subject.Subject{},
+				fmt.Errorf("failed to get subject[namespace=%s subject.idOrKey=%s]: %w", namespace, idOrKey, err)
 		}
 
-		return mapEntity(entity[0]), nil
+		return mapEntity(sub), nil
 	})
 }
 
@@ -165,21 +154,29 @@ func (a *adapter) GetByKey(ctx context.Context, key models.NamespacedKey) (subje
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {
-		entity, err := tx.db.Subject.Query().
-			Where(entsubject.Namespace(key.Namespace)).
-			Where(entsubject.Key(key.Key)).
-			All(ctx)
+		now := clock.Now().UTC()
+
+		sub, err := tx.db.Subject.Query().
+			Where(
+				subjectdb.Namespace(key.Namespace),
+				subjectdb.Key(key.Key),
+				subjectdb.Or(
+					subjectdb.DeletedAtIsNil(),
+					subjectdb.DeletedAtGTE(now),
+				),
+			).
+			First(ctx)
 		if err != nil {
+			if db.IsNotFound(err) {
+				return subject.Subject{}, models.NewGenericNotFoundError(
+					fmt.Errorf("subject not found [namespace=%s subject.key=%s]", key.Namespace, key.Key),
+				)
+			}
+
 			return subject.Subject{}, fmt.Errorf("failed to get subject: %w", err)
 		}
 
-		if len(entity) == 0 {
-			return subject.Subject{}, models.NewGenericNotFoundError(
-				fmt.Errorf("subject not found: %s", key.Key),
-			)
-		}
-
-		return mapEntity(entity[0]), nil
+		return mapEntity(sub), nil
 	})
 }
 
@@ -190,40 +187,50 @@ func (a *adapter) GetById(ctx context.Context, id models.NamespacedID) (subject.
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {
 		entity, err := tx.db.Subject.Query().
-			Where(entsubject.Namespace(id.Namespace)).
-			Where(entsubject.ID(id.ID)).
-			All(ctx)
+			Where(
+				subjectdb.Namespace(id.Namespace),
+				subjectdb.ID(id.ID),
+			).
+			First(ctx)
 		if err != nil {
+			if db.IsNotFound(err) {
+				return subject.Subject{}, models.NewGenericNotFoundError(
+					fmt.Errorf("subject not found [namespace=%s subject.id=%s]", id.Namespace, id.ID),
+				)
+			}
+
 			return subject.Subject{}, fmt.Errorf("failed to get subject: %w", err)
 		}
 
-		if len(entity) == 0 {
-			return subject.Subject{}, models.NewGenericNotFoundError(
-				fmt.Errorf("subject not found: %s", id.ID),
-			)
-		}
-
-		return mapEntity(entity[0]), nil
+		return mapEntity(entity), nil
 	})
 }
 
 // List returns all subjects from database for a namespace
 func (a *adapter) List(ctx context.Context, namespace string, params subject.ListParams) (pagination.PagedResponse[subject.Subject], error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.PagedResponse[subject.Subject], error) {
+		now := clock.Now().UTC()
+
 		query := tx.db.Subject.Query().
-			Where(entsubject.Namespace(namespace))
+			Where(
+				subjectdb.Namespace(namespace),
+				subjectdb.Or(
+					subjectdb.DeletedAtIsNil(),
+					subjectdb.DeletedAtGTE(now),
+				),
+			)
 
 		// Filter by keys
 		if len(params.Keys) > 0 {
-			query = query.Where(entsubject.KeyIn(params.Keys...))
+			query = query.Where(subjectdb.KeyIn(params.Keys...))
 		}
 
 		// Search by key or display name
 		if params.Search != "" {
 			query = query.Where(
-				entsubject.Or(
-					entsubject.KeyContainsFold(params.Search),
-					entsubject.DisplayNameContainsFold(params.Search),
+				subjectdb.Or(
+					subjectdb.KeyContainsFold(params.Search),
+					subjectdb.DisplayNameContainsFold(params.Search),
 				),
 			)
 		}
@@ -231,26 +238,26 @@ func (a *adapter) List(ctx context.Context, namespace string, params subject.Lis
 		// Sort
 		switch params.SortBy {
 		case subject.ListSortByKeyAsc:
-			query.Order(db.Asc(entsubject.FieldKey))
+			query.Order(db.Asc(subjectdb.FieldKey))
 		case subject.ListSortByKeyDesc:
-			query.Order(db.Desc(entsubject.FieldKey))
+			query.Order(db.Desc(subjectdb.FieldKey))
 		case subject.ListSortByDisplayNameAsc:
 			// Sort by key first to make sure the order is consistent without display name
-			query.Order(db.Asc(entsubject.FieldKey, entsubject.FieldDisplayName))
+			query.Order(db.Asc(subjectdb.FieldKey, subjectdb.FieldDisplayName))
 		case subject.ListSortByDisplayNameDesc:
 			// Results have display name first, then key only in descending order
 			query.Order(
 				// Make sure null display names are last
-				entsubject.ByDisplayName(
+				subjectdb.ByDisplayName(
 					sql.OrderNullsLast(),
 					sql.OrderDesc(),
 				),
-				entsubject.ByKey(
+				subjectdb.ByKey(
 					sql.OrderDesc(),
 				),
 			)
 		default:
-			query.Order(db.Asc(entsubject.FieldKey, entsubject.FieldDisplayName))
+			query.Order(db.Asc(subjectdb.FieldID))
 		}
 
 		result, err := query.Paginate(ctx, params.Page)
@@ -270,33 +277,90 @@ func (a *adapter) Delete(ctx context.Context, id models.NamespacedID) error {
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		_, err := tx.db.Subject.Delete().Where(
-			entsubject.Namespace(id.Namespace),
-			entsubject.ID(id.ID),
-		).Exec(ctx)
-		return err
+		now := clock.Now().UTC()
+
+		sub, err := tx.db.Subject.Query().
+			Where(subjectdb.Namespace(id.Namespace)).
+			Where(subjectdb.ID(id.ID)).
+			WithEntitlements(func(query *db.EntitlementQuery) {
+				query.Where(
+					entitlementdb.Namespace(id.Namespace),
+					entitlementdb.SubjectID(id.ID),
+					entitlementdb.Or(
+						entitlementdb.DeletedAtGTE(now),
+						entitlementdb.DeletedAtIsNil(),
+					),
+					entitlementdb.ActiveFromLTE(now),
+					entitlementdb.Or(
+						entitlementdb.ActiveToGTE(now),
+						entitlementdb.ActiveToIsNil(),
+					),
+				)
+			}).
+			First(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return models.NewGenericNotFoundError(
+					fmt.Errorf("subject not found [namespace=%s subject.id=%s]", id.Namespace, id.ID),
+				)
+			}
+
+			return fmt.Errorf("failed to get subject: %w", err)
+		}
+
+		// Return if Subject is already deleted
+		if sub.DeletedAt != nil && sub.DeletedAt.Before(now) {
+			return nil
+		}
+
+		if len(sub.Edges.Entitlements) > 0 {
+			entitlementIDs := lo.FilterMap(sub.Edges.Entitlements, func(item *db.Entitlement, _ int) (string, bool) {
+				if item != nil {
+					return item.ID, true
+				}
+
+				return "", false
+			})
+			return models.NewGenericPreConditionFailedError(
+				fmt.Errorf("subject has active entitlements with ids: %s", strings.Join(entitlementIDs, ", ")),
+			)
+		}
+
+		return tx.db.Subject.
+			Update().
+			SetDeletedAt(now).
+			Where(
+				subjectdb.Namespace(id.Namespace),
+				subjectdb.ID(id.ID),
+			).
+			Exec(ctx)
 	})
 }
 
 // mapEntity maps subject entity to subject model
-func mapEntity(subjectEntity *db.Subject) subject.Subject {
+func mapEntity(e *db.Subject) subject.Subject {
 	s := subject.Subject{
-		Namespace: subjectEntity.Namespace,
-		Id:        subjectEntity.ID,
-		Key:       subjectEntity.Key,
-		Metadata:  subjectEntity.Metadata,
+		ManagedModel: models.ManagedModel{
+			CreatedAt: e.CreatedAt,
+			UpdatedAt: e.UpdatedAt,
+			DeletedAt: e.DeletedAt,
+		},
+		Namespace: e.Namespace,
+		Id:        e.ID,
+		Key:       e.Key,
+		Metadata:  e.Metadata,
 	}
 
 	if s.Metadata == nil {
 		s.Metadata = make(map[string]interface{})
 	}
 
-	if subjectEntity.DisplayName != nil {
-		s.DisplayName = subjectEntity.DisplayName
+	if e.DisplayName != nil {
+		s.DisplayName = e.DisplayName
 	}
 
-	if subjectEntity.StripeCustomerID != nil {
-		s.StripeCustomerId = subjectEntity.StripeCustomerID
+	if e.StripeCustomerID != nil {
+		s.StripeCustomerId = e.StripeCustomerID
 	}
 
 	return s

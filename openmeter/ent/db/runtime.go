@@ -1318,26 +1318,28 @@ func init() {
 	_ = subjectMixinFields0
 	subjectMixinFields1 := subjectMixin[1].Fields()
 	_ = subjectMixinFields1
+	subjectMixinFields2 := subjectMixin[2].Fields()
+	_ = subjectMixinFields2
 	subjectFields := schema.Subject{}.Fields()
 	_ = subjectFields
 	// subjectDescNamespace is the schema descriptor for namespace field.
 	subjectDescNamespace := subjectMixinFields1[0].Descriptor()
 	// subject.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	subject.NamespaceValidator = subjectDescNamespace.Validators[0].(func(string) error)
-	// subjectDescKey is the schema descriptor for key field.
-	subjectDescKey := subjectFields[0].Descriptor()
-	// subject.KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	subject.KeyValidator = subjectDescKey.Validators[0].(func(string) error)
 	// subjectDescCreatedAt is the schema descriptor for created_at field.
-	subjectDescCreatedAt := subjectFields[4].Descriptor()
+	subjectDescCreatedAt := subjectMixinFields2[0].Descriptor()
 	// subject.DefaultCreatedAt holds the default value on creation for the created_at field.
 	subject.DefaultCreatedAt = subjectDescCreatedAt.Default.(func() time.Time)
 	// subjectDescUpdatedAt is the schema descriptor for updated_at field.
-	subjectDescUpdatedAt := subjectFields[5].Descriptor()
+	subjectDescUpdatedAt := subjectMixinFields2[1].Descriptor()
 	// subject.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	subject.DefaultUpdatedAt = subjectDescUpdatedAt.Default.(func() time.Time)
 	// subject.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	subject.UpdateDefaultUpdatedAt = subjectDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subjectDescKey is the schema descriptor for key field.
+	subjectDescKey := subjectFields[0].Descriptor()
+	// subject.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	subject.KeyValidator = subjectDescKey.Validators[0].(func(string) error)
 	// subjectDescID is the schema descriptor for id field.
 	subjectDescID := subjectMixinFields0[0].Descriptor()
 	// subject.DefaultID holds the default value on creation for the id field.

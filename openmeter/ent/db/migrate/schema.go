@@ -2128,12 +2128,13 @@ var (
 	SubjectsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "key", Type: field.TypeString},
 		{Name: "display_name", Type: field.TypeString, Nullable: true},
 		{Name: "stripe_customer_id", Type: field.TypeString, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
 	}
 	// SubjectsTable holds the schema information for the "subjects" table.
 	SubjectsTable = &schema.Table{
@@ -2152,19 +2153,22 @@ var (
 				Columns: []*schema.Column{SubjectsColumns[1]},
 			},
 			{
-				Name:    "subject_key_namespace",
+				Name:    "subject_namespace_key",
 				Unique:  true,
-				Columns: []*schema.Column{SubjectsColumns[2], SubjectsColumns[1]},
+				Columns: []*schema.Column{SubjectsColumns[1], SubjectsColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 			{
 				Name:    "subject_display_name",
 				Unique:  false,
-				Columns: []*schema.Column{SubjectsColumns[3]},
+				Columns: []*schema.Column{SubjectsColumns[6]},
 			},
 			{
 				Name:    "subject_created_at_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubjectsColumns[6], SubjectsColumns[0]},
+				Columns: []*schema.Column{SubjectsColumns[2], SubjectsColumns[0]},
 			},
 		},
 	}
