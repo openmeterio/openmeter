@@ -1,6 +1,8 @@
 package adapter
 
 import (
+	"errors"
+
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -9,16 +11,39 @@ import (
 )
 
 func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
-	var subjectKeys []string
+	subjects, err := e.Edges.SubjectsOrErr()
+	if err != nil {
+		if db.IsNotLoaded(err) {
+			return nil, errors.New("subjects must be loaded for customer")
+		}
 
-	if e.Edges.Subjects != nil {
-		subjectKeys = lo.Map(
-			e.Edges.Subjects,
-			func(item *db.CustomerSubjects, _ int) string {
-				return item.SubjectKey
-			},
-		)
+		return nil, err
 	}
+
+	subjectKeys := lo.FilterMap(subjects, func(item *db.CustomerSubjects, _ int) (string, bool) {
+		if item == nil {
+			return "", false
+		}
+
+		return item.SubjectKey, true
+	})
+
+	subscriptions, err := e.Edges.SubscriptionOrErr()
+	if err != nil {
+		if db.IsNotLoaded(err) {
+			return nil, errors.New("subscriptions must be loaded for customer")
+		}
+
+		return nil, err
+	}
+
+	subscriptionIDs := lo.FilterMap(subscriptions, func(item *db.Subscription, _ int) (string, bool) {
+		if item == nil {
+			return "", false
+		}
+
+		return item.ID, true
+	})
 
 	var metadata *models.Metadata
 
@@ -49,6 +74,8 @@ func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
 		Currency:     e.Currency,
 		Metadata:     metadata,
 		Annotation:   annotations,
+
+		ActiveSubscriptionIDs: subscriptionIDs,
 	}
 
 	if e.Key != "" {

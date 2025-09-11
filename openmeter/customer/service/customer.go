@@ -69,6 +69,12 @@ func (s *Service) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 			return nil
 		}
 
+		if len(cus.ActiveSubscriptionIDs) > 0 {
+			return models.NewGenericPreConditionFailedError(
+				customer.NewErrDeletingCustomerWithActiveSubscriptions(cus.ActiveSubscriptionIDs),
+			)
+		}
+
 		// Run pre delete hooks
 		if err = s.hooks.PreDelete(ctx, cus); err != nil {
 			return err
