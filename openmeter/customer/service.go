@@ -25,5 +25,4 @@ type CustomerService interface {
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
 	GetCustomerByUsageAttribution(ctx context.Context, input GetCustomerByUsageAttributionInput) (*Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
-	CustomerExists(ctx context.Context, customer CustomerID) error
 }

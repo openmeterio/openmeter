@@ -165,10 +165,3 @@ func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 		return cus, nil
 	})
 }
-
-// CustomerExists checks if a customer exists
-func (s *Service) CustomerExists(ctx context.Context, customer customer.CustomerID) error {
-	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		return s.adapter.CustomerExists(ctx, customer)
-	})
-}
