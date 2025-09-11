@@ -40,7 +40,7 @@ type (
 	ListCustomerEntitlementGrantsHandler         = httptransport.HandlerWithArgs[ListCustomerEntitlementGrantsHandlerRequest, ListCustomerEntitlementGrantsHandlerResponse, ListCustomerEntitlementGrantsHandlerParams]
 )
 
-func (h *customerEntitlementHandler) ListCustomerEntitlementGrants() ListCustomerEntitlementGrantsHandler {
+func (h *entitlementHandler) ListCustomerEntitlementGrants() ListCustomerEntitlementGrantsHandler {
 	return httptransport.NewHandlerWithArgs[ListCustomerEntitlementGrantsHandlerRequest, ListCustomerEntitlementGrantsHandlerResponse, ListCustomerEntitlementGrantsHandlerParams](
 		func(ctx context.Context, r *http.Request, params ListCustomerEntitlementGrantsHandlerParams) (ListCustomerEntitlementGrantsHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
@@ -123,7 +123,7 @@ type (
 	CreateCustomerEntitlementGrantHandler         = httptransport.HandlerWithArgs[CreateCustomerEntitlementGrantHandlerRequest, CreateCustomerEntitlementGrantHandlerResponse, CreateCustomerEntitlementGrantHandlerParams]
 )
 
-func (h *customerEntitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEntitlementGrantHandler {
+func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEntitlementGrantHandler {
 	return httptransport.NewHandlerWithArgs[
 		CreateCustomerEntitlementGrantHandlerRequest,
 		CreateCustomerEntitlementGrantHandlerResponse,
@@ -226,7 +226,7 @@ type (
 	GetCustomerEntitlementHistoryHandler         = httptransport.HandlerWithArgs[GetCustomerEntitlementHistoryHandlerRequest, GetCustomerEntitlementHistoryHandlerResponse, GetCustomerEntitlementHistoryHandlerParams]
 )
 
-func (h *customerEntitlementHandler) GetCustomerEntitlementHistory() GetCustomerEntitlementHistoryHandler {
+func (h *entitlementHandler) GetCustomerEntitlementHistory() GetCustomerEntitlementHistoryHandler {
 	return httptransport.NewHandlerWithArgs[
 		GetCustomerEntitlementHistoryHandlerRequest,
 		GetCustomerEntitlementHistoryHandlerResponse,
@@ -345,7 +345,7 @@ type (
 	ResetCustomerEntitlementUsageHandler         = httptransport.HandlerWithArgs[ResetCustomerEntitlementUsageHandlerRequest, ResetCustomerEntitlementUsageHandlerResponse, ResetCustomerEntitlementUsageHandlerParams]
 )
 
-func (h *customerEntitlementHandler) ResetCustomerEntitlementUsage() ResetCustomerEntitlementUsageHandler {
+func (h *entitlementHandler) ResetCustomerEntitlementUsage() ResetCustomerEntitlementUsageHandler {
 	return httptransport.NewHandlerWithArgs[
 		ResetCustomerEntitlementUsageHandlerRequest,
 		ResetCustomerEntitlementUsageHandlerResponse,

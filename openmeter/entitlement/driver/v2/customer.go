@@ -27,7 +27,7 @@ type (
 
 type CreateCustomerEntitlementHandler httptransport.HandlerWithArgs[CreateCustomerEntitlementHandlerRequest, CreateCustomerEntitlementHandlerResponse, CreateCustomerEntitlementHandlerParams]
 
-func (h *customerEntitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitlementHandler {
+func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitlementHandler {
 	return httptransport.NewHandlerWithArgs[
 		CreateCustomerEntitlementHandlerRequest,
 		CreateCustomerEntitlementHandlerResponse,
@@ -101,7 +101,7 @@ type (
 
 type ListCustomerEntitlementsHandler httptransport.HandlerWithArgs[ListCustomerEntitlementsHandlerRequest, ListCustomerEntitlementsHandlerResponse, ListCustomerEntitlementsHandlerParams]
 
-func (h *customerEntitlementHandler) ListCustomerEntitlements() ListCustomerEntitlementsHandler {
+func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlementsHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, p ListCustomerEntitlementsHandlerParams) (ListCustomerEntitlementsHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
@@ -209,7 +209,7 @@ type (
 
 type GetCustomerEntitlementHandler httptransport.HandlerWithArgs[GetCustomerEntitlementHandlerRequest, GetCustomerEntitlementHandlerResponse, GetCustomerEntitlementHandlerParams]
 
-func (h *customerEntitlementHandler) GetCustomerEntitlement() GetCustomerEntitlementHandler {
+func (h *entitlementHandler) GetCustomerEntitlement() GetCustomerEntitlementHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params GetCustomerEntitlementHandlerParams) (GetCustomerEntitlementHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
@@ -273,7 +273,7 @@ type (
 
 type DeleteCustomerEntitlementHandler httptransport.HandlerWithArgs[DeleteCustomerEntitlementHandlerRequest, DeleteCustomerEntitlementHandlerResponse, DeleteCustomerEntitlementHandlerParams]
 
-func (h *customerEntitlementHandler) DeleteCustomerEntitlement() DeleteCustomerEntitlementHandler {
+func (h *entitlementHandler) DeleteCustomerEntitlement() DeleteCustomerEntitlementHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params DeleteCustomerEntitlementHandlerParams) (DeleteCustomerEntitlementHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
@@ -337,7 +337,7 @@ type (
 
 type OverrideCustomerEntitlementHandler httptransport.HandlerWithArgs[OverrideCustomerEntitlementHandlerRequest, OverrideCustomerEntitlementHandlerResponse, OverrideCustomerEntitlementHandlerParams]
 
-func (h *customerEntitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntitlementHandler {
+func (h *entitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntitlementHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params OverrideCustomerEntitlementHandlerParams) (OverrideCustomerEntitlementHandlerRequest, error) {
 			var def OverrideCustomerEntitlementHandlerRequest
@@ -406,7 +406,7 @@ func (h *customerEntitlementHandler) OverrideCustomerEntitlement() OverrideCusto
 
 func defaultIncludeDeleted(p *bool) bool { return lo.FromPtrOr(p, false) }
 
-func (h *customerEntitlementHandler) resolveNamespace(ctx context.Context) (string, error) {
+func (h *entitlementHandler) resolveNamespace(ctx context.Context) (string, error) {
 	ns, ok := h.namespaceDecoder.GetNamespace(ctx)
 	if !ok {
 		return "", commonhttp.NewHTTPError(http.StatusInternalServerError, errors.New("internal server error"))

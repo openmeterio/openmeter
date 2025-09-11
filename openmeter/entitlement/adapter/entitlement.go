@@ -418,6 +418,18 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				)
 			}
 
+			if len(params.CustomerKeys) > 0 {
+				query = query.Where(db_entitlement.HasCustomerWith(
+					customerdb.KeyIn(params.CustomerKeys...),
+				))
+			}
+
+			if len(params.CustomerIDs) > 0 {
+				query = query.Where(db_entitlement.HasCustomerWith(
+					customerdb.IDIn(params.CustomerIDs...),
+				))
+			}
+
 			if len(params.EntitlementTypes) > 0 {
 				query = query.Where(db_entitlement.EntitlementTypeIn(slicesx.Map(params.EntitlementTypes, func(t entitlement.EntitlementType) db_entitlement.EntitlementType {
 					return db_entitlement.EntitlementType(t)

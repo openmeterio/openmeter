@@ -8,8 +8,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-// CustomerEntitlementHandler exposes V2 customer entitlement endpoints
-type CustomerEntitlementHandler interface {
+// EntitlementHandler exposes V2 customer entitlement endpoints
+type EntitlementHandler interface {
 	CreateCustomerEntitlement() CreateCustomerEntitlementHandler
 	ListCustomerEntitlements() ListCustomerEntitlementsHandler
 	GetCustomerEntitlement() GetCustomerEntitlementHandler
@@ -19,9 +19,11 @@ type CustomerEntitlementHandler interface {
 	CreateCustomerEntitlementGrant() CreateCustomerEntitlementGrantHandler
 	GetCustomerEntitlementHistory() GetCustomerEntitlementHistoryHandler
 	ResetCustomerEntitlementUsage() ResetCustomerEntitlementUsageHandler
+	ListEntitlements() ListEntitlementsHandler
+	GetEntitlement() GetEntitlementHandler
 }
 
-type customerEntitlementHandler struct {
+type entitlementHandler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
 	connector        entitlement.Connector
@@ -29,14 +31,14 @@ type customerEntitlementHandler struct {
 	customerService  customer.Service
 }
 
-func NewCustomerEntitlementHandler(
+func NewEntitlementHandler(
 	connector entitlement.Connector,
 	balanceConnector meteredentitlement.Connector,
 	customerService customer.Service,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
-) CustomerEntitlementHandler {
-	return &customerEntitlementHandler{
+) EntitlementHandler {
+	return &entitlementHandler{
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		connector:        connector,
