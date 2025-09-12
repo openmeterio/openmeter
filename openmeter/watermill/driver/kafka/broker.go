@@ -51,13 +51,16 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 	if role == "" {
 		return nil, errors.New("role is required")
 	}
-	if o.KafkaConfig.SocketKeepAliveEnabled {
-		config.Net.KeepAlive = defaultKeepalive
-	}
-	config.Metadata.RefreshFrequency = o.KafkaConfig.TopicMetadataRefreshInterval.Duration()
+
 	if o.ClientID == "" {
 		return nil, errors.New("client ID is required")
 	}
+
+	if o.KafkaConfig.SocketKeepAliveEnabled {
+		config.Net.KeepAlive = defaultKeepalive
+	}
+
+	config.Metadata.RefreshFrequency = o.KafkaConfig.TopicMetadataRefreshInterval.Duration()
 	config.ClientID = fmt.Sprintf("%s-%s", o.ClientID, role)
 
 	// These are globals, so we cannot append the publisher/subscriber name to them
