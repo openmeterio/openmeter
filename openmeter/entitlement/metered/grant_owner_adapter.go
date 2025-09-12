@@ -57,11 +57,14 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 	// get feature of ent
 	ent, err := e.entitlementRepo.GetEntitlement(ctx, id)
 	if err != nil {
-		e.logger.Debug(fmt.Sprintf("failed to get entitlement for owner %s in namespace %s: %s", id.ID, id.Namespace, err))
-		return def, &grant.OwnerNotFoundError{
-			Owner:          id,
-			AttemptedOwner: "entitlement",
+		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+			return def, &grant.OwnerNotFoundError{
+				Owner:          id,
+				AttemptedOwner: "entitlement",
+			}
 		}
+
+		return def, err
 	}
 
 	mEnt, err := ParseFromGenericEntitlement(ent)
