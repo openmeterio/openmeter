@@ -9,13 +9,10 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -294,27 +291,6 @@ func (h *handler) DeleteSubject() DeleteSubjectHandler {
 			subjectEntity, err := h.subjectService.GetByIdOrKey(ctx, request.namespace, request.SubjectIdOrKey)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subject: %w", err)
-			}
-
-			// Validate that there are no active entitlements for the subject
-			ents, err := h.entitlementConnector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
-				Namespaces:          []string{request.namespace},
-				SubjectKeys:         []string{subjectEntity.Key},
-				IncludeDeleted:      true,
-				IncludeDeletedAfter: time.Now().Add(-balanceworker.DefaultIncludeDeletedDuration),
-				Page: pagination.Page{
-					PageSize:   1,
-					PageNumber: 1,
-				},
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to list entitlements: %w", err)
-			}
-
-			if ents.TotalCount > 0 {
-				err := fmt.Errorf("subject can only be deleted if it hasn't had any entitlements in the last 24 hours")
-
-				return nil, commonhttp.NewHTTPError(http.StatusBadRequest, err)
 			}
 
 			// Delete subject from database
