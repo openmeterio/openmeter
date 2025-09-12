@@ -220,32 +220,33 @@ func (p SubjectProvisioner) EnsureSubject(ctx context.Context, cus *customer.Cus
 
 	// Check if the subject exists
 	sub, err := p.subject.GetByIdOrKey(ctx, cus.Namespace, subjectKey)
-	if err != nil {
-		if models.IsGenericNotFoundError(err) {
-			// Create Subject if it does not exist
-			sub, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx),
-				subject.CreateInput{
-					Namespace: cus.Namespace,
-					Key:       subjectKey,
-					Metadata: lo.ToPtr(map[string]interface{}{
-						"createdBy":  "subject.provisioner",
-						"customerId": cus.ID,
-					}),
-				})
-			if err != nil {
-				return nil, fmt.Errorf("failed to create subject for customer [namespace=%s customer.id=%s customer.usage_attribution_key: %s]: %w",
-					cus.Namespace, cus.ID, subjectKey, err)
-			}
+	if err != nil && !models.IsGenericNotFoundError(err) {
+		return nil, fmt.Errorf("failed to get subject for customer [namespace=%s customer.id=%s customer.usage_attribution_key: %s]: %w",
+			cus.Namespace, cus.ID, subjectKey, err)
+	}
 
-			span.AddEvent("created subject", trace.WithAttributes(
-				attribute.String("subject.id", sub.Id),
-				attribute.String("subject.key", sub.Key),
-			))
-
-			return &sub, nil
+	if models.IsGenericNotFoundError(err) || sub.IsDeleted() {
+		// Create Subject if it does not exist
+		sub, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx),
+			subject.CreateInput{
+				Namespace: cus.Namespace,
+				Key:       subjectKey,
+				Metadata: lo.ToPtr(map[string]interface{}{
+					"createdBy":  "subject.provisioner",
+					"customerId": cus.ID,
+				}),
+			})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create subject for customer [namespace=%s customer.id=%s customer.usage_attribution_key: %s]: %w",
+				cus.Namespace, cus.ID, subjectKey, err)
 		}
 
-		return nil, err
+		span.AddEvent("created subject", trace.WithAttributes(
+			attribute.String("subject.id", sub.Id),
+			attribute.String("subject.key", sub.Key),
+		))
+
+		return &sub, nil
 	}
 
 	span.AddEvent("found subject", trace.WithAttributes(
