@@ -9627,6 +9627,9 @@ export interface components {
      *     Subjects are useful when you are reporting usage events with your own database ID but want to enrich the subject with a human-readable name or metadata.
      *     For most use cases, a subject is equivalent to a customer.
      * @example {
+     *       "createdAt": "2025-01-01T01:01:01.001Z",
+     *       "updatedAt": "2025-02-01T01:01:01.001Z",
+     *       "deletedAt": "2025-03-01T01:01:01.001Z",
      *       "id": "01G65Z755AFWAKHE12NY0CQ9FH",
      *       "key": "customer-id",
      *       "displayName": "Customer Name",
@@ -9637,6 +9640,27 @@ export interface components {
      *     }
      */
     Subject: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
       /**
        * @description A unique identifier for the subject.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH

@@ -3,11 +3,11 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -27,13 +27,6 @@ func (Subject) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
-		// We don't use the time mixin because we don't want deleted_at
-		field.Time("created_at").
-			Default(clock.Now).
-			Immutable(),
-		field.Time("updated_at").
-			Default(clock.Now).
-			UpdateDefault(clock.Now),
 	}
 }
 
@@ -42,6 +35,7 @@ func (Subject) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
 	}
 }
 
@@ -49,7 +43,10 @@ func (Subject) Mixin() []ent.Mixin {
 func (Subject) Indexes() []ent.Index {
 	return []ent.Index{
 		// unique for each organization
-		index.Fields("key", "namespace").Unique(),
+		index.Fields("namespace", "key").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).Unique(),
 		// we sort by display name
 		index.Fields("display_name"),
 		// so that we can fetch the recently created subjects, id is there for stable pagination
@@ -61,10 +58,5 @@ func (Subject) Indexes() []ent.Index {
 func (Subject) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("entitlements", Entitlement.Type),
-
-		// FIXME: enable foreign key constraints
-		// Ent doesn't support foreign key constraints on non ID fields (key)
-		// https://github.com/ent/ent/issues/2549
-		// edge.To("subject_key", CustomerSubjects.Type),
 	}
 }

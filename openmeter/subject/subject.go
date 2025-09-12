@@ -2,17 +2,21 @@ package subject
 
 import (
 	"errors"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Subject represents a subject in the system.
 type Subject struct {
-	Namespace   string
-	Id          string
-	Key         string
-	DisplayName *string
-	Metadata    map[string]interface{}
+	models.ManagedModel
+
+	Namespace   string                 `json:"namespace"`
+	Id          string                 `json:"id"`
+	Key         string                 `json:"key"`
+	DisplayName *string                `json:"displayName,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 	// Use customer application entity instead
-	StripeCustomerId *string
+	StripeCustomerId *string `json:"stripeCustomerId,omitempty"`
 }
 
 func (s Subject) Validate() error {

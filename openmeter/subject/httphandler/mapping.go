@@ -19,6 +19,9 @@ func FromSubject(s subject.Subject) api.Subject {
 	}
 
 	return api.Subject{
+		CreatedAt:        s.CreatedAt,
+		UpdatedAt:        s.UpdatedAt,
+		DeletedAt:        s.DeletedAt,
 		Id:               s.Id,
 		Key:              s.Key,
 		DisplayName:      s.DisplayName,
