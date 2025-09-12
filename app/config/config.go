@@ -173,7 +173,7 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 
 	ConfigureTelemetry(v, flags)
 
-	ConfigurePostgres(v)
+	ConfigurePostgres(v, "postgres")
 	ConfigureNamespace(v)
 	ConfigureIngest(v)
 	ConfigureAggregation(v)

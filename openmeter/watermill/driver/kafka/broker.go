@@ -51,13 +51,16 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 	if role == "" {
 		return nil, errors.New("role is required")
 	}
-	if o.KafkaConfig.SocketKeepAliveEnabled {
-		config.Net.KeepAlive = defaultKeepalive
-	}
-	config.Metadata.RefreshFrequency = o.KafkaConfig.TopicMetadataRefreshInterval.Duration()
+
 	if o.ClientID == "" {
 		return nil, errors.New("client ID is required")
 	}
+
+	if o.KafkaConfig.SocketKeepAliveEnabled {
+		config.Net.KeepAlive = defaultKeepalive
+	}
+
+	config.Metadata.RefreshFrequency = o.KafkaConfig.TopicMetadataRefreshInterval.Duration()
 	config.ClientID = fmt.Sprintf("%s-%s", o.ClientID, role)
 
 	// These are globals, so we cannot append the publisher/subscriber name to them
@@ -80,10 +83,24 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 		config.Net.TLS.Config = &tls.Config{}
 
 		switch o.KafkaConfig.SaslMechanisms {
-		case "PLAIN":
+		case sarama.SASLTypePlaintext:
 			config.Net.SASL.User = o.KafkaConfig.SaslUsername
 			config.Net.SASL.Password = o.KafkaConfig.SaslPassword
-			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+			config.Net.SASL.Mechanism = sarama.SASLMechanism(o.KafkaConfig.SaslMechanisms)
+		case sarama.SASLTypeSCRAMSHA256:
+			config.Net.SASL.User = o.KafkaConfig.SaslUsername
+			config.Net.SASL.Password = o.KafkaConfig.SaslPassword
+			config.Net.SASL.Mechanism = sarama.SASLMechanism(o.KafkaConfig.SaslMechanisms)
+			config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
+				return &XDGSCRAMClient{HashGeneratorFcn: SHA256}
+			}
+		case sarama.SASLTypeSCRAMSHA512:
+			config.Net.SASL.User = o.KafkaConfig.SaslUsername
+			config.Net.SASL.Password = o.KafkaConfig.SaslPassword
+			config.Net.SASL.Mechanism = sarama.SASLMechanism(o.KafkaConfig.SaslMechanisms)
+			config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
+				return &XDGSCRAMClient{HashGeneratorFcn: SHA512}
+			}
 		default:
 			return nil, fmt.Errorf("unsupported SASL mechanism: %s", o.KafkaConfig.SaslMechanisms)
 		}
