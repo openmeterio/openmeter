@@ -59,6 +59,9 @@ interface Subjects {
  */
 @friendlyName("Subject")
 @example(#{
+  createdAt: DateTime.fromISO("2025-01-01T01:01:01.001Z"),
+  updatedAt: DateTime.fromISO("2025-02-01T01:01:01.001Z"),
+  deletedAt: DateTime.fromISO("2025-03-01T01:01:01.001Z"),
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
   key: "customer-id",
   displayName: "Customer Name",
@@ -66,6 +69,8 @@ interface Subjects {
   stripeCustomerId: "cus_JMOlctsKV8",
 })
 model Subject {
+  ...ResourceTimestamps;
+
   // Validator doesn't obey required for readOnly properties
   // See: https://github.com/stoplightio/spectral/issues/1274
 
