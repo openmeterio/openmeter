@@ -389,12 +389,6 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 		return def, err
 	}
 
-	if cus != nil && cus.IsDeleted() {
-		return def, models.NewGenericPreConditionFailedError(
-			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
-		)
-	}
-
 	if cus == nil {
 		return def, fmt.Errorf("customer is nil")
 	}

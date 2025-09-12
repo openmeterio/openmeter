@@ -4511,3 +4511,123 @@ func (s *SubscriptionHandlerTestSuite) TestSyncronizeSubscriptionPeriodAlgorithm
 		},
 	})
 }
+
+func (s *SubscriptionHandlerTestSuite) TestDeletedCustomerHandling() {
+	// Given
+	//  a customer with a subscription
+	//  the subscription has UBP prices
+	// When
+	//  the subscription is canceled
+	//  the customer is deleted
+	// Then
+	//  we can still sync the subscription
+	//  and the deleted customer is billed for the outstanding amount
+
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2025-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 12, s.mustParseTime("2025-01-01T00:30:00Z"))
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  s.APIRequestsTotalFeature.Key,
+						Name: "ubp",
+						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(5),
+						}),
+						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+					},
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				},
+			},
+		},
+	})
+
+	// We advance the clock and cancel the subscription
+	clock.FreezeTime(s.mustParseTime("2025-01-01T01:00:00Z"))
+	subs, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	})
+	s.NoError(err)
+	s.NotEmpty(subs)
+
+	// We advance the clock and delete the customer
+	clock.FreezeTime(s.mustParseTime("2025-01-01T02:00:00Z"))
+	err = s.CustomerService.DeleteCustomer(ctx, s.Customer.GetID())
+	s.NoError(err)
+
+	// We advance the clock and simulate a late sync on the subscription
+	clock.FreezeTime(s.mustParseTime("2025-01-01T03:00:00Z"))
+
+	// Let's get the subscription
+	subsView, err = s.SubscriptionService.GetView(ctx, subs.NamespacedID)
+	s.NoError(err)
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, clock.Now()))
+
+	// Then the gathering invoice should be available
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	// 2025-01-01T00:00:00Z -> 2025-01-01T01:00:00Z
+	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  s.APIRequestsTotalFeature.Key,
+			},
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(5),
+			})),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2025-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2025-01-01T01:00:00Z"),
+				},
+			},
+			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2025-01-01T01:00:00Z")}),
+		},
+	})
+
+	// Then we can invoice the customer
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: s.Customer.GetID(),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+
+	invoice := invoices[0]
+
+	s.DebugDumpInvoice("invoice", invoice)
+	// We expect that the line is only covering the subscription's duration
+	// 2025-01-01T00:00:00Z -> 2025-01-01T01:00:00Z
+	// We expect that the invoice reaches a paid/non-error status
+	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  s.APIRequestsTotalFeature.Key,
+			},
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(5),
+			})),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2025-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2025-01-01T01:00:00Z"),
+				},
+			},
+			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2025-01-01T01:00:00Z")}),
+		},
+	})
+
+	// Invoice expectations:
+	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	s.Equal(float64(5*12), invoice.Totals.Total.InexactFloat64())
+}
