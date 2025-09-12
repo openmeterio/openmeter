@@ -80,10 +80,10 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 		config.Net.TLS.Config = &tls.Config{}
 
 		switch o.KafkaConfig.SaslMechanisms {
-		case "PLAIN":
+		case sarama.SASLTypePlaintext, sarama.SASLTypeSCRAMSHA512, sarama.SASLTypeSCRAMSHA256:
 			config.Net.SASL.User = o.KafkaConfig.SaslUsername
 			config.Net.SASL.Password = o.KafkaConfig.SaslPassword
-			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+			config.Net.SASL.Mechanism = sarama.SASLMechanism(o.KafkaConfig.SaslMechanisms)
 		default:
 			return nil, fmt.Errorf("unsupported SASL mechanism: %s", o.KafkaConfig.SaslMechanisms)
 		}
