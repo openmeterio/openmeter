@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
@@ -35,7 +36,7 @@ func NewPublisher(ctx context.Context, in PublisherOptions) (*kafka.Publisher, e
 	}
 
 	wmConfig := kafka.PublisherConfig{
-		Brokers:   []string{in.Broker.KafkaConfig.Broker},
+		Brokers:   strings.Split(in.Broker.KafkaConfig.Broker, ","),
 		Marshaler: marshalerWithPartitionKey{},
 		Tracer:    kafka.NewOTELSaramaTracer(), // This relies on the global trace provider
 	}
