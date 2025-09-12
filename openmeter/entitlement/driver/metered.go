@@ -413,6 +413,12 @@ func (h *meteredEntitlementHandler) resolveCustomerFromSubject(ctx context.Conte
 		return nil, err
 	}
 
+	if subj.IsDeleted() {
+		return nil, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("subject is deleted [namespace: %s, subject: %s]", namespace, subjectIdOrKey),
+		)
+	}
+
 	cust, err := h.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
 		Namespace:  namespace,
 		SubjectKey: subj.Key,
