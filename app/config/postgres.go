@@ -52,7 +52,6 @@ func (c PostgresConfig) AsURL() string {
 
 func ConfigurePostgres(v *viper.Viper, prefix string) {
 	v.SetDefault(AddPrefix(prefix, "url"), "")
-	v.SetDefault(AddPrefix(prefix, "autoMigrate"), "ent")
 	v.SetDefault(AddPrefix(prefix, "options.poolMaxConns"), 0)
 	v.SetDefault(AddPrefix(prefix, "options.applicationName"), "")
 	v.SetDefault(AddPrefix(prefix, "options.sslVerify"), "")
