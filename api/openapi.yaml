@@ -24983,7 +24983,7 @@ components:
   securitySchemes:
     PortalTokenAuth:
       type: http
-      scheme: Bearer
+      scheme: bearer
       description: Consumer portal token.
 servers:
   - url: https://127.0.0.1

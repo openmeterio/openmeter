@@ -23943,7 +23943,7 @@ components:
   securitySchemes:
     CloudTokenAuth:
       type: http
-      scheme: Bearer
+      scheme: bearer
       description: Cloud API token.
     CloudCookieAuth:
       type: apiKey
@@ -23952,7 +23952,7 @@ components:
       description: Cloud API web app cookie.
     CloudPortalTokenAuth:
       type: http
-      scheme: Bearer
+      scheme: bearer
       description: Cloud consumer portal token.
 servers:
   - url: https://openmeter.cloud
