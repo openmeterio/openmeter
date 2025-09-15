@@ -31,22 +31,24 @@ func (o ListEntitlementsOrderBy) StrValues() []string {
 }
 
 type ListEntitlementsParams struct {
-	IDs                 []string
-	Namespaces          []string
-	SubjectKeys         []string
-	CustomerIDs         []string
-	CustomerKeys        []string
-	FeatureIDs          []string
-	FeatureKeys         []string
-	FeatureIDsOrKeys    []string
-	EntitlementTypes    []EntitlementType
-	OrderBy             ListEntitlementsOrderBy
-	Order               sortx.Order
+	IDs              []string
+	Namespaces       []string
+	SubjectKeys      []string
+	CustomerIDs      []string
+	CustomerKeys     []string
+	FeatureIDs       []string
+	FeatureKeys      []string
+	FeatureIDsOrKeys []string
+	EntitlementTypes []EntitlementType
+	OrderBy          ListEntitlementsOrderBy
+	Order            sortx.Order
+	// TODO[galexi]: We should clean up how these 4 fields are used together.
 	IncludeDeleted      bool
 	IncludeDeletedAfter time.Time
 	ExcludeInactive     bool
 	ActiveAt            *time.Time
-	Page                pagination.Page
+
+	Page pagination.Page
 	// will be deprecated
 	Limit int
 	// will be deprecated

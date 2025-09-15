@@ -140,9 +140,11 @@ func (c *service) GetEntitlementsOfCustomer(ctx context.Context, namespace strin
 	entitlements, err := c.entitlementRepo.ListEntitlements(
 		ctx,
 		entitlement.ListEntitlementsParams{
-			CustomerIDs: []string{customerId},
-			Namespaces:  []string{namespace},
-			ActiveAt:    &at,
+			CustomerIDs:         []string{customerId},
+			Namespaces:          []string{namespace},
+			ActiveAt:            &at,
+			IncludeDeleted:      true,
+			IncludeDeletedAfter: at,
 			// We leave page empty to get all entitlements
 		},
 	)
