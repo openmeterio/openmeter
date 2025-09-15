@@ -16,8 +16,6 @@ func MapSubscriptionErrors(err error) error {
 		return models.NewGenericValidationError(sErr)
 	} else if sErr, ok := lo.ErrorsAs[*subscription.AlignmentError](err); ok {
 		return models.NewGenericConflictError(sErr)
-	} else if sErr, ok := lo.ErrorsAs[*subscription.NoBillingPeriodError](err); ok {
-		return models.NewGenericValidationError(sErr)
 	}
 
 	return err
