@@ -58,11 +58,11 @@ func TestScheduling(t *testing.T) {
 
 	tt := []struct {
 		name string
-		fn   func(t *testing.T, conn entitlement.Connector, deps *dependencies)
+		fn   func(t *testing.T, conn entitlement.Service, deps *dependencies)
 	}{
 		{
 			name: "Should not allow scheduling via create",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 				_, err := conn.CreateEntitlement(
 					ctx,
@@ -91,7 +91,7 @@ func TestScheduling(t *testing.T) {
 		},
 		{
 			name: "Should fail scheduling is contradictory",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -152,7 +152,7 @@ func TestScheduling(t *testing.T) {
 		},
 		{
 			name: "Should allow scheduling entitlement if no entitlement is present for pair",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -185,7 +185,7 @@ func TestScheduling(t *testing.T) {
 		},
 		{
 			name: "Should allow scheduling entitlement after current scheduled entitlement",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -234,7 +234,7 @@ func TestScheduling(t *testing.T) {
 		},
 		{
 			name: "Should error if entitlements with defined schedules overlap",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -286,7 +286,7 @@ func TestScheduling(t *testing.T) {
 		},
 		{
 			name: "Should error when attempting to schedule after indefinite entitlement",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -336,7 +336,7 @@ func TestScheduling(t *testing.T) {
 		},
 		{
 			name: "Should save annotations for all entitlement types",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				// create customer and subject
@@ -456,11 +456,11 @@ func TestSuperseding(t *testing.T) {
 
 	tt := []struct {
 		name string
-		fn   func(t *testing.T, conn entitlement.Connector, deps *dependencies)
+		fn   func(t *testing.T, conn entitlement.Service, deps *dependencies)
 	}{
 		{
 			name: "Should error if original entitlement is not found",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -485,7 +485,7 @@ func TestSuperseding(t *testing.T) {
 		},
 		{
 			name: "Should error if feature is not found",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -532,7 +532,7 @@ func TestSuperseding(t *testing.T) {
 		},
 		{
 			name: "Should error for differing feature",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -576,7 +576,7 @@ func TestSuperseding(t *testing.T) {
 		},
 		{
 			name: "Should error for differing subjects",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -622,7 +622,7 @@ func TestSuperseding(t *testing.T) {
 		},
 		{
 			name: "Should supersede entitlement",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -671,7 +671,7 @@ func TestSuperseding(t *testing.T) {
 		},
 		{
 			name: "Should error if entitlements are not continuous",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				clock.SetTime(testutils.GetRFC3339Time(t, "2024-01-03T00:00:00Z"))
@@ -716,7 +716,7 @@ func TestSuperseding(t *testing.T) {
 		},
 		{
 			name: "Should use current time for scheduling if activeFrom is not provided",
-			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+			fn: func(t *testing.T, conn entitlement.Service, deps *dependencies) {
 				ctx := t.Context()
 
 				activeFrom1 := testutils.GetRFC3339Time(t, "2024-01-01T12:00:00Z")

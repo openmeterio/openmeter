@@ -683,9 +683,12 @@ func (n NoopFeatureConnector) ArchiveFeature(ctx context.Context, featureID mode
 }
 
 // NoopEntitlementConnector
-var _ entitlement.Connector = (*NoopEntitlementConnector)(nil)
+var _ entitlement.Service = (*NoopEntitlementConnector)(nil)
 
 type NoopEntitlementConnector struct{}
+
+func (n NoopEntitlementConnector) RegisterHooks(hooks ...models.ServiceHook[entitlement.Entitlement]) {
+}
 
 func (n NoopEntitlementConnector) CreateEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
@@ -736,6 +739,9 @@ func (n NoopEntitlementConnector) GetAccess(ctx context.Context, namespace strin
 var _ meteredentitlement.Connector = (*NoopEntitlementBalanceConnector)(nil)
 
 type NoopEntitlementBalanceConnector struct{}
+
+func (n NoopEntitlementBalanceConnector) RegisterHooks(hooks ...models.ServiceHook[meteredentitlement.Entitlement]) {
+}
 
 func (n NoopEntitlementBalanceConnector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*meteredentitlement.EntitlementBalance, error) {
 	return nil, nil

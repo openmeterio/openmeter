@@ -93,7 +93,7 @@ type Config struct {
 	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
 	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
-	EntitlementConnector        entitlement.Connector
+	EntitlementConnector        entitlement.Service
 	EntitlementBalanceConnector meteredentitlement.Connector
 	ErrorHandler                errorsx.Handler
 	FeatureConnector            feature.FeatureConnector

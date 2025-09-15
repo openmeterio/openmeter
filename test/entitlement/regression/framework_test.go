@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementrepo "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
+	entitlementsubscriptionhook "github.com/openmeterio/openmeter/openmeter/entitlement/hooks/subscription"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	entitlementservice "github.com/openmeterio/openmeter/openmeter/entitlement/service"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
@@ -53,7 +54,7 @@ type Dependencies struct {
 
 	EntitlementRepo entitlement.EntitlementRepo
 
-	EntitlementConnector        entitlement.Connector
+	EntitlementConnector        entitlement.Service
 	StaticEntitlementConnector  staticentitlement.Connector
 	BooleanEntitlementConnector booleanentitlement.Connector
 	MeteredEntitlementConnector meteredentitlement.Connector
@@ -171,6 +172,10 @@ func setupDependencies(t *testing.T) Dependencies {
 		tracer,
 	)
 
+	meteredEntitlementConnector.RegisterHooks(
+		meteredentitlement.ConvertHook(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{})),
+	)
+
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
 	booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
 
@@ -179,15 +184,21 @@ func setupDependencies(t *testing.T) Dependencies {
 	})
 	require.NoError(t, err)
 
-	entitlementConnector := entitlementservice.NewEntitlementConnector(
-		entitlementRepo,
-		featureConnector,
-		meterAdapter,
-		meteredEntitlementConnector,
-		staticEntitlementConnector,
-		booleanEntitlementConnector,
-		mockPublisher,
-		locker,
+	entitlementConnector := entitlementservice.NewEntitlementService(
+		entitlementservice.ServiceConfig{
+			EntitlementRepo:             entitlementRepo,
+			FeatureConnector:            featureConnector,
+			MeterService:                meterAdapter,
+			MeteredEntitlementConnector: meteredEntitlementConnector,
+			StaticEntitlementConnector:  staticEntitlementConnector,
+			BooleanEntitlementConnector: booleanEntitlementConnector,
+			Publisher:                   mockPublisher,
+			Locker:                      locker,
+		},
+	)
+
+	entitlementConnector.RegisterHooks(
+		entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{}),
 	)
 
 	subjectRepo, err := subjectadapter.New(dbClient)

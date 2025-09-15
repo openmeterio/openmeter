@@ -49,6 +49,21 @@ type Entitlement struct {
 	LastReset time.Time `json:"lastReset"`
 }
 
+func (e *Entitlement) ToGenericEntitlement() *entitlement.Entitlement {
+	return &entitlement.Entitlement{
+		GenericProperties: e.GenericProperties,
+
+		MeasureUsageFrom:        &e.MeasureUsageFrom,
+		IssueAfterReset:         &e.IssueAfterReset.Amount,
+		IssueAfterResetPriority: e.IssueAfterReset.Priority,
+		IsSoftLimit:             &e.IsSoftLimit,
+		LastReset:               &e.LastReset,
+		PreserveOverageAtReset:  &e.PreserveOverageAtReset,
+
+		Config: nil,
+	}
+}
+
 // HasDefaultGrant returns true if the entitlement has a default grant.
 // This is the case when `IssueAfterReset` is set and greater than 0.
 func (e *Entitlement) HasDefaultGrant() bool {

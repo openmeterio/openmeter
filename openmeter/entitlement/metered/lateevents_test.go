@@ -19,6 +19,7 @@ import (
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
+	entitlementsubscriptionhook "github.com/openmeterio/openmeter/openmeter/entitlement/hooks/subscription"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
@@ -192,6 +193,10 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			mockPublisher,
 			testLogger,
 			tracer,
+		)
+
+		connector.RegisterHooks(
+			meteredentitlement.ConvertHook(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{})),
 		)
 
 		subjectRepo, err := subjectadapter.New(dbClient)

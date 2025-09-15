@@ -37,7 +37,7 @@ const (
 type TestEnv interface {
 	Customer() customer.Service
 	Subscription() subscription.Service
-	Entitlement() entitlement.Connector
+	Entitlement() entitlement.Service
 	Feature() feature.FeatureConnector
 	Subject() subject.Service
 
@@ -49,7 +49,7 @@ var _ TestEnv = (*testEnv)(nil)
 type testEnv struct {
 	customer     customer.Service
 	subscription subscription.Service
-	entitlement  entitlement.Connector
+	entitlement  entitlement.Service
 	feature      feature.FeatureConnector
 	subject      subject.Service
 
@@ -68,7 +68,7 @@ func (n testEnv) Subscription() subscription.Service {
 	return n.subscription
 }
 
-func (n testEnv) Entitlement() entitlement.Connector {
+func (n testEnv) Entitlement() entitlement.Service {
 	return n.entitlement
 }
 

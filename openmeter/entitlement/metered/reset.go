@@ -36,6 +36,10 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			return nil, fmt.Errorf("failed to parse entitlement: %w", err)
 		}
 
+		if err := e.hooks.PreUpdate(ctx, mEnt); err != nil {
+			return nil, err
+		}
+
 		balanceAfterReset, err := e.balanceConnector.ResetUsageForOwner(ctx, owner, credit.ResetUsageForOwnerParams{
 			At:              params.At,
 			RetainAnchor:    params.RetainAnchor,

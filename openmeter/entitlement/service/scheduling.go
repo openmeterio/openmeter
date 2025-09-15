@@ -17,7 +17,7 @@ import (
 )
 
 // ScheduleEntitlement schedules an entitlement for a future date.
-func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*entitlement.Entitlement, error) {
 		activeFromTime := defaultx.WithDefault(input.ActiveFrom, clock.Now())
 
@@ -130,7 +130,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input en
 	})
 }
 
-func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitlementId string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+func (c *service) SupersedeEntitlement(ctx context.Context, entitlementId string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*entitlement.Entitlement, error) {
 		// Find the entitlement to override
 		oldEnt, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: entitlementId})
@@ -144,6 +144,10 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 
 		if oldEnt.DeletedAt != nil {
 			return nil, &entitlement.AlreadyDeletedError{EntitlementID: oldEnt.ID}
+		}
+
+		if err := c.hooks.PreDelete(ctx, oldEnt); err != nil {
+			return nil, err
 		}
 
 		// ID has priority over key
@@ -205,7 +209,7 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 	})
 }
 
-func (c *entitlementConnector) lockUniqueScope(ctx context.Context, customerID string, featureKey string) error {
+func (c *service) lockUniqueScope(ctx context.Context, customerID string, featureKey string) error {
 	key, err := NewEntitlementUniqueScopeLock(featureKey, customerID)
 	if err != nil {
 		return err

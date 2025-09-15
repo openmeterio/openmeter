@@ -16,7 +16,7 @@ import (
 )
 
 type EntitlementSubscriptionAdapter struct {
-	entitlementConnector entitlement.Connector
+	entitlementConnector entitlement.Service
 	itemRepo             subscription.SubscriptionItemRepository
 	txCreator            transaction.Creator
 }
@@ -24,7 +24,7 @@ type EntitlementSubscriptionAdapter struct {
 var _ subscription.EntitlementAdapter = &EntitlementSubscriptionAdapter{}
 
 func NewSubscriptionEntitlementAdapter(
-	entitlementConnector entitlement.Connector,
+	entitlementConnector entitlement.Service,
 	itemRepo subscription.SubscriptionItemRepository,
 	txCreator transaction.Creator,
 ) *EntitlementSubscriptionAdapter {

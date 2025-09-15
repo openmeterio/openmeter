@@ -1027,6 +1027,50 @@ func TestPlan(t *testing.T) {
 		assert.True(t, res.JSON200.HasAccess)
 	})
 
+	t.Run("Should not allow deleting subscription managed entitlement", func(t *testing.T) {
+		// First, let's get the entitlement ID
+		custEnts, err := client.ListCustomerEntitlementsV2WithResponse(ctx, customer1.Id, &api.ListCustomerEntitlementsV2Params{
+			PageSize: lo.ToPtr(100),
+			Page:     lo.ToPtr(1),
+		})
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, custEnts.StatusCode(), "received the following body: %s", custEnts.Body)
+		require.NotNil(t, custEnts.JSON200)
+		require.NotNil(t, custEnts.JSON200.Items)
+
+		entID := ""
+
+		for _, ent := range custEnts.JSON200.Items {
+			switch typ, _ := ent.Discriminator(); typ {
+			case "metered":
+				v, err := ent.AsEntitlementMeteredV2()
+				require.Nil(t, err)
+				entID = v.Id
+			case "static":
+				v, err := ent.AsEntitlementStaticV2()
+				require.Nil(t, err)
+				entID = v.Id
+			case "boolean":
+				v, err := ent.AsEntitlementBooleanV2()
+				require.Nil(t, err)
+				entID = v.Id
+			}
+		}
+		require.NotEmpty(t, entID)
+
+		t.Run("Subject APIs", func(t *testing.T) {
+			res, err := client.DeleteEntitlementWithResponse(ctx, customer1.UsageAttribution.SubjectKeys[0], entID)
+			require.Nil(t, err)
+			require.Equal(t, http.StatusForbidden, res.StatusCode(), "received the following body: %s", res.Body)
+		})
+
+		t.Run("Customer APIs", func(t *testing.T) {
+			res, err := client.DeleteCustomerEntitlementV2WithResponse(ctx, customer1.Id, PlanFeatureKey)
+			require.Nil(t, err)
+			require.Equal(t, http.StatusForbidden, res.StatusCode(), "received the following body: %s", res.Body)
+		})
+	})
+
 	t.Run("Should check access of customer", func(t *testing.T) {
 		res, err := client.GetCustomerAccessWithResponse(ctx, customer1.Id)
 		require.Nil(t, err)

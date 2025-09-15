@@ -21,7 +21,20 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-type entitlementConnector struct {
+type ServiceConfig struct {
+	EntitlementRepo  entitlement.EntitlementRepo
+	FeatureConnector feature.FeatureConnector
+	MeterService     meter.Service
+
+	MeteredEntitlementConnector entitlement.SubTypeConnector
+	StaticEntitlementConnector  entitlement.SubTypeConnector
+	BooleanEntitlementConnector entitlement.SubTypeConnector
+
+	Publisher eventbus.Publisher
+	Locker    *lockr.Locker
+}
+
+type service struct {
 	meteredEntitlementConnector entitlement.SubTypeConnector
 	staticEntitlementConnector  entitlement.SubTypeConnector
 	booleanEntitlementConnector entitlement.SubTypeConnector
@@ -30,33 +43,33 @@ type entitlementConnector struct {
 	featureConnector feature.FeatureConnector
 	meterService     meter.Service
 
+	hooks models.ServiceHookRegistry[entitlement.Entitlement]
+
 	publisher eventbus.Publisher
 	locker    *lockr.Locker
 }
 
-func NewEntitlementConnector(
-	entitlementRepo entitlement.EntitlementRepo,
-	featureConnector feature.FeatureConnector,
-	meterService meter.Service,
-	meteredEntitlementConnector entitlement.SubTypeConnector,
-	staticEntitlementConnector entitlement.SubTypeConnector,
-	booleanEntitlementConnector entitlement.SubTypeConnector,
-	publisher eventbus.Publisher,
-	locker *lockr.Locker,
-) entitlement.Connector {
-	return &entitlementConnector{
-		meteredEntitlementConnector: meteredEntitlementConnector,
-		staticEntitlementConnector:  staticEntitlementConnector,
-		booleanEntitlementConnector: booleanEntitlementConnector,
-		entitlementRepo:             entitlementRepo,
-		featureConnector:            featureConnector,
-		meterService:                meterService,
-		publisher:                   publisher,
-		locker:                      locker,
+func (s *service) RegisterHooks(hooks ...models.ServiceHook[entitlement.Entitlement]) {
+	s.hooks.RegisterHooks(hooks...)
+}
+
+func NewEntitlementService(
+	config ServiceConfig,
+) entitlement.Service {
+	return &service{
+		meteredEntitlementConnector: config.MeteredEntitlementConnector,
+		staticEntitlementConnector:  config.StaticEntitlementConnector,
+		booleanEntitlementConnector: config.BooleanEntitlementConnector,
+		entitlementRepo:             config.EntitlementRepo,
+		featureConnector:            config.FeatureConnector,
+		meterService:                config.MeterService,
+		publisher:                   config.Publisher,
+		locker:                      config.Locker,
+		hooks:                       models.ServiceHookRegistry[entitlement.Entitlement]{},
 	}
 }
 
-func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+func (c *service) CreateEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	if input.ActiveTo != nil || input.ActiveFrom != nil {
 		return nil, fmt.Errorf("activeTo and activeFrom are not supported in CreateEntitlement")
 	}
@@ -64,7 +77,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input enti
 }
 
 // OverrideEntitlement replaces an existing entitlement with a new one.
-func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, customerID string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+func (c *service) OverrideEntitlement(ctx context.Context, customerID string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	// Validate customer match in input
 	if customerID != input.UsageAttribution.ID {
 		return nil, entitlement.ErrEntitlementCreatePropertyMismatch.WithAttr("customer_id", customerID).WithAttr("usage_attribution_id", input.UsageAttribution.ID)
@@ -91,14 +104,18 @@ func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, customer
 	return c.SupersedeEntitlement(ctx, oldEnt.ID, input)
 }
 
-func (c *entitlementConnector) GetEntitlement(ctx context.Context, namespace string, id string) (*entitlement.Entitlement, error) {
+func (c *service) GetEntitlement(ctx context.Context, namespace string, id string) (*entitlement.Entitlement, error) {
 	return c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 }
 
-func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error {
+func (c *service) DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error {
 	doInTx := func(ctx context.Context) (*entitlement.Entitlement, error) {
 		ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 		if err != nil {
+			return nil, err
+		}
+
+		if err := c.hooks.PreDelete(ctx, ent); err != nil {
 			return nil, err
 		}
 
@@ -119,11 +136,11 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 	return err
 }
 
-func (c *entitlementConnector) GetEntitlementsOfCustomer(ctx context.Context, namespace string, customerId string, at time.Time) ([]entitlement.Entitlement, error) {
+func (c *service) GetEntitlementsOfCustomer(ctx context.Context, namespace string, customerId string, at time.Time) ([]entitlement.Entitlement, error) {
 	return c.entitlementRepo.GetActiveEntitlementsOfCustomer(ctx, namespace, customerId, at)
 }
 
-func (c *entitlementConnector) GetEntitlementOfCustomerAt(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {
+func (c *service) GetEntitlementOfCustomerAt(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {
 	ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: idOrFeatureKey})
 	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 		ent, err = c.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, namespace, customerID, idOrFeatureKey, at)
@@ -131,7 +148,7 @@ func (c *entitlementConnector) GetEntitlementOfCustomerAt(ctx context.Context, n
 	return ent, err
 }
 
-func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (entitlement.EntitlementValue, error) {
+func (c *service) GetEntitlementValue(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (entitlement.EntitlementValue, error) {
 	ent, err := c.GetEntitlementOfCustomerAt(ctx, namespace, customerID, idOrFeatureKey, at)
 	if err != nil {
 		return nil, err
@@ -149,7 +166,7 @@ func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespac
 	return connector.GetValue(ctx, ent, at)
 }
 
-func (c *entitlementConnector) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.PagedResponse[entitlement.Entitlement], error) {
+func (c *service) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.PagedResponse[entitlement.Entitlement], error) {
 	if !params.Page.IsZero() {
 		if err := params.Page.Validate(); err != nil {
 			return pagination.PagedResponse[entitlement.Entitlement]{}, err
@@ -158,7 +175,7 @@ func (c *entitlementConnector) ListEntitlements(ctx context.Context, params enti
 	return c.entitlementRepo.ListEntitlements(ctx, params)
 }
 
-func (c *entitlementConnector) GetAccess(ctx context.Context, namespace string, customerId string) (entitlement.Access, error) {
+func (c *service) GetAccess(ctx context.Context, namespace string, customerId string) (entitlement.Access, error) {
 	now := clock.Now()
 
 	entitlements, err := c.GetEntitlementsOfCustomer(ctx, namespace, customerId, now)
@@ -244,7 +261,7 @@ func (c *entitlementConnector) GetAccess(ctx context.Context, namespace string, 
 	return entitlement.Access{Entitlements: finalResult}, nil
 }
 
-func (c *entitlementConnector) getTypeConnector(inp entitlement.TypedEntitlement) (entitlement.SubTypeConnector, error) {
+func (c *service) getTypeConnector(inp entitlement.TypedEntitlement) (entitlement.SubTypeConnector, error) {
 	entitlementType := inp.GetType()
 	switch entitlementType {
 	case entitlement.EntitlementTypeMetered:

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -51,7 +52,9 @@ type ListEntitlementsParams struct {
 	Offset int
 }
 
-type Connector interface {
+type Service interface {
+	models.ServiceHooks[Entitlement]
+
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
 	ScheduleEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
 	// OverrideEntitlement replaces a currently active entitlement with a new one.

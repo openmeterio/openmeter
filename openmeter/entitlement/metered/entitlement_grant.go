@@ -56,10 +56,15 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, customerI
 	if err != nil {
 		return EntitlementGrant{}, err
 	}
-	_, err = ParseFromGenericEntitlement(ent)
+	metered, err := ParseFromGenericEntitlement(ent)
 	if err != nil {
 		return EntitlementGrant{}, err
 	}
+
+	if err := e.hooks.PreUpdate(ctx, metered); err != nil {
+		return EntitlementGrant{}, err
+	}
+
 	g, err := e.grantConnector.CreateGrant(ctx, models.NamespacedID{
 		Namespace: ent.Namespace,
 		ID:        ent.ID,

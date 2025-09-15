@@ -77,6 +77,8 @@ func (s *service) lockCustomer(ctx context.Context, customerId string) error {
 }
 
 func (s *service) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+	ctx = subscription.NewSubscriptionOperationContext(ctx)
+
 	def := subscription.Subscription{}
 
 	// Fetch the customer & validate the customer
@@ -163,6 +165,8 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 }
 
 func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+	ctx = subscription.NewSubscriptionOperationContext(ctx)
+
 	var def subscription.Subscription
 
 	// Get the full view
@@ -207,6 +211,8 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 }
 
 func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID) error {
+	ctx = subscription.NewSubscriptionOperationContext(ctx)
+
 	currentTime := clock.Now()
 
 	// First, let's get the subscription
@@ -256,6 +262,8 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 }
 
 func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID, timing subscription.Timing) (subscription.Subscription, error) {
+	ctx = subscription.NewSubscriptionOperationContext(ctx)
+
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
 		// First, let's get the subscription
 		view, err := s.GetView(ctx, subscriptionID)
@@ -314,6 +322,8 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 }
 
 func (s *service) Continue(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+	ctx = subscription.NewSubscriptionOperationContext(ctx)
+
 	// First, let's get the subscription
 	view, err := s.GetView(ctx, subscriptionID)
 	if err != nil {
@@ -363,6 +373,8 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 }
 
 func (s *service) Get(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+	ctx = subscription.NewSubscriptionOperationContext(ctx)
+
 	sub, err := s.SubscriptionRepo.GetByID(ctx, subscriptionID)
 	if err != nil {
 		return subscription.Subscription{}, err
@@ -371,6 +383,8 @@ func (s *service) Get(ctx context.Context, subscriptionID models.NamespacedID) (
 }
 
 func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error) {
+	ctx = subscription.NewSubscriptionOperationContext(ctx)
+
 	var def subscription.SubscriptionView
 	currentTime := clock.Now()
 
@@ -457,10 +471,14 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 }
 
 func (s *service) GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error) {
+	ctx = subscription.NewSubscriptionOperationContext(ctx)
+
 	return s.SubscriptionRepo.GetAllForCustomerSince(ctx, customerID, at)
 }
 
 func (s *service) List(ctx context.Context, input subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
+	ctx = subscription.NewSubscriptionOperationContext(ctx)
+
 	if err := input.Validate(); err != nil {
 		return subscription.SubscriptionList{}, fmt.Errorf("input is invalid: %w", err)
 	}
