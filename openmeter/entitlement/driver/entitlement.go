@@ -281,17 +281,12 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 			now := clock.Now()
 
-			params := entitlement.ListEntitlementsParams{
-				CustomerIDs: []string{cust.ID},
-				Namespaces:  []string{id.Namespace},
-				ActiveAt:    lo.ToPtr(now),
-			}
-
-			if lo.FromPtr(id.Params.IncludeDeleted) {
-				params.IncludeDeleted = true
-			}
-
-			ents, err := h.connector.ListEntitlements(ctx, params)
+			ents, err := h.connector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+				CustomerIDs:    []string{cust.ID},
+				Namespaces:     []string{id.Namespace},
+				ActiveAt:       lo.ToPtr(now),
+				IncludeDeleted: lo.FromPtr(id.Params.IncludeDeleted),
+			})
 			if err != nil {
 				return nil, err
 			}
