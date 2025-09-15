@@ -26,13 +26,13 @@ type EntitlementHandler interface {
 type entitlementHandler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
-	connector        entitlement.Connector
+	connector        entitlement.Service
 	balanceConnector meteredentitlement.Connector
 	customerService  customer.Service
 }
 
 func NewEntitlementHandler(
-	connector entitlement.Connector,
+	connector entitlement.Service,
 	balanceConnector meteredentitlement.Connector,
 	customerService customer.Service,
 	namespaceDecoder namespacedriver.NamespaceDecoder,

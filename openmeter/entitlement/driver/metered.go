@@ -15,7 +15,6 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/subject"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -36,14 +35,14 @@ type MeteredEntitlementHandler interface {
 type meteredEntitlementHandler struct {
 	namespaceDecoder     namespacedriver.NamespaceDecoder
 	options              []httptransport.HandlerOption
-	entitlementConnector entitlement.Connector
+	entitlementConnector entitlement.Service
 	balanceConnector     meteredentitlement.Connector
 	subjectService       subject.Service
 	customerService      customer.Service
 }
 
 func NewMeteredEntitlementHandler(
-	entitlementConnector entitlement.Connector,
+	entitlementConnector entitlement.Service,
 	balanceConnector meteredentitlement.Connector,
 	customerService customer.Service,
 	subjectService subject.Service,
@@ -135,20 +134,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 				return api.EntitlementGrant{}, err
 			}
 
-			ent, err := h.entitlementConnector.GetEntitlementOfCustomerAt(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, clock.Now())
-			if err != nil {
-				return api.EntitlementGrant{}, err
-			}
-
-			if ent == nil {
-				return api.EntitlementGrant{}, fmt.Errorf("unexpected nil entitlement")
-			}
-
-			if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
-				return api.EntitlementGrant{}, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
-			}
-
-			grant, err := h.balanceConnector.CreateGrant(ctx, request.Namespace, ent.Customer.ID, request.EntitlementIdOrFeatureKey, request.GrantInput)
+			grant, err := h.balanceConnector.CreateGrant(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.GrantInput)
 			if err != nil {
 				return api.EntitlementGrant{}, err
 			}
@@ -267,20 +253,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 			}, nil
 		},
 		func(ctx context.Context, request ResetEntitlementUsageHandlerRequest) (interface{}, error) {
-			ent, err := h.entitlementConnector.GetEntitlement(ctx, request.Namespace, request.EntitlementID)
-			if err != nil {
-				return nil, err
-			}
-
-			if ent == nil {
-				return nil, fmt.Errorf("unexpected nil entitlement")
-			}
-
-			if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
-				return nil, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
-			}
-
-			_, err = h.balanceConnector.ResetEntitlementUsage(ctx, models.NamespacedID{
+			_, err := h.balanceConnector.ResetEntitlementUsage(ctx, models.NamespacedID{
 				Namespace: request.Namespace,
 				ID:        request.EntitlementID,
 			}, meteredentitlement.ResetEntitlementUsageParams{

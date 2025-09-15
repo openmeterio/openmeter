@@ -16,6 +16,6 @@ type Entitlement struct {
 	Grant              credit.GrantConnector
 	GrantRepo          grant.Repo
 	MeteredEntitlement meteredentitlement.Connector
-	Entitlement        entitlement.Connector
+	Entitlement        entitlement.Service
 	EntitlementRepo    entitlement.EntitlementRepo
 }

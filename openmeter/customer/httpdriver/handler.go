@@ -31,7 +31,7 @@ var _ Handler = (*handler)(nil)
 
 type handler struct {
 	service             customer.Service
-	entitlementService  entitlement.Connector
+	entitlementService  entitlement.Service
 	subscriptionService subscription.Service
 	namespaceDecoder    namespacedriver.NamespaceDecoder
 	options             []httptransport.HandlerOption
@@ -50,7 +50,7 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	service customer.Service,
 	subscriptionService subscription.Service,
-	entitlementService entitlement.Connector,
+	entitlementService entitlement.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{

@@ -31,6 +31,7 @@ type ResetEntitlementUsageParams struct {
 }
 
 type Connector interface {
+	models.ServiceHooks[Entitlement]
 	entitlement.SubTypeConnector
 
 	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error)
@@ -71,6 +72,7 @@ type connector struct {
 
 	granularity time.Duration
 	publisher   eventbus.Publisher
+	hooks       models.ServiceHookRegistry[Entitlement]
 
 	logger *slog.Logger
 	tracer trace.Tracer
@@ -101,7 +103,12 @@ func NewMeteredEntitlementConnector(
 		publisher: publisher,
 		logger:    logger,
 		tracer:    tracer,
+		hooks:     models.ServiceHookRegistry[Entitlement]{},
 	}
+}
+
+func (c *connector) RegisterHooks(hooks ...models.ServiceHook[Entitlement]) {
+	c.hooks.RegisterHooks(hooks...)
 }
 
 func (e *connector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {

@@ -20,11 +20,11 @@ var _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)
 type entitlementValidatorHook struct {
 	NoopEntitlementValidatorHook
 
-	entitlementService entitlement.Connector
+	entitlementService entitlement.Service
 }
 
 type EntitlementValidatorHookConfig struct {
-	EntitlementService entitlement.Connector
+	EntitlementService entitlement.Service
 }
 
 func (e EntitlementValidatorHookConfig) Validate() error {

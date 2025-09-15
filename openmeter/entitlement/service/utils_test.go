@@ -85,7 +85,7 @@ func (d *dependencies) Teardown() {
 // When migrating in parallel with entgo it causes concurrent writes error
 var m sync.Mutex
 
-func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
+func setupDependecies(t *testing.T) (entitlement.Service, *dependencies) {
 	testLogger := testutils.NewLogger(t)
 
 	meterService, err := meteradapter.NewManage(nil)

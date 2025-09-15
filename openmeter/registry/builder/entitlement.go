@@ -14,6 +14,7 @@ import (
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	entitlementpgadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
+	entitlementsubscriptionhook "github.com/openmeterio/openmeter/openmeter/entitlement/hooks/subscription"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	entitlementservice "github.com/openmeterio/openmeter/openmeter/entitlement/service"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
@@ -90,15 +91,26 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 		opts.Logger,
 		opts.Tracer,
 	)
-	entitlementConnector := entitlementservice.NewEntitlementConnector(
-		entitlementDBAdapter,
-		featureConnector,
-		opts.MeterService,
-		meteredEntitlementConnector,
-		staticentitlement.NewStaticEntitlementConnector(),
-		booleanentitlement.NewBooleanEntitlementConnector(),
-		opts.Publisher,
-		opts.Locker,
+
+	meteredEntitlementConnector.RegisterHooks(
+		meteredentitlement.ConvertHook(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{})),
+	)
+
+	entitlementConnector := entitlementservice.NewEntitlementService(
+		entitlementservice.ServiceConfig{
+			EntitlementRepo:             entitlementDBAdapter,
+			FeatureConnector:            featureConnector,
+			MeterService:                opts.MeterService,
+			MeteredEntitlementConnector: meteredEntitlementConnector,
+			StaticEntitlementConnector:  staticentitlement.NewStaticEntitlementConnector(),
+			BooleanEntitlementConnector: booleanentitlement.NewBooleanEntitlementConnector(),
+			Publisher:                   opts.Publisher,
+			Locker:                      opts.Locker,
+		},
+	)
+
+	entitlementConnector.RegisterHooks(
+		entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{}),
 	)
 
 	return &registry.Entitlement{

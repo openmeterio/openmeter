@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementrepo "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
+	entitlementsubscriptionhook "github.com/openmeterio/openmeter/openmeter/entitlement/hooks/subscription"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	entitlementservice "github.com/openmeterio/openmeter/openmeter/entitlement/service"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
@@ -52,7 +53,7 @@ type SubscriptionMixin struct {
 	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionPlanAdapter     subscriptiontestutils.PlanSubscriptionAdapter
 	SubscriptionWorkflowService subscriptionworkflow.Service
-	EntitlementConnector        entitlement.Connector
+	EntitlementConnector        entitlement.Service
 }
 
 type SubscriptionMixInDependencies struct {
@@ -202,7 +203,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	})
 }
 
-func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMixInDependencies) entitlement.Connector {
+func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMixInDependencies) entitlement.Service {
 	tracer := noop.NewTracerProvider().Tracer("test")
 
 	// Init grants/credit
@@ -259,6 +260,10 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 		tracer,
 	)
 
+	meteredEntitlementConnector.RegisterHooks(
+		meteredentitlement.ConvertHook(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{})),
+	)
+
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
 	booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
 
@@ -267,14 +272,22 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 	})
 	require.NoError(t, err)
 
-	return entitlementservice.NewEntitlementConnector(
-		entitlementRepo,
-		deps.FeatureService,
-		deps.MeterAdapter,
-		meteredEntitlementConnector,
-		staticEntitlementConnector,
-		booleanEntitlementConnector,
-		mockPublisher,
-		locker,
+	service := entitlementservice.NewEntitlementService(
+		entitlementservice.ServiceConfig{
+			EntitlementRepo:             entitlementRepo,
+			FeatureConnector:            deps.FeatureService,
+			MeterService:                deps.MeterAdapter,
+			MeteredEntitlementConnector: meteredEntitlementConnector,
+			StaticEntitlementConnector:  staticEntitlementConnector,
+			BooleanEntitlementConnector: booleanEntitlementConnector,
+			Publisher:                   mockPublisher,
+			Locker:                      locker,
+		},
 	)
+
+	service.RegisterHooks(
+		entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{}),
+	)
+
+	return service
 }

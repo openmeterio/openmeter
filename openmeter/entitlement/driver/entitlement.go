@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subject"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -40,13 +39,13 @@ type EntitlementHandler interface {
 type entitlementHandler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
-	connector        entitlement.Connector
+	connector        entitlement.Service
 	customerService  customer.Service
 	subjectService   subject.Service
 }
 
 func NewEntitlementHandler(
-	connector entitlement.Connector,
+	connector entitlement.Service,
 	customerService customer.Service,
 	subjectService subject.Service,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
@@ -170,19 +169,6 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 			}
 
 			request.Inputs.UsageAttribution = cust.GetUsageAttribution()
-
-			ent, err := h.connector.GetEntitlementOfCustomerAt(ctx, request.Inputs.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, clock.Now())
-			if err != nil {
-				return nil, err
-			}
-
-			if ent == nil {
-				return nil, fmt.Errorf("unexpected nil entitlement")
-			}
-
-			if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
-				return nil, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
-			}
 
 			res, err := h.connector.OverrideEntitlement(ctx, cust.ID, request.EntitlementIdOrFeatureKey, request.Inputs)
 			if err != nil {
@@ -531,20 +517,7 @@ func (h *entitlementHandler) DeleteEntitlement() DeleteEntitlementHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteEntitlementHandlerRequest) (DeleteEntitlementHandlerResponse, error) {
-			ent, err := h.connector.GetEntitlement(ctx, request.Namespace, request.EntitlementId)
-			if err != nil {
-				return nil, err
-			}
-
-			if ent == nil {
-				return nil, fmt.Errorf("unexpected nil entitlement")
-			}
-
-			if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
-				return nil, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
-			}
-
-			err = h.connector.DeleteEntitlement(ctx, request.Namespace, request.EntitlementId, clock.Now())
+			err := h.connector.DeleteEntitlement(ctx, request.Namespace, request.EntitlementId, clock.Now())
 			return nil, err
 		},
 		commonhttp.EmptyResponseEncoder[DeleteEntitlementHandlerResponse](http.StatusNoContent),

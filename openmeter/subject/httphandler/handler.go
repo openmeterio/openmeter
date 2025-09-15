@@ -31,7 +31,7 @@ type handler struct {
 	options              []httptransport.HandlerOption
 	logger               *slog.Logger
 	subjectService       subject.Service
-	entitlementConnector entitlement.Connector
+	entitlementConnector entitlement.Service
 }
 
 func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
@@ -47,7 +47,7 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	logger *slog.Logger,
 	subjectService subject.Service,
-	entitlementConnector entitlement.Connector,
+	entitlementConnector entitlement.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
