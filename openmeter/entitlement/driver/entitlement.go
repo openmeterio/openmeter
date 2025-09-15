@@ -289,7 +289,6 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 			if lo.FromPtr(id.Params.IncludeDeleted) {
 				params.IncludeDeleted = true
-				params.IncludeDeletedAfter = now
 			}
 
 			ents, err := h.connector.ListEntitlements(ctx, params)

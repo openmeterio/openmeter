@@ -148,7 +148,6 @@ func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlements
 
 			if lo.FromPtr(p.Params.IncludeDeleted) {
 				params.IncludeDeleted = true
-				params.IncludeDeletedAfter = now
 			}
 
 			return ListCustomerEntitlementsHandlerRequest{
