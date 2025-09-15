@@ -8,6 +8,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -241,6 +243,7 @@ type (
 	GetEntitlementsOfSubjectHandlerRequest = struct {
 		Namespace      string
 		SubjectIdOrKey string
+		Params         api.ListSubjectEntitlementsParams
 	}
 	GetEntitlementsOfSubjectHandlerResponse = []api.Entitlement
 	GetEntitlementsOfSubjectHandlerParams   struct {
@@ -270,10 +273,25 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 				return nil, err
 			}
 
-			entitlements, err := h.connector.GetEntitlementsOfCustomer(ctx, id.Namespace, cust.ID, clock.Now())
+			if cust != nil && cust.IsDeleted() {
+				return GetEntitlementsOfSubjectHandlerResponse{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cust.Namespace, cust.ID),
+				)
+			}
+
+			now := clock.Now()
+
+			ents, err := h.connector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+				CustomerIDs:    []string{cust.ID},
+				Namespaces:     []string{id.Namespace},
+				ActiveAt:       lo.ToPtr(now),
+				IncludeDeleted: lo.FromPtr(id.Params.IncludeDeleted),
+			})
 			if err != nil {
 				return nil, err
 			}
+
+			entitlements := ents.Items
 
 			res := make([]api.Entitlement, 0, len(entitlements))
 			for _, e := range entitlements {

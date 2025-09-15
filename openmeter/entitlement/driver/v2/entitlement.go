@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -59,9 +61,15 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				},
 				Limit:  defaultx.WithDefault(params.Limit, commonhttp.DefaultPageSize),
 				Offset: defaultx.WithDefault(params.Offset, 0),
-				OrderBy: entitlement.ListEntitlementsOrderBy(
-					strcase.CamelToSnake(defaultx.WithDefault((*string)(params.OrderBy), string(entitlement.ListEntitlementsOrderByCreatedAt))),
-				),
+				OrderBy: func() entitlement.ListEntitlementsOrderBy {
+					orderBy := entitlement.ListEntitlementsOrderByCreatedAt
+
+					if params.OrderBy != nil {
+						orderBy = entitlement.ListEntitlementsOrderBy(strcase.CamelToSnake(string(lo.FromPtr(params.OrderBy))))
+					}
+
+					return orderBy
+				}(),
 				Order:            commonhttp.GetSortOrder(api.SortOrderASC, params.Order),
 				CustomerIDs:      convert.DerefHeaderPtr[string](params.CustomerIds),
 				CustomerKeys:     convert.DerefHeaderPtr[string](params.CustomerKeys),

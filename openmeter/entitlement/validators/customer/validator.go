@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -32,13 +34,21 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 		return err
 	}
 
+	now := clock.Now()
+
 	// Check for active entitlements for each subject
-	entitlements, err := v.entitlementRepo.GetActiveEntitlementsOfCustomer(ctx, input.Namespace, input.ID, clock.Now())
+	entitlements, err := v.entitlementRepo.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+		CustomerIDs:         []string{input.ID},
+		Namespaces:          []string{input.Namespace},
+		ActiveAt:            lo.ToPtr(now),
+		IncludeDeleted:      true,
+		IncludeDeletedAfter: now,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to list customer entitlements: %w", err)
 	}
 
-	if len(entitlements) > 0 {
+	if len(entitlements.Items) > 0 {
 		return models.NewGenericConflictError(fmt.Errorf("customer %s still has active entitlements, please remove them before deleting the customer", input.ID))
 	}
 

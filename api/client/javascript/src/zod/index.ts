@@ -17239,24 +17239,9 @@ export const listCustomerEntitlementsV2QueryIncludeDeletedDefault = false
 export const listCustomerEntitlementsV2QueryPageDefault = 1
 export const listCustomerEntitlementsV2QueryPageSizeDefault = 100
 export const listCustomerEntitlementsV2QueryPageSizeMax = 1000
-export const listCustomerEntitlementsV2QueryOffsetDefault = 0
-export const listCustomerEntitlementsV2QueryOffsetMin = 0
-export const listCustomerEntitlementsV2QueryLimitDefault = 100
-export const listCustomerEntitlementsV2QueryLimitMax = 1000
 
 export const listCustomerEntitlementsV2QueryParams = zod.object({
   includeDeleted: zod.coerce.boolean().optional(),
-  limit: zod.coerce
-    .number()
-    .min(1)
-    .max(listCustomerEntitlementsV2QueryLimitMax)
-    .default(listCustomerEntitlementsV2QueryLimitDefault)
-    .describe('Number of items to return.\n\nDefault is 100.'),
-  offset: zod.coerce
-    .number()
-    .min(listCustomerEntitlementsV2QueryOffsetMin)
-    .optional()
-    .describe('Number of items to skip.\n\nDefault is 0.'),
   order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
   orderBy: zod
     .enum(['createdAt', 'updatedAt'])
