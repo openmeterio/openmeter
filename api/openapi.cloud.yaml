@@ -10591,8 +10591,6 @@ paths:
           style: form
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
-        - $ref: '#/components/parameters/LimitOffset.offset'
-        - $ref: '#/components/parameters/LimitOffset.limit'
         - $ref: '#/components/parameters/EntitlementOrderByOrdering.order'
         - $ref: '#/components/parameters/EntitlementOrderByOrdering.orderBy'
       responses:

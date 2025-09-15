@@ -13,10 +13,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/strcase"
 )
 
 type (
@@ -91,7 +93,11 @@ func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitleme
 }
 
 type (
-	ListCustomerEntitlementsHandlerRequest  = entitlement.ListEntitlementsParams
+	ListCustomerEntitlementsHandlerRequest = struct {
+		Namespace       string
+		CustomerIdOrKey string
+		ListParams      entitlement.ListEntitlementsParams
+	}
 	ListCustomerEntitlementsHandlerResponse = api.EntitlementV2PaginatedResponse
 	ListCustomerEntitlementsHandlerParams   struct {
 		CustomerIdOrKey string
@@ -106,73 +112,55 @@ func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlements
 		func(ctx context.Context, r *http.Request, p ListCustomerEntitlementsHandlerParams) (ListCustomerEntitlementsHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return entitlement.ListEntitlementsParams{}, err
+				return ListCustomerEntitlementsHandlerRequest{}, err
 			}
 
-			// Resolve customer to get subject keys
-			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-				CustomerIDOrKey: &customer.CustomerIDOrKey{Namespace: ns, IDOrKey: p.CustomerIdOrKey},
+			cust, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					Namespace: ns,
+					IDOrKey:   p.CustomerIdOrKey,
+				},
 			})
 			if err != nil {
-				return entitlement.ListEntitlementsParams{}, err
+				return ListCustomerEntitlementsHandlerRequest{}, err
 			}
-
-			if cus != nil && cus.IsDeleted() {
-				return entitlement.ListEntitlementsParams{}, models.NewGenericPreConditionFailedError(
-					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+			if cust != nil && cust.IsDeleted() {
+				return ListCustomerEntitlementsHandlerRequest{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cust.Namespace, cust.ID),
 				)
 			}
 
-			// Build list params
-			req := entitlement.ListEntitlementsParams{
-				Namespaces:     []string{ns},
-				SubjectKeys:    cus.UsageAttribution.SubjectKeys,
-				IncludeDeleted: defaultIncludeDeleted(p.Params.IncludeDeleted),
-				Order:          commonhttp.GetSortOrder(api.SortOrderASC, p.Params.Order),
-			}
-
-			// Pagination: support both page/pageSize and limit/offset
-			if p.Params.Page != nil || p.Params.PageSize != nil {
-				req.Page.PageNumber = lo.FromPtrOr(p.Params.Page, 0)
-				req.Page.PageSize = lo.FromPtrOr(p.Params.PageSize, commonhttp.DefaultPageSize)
-				if req.Page.PageNumber == 0 {
-					req.Page.PageNumber = commonhttp.DefaultPage
-				}
-			}
-			req.Limit = lo.FromPtrOr(p.Params.Limit, 0)
-			req.Offset = lo.FromPtrOr(p.Params.Offset, 0)
-
-			// OrderBy mapping
-			switch lo.FromPtrOr((*string)(p.Params.OrderBy), "createdAt") {
-			case "createdAt":
-				req.OrderBy = entitlement.ListEntitlementsOrderByCreatedAt
-			case "updatedAt":
-				req.OrderBy = entitlement.ListEntitlementsOrderByUpdatedAt
-			default:
-				req.OrderBy = entitlement.ListEntitlementsOrderByCreatedAt
-			}
-
-			return req, nil
+			return ListCustomerEntitlementsHandlerRequest{
+				Namespace:       ns,
+				CustomerIdOrKey: p.CustomerIdOrKey,
+				ListParams: entitlement.ListEntitlementsParams{
+					CustomerIDs:    []string{cust.ID},
+					Namespaces:     []string{ns},
+					IncludeDeleted: defaultx.WithDefault(p.Params.IncludeDeleted, false),
+					ActiveAt:       lo.ToPtr(clock.Now()),
+					Page: pagination.NewPage(
+						defaultx.WithDefault(p.Params.Page, 1),
+						defaultx.WithDefault(p.Params.PageSize, 100),
+					),
+					OrderBy: entitlement.ListEntitlementsOrderBy(
+						strcase.CamelToSnake(defaultx.WithDefault((*string)(p.Params.OrderBy), string(entitlement.ListEntitlementsOrderByCreatedAt))),
+					),
+					Order: commonhttp.GetSortOrder(api.SortOrderASC, p.Params.Order),
+				},
+			}, nil
 		},
 		func(ctx context.Context, req ListCustomerEntitlementsHandlerRequest) (ListCustomerEntitlementsHandlerResponse, error) {
-			paged, err := h.connector.ListEntitlements(ctx, req)
+			ents, err := h.connector.ListEntitlements(ctx, req.ListParams)
 			if err != nil {
 				return ListCustomerEntitlementsHandlerResponse{}, err
 			}
 
-			// Map paged response -> []api.EntitlementV2 using ParserV2
-			mapped, err := pagination.MapPagedResponseError(paged, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
-				var customerId string
-				var customerKey *string
-				if e.Customer != nil {
-					customerId = e.Customer.ID
-					customerKey = e.Customer.Key
-				}
-				v2, err := ParserV2.ToAPIGenericV2(&e, customerId, customerKey)
+			mapped, err := pagination.MapPagedResponseError(ents, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
+				v2, err := ParserV2.ToAPIGenericV2(&e, e.Customer.ID, e.Customer.Key)
 				if err != nil {
 					return api.EntitlementV2{}, err
 				}
-				return *v2, nil
+				return lo.FromPtr(v2), nil
 			})
 			if err != nil {
 				return ListCustomerEntitlementsHandlerResponse{}, err

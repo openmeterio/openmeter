@@ -342,48 +342,6 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 		})
 }
 
-func (a *entitlementDBAdapter) GetActiveEntitlementsOfCustomer(ctx context.Context, namespace string, customerId string, at time.Time) ([]entitlement.Entitlement, error) {
-	return entutils.TransactingRepo(
-		ctx,
-		a,
-		func(ctx context.Context, repo *entitlementDBAdapter) ([]entitlement.Entitlement, error) {
-			now := clock.Now().UTC()
-
-			res, err := withAllUsageResets(repo.db.Entitlement.Query(), []string{namespace}).
-				WithCustomer(func(q *db.CustomerQuery) {
-					customeradapter.WithSubjects(q, now)
-					customeradapter.WithActiveSubscriptions(q, now)
-				}).
-				WithSubject().
-				Where(EntitlementActiveAt(at)...).
-				Where(
-					db_entitlement.Or(db_entitlement.DeletedAtGT(at), db_entitlement.DeletedAtIsNil()),
-					db_entitlement.HasCustomerWith(
-						customerdb.Namespace(namespace),
-						customerNotDeletedAt(at),
-						customerdb.ID(customerId),
-					),
-					db_entitlement.Namespace(namespace),
-				).
-				All(ctx)
-			if err != nil {
-				return nil, err
-			}
-
-			result := make([]entitlement.Entitlement, 0, len(res))
-			for _, e := range res {
-				mapped, err := repo.mapEntitlementEntity(e)
-				if err != nil {
-					return nil, err
-				}
-				result = append(result, *mapped)
-			}
-
-			return result, nil
-		},
-	)
-}
-
 func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.PagedResponse[entitlement.Entitlement], error) {
 	return entutils.TransactingRepo(
 		ctx,
@@ -467,6 +425,10 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 			if params.ExcludeInactive {
 				query = query.Where(EntitlementActiveAt(now)...)
+			}
+
+			if params.ActiveAt != nil {
+				query = query.Where(EntitlementActiveAt(*params.ActiveAt)...)
 			}
 
 			if params.OrderBy != "" {

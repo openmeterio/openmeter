@@ -30,9 +30,6 @@ type UpsertEntitlementCurrentPeriodElement struct {
 }
 
 type EntitlementRepo interface {
-	// GetActiveEntitlementsOfCustomer returns all active entitlements of a customer at a given time
-	GetActiveEntitlementsOfCustomer(ctx context.Context, namespace string, customerID string, at time.Time) ([]Entitlement, error)
-
 	// GetActiveEntitlementOfSubjectAt returns the active entitlement of a customer at a given time by feature key
 	GetActiveEntitlementOfCustomerAt(ctx context.Context, namespace string, customerID string, featureKey string, at time.Time) (*Entitlement, error)
 
