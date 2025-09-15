@@ -20,12 +20,7 @@ func resolveCustomerAndSubject(ctx context.Context, customerService customer.Ser
 		return customer.Customer{}, subject.Subject{}, fmt.Errorf("failed to get customer: %w", err)
 	}
 
-	if cus != nil && cus.IsDeleted() {
-		return customer.Customer{}, subject.Subject{}, models.NewGenericPreConditionFailedError(
-			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
-		)
-	}
-
+	// Let's be defensive
 	if cus == nil {
 		return customer.Customer{}, subject.Subject{}, models.NewGenericNotFoundError(
 			fmt.Errorf("customer not found [namespace=%s customer.id=%s]", namespace, customerID),
