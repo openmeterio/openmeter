@@ -45,7 +45,6 @@ interface CustomerEntitlements {
     @path customerIdOrKey: ULIDOrExternalKey,
     @query includeDeleted?: boolean = false,
     ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<EntitlementOrderBy>,
   ): OpenMeter.PaginatedResponse<EntitlementV2> | OpenMeter.CommonErrors;
 

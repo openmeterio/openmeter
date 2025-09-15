@@ -137,7 +137,19 @@ func (c *service) DeleteEntitlement(ctx context.Context, namespace string, id st
 }
 
 func (c *service) GetEntitlementsOfCustomer(ctx context.Context, namespace string, customerId string, at time.Time) ([]entitlement.Entitlement, error) {
-	return c.entitlementRepo.GetActiveEntitlementsOfCustomer(ctx, namespace, customerId, at)
+	ents, err := c.entitlementRepo.ListEntitlements(
+		ctx,
+		entitlement.ListEntitlementsParams{
+			CustomerIDs: []string{customerId},
+			Namespaces:  []string{namespace},
+			ActiveAt:    &at,
+			// We leave page empty to get all entitlements
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ents.Items, nil
 }
 
 func (c *service) GetEntitlementOfCustomerAt(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {

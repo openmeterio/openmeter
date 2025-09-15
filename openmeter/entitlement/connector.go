@@ -45,6 +45,7 @@ type ListEntitlementsParams struct {
 	IncludeDeleted      bool
 	IncludeDeletedAfter time.Time
 	ExcludeInactive     bool
+	ActiveAt            *time.Time
 	Page                pagination.Page
 	// will be deprecated
 	Limit int

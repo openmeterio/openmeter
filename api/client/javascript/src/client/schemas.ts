@@ -25085,14 +25085,6 @@ export interface operations {
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
-        /** @description Number of items to skip.
-         *
-         *     Default is 0. */
-        offset?: components['parameters']['LimitOffset.offset']
-        /** @description Number of items to return.
-         *
-         *     Default is 100. */
-        limit?: components['parameters']['LimitOffset.limit']
         /** @description The order direction. */
         order?: components['parameters']['EntitlementOrderByOrdering.order']
         /** @description The order by field. */
