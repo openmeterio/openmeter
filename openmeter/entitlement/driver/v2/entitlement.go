@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -15,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/strcase"
-	"github.com/samber/lo"
 )
 
 type (
