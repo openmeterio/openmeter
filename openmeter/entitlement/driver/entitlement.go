@@ -279,12 +279,20 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 				)
 			}
 
-			ents, err := h.connector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
-				CustomerIDs:    []string{cust.ID},
-				Namespaces:     []string{id.Namespace},
-				IncludeDeleted: defaultx.WithDefault(id.Params.IncludeDeleted, false),
-				ActiveAt:       lo.ToPtr(clock.Now()),
-			})
+			now := clock.Now()
+
+			params := entitlement.ListEntitlementsParams{
+				CustomerIDs: []string{cust.ID},
+				Namespaces:  []string{id.Namespace},
+				ActiveAt:    lo.ToPtr(now),
+			}
+
+			if lo.FromPtr(id.Params.IncludeDeleted) {
+				params.IncludeDeleted = true
+				params.IncludeDeletedAfter = now
+			}
+
+			ents, err := h.connector.ListEntitlements(ctx, params)
 			if err != nil {
 				return nil, err
 			}

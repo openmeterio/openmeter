@@ -472,6 +472,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				}
 
 				response.Items = mapped
+				response.TotalCount = len(mapped)
 				return response, nil
 			}
 

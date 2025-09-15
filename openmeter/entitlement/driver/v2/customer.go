@@ -130,23 +130,31 @@ func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlements
 				)
 			}
 
+			now := clock.Now()
+
+			params := entitlement.ListEntitlementsParams{
+				CustomerIDs: []string{cust.ID},
+				Namespaces:  []string{ns},
+				ActiveAt:    lo.ToPtr(now),
+				Page: pagination.NewPage(
+					defaultx.WithDefault(p.Params.Page, 1),
+					defaultx.WithDefault(p.Params.PageSize, 100),
+				),
+				OrderBy: entitlement.ListEntitlementsOrderBy(
+					strcase.CamelToSnake(defaultx.WithDefault((*string)(p.Params.OrderBy), string(entitlement.ListEntitlementsOrderByCreatedAt))),
+				),
+				Order: commonhttp.GetSortOrder(api.SortOrderASC, p.Params.Order),
+			}
+
+			if lo.FromPtr(p.Params.IncludeDeleted) {
+				params.IncludeDeleted = true
+				params.IncludeDeletedAfter = now
+			}
+
 			return ListCustomerEntitlementsHandlerRequest{
 				Namespace:       ns,
 				CustomerIdOrKey: p.CustomerIdOrKey,
-				ListParams: entitlement.ListEntitlementsParams{
-					CustomerIDs:    []string{cust.ID},
-					Namespaces:     []string{ns},
-					IncludeDeleted: defaultx.WithDefault(p.Params.IncludeDeleted, false),
-					ActiveAt:       lo.ToPtr(clock.Now()),
-					Page: pagination.NewPage(
-						defaultx.WithDefault(p.Params.Page, 1),
-						defaultx.WithDefault(p.Params.PageSize, 100),
-					),
-					OrderBy: entitlement.ListEntitlementsOrderBy(
-						strcase.CamelToSnake(defaultx.WithDefault((*string)(p.Params.OrderBy), string(entitlement.ListEntitlementsOrderByCreatedAt))),
-					),
-					Order: commonhttp.GetSortOrder(api.SortOrderASC, p.Params.Order),
-				},
+				ListParams:      params,
 			}, nil
 		},
 		func(ctx context.Context, req ListCustomerEntitlementsHandlerRequest) (ListCustomerEntitlementsHandlerResponse, error) {
