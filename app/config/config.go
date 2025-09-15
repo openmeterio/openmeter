@@ -173,7 +173,13 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 
 	ConfigureTelemetry(v, flags)
 
-	ConfigurePostgres(v)
+	ConfigurePostgres(v, "postgres")
+	// TODO: This is set to ensure backwards compatibility with the old config, however it should be removed in the future.
+	//
+	// In cloud this must never be explicitly set to prevent accidental behavior, so let's not add any kind of defaulting in
+	// the reusable config parts.
+	v.SetDefault("postgres.autoMigrate", "ent")
+
 	ConfigureNamespace(v)
 	ConfigureIngest(v)
 	ConfigureAggregation(v)

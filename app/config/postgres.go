@@ -50,17 +50,17 @@ func (c PostgresConfig) AsURL() string {
 	return c.PostgresConnectionParams.AsURL()
 }
 
-func ConfigurePostgres(v *viper.Viper) {
-	v.SetDefault("postgres.url", "")
-	v.SetDefault("postgres.autoMigrate", "ent")
-
-	v.SetDefault("postgres.options.poolMaxConns", 0)
-	v.SetDefault("postgres.options.applicationName", "")
-	v.SetDefault("postgres.host", "")
-	v.SetDefault("postgres.port", 0)
-	v.SetDefault("postgres.database", "")
-	v.SetDefault("postgres.user", "")
-	v.SetDefault("postgres.password", "")
+func ConfigurePostgres(v *viper.Viper, prefix string) {
+	v.SetDefault(AddPrefix(prefix, "url"), "")
+	v.SetDefault(AddPrefix(prefix, "options.poolMaxConns"), 0)
+	v.SetDefault(AddPrefix(prefix, "options.applicationName"), "")
+	v.SetDefault(AddPrefix(prefix, "options.sslVerify"), "")
+	v.SetDefault(AddPrefix(prefix, "options.sslRootCert"), "")
+	v.SetDefault(AddPrefix(prefix, "host"), "")
+	v.SetDefault(AddPrefix(prefix, "port"), 0)
+	v.SetDefault(AddPrefix(prefix, "database"), "")
+	v.SetDefault(AddPrefix(prefix, "user"), "")
+	v.SetDefault(AddPrefix(prefix, "password"), "")
 }
 
 type AutoMigrate string
@@ -137,6 +137,14 @@ func (c PostgresConnectionParams) AsURL() string {
 		runtimeParams.Set("pool_max_conns", strconv.Itoa(c.Options.PoolMaxConns))
 	}
 
+	if c.Options.SSLVerify != "" {
+		runtimeParams.Set("sslmode", c.Options.SSLVerify)
+	}
+
+	if c.Options.SSLRootCert != "" {
+		runtimeParams.Set("sslrootcert", c.Options.SSLRootCert)
+	}
+
 	url := url.URL{
 		Scheme:   "postgresql",
 		User:     url.UserPassword(c.User, c.Password),
@@ -151,6 +159,8 @@ func (c PostgresConnectionParams) AsURL() string {
 type PostgresConnectionOptions struct {
 	PoolMaxConns    int    `yaml:"poolMaxConns"`
 	ApplicationName string `yaml:"applicationName"`
+	SSLVerify       string `yaml:"sslVerify"`
+	SSLRootCert     string `yaml:"sslRootCert"`
 }
 
 func (c PostgresConnectionOptions) Validate() error {

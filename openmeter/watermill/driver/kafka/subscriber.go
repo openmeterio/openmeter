@@ -3,6 +3,7 @@ package kafka
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -48,7 +49,7 @@ func NewSubscriber(in SubscriberOptions) (message.Subscriber, error) {
 	saramaConfig.Consumer.MaxProcessingTime = defaultMaxProcessingTime
 
 	wmConfig := kafka.SubscriberConfig{
-		Brokers:               []string{in.Broker.KafkaConfig.Broker},
+		Brokers:               strings.Split(in.Broker.KafkaConfig.Broker, ","),
 		OverwriteSaramaConfig: saramaConfig,
 		ConsumerGroup:         in.ConsumerGroupName,
 		ReconnectRetrySleep:   100 * time.Millisecond,
