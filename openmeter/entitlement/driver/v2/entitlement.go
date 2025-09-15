@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/strcase"
+	"github.com/samber/lo"
 )
 
 type (
@@ -59,9 +60,15 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				},
 				Limit:  defaultx.WithDefault(params.Limit, commonhttp.DefaultPageSize),
 				Offset: defaultx.WithDefault(params.Offset, 0),
-				OrderBy: entitlement.ListEntitlementsOrderBy(
-					strcase.CamelToSnake(defaultx.WithDefault((*string)(params.OrderBy), string(entitlement.ListEntitlementsOrderByCreatedAt))),
-				),
+				OrderBy: func() entitlement.ListEntitlementsOrderBy {
+					orderBy := entitlement.ListEntitlementsOrderByCreatedAt
+
+					if params.OrderBy != nil {
+						orderBy = entitlement.ListEntitlementsOrderBy(strcase.CamelToSnake(string(lo.FromPtr(params.OrderBy))))
+					}
+
+					return orderBy
+				}(),
 				Order:            commonhttp.GetSortOrder(api.SortOrderASC, params.Order),
 				CustomerIDs:      convert.DerefHeaderPtr[string](params.CustomerIds),
 				CustomerKeys:     convert.DerefHeaderPtr[string](params.CustomerKeys),
