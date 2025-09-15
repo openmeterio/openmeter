@@ -1153,16 +1153,3 @@ func (e AlignmentError) Error() string {
 func (e AlignmentError) Unwrap() error {
 	return e.Inner
 }
-
-// NoBillingPeriodError is an error that occurs when a phase has no billing period.
-type NoBillingPeriodError struct {
-	Inner error
-}
-
-func (e NoBillingPeriodError) Error() string {
-	return fmt.Sprintf("no billing period: %s", e.Inner)
-}
-
-func (e NoBillingPeriodError) Unwrap() error {
-	return e.Inner
-}
