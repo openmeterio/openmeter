@@ -15,10 +15,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-func (s service) ListAddons(ctx context.Context, params addon.ListAddonsInput) (pagination.PagedResponse[addon.Addon], error) {
-	fn := func(ctx context.Context) (pagination.PagedResponse[addon.Addon], error) {
+func (s service) ListAddons(ctx context.Context, params addon.ListAddonsInput) (pagination.Result[addon.Addon], error) {
+	fn := func(ctx context.Context) (pagination.Result[addon.Addon], error) {
 		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[addon.Addon]{}, fmt.Errorf("invalid list add-ons params: %w", err)
+			return pagination.Result[addon.Addon]{}, fmt.Errorf("invalid list add-ons params: %w", err)
 		}
 
 		return s.adapter.ListAddons(ctx, params)

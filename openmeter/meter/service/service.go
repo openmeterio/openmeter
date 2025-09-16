@@ -23,7 +23,7 @@ func New(
 }
 
 // ListMeters lists meters
-func (s *Service) ListMeters(ctx context.Context, input meter.ListMetersParams) (pagination.PagedResponse[meter.Meter], error) {
+func (s *Service) ListMeters(ctx context.Context, input meter.ListMetersParams) (pagination.Result[meter.Meter], error) {
 	return s.adapter.ListMeters(ctx, input)
 }
 

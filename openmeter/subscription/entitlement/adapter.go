@@ -111,7 +111,7 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionAt(ctx context.Contex
 		return nil, err
 	}
 
-	var ents pagination.PagedResponse[entitlement.Entitlement]
+	var ents pagination.Result[entitlement.Entitlement]
 
 	items = lo.Filter(items, func(s subscription.SubscriptionItem, _ int) bool { return s.EntitlementID != nil })
 

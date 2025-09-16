@@ -13,8 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-func (a *adapter) ListEventsDeliveryStatus(ctx context.Context, params notification.ListEventsDeliveryStatusInput) (pagination.PagedResponse[notification.EventDeliveryStatus], error) {
-	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[notification.EventDeliveryStatus], error) {
+func (a *adapter) ListEventsDeliveryStatus(ctx context.Context, params notification.ListEventsDeliveryStatusInput) (pagination.Result[notification.EventDeliveryStatus], error) {
+	fn := func(ctx context.Context, a *adapter) (pagination.Result[notification.EventDeliveryStatus], error) {
 		query := a.db.NotificationEventDeliveryStatus.Query()
 
 		if len(params.Namespaces) > 0 {
@@ -41,7 +41,7 @@ func (a *adapter) ListEventsDeliveryStatus(ctx context.Context, params notificat
 			query = query.Where(statusdb.UpdatedAtLTE(params.To.UTC()))
 		}
 
-		response := pagination.PagedResponse[notification.EventDeliveryStatus]{
+		response := pagination.Result[notification.EventDeliveryStatus]{
 			Page: params.Page,
 		}
 

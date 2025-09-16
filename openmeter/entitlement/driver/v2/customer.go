@@ -157,7 +157,7 @@ func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlements
 				return ListCustomerEntitlementsHandlerResponse{}, err
 			}
 
-			mapped, err := pagination.MapPagedResponseError(ents, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
+			mapped, err := pagination.MapResultErr(ents, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
 				v2, err := ParserV2.ToAPIGenericV2(&e, e.Customer.ID, e.Customer.Key)
 				if err != nil {
 					return api.EntitlementV2{}, err

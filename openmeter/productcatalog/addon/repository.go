@@ -12,7 +12,7 @@ import (
 type Repository interface {
 	entutils.TxCreator
 
-	ListAddons(ctx context.Context, params ListAddonsInput) (pagination.PagedResponse[Addon], error)
+	ListAddons(ctx context.Context, params ListAddonsInput) (pagination.Result[Addon], error)
 	CreateAddon(ctx context.Context, params CreateAddonInput) (*Addon, error)
 	DeleteAddon(ctx context.Context, params DeleteAddonInput) error
 	GetAddon(ctx context.Context, params GetAddonInput) (*Addon, error)

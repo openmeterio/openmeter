@@ -217,7 +217,7 @@ func (s *RepositoryTestSuite) TestFilterEventBySubject(t *testing.T) {
 	require.Len(listedEvents.Items, 0)
 }
 
-func eventIDsFromEventPaginatedResponse(events pagination.PagedResponse[notification.Event]) []string {
+func eventIDsFromEventPaginatedResponse(events pagination.Result[notification.Event]) []string {
 	eventIDs := make([]string, len(events.Items))
 	for i, event := range events.Items {
 		eventIDs[i] = event.ID

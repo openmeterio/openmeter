@@ -18,10 +18,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanAddonsInput) (pagination.PagedResponse[planaddon.PlanAddon], error) {
-	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[planaddon.PlanAddon], error) {
+func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanAddonsInput) (pagination.Result[planaddon.PlanAddon], error) {
+	fn := func(ctx context.Context, a *adapter) (pagination.Result[planaddon.PlanAddon], error) {
 		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[planaddon.PlanAddon]{}, fmt.Errorf("invalid list add-on assignments parameters: %w", err)
+			return pagination.Result[planaddon.PlanAddon]{}, fmt.Errorf("invalid list add-on assignments parameters: %w", err)
 		}
 
 		query := a.db.PlanAddon.Query()
@@ -128,7 +128,7 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 			query = query.Order(planaddondb.ByID(order...))
 		}
 
-		response := pagination.PagedResponse[planaddon.PlanAddon]{
+		response := pagination.Result[planaddon.PlanAddon]{
 			Page: params.Page,
 		}
 
@@ -158,7 +158,7 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 		return response, nil
 	}
 
-	return entutils.TransactingRepo[pagination.PagedResponse[planaddon.PlanAddon], *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[pagination.Result[planaddon.PlanAddon], *adapter](ctx, a, fn)
 }
 
 func (a *adapter) CreatePlanAddon(ctx context.Context, params planaddon.CreatePlanAddonInput) (*planaddon.PlanAddon, error) {

@@ -7,8 +7,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func MapPaged[I, O any](paged pagination.PagedResponse[I], mapper func(I) O) pagination.PagedResponse[O] {
-	return pagination.PagedResponse[O]{
+func MapPaged[I, O any](paged pagination.Result[I], mapper func(I) O) pagination.Result[O] {
+	return pagination.Result[O]{
 		TotalCount: paged.TotalCount,
 		Items: lo.Map(paged.Items, func(item I, _ int) O {
 			return mapper(item)
@@ -17,13 +17,13 @@ func MapPaged[I, O any](paged pagination.PagedResponse[I], mapper func(I) O) pag
 	}
 }
 
-func MapPagedWithErr[I, O any](paged pagination.PagedResponse[I], mapper func(I) (O, error)) (pagination.PagedResponse[O], error) {
+func MapPagedWithErr[I, O any](paged pagination.Result[I], mapper func(I) (O, error)) (pagination.Result[O], error) {
 	items, err := slicesx.MapWithErr(paged.Items, mapper)
 	if err != nil {
-		return pagination.PagedResponse[O]{}, err
+		return pagination.Result[O]{}, err
 	}
 
-	return pagination.PagedResponse[O]{
+	return pagination.Result[O]{
 		TotalCount: paged.TotalCount,
 		Items:      items,
 		Page:       paged.Page,

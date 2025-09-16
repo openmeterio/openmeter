@@ -24,12 +24,12 @@ import (
 )
 
 // ListCustomers lists customers
-func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
+func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomersInput) (pagination.Result[customer.Customer], error) {
 	if err := input.Validate(); err != nil {
-		return pagination.PagedResponse[customer.Customer]{}, models.NewGenericValidationError(err)
+		return pagination.Result[customer.Customer]{}, models.NewGenericValidationError(err)
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (pagination.PagedResponse[customer.Customer], error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (pagination.Result[customer.Customer], error) {
 		// Build the database query
 		now := clock.Now().UTC()
 
@@ -94,7 +94,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		}
 
 		// Response
-		response := pagination.PagedResponse[customer.Customer]{
+		response := pagination.Result[customer.Customer]{
 			Page: input.Page,
 		}
 

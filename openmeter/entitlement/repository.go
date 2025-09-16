@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -21,7 +22,7 @@ type ListExpiredEntitlementsParams struct {
 	Limit         int
 	// Cursor is the ID of the last entitlement in the previous page
 	// If not provided, the query will return the first page of results
-	Cursor string
+	Cursor *paginationv2.Cursor
 }
 
 type UpsertEntitlementCurrentPeriodElement struct {
@@ -43,7 +44,7 @@ type EntitlementRepo interface {
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID, at time.Time) error
 
-	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
+	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.Result[Entitlement], error)
 
 	// ListNamespacesWithActiveEntitlements returns a list of namespaces that have active entitlements
 	//

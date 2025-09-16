@@ -26,9 +26,9 @@ func (s *Service) GetMarketplaceListing(ctx context.Context, input app.Marketpla
 	return s.adapter.GetMarketplaceListing(ctx, input)
 }
 
-func (s *Service) ListMarketplaceListings(ctx context.Context, input app.MarketplaceListInput) (pagination.PagedResponse[app.RegistryItem], error) {
+func (s *Service) ListMarketplaceListings(ctx context.Context, input app.MarketplaceListInput) (pagination.Result[app.RegistryItem], error) {
 	if err := input.Validate(); err != nil {
-		return pagination.PagedResponse[app.RegistryItem]{}, models.NewGenericValidationError(err)
+		return pagination.Result[app.RegistryItem]{}, models.NewGenericValidationError(err)
 	}
 
 	return s.adapter.ListMarketplaceListings(ctx, input)

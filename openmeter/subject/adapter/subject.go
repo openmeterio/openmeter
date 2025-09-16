@@ -207,8 +207,8 @@ func (a *adapter) GetById(ctx context.Context, id models.NamespacedID) (subject.
 }
 
 // List returns all subjects from database for a namespace
-func (a *adapter) List(ctx context.Context, namespace string, params subject.ListParams) (pagination.PagedResponse[subject.Subject], error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.PagedResponse[subject.Subject], error) {
+func (a *adapter) List(ctx context.Context, namespace string, params subject.ListParams) (pagination.Result[subject.Subject], error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[subject.Subject], error) {
 		now := clock.Now().UTC()
 
 		query := tx.db.Subject.Query().
@@ -262,10 +262,10 @@ func (a *adapter) List(ctx context.Context, namespace string, params subject.Lis
 
 		result, err := query.Paginate(ctx, params.Page)
 		if err != nil {
-			return pagination.PagedResponse[subject.Subject]{}, fmt.Errorf("failed to list subjects: %w", err)
+			return pagination.Result[subject.Subject]{}, fmt.Errorf("failed to list subjects: %w", err)
 		}
 
-		return pagination.MapPagedResponse(result, mapEntity), nil
+		return pagination.MapResult(result, mapEntity), nil
 	})
 }
 

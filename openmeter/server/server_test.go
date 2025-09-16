@@ -662,8 +662,8 @@ var _ feature.FeatureConnector = (*NoopFeatureConnector)(nil)
 
 type NoopFeatureConnector struct{}
 
-func (n NoopFeatureConnector) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.PagedResponse[feature.Feature], error) {
-	return pagination.PagedResponse[feature.Feature]{}, nil
+func (n NoopFeatureConnector) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.Result[feature.Feature], error) {
+	return pagination.Result[feature.Feature]{}, nil
 }
 
 func (n NoopFeatureConnector) GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived feature.IncludeArchivedFeature) (*feature.Feature, error) {
@@ -722,8 +722,8 @@ func (n NoopEntitlementConnector) GetEntitlementsOfCustomer(ctx context.Context,
 	return []entitlement.Entitlement{}, nil
 }
 
-func (n NoopEntitlementConnector) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.PagedResponse[entitlement.Entitlement], error) {
-	return pagination.PagedResponse[entitlement.Entitlement]{}, nil
+func (n NoopEntitlementConnector) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.Result[entitlement.Entitlement], error) {
+	return pagination.Result[entitlement.Entitlement]{}, nil
 }
 
 func (n NoopEntitlementConnector) GetEntitlementOfCustomerAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {
@@ -763,8 +763,8 @@ func (n NoopEntitlementBalanceConnector) CreateGrant(ctx context.Context, namesp
 	return meteredentitlement.EntitlementGrant{}, nil
 }
 
-func (n NoopEntitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, namespace string, params meteredentitlement.ListEntitlementGrantsParams) (pagination.PagedResponse[meteredentitlement.EntitlementGrant], error) {
-	return pagination.PagedResponse[meteredentitlement.EntitlementGrant]{}, nil
+func (n NoopEntitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, namespace string, params meteredentitlement.ListEntitlementGrantsParams) (pagination.Result[meteredentitlement.EntitlementGrant], error) {
+	return pagination.Result[meteredentitlement.EntitlementGrant]{}, nil
 }
 
 func (n NoopEntitlementBalanceConnector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
@@ -882,8 +882,8 @@ func (n NoopAppService) GetMarketplaceListing(ctx context.Context, input app.Mar
 	return app.RegistryItem{}, nil
 }
 
-func (n NoopAppService) ListMarketplaceListings(ctx context.Context, input app.MarketplaceListInput) (pagination.PagedResponse[app.RegistryItem], error) {
-	return pagination.PagedResponse[app.RegistryItem]{}, nil
+func (n NoopAppService) ListMarketplaceListings(ctx context.Context, input app.MarketplaceListInput) (pagination.Result[app.RegistryItem], error) {
+	return pagination.Result[app.RegistryItem]{}, nil
 }
 
 func (n NoopAppService) InstallMarketplaceListingWithAPIKey(ctx context.Context, input app.InstallAppWithAPIKeyInput) (app.App, error) {
@@ -918,16 +918,16 @@ func (n NoopAppService) UpdateApp(ctx context.Context, input app.UpdateAppInput)
 	return appstripeentityapp.App{}, nil
 }
 
-func (n NoopAppService) ListApps(ctx context.Context, input app.ListAppInput) (pagination.PagedResponse[app.App], error) {
-	return pagination.PagedResponse[app.App]{}, nil
+func (n NoopAppService) ListApps(ctx context.Context, input app.ListAppInput) (pagination.Result[app.App], error) {
+	return pagination.Result[app.App]{}, nil
 }
 
 func (n NoopAppService) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
 	return nil
 }
 
-func (n NoopAppService) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.PagedResponse[app.CustomerApp], error) {
-	return pagination.PagedResponse[app.CustomerApp]{}, nil
+func (n NoopAppService) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.Result[app.CustomerApp], error) {
+	return pagination.Result[app.CustomerApp]{}, nil
 }
 
 func (n NoopAppService) EnsureCustomer(ctx context.Context, input app.EnsureCustomerInput) error {
@@ -1030,8 +1030,8 @@ type NoopCustomerService struct{}
 
 func (n NoopCustomerService) RegisterHooks(_ ...models.ServiceHook[customer.Customer]) {}
 
-func (n NoopCustomerService) ListCustomers(ctx context.Context, params customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
-	return pagination.PagedResponse[customer.Customer]{}, nil
+func (n NoopCustomerService) ListCustomers(ctx context.Context, params customer.ListCustomersInput) (pagination.Result[customer.Customer], error) {
+	return pagination.Result[customer.Customer]{}, nil
 }
 
 func (n NoopCustomerService) CreateCustomer(ctx context.Context, params customer.CreateCustomerInput) (*customer.Customer, error) {
@@ -1077,8 +1077,8 @@ func (n NoopCustomerService) CustomerExists(ctx context.Context, customer custom
 // for use in testing
 type NoopPlanService struct{}
 
-func (n NoopPlanService) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.PagedResponse[plan.Plan], error) {
-	return pagination.PagedResponse[plan.Plan]{}, nil
+func (n NoopPlanService) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.Result[plan.Plan], error) {
+	return pagination.Result[plan.Plan]{}, nil
 }
 
 func (n NoopPlanService) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {
@@ -1115,8 +1115,8 @@ var _ addon.Service = (*NoopAddonService)(nil)
 // for use in testing
 type NoopAddonService struct{}
 
-func (n NoopAddonService) ListAddons(ctx context.Context, params addon.ListAddonsInput) (pagination.PagedResponse[addon.Addon], error) {
-	return pagination.PagedResponse[addon.Addon]{}, nil
+func (n NoopAddonService) ListAddons(ctx context.Context, params addon.ListAddonsInput) (pagination.Result[addon.Addon], error) {
+	return pagination.Result[addon.Addon]{}, nil
 }
 
 func (n NoopAddonService) CreateAddon(ctx context.Context, params addon.CreateAddonInput) (*addon.Addon, error) {
@@ -1153,8 +1153,8 @@ var _ planaddon.Service = (*NoopPlanAddonService)(nil)
 // for use in testing
 type NoopPlanAddonService struct{}
 
-func (n NoopPlanAddonService) ListPlanAddons(ctx context.Context, params planaddon.ListPlanAddonsInput) (pagination.PagedResponse[planaddon.PlanAddon], error) {
-	return pagination.PagedResponse[planaddon.PlanAddon]{}, nil
+func (n NoopPlanAddonService) ListPlanAddons(ctx context.Context, params planaddon.ListPlanAddonsInput) (pagination.Result[planaddon.PlanAddon], error) {
+	return pagination.Result[planaddon.PlanAddon]{}, nil
 }
 
 func (n NoopPlanAddonService) CreatePlanAddon(ctx context.Context, params planaddon.CreatePlanAddonInput) (*planaddon.PlanAddon, error) {
@@ -1236,7 +1236,7 @@ func (n NoopSubscriptionService) GetView(ctx context.Context, subscriptionID mod
 }
 
 func (n NoopSubscriptionService) List(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
-	return pagination.PagedResponse[subscription.Subscription]{}, nil
+	return pagination.Result[subscription.Subscription]{}, nil
 }
 
 func (n NoopSubscriptionService) GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error) {
@@ -1291,8 +1291,8 @@ func (n NoopSubscriptionAddonService) Create(ctx context.Context, ns string, inp
 	return nil, nil
 }
 
-func (n NoopSubscriptionAddonService) List(ctx context.Context, ns string, input subscriptionaddon.ListSubscriptionAddonsInput) (pagination.PagedResponse[subscriptionaddon.SubscriptionAddon], error) {
-	return pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{}, nil
+func (n NoopSubscriptionAddonService) List(ctx context.Context, ns string, input subscriptionaddon.ListSubscriptionAddonsInput) (pagination.Result[subscriptionaddon.SubscriptionAddon], error) {
+	return pagination.Result[subscriptionaddon.SubscriptionAddon]{}, nil
 }
 
 var _ grant.Repo = (*NoopGrantRepo)(nil)
@@ -1309,8 +1309,8 @@ func (n NoopGrantRepo) VoidGrant(ctx context.Context, grantID models.NamespacedI
 	return nil
 }
 
-func (n NoopGrantRepo) ListGrants(ctx context.Context, params grant.ListParams) (pagination.PagedResponse[grant.Grant], error) {
-	return pagination.PagedResponse[grant.Grant]{}, nil
+func (n NoopGrantRepo) ListGrants(ctx context.Context, params grant.ListParams) (pagination.Result[grant.Grant], error) {
+	return pagination.Result[grant.Grant]{}, nil
 }
 
 func (n NoopGrantRepo) ListActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]grant.Grant, error) {
@@ -1550,8 +1550,8 @@ func (n NoopSubjectService) GetByKey(ctx context.Context, key models.NamespacedK
 	return subject.Subject{}, nil
 }
 
-func (n NoopSubjectService) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.PagedResponse[subject.Subject], error) {
-	return pagination.PagedResponse[subject.Subject]{}, nil
+func (n NoopSubjectService) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.Result[subject.Subject], error) {
+	return pagination.Result[subject.Subject]{}, nil
 }
 
 func (n NoopSubjectService) Delete(ctx context.Context, id models.NamespacedID) error {

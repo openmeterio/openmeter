@@ -315,7 +315,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 type (
 	ListEntitlementsHandlerRequest  = entitlement.ListEntitlementsParams
-	ListEntitlementsHandlerResponse = commonhttp.Union[[]api.Entitlement, pagination.PagedResponse[api.Entitlement]]
+	ListEntitlementsHandlerResponse = commonhttp.Union[[]api.Entitlement, pagination.Result[api.Entitlement]]
 	ListEntitlementsHandlerParams   = api.ListEntitlementsParams
 )
 
@@ -385,7 +385,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 			// due to backward compatibility, if pagination is not provided we return a simple array
 			response := ListEntitlementsHandlerResponse{
 				Option1: &[]api.Entitlement{},
-				Option2: &pagination.PagedResponse[api.Entitlement]{},
+				Option2: &pagination.Result[api.Entitlement]{},
 			}
 			paged, err := h.connector.ListEntitlements(ctx, request)
 			if err != nil {
@@ -407,7 +407,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				response.Option1 = &mapped
 			} else {
 				response.Option1 = nil
-				response.Option2 = &pagination.PagedResponse[api.Entitlement]{
+				response.Option2 = &pagination.Result[api.Entitlement]{
 					Items:      mapped,
 					TotalCount: paged.TotalCount,
 					Page:       paged.Page,

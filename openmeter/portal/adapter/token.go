@@ -110,8 +110,8 @@ func (a *adapter) Validate(ctx context.Context, tokenString string) (*portal.Por
 }
 
 // ListTokens lists portal tokens.
-func (a *adapter) ListTokens(context.Context, portal.ListTokensInput) (pagination.PagedResponse[*portal.PortalToken], error) {
-	var resp pagination.PagedResponse[*portal.PortalToken]
+func (a *adapter) ListTokens(context.Context, portal.ListTokensInput) (pagination.Result[*portal.PortalToken], error) {
+	var resp pagination.Result[*portal.PortalToken]
 
 	return resp, models.NewGenericNotImplementedError(fmt.Errorf("listing tokens"))
 }

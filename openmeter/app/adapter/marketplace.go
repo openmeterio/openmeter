@@ -13,11 +13,11 @@ import (
 )
 
 // ListMarketplaceListings lists marketplace listings
-func (a adapter) ListMarketplaceListings(ctx context.Context, input app.MarketplaceListInput) (pagination.PagedResponse[app.RegistryItem], error) {
+func (a adapter) ListMarketplaceListings(ctx context.Context, input app.MarketplaceListInput) (pagination.Result[app.RegistryItem], error) {
 	items := lo.Values(a.registry)
 	items = lo.Subset(items, (input.PageNumber-1)*input.PageSize, uint(input.PageSize))
 
-	response := pagination.PagedResponse[app.RegistryItem]{
+	response := pagination.Result[app.RegistryItem]{
 		Page:       input.Page,
 		Items:      items,
 		TotalCount: len(a.registry),

@@ -16,7 +16,7 @@ type Repository interface {
 }
 
 type ChannelRepository interface {
-	ListChannels(ctx context.Context, params ListChannelsInput) (pagination.PagedResponse[Channel], error)
+	ListChannels(ctx context.Context, params ListChannelsInput) (pagination.Result[Channel], error)
 	CreateChannel(ctx context.Context, params CreateChannelInput) (*Channel, error)
 	DeleteChannel(ctx context.Context, params DeleteChannelInput) error
 	GetChannel(ctx context.Context, params GetChannelInput) (*Channel, error)
@@ -24,7 +24,7 @@ type ChannelRepository interface {
 }
 
 type RuleRepository interface {
-	ListRules(ctx context.Context, params ListRulesInput) (pagination.PagedResponse[Rule], error)
+	ListRules(ctx context.Context, params ListRulesInput) (pagination.Result[Rule], error)
 	CreateRule(ctx context.Context, params CreateRuleInput) (*Rule, error)
 	DeleteRule(ctx context.Context, params DeleteRuleInput) error
 	GetRule(ctx context.Context, params GetRuleInput) (*Rule, error)
@@ -32,10 +32,10 @@ type RuleRepository interface {
 }
 
 type EventRepository interface {
-	ListEvents(ctx context.Context, params ListEventsInput) (pagination.PagedResponse[Event], error)
+	ListEvents(ctx context.Context, params ListEventsInput) (pagination.Result[Event], error)
 	GetEvent(ctx context.Context, params GetEventInput) (*Event, error)
 	CreateEvent(ctx context.Context, params CreateEventInput) (*Event, error)
-	ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (pagination.PagedResponse[EventDeliveryStatus], error)
+	ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (pagination.Result[EventDeliveryStatus], error)
 	GetEventDeliveryStatus(ctx context.Context, params GetEventDeliveryStatusInput) (*EventDeliveryStatus, error)
 	UpdateEventDeliveryStatus(ctx context.Context, params UpdateEventDeliveryStatusInput) (*EventDeliveryStatus, error)
 }

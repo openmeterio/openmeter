@@ -72,7 +72,7 @@ type Repo interface {
 	CreateGrant(ctx context.Context, grant RepoCreateInput) (*Grant, error)
 	VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error
 	// For bw compatibility, if pagination is not provided we return a simple array
-	ListGrants(ctx context.Context, params ListParams) (pagination.PagedResponse[Grant], error)
+	ListGrants(ctx context.Context, params ListParams) (pagination.Result[Grant], error)
 	// ListActiveGrantsBetween returns all grants that are active at any point between the given time range.
 	ListActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]Grant, error)
 	GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error)

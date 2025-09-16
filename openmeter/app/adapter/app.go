@@ -72,11 +72,11 @@ func (a *adapter) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatus
 }
 
 // ListApps lists apps
-func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagination.PagedResponse[app.App], error) {
+func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagination.Result[app.App], error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
-		func(ctx context.Context, repo *adapter) (pagination.PagedResponse[app.App], error) {
+		func(ctx context.Context, repo *adapter) (pagination.Result[app.App], error) {
 			query := repo.db.App.
 				Query().
 				Where(appdb.Namespace(params.Namespace))
@@ -107,7 +107,7 @@ func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagina
 				query = query.Where(appdb.IDIn(appIDs...))
 			}
 
-			response := pagination.PagedResponse[app.App]{
+			response := pagination.Result[app.App]{
 				Page: params.Page,
 			}
 

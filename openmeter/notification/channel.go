@@ -126,7 +126,7 @@ func (i ListChannelsInput) Validate(_ context.Context, _ Service) error {
 	return nil
 }
 
-type ListChannelsResult = pagination.PagedResponse[Channel]
+type ListChannelsResult = pagination.Result[Channel]
 
 var _ validator = (*CreateChannelInput)(nil)
 

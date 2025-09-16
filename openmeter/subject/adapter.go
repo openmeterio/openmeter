@@ -15,7 +15,7 @@ type Adapter interface {
 	GetByIdOrKey(ctx context.Context, namespace string, idOrKey string) (Subject, error)
 	GetByKey(ctx context.Context, key models.NamespacedKey) (Subject, error)
 	GetById(ctx context.Context, id models.NamespacedID) (Subject, error)
-	List(ctx context.Context, namespace string, params ListParams) (pagination.PagedResponse[Subject], error)
+	List(ctx context.Context, namespace string, params ListParams) (pagination.Result[Subject], error)
 	Delete(ctx context.Context, id models.NamespacedID) error
 
 	entutils.TxCreator

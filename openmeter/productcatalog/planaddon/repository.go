@@ -10,7 +10,7 @@ import (
 type Repository interface {
 	entutils.TxCreator
 
-	ListPlanAddons(ctx context.Context, params ListPlanAddonsInput) (pagination.PagedResponse[PlanAddon], error)
+	ListPlanAddons(ctx context.Context, params ListPlanAddonsInput) (pagination.Result[PlanAddon], error)
 	CreatePlanAddon(ctx context.Context, params CreatePlanAddonInput) (*PlanAddon, error)
 	DeletePlanAddon(ctx context.Context, params DeletePlanAddonInput) error
 	GetPlanAddon(ctx context.Context, params GetPlanAddonInput) (*PlanAddon, error)

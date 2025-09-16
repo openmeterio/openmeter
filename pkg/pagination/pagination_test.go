@@ -12,7 +12,7 @@ import (
 
 func TestShouldFlattenPageInfoWhenMarshalling(t *testing.T) {
 	assert := assert.New(t)
-	pagedRes := pagination.PagedResponse[int]{
+	pagedRes := pagination.Result[int]{
 		Items:      []int{1, 2, 3},
 		TotalCount: 3,
 		Page: pagination.Page{

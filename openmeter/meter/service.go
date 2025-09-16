@@ -14,7 +14,7 @@ import (
 
 // Meter is an interface for the meter service.
 type Service interface {
-	ListMeters(ctx context.Context, params ListMetersParams) (pagination.PagedResponse[Meter], error)
+	ListMeters(ctx context.Context, params ListMetersParams) (pagination.Result[Meter], error)
 	GetMeterByIDOrSlug(ctx context.Context, input GetMeterInput) (Meter, error)
 }
 

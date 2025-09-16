@@ -87,6 +87,6 @@ func convertListEventsV2Response(events pagination.Result[meterevent.Event]) (ap
 
 	return api.IngestedEventCursorPaginatedResponse{
 		Items:      items,
-		NextCursor: events.NextCursor,
+		NextCursor: events.NextCursor.EncodePtr(),
 	}, nil
 }

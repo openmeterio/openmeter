@@ -118,7 +118,7 @@ func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput)
 	return mapProfileFromDB(dbProfile)
 }
 
-func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (pagination.PagedResponse[billing.BaseProfile], error) {
+func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (pagination.Result[billing.BaseProfile], error) {
 	query := a.db.BillingProfile.Query().
 		Where(billingprofile.Namespace(input.Namespace)).
 		WithWorkflowConfig()
@@ -145,7 +145,7 @@ func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 		query = query.Order(billingprofile.ByCreatedAt(order...))
 	}
 
-	response := pagination.PagedResponse[billing.BaseProfile]{
+	response := pagination.Result[billing.BaseProfile]{
 		Page: input.Page,
 	}
 

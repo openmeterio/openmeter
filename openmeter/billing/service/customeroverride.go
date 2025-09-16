@@ -241,7 +241,7 @@ func (s *Service) ListCustomerOverrides(ctx context.Context, input billing.ListC
 			}
 		}
 
-		return pagination.MapPagedResponseError(res, func(override billing.CustomerOverrideWithCustomerID) (billing.CustomerOverrideWithDetails, error) {
+		return pagination.MapResultErr(res, func(override billing.CustomerOverrideWithCustomerID) (billing.CustomerOverrideWithDetails, error) {
 			res, err := s.resolveCustomerOverrideWithDetails(ctx, resolveCustomerOverrideWithDetailsInput{
 				CustomerID:         override.CustomerID,
 				Override:           override.CustomerOverride,

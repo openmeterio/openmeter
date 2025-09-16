@@ -57,7 +57,7 @@ func (h *handler) ListTokens() ListTokensHandler {
 			}
 
 			// Response
-			resp := pagination.MapPagedResponse(result, toAPIPortalToken)
+			resp := pagination.MapResult(result, toAPIPortalToken)
 
 			return resp.Items, nil
 		},

@@ -11,7 +11,7 @@ import (
 type FeatureRepo interface {
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
-	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.PagedResponse[Feature], error)
+	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.Result[Feature], error)
 	HasActiveFeatureForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error)
 
 	GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*Feature, error)

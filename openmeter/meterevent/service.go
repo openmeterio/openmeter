@@ -68,12 +68,11 @@ type Event struct {
 	ValidationErrors []error
 }
 
+var _ pagination.Item = (*Event)(nil)
+
 // Cursor returns the cursor for the event.
 func (e Event) Cursor() pagination.Cursor {
-	return pagination.Cursor{
-		ID:   e.ID,
-		Time: e.Time,
-	}
+	return pagination.NewCursor(e.Time, e.ID)
 }
 
 // Validate validates the input.

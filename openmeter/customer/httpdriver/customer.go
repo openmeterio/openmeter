@@ -23,7 +23,7 @@ import (
 )
 
 type (
-	ListCustomersResponse = pagination.PagedResponse[api.Customer]
+	ListCustomersResponse = pagination.Result[api.Customer]
 	ListCustomersParams   = api.ListCustomersParams
 	ListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]
 )
@@ -106,7 +106,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			}
 
 			// Map the customers to the API
-			return pagination.MapPagedResponseError(resp, func(customer customer.Customer) (api.Customer, error) {
+			return pagination.MapResultErr(resp, func(customer customer.Customer) (api.Customer, error) {
 				var item api.Customer
 
 				subs, ok := customerSubscriptions[customer.ID]

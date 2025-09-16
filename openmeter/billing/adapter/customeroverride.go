@@ -262,7 +262,7 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 			return billing.ListCustomerOverridesAdapterResult{}, err
 		}
 
-		return pagination.MapPagedResponseError(res, func(dbCustomer *db.Customer) (billing.CustomerOverrideWithCustomerID, error) {
+		return pagination.MapResultErr(res, func(dbCustomer *db.Customer) (billing.CustomerOverrideWithCustomerID, error) {
 			if dbCustomer.Edges.BillingCustomerOverride == nil {
 				return billing.CustomerOverrideWithCustomerID{
 					CustomerID: customer.CustomerID{

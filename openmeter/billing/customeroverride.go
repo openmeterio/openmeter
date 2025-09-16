@@ -331,7 +331,7 @@ func (o CustomerOverrideOrderBy) Validate() error {
 	return nil
 }
 
-type ListCustomerOverridesResult = pagination.PagedResponse[CustomerOverrideWithDetails]
+type ListCustomerOverridesResult = pagination.Result[CustomerOverrideWithDetails]
 
 type CustomerOverrideWithCustomerID struct {
 	*CustomerOverride `json:",inline"`
@@ -339,7 +339,7 @@ type CustomerOverrideWithCustomerID struct {
 	CustomerID customer.CustomerID `json:"customerID,omitempty"`
 }
 
-type ListCustomerOverridesAdapterResult = pagination.PagedResponse[CustomerOverrideWithCustomerID]
+type ListCustomerOverridesAdapterResult = pagination.Result[CustomerOverrideWithCustomerID]
 
 type BulkAssignCustomersToProfileInput struct {
 	ProfileID   ProfileID

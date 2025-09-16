@@ -92,7 +92,7 @@ func (i ListEventsDeliveryStatusInput) Validate(_ context.Context, _ Service) er
 	return nil
 }
 
-type ListEventsDeliveryStatusResult = pagination.PagedResponse[EventDeliveryStatus]
+type ListEventsDeliveryStatusResult = pagination.Result[EventDeliveryStatus]
 
 var _ validator = (*GetEventDeliveryStatusInput)(nil)
 

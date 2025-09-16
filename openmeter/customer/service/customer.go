@@ -13,7 +13,7 @@ import (
 var _ customer.Service = (*Service)(nil)
 
 // ListCustomers lists customers
-func (s *Service) ListCustomers(ctx context.Context, input customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
+func (s *Service) ListCustomers(ctx context.Context, input customer.ListCustomersInput) (pagination.Result[customer.Customer], error) {
 	return s.adapter.ListCustomers(ctx, input)
 }
 

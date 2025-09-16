@@ -14,8 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (a *adapter) ListChannels(ctx context.Context, params notification.ListChannelsInput) (pagination.PagedResponse[notification.Channel], error) {
-	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[notification.Channel], error) {
+func (a *adapter) ListChannels(ctx context.Context, params notification.ListChannelsInput) (pagination.Result[notification.Channel], error) {
+	fn := func(ctx context.Context, a *adapter) (pagination.Result[notification.Channel], error) {
 		query := a.db.NotificationChannel.Query().
 			Where(channeldb.Or(
 				channeldb.DeletedAtIsNil(),
@@ -52,7 +52,7 @@ func (a *adapter) ListChannels(ctx context.Context, params notification.ListChan
 			query = query.Order(channeldb.ByID(order...))
 		}
 
-		response := pagination.PagedResponse[notification.Channel]{
+		response := pagination.Result[notification.Channel]{
 			Page: params.Page,
 		}
 

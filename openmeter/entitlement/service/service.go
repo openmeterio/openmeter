@@ -180,10 +180,10 @@ func (c *service) GetEntitlementValue(ctx context.Context, namespace string, cus
 	return connector.GetValue(ctx, ent, at)
 }
 
-func (c *service) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.PagedResponse[entitlement.Entitlement], error) {
+func (c *service) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.Result[entitlement.Entitlement], error) {
 	if !params.Page.IsZero() {
 		if err := params.Page.Validate(); err != nil {
-			return pagination.PagedResponse[entitlement.Entitlement]{}, err
+			return pagination.Result[entitlement.Entitlement]{}, err
 		}
 	}
 	return c.entitlementRepo.ListEntitlements(ctx, params)

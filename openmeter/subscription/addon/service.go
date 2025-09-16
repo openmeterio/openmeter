@@ -11,7 +11,7 @@ import (
 type Service interface {
 	Create(ctx context.Context, namespace string, input CreateSubscriptionAddonInput) (*SubscriptionAddon, error)
 	Get(ctx context.Context, id models.NamespacedID) (*SubscriptionAddon, error)
-	List(ctx context.Context, namespace string, input ListSubscriptionAddonsInput) (pagination.PagedResponse[SubscriptionAddon], error)
+	List(ctx context.Context, namespace string, input ListSubscriptionAddonsInput) (pagination.Result[SubscriptionAddon], error)
 
 	ChangeQuantity(ctx context.Context, id models.NamespacedID, input CreateSubscriptionAddonQuantityInput) (*SubscriptionAddon, error)
 }

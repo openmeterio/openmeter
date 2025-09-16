@@ -11,7 +11,7 @@ import (
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *Example1Query) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Example1], error) {
+func (_m *Example1Query) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Example1], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -27,7 +27,7 @@ func (_m *Example1Query) Paginate(ctx context.Context, page pagination.Page) (pa
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*Example1]{
+	pagedResponse := pagination.Result[*Example1]{
 		Page: page,
 	}
 

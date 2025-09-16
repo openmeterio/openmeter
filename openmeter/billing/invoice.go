@@ -897,7 +897,7 @@ func (i ListInvoicesInput) Validate() error {
 	return errors.Join(outErr...)
 }
 
-type ListInvoicesResponse = pagination.PagedResponse[Invoice]
+type ListInvoicesResponse = pagination.Result[Invoice]
 
 type CreateInvoiceAdapterInput struct {
 	Namespace string
