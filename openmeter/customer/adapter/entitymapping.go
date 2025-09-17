@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -102,6 +103,9 @@ func subjectKeysFromDBEntity(customerEntity db.Customer) ([]string, error) {
 
 		return item.SubjectKey, true
 	})
+
+	// Sort the subject keys to make sure the order is consistent
+	slices.Sort(subjectKeys)
 
 	return subjectKeys, nil
 }

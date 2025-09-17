@@ -26,6 +26,8 @@
         countQuery := {{ $receiver }}.Clone()
         pagedQuery := {{ $receiver }}
 
+        // Unset select for count query
+        countQuery.ctx.Fields = []string{}
 
         // Unset ordering for count query
         countQuery.order = nil

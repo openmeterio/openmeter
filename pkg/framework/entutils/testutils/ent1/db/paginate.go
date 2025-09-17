@@ -24,6 +24,9 @@ func (_m *Example1Query) Paginate(ctx context.Context, page pagination.Page) (pa
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 

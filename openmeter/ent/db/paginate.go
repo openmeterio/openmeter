@@ -24,6 +24,9 @@ func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -78,6 +81,9 @@ func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -134,6 +140,9 @@ func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (paginat
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -188,6 +197,9 @@ func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -244,6 +256,9 @@ func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pa
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -298,6 +313,9 @@ func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -354,6 +372,9 @@ func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -408,6 +429,9 @@ func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -464,6 +488,9 @@ func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -518,6 +545,9 @@ func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page paginatio
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -574,6 +604,9 @@ func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagin
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -628,6 +661,9 @@ func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Pag
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -684,6 +720,9 @@ func (_m *BillingInvoiceFlatFeeLineConfigQuery) Paginate(ctx context.Context, pa
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -738,6 +777,9 @@ func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -794,6 +836,9 @@ func (_m *BillingInvoiceLineDiscountQuery) Paginate(ctx context.Context, page pa
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -848,6 +893,9 @@ func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, pa
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -904,6 +952,9 @@ func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page 
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -958,6 +1009,9 @@ func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context,
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1014,6 +1068,9 @@ func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -1068,6 +1125,9 @@ func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Pag
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1124,6 +1184,9 @@ func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagina
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -1178,6 +1241,9 @@ func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page paginat
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1234,6 +1300,9 @@ func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pa
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -1288,6 +1357,9 @@ func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.P
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1344,6 +1416,9 @@ func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) 
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -1398,6 +1473,9 @@ func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1454,6 +1532,9 @@ func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -1508,6 +1589,9 @@ func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1564,6 +1648,9 @@ func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page paginatio
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -1618,6 +1705,9 @@ func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1674,6 +1764,9 @@ func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, pa
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -1728,6 +1821,9 @@ func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.P
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1784,6 +1880,9 @@ func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagina
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -1838,6 +1937,9 @@ func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -1894,6 +1996,9 @@ func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -1948,6 +2053,9 @@ func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page)
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -2004,6 +2112,9 @@ func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -2058,6 +2169,9 @@ func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page)
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -2114,6 +2228,9 @@ func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -2168,6 +2285,9 @@ func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pag
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -2224,6 +2344,9 @@ func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.P
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -2279,6 +2402,9 @@ func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.
 	countQuery := _m.Clone()
 	pagedQuery := _m
 
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
 	// Unset ordering for count query
 	countQuery.order = nil
 
@@ -2333,6 +2459,9 @@ func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
 	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
 
 	// Unset ordering for count query
 	countQuery.order = nil
