@@ -401,22 +401,27 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 	return values, nil
 }
 
-type listMeterSubjectsQuery struct {
+type listSubjectsQuery struct {
 	Database        string
 	EventsTableName string
 	Namespace       string
-	Meter           meterpkg.Meter
+	Meter           *meterpkg.Meter
 	From            *time.Time
 	To              *time.Time
 }
 
-func (d listMeterSubjectsQuery) toSQL() (string, []interface{}) {
+func (d listSubjectsQuery) toSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.EventsTableName)
 
 	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
 	sb.Select("DISTINCT subject")
 	sb.Where(sb.Equal("namespace", d.Namespace))
-	sb.Where(sb.Equal("type", d.Meter.EventType))
+
+	// If we have a meter, we add the type filter
+	if d.Meter != nil {
+		sb.Where(sb.Equal("type", d.Meter.EventType))
+	}
+
 	sb.From(tableName)
 	sb.OrderBy("subject")
 
@@ -430,10 +435,4 @@ func (d listMeterSubjectsQuery) toSQL() (string, []interface{}) {
 
 	sql, args := sb.Build()
 	return sql, args
-}
-
-func columnFactory(alias string) func(string) string {
-	return func(column string) string {
-		return fmt.Sprintf("%s.%s", alias, column)
-	}
 }

@@ -41,21 +41,34 @@ type Connector interface {
 	CountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)
 	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]RawEvent, error)
 	ListEventsV2(ctx context.Context, params ListEventsV2Params) ([]RawEvent, error)
+	// ListSubjects lists the subjects that have events in the database
+	ListSubjects(ctx context.Context, params ListSubjectsParams) ([]string, error)
 	QueryMeter(ctx context.Context, namespace string, meter meter.Meter, params QueryParams) ([]meter.MeterQueryRow, error)
-	ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params ListMeterSubjectsParams) ([]string, error)
 	BatchInsert(ctx context.Context, events []RawEvent) error
 	ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error)
 }
 
-// ListMeterSubjectsParams is a parameter object for listing subjects.
-type ListMeterSubjectsParams struct {
-	From *time.Time
-	To   *time.Time
+// ListSubjectsParams is a parameter object for listing subjects.
+type ListSubjectsParams struct {
+	Namespace string
+	Meter     *meter.Meter
+	From      *time.Time
+	To        *time.Time
 }
 
 // Validate validates the list meters parameters.
-func (p ListMeterSubjectsParams) Validate() error {
+func (p ListSubjectsParams) Validate() error {
 	var errs []error
+
+	if p.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if p.Meter != nil {
+		if p.Meter.Key == "" {
+			errs = append(errs, errors.New("meter cannot be empty when provided"))
+		}
+	}
 
 	if p.From != nil && p.To != nil {
 		if p.From.Equal(*p.To) {

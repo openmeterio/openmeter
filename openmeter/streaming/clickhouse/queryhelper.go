@@ -85,3 +85,9 @@ func subjectWhere(
 
 	return query
 }
+
+func columnFactory(alias string) func(string) string {
+	return func(column string) string {
+		return fmt.Sprintf("%s.%s", alias, column)
+	}
+}

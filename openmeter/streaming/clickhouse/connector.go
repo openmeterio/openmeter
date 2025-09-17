@@ -190,25 +190,18 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	return values, nil
 }
 
-func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("namespace is required")
-	}
-	if meter.Key == "" {
-		return nil, fmt.Errorf("meter is required")
-	}
-
+func (c *Connector) ListSubjects(ctx context.Context, params streaming.ListSubjectsParams) ([]string, error) {
 	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
-	subjects, err := c.listMeterViewSubjects(ctx, namespace, meter, params.From, params.To)
+	subjects, err := c.listSubjects(ctx, params)
 	if err != nil {
 		if meterpkg.IsMeterNotFoundError(err) {
 			return nil, err
 		}
 
-		return nil, fmt.Errorf("list meter subjects: %w", err)
+		return nil, fmt.Errorf("list subjects: %w", err)
 	}
 
 	return subjects, nil
@@ -514,25 +507,22 @@ func (c *Connector) queryMeter(ctx context.Context, query queryMeter) ([]meterpk
 	return values, nil
 }
 
-func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string, meter meterpkg.Meter, from *time.Time, to *time.Time) ([]string, error) {
-	query := listMeterSubjectsQuery{
+// listSubjects lists the subjects that have events in the database
+func (c *Connector) listSubjects(ctx context.Context, params streaming.ListSubjectsParams) ([]string, error) {
+	query := listSubjectsQuery{
 		Database:        c.config.Database,
 		EventsTableName: c.config.EventsTableName,
-		Namespace:       namespace,
-		Meter:           meter,
-		From:            from,
-		To:              to,
+		Namespace:       params.Namespace,
+		Meter:           params.Meter,
+		From:            params.From,
+		To:              params.To,
 	}
 
 	sql, args := query.toSQL()
 
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
-		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
-		}
-
-		return nil, fmt.Errorf("list meter view subjects: %w", err)
+		return nil, fmt.Errorf("list subjects: %w", err)
 	}
 
 	defer rows.Close()

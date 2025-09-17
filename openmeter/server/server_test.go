@@ -589,6 +589,8 @@ func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string)
 }
 
 // MockStreamingConnector
+var _ streaming.Connector = (*MockStreamingConnector)(nil)
+
 type MockStreamingConnector struct{}
 
 func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
@@ -645,7 +647,7 @@ func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	return []meter.MeterQueryRow{value}, nil
 }
 
-func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+func (c *MockStreamingConnector) ListSubjects(ctx context.Context, params streaming.ListSubjectsParams) ([]string, error) {
 	return []string{"s1"}, nil
 }
 
