@@ -395,15 +395,6 @@ func TestComplete(t *testing.T) {
 				},
 			},
 		},
-		Subject: SubjectConfig{
-			Manager: SubjectManagerConfig{
-				CacheReloadInterval: 5 * time.Minute,
-				CacheReloadTimeout:  2 * time.Minute,
-				CachePrefillCount:   250_000,
-				CacheSize:           1_000_000,
-				PaginationSize:      10_000,
-			},
-		},
 		Customer: CustomerConfiguration{
 			EnableSubjectHook: true,
 			IgnoreErrors:      true,

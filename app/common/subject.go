@@ -1,20 +1,17 @@
 package common
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subject/adapter"
-	"github.com/openmeterio/openmeter/openmeter/subject/manager"
 	"github.com/openmeterio/openmeter/openmeter/subject/service"
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 )
@@ -24,36 +21,10 @@ var Subject = wire.NewSet(
 	NewSubjectAdapter,
 )
 
-var SubjectManager = wire.NewSet(
-	NewSubjectManager,
-)
-
 func NewSubjectService(
 	adapter subject.Adapter,
 ) (subject.Service, error) {
 	return service.New(adapter)
-}
-
-func NewSubjectManager(
-	ctx context.Context,
-	ent *entdb.Client,
-	logger *slog.Logger,
-	subjectConfig config.SubjectManagerConfig,
-) (*manager.Manager, error) {
-	subjectManager, err := manager.NewManager(&manager.Config{
-		Ent:                 ent,
-		Logger:              logger,
-		CacheReloadInterval: subjectConfig.CacheReloadInterval,
-		CacheReloadTimeout:  subjectConfig.CacheReloadTimeout,
-		CachePrefillCount:   subjectConfig.CachePrefillCount,
-		CacheSize:           subjectConfig.CacheSize,
-		PaginationSize:      subjectConfig.PaginationSize,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create subject manager: %w", err)
-	}
-
-	return subjectManager, nil
 }
 
 func NewSubjectAdapter(
