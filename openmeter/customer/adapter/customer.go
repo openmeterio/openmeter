@@ -142,7 +142,6 @@ func (a *adapter) ListCustomerUsageAttributions(ctx context.Context, input custo
 			// We only need to select the fields we need for the usage attribution to optimize the query
 			Select(
 				customerdb.FieldID,
-				customerdb.FieldNamespace,
 				customerdb.FieldKey,
 			).
 			Where(customerdb.Namespace(input.Namespace)).
@@ -178,15 +177,22 @@ func (a *adapter) ListCustomerUsageAttributions(ctx context.Context, input custo
 				a.logger.WarnContext(ctx, "invalid query result: nil customer received")
 				continue
 			}
-			cust, err := CustomerFromDBEntity(*item)
+
+			subjectKeys, err := subjectKeysFromDBEntity(*item)
 			if err != nil {
-				return response, fmt.Errorf("failed to convert customer: %w", err)
-			}
-			if cust == nil {
-				return response, fmt.Errorf("invalid query result: nil customer received")
+				return response, err
 			}
 
-			result = append(result, cust.GetUsageAttribution())
+			usageAttribution := streaming.CustomerUsageAttribution{
+				ID:          item.ID,
+				SubjectKeys: subjectKeys,
+			}
+
+			if item.Key != "" {
+				usageAttribution.Key = &item.Key
+			}
+
+			result = append(result, usageAttribution)
 		}
 
 		response.TotalCount = paged.TotalCount

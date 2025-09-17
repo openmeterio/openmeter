@@ -11,22 +11,10 @@ import (
 )
 
 func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
-	subjects, err := e.Edges.SubjectsOrErr()
+	subjectKeys, err := subjectKeysFromDBEntity(e)
 	if err != nil {
-		if db.IsNotLoaded(err) {
-			return nil, errors.New("subjects must be loaded for customer")
-		}
-
 		return nil, err
 	}
-
-	subjectKeys := lo.FilterMap(subjects, func(item *db.CustomerSubjects, _ int) (string, bool) {
-		if item == nil {
-			return "", false
-		}
-
-		return item.SubjectKey, true
-	})
 
 	subscriptions, err := e.Edges.SubscriptionOrErr()
 	if err != nil {
@@ -95,4 +83,25 @@ func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
 	}
 
 	return result, nil
+}
+
+func subjectKeysFromDBEntity(customerEntity db.Customer) ([]string, error) {
+	subjectEntities, err := customerEntity.Edges.SubjectsOrErr()
+	if err != nil {
+		if db.IsNotLoaded(err) {
+			return nil, errors.New("subjects must be loaded for customer")
+		}
+
+		return nil, err
+	}
+
+	subjectKeys := lo.FilterMap(subjectEntities, func(item *db.CustomerSubjects, _ int) (string, bool) {
+		if item == nil {
+			return "", false
+		}
+
+		return item.SubjectKey, true
+	})
+
+	return subjectKeys, nil
 }
