@@ -144,8 +144,6 @@ func (a *adapter) ListCustomerUsageAttributions(ctx context.Context, input custo
 				customerdb.FieldID,
 				customerdb.FieldNamespace,
 				customerdb.FieldKey,
-				customersubjectsdb.FieldSubjectKey,
-				customersubjectsdb.FieldCustomerID,
 			).
 			Where(customerdb.Namespace(input.Namespace)).
 			Order(customerdb.ByID(sql.OrderAsc()))
