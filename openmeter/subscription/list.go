@@ -30,4 +30,4 @@ func (i ListSubscriptionsInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-type SubscriptionList = pagination.PagedResponse[Subscription]
+type SubscriptionList = pagination.Result[Subscription]

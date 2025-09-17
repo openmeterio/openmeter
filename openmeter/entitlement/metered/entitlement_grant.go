@@ -91,8 +91,8 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, customerI
 }
 
 // ListEntitlementGrants lists all grants for a given entitlement
-func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string, params ListEntitlementGrantsParams) (pagination.PagedResponse[EntitlementGrant], error) {
-	var def pagination.PagedResponse[EntitlementGrant]
+func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string, params ListEntitlementGrantsParams) (pagination.Result[EntitlementGrant], error) {
+	var def pagination.Result[EntitlementGrant]
 
 	if err := params.Validate(); err != nil {
 		return def, err
@@ -119,7 +119,7 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 		return def, err
 	}
 
-	return pagination.MapPagedResponseError(grants, func(grant grant.Grant) (EntitlementGrant, error) {
+	return pagination.MapResultErr(grants, func(grant grant.Grant) (EntitlementGrant, error) {
 		g, err := GrantFromCreditGrant(grant, clock.Now())
 		if err != nil {
 			return EntitlementGrant{}, err

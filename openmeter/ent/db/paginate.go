@@ -11,7 +11,7 @@ import (
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Addon], error) {
+func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Addon], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -27,7 +27,7 @@ func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*Addon]{
+	pagedResponse := pagination.Result[*Addon]{
 		Page: page,
 	}
 
@@ -66,7 +66,7 @@ var _ pagination.Paginator[*Addon] = (*AddonQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AddonRateCard], error) {
+func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AddonRateCard], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -82,7 +82,7 @@ func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*AddonRateCard]{
+	pagedResponse := pagination.Result[*AddonRateCard]{
 		Page: page,
 	}
 
@@ -121,7 +121,7 @@ var _ pagination.Paginator[*AddonRateCard] = (*AddonRateCardQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*App], error) {
+func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*App], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -137,7 +137,7 @@ func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (paginat
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*App]{
+	pagedResponse := pagination.Result[*App]{
 		Page: page,
 	}
 
@@ -176,7 +176,7 @@ var _ pagination.Paginator[*App] = (*AppQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomInvoicing], error) {
+func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AppCustomInvoicing], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -192,7 +192,7 @@ func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*AppCustomInvoicing]{
+	pagedResponse := pagination.Result[*AppCustomInvoicing]{
 		Page: page,
 	}
 
@@ -231,7 +231,7 @@ var _ pagination.Paginator[*AppCustomInvoicing] = (*AppCustomInvoicingQuery)(nil
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomInvoicingCustomer], error) {
+func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AppCustomInvoicingCustomer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -247,7 +247,7 @@ func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pa
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*AppCustomInvoicingCustomer]{
+	pagedResponse := pagination.Result[*AppCustomInvoicingCustomer]{
 		Page: page,
 	}
 
@@ -286,7 +286,7 @@ var _ pagination.Paginator[*AppCustomInvoicingCustomer] = (*AppCustomInvoicingCu
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppCustomer], error) {
+func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AppCustomer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -302,7 +302,7 @@ func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) 
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*AppCustomer]{
+	pagedResponse := pagination.Result[*AppCustomer]{
 		Page: page,
 	}
 
@@ -341,7 +341,7 @@ var _ pagination.Paginator[*AppCustomer] = (*AppCustomerQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppStripe], error) {
+func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AppStripe], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -357,7 +357,7 @@ func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*AppStripe]{
+	pagedResponse := pagination.Result[*AppStripe]{
 		Page: page,
 	}
 
@@ -396,7 +396,7 @@ var _ pagination.Paginator[*AppStripe] = (*AppStripeQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*AppStripeCustomer], error) {
+func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AppStripeCustomer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -412,7 +412,7 @@ func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*AppStripeCustomer]{
+	pagedResponse := pagination.Result[*AppStripeCustomer]{
 		Page: page,
 	}
 
@@ -451,7 +451,7 @@ var _ pagination.Paginator[*AppStripeCustomer] = (*AppStripeCustomerQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BalanceSnapshot], error) {
+func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BalanceSnapshot], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -467,7 +467,7 @@ func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BalanceSnapshot]{
+	pagedResponse := pagination.Result[*BalanceSnapshot]{
 		Page: page,
 	}
 
@@ -506,7 +506,7 @@ var _ pagination.Paginator[*BalanceSnapshot] = (*BalanceSnapshotQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingCustomerLock], error) {
+func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingCustomerLock], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -522,7 +522,7 @@ func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page paginatio
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingCustomerLock]{
+	pagedResponse := pagination.Result[*BillingCustomerLock]{
 		Page: page,
 	}
 
@@ -561,7 +561,7 @@ var _ pagination.Paginator[*BillingCustomerLock] = (*BillingCustomerLockQuery)(n
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingCustomerOverride], error) {
+func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingCustomerOverride], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -577,7 +577,7 @@ func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagin
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingCustomerOverride]{
+	pagedResponse := pagination.Result[*BillingCustomerOverride]{
 		Page: page,
 	}
 
@@ -616,7 +616,7 @@ var _ pagination.Paginator[*BillingCustomerOverride] = (*BillingCustomerOverride
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoice], error) {
+func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoice], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -632,7 +632,7 @@ func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Pag
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingInvoice]{
+	pagedResponse := pagination.Result[*BillingInvoice]{
 		Page: page,
 	}
 
@@ -671,7 +671,7 @@ var _ pagination.Paginator[*BillingInvoice] = (*BillingInvoiceQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingInvoiceFlatFeeLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceFlatFeeLineConfig], error) {
+func (_m *BillingInvoiceFlatFeeLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceFlatFeeLineConfig], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -687,7 +687,7 @@ func (_m *BillingInvoiceFlatFeeLineConfigQuery) Paginate(ctx context.Context, pa
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingInvoiceFlatFeeLineConfig]{
+	pagedResponse := pagination.Result[*BillingInvoiceFlatFeeLineConfig]{
 		Page: page,
 	}
 
@@ -726,7 +726,7 @@ var _ pagination.Paginator[*BillingInvoiceFlatFeeLineConfig] = (*BillingInvoiceF
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceLine], error) {
+func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceLine], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -742,7 +742,7 @@ func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingInvoiceLine]{
+	pagedResponse := pagination.Result[*BillingInvoiceLine]{
 		Page: page,
 	}
 
@@ -781,7 +781,7 @@ var _ pagination.Paginator[*BillingInvoiceLine] = (*BillingInvoiceLineQuery)(nil
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingInvoiceLineDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceLineDiscount], error) {
+func (_m *BillingInvoiceLineDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceLineDiscount], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -797,7 +797,7 @@ func (_m *BillingInvoiceLineDiscountQuery) Paginate(ctx context.Context, page pa
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingInvoiceLineDiscount]{
+	pagedResponse := pagination.Result[*BillingInvoiceLineDiscount]{
 		Page: page,
 	}
 
@@ -836,7 +836,7 @@ var _ pagination.Paginator[*BillingInvoiceLineDiscount] = (*BillingInvoiceLineDi
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceLineUsageDiscount], error) {
+func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceLineUsageDiscount], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -852,7 +852,7 @@ func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, pa
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingInvoiceLineUsageDiscount]{
+	pagedResponse := pagination.Result[*BillingInvoiceLineUsageDiscount]{
 		Page: page,
 	}
 
@@ -891,7 +891,7 @@ var _ pagination.Paginator[*BillingInvoiceLineUsageDiscount] = (*BillingInvoiceL
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceSplitLineGroup], error) {
+func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceSplitLineGroup], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -907,7 +907,7 @@ func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page 
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingInvoiceSplitLineGroup]{
+	pagedResponse := pagination.Result[*BillingInvoiceSplitLineGroup]{
 		Page: page,
 	}
 
@@ -946,7 +946,7 @@ var _ pagination.Paginator[*BillingInvoiceSplitLineGroup] = (*BillingInvoiceSpli
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceUsageBasedLineConfig], error) {
+func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceUsageBasedLineConfig], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -962,7 +962,7 @@ func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context,
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingInvoiceUsageBasedLineConfig]{
+	pagedResponse := pagination.Result[*BillingInvoiceUsageBasedLineConfig]{
 		Page: page,
 	}
 
@@ -1001,7 +1001,7 @@ var _ pagination.Paginator[*BillingInvoiceUsageBasedLineConfig] = (*BillingInvoi
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingInvoiceValidationIssue], error) {
+func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceValidationIssue], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1017,7 +1017,7 @@ func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingInvoiceValidationIssue]{
+	pagedResponse := pagination.Result[*BillingInvoiceValidationIssue]{
 		Page: page,
 	}
 
@@ -1056,7 +1056,7 @@ var _ pagination.Paginator[*BillingInvoiceValidationIssue] = (*BillingInvoiceVal
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingProfile], error) {
+func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingProfile], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1072,7 +1072,7 @@ func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Pag
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingProfile]{
+	pagedResponse := pagination.Result[*BillingProfile]{
 		Page: page,
 	}
 
@@ -1111,7 +1111,7 @@ var _ pagination.Paginator[*BillingProfile] = (*BillingProfileQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingSequenceNumbers], error) {
+func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingSequenceNumbers], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1127,7 +1127,7 @@ func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagina
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingSequenceNumbers]{
+	pagedResponse := pagination.Result[*BillingSequenceNumbers]{
 		Page: page,
 	}
 
@@ -1166,7 +1166,7 @@ var _ pagination.Paginator[*BillingSequenceNumbers] = (*BillingSequenceNumbersQu
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BillingWorkflowConfig], error) {
+func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingWorkflowConfig], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1182,7 +1182,7 @@ func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page paginat
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*BillingWorkflowConfig]{
+	pagedResponse := pagination.Result[*BillingWorkflowConfig]{
 		Page: page,
 	}
 
@@ -1221,7 +1221,7 @@ var _ pagination.Paginator[*BillingWorkflowConfig] = (*BillingWorkflowConfigQuer
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Customer], error) {
+func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Customer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1237,7 +1237,7 @@ func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pa
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*Customer]{
+	pagedResponse := pagination.Result[*Customer]{
 		Page: page,
 	}
 
@@ -1276,7 +1276,7 @@ var _ pagination.Paginator[*Customer] = (*CustomerQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*CustomerSubjects], error) {
+func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*CustomerSubjects], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1292,7 +1292,7 @@ func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.P
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*CustomerSubjects]{
+	pagedResponse := pagination.Result[*CustomerSubjects]{
 		Page: page,
 	}
 
@@ -1331,7 +1331,7 @@ var _ pagination.Paginator[*CustomerSubjects] = (*CustomerSubjectsQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Entitlement], error) {
+func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Entitlement], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1347,7 +1347,7 @@ func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) 
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*Entitlement]{
+	pagedResponse := pagination.Result[*Entitlement]{
 		Page: page,
 	}
 
@@ -1386,7 +1386,7 @@ var _ pagination.Paginator[*Entitlement] = (*EntitlementQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Feature], error) {
+func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Feature], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1402,7 +1402,7 @@ func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*Feature]{
+	pagedResponse := pagination.Result[*Feature]{
 		Page: page,
 	}
 
@@ -1441,7 +1441,7 @@ var _ pagination.Paginator[*Feature] = (*FeatureQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Grant], error) {
+func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Grant], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1457,7 +1457,7 @@ func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*Grant]{
+	pagedResponse := pagination.Result[*Grant]{
 		Page: page,
 	}
 
@@ -1496,7 +1496,7 @@ var _ pagination.Paginator[*Grant] = (*GrantQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Meter], error) {
+func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Meter], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1512,7 +1512,7 @@ func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*Meter]{
+	pagedResponse := pagination.Result[*Meter]{
 		Page: page,
 	}
 
@@ -1551,7 +1551,7 @@ var _ pagination.Paginator[*Meter] = (*MeterQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationChannel], error) {
+func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*NotificationChannel], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1567,7 +1567,7 @@ func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page paginatio
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*NotificationChannel]{
+	pagedResponse := pagination.Result[*NotificationChannel]{
 		Page: page,
 	}
 
@@ -1606,7 +1606,7 @@ var _ pagination.Paginator[*NotificationChannel] = (*NotificationChannelQuery)(n
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationEvent], error) {
+func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*NotificationEvent], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1622,7 +1622,7 @@ func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*NotificationEvent]{
+	pagedResponse := pagination.Result[*NotificationEvent]{
 		Page: page,
 	}
 
@@ -1661,7 +1661,7 @@ var _ pagination.Paginator[*NotificationEvent] = (*NotificationEventQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationEventDeliveryStatus], error) {
+func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*NotificationEventDeliveryStatus], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1677,7 +1677,7 @@ func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, pa
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*NotificationEventDeliveryStatus]{
+	pagedResponse := pagination.Result[*NotificationEventDeliveryStatus]{
 		Page: page,
 	}
 
@@ -1716,7 +1716,7 @@ var _ pagination.Paginator[*NotificationEventDeliveryStatus] = (*NotificationEve
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*NotificationRule], error) {
+func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*NotificationRule], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1732,7 +1732,7 @@ func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.P
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*NotificationRule]{
+	pagedResponse := pagination.Result[*NotificationRule]{
 		Page: page,
 	}
 
@@ -1771,7 +1771,7 @@ var _ pagination.Paginator[*NotificationRule] = (*NotificationRuleQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Plan], error) {
+func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Plan], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1787,7 +1787,7 @@ func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagina
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*Plan]{
+	pagedResponse := pagination.Result[*Plan]{
 		Page: page,
 	}
 
@@ -1826,7 +1826,7 @@ var _ pagination.Paginator[*Plan] = (*PlanQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*PlanAddon], error) {
+func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*PlanAddon], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1842,7 +1842,7 @@ func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*PlanAddon]{
+	pagedResponse := pagination.Result[*PlanAddon]{
 		Page: page,
 	}
 
@@ -1881,7 +1881,7 @@ var _ pagination.Paginator[*PlanAddon] = (*PlanAddonQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*PlanPhase], error) {
+func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*PlanPhase], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1897,7 +1897,7 @@ func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*PlanPhase]{
+	pagedResponse := pagination.Result[*PlanPhase]{
 		Page: page,
 	}
 
@@ -1936,7 +1936,7 @@ var _ pagination.Paginator[*PlanPhase] = (*PlanPhaseQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*PlanRateCard], error) {
+func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*PlanRateCard], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1952,7 +1952,7 @@ func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page)
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*PlanRateCard]{
+	pagedResponse := pagination.Result[*PlanRateCard]{
 		Page: page,
 	}
 
@@ -1991,7 +1991,7 @@ var _ pagination.Paginator[*PlanRateCard] = (*PlanRateCardQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Subject], error) {
+func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Subject], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -2007,7 +2007,7 @@ func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*Subject]{
+	pagedResponse := pagination.Result[*Subject]{
 		Page: page,
 	}
 
@@ -2046,7 +2046,7 @@ var _ pagination.Paginator[*Subject] = (*SubjectQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Subscription], error) {
+func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Subscription], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -2062,7 +2062,7 @@ func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page)
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*Subscription]{
+	pagedResponse := pagination.Result[*Subscription]{
 		Page: page,
 	}
 
@@ -2101,7 +2101,7 @@ var _ pagination.Paginator[*Subscription] = (*SubscriptionQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionAddon], error) {
+func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*SubscriptionAddon], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -2117,7 +2117,7 @@ func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*SubscriptionAddon]{
+	pagedResponse := pagination.Result[*SubscriptionAddon]{
 		Page: page,
 	}
 
@@ -2156,7 +2156,7 @@ var _ pagination.Paginator[*SubscriptionAddon] = (*SubscriptionAddonQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionAddonQuantity], error) {
+func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*SubscriptionAddonQuantity], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -2172,7 +2172,7 @@ func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pag
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*SubscriptionAddonQuantity]{
+	pagedResponse := pagination.Result[*SubscriptionAddonQuantity]{
 		Page: page,
 	}
 
@@ -2211,7 +2211,7 @@ var _ pagination.Paginator[*SubscriptionAddonQuantity] = (*SubscriptionAddonQuan
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionItem], error) {
+func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*SubscriptionItem], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -2227,7 +2227,7 @@ func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.P
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*SubscriptionItem]{
+	pagedResponse := pagination.Result[*SubscriptionItem]{
 		Page: page,
 	}
 
@@ -2266,7 +2266,7 @@ var _ pagination.Paginator[*SubscriptionItem] = (*SubscriptionItemQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*SubscriptionPhase], error) {
+func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*SubscriptionPhase], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -2282,7 +2282,7 @@ func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*SubscriptionPhase]{
+	pagedResponse := pagination.Result[*SubscriptionPhase]{
 		Page: page,
 	}
 
@@ -2321,7 +2321,7 @@ var _ pagination.Paginator[*SubscriptionPhase] = (*SubscriptionPhaseQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*UsageReset], error) {
+func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*UsageReset], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -2337,7 +2337,7 @@ func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.PagedResponse[*UsageReset]{
+	pagedResponse := pagination.Result[*UsageReset]{
 		Page: page,
 	}
 

@@ -23,8 +23,8 @@ func (a *noopAdapter) Validate(ctx context.Context, tokenString string) (*portal
 	return nil, models.NewGenericNotImplementedError(fmt.Errorf("noop adapter"))
 }
 
-func (a *noopAdapter) ListTokens(ctx context.Context, input portal.ListTokensInput) (pagination.PagedResponse[*portal.PortalToken], error) {
-	return pagination.PagedResponse[*portal.PortalToken]{}, models.NewGenericNotImplementedError(fmt.Errorf("noop adapter"))
+func (a *noopAdapter) ListTokens(ctx context.Context, input portal.ListTokensInput) (pagination.Result[*portal.PortalToken], error) {
+	return pagination.Result[*portal.PortalToken]{}, models.NewGenericNotImplementedError(fmt.Errorf("noop adapter"))
 }
 
 func (a *noopAdapter) InvalidateToken(ctx context.Context, input portal.InvalidateTokenInput) error {

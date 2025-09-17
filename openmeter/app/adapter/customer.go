@@ -17,9 +17,9 @@ import (
 var _ app.AppAdapter = (*adapter)(nil)
 
 // ListCustomerData lists app customer data
-func (a *adapter) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.PagedResponse[app.CustomerApp], error) {
+func (a *adapter) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.Result[app.CustomerApp], error) {
 	if err := input.Validate(); err != nil {
-		return pagination.PagedResponse[app.CustomerApp]{}, models.NewGenericValidationError(
+		return pagination.Result[app.CustomerApp]{}, models.NewGenericValidationError(
 			fmt.Errorf("error listing customer data: %w", err),
 		)
 	}
@@ -37,10 +37,10 @@ func (a *adapter) ListCustomerData(ctx context.Context, input app.ListCustomerIn
 
 	apps, err := a.ListApps(ctx, listInput)
 	if err != nil {
-		return pagination.PagedResponse[app.CustomerApp]{}, fmt.Errorf("failed to list apps: %w", err)
+		return pagination.Result[app.CustomerApp]{}, fmt.Errorf("failed to list apps: %w", err)
 	}
 
-	response := pagination.PagedResponse[app.CustomerApp]{
+	response := pagination.Result[app.CustomerApp]{
 		Page:       input.Page,
 		TotalCount: apps.TotalCount,
 		Items:      make([]app.CustomerApp, 0, len(apps.Items)),
@@ -51,7 +51,7 @@ func (a *adapter) ListCustomerData(ctx context.Context, input app.ListCustomerIn
 			CustomerID: input.CustomerID,
 		})
 		if err != nil {
-			return pagination.PagedResponse[app.CustomerApp]{}, fmt.Errorf("failed to get customer data for app %s: %w", customerApp.GetID().ID, err)
+			return pagination.Result[app.CustomerApp]{}, fmt.Errorf("failed to get customer data for app %s: %w", customerApp.GetID().ID, err)
 		}
 
 		response.Items = append(response.Items, app.CustomerApp{

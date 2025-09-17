@@ -92,7 +92,7 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 			}
 
 			// Response
-			resp := pagination.MapPagedResponse(result, func(sub subject.Subject) api.Subject {
+			resp := pagination.MapResult(result, func(sub subject.Subject) api.Subject {
 				return FromSubject(sub)
 			})
 

@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -402,6 +403,7 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 					To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 				},
 			})
+			time.Sleep(1 * time.Millisecond)
 			require.NoError(t, err)
 			require.NotNil(t, ent)
 			ents = append(ents, *ent)
@@ -425,7 +427,7 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 		next5Ents, err := repo.entRepo.ListActiveEntitlementsWithExpiredUsagePeriod(ctx, entitlement.ListExpiredEntitlementsParams{
 			Namespaces:    []string{ns},
 			Highwatermark: time.Date(2025, 5, 1, 0, 0, 0, 0, time.UTC),
-			Cursor:        resetableEnts[4].ID,
+			Cursor:        lo.ToPtr(pagination.NewCursor(resetableEnts[4].CreatedAt, resetableEnts[4].ID)),
 		})
 		require.NoError(t, err)
 		require.Equal(t, 5, len(next5Ents))

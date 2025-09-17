@@ -1,6 +1,6 @@
 package pagination
 
-import "github.com/samber/lo"
+import "context"
 
 // Item is the interface that must be implemented by items used in cursor pagination.
 // It provides access to the time and ID fields needed for cursor generation.
@@ -9,27 +9,20 @@ type Item interface {
 	Cursor() Cursor
 }
 
-// Result represents the response structure for cursor-based pagination
-type Result[T any] struct {
-	// The items returned
-	Items []T `json:"items"`
-
-	// Cursor for the next page
-	NextCursor *string `json:"nextCursor"`
+type Paginator[T any] interface {
+	Paginate(ctx context.Context, cursor *Cursor) (Result[T], error)
 }
 
-// NewResult creates a new pagination result
-// T must implement the Item interface for cursor generation
-func NewResult[T Item](items []T) Result[T] {
-	result := Result[T]{
-		Items: items,
-	}
+type paginator[T any] struct {
+	fn func(ctx context.Context, cursor *Cursor) (Result[T], error)
+}
 
-	// Generate next cursor from the last item if there are any items
-	if len(items) > 0 {
-		lastItem := items[len(items)-1]
-		result.NextCursor = lo.ToPtr(lastItem.Cursor().Encode())
-	}
+var _ Paginator[any] = (*paginator[any])(nil)
 
-	return result
+func (p *paginator[T]) Paginate(ctx context.Context, cursor *Cursor) (Result[T], error) {
+	return p.fn(ctx, cursor)
+}
+
+func NewPaginator[T any](fn func(ctx context.Context, cursor *Cursor) (Result[T], error)) Paginator[T] {
+	return &paginator[T]{fn: fn}
 }

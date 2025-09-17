@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 type Cursor struct {
@@ -59,6 +61,14 @@ func (c Cursor) Encode() string {
 	s := fmt.Sprintf("%s%s%s", t.Format(time.RFC3339), cursorDelimiter, c.ID)
 
 	return base64.StdEncoding.EncodeToString([]byte(s))
+}
+
+func (c *Cursor) EncodePtr() *string {
+	if c == nil {
+		return nil
+	}
+
+	return lo.ToPtr(c.Encode())
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.

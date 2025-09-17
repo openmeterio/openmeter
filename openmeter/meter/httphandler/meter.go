@@ -68,7 +68,7 @@ func (h *handler) ListMeters() ListMetersHandler {
 			}
 
 			// Response
-			resp := pagination.MapPagedResponse(result, ToAPIMeter)
+			resp := pagination.MapResult(result, ToAPIMeter)
 
 			return resp.Items, nil
 		},

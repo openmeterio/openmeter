@@ -13,7 +13,7 @@
     {{ $receiver := $n.Receiver }}
     // Paginate runs the query and returns a paginated response.
     // If page is its 0 value then it will return all the items and populate the response page accordingly.
-    func ({{ $receiver }} *{{ $n.QueryName }}) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*{{ $n.Name }}], error) {
+    func ({{ $receiver }} *{{ $n.QueryName }}) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*{{ $n.Name }}], error) {
         // Get the limit and offset
         limit, offset := page.Limit(), page.Offset()
 
@@ -30,7 +30,7 @@
         // Unset ordering for count query
         countQuery.order = nil
 
-        pagedResponse := pagination.PagedResponse[*{{ $n.Name }}]{
+        pagedResponse := pagination.Result[*{{ $n.Name }}]{
             Page: page,
         }
 

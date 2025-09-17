@@ -22,10 +22,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.PagedResponse[plan.Plan], error) {
-	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[plan.Plan], error) {
+func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.Result[plan.Plan], error) {
+	fn := func(ctx context.Context, a *adapter) (pagination.Result[plan.Plan], error) {
 		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[plan.Plan]{}, fmt.Errorf("invalid list Plans parameters: %w", err)
+			return pagination.Result[plan.Plan]{}, fmt.Errorf("invalid list Plans parameters: %w", err)
 		}
 
 		query := a.db.Plan.Query()
@@ -130,7 +130,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			query = query.Order(plandb.ByID(order...))
 		}
 
-		response := pagination.PagedResponse[plan.Plan]{
+		response := pagination.Result[plan.Plan]{
 			Page: params.Page,
 		}
 
@@ -160,7 +160,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		return response, nil
 	}
 
-	return entutils.TransactingRepo[pagination.PagedResponse[plan.Plan], *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[pagination.Result[plan.Plan], *adapter](ctx, a, fn)
 }
 
 func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {

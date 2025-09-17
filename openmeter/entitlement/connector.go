@@ -71,7 +71,7 @@ type Service interface {
 	GetEntitlementValue(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (EntitlementValue, error)
 
 	GetEntitlementsOfCustomer(ctx context.Context, namespace string, customerId string, at time.Time) ([]Entitlement, error)
-	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
+	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.Result[Entitlement], error)
 
 	// Attempts to get the entitlement in an ambiguous situation where it's unclear if the entitlement is referenced by ID or FeatureKey + CustomerID.
 	// First attempts to resolve by ID, then by FeatureKey + CustomerID.

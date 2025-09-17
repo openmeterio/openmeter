@@ -21,7 +21,7 @@ import (
 
 type (
 	ListEntitlementsHandlerRequest  = entitlement.ListEntitlementsParams
-	ListEntitlementsHandlerResponse = pagination.PagedResponse[api.EntitlementV2]
+	ListEntitlementsHandlerResponse = pagination.Result[api.EntitlementV2]
 	ListEntitlementsHandlerParams   = api.ListEntitlementsV2Params
 )
 
@@ -101,7 +101,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				return ListEntitlementsHandlerResponse{}, err
 			}
 
-			return pagination.MapPagedResponseError(paged, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
+			return pagination.MapResultErr(paged, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
 				r, err := ParserV2.ToAPIGenericV2(&e, e.Customer.ID, e.Customer.Key)
 				return *r, err
 			})

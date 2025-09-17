@@ -140,7 +140,7 @@ func (i ListRulesInput) Validate(_ context.Context, _ Service) error {
 	return nil
 }
 
-type ListRulesResult = pagination.PagedResponse[Rule]
+type ListRulesResult = pagination.Result[Rule]
 
 var _ validator = (*CreateRuleInput)(nil)
 

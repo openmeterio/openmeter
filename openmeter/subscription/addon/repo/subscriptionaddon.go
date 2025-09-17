@@ -78,8 +78,8 @@ func (r *subscriptionAddonRepo) Get(ctx context.Context, id models.NamespacedID)
 }
 
 // List retrieves multiple subscription addons
-func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filter subscriptionaddon.ListSubscriptionAddonRepositoryInput) (pagination.PagedResponse[subscriptionaddon.SubscriptionAddon], error) {
-	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (pagination.PagedResponse[subscriptionaddon.SubscriptionAddon], error) {
+func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filter subscriptionaddon.ListSubscriptionAddonRepositoryInput) (pagination.Result[subscriptionaddon.SubscriptionAddon], error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (pagination.Result[subscriptionaddon.SubscriptionAddon], error) {
 		query := querySubscriptionAddon(repo.db.SubscriptionAddon.Query()).
 			Where(
 				dbsubscriptionaddon.Namespace(namespace),
@@ -90,14 +90,14 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 		if filter.Page.IsZero() {
 			entities, err := query.All(ctx)
 			if err != nil {
-				return pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{}, err
+				return pagination.Result[subscriptionaddon.SubscriptionAddon]{}, err
 			}
 
 			items, err := MapSubscriptionAddons(entities)
 			if err != nil {
-				return pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{}, err
+				return pagination.Result[subscriptionaddon.SubscriptionAddon]{}, err
 			}
-			return pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{
+			return pagination.Result[subscriptionaddon.SubscriptionAddon]{
 				Items:      items,
 				Page:       pagination.NewPage(1, len(items)),
 				TotalCount: len(items),
@@ -106,7 +106,7 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 
 		paged, err := query.Paginate(ctx, filter.Page)
 		if err != nil {
-			return pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{}, err
+			return pagination.Result[subscriptionaddon.SubscriptionAddon]{}, err
 		}
 
 		return entutils.MapPagedWithErr(paged, MapSubscriptionAddon)

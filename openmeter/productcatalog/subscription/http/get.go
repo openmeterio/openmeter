@@ -75,7 +75,7 @@ type (
 		CustomerID customer.CustomerID
 		Page       pagination.Page
 	}
-	ListCustomerSubscriptionsResponse = pagination.PagedResponse[api.Subscription]
+	ListCustomerSubscriptionsResponse = pagination.Result[api.Subscription]
 	ListCustomerSubscriptionsHandler  = httptransport.HandlerWithArgs[ListCustomerSubscriptionsRequest, ListCustomerSubscriptionsResponse, ListCustomerSubscriptionsParams]
 )
 

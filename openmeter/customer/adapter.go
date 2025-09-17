@@ -14,7 +14,7 @@ type Adapter interface {
 }
 
 type CustomerAdapter interface {
-	ListCustomers(ctx context.Context, params ListCustomersInput) (pagination.PagedResponse[Customer], error)
+	ListCustomers(ctx context.Context, params ListCustomersInput) (pagination.Result[Customer], error)
 	CreateCustomer(ctx context.Context, params CreateCustomerInput) (*Customer, error)
 	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)

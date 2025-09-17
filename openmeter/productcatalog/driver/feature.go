@@ -124,7 +124,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 
 type (
 	ListFeaturesHandlerRequest  = feature.ListFeaturesParams
-	ListFeaturesHandlerResponse = commonhttp.Union[[]api.Feature, pagination.PagedResponse[api.Feature]]
+	ListFeaturesHandlerResponse = commonhttp.Union[[]api.Feature, pagination.Result[api.Feature]]
 	ListFeaturesHandlerParams   = api.ListFeaturesParams
 )
 
@@ -173,7 +173,7 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 		func(ctx context.Context, params ListFeaturesHandlerRequest) (ListFeaturesHandlerResponse, error) {
 			response := ListFeaturesHandlerResponse{
 				Option1: &[]api.Feature{},
-				Option2: &pagination.PagedResponse[api.Feature]{},
+				Option2: &pagination.Result[api.Feature]{},
 			}
 
 			paged, err := h.connector.ListFeatures(ctx, params)
@@ -190,7 +190,7 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				response.Option1 = &mapped
 			} else {
 				response.Option1 = nil
-				response.Option2 = &pagination.PagedResponse[api.Feature]{
+				response.Option2 = &pagination.Result[api.Feature]{
 					Items:      mapped,
 					TotalCount: paged.TotalCount,
 					Page:       paged.Page,

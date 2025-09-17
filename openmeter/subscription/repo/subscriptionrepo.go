@@ -204,6 +204,6 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 			return subscription.SubscriptionList{}, err
 		}
 
-		return pagination.MapPagedResponseError(paged, MapDBSubscription)
+		return pagination.MapResultErr(paged, MapDBSubscription)
 	})
 }

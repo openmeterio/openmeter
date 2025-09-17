@@ -15,8 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesInput) (pagination.PagedResponse[notification.Rule], error) {
-	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[notification.Rule], error) {
+func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesInput) (pagination.Result[notification.Rule], error) {
+	fn := func(ctx context.Context, a *adapter) (pagination.Result[notification.Rule], error) {
 		query := a.db.NotificationRule.Query().
 			Where(ruledb.DeletedAtIsNil()) // Do not return deleted Rules
 
@@ -61,7 +61,7 @@ func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesIn
 			query = query.Order(ruledb.ByID(order...))
 		}
 
-		response := pagination.PagedResponse[notification.Rule]{
+		response := pagination.Result[notification.Rule]{
 			Page: params.Page,
 		}
 

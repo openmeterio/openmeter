@@ -246,7 +246,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Order(billinginvoice.ByCreatedAt(order...))
 		}
 
-		response := pagination.PagedResponse[billing.Invoice]{
+		response := pagination.Result[billing.Invoice]{
 			Page: input.Page,
 		}
 

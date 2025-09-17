@@ -342,11 +342,11 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 		})
 }
 
-func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.PagedResponse[entitlement.Entitlement], error) {
+func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.Result[entitlement.Entitlement], error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
-		func(ctx context.Context, repo *entitlementDBAdapter) (pagination.PagedResponse[entitlement.Entitlement], error) {
+		func(ctx context.Context, repo *entitlementDBAdapter) (pagination.Result[entitlement.Entitlement], error) {
 			now := clock.Now().UTC()
 
 			query := repo.db.Entitlement.Query().WithSubject().WithCustomer(func(q *db.CustomerQuery) {
@@ -444,7 +444,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				}
 			}
 
-			response := pagination.PagedResponse[entitlement.Entitlement]{
+			response := pagination.Result[entitlement.Entitlement]{
 				Page: params.Page,
 			}
 
@@ -768,26 +768,16 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 			)
 
 			// Let's handle cursoring for the given order
-			if params.Cursor != "" {
-				// Let's fetch the element at the cursor
-				// And then lets add a where clause that filter for it in the correct order
-				cursorEnt, err := repo.db.Entitlement.Get(ctx, params.Cursor)
-				if err != nil {
-					return nil, fmt.Errorf("failed to fetch cursor entitlement: %w", err)
-				}
-
-				predicates := []predicate.Entitlement{}
-
-				// If the cursor entitlement doesn't have a current usage period end, we'll effectively ignore the cursor
-				if cursorEnt.CurrentUsagePeriodEnd != nil {
-					predicates = append(predicates, db_entitlement.CreatedAtGT(cursorEnt.CreatedAt))
-					predicates = append(predicates, db_entitlement.And(
-						db_entitlement.CreatedAt(cursorEnt.CreatedAt),
-						db_entitlement.IDGT(cursorEnt.ID),
-					))
-				}
-
-				query = query.Where(db_entitlement.Or(predicates...))
+			if params.Cursor != nil {
+				query = query.Where(
+					db_entitlement.Or(
+						db_entitlement.CreatedAtGT(params.Cursor.Time),
+						db_entitlement.And(
+							db_entitlement.CreatedAt(params.Cursor.Time),
+							db_entitlement.IDGT(params.Cursor.ID),
+						),
+					),
+				)
 			}
 
 			// Let's handle limit

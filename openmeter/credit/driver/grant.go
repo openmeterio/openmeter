@@ -58,7 +58,7 @@ type (
 	ListGrantsHandlerRequest struct {
 		params grant.ListParams
 	}
-	ListGrantsHandlerResponse = commonhttp.Union[[]api.EntitlementGrant, pagination.PagedResponse[api.EntitlementGrant]]
+	ListGrantsHandlerResponse = commonhttp.Union[[]api.EntitlementGrant, pagination.Result[api.EntitlementGrant]]
 	ListGrantsHandlerParams   struct {
 		Params api.ListGrantsParams
 	}
@@ -103,7 +103,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 			// due to backward compatibility, if pagination is not provided we return a simple array
 			response := ListGrantsHandlerResponse{
 				Option1: &[]api.EntitlementGrant{},
-				Option2: &pagination.PagedResponse[api.EntitlementGrant]{},
+				Option2: &pagination.Result[api.EntitlementGrant]{},
 			}
 			grants, err := h.grantRepo.ListGrants(ctx, request.params)
 			if err != nil {
@@ -126,7 +126,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				response.Option1 = &apiGrants
 			} else {
 				response.Option1 = nil
-				response.Option2 = &pagination.PagedResponse[api.EntitlementGrant]{
+				response.Option2 = &pagination.Result[api.EntitlementGrant]{
 					Items:      apiGrants,
 					TotalCount: grants.TotalCount,
 					Page:       grants.Page,

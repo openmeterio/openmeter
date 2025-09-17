@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,8 +42,8 @@ func TestCursorGeneration(t *testing.T) {
 		assert.NotNil(t, result.NextCursor)
 
 		// Decode and verify next cursor
-		nextCursor, err := DecodeCursor(*result.NextCursor)
-		assert.NoError(t, err)
+		nextCursor := lo.FromPtr(result.NextCursor)
+		assert.NoError(t, nextCursor.Validate())
 		assert.Equal(t, items[len(items)-1].CreatedAt.UTC(), nextCursor.Time)
 		assert.Equal(t, items[len(items)-1].ID, nextCursor.ID)
 	})

@@ -11,9 +11,9 @@ import (
 )
 
 // ListMeters implements the [Repository] interface.
-func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (pagination.PagedResponse[meter.Meter], error) {
+func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (pagination.Result[meter.Meter], error) {
 	if err := params.Validate(); err != nil {
-		return pagination.PagedResponse[meter.Meter]{}, models.NewGenericValidationError(err)
+		return pagination.Result[meter.Meter]{}, models.NewGenericValidationError(err)
 	}
 
 	meters := []meter.Meter{}
@@ -44,7 +44,7 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 		meters = meters[:params.PageSize]
 	}
 
-	return pagination.PagedResponse[meter.Meter]{
+	return pagination.Result[meter.Meter]{
 		Page:       params.Page,
 		Items:      meters,
 		TotalCount: len(meters),

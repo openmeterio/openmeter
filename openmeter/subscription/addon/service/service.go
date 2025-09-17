@@ -203,8 +203,8 @@ func (s *service) Get(ctx context.Context, id models.NamespacedID) (*subscriptio
 }
 
 // List lists subscription add-ons
-func (s *service) List(ctx context.Context, ns string, input subscriptionaddon.ListSubscriptionAddonsInput) (pagination.PagedResponse[subscriptionaddon.SubscriptionAddon], error) {
-	def := pagination.PagedResponse[subscriptionaddon.SubscriptionAddon]{}
+func (s *service) List(ctx context.Context, ns string, input subscriptionaddon.ListSubscriptionAddonsInput) (pagination.Result[subscriptionaddon.SubscriptionAddon], error) {
+	def := pagination.Result[subscriptionaddon.SubscriptionAddon]{}
 	if err := input.Validate(); err != nil {
 		return def, fmt.Errorf("invalid input: %w", err)
 	}

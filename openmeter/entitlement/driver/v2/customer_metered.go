@@ -85,7 +85,7 @@ func (h *entitlementHandler) ListCustomerEntitlementGrants() ListCustomerEntitle
 				return ListCustomerEntitlementGrantsHandlerResponse{}, err
 			}
 
-			mapped := pagination.MapPagedResponse(grants, func(grant meteredentitlement.EntitlementGrant) api.EntitlementGrant {
+			mapped := pagination.MapResult(grants, func(grant meteredentitlement.EntitlementGrant) api.EntitlementGrant {
 				return entitlementdriver.MapEntitlementGrantToAPI(&grant)
 			})
 

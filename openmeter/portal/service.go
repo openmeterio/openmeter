@@ -18,7 +18,7 @@ type Service interface {
 type PortalTokenService interface {
 	CreateToken(ctx context.Context, input CreateTokenInput) (*PortalToken, error)
 	Validate(ctx context.Context, tokenString string) (*PortalTokenClaims, error)
-	ListTokens(ctx context.Context, input ListTokensInput) (pagination.PagedResponse[*PortalToken], error)
+	ListTokens(ctx context.Context, input ListTokensInput) (pagination.Result[*PortalToken], error)
 	InvalidateToken(ctx context.Context, input InvalidateTokenInput) error
 }
 

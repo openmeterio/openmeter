@@ -109,7 +109,7 @@ func (s *Service) GetByKey(ctx context.Context, key models.NamespacedKey) (subje
 }
 
 // List lists subjects
-func (s *Service) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.PagedResponse[subject.Subject], error) {
+func (s *Service) List(ctx context.Context, orgId string, params subject.ListParams) (pagination.Result[subject.Subject], error) {
 	return s.subjectAdapter.List(ctx, orgId, params)
 }
 

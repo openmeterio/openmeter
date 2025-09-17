@@ -159,7 +159,7 @@ func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespa
 	return exists, nil
 }
 
-func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.PagedResponse[feature.Feature], error) {
+func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.Result[feature.Feature], error) {
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(params.Namespace))
 
@@ -195,7 +195,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 		}
 	}
 
-	response := pagination.PagedResponse[feature.Feature]{
+	response := pagination.Result[feature.Feature]{
 		Page: params.Page,
 	}
 

@@ -24,10 +24,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) (pagination.PagedResponse[addon.Addon], error) {
-	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[addon.Addon], error) {
+func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) (pagination.Result[addon.Addon], error) {
+	fn := func(ctx context.Context, a *adapter) (pagination.Result[addon.Addon], error) {
 		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[addon.Addon]{}, fmt.Errorf("invalid list add-on parameters: %w", err)
+			return pagination.Result[addon.Addon]{}, fmt.Errorf("invalid list add-on parameters: %w", err)
 		}
 
 		query := a.db.Addon.Query()
@@ -125,7 +125,7 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 			query = query.Order(addondb.ByID(order...))
 		}
 
-		response := pagination.PagedResponse[addon.Addon]{
+		response := pagination.Result[addon.Addon]{
 			Page: params.Page,
 		}
 
@@ -155,7 +155,7 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 		return response, nil
 	}
 
-	return entutils.TransactingRepo[pagination.PagedResponse[addon.Addon], *adapter](ctx, a, fn)
+	return entutils.TransactingRepo[pagination.Result[addon.Addon], *adapter](ctx, a, fn)
 }
 
 func (a *adapter) CreateAddon(ctx context.Context, params addon.CreateAddonInput) (*addon.Addon, error) {

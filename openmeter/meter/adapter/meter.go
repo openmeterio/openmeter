@@ -15,10 +15,10 @@ import (
 )
 
 // ListMeters returns a list of meters.
-func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams) (pagination.PagedResponse[meter.Meter], error) {
+func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams) (pagination.Result[meter.Meter], error) {
 	// Validate parameters
 	if err := params.Validate(); err != nil {
-		return pagination.PagedResponse[meter.Meter]{}, models.NewGenericValidationError(err)
+		return pagination.Result[meter.Meter]{}, models.NewGenericValidationError(err)
 	}
 
 	// Start database query
@@ -64,13 +64,13 @@ func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 	// Pagination
 	entities, err := query.Paginate(ctx, params.Page)
 	if err != nil {
-		return pagination.PagedResponse[meter.Meter]{}, err
+		return pagination.Result[meter.Meter]{}, err
 	}
 
 	// Map to response
-	resp, err := pagination.MapPagedResponseError(entities, MapFromEntityFactory)
+	resp, err := pagination.MapResultErr(entities, MapFromEntityFactory)
 	if err != nil {
-		return pagination.PagedResponse[meter.Meter]{}, fmt.Errorf("failed to map meters: %w", err)
+		return pagination.Result[meter.Meter]{}, fmt.Errorf("failed to map meters: %w", err)
 	}
 
 	return resp, nil

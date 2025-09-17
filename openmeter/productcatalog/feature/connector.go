@@ -29,7 +29,7 @@ type FeatureConnector interface {
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
 	// Should just use deletedAt, there's no real "archiving"
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
-	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.PagedResponse[Feature], error)
+	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.Result[Feature], error)
 	GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived IncludeArchivedFeature) (*Feature, error)
 }
 
@@ -188,10 +188,10 @@ func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.
 }
 
 // ListFeatures lists features
-func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.PagedResponse[Feature], error) {
+func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.Result[Feature], error) {
 	if !params.Page.IsZero() {
 		if err := params.Page.Validate(); err != nil {
-			return pagination.PagedResponse[Feature]{}, err
+			return pagination.Result[Feature]{}, err
 		}
 	}
 	return c.featureRepo.ListFeatures(ctx, params)

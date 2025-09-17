@@ -34,7 +34,7 @@ const (
 type OrderBy string
 
 type Service interface {
-	ListPlans(ctx context.Context, params ListPlansInput) (pagination.PagedResponse[Plan], error)
+	ListPlans(ctx context.Context, params ListPlansInput) (pagination.Result[Plan], error)
 	CreatePlan(ctx context.Context, params CreatePlanInput) (*Plan, error)
 	DeletePlan(ctx context.Context, params DeletePlanInput) error
 	GetPlan(ctx context.Context, params GetPlanInput) (*Plan, error)

@@ -18,8 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (a *adapter) ListEvents(ctx context.Context, params notification.ListEventsInput) (pagination.PagedResponse[notification.Event], error) {
-	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[notification.Event], error) {
+func (a *adapter) ListEvents(ctx context.Context, params notification.ListEventsInput) (pagination.Result[notification.Event], error) {
+	fn := func(ctx context.Context, a *adapter) (pagination.Result[notification.Event], error) {
 		query := a.db.NotificationEvent.Query()
 
 		if len(params.Namespaces) > 0 {
@@ -94,7 +94,7 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			query = query.Order(eventdb.ByCreatedAt(order...))
 		}
 
-		response := pagination.PagedResponse[notification.Event]{
+		response := pagination.Result[notification.Event]{
 			Page: params.Page,
 		}
 

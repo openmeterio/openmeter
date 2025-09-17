@@ -19,7 +19,7 @@ type Service interface {
 
 	// GetByIdOrKey is a convenience method that gets a subject by ID or key (please use GetById or GetByKey instead if possible)
 	GetByIdOrKey(ctx context.Context, orgId string, idOrKey string) (Subject, error)
-	List(ctx context.Context, orgId string, params ListParams) (pagination.PagedResponse[Subject], error)
+	List(ctx context.Context, orgId string, params ListParams) (pagination.Result[Subject], error)
 	Delete(ctx context.Context, id models.NamespacedID) error
 }
 

@@ -214,7 +214,7 @@ func (s *Service) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 		return billing.ListProfilesResult{}, err
 	}
 
-	response := pagination.PagedResponse[billing.Profile]{
+	response := pagination.Result[billing.Profile]{
 		Page:       profiles.Page,
 		TotalCount: profiles.TotalCount,
 		Items:      make([]billing.Profile, 0, len(profiles.Items)),

@@ -107,7 +107,7 @@ func (i *ListEventsInput) Validate(_ context.Context, _ Service) error {
 	return nil
 }
 
-type ListEventsResult = pagination.PagedResponse[Event]
+type ListEventsResult = pagination.Result[Event]
 
 var _ validator = (*GetEventInput)(nil)
 

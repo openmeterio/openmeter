@@ -80,9 +80,9 @@ func (s *Service) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.
 	})
 }
 
-func (s *Service) ListApps(ctx context.Context, input app.ListAppInput) (pagination.PagedResponse[app.App], error) {
+func (s *Service) ListApps(ctx context.Context, input app.ListAppInput) (pagination.Result[app.App], error) {
 	if err := input.Validate(); err != nil {
-		return pagination.PagedResponse[app.App]{}, models.NewGenericValidationError(err)
+		return pagination.Result[app.App]{}, models.NewGenericValidationError(err)
 	}
 
 	return s.adapter.ListApps(ctx, input)

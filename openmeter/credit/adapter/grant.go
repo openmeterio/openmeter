@@ -71,7 +71,7 @@ func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.Namespace
 	return command.Exec(ctx)
 }
 
-func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams) (pagination.PagedResponse[grant.Grant], error) {
+func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams) (pagination.Result[grant.Grant], error) {
 	query := g.db.Grant.Query().Where(db_grant.Namespace(params.Namespace))
 
 	if params.OwnerID != nil {
@@ -132,7 +132,7 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 		}
 	}
 
-	response := pagination.PagedResponse[grant.Grant]{
+	response := pagination.Result[grant.Grant]{
 		Page: params.Page,
 	}
 

@@ -42,7 +42,7 @@ type Connector interface {
 
 	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 	CreateGrant(ctx context.Context, namespace string, customerID string, entitlementIdOrFeatureKey string, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error)
-	ListEntitlementGrants(ctx context.Context, namespace string, params ListEntitlementGrantsParams) (pagination.PagedResponse[EntitlementGrant], error)
+	ListEntitlementGrants(ctx context.Context, namespace string, params ListEntitlementGrantsParams) (pagination.Result[EntitlementGrant], error)
 }
 
 type MeteredEntitlementValue struct {

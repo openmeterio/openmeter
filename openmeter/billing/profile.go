@@ -307,7 +307,7 @@ func (i CreateProfileInput) Validate() error {
 
 type CreateProfileAppsInput = ProfileAppReferences
 
-type ListProfilesResult = pagination.PagedResponse[Profile]
+type ListProfilesResult = pagination.Result[Profile]
 
 type ListProfilesInput struct {
 	pagination.Page

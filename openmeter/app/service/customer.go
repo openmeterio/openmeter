@@ -9,7 +9,7 @@ import (
 
 var _ app.AppService = (*Service)(nil)
 
-func (s *Service) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.PagedResponse[app.CustomerApp], error) {
+func (s *Service) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.Result[app.CustomerApp], error) {
 	return s.adapter.ListCustomerData(ctx, input)
 }
 
