@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -45,7 +46,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					ID: &filter.FilterString{
-						Eq: stringPtr("event-123"),
+						Eq: lo.ToPtr("event-123"),
 					},
 				},
 			},
@@ -60,7 +61,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Subject: &filter.FilterString{
-						Like: stringPtr("%customer%"),
+						Like: lo.ToPtr("%customer%"),
 					},
 				},
 			},
@@ -190,7 +191,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Type: &filter.FilterString{
-						Eq: stringPtr("api-calls"),
+						Eq: lo.ToPtr("api-calls"),
 					},
 				},
 			},
@@ -220,7 +221,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 				Params: streaming.ListEventsV2Params{
 					Namespace: "my_namespace",
 					Subject: &filter.FilterString{
-						Like: stringPtr("%customer%"),
+						Like: lo.ToPtr("%customer%"),
 					},
 				},
 			},
@@ -261,9 +262,4 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 			assert.Equal(t, tt.wantArgs, gotArgs)
 		})
 	}
-}
-
-// Helper function to create string pointers
-func stringPtr(s string) *string {
-	return &s
 }

@@ -400,39 +400,3 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 
 	return values, nil
 }
-
-type listSubjectsQuery struct {
-	Database        string
-	EventsTableName string
-	Namespace       string
-	Meter           *meterpkg.Meter
-	From            *time.Time
-	To              *time.Time
-}
-
-func (d listSubjectsQuery) toSQL() (string, []interface{}) {
-	tableName := getTableName(d.Database, d.EventsTableName)
-
-	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
-	sb.Select("DISTINCT subject")
-	sb.Where(sb.Equal("namespace", d.Namespace))
-
-	// If we have a meter, we add the type filter
-	if d.Meter != nil {
-		sb.Where(sb.Equal("type", d.Meter.EventType))
-	}
-
-	sb.From(tableName)
-	sb.OrderBy("subject")
-
-	if d.From != nil {
-		sb.Where(sb.GreaterEqualThan("time", d.From.Unix()))
-	}
-
-	if d.To != nil {
-		sb.Where(sb.LessThan("time", d.To.Unix()))
-	}
-
-	sql, args := sb.Build()
-	return sql, args
-}

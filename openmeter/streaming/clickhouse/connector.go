@@ -513,6 +513,7 @@ func (c *Connector) listSubjects(ctx context.Context, params streaming.ListSubje
 		Database:        c.config.Database,
 		EventsTableName: c.config.EventsTableName,
 		Namespace:       params.Namespace,
+		Search:          params.Search,
 		Meter:           params.Meter,
 		From:            params.From,
 		To:              params.To,

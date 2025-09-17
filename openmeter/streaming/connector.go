@@ -54,6 +54,7 @@ type ListSubjectsParams struct {
 	Meter     *meter.Meter
 	From      *time.Time
 	To        *time.Time
+	Search    *string
 }
 
 // Validate validates the list meters parameters.
