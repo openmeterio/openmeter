@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -15,6 +16,11 @@ var _ customer.Service = (*Service)(nil)
 // ListCustomers lists customers
 func (s *Service) ListCustomers(ctx context.Context, input customer.ListCustomersInput) (pagination.Result[customer.Customer], error) {
 	return s.adapter.ListCustomers(ctx, input)
+}
+
+// ListCustomerUsageAttributions lists customer usage attributions
+func (s *Service) ListCustomerUsageAttributions(ctx context.Context, input customer.ListCustomerUsageAttributionsInput) (pagination.Result[streaming.CustomerUsageAttribution], error) {
+	return s.adapter.ListCustomerUsageAttributions(ctx, input)
 }
 
 // CreateCustomer creates a customer

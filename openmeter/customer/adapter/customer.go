@@ -16,6 +16,7 @@ import (
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	subscriptiondb "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -118,6 +119,76 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			}
 
 			result = append(result, *cust)
+		}
+
+		response.TotalCount = paged.TotalCount
+		response.Items = result
+
+		return response, nil
+	})
+}
+
+// ListCustomerUsageAttributions lists customers usage attributions
+func (a *adapter) ListCustomerUsageAttributions(ctx context.Context, input customer.ListCustomerUsageAttributionsInput) (pagination.Result[streaming.CustomerUsageAttribution], error) {
+	if err := input.Validate(); err != nil {
+		return pagination.Result[streaming.CustomerUsageAttribution]{}, models.NewGenericValidationError(err)
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (pagination.Result[streaming.CustomerUsageAttribution], error) {
+		// Build the database query
+		now := clock.Now().UTC()
+
+		query := repo.db.Customer.Query().
+			// We only need to select the fields we need for the usage attribution to optimize the query
+			Select(
+				customerdb.FieldID,
+				customerdb.FieldNamespace,
+				customerdb.FieldKey,
+				customersubjectsdb.FieldSubjectKey,
+				customersubjectsdb.FieldCustomerID,
+			).
+			Where(customerdb.Namespace(input.Namespace)).
+			Order(customerdb.ByID(sql.OrderAsc()))
+		query = WithSubjects(query, now)
+
+		// Filters
+		if len(input.CustomerIDs) > 0 {
+			query = query.Where(customerdb.IDIn(input.CustomerIDs...))
+		}
+
+		// Do not return deleted customers by default
+		if !input.IncludeDeleted {
+			query = query.Where(customerdb.Or(
+				customerdb.DeletedAtIsNil(),
+				customerdb.DeletedAtGTE(now),
+			))
+		}
+
+		// Response
+		response := pagination.Result[streaming.CustomerUsageAttribution]{
+			Page: input.Page,
+		}
+
+		paged, err := query.Paginate(ctx, input.Page)
+		if err != nil {
+			return response, err
+		}
+
+		result := make([]streaming.CustomerUsageAttribution, 0, len(paged.Items))
+		for _, item := range paged.Items {
+			if item == nil {
+				a.logger.WarnContext(ctx, "invalid query result: nil customer received")
+				continue
+			}
+			cust, err := CustomerFromDBEntity(*item)
+			if err != nil {
+				return response, fmt.Errorf("failed to convert customer: %w", err)
+			}
+			if cust == nil {
+				return response, fmt.Errorf("invalid query result: nil customer received")
+			}
+
+			result = append(result, cust.GetUsageAttribution())
 		}
 
 		response.TotalCount = paged.TotalCount

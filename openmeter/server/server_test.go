@@ -1036,6 +1036,10 @@ func (n NoopCustomerService) ListCustomers(ctx context.Context, params customer.
 	return pagination.Result[customer.Customer]{}, nil
 }
 
+func (n NoopCustomerService) ListCustomerUsageAttributions(ctx context.Context, input customer.ListCustomerUsageAttributionsInput) (pagination.Result[streaming.CustomerUsageAttribution], error) {
+	return pagination.Result[streaming.CustomerUsageAttribution]{}, nil
+}
+
 func (n NoopCustomerService) CreateCustomer(ctx context.Context, params customer.CreateCustomerInput) (*customer.Customer, error) {
 	return &customer.Customer{}, nil
 }

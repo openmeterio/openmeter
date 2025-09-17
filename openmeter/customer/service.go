@@ -3,6 +3,7 @@ package customer
 import (
 	"context"
 
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -20,6 +21,7 @@ type RequestValidatorService interface {
 
 type CustomerService interface {
 	ListCustomers(ctx context.Context, params ListCustomersInput) (pagination.Result[Customer], error)
+	ListCustomerUsageAttributions(ctx context.Context, input ListCustomerUsageAttributionsInput) (pagination.Result[streaming.CustomerUsageAttribution], error)
 	CreateCustomer(ctx context.Context, params CreateCustomerInput) (*Customer, error)
 	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
