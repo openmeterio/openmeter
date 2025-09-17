@@ -76,6 +76,19 @@ type CustomerUsageAttribution struct {
 	SubjectKeys []string
 }
 
+// GetValues returns the values by which the usage is attributed to the customer
+func (ua CustomerUsageAttribution) GetValues() []string {
+	attributions := []string{}
+
+	if ua.Key != nil {
+		attributions = append(attributions, *ua.Key)
+	}
+
+	attributions = append(attributions, ua.SubjectKeys...)
+
+	return attributions
+}
+
 func (ua CustomerUsageAttribution) Equal(other CustomerUsageAttribution) bool {
 	return ua.ID == other.ID && ua.Key == other.Key && slices.Equal(ua.SubjectKeys, other.SubjectKeys)
 }

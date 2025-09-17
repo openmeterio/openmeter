@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -539,6 +540,67 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	require.Equal(t, 1, list.Page.PageNumber, "Customers page must be 0")
 	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "Customer 2 must be first in order")
 	require.Equal(t, createCustomer1.ID, list.Items[1].ID, "Customer 1 must be second in order")
+}
+
+// TestListCustomerUsageAttributions tests the listing of customer usage attributions
+func (s *CustomerHandlerTestSuite) TestListCustomerUsageAttributions(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	service := s.Env.Customer()
+
+	// Create a customer 1
+	createCustomer1, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr("customer-1"),
+			Name: "Customer 1",
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"customer-1-subject-1", "customer-1-subject-2"},
+			},
+		},
+	})
+
+	require.NoError(t, err, "Creating customer must not return error")
+
+	// Create a customer 2
+	createCustomer2, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Name: "Customer 2",
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"customer-2-subject-1"},
+			},
+		},
+	})
+
+	require.NoError(t, err, "Creating customer must not return error")
+
+	page := pagination.Page{PageNumber: 1, PageSize: 10}
+
+	list, err := service.ListCustomerUsageAttributions(ctx, customer.ListCustomerUsageAttributionsInput{
+		Namespace: s.namespace,
+		Page:      page,
+	})
+
+	require.NoError(t, err, "Listing customer usage attributions must not return error")
+	require.Equal(t, 2, list.TotalCount, "Customer usage attributions total count must be 2")
+	require.Equal(t, 1, list.Page.PageNumber, "Customer usage attributions page must be 0")
+	require.Equal(t, createCustomer1.ID, list.Items[0].ID, "Customer 1 must be first in order")
+	require.Equal(t, createCustomer2.ID, list.Items[1].ID, "Customer 2 must be second in order")
+
+	expectedItems := []streaming.CustomerUsageAttribution{
+		{
+			ID:          createCustomer1.ID,
+			Key:         createCustomer1.Key,
+			SubjectKeys: []string{"customer-1-subject-1", "customer-1-subject-2"},
+		},
+		{
+			ID:          createCustomer2.ID,
+			SubjectKeys: []string{"customer-2-subject-1"},
+		},
+	}
+
+	require.Equal(t, expectedItems, list.Items, "Customer usage attributions must match")
 }
 
 // TestGet tests the getting of a customer by ID

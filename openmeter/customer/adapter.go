@@ -3,6 +3,7 @@ package customer
 import (
 	"context"
 
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -15,6 +16,7 @@ type Adapter interface {
 
 type CustomerAdapter interface {
 	ListCustomers(ctx context.Context, params ListCustomersInput) (pagination.Result[Customer], error)
+	ListCustomerUsageAttributions(ctx context.Context, input ListCustomerUsageAttributionsInput) (pagination.Result[streaming.CustomerUsageAttribution], error)
 	CreateCustomer(ctx context.Context, params CreateCustomerInput) (*Customer, error)
 	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)

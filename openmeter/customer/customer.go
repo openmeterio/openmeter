@@ -211,6 +211,25 @@ func (i ListCustomersInput) Validate() error {
 	return nil
 }
 
+// ListCustomerUsageAttributionsInput represents the input for the ListCustomerUsageAttributions method
+
+type ListCustomerUsageAttributionsInput struct {
+	Namespace string
+	pagination.Page
+
+	// Filters
+	IncludeDeleted bool
+	CustomerIDs    []string
+}
+
+func (i ListCustomerUsageAttributionsInput) Validate() error {
+	if i.Namespace == "" {
+		return models.NewGenericValidationError(errors.New("namespace is required"))
+	}
+
+	return nil
+}
+
 // CreateCustomerInput represents the input for the CreateCustomer method
 type CreateCustomerInput struct {
 	Namespace string

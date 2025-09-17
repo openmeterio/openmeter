@@ -221,6 +221,6 @@ func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streamin
 	return rows, nil
 }
 
-func (m *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+func (m *MockStreamingConnector) ListSubjects(ctx context.Context, params streaming.ListSubjectsParams) ([]string, error) {
 	return []string{}, nil
 }

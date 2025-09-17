@@ -589,6 +589,8 @@ func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string)
 }
 
 // MockStreamingConnector
+var _ streaming.Connector = (*MockStreamingConnector)(nil)
+
 type MockStreamingConnector struct{}
 
 func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
@@ -645,7 +647,7 @@ func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	return []meter.MeterQueryRow{value}, nil
 }
 
-func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+func (c *MockStreamingConnector) ListSubjects(ctx context.Context, params streaming.ListSubjectsParams) ([]string, error) {
 	return []string{"s1"}, nil
 }
 
@@ -1032,6 +1034,10 @@ func (n NoopCustomerService) RegisterHooks(_ ...models.ServiceHook[customer.Cust
 
 func (n NoopCustomerService) ListCustomers(ctx context.Context, params customer.ListCustomersInput) (pagination.Result[customer.Customer], error) {
 	return pagination.Result[customer.Customer]{}, nil
+}
+
+func (n NoopCustomerService) ListCustomerUsageAttributions(ctx context.Context, input customer.ListCustomerUsageAttributionsInput) (pagination.Result[streaming.CustomerUsageAttribution], error) {
+	return pagination.Result[streaming.CustomerUsageAttribution]{}, nil
 }
 
 func (n NoopCustomerService) CreateCustomer(ctx context.Context, params customer.CreateCustomerInput) (*customer.Customer, error) {

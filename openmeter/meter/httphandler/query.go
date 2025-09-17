@@ -49,7 +49,10 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			subjectKeys, err := h.streaming.ListMeterSubjects(ctx, request.namespace, meter, streaming.ListMeterSubjectsParams{})
+			subjectKeys, err := h.streaming.ListSubjects(ctx, streaming.ListSubjectsParams{
+				Namespace: request.namespace,
+				Meter:     &meter,
+			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to list subjects: %w", err)
 			}

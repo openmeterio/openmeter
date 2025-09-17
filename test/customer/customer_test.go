@@ -35,6 +35,10 @@ func TestCustomer(t *testing.T) {
 			testSuite.TestList(ctx, t)
 		})
 
+		t.Run("TestListCustomerUsageAttributions", func(t *testing.T) {
+			testSuite.TestListCustomerUsageAttributions(ctx, t)
+		})
+
 		t.Run("TestGet", func(t *testing.T) {
 			testSuite.TestGet(ctx, t)
 		})

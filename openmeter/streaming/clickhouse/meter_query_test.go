@@ -439,21 +439,21 @@ func TestQueryMeter(t *testing.T) {
 	}
 }
 
-func TestListMeterSubjects(t *testing.T) {
+func TestListSubjects(t *testing.T) {
 	from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
 	to, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
 
 	tests := []struct {
-		query    listMeterSubjectsQuery
+		query    listSubjectsQuery
 		wantSQL  string
 		wantArgs []interface{}
 	}{
 		{
-			query: listMeterSubjectsQuery{
+			query: listSubjectsQuery{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: meter.Meter{
+				Meter: &meter.Meter{
 					Key:         "meter1",
 					EventType:   "event1",
 					Aggregation: meter.MeterAggregationSum,
@@ -463,11 +463,11 @@ func TestListMeterSubjects(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
 		{
-			query: listMeterSubjectsQuery{
+			query: listSubjectsQuery{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: meter.Meter{
+				Meter: &meter.Meter{
 					Key:         "meter1",
 					EventType:   "event1",
 					Aggregation: meter.MeterAggregationSum,
@@ -478,11 +478,11 @@ func TestListMeterSubjects(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1", from.Unix()},
 		},
 		{
-			query: listMeterSubjectsQuery{
+			query: listSubjectsQuery{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: meter.Meter{
+				Meter: &meter.Meter{
 					Key:         "meter1",
 					EventType:   "event1",
 					Aggregation: meter.MeterAggregationSum,
