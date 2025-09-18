@@ -36,7 +36,7 @@ type (
 		Namespace                 string
 		Params                    api.ListCustomerEntitlementGrantsV2Params
 	}
-	ListCustomerEntitlementGrantsHandlerResponse = api.GrantPaginatedResponse
+	ListCustomerEntitlementGrantsHandlerResponse = api.GrantV2PaginatedResponse
 	ListCustomerEntitlementGrantsHandler         = httptransport.HandlerWithArgs[ListCustomerEntitlementGrantsHandlerRequest, ListCustomerEntitlementGrantsHandlerResponse, ListCustomerEntitlementGrantsHandlerParams]
 )
 
@@ -119,7 +119,7 @@ type (
 		Namespace                 string
 		GrantInput                meteredentitlement.CreateEntitlementGrantInputs
 	}
-	CreateCustomerEntitlementGrantHandlerResponse = api.EntitlementGrant
+	CreateCustomerEntitlementGrantHandlerResponse = api.EntitlementGrantV2
 	CreateCustomerEntitlementGrantHandler         = httptransport.HandlerWithArgs[CreateCustomerEntitlementGrantHandlerRequest, CreateCustomerEntitlementGrantHandlerResponse, CreateCustomerEntitlementGrantHandlerParams]
 )
 
@@ -130,7 +130,7 @@ func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEnti
 		CreateCustomerEntitlementGrantHandlerParams,
 	](
 		func(ctx context.Context, r *http.Request, params CreateCustomerEntitlementGrantHandlerParams) (CreateCustomerEntitlementGrantHandlerRequest, error) {
-			var body api.EntitlementGrantCreateInput
+			var body api.EntitlementGrantCreateInputV2
 			var req CreateCustomerEntitlementGrantHandlerRequest
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
@@ -164,13 +164,17 @@ func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEnti
 						Count:    body.Expiration.Count,
 						Duration: grant.ExpirationPeriodDuration(body.Expiration.Duration),
 					},
-					ResetMaxRollover: defaultx.WithDefault(body.MaxRolloverAmount, 0),
+					ResetMaxRollover: defaultx.WithDefault(body.MaxRolloverAmount, body.Amount),
 					ResetMinRollover: defaultx.WithDefault(body.MinRolloverAmount, 0),
 				},
 			}
 
-			if body.Metadata != nil {
-				grantInput.Metadata = *body.Metadata
+			if body.Annotations != nil && len(lo.FromPtr(body.Annotations)) > 0 {
+				grantInput.Annotations = make(models.Annotations)
+
+				for k, v := range lo.FromPtr(body.Annotations) {
+					grantInput.Annotations[k] = v
+				}
 			}
 
 			if body.Recurrence != nil {
@@ -197,7 +201,7 @@ func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEnti
 			if err != nil {
 				return CreateCustomerEntitlementGrantHandlerResponse{}, err
 			}
-			return entitlementdriver.MapEntitlementGrantToAPI(&g), nil
+			return MapEntitlementGrantToAPIV2(&g), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerEntitlementGrantHandlerResponse](http.StatusCreated),
 		httptransport.AppendOptions(

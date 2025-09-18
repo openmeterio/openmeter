@@ -76,7 +76,7 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, customerI
 		ResetMaxRollover: inputGrant.ResetMaxRollover,
 		ResetMinRollover: inputGrant.ResetMinRollover,
 		Recurrence:       inputGrant.Recurrence,
-		Metadata:         inputGrant.Metadata,
+		Annotations:      inputGrant.Annotations,
 	})
 	if err != nil {
 		if _, ok := err.(grant.OwnerNotFoundError); ok {

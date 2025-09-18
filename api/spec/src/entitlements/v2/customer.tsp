@@ -117,7 +117,7 @@ interface CustomerEntitlement {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<GrantOrderBy>,
-  ): OpenMeter.PaginatedResponse<Grant> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<GrantV2> | OpenMeter.CommonErrors;
 
   /**
    * Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
@@ -139,10 +139,10 @@ interface CustomerEntitlement {
   createCustomerEntitlementGrant(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path entitlementIdOrFeatureKey: ULIDOrKey,
-    @body grant: GrantCreateInput,
+    @body grant: GrantCreateInputV2,
   ): {
     @statusCode _: 201;
-    @body body: Grant;
+    @body body: GrantV2;
   } | OpenMeter.CommonErrors | OpenMeter.ConflictError;
 
   /**
