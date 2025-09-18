@@ -90,19 +90,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
 	eventsConfiguration := conf.Events
-	v := common.ServerProvisionTopics(eventsConfiguration)
-	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
-	if err != nil {
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
+	provisionTopics := common.ServerProvisionTopics(eventsConfiguration)
 	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
-	kafkaTopicProvisionerConfig := common.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
-	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
+	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -113,7 +103,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	publisherOptions := kafka.PublisherOptions{
 		Broker:           brokerOptions,
-		ProvisionTopics:  v,
+		ProvisionTopics:  provisionTopics,
 		TopicProvisioner: topicProvisioner,
 	}
 	publisher, cleanup6, err := common.NewServerPublisher(ctx, publisherOptions, logger)
@@ -149,7 +139,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
+	v, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -181,7 +171,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, progressmanagerService, manager)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, logger, progressmanagerService, manager)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -399,8 +389,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	notificationConfiguration := conf.Notification
 	webhookConfiguration := notificationConfiguration.Webhook
-	v3 := conf.Svix
-	webhookHandler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v3)
+	v2 := conf.Svix
+	webhookHandler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v2)
 	if err != nil {
 		cleanup6()
 		cleanup5()

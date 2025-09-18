@@ -104,19 +104,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
 	eventsConfiguration := conf.Events
-	v := common.ServerProvisionTopics(eventsConfiguration)
-	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
-	if err != nil {
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
+	provisionTopics := common.ServerProvisionTopics(eventsConfiguration)
 	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
-	kafkaTopicProvisionerConfig := common.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
-	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
+	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -127,7 +117,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	publisherOptions := kafka.PublisherOptions{
 		Broker:           brokerOptions,
-		ProvisionTopics:  v,
+		ProvisionTopics:  provisionTopics,
 		TopicProvisioner: topicProvisioner,
 	}
 	publisher, cleanup6, err := common.NewServerPublisher(ctx, publisherOptions, logger)
@@ -196,7 +186,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
+	v, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -217,7 +207,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, progressmanagerService, manager)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, logger, progressmanagerService, manager)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -467,9 +457,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v3 := conf.Meters
+	v2 := conf.Meters
 	manageService := common.NewMeterManageService(adapter, manager, eventbusPublisher)
-	v4 := common.NewMeterConfigInitializer(logger, v3, manageService, manager)
+	v3 := common.NewMeterConfigInitializer(logger, v2, manageService, manager)
 	metereventService := common.NewMeterEventService(connector, customerService, service)
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
@@ -484,8 +474,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	notificationConfiguration := conf.Notification
 	webhookConfiguration := notificationConfiguration.Webhook
-	v5 := conf.Svix
-	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v5)
+	v4 := conf.Svix
+	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v4)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -532,9 +522,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
-	routerHooks := common.NewRouterHooks(v6)
-	v7, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
+	v5 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	routerHooks := common.NewRouterHooks(v5)
+	v6, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -546,7 +536,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v8, err := common.NewSubjectEntitlementValidatorHook(logger, entitlement, subjectService)
+	v7, err := common.NewSubjectEntitlementValidatorHook(logger, entitlement, subjectService)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -572,7 +562,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v9, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v8, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -608,7 +598,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaIngestNamespaceHandler:      namespaceHandler,
 		Logger:                           logger,
 		MetricMeter:                      meter,
-		MeterConfigInitializer:           v4,
+		MeterConfigInitializer:           v3,
 		MeterManageService:               manageService,
 		MeterEventService:                metereventService,
 		NamespaceManager:                 manager,
@@ -620,11 +610,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RouterHooks:                      routerHooks,
 		Secret:                           secretserviceService,
 		SubjectService:                   subjectService,
-		SubjectCustomerHook:              v7,
-		SubjectEntitlementValidatorHook:  v8,
+		SubjectCustomerHook:              v6,
+		SubjectEntitlementValidatorHook:  v7,
 		Subscription:                     subscriptionServiceWithWorkflow,
 		StreamingConnector:               connector,
-		TelemetryServer:                  v9,
+		TelemetryServer:                  v8,
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,
