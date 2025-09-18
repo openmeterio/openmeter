@@ -744,10 +744,10 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ClickHouse/ch-go v0.67.0 h1:18MQF6vZHj+4/hTRaK7JbS/TIzn4I55wC+QzO24uiqc=
-github.com/ClickHouse/ch-go v0.67.0/go.mod h1:2MSAeyVmgt+9a2k2SQPPG1b4qbTPzdGDpf1+bcHh+18=
-github.com/ClickHouse/clickhouse-go/v2 v2.40.1 h1:PbwsHBgqXRydU7jKULD1C8CHmifczffvQqmFvltM2W4=
-github.com/ClickHouse/clickhouse-go/v2 v2.40.1/go.mod h1:GDzSBLVhladVm8V01aEB36IoBOVLLICfyeuiIp/8Ezc=
+github.com/ClickHouse/ch-go v0.68.0 h1:zd2VD8l2aVYnXFRyhTyKCrxvhSz1AaY4wBUXu/f0GiU=
+github.com/ClickHouse/ch-go v0.68.0/go.mod h1:C89Fsm7oyck9hr6rRo5gqqiVtaIY6AjdD0WFMyNRQ5s=
+github.com/ClickHouse/clickhouse-go/v2 v2.40.3 h1:46jB4kKwVDUOnECpStKMVXxvR0Cg9zeV9vdbPjtn6po=
+github.com/ClickHouse/clickhouse-go/v2 v2.40.3/go.mod h1:qO0HwvjCnTB4BPL/k6EE3l4d9f/uF+aoimAhJX70eKA=
 github.com/DATA-DOG/go-sqlmock v1.5.0 h1:Shsta01QNfFxHCfpW6YH2STWB0MudeXXEWMr20OEh60=
 github.com/DATA-DOG/go-sqlmock v1.5.0/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DataDog/zstd v1.5.7 h1:ybO8RBeh29qrxIhCA9E8gKY6xfONU9T6G6aP9DTKfLE=
@@ -1174,8 +1174,8 @@ github.com/docker/compose/v2 v2.28.1 h1:ORPfiVHrpnRQBDoC3F8JJyWAY8N5gWuo3Fgwyivx
 github.com/docker/compose/v2 v2.28.1/go.mod h1:wDtGQFHe99sPLCHXeVbCkc+Wsl4Y/2ZxiAJa/nga6rA=
 github.com/docker/distribution v2.8.3+incompatible h1:AtKxIZ36LoNK51+Z6RpzLpddBirtxJnzDrHLEKxTAYk=
 github.com/docker/distribution v2.8.3+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
-github.com/docker/docker v28.3.3+incompatible h1:Dypm25kh4rmk49v1eiVbsAtpAsYURjYkaKubwuBdxEI=
-github.com/docker/docker v28.3.3+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v28.4.0+incompatible h1:KVC7bz5zJY/4AZe/78BIvCnPsLaC9T/zh72xnlrTTOk=
+github.com/docker/docker v28.4.0+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker-credential-helpers v0.8.0 h1:YQFtbBQb4VrpoPxhFuzEBPQ9E16qz5SpHLS+uswaCp8=
 github.com/docker/docker-credential-helpers v0.8.0/go.mod h1:UGFXcuoQ5TxPiB54nHOZ32AWRqQdECoh/Mg0AlEYb40=
 github.com/docker/go v1.5.1-1.0.20160303222718-d30aec9fd63c h1:lzqkGL9b3znc+ZUgi7FlLnqjQhcXxkNM/quxIjBVMD0=

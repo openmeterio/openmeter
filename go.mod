@@ -10,7 +10,7 @@ replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527
 require (
 	entgo.io/ent v0.14.5
 	github.com/AppsFlyer/go-sundheit v0.6.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.40.1
+	github.com/ClickHouse/clickhouse-go/v2 v2.40.3
 	github.com/IBM/sarama v1.46.0
 	github.com/ThreeDotsLabs/watermill v1.5.1
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.1.1
@@ -224,7 +224,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azqueue v1.0.1 // indirect
 	github.com/Azure/go-amqp v1.4.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2 // indirect
-	github.com/ClickHouse/ch-go v0.67.0 // indirect
+	github.com/ClickHouse/ch-go v0.68.0 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.29.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.53.0 // indirect
