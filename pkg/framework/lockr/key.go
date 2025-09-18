@@ -2,9 +2,10 @@ package lockr
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
-	"github.com/cespare/xxhash/v2"
+	xxhash "github.com/zeebo/xxh3"
 )
 
 var stringSeparator = ":"
@@ -17,21 +18,22 @@ type Key interface {
 
 // NewKey constructs a key for the given scopes.
 // Scope is always required and must be non-empty.
-func NewKey(scope string, scopes ...string) (Key, error) {
-	joined := []string{scope}
-	joined = append(joined, scopes...)
+func NewKey(scopes ...string) (Key, error) {
+	if len(scopes) == 0 {
+		return nil, errors.New("at least one scope is required")
+	}
 
-	for _, s := range joined {
+	for idx, s := range scopes {
 		if s == "" {
-			return nil, errors.New("scope cannot be empty")
+			return nil, fmt.Errorf("scope cannot be empty [index=%d]", idx)
 		}
 
 		if strings.Contains(s, stringSeparator) {
-			return nil, errors.New("scope cannot contain ':'")
+			return nil, fmt.Errorf("scope cannot contain %q [index=%d]", stringSeparator, idx)
 		}
 	}
 
-	return &key{scopes: joined}, nil
+	return &key{scopes: scopes}, nil
 }
 
 type key struct {
@@ -44,7 +46,7 @@ func (k *key) String() string {
 	return strings.Join(k.scopes, stringSeparator)
 }
 
-// KeySpaceEntry translates the key string to a 64bit keyspace via hashing it
+// Hash64 translates the key string to a 64bit keyspace via hashing it
 func (k *key) Hash64() uint64 {
 	h := xxhash.New()
 

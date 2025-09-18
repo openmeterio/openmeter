@@ -52,12 +52,23 @@ func (l *Locker) LockForTX(ctx context.Context, key Key) error {
 	return l.lock(ctx, client, key)
 }
 
+func (l *Locker) LockForTXWithScopes(ctx context.Context, scopes ...string) error {
+	k, err := NewKey(scopes...)
+	if err != nil {
+		return err
+	}
+
+	return l.LockForTX(ctx, k)
+}
+
 // lock executes the advisory lock query and handles the result set
 func (l *Locker) lock(ctx context.Context, client *db.Tx, key Key) error {
 	rows, err := client.QueryContext(ctx, "SELECT pg_advisory_xact_lock($1)", int64(key.Hash64()))
 	defer func() {
 		if rows != nil {
-			rows.Close()
+			if e := rows.Close(); e != nil {
+				l.cfg.Logger.WarnContext(ctx, "failed to close result set", "error", e)
+			}
 		}
 	}()
 
@@ -102,7 +113,9 @@ func (l *Locker) getTxClient(ctx context.Context) (*db.Tx, error) {
 
 	defer func() {
 		if rows != nil {
-			rows.Close()
+			if e := rows.Close(); e != nil {
+				l.cfg.Logger.WarnContext(ctx, "failed to close result set", "error", e)
+			}
 		}
 	}()
 
