@@ -10838,7 +10838,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GrantPaginatedResponse'
+                $ref: '#/components/schemas/GrantV2PaginatedResponse'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -10919,7 +10919,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EntitlementGrant'
+                $ref: '#/components/schemas/EntitlementGrantV2'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -10976,7 +10976,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EntitlementGrantCreateInput'
+              $ref: '#/components/schemas/EntitlementGrantCreateInputV2'
   /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history:
     get:
       operationId: getCustomerEntitlementHistoryV2
@@ -11692,7 +11692,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GrantPaginatedResponse'
+                $ref: '#/components/schemas/GrantV2PaginatedResponse'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -15765,6 +15765,194 @@ components:
             - $ref: '#/components/schemas/RecurringPeriodCreateInput'
           description: The subject of the grant.
       description: The grant creation input.
+    EntitlementGrantCreateInputV2:
+      type: object
+      required:
+        - amount
+        - effectiveAt
+        - expiration
+      properties:
+        amount:
+          type: number
+          format: double
+          minimum: 0
+          description: The amount to grant. Should be a positive number.
+          example: 100
+        priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: |-
+            The priority of the grant. Grants with higher priority are applied first.
+            Priority is a positive decimal numbers. With lower numbers indicating higher importance.
+            For example, a priority of 1 is more urgent than a priority of 2.
+            When there are several grants available for the same subject, the system selects the grant with the highest priority.
+            In cases where grants share the same priority level, the grant closest to its expiration will be used first.
+            In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+          example: 1
+        effectiveAt:
+          type: string
+          format: date-time
+          description: Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
+          example: '2023-01-01T01:01:01.001Z'
+        expiration:
+          allOf:
+            - $ref: '#/components/schemas/ExpirationPeriod'
+          description: The grant expiration definition
+        minRolloverAmount:
+          type: number
+          format: double
+          description: |-
+            Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
+            Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+          example: 100
+          default: 0
+        recurrence:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodCreateInput'
+          description: The subject of the grant.
+        maxRolloverAmount:
+          type: number
+          format: double
+          description: |-
+            Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.
+            Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+          example: 100
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: The grant metadata.
+          deprecated: true
+          example:
+            stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: The grant metadata.
+          example:
+            stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
+      description: The grant creation input.
+    EntitlementGrantV2:
+      type: object
+      required:
+        - createdAt
+        - updatedAt
+        - amount
+        - effectiveAt
+        - expiration
+        - id
+        - entitlementId
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        amount:
+          type: number
+          format: double
+          minimum: 0
+          description: The amount to grant. Should be a positive number.
+          example: 100
+        priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: |-
+            The priority of the grant. Grants with higher priority are applied first.
+            Priority is a positive decimal numbers. With lower numbers indicating higher importance.
+            For example, a priority of 1 is more urgent than a priority of 2.
+            When there are several grants available for the same subject, the system selects the grant with the highest priority.
+            In cases where grants share the same priority level, the grant closest to its expiration will be used first.
+            In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+          example: 1
+        effectiveAt:
+          type: string
+          format: date-time
+          description: Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
+          example: '2023-01-01T01:01:01.001Z'
+        expiration:
+          allOf:
+            - $ref: '#/components/schemas/ExpirationPeriod'
+          description: The grant expiration definition
+        minRolloverAmount:
+          type: number
+          format: double
+          description: |-
+            Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
+            Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+          example: 100
+          default: 0
+        maxRolloverAmount:
+          type: number
+          format: double
+          description: |-
+            Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.
+            Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+          example: 100
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: The grant metadata.
+          deprecated: true
+          example:
+            stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: The grant metadata.
+          example:
+            stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: Readonly unique ULID identifier.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          readOnly: true
+        entitlementId:
+          type: string
+          description: The unique entitlement ULID that the grant is associated with.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          readOnly: true
+        nextRecurrence:
+          type: string
+          format: date-time
+          description: The next time the grant will recurr.
+          example: '2023-01-01T01:01:01.001Z'
+        expiresAt:
+          type: string
+          format: date-time
+          description: The time the grant expires.
+          example: '2023-01-01T01:01:01.001Z'
+          readOnly: true
+        voidedAt:
+          type: string
+          format: date-time
+          description: The time the grant was voided.
+          example: '2023-01-01T01:01:01.001Z'
+        recurrence:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: The recurrence period of the grant.
+      description: The grant.
     EntitlementMetered:
       type: object
       required:
@@ -16009,10 +16197,10 @@ components:
           description: If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
           title: Soft limit
           default: false
-        isUnlimited:
+        preserveOverageAtReset:
           type: boolean
-          description: Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.
-          deprecated: true
+          description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
+          title: Preserve overage at reset
           default: false
         issueAfterReset:
           type: number
@@ -16024,6 +16212,7 @@ components:
             That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
             Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
           title: Initial grant amount
+          deprecated: true
         issueAfterResetPriority:
           type: integer
           format: uint8
@@ -16031,12 +16220,13 @@ components:
           maximum: 255
           description: Defines the grant priority for the default grant.
           title: Issue grant after reset priority
+          deprecated: true
           default: 1
-        preserveOverageAtReset:
-          type: boolean
-          description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
-          title: Preserve overage at reset
-          default: false
+        issue:
+          allOf:
+            - $ref: '#/components/schemas/IssueAfterReset'
+          description: Issue after reset
+          title: Issue after reset
         createdAt:
           type: string
           format: date-time
@@ -17058,6 +17248,32 @@ components:
           description: The usage in the period
           example: 100
       description: Usage Record
+    GrantV2PaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          description: The total number of items.
+          example: 500
+        page:
+          type: integer
+          description: The page index.
+          example: 1
+        pageSize:
+          type: integer
+          description: The maximum number of items per page.
+          example: 100
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntitlementGrantV2'
+          description: The items in the current page.
+      description: Paginated response
     IDResource:
       type: object
       required:
@@ -18772,6 +18988,26 @@ components:
 
         Other fields on the invoice's workflow are not mutable, they serve as a history of the invoice's workflow
         at creation time.
+    IssueAfterReset:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: number
+          format: double
+          minimum: 0
+          description: The initial grant amount
+          title: Initial grant amount
+        priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: The priority of the issue after reset
+          title: Issue grant after reset priority
+          default: 1
+      description: Issue after reset
     ListEntitlementsResult:
       oneOf:
         - type: array

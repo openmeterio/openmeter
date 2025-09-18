@@ -17444,7 +17444,6 @@ export const createCustomerEntitlementGrantV2Params = zod.object({
 export const createCustomerEntitlementGrantV2BodyAmountMin = 0
 export const createCustomerEntitlementGrantV2BodyPriorityMax = 255
 export const createCustomerEntitlementGrantV2BodyExpirationCountMax = 1000
-export const createCustomerEntitlementGrantV2BodyMaxRolloverAmountDefault = 0
 export const createCustomerEntitlementGrantV2BodyMinRolloverAmountDefault = 0
 
 export const createCustomerEntitlementGrantV2Body = zod
@@ -17453,6 +17452,13 @@ export const createCustomerEntitlementGrantV2Body = zod
       .number()
       .min(createCustomerEntitlementGrantV2BodyAmountMin)
       .describe('The amount to grant. Should be a positive number.'),
+    annotations: zod
+      .record(zod.string(), zod.any())
+      .describe(
+        'Set of key-value pairs managed by the system. Cannot be modified by user.'
+      )
+      .optional()
+      .describe('The grant metadata.'),
     effectiveAt: zod.coerce
       .date()
       .describe(
@@ -17476,7 +17482,7 @@ export const createCustomerEntitlementGrantV2Body = zod
       .number()
       .optional()
       .describe(
-        'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
+        'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
       ),
     metadata: zod
       .record(zod.string(), zod.coerce.string())

@@ -4746,6 +4746,175 @@ export interface components {
       /** @description The subject of the grant. */
       recurrence?: components['schemas']['RecurringPeriodCreateInput']
     }
+    /** @description The grant creation input. */
+    EntitlementGrantCreateInputV2: {
+      /**
+       * Format: double
+       * @description The amount to grant. Should be a positive number.
+       * @example 100
+       */
+      amount: number
+      /**
+       * Format: uint8
+       * @description The priority of the grant. Grants with higher priority are applied first.
+       *     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
+       *     For example, a priority of 1 is more urgent than a priority of 2.
+       *     When there are several grants available for the same subject, the system selects the grant with the highest priority.
+       *     In cases where grants share the same priority level, the grant closest to its expiration will be used first.
+       *     In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+       * @example 1
+       */
+      priority?: number
+      /**
+       * Format: date-time
+       * @description Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      effectiveAt: Date
+      /** @description The grant expiration definition */
+      expiration: components['schemas']['ExpirationPeriod']
+      /**
+       * Format: double
+       * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
+       *     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+       * @default 0
+       * @example 100
+       */
+      minRolloverAmount?: number
+      /** @description The subject of the grant. */
+      recurrence?: components['schemas']['RecurringPeriodCreateInput']
+      /**
+       * Format: double
+       * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.
+       *     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+       * @example 100
+       */
+      maxRolloverAmount?: number
+      /**
+       * @deprecated
+       * @description The grant metadata.
+       * @example {
+       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       *     }
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * @description The grant metadata.
+       * @example {
+       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       *     }
+       */
+      annotations?: components['schemas']['Annotations']
+    }
+    /** @description The grant. */
+    EntitlementGrantV2: {
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
+      /**
+       * Format: double
+       * @description The amount to grant. Should be a positive number.
+       * @example 100
+       */
+      amount: number
+      /**
+       * Format: uint8
+       * @description The priority of the grant. Grants with higher priority are applied first.
+       *     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
+       *     For example, a priority of 1 is more urgent than a priority of 2.
+       *     When there are several grants available for the same subject, the system selects the grant with the highest priority.
+       *     In cases where grants share the same priority level, the grant closest to its expiration will be used first.
+       *     In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+       * @example 1
+       */
+      priority?: number
+      /**
+       * Format: date-time
+       * @description Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      effectiveAt: Date
+      /** @description The grant expiration definition */
+      expiration: components['schemas']['ExpirationPeriod']
+      /**
+       * Format: double
+       * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
+       *     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+       * @default 0
+       * @example 100
+       */
+      minRolloverAmount?: number
+      /**
+       * Format: double
+       * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.
+       *     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+       * @example 100
+       */
+      maxRolloverAmount?: number
+      /**
+       * @deprecated
+       * @description The grant metadata.
+       * @example {
+       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       *     }
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * @description The grant metadata.
+       * @example {
+       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       *     }
+       */
+      annotations?: components['schemas']['Annotations']
+      /**
+       * @description Readonly unique ULID identifier.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      readonly id: string
+      /**
+       * @description The unique entitlement ULID that the grant is associated with.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      readonly entitlementId: string
+      /**
+       * Format: date-time
+       * @description The next time the grant will recurr.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      nextRecurrence?: Date
+      /**
+       * Format: date-time
+       * @description The time the grant expires.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly expiresAt?: Date
+      /**
+       * Format: date-time
+       * @description The time the grant was voided.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      voidedAt?: Date
+      /** @description The recurrence period of the grant. */
+      recurrence?: components['schemas']['RecurringPeriod']
+    }
     /** @description Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
      *     Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage). */
     EntitlementMetered: {
@@ -4943,14 +5112,15 @@ export interface components {
        */
       isSoftLimit?: boolean
       /**
-       * @deprecated
-       * @description Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.
+       * Preserve overage at reset
+       * @description If true, the overage is preserved at reset. If false, the usage is reset to 0.
        * @default false
        */
-      isUnlimited?: boolean
+      preserveOverageAtReset?: boolean
       /**
        * Initial grant amount
        * Format: double
+       * @deprecated
        * @description You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
        *     If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
        *     That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
@@ -4960,16 +5130,16 @@ export interface components {
       /**
        * Issue grant after reset priority
        * Format: uint8
+       * @deprecated
        * @description Defines the grant priority for the default grant.
        * @default 1
        */
       issueAfterResetPriority?: number
       /**
-       * Preserve overage at reset
-       * @description If true, the overage is preserved at reset. If false, the usage is reset to 0.
-       * @default false
+       * Issue after reset
+       * @description Issue after reset
        */
-      preserveOverageAtReset?: boolean
+      issue?: components['schemas']['IssueAfterReset']
       /**
        * Creation Time
        * Format: date-time
@@ -5750,6 +5920,26 @@ export interface components {
        * @example 100
        */
       usage: number
+    }
+    /** @description Paginated response */
+    GrantV2PaginatedResponse: {
+      /**
+       * @description The total number of items.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The page index.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The maximum number of items per page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['EntitlementGrantV2'][]
     }
     /** @description IDResource is a resouce with an ID. */
     IDResource: {
@@ -6875,6 +7065,22 @@ export interface components {
       invoicing: components['schemas']['InvoiceWorkflowInvoicingSettingsReplaceUpdate']
       /** @description The payment settings for this workflow */
       payment: components['schemas']['BillingWorkflowPaymentSettings']
+    }
+    /** @description Issue after reset */
+    IssueAfterReset: {
+      /**
+       * Initial grant amount
+       * Format: double
+       * @description The initial grant amount
+       */
+      amount: number
+      /**
+       * Issue grant after reset priority
+       * Format: uint8
+       * @description The priority of the issue after reset
+       * @default 1
+       */
+      priority?: number
     }
     /** @description List entitlements result */
     ListEntitlementsResult:
@@ -11259,6 +11465,9 @@ export type EntitlementCreateInputs =
 export type EntitlementGrant = components['schemas']['EntitlementGrant']
 export type EntitlementGrantCreateInput =
   components['schemas']['EntitlementGrantCreateInput']
+export type EntitlementGrantCreateInputV2 =
+  components['schemas']['EntitlementGrantCreateInputV2']
+export type EntitlementGrantV2 = components['schemas']['EntitlementGrantV2']
 export type EntitlementMetered = components['schemas']['EntitlementMetered']
 export type EntitlementMeteredCreateInputs =
   components['schemas']['EntitlementMeteredCreateInputs']
@@ -11300,6 +11509,8 @@ export type GrantOrderBy = components['schemas']['GrantOrderBy']
 export type GrantPaginatedResponse =
   components['schemas']['GrantPaginatedResponse']
 export type GrantUsageRecord = components['schemas']['GrantUsageRecord']
+export type GrantV2PaginatedResponse =
+  components['schemas']['GrantV2PaginatedResponse']
 export type IdResource = components['schemas']['IDResource']
 export type IngestEventsBody = components['schemas']['IngestEventsBody']
 export type IngestedEvent = components['schemas']['IngestedEvent']
@@ -11380,6 +11591,7 @@ export type InvoiceWorkflowSettings =
   components['schemas']['InvoiceWorkflowSettings']
 export type InvoiceWorkflowSettingsReplaceUpdate =
   components['schemas']['InvoiceWorkflowSettingsReplaceUpdate']
+export type IssueAfterReset = components['schemas']['IssueAfterReset']
 export type ListEntitlementsResult =
   components['schemas']['ListEntitlementsResult']
 export type ListFeaturesResult = components['schemas']['ListFeaturesResult']
@@ -25499,7 +25711,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['GrantPaginatedResponse']
+          'application/json': components['schemas']['GrantV2PaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -25579,7 +25791,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['EntitlementGrantCreateInput']
+        'application/json': components['schemas']['EntitlementGrantCreateInputV2']
       }
     }
     responses: {
@@ -25589,7 +25801,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['EntitlementGrant']
+          'application/json': components['schemas']['EntitlementGrantV2']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -26428,7 +26640,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['GrantPaginatedResponse']
+          'application/json': components['schemas']['GrantV2PaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */

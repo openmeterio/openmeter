@@ -20,13 +20,20 @@ func (Grant) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
-		entutils.MetadataMixin{},
+		entutils.AnnotationsMixin{},
 		entutils.TimeMixin{},
 	}
 }
 
 func (Grant) Fields() []ent.Field {
 	return []ent.Field{
+		// We'll phase this out in future release, not used anymore.
+		field.JSON("metadata", map[string]string{}).
+			Deprecated("Use annotations instead").
+			Optional().
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
 		field.String("owner_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),

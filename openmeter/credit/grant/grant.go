@@ -38,7 +38,7 @@ type Grant struct {
 	// ExpiresAt is exclusive, meaning that the grant is no longer active after this time, but it is still active at the time.
 	ExpiresAt time.Time `json:"expiresAt"`
 
-	Metadata map[string]string `json:"metadata,omitempty"`
+	Annotations models.Annotations `json:"annotations,omitempty"`
 
 	// For user initiated voiding of the grant.
 	VoidedAt *time.Time `json:"voidedAt,omitempty"`

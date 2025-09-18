@@ -35338,10 +35338,11 @@ type GrantMutation struct {
 	typ                   string
 	id                    *string
 	namespace             *string
-	metadata              *map[string]string
+	annotations           *models.Annotations
 	created_at            *time.Time
 	updated_at            *time.Time
 	deleted_at            *time.Time
+	metadata              *map[string]string
 	amount                *float64
 	addamount             *float64
 	priority              *uint8
@@ -35504,53 +35505,53 @@ func (m *GrantMutation) ResetNamespace() {
 	m.namespace = nil
 }
 
-// SetMetadata sets the "metadata" field.
-func (m *GrantMutation) SetMetadata(value map[string]string) {
-	m.metadata = &value
+// SetAnnotations sets the "annotations" field.
+func (m *GrantMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
 }
 
-// Metadata returns the value of the "metadata" field in the mutation.
-func (m *GrantMutation) Metadata() (r map[string]string, exists bool) {
-	v := m.metadata
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *GrantMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldMetadata returns the old "metadata" field's value of the Grant entity.
+// OldAnnotations returns the old "annotations" field's value of the Grant entity.
 // If the Grant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+func (m *GrantMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMetadata requires an ID field in the mutation")
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
 	}
-	return oldValue.Metadata, nil
+	return oldValue.Annotations, nil
 }
 
-// ClearMetadata clears the value of the "metadata" field.
-func (m *GrantMutation) ClearMetadata() {
-	m.metadata = nil
-	m.clearedFields[dbgrant.FieldMetadata] = struct{}{}
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *GrantMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[dbgrant.FieldAnnotations] = struct{}{}
 }
 
-// MetadataCleared returns if the "metadata" field was cleared in this mutation.
-func (m *GrantMutation) MetadataCleared() bool {
-	_, ok := m.clearedFields[dbgrant.FieldMetadata]
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *GrantMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[dbgrant.FieldAnnotations]
 	return ok
 }
 
-// ResetMetadata resets all changes to the "metadata" field.
-func (m *GrantMutation) ResetMetadata() {
-	m.metadata = nil
-	delete(m.clearedFields, dbgrant.FieldMetadata)
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *GrantMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, dbgrant.FieldAnnotations)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -35672,6 +35673,55 @@ func (m *GrantMutation) DeletedAtCleared() bool {
 func (m *GrantMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, dbgrant.FieldDeletedAt)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *GrantMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *GrantMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the Grant entity.
+// If the Grant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrantMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *GrantMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[dbgrant.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *GrantMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[dbgrant.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *GrantMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, dbgrant.FieldMetadata)
 }
 
 // SetOwnerID sets the "owner_id" field.
@@ -36263,12 +36313,12 @@ func (m *GrantMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GrantMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.namespace != nil {
 		fields = append(fields, dbgrant.FieldNamespace)
 	}
-	if m.metadata != nil {
-		fields = append(fields, dbgrant.FieldMetadata)
+	if m.annotations != nil {
+		fields = append(fields, dbgrant.FieldAnnotations)
 	}
 	if m.created_at != nil {
 		fields = append(fields, dbgrant.FieldCreatedAt)
@@ -36278,6 +36328,9 @@ func (m *GrantMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, dbgrant.FieldDeletedAt)
+	}
+	if m.metadata != nil {
+		fields = append(fields, dbgrant.FieldMetadata)
 	}
 	if m.entitlement != nil {
 		fields = append(fields, dbgrant.FieldOwnerID)
@@ -36322,14 +36375,16 @@ func (m *GrantMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case dbgrant.FieldNamespace:
 		return m.Namespace()
-	case dbgrant.FieldMetadata:
-		return m.Metadata()
+	case dbgrant.FieldAnnotations:
+		return m.Annotations()
 	case dbgrant.FieldCreatedAt:
 		return m.CreatedAt()
 	case dbgrant.FieldUpdatedAt:
 		return m.UpdatedAt()
 	case dbgrant.FieldDeletedAt:
 		return m.DeletedAt()
+	case dbgrant.FieldMetadata:
+		return m.Metadata()
 	case dbgrant.FieldOwnerID:
 		return m.OwnerID()
 	case dbgrant.FieldAmount:
@@ -36363,14 +36418,16 @@ func (m *GrantMutation) OldField(ctx context.Context, name string) (ent.Value, e
 	switch name {
 	case dbgrant.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case dbgrant.FieldMetadata:
-		return m.OldMetadata(ctx)
+	case dbgrant.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case dbgrant.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case dbgrant.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
 	case dbgrant.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case dbgrant.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case dbgrant.FieldOwnerID:
 		return m.OldOwnerID(ctx)
 	case dbgrant.FieldAmount:
@@ -36409,12 +36466,12 @@ func (m *GrantMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetNamespace(v)
 		return nil
-	case dbgrant.FieldMetadata:
-		v, ok := value.(map[string]string)
+	case dbgrant.FieldAnnotations:
+		v, ok := value.(models.Annotations)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetMetadata(v)
+		m.SetAnnotations(v)
 		return nil
 	case dbgrant.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -36436,6 +36493,13 @@ func (m *GrantMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case dbgrant.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
 		return nil
 	case dbgrant.FieldOwnerID:
 		v, ok := value.(string)
@@ -36595,11 +36659,14 @@ func (m *GrantMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *GrantMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(dbgrant.FieldMetadata) {
-		fields = append(fields, dbgrant.FieldMetadata)
+	if m.FieldCleared(dbgrant.FieldAnnotations) {
+		fields = append(fields, dbgrant.FieldAnnotations)
 	}
 	if m.FieldCleared(dbgrant.FieldDeletedAt) {
 		fields = append(fields, dbgrant.FieldDeletedAt)
+	}
+	if m.FieldCleared(dbgrant.FieldMetadata) {
+		fields = append(fields, dbgrant.FieldMetadata)
 	}
 	if m.FieldCleared(dbgrant.FieldVoidedAt) {
 		fields = append(fields, dbgrant.FieldVoidedAt)
@@ -36624,11 +36691,14 @@ func (m *GrantMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *GrantMutation) ClearField(name string) error {
 	switch name {
-	case dbgrant.FieldMetadata:
-		m.ClearMetadata()
+	case dbgrant.FieldAnnotations:
+		m.ClearAnnotations()
 		return nil
 	case dbgrant.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case dbgrant.FieldMetadata:
+		m.ClearMetadata()
 		return nil
 	case dbgrant.FieldVoidedAt:
 		m.ClearVoidedAt()
@@ -36650,8 +36720,8 @@ func (m *GrantMutation) ResetField(name string) error {
 	case dbgrant.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case dbgrant.FieldMetadata:
-		m.ResetMetadata()
+	case dbgrant.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	case dbgrant.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -36661,6 +36731,9 @@ func (m *GrantMutation) ResetField(name string) error {
 		return nil
 	case dbgrant.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case dbgrant.FieldMetadata:
+		m.ResetMetadata()
 		return nil
 	case dbgrant.FieldOwnerID:
 		m.ResetOwnerID()

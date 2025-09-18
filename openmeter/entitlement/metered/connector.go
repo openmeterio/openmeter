@@ -243,8 +243,8 @@ func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlemen
 			// These two in conjunction make the grant always have `amountToIssue` balance after a reset
 			ResetMaxRollover: amountToIssue,
 			ResetMinRollover: amountToIssue,
-			Metadata: map[string]string{
-				IssueAfterResetMetaTag: "true",
+			Annotations: models.Annotations{
+				IssueAfterResetMetaTag: true,
 			},
 		})
 		if err != nil {
