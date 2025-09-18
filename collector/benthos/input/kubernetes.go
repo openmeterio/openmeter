@@ -205,6 +205,7 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 				// Filter pods based on their status and configuration.
 				shouldInclude := false
 
+				// Most recently observed status of the pod. This data may not be up to date. Populated by the system.
 				switch pod.Status.Phase {
 				case corev1.PodRunning:
 					shouldInclude = true
@@ -212,6 +213,7 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 					shouldInclude = in.includePendingPods
 				// Phase not set, check container statuses
 				case "":
+					in.logger.Warnf("pod %s has no phase", pod.Name)
 					// If all containers are running, treat as running pod
 					if lo.EveryBy(pod.Status.ContainerStatuses, func(cs corev1.ContainerStatus) bool {
 						return cs.State.Running != nil
@@ -226,6 +228,7 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 						shouldInclude = false
 					}
 				default:
+					in.logger.Warnf("pod %s has unknown phase", pod.Name)
 					// Skip pods in other phases (Succeeded, Failed, Unknown)
 					shouldInclude = false
 				}
