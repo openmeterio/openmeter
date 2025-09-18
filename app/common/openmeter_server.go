@@ -91,8 +91,8 @@ func NewServerPublisher(
 	return NewPublisher(ctx, options, logger)
 }
 
-func ServerProvisionTopics(conf config.EventsConfiguration) []pkgkafka.TopicConfig {
-	var provisionTopics []pkgkafka.TopicConfig
+func ServerProvisionTopics(conf config.EventsConfiguration) watermillkafka.ProvisionTopics {
+	var provisionTopics watermillkafka.ProvisionTopics
 
 	if conf.SystemEvents.AutoProvision.Enabled {
 		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{

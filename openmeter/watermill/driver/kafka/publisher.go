@@ -11,9 +11,11 @@ import (
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
+type ProvisionTopics []pkgkafka.TopicConfig
+
 type PublisherOptions struct {
 	Broker           BrokerOptions
-	ProvisionTopics  []pkgkafka.TopicConfig
+	ProvisionTopics  ProvisionTopics
 	TopicProvisioner pkgkafka.TopicProvisioner
 }
 
