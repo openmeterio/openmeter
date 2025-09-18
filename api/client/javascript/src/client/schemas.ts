@@ -5450,13 +5450,19 @@ export interface components {
       readonly archivedAt?: Date
       /**
        * The unique key of the feature
-       * @description A key is a unique string that is used to identify a resource.
+       * @description The unique key of the feature
+       *     Useful to reference the feature in external systems.
+       *     For example, your database ID.
        */
       key: string
-      /** The human-readable name of the feature */
+      /**
+       * The human-readable name of the feature
+       * @description The human-readable name of the feature
+       */
       name: string
       /**
        * Optional metadata
+       * @description Optional metadata
        * @example {
        *       "key": "value"
        *     }
@@ -5464,7 +5470,7 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /**
        * Meter slug
-       * @description A key is a unique string that is used to identify a resource.
+       * @description The meter that the feature is associated with and and based on which usage is calculated.
        * @example tokens_total
        */
       meterSlug?: string
@@ -5493,13 +5499,19 @@ export interface components {
     FeatureCreateInputs: {
       /**
        * The unique key of the feature
-       * @description A key is a unique string that is used to identify a resource.
+       * @description The unique key of the feature
+       *     Useful to reference the feature in external systems.
+       *     For example, your database ID.
        */
       key: string
-      /** The human-readable name of the feature */
+      /**
+       * The human-readable name of the feature
+       * @description The human-readable name of the feature
+       */
       name: string
       /**
        * Optional metadata
+       * @description Optional metadata
        * @example {
        *       "key": "value"
        *     }
@@ -5507,7 +5519,7 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /**
        * Meter slug
-       * @description A key is a unique string that is used to identify a resource.
+       * @description The meter that the feature is associated with and and based on which usage is calculated.
        * @example tokens_total
        */
       meterSlug?: string
