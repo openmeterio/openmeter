@@ -64,17 +64,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	meter := common.NewMeter(meterProvider, commonMetadata)
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
-	v := common.SinkWorkerProvisionTopics(eventsConfiguration)
-	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
-	if err != nil {
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
+	provisionTopics := common.SinkWorkerProvisionTopics(eventsConfiguration)
 	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
-	kafkaTopicProvisionerConfig := common.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
-	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
+	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
 	if err != nil {
 		cleanup3()
 		cleanup2()
@@ -83,7 +75,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	publisherOptions := kafka.PublisherOptions{
 		Broker:           brokerOptions,
-		ProvisionTopics:  v,
+		ProvisionTopics:  provisionTopics,
 		TopicProvisioner: topicProvisioner,
 	}
 	publisher, cleanup4, err := common.NewSinkWorkerPublisher(ctx, publisherOptions, logger)
@@ -112,7 +104,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	tracer := common.NewTracer(tracerProvider, commonMetadata)
-	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
+	v, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -138,7 +130,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, service, manager)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, logger, service, manager)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -156,7 +148,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v3, cleanup5 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v2, cleanup5 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
 	if err != nil {
 		cleanup5()
@@ -198,7 +190,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Metadata:          commonMetadata,
 		Meter:             meter,
 		Streaming:         connector,
-		TelemetryServer:   v3,
+		TelemetryServer:   v2,
 		TopicProvisioner:  topicProvisioner,
 		TopicResolver:     namespacedTopicResolver,
 		Tracer:            tracer,
