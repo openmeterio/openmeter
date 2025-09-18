@@ -38,6 +38,9 @@ func kubernetesResourcesInputConfig() *service.ConfigSpec {
 			service.NewStringField("label_selector").
 				Description("Label selector applied to each list operation.").
 				Optional(),
+			service.NewBoolField("include_pending_pods").
+				Description("Include pods in pending state (not all containers are running). Only applies when resource_type is 'pod'.").
+				Default(false),
 		)
 }
 
@@ -51,11 +54,12 @@ func init() {
 }
 
 type kubernetesResourcesInput struct {
-	namespaces    []string
-	resourceType  string
-	labelSelector labels.Selector
-	logger        *service.Logger
-	resources     *service.Resources
+	namespaces         []string
+	resourceType       string
+	labelSelector      labels.Selector
+	includePendingPods bool
+	logger             *service.Logger
+	resources          *service.Resources
 
 	manager manager.Manager
 	client  client.Client
@@ -77,6 +81,11 @@ func newKubernetesResourcesInput(conf *service.ParsedConfig, res *service.Resour
 	}
 
 	resourceType, err := conf.FieldString("resource_type")
+	if err != nil {
+		return nil, err
+	}
+
+	includePendingPods, err := conf.FieldBool("include_pending_pods")
 	if err != nil {
 		return nil, err
 	}
@@ -132,13 +141,14 @@ func newKubernetesResourcesInput(conf *service.ParsedConfig, res *service.Resour
 	client := mgr.GetClient()
 
 	return &kubernetesResourcesInput{
-		namespaces:    namespaces,
-		labelSelector: selector,
-		resourceType:  resourceType,
-		manager:       mgr,
-		client:        client,
-		logger:        logger,
-		resources:     res,
+		namespaces:         namespaces,
+		labelSelector:      selector,
+		resourceType:       resourceType,
+		includePendingPods: includePendingPods,
+		manager:            mgr,
+		client:             client,
+		logger:             logger,
+		resources:          res,
 	}, nil
 }
 
@@ -192,9 +202,38 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 			}
 
 			for _, pod := range podList.Items {
-				if !lo.EveryBy(pod.Status.ContainerStatuses, func(cs corev1.ContainerStatus) bool {
-					return cs.State.Running != nil
-				}) {
+				// Filter pods based on their status and configuration.
+				shouldInclude := false
+
+				// Most recently observed status of the pod. This data may not be up to date. Populated by the system.
+				switch pod.Status.Phase {
+				case corev1.PodRunning:
+					shouldInclude = true
+				case corev1.PodPending:
+					shouldInclude = in.includePendingPods
+				// Phase not set, check container statuses
+				case "":
+					in.logger.Warnf("pod %s has no phase", pod.Name)
+					// If all containers are running, treat as running pod
+					if lo.EveryBy(pod.Status.ContainerStatuses, func(cs corev1.ContainerStatus) bool {
+						return cs.State.Running != nil
+					}) {
+						shouldInclude = true
+						// If at least one container is running, treat as pending
+					} else if lo.SomeBy(pod.Status.ContainerStatuses, func(cs corev1.ContainerStatus) bool {
+						return cs.State.Running != nil
+					}) {
+						shouldInclude = in.includePendingPods
+					} else {
+						shouldInclude = false
+					}
+				default:
+					in.logger.Warnf("pod %s has unknown phase", pod.Name)
+					// Skip pods in other phases (Succeeded, Failed, Unknown)
+					shouldInclude = false
+				}
+
+				if !shouldInclude {
 					continue
 				}
 
