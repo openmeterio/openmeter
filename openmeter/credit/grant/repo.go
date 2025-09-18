@@ -62,7 +62,7 @@ type RepoCreateInput struct {
 	EffectiveAt      time.Time
 	Expiration       ExpirationPeriod
 	ExpiresAt        time.Time
-	Metadata         map[string]string
+	Annotations      models.Annotations
 	ResetMaxRollover float64
 	ResetMinRollover float64
 	Recurrence       *timeutil.Recurrence

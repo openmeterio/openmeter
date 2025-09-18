@@ -10,6 +10,7 @@ import "..";
 import "./entitlements.tsp";
 import "./customer.tsp";
 import "./grants.tsp";
+import "./grant.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

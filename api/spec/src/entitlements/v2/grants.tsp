@@ -45,5 +45,5 @@ interface Grants {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<GrantOrderBy>,
-  ): OpenMeter.PaginatedResponse<Grant> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<GrantV2> | OpenMeter.CommonErrors;
 }

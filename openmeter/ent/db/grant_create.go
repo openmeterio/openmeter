@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // GrantCreate is the builder for creating a Grant entity.
@@ -32,9 +33,9 @@ func (_c *GrantCreate) SetNamespace(v string) *GrantCreate {
 	return _c
 }
 
-// SetMetadata sets the "metadata" field.
-func (_c *GrantCreate) SetMetadata(v map[string]string) *GrantCreate {
-	_c.mutation.SetMetadata(v)
+// SetAnnotations sets the "annotations" field.
+func (_c *GrantCreate) SetAnnotations(v models.Annotations) *GrantCreate {
+	_c.mutation.SetAnnotations(v)
 	return _c
 }
 
@@ -77,6 +78,12 @@ func (_c *GrantCreate) SetNillableDeletedAt(v *time.Time) *GrantCreate {
 	if v != nil {
 		_c.SetDeletedAt(*v)
 	}
+	return _c
+}
+
+// SetMetadata sets the "metadata" field.
+func (_c *GrantCreate) SetMetadata(v map[string]string) *GrantCreate {
+	_c.mutation.SetMetadata(v)
 	return _c
 }
 
@@ -339,9 +346,9 @@ func (_c *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 		_spec.SetField(dbgrant.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
-		_node.Metadata = value
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(dbgrant.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(dbgrant.FieldCreatedAt, field.TypeTime, value)
@@ -354,6 +361,10 @@ func (_c *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(dbgrant.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.Metadata(); ok {
+		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.Amount(); ok {
 		_spec.SetField(dbgrant.FieldAmount, field.TypeFloat64, value)
@@ -464,21 +475,21 @@ type (
 	}
 )
 
-// SetMetadata sets the "metadata" field.
-func (u *GrantUpsert) SetMetadata(v map[string]string) *GrantUpsert {
-	u.Set(dbgrant.FieldMetadata, v)
+// SetAnnotations sets the "annotations" field.
+func (u *GrantUpsert) SetAnnotations(v models.Annotations) *GrantUpsert {
+	u.Set(dbgrant.FieldAnnotations, v)
 	return u
 }
 
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *GrantUpsert) UpdateMetadata() *GrantUpsert {
-	u.SetExcluded(dbgrant.FieldMetadata)
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *GrantUpsert) UpdateAnnotations() *GrantUpsert {
+	u.SetExcluded(dbgrant.FieldAnnotations)
 	return u
 }
 
-// ClearMetadata clears the value of the "metadata" field.
-func (u *GrantUpsert) ClearMetadata() *GrantUpsert {
-	u.SetNull(dbgrant.FieldMetadata)
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *GrantUpsert) ClearAnnotations() *GrantUpsert {
+	u.SetNull(dbgrant.FieldAnnotations)
 	return u
 }
 
@@ -509,6 +520,24 @@ func (u *GrantUpsert) UpdateDeletedAt() *GrantUpsert {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *GrantUpsert) ClearDeletedAt() *GrantUpsert {
 	u.SetNull(dbgrant.FieldDeletedAt)
+	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *GrantUpsert) SetMetadata(v map[string]string) *GrantUpsert {
+	u.Set(dbgrant.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *GrantUpsert) UpdateMetadata() *GrantUpsert {
+	u.SetExcluded(dbgrant.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *GrantUpsert) ClearMetadata() *GrantUpsert {
+	u.SetNull(dbgrant.FieldMetadata)
 	return u
 }
 
@@ -614,24 +643,24 @@ func (u *GrantUpsertOne) Update(set func(*GrantUpsert)) *GrantUpsertOne {
 	return u
 }
 
-// SetMetadata sets the "metadata" field.
-func (u *GrantUpsertOne) SetMetadata(v map[string]string) *GrantUpsertOne {
+// SetAnnotations sets the "annotations" field.
+func (u *GrantUpsertOne) SetAnnotations(v models.Annotations) *GrantUpsertOne {
 	return u.Update(func(s *GrantUpsert) {
-		s.SetMetadata(v)
+		s.SetAnnotations(v)
 	})
 }
 
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *GrantUpsertOne) UpdateMetadata() *GrantUpsertOne {
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *GrantUpsertOne) UpdateAnnotations() *GrantUpsertOne {
 	return u.Update(func(s *GrantUpsert) {
-		s.UpdateMetadata()
+		s.UpdateAnnotations()
 	})
 }
 
-// ClearMetadata clears the value of the "metadata" field.
-func (u *GrantUpsertOne) ClearMetadata() *GrantUpsertOne {
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *GrantUpsertOne) ClearAnnotations() *GrantUpsertOne {
 	return u.Update(func(s *GrantUpsert) {
-		s.ClearMetadata()
+		s.ClearAnnotations()
 	})
 }
 
@@ -667,6 +696,27 @@ func (u *GrantUpsertOne) UpdateDeletedAt() *GrantUpsertOne {
 func (u *GrantUpsertOne) ClearDeletedAt() *GrantUpsertOne {
 	return u.Update(func(s *GrantUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *GrantUpsertOne) SetMetadata(v map[string]string) *GrantUpsertOne {
+	return u.Update(func(s *GrantUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *GrantUpsertOne) UpdateMetadata() *GrantUpsertOne {
+	return u.Update(func(s *GrantUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *GrantUpsertOne) ClearMetadata() *GrantUpsertOne {
+	return u.Update(func(s *GrantUpsert) {
+		s.ClearMetadata()
 	})
 }
 
@@ -942,24 +992,24 @@ func (u *GrantUpsertBulk) Update(set func(*GrantUpsert)) *GrantUpsertBulk {
 	return u
 }
 
-// SetMetadata sets the "metadata" field.
-func (u *GrantUpsertBulk) SetMetadata(v map[string]string) *GrantUpsertBulk {
+// SetAnnotations sets the "annotations" field.
+func (u *GrantUpsertBulk) SetAnnotations(v models.Annotations) *GrantUpsertBulk {
 	return u.Update(func(s *GrantUpsert) {
-		s.SetMetadata(v)
+		s.SetAnnotations(v)
 	})
 }
 
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *GrantUpsertBulk) UpdateMetadata() *GrantUpsertBulk {
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *GrantUpsertBulk) UpdateAnnotations() *GrantUpsertBulk {
 	return u.Update(func(s *GrantUpsert) {
-		s.UpdateMetadata()
+		s.UpdateAnnotations()
 	})
 }
 
-// ClearMetadata clears the value of the "metadata" field.
-func (u *GrantUpsertBulk) ClearMetadata() *GrantUpsertBulk {
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *GrantUpsertBulk) ClearAnnotations() *GrantUpsertBulk {
 	return u.Update(func(s *GrantUpsert) {
-		s.ClearMetadata()
+		s.ClearAnnotations()
 	})
 }
 
@@ -995,6 +1045,27 @@ func (u *GrantUpsertBulk) UpdateDeletedAt() *GrantUpsertBulk {
 func (u *GrantUpsertBulk) ClearDeletedAt() *GrantUpsertBulk {
 	return u.Update(func(s *GrantUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *GrantUpsertBulk) SetMetadata(v map[string]string) *GrantUpsertBulk {
+	return u.Update(func(s *GrantUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *GrantUpsertBulk) UpdateMetadata() *GrantUpsertBulk {
+	return u.Update(func(s *GrantUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *GrantUpsertBulk) ClearMetadata() *GrantUpsertBulk {
+	return u.Update(func(s *GrantUpsert) {
+		s.ClearMetadata()
 	})
 }
 

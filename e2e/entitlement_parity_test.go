@@ -233,7 +233,7 @@ func TestEntitlementParitySuite(t *testing.T) {
 		}
 
 		// v2 list grants for subject entitlement (by feature key)
-		var v2GrantsForV1Entitlement api.GrantPaginatedResponse
+		var v2GrantsForV1Entitlement api.GrantV2PaginatedResponse
 		{
 			resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, customerID, feature1Key, &api.ListCustomerEntitlementGrantsV2Params{})
 			require.NoError(t, err)
@@ -243,7 +243,7 @@ func TestEntitlementParitySuite(t *testing.T) {
 		}
 
 		// v2 list grants for v2 entitlement (by feature key)
-		var v2Grants api.GrantPaginatedResponse
+		var v2Grants api.GrantV2PaginatedResponse
 		{
 			resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, customerID, customerEntitlementFeatureKey, &api.ListCustomerEntitlementGrantsV2Params{})
 			require.NoError(t, err)

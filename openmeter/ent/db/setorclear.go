@@ -2183,18 +2183,18 @@ func (u *FeatureUpdateOne) SetOrClearArchivedAt(value *time.Time) *FeatureUpdate
 	return u.SetArchivedAt(*value)
 }
 
-func (u *GrantUpdate) SetOrClearMetadata(value *map[string]string) *GrantUpdate {
+func (u *GrantUpdate) SetOrClearAnnotations(value *models.Annotations) *GrantUpdate {
 	if value == nil {
-		return u.ClearMetadata()
+		return u.ClearAnnotations()
 	}
-	return u.SetMetadata(*value)
+	return u.SetAnnotations(*value)
 }
 
-func (u *GrantUpdateOne) SetOrClearMetadata(value *map[string]string) *GrantUpdateOne {
+func (u *GrantUpdateOne) SetOrClearAnnotations(value *models.Annotations) *GrantUpdateOne {
 	if value == nil {
-		return u.ClearMetadata()
+		return u.ClearAnnotations()
 	}
-	return u.SetMetadata(*value)
+	return u.SetAnnotations(*value)
 }
 
 func (u *GrantUpdate) SetOrClearDeletedAt(value *time.Time) *GrantUpdate {
@@ -2209,6 +2209,20 @@ func (u *GrantUpdateOne) SetOrClearDeletedAt(value *time.Time) *GrantUpdateOne {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *GrantUpdate) SetOrClearMetadata(value *map[string]string) *GrantUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *GrantUpdateOne) SetOrClearMetadata(value *map[string]string) *GrantUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
 }
 
 func (u *GrantUpdate) SetOrClearVoidedAt(value *time.Time) *GrantUpdate {

@@ -202,14 +202,14 @@ func NamespaceContainsFold(v string) predicate.Grant {
 	return predicate.Grant(sql.FieldContainsFold(FieldNamespace, v))
 }
 
-// MetadataIsNil applies the IsNil predicate on the "metadata" field.
-func MetadataIsNil() predicate.Grant {
-	return predicate.Grant(sql.FieldIsNull(FieldMetadata))
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.Grant {
+	return predicate.Grant(sql.FieldIsNull(FieldAnnotations))
 }
 
-// MetadataNotNil applies the NotNil predicate on the "metadata" field.
-func MetadataNotNil() predicate.Grant {
-	return predicate.Grant(sql.FieldNotNull(FieldMetadata))
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.Grant {
+	return predicate.Grant(sql.FieldNotNull(FieldAnnotations))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -340,6 +340,16 @@ func DeletedAtIsNil() predicate.Grant {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.Grant {
 	return predicate.Grant(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.Grant {
+	return predicate.Grant(sql.FieldIsNull(FieldMetadata))
+}
+
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.Grant {
+	return predicate.Grant(sql.FieldNotNull(FieldMetadata))
 }
 
 // OwnerIDEQ applies the EQ predicate on the "owner_id" field.

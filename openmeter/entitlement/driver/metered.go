@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -112,7 +114,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			}
 
 			if apiGrant.Metadata != nil {
-				req.GrantInput.Metadata = *apiGrant.Metadata
+				req.GrantInput.Annotations = AnnotationsFromMetadata(lo.FromPtr(apiGrant.Metadata))
 			}
 
 			if apiGrant.Recurrence != nil {
@@ -440,7 +442,7 @@ func MapEntitlementGrantToAPI(grant *meteredentitlement.EntitlementGrant) api.En
 			Duration: api.ExpirationDuration(grant.Expiration.Duration),
 		},
 		Id:                grant.ID,
-		Metadata:          &grant.Metadata,
+		Metadata:          MetadataFromAnnotations(grant.Annotations),
 		Priority:          convert.ToPointer(grant.Priority),
 		UpdatedAt:         grant.UpdatedAt,
 		DeletedAt:         grant.DeletedAt,
@@ -461,4 +463,34 @@ func MapEntitlementGrantToAPI(grant *meteredentitlement.EntitlementGrant) api.En
 	}
 
 	return apiGrant
+}
+
+func MetadataFromAnnotations(annotations models.Annotations) *api.Metadata {
+	if len(annotations) == 0 {
+		return nil
+	}
+
+	result := make(api.Metadata)
+	if len(annotations) > 0 {
+		for k, v := range annotations {
+			result[k] = fmt.Sprintf("%v", v)
+		}
+	}
+
+	return &result
+}
+
+func AnnotationsFromMetadata(metadata api.Metadata) models.Annotations {
+	if len(metadata) == 0 {
+		return nil
+	}
+
+	result := make(models.Annotations)
+	if len(metadata) > 0 {
+		for k, v := range metadata {
+			result[k] = v
+		}
+	}
+
+	return result
 }

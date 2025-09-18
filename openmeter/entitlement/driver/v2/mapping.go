@@ -87,11 +87,19 @@ func (parserV2) ToMeteredV2(m *meteredentitlement.Entitlement, e *entitlement.En
 		FeatureKey:         m.FeatureKey,
 		Id:                 m.ID,
 		IsSoftLimit:        convert.ToPointer(m.IsSoftLimit),
-		IsUnlimited:        convert.ToPointer(false),
 		IssueAfterReset:    convert.SafeDeRef(m.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *float64 { return &i.Amount }),
 		IssueAfterResetPriority: convert.SafeDeRef(m.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *uint8 {
 			return convert.SafeDeRef(i.Priority, func(p uint8) *uint8 { return &p })
 		}),
+		Issue: func() *api.IssueAfterReset {
+			if m.IssueAfterReset != nil {
+				return &api.IssueAfterReset{
+					Amount:   m.IssueAfterReset.Amount,
+					Priority: m.IssueAfterReset.Priority,
+				}
+			}
+			return nil
+		}(),
 		LastReset:              m.LastReset,
 		MeasureUsageFrom:       m.MeasureUsageFrom,
 		Metadata:               convert.MapToPointer(m.Metadata),
@@ -177,4 +185,37 @@ func mapPeriodValue(p *timeutil.ClosedPeriod) api.Period {
 		return api.Period{}
 	}
 	return api.Period{From: p.From, To: p.To}
+}
+
+func MapEntitlementGrantToAPIV2(grant *meteredentitlement.EntitlementGrant) api.EntitlementGrantV2 {
+	apiGrant := api.EntitlementGrantV2{
+		Amount:      grant.Amount,
+		CreatedAt:   grant.CreatedAt,
+		EffectiveAt: grant.EffectiveAt,
+		Expiration: api.ExpirationPeriod{
+			Count:    grant.Expiration.Count,
+			Duration: api.ExpirationDuration(grant.Expiration.Duration),
+		},
+		Id:                grant.ID,
+		Annotations:       lo.ToPtr(api.Annotations(grant.Annotations)),
+		Priority:          convert.ToPointer(grant.Priority),
+		UpdatedAt:         grant.UpdatedAt,
+		DeletedAt:         grant.DeletedAt,
+		EntitlementId:     grant.EntitlementID,
+		ExpiresAt:         &grant.ExpiresAt,
+		MaxRolloverAmount: &grant.MaxRolloverAmount,
+		MinRolloverAmount: &grant.MinRolloverAmount,
+		NextRecurrence:    grant.NextRecurrence,
+		VoidedAt:          grant.VoidedAt,
+	}
+
+	if grant.Recurrence != nil {
+		apiGrant.Recurrence = &api.RecurringPeriod{
+			Anchor:      grant.Recurrence.Anchor,
+			Interval:    entitlementdriver.MapRecurrenceToAPI(grant.Recurrence.Interval),
+			IntervalISO: grant.Recurrence.Interval.ISOString().String(),
+		}
+	}
+
+	return apiGrant
 }

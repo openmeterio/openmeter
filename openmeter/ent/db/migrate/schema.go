@@ -1570,10 +1570,11 @@ var (
 	GrantsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
-		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "amount", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "priority", Type: field.TypeUint8, Default: 0},
 		{Name: "effective_at", Type: field.TypeTime},
@@ -1594,7 +1595,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "grants_entitlements_grant",
-				Columns:    []*schema.Column{GrantsColumns[16]},
+				Columns:    []*schema.Column{GrantsColumns[17]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -1611,14 +1612,24 @@ var (
 				Columns: []*schema.Column{GrantsColumns[1]},
 			},
 			{
+				Name:    "grant_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{GrantsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
 				Name:    "grant_namespace_owner_id",
 				Unique:  false,
-				Columns: []*schema.Column{GrantsColumns[1], GrantsColumns[16]},
+				Columns: []*schema.Column{GrantsColumns[1], GrantsColumns[17]},
 			},
 			{
 				Name:    "grant_effective_at_expires_at",
 				Unique:  false,
-				Columns: []*schema.Column{GrantsColumns[8], GrantsColumns[10]},
+				Columns: []*schema.Column{GrantsColumns[9], GrantsColumns[11]},
 			},
 		},
 	}
