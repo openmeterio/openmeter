@@ -36,7 +36,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/huandu/go-sqlbuilder v1.36.1
+	github.com/huandu/go-sqlbuilder v1.37.0
 	github.com/invopop/gobl v0.300.1
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/jmattheis/goverter v1.9.2
@@ -145,6 +145,7 @@ require (
 	github.com/googleapis/go-sql-spanner v1.16.0 // indirect
 	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect
 	github.com/hamba/avro/v2 v2.29.0 // indirect
+	github.com/huandu/go-clone v1.7.3 // indirect
 	github.com/invopop/validation v0.8.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jcmturner/goidentity/v6 v6.0.1 // indirect
