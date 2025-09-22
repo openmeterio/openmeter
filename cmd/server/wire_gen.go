@@ -105,7 +105,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
 	eventsConfiguration := conf.Events
 	v := common.ServerProvisionTopics(eventsConfiguration)
-	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
+	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisioner
 	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
 	if err != nil {
 		cleanup5()

@@ -30,7 +30,7 @@ func (c IngestConfiguration) Validate() error {
 type KafkaIngestConfiguration struct {
 	KafkaConfiguration `mapstructure:",squash"`
 
-	TopicProvisionerConfig `mapstructure:",squash"`
+	TopicProvisioner TopicProvisionerConfig
 
 	Partitions          int
 	EventsTopicTemplate string
@@ -51,7 +51,7 @@ func (c KafkaIngestConfiguration) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if err := c.TopicProvisionerConfig.Validate(); err != nil {
+	if err := c.TopicProvisioner.Validate(); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -171,5 +171,5 @@ func ConfigureIngest(v *viper.Viper) {
 	v.SetDefault("ingest.kafka.eventsTopicTemplate", "om_%s_events")
 	v.SetDefault("ingest.kafka.namespaceDeletionEnabled", false)
 
-	ConfigureTopicProvisioner(v, "ingest", "kafka")
+	ConfigureTopicProvisioner(v, "ingest", "kafka", "topicProvisioner")
 }

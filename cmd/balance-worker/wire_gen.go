@@ -80,7 +80,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v := common.BalanceWorkerProvisionTopics(balanceWorkerConfiguration)
-	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
+	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisioner
 	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
 	if err != nil {
 		cleanup5()
