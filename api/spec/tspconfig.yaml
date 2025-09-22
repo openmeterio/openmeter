@@ -1,12 +1,29 @@
 emit:
   - '@typespec/openapi3'
+  - '@typespec/http-client-python'
 parameters:
   base-dir:
     default: '{cwd}'
+  client-dir:
+    default: '{project-root}/client'
 output-dir: '{base-dir}'
 options:
   '@typespec/openapi3':
     emitter-output-dir: '{output-dir}/output'
+  '@typespec/http-client-python':
+    # Emitter
+    emitter-output-dir: '{client-dir}/python'
+
+    # Packaging
+    generate-packaging-files: true
+
+    # Packaging
+    package-pprint-name: OpenMeter
+    package-name: openmeter
+    namespace: openmeter
+    package-version: 2.0.0-alpha.1
+    license:
+      name: 'Apache 2.0'
 linter:
   extends:
     - '@openmeter/api-spec/all'
