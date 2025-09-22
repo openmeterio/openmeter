@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 // the sink-worker requires control over how the publisher is closed
@@ -55,8 +56,8 @@ func NewFlushHandler(
 	return flushHandlerMux, nil
 }
 
-func SinkWorkerProvisionTopics(conf config.EventsConfiguration) watermillkafka.ProvisionTopics {
-	return watermillkafka.ProvisionTopics{
+func SinkWorkerProvisionTopics(conf config.EventsConfiguration) []pkgkafka.TopicConfig {
+	return []pkgkafka.TopicConfig{
 		{
 			Name:       conf.IngestEvents.Topic,
 			Partitions: conf.IngestEvents.AutoProvision.Partitions,

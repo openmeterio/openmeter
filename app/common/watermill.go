@@ -13,6 +13,7 @@ import (
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 var Watermill = wire.NewSet(
@@ -92,6 +93,6 @@ func NewEventBusPublisher(
 	return eventBusPublisher, nil
 }
 
-func NewEmptyProvisionTopics() watermillkafka.ProvisionTopics {
-	return watermillkafka.ProvisionTopics{}
+func NewEmptyProvisionTopics() []pkgkafka.TopicConfig {
+	return []pkgkafka.TopicConfig{}
 }

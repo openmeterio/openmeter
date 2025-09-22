@@ -104,7 +104,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
 	eventsConfiguration := conf.Events
-	provisionTopics := common.ServerProvisionTopics(eventsConfiguration)
+	v := common.ServerProvisionTopics(eventsConfiguration)
 	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
 	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
 	if err != nil {
@@ -117,7 +117,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	publisherOptions := kafka.PublisherOptions{
 		Broker:           brokerOptions,
-		ProvisionTopics:  provisionTopics,
+		ProvisionTopics:  v,
 		TopicProvisioner: topicProvisioner,
 	}
 	publisher, cleanup6, err := common.NewServerPublisher(ctx, publisherOptions, logger)
@@ -186,7 +186,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
+	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -207,7 +207,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, logger, progressmanagerService, manager)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, progressmanagerService, manager)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -457,9 +457,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v2 := conf.Meters
+	v3 := conf.Meters
 	manageService := common.NewMeterManageService(adapter, manager, eventbusPublisher)
-	v3 := common.NewMeterConfigInitializer(logger, v2, manageService, manager)
+	v4 := common.NewMeterConfigInitializer(logger, v3, manageService, manager)
 	metereventService := common.NewMeterEventService(connector, customerService, service)
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
@@ -474,8 +474,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	notificationConfiguration := conf.Notification
 	webhookConfiguration := notificationConfiguration.Webhook
-	v4 := conf.Svix
-	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v4)
+	v5 := conf.Svix
+	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v5)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -522,9 +522,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v5 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
-	routerHooks := common.NewRouterHooks(v5)
-	v6, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
+	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	routerHooks := common.NewRouterHooks(v6)
+	v7, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -536,7 +536,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v7, err := common.NewSubjectEntitlementValidatorHook(logger, entitlement, subjectService)
+	v8, err := common.NewSubjectEntitlementValidatorHook(logger, entitlement, subjectService)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -562,7 +562,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v8, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v9, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -598,7 +598,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaIngestNamespaceHandler:      namespaceHandler,
 		Logger:                           logger,
 		MetricMeter:                      meter,
-		MeterConfigInitializer:           v3,
+		MeterConfigInitializer:           v4,
 		MeterManageService:               manageService,
 		MeterEventService:                metereventService,
 		NamespaceManager:                 manager,
@@ -610,11 +610,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RouterHooks:                      routerHooks,
 		Secret:                           secretserviceService,
 		SubjectService:                   subjectService,
-		SubjectCustomerHook:              v6,
-		SubjectEntitlementValidatorHook:  v7,
+		SubjectCustomerHook:              v7,
+		SubjectEntitlementValidatorHook:  v8,
 		Subscription:                     subscriptionServiceWithWorkflow,
 		StreamingConnector:               connector,
-		TelemetryServer:                  v8,
+		TelemetryServer:                  v9,
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,

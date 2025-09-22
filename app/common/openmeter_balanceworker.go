@@ -50,8 +50,8 @@ func NewBalanceWorkerEntitlementRepo(db *db.Client) BalanceWorkerEntitlementRepo
 	return entitlementadapter.NewPostgresEntitlementRepo(db)
 }
 
-func BalanceWorkerProvisionTopics(conf config.BalanceWorkerConfiguration) watermillkafka.ProvisionTopics {
-	var provisionTopics watermillkafka.ProvisionTopics
+func BalanceWorkerProvisionTopics(conf config.BalanceWorkerConfiguration) []pkgkafka.TopicConfig {
+	var provisionTopics []pkgkafka.TopicConfig
 
 	if conf.DLQ.AutoProvision.Enabled {
 		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{

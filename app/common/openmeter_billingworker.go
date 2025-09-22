@@ -42,8 +42,8 @@ var BillingWorker = wire.NewSet(
 	BillingWorkerGroup,
 )
 
-func BillingWorkerProvisionTopics(conf config.BillingConfiguration) watermillkafka.ProvisionTopics {
-	var provisionTopics watermillkafka.ProvisionTopics
+func BillingWorkerProvisionTopics(conf config.BillingConfiguration) []pkgkafka.TopicConfig {
+	var provisionTopics []pkgkafka.TopicConfig
 
 	if conf.Worker.DLQ.AutoProvision.Enabled {
 		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
