@@ -19,10 +19,17 @@ type TopicProvisionerConfig struct {
 
 	// ProtectedTopics defines a list of topics which are protected from deletion.
 	ProtectedTopics []string
+
+	// Enabled defines whether topic provisioning is enabled or not.
+	Enabled bool
 }
 
 func (c TopicProvisionerConfig) Validate() error {
 	var errs []error
+
+	if !c.Enabled {
+		return nil
+	}
 
 	if c.CacheSize < 0 {
 		errs = append(errs, fmt.Errorf("invalid cache size: %d", c.CacheSize))
@@ -42,4 +49,5 @@ func ConfigureTopicProvisioner(v *viper.Viper, prefixes ...string) {
 	v.SetDefault(prefixer("cacheSize"), 250)
 	v.SetDefault(prefixer("cacheTTL"), "5m")
 	v.SetDefault(prefixer("protectedTopics"), nil)
+	v.SetDefault(prefixer("enabled"), true)
 }

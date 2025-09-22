@@ -65,16 +65,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	meter := common.NewMeter(meterProvider, commonMetadata)
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
 	v := common.SinkWorkerProvisionTopics(eventsConfiguration)
-	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
-	if err != nil {
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
-	kafkaTopicProvisionerConfig := common.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
-	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
+	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
 	if err != nil {
 		cleanup3()
 		cleanup2()

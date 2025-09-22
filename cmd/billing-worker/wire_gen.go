@@ -83,18 +83,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v := common.BillingWorkerProvisionTopics(billingConfiguration)
-	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
-	if err != nil {
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
-	kafkaTopicProvisionerConfig := common.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
-	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
+	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
 	if err != nil {
 		cleanup5()
 		cleanup4()

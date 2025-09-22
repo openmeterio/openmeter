@@ -42,6 +42,18 @@ type AdminClient interface {
 	DeleteTopics(ctx context.Context, topics []string, options ...kafka.DeleteTopicsAdminOption) ([]kafka.TopicResult, error)
 }
 
+type TopicProvisionerNoop struct{}
+
+var _ TopicProvisioner = (*TopicProvisionerNoop)(nil)
+
+func (t *TopicProvisionerNoop) Provision(ctx context.Context, topics ...TopicConfig) error {
+	return nil
+}
+
+func (t *TopicProvisionerNoop) DeProvision(ctx context.Context, topics ...string) error {
+	return nil
+}
+
 type TopicProvisionerConfig struct {
 	AdminClient AdminClient
 	Logger      *slog.Logger
