@@ -159,6 +159,4 @@ func GrantFromCreditGrant(grant grant.Grant, now time.Time) (*EntitlementGrant, 
 	return g, nil
 }
 
-type CreateEntitlementGrantInputs struct {
-	credit.CreateGrantInput
-}
+type CreateEntitlementGrantInputs = entitlement.CreateEntitlementGrantInputs

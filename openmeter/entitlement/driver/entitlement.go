@@ -108,7 +108,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 
 			request.Inputs.UsageAttribution = cust.GetUsageAttribution()
 
-			res, err := h.connector.CreateEntitlement(ctx, request.Inputs)
+			res, err := h.connector.CreateEntitlement(ctx, request.Inputs, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -172,7 +172,7 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 
 			request.Inputs.UsageAttribution = cust.GetUsageAttribution()
 
-			res, err := h.connector.OverrideEntitlement(ctx, cust.ID, request.EntitlementIdOrFeatureKey, request.Inputs)
+			res, err := h.connector.OverrideEntitlement(ctx, cust.ID, request.EntitlementIdOrFeatureKey, request.Inputs, nil)
 			if err != nil {
 				return nil, err
 			}

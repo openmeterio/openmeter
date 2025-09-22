@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -26,7 +27,7 @@ type ServiceConfig struct {
 	FeatureConnector feature.FeatureConnector
 	MeterService     meter.Service
 
-	MeteredEntitlementConnector entitlement.SubTypeConnector
+	MeteredEntitlementConnector meteredentitlement.Connector
 	StaticEntitlementConnector  entitlement.SubTypeConnector
 	BooleanEntitlementConnector entitlement.SubTypeConnector
 
@@ -35,7 +36,7 @@ type ServiceConfig struct {
 }
 
 type service struct {
-	meteredEntitlementConnector entitlement.SubTypeConnector
+	meteredEntitlementConnector meteredentitlement.Connector
 	staticEntitlementConnector  entitlement.SubTypeConnector
 	booleanEntitlementConnector entitlement.SubTypeConnector
 
@@ -65,43 +66,79 @@ func NewEntitlementService(
 		meterService:                config.MeterService,
 		publisher:                   config.Publisher,
 		locker:                      config.Locker,
-		hooks:                       models.ServiceHookRegistry[entitlement.Entitlement]{},
 	}
 }
 
-func (c *service) CreateEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
-	if input.ActiveTo != nil || input.ActiveFrom != nil {
-		return nil, fmt.Errorf("activeTo and activeFrom are not supported in CreateEntitlement")
-	}
-	return c.ScheduleEntitlement(ctx, input)
+func (c *service) CreateEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs, grants []entitlement.CreateEntitlementGrantInputs) (*entitlement.Entitlement, error) {
+	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*entitlement.Entitlement, error) {
+		if input.ActiveTo != nil || input.ActiveFrom != nil {
+			return nil, fmt.Errorf("activeTo and activeFrom are not supported in CreateEntitlement")
+		}
+
+		if len(grants) > 0 && input.EntitlementType != entitlement.EntitlementTypeMetered {
+			return nil, entitlement.ErrEntitlementGrantsOnlySupportedForMeteredEntitlements.WithAttr("entitlement_type", input.EntitlementType).WithAttr("grants", grants)
+		}
+
+		ent, err := c.ScheduleEntitlement(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, grant := range grants {
+			_, err := c.meteredEntitlementConnector.CreateGrant(ctx, ent.Namespace, ent.Customer.ID, ent.ID, grant)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return ent, nil
+	})
 }
 
 // OverrideEntitlement replaces an existing entitlement with a new one.
-func (c *service) OverrideEntitlement(ctx context.Context, customerID string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
-	// Validate customer match in input
-	if customerID != input.UsageAttribution.ID {
-		return nil, entitlement.ErrEntitlementCreatePropertyMismatch.WithAttr("customer_id", customerID).WithAttr("usage_attribution_id", input.UsageAttribution.ID)
-	}
+func (c *service) OverrideEntitlement(ctx context.Context, customerID string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs, grants []entitlement.CreateEntitlementGrantInputs) (*entitlement.Entitlement, error) {
+	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*entitlement.Entitlement, error) {
+		// Validate customer match in input
+		if customerID != input.UsageAttribution.ID {
+			return nil, entitlement.ErrEntitlementCreatePropertyMismatch.WithAttr("customer_id", customerID).WithAttr("usage_attribution_id", input.UsageAttribution.ID)
+		}
 
-	// Find the entitlement to override
-	oldEnt, err := c.GetEntitlementOfCustomerAt(ctx, input.Namespace, customerID, entitlementIdOrFeatureKey, clock.Now())
-	if err != nil {
-		return nil, err
-	}
+		if len(grants) > 0 && input.EntitlementType != entitlement.EntitlementTypeMetered {
+			return nil, entitlement.ErrEntitlementGrantsOnlySupportedForMeteredEntitlements.WithAttr("entitlement_type", input.EntitlementType).WithAttr("grants", grants)
+		}
 
-	if oldEnt == nil {
-		return nil, fmt.Errorf("inconsistency error, entitlement not found: %s", entitlementIdOrFeatureKey)
-	}
+		// Find the entitlement to override
+		oldEnt, err := c.GetEntitlementOfCustomerAt(ctx, input.Namespace, customerID, entitlementIdOrFeatureKey, clock.Now())
+		if err != nil {
+			return nil, err
+		}
 
-	if oldEnt.DeletedAt != nil {
-		return nil, models.NewGenericValidationError(fmt.Errorf("entitlement already deleted: %s", oldEnt.ID))
-	}
+		if oldEnt == nil {
+			return nil, fmt.Errorf("inconsistency error, entitlement not found: %s", entitlementIdOrFeatureKey)
+		}
 
-	if input.ActiveFrom != nil || input.ActiveTo != nil {
-		return nil, models.NewGenericValidationError(fmt.Errorf("the ActiveFrom and ActiveTo are not supported in OverrideEntitlement"))
-	}
+		if oldEnt.DeletedAt != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("entitlement already deleted: %s", oldEnt.ID))
+		}
 
-	return c.SupersedeEntitlement(ctx, oldEnt.ID, input)
+		if input.ActiveFrom != nil || input.ActiveTo != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("the ActiveFrom and ActiveTo are not supported in OverrideEntitlement"))
+		}
+
+		ent, err := c.SupersedeEntitlement(ctx, oldEnt.ID, input)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, grant := range grants {
+			_, err := c.meteredEntitlementConnector.CreateGrant(ctx, ent.Namespace, ent.Customer.ID, ent.ID, grant)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return ent, nil
+	})
 }
 
 func (c *service) GetEntitlement(ctx context.Context, namespace string, id string) (*entitlement.Entitlement, error) {

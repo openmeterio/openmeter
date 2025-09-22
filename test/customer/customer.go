@@ -862,7 +862,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 		FeatureID:        lo.ToPtr(feature.ID),
 		EntitlementType:  entitlement.EntitlementTypeBoolean,
 		UsageAttribution: createdCustomer.GetUsageAttribution(),
-	})
+	}, nil)
 	require.NoError(t, err, "Creating entitlement must not return error")
 	require.NotNil(t, entitlement, "Entitlement must not be nil")
 

@@ -57,7 +57,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-06-28T14:48:00Z"),
 		})),
-	})
+	}, nil)
 	assert.NoError(err)
 	assert.NotNil(entitlement)
 
@@ -208,7 +208,7 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-02T09:41:00Z"),
 		})),
-	})
+	}, nil)
 	assert.NoError(err)
 	assert.NotNil(entitlement)
 
@@ -312,7 +312,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
 		})),
-	})
+	}, nil)
 	assert.NoError(err)
 	assert.NotNil(entitlement)
 
@@ -415,7 +415,7 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
 		})),
-	})
+	}, nil)
 	assert.NoError(err)
 	assert.NotNil(ent)
 
@@ -453,7 +453,7 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
 		})),
-	})
+	}, nil)
 	assert.NoError(err)
 	assert.NotNil(ent2)
 }
@@ -490,7 +490,7 @@ func TestGrantingAfterOverage(t *testing.T) {
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
 		})),
-	})
+	}, nil)
 	assert.NoError(err)
 	assert.NotNil(ent)
 

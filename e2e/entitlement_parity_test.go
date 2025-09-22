@@ -415,25 +415,23 @@ func TestEntitlementDifferences(t *testing.T) {
 					Anchor:   anchor,
 					Interval: *month,
 				},
+				Grants: &[]api.EntitlementGrantCreateInputV2{
+					{
+						Amount:      100,
+						EffectiveAt: time.Now().Truncate(time.Minute).Add(time.Minute),
+						Expiration:  nil,
+					},
+				},
 			}
 			var body api.CreateCustomerEntitlementV2JSONRequestBody
 			require.NoError(t, body.FromEntitlementMeteredV2CreateInputs(metered))
 
-			// Let's create an entitlement
-			entRes, err := client.CreateCustomerEntitlementV2WithResponse(ctx, api.ULIDOrExternalKey(customerID), body)
+			// Let's create an entitlement with a grant
+			entRes, err := client.CreateCustomerEntitlementV2WithResponse(ctx, customerID, body)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusCreated, entRes.StatusCode(), "Invalid status code [response_body=%s]", string(entRes.Body))
 
-			// Let's create a grant
-			grantRes, err := client.CreateCustomerEntitlementGrantV2WithResponse(ctx, api.ULIDOrExternalKey(customerID), feature1Key, api.CreateCustomerEntitlementGrantV2JSONRequestBody{
-				Amount:      100,
-				EffectiveAt: time.Now().Truncate(time.Minute).Add(time.Minute),
-				Expiration:  nil,
-			})
-			require.NoError(t, err)
-			require.Equal(t, http.StatusCreated, grantRes.StatusCode(), "Invalid status code [response_body=%s]", string(grantRes.Body))
-
-			v2EntGrants, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, api.ULIDOrExternalKey(customerID), feature1Key, &api.ListCustomerEntitlementGrantsV2Params{})
+			v2EntGrants, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, customerID, feature1Key, &api.ListCustomerEntitlementGrantsV2Params{})
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, v2EntGrants.StatusCode(), "Invalid status code [response_body=%s]", string(v2EntGrants.Body))
 

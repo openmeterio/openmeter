@@ -19,6 +19,7 @@ func (*NoAccessValue) HasAccess() bool {
 	return false
 }
 
+// FIXME[galexi]: we can get rid of this concept due to better hierarchy
 type SubTypeConnector interface {
 	GetValue(ctx context.Context, entitlement *Entitlement, at time.Time) (EntitlementValue, error)
 
