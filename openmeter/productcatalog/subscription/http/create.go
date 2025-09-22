@@ -83,7 +83,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				}
 
 				// Get the customer
-				customer, err := h.getCustomer(ctx, ns, parsedBody.CustomerId, parsedBody.CustomerKey)
+				cus, err := h.getCustomer(ctx, ns, parsedBody.CustomerId, parsedBody.CustomerKey)
 				if err != nil {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to get customer: %w", err)
 				}
@@ -99,7 +99,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 							},
 						},
 						Namespace:     ns,
-						CustomerID:    customer.ID,
+						CustomerID:    cus.ID,
 						BillingAnchor: parsedBody.BillingAnchor,
 					},
 					PlanInput: plan,
@@ -170,39 +170,36 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 
 // getCustomer gets a customer by ID or key.
 func (h *handler) getCustomer(ctx context.Context, namespace string, id *string, key *string) (*customer.Customer, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("namespace is required")
-	}
-
-	if id == nil && key == nil {
-		return nil, fmt.Errorf("id or key is required")
-	}
-
 	var (
 		cus *customer.Customer
 		err error
 	)
 
-	if id != nil {
+	switch {
+	case id != nil && *id != "":
 		cus, err = h.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 			CustomerID: &customer.CustomerID{
 				ID:        *id,
 				Namespace: namespace,
 			},
 		})
-	}
+		if err != nil {
+			return nil, fmt.Errorf("failed to lookup customer by id [namespace=%s customer.id=%s]: %w", namespace, *id, err)
+		}
 
-	if key != nil {
+	case key != nil && *key != "":
 		cus, err = h.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 			CustomerKey: &customer.CustomerKey{
 				Key:       *key,
 				Namespace: namespace,
 			},
 		})
-	}
+		if err != nil {
+			return nil, fmt.Errorf("failed to lookup customer by key [namespace=%s customer.id=%s]: %w", namespace, *key, err)
+		}
 
-	if err != nil {
-		return nil, err
+	default:
+		return nil, models.NewGenericValidationError(fmt.Errorf("customer id or key is required"))
 	}
 
 	if cus != nil && cus.IsDeleted() {
@@ -211,5 +208,5 @@ func (h *handler) getCustomer(ctx context.Context, namespace string, id *string,
 		)
 	}
 
-	return cus, nil
+	return cus, err
 }
