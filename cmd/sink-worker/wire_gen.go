@@ -31,7 +31,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	telemetryConfig := conf.Telemetry
 	logTelemetryConfig := telemetryConfig.Log
 	commonMetadata := metadata(conf)
-	resource := common.NewTelemetryResource(commonMetadata)
+	resource := common.NewTelemetryResource(commonMetadata, telemetryConfig)
 	loggerProvider, cleanup, err := common.NewLoggerProvider(ctx, logTelemetryConfig, resource)
 	if err != nil {
 		return Application{}, nil, err
