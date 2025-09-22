@@ -121,6 +121,7 @@ func TestComplete(t *testing.T) {
 				Partitions:          1,
 				EventsTopicTemplate: "om_%s_events",
 				TopicProvisionerConfig: TopicProvisionerConfig{
+					Enabled:   true,
 					CacheSize: 200,
 					CacheTTL:  15 * time.Minute,
 					ProtectedTopics: []string{
