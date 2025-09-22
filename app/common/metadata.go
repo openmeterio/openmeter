@@ -3,8 +3,9 @@ package common
 import (
 	"fmt"
 
-	"github.com/openmeterio/openmeter/app/config"
 	"go.opentelemetry.io/otel/attribute"
+
+	"github.com/openmeterio/openmeter/app/config"
 )
 
 // Metadata provides information about the service to components that need it (eg. telemetry).
