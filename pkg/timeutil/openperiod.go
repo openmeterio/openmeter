@@ -267,6 +267,24 @@ func (p OpenPeriod) IsSupersetOf(other OpenPeriod) bool {
 	return true
 }
 
+// Returns true if the two periods overlap at any point.
+// Also returns true if the periods are exactly sequential, e.g.: [1, 2] and [2, 3]
+func (p OpenPeriod) OverlapsInclusive(other OpenPeriod) bool {
+	// If they have an intersection, they overlap
+	if p.Intersection(other) != nil {
+		return true
+	}
+
+	// If they are sequential, they overlap
+	if (p.From != nil && other.To != nil && p.From.Equal(*other.To)) ||
+		(p.To != nil && other.From != nil && p.To.Equal(*other.From)) {
+		return true
+	}
+
+	// Otherwise, they don't overlap
+	return false
+}
+
 func (p OpenPeriod) Closed() (ClosedPeriod, error) {
 	if p.From == nil || p.To == nil {
 		return ClosedPeriod{}, fmt.Errorf("cannot convert open period to closed period with nil boundaries")

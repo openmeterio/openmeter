@@ -4770,8 +4770,6 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       effectiveAt: Date
-      /** @description The grant expiration definition */
-      expiration: components['schemas']['ExpirationPeriod']
       /**
        * Format: double
        * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
@@ -4789,6 +4787,8 @@ export interface components {
        * @example 100
        */
       maxRolloverAmount?: number
+      /** @description The grant expiration definition. If no expiration is provided, the grant can be active indefinitely. */
+      expiration?: components['schemas']['ExpirationPeriod']
       /**
        * @deprecated
        * @description The grant metadata.
@@ -4851,8 +4851,6 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       effectiveAt: Date
-      /** @description The grant expiration definition */
-      expiration: components['schemas']['ExpirationPeriod']
       /**
        * Format: double
        * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
@@ -4868,6 +4866,8 @@ export interface components {
        * @example 100
        */
       maxRolloverAmount?: number
+      /** @description The grant expiration definition. If no expiration is provided, the grant can be active indefinitely. */
+      expiration?: components['schemas']['ExpirationPeriod']
       /**
        * @deprecated
        * @description The grant metadata.
@@ -5223,6 +5223,72 @@ export interface components {
        */
       customerId: string
     }
+    /** @description Create inputs for metered entitlement */
+    EntitlementMeteredV2CreateInputs: {
+      /**
+       * @description The feature the subject is entitled to use.
+       *     Either featureKey or featureId is required.
+       * @example example-feature-key
+       */
+      featureKey?: string
+      /**
+       * @description The feature the subject is entitled to use.
+       *     Either featureKey or featureId is required.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      featureId?: string
+      /** @description Additional metadata for the feature. */
+      metadata?: components['schemas']['Metadata']
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'metered'
+      /**
+       * Soft limit
+       * @description If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
+       * @default false
+       */
+      isSoftLimit?: boolean
+      /** @description The usage period associated with the entitlement. */
+      usagePeriod: components['schemas']['RecurringPeriodCreateInput']
+      /** @description Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time. */
+      measureUsageFrom?: components['schemas']['MeasureUsageFrom']
+      /**
+       * Preserve overage at reset
+       * @description If true, the overage is preserved at reset. If false, the usage is reset to 0.
+       * @default false
+       */
+      preserveOverageAtReset?: boolean
+      /**
+       * Initial grant amount
+       * Format: double
+       * @deprecated
+       * @description You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
+       *     If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+       *     That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+       *     Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
+       */
+      issueAfterReset?: number
+      /**
+       * Issue grant after reset priority
+       * Format: uint8
+       * @deprecated
+       * @description Defines the grant priority for the default grant.
+       * @default 1
+       */
+      issueAfterResetPriority?: number
+      /**
+       * Issue after reset
+       * @description Issue after reset
+       */
+      issue?: components['schemas']['IssueAfterReset']
+      /**
+       * Grants
+       * @description Grants
+       */
+      grants?: components['schemas']['EntitlementGrantCreateInputV2'][]
+    }
     /**
      * @description Order by options for entitlements.
      * @enum {string}
@@ -5455,6 +5521,11 @@ export interface components {
       | components['schemas']['EntitlementMeteredV2']
       | components['schemas']['EntitlementStaticV2']
       | components['schemas']['EntitlementBooleanV2']
+    /** @description Create inputs for entitlement */
+    EntitlementV2CreateInputs:
+      | components['schemas']['EntitlementMeteredV2CreateInputs']
+      | components['schemas']['EntitlementStaticCreateInputs']
+      | components['schemas']['EntitlementBooleanCreateInputs']
     /** @description Paginated response */
     EntitlementV2PaginatedResponse: {
       /**
@@ -11471,6 +11542,8 @@ export type EntitlementMetered = components['schemas']['EntitlementMetered']
 export type EntitlementMeteredCreateInputs =
   components['schemas']['EntitlementMeteredCreateInputs']
 export type EntitlementMeteredV2 = components['schemas']['EntitlementMeteredV2']
+export type EntitlementMeteredV2CreateInputs =
+  components['schemas']['EntitlementMeteredV2CreateInputs']
 export type EntitlementOrderBy = components['schemas']['EntitlementOrderBy']
 export type EntitlementPaginatedResponse =
   components['schemas']['EntitlementPaginatedResponse']
@@ -11480,6 +11553,8 @@ export type EntitlementStaticCreateInputs =
 export type EntitlementStaticV2 = components['schemas']['EntitlementStaticV2']
 export type EntitlementType = components['schemas']['EntitlementType']
 export type EntitlementV2 = components['schemas']['EntitlementV2']
+export type EntitlementV2CreateInputs =
+  components['schemas']['EntitlementV2CreateInputs']
 export type EntitlementV2PaginatedResponse =
   components['schemas']['EntitlementV2PaginatedResponse']
 export type EntitlementValue = components['schemas']['EntitlementValue']
@@ -25395,7 +25470,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['EntitlementCreateInputs']
+        'application/json': components['schemas']['EntitlementV2CreateInputs']
       }
     }
     responses: {
@@ -25994,7 +26069,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['EntitlementCreateInputs']
+        'application/json': components['schemas']['EntitlementV2CreateInputs']
       }
     }
     responses: {

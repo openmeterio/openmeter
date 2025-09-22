@@ -73,7 +73,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 			Amount:      10,
 			Priority:    5,
 			EffectiveAt: testutils.GetRFC3339Time(t, "2024-06-28T14:35:00Z"),
-			Expiration: grant.ExpirationPeriod{
+			Expiration: &grant.ExpirationPeriod{
 				Count:    1,
 				Duration: grant.ExpirationPeriodDurationYear,
 			},
@@ -91,7 +91,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 			Amount:      20,
 			Priority:    3,
 			EffectiveAt: testutils.GetRFC3339Time(t, "2024-06-28T14:36:00Z"),
-			Expiration: grant.ExpirationPeriod{
+			Expiration: &grant.ExpirationPeriod{
 				Count:    1,
 				Duration: grant.ExpirationPeriodDurationDay,
 			},
@@ -136,7 +136,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: testutils.GetRFC3339Time(t, "2024-06-28T15:39:00Z"),
-			Expiration: grant.ExpirationPeriod{
+			Expiration: &grant.ExpirationPeriod{
 				Count:    1,
 				Duration: grant.ExpirationPeriodDurationYear,
 			},
@@ -225,7 +225,7 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 			ResetMaxRollover: 20,
 			Priority:         1,
 			EffectiveAt:      testutils.GetRFC3339Time(t, "2024-07-02T09:43:00Z"),
-			Expiration: grant.ExpirationPeriod{
+			Expiration: &grant.ExpirationPeriod{
 				Count:    1,
 				Duration: grant.ExpirationPeriodDurationWeek,
 			},
@@ -341,7 +341,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 			Amount:      10000,
 			Priority:    1,
 			EffectiveAt: testutils.GetRFC3339Time(t, "2024-07-09T12:09:00Z"),
-			Expiration: grant.ExpirationPeriod{
+			Expiration: &grant.ExpirationPeriod{
 				Count:    1,
 				Duration: grant.ExpirationPeriodDurationWeek,
 			},
@@ -505,7 +505,7 @@ func TestGrantingAfterOverage(t *testing.T) {
 			Amount:      500,
 			Priority:    1,
 			EffectiveAt: testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
-			Expiration: grant.ExpirationPeriod{
+			Expiration: &grant.ExpirationPeriod{
 				Count:    1,
 				Duration: grant.ExpirationPeriodDurationMonth,
 			},
@@ -541,7 +541,7 @@ func TestGrantingAfterOverage(t *testing.T) {
 			Amount:      8000,
 			Priority:    1,
 			EffectiveAt: testutils.GetRFC3339Time(t, "2024-08-22T12:31:00Z"),
-			Expiration: grant.ExpirationPeriod{
+			Expiration: &grant.ExpirationPeriod{
 				Count:    1,
 				Duration: grant.ExpirationPeriodDurationMonth,
 			},

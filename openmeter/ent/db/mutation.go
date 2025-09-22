@@ -35348,7 +35348,7 @@ type GrantMutation struct {
 	priority              *uint8
 	addpriority           *int8
 	effective_at          *time.Time
-	expiration            *grant.ExpirationPeriod
+	expiration            **grant.ExpirationPeriod
 	expires_at            *time.Time
 	voided_at             *time.Time
 	reset_max_rollover    *float64
@@ -35909,12 +35909,12 @@ func (m *GrantMutation) ResetEffectiveAt() {
 }
 
 // SetExpiration sets the "expiration" field.
-func (m *GrantMutation) SetExpiration(gp grant.ExpirationPeriod) {
+func (m *GrantMutation) SetExpiration(gp *grant.ExpirationPeriod) {
 	m.expiration = &gp
 }
 
 // Expiration returns the value of the "expiration" field in the mutation.
-func (m *GrantMutation) Expiration() (r grant.ExpirationPeriod, exists bool) {
+func (m *GrantMutation) Expiration() (r *grant.ExpirationPeriod, exists bool) {
 	v := m.expiration
 	if v == nil {
 		return
@@ -35925,7 +35925,7 @@ func (m *GrantMutation) Expiration() (r grant.ExpirationPeriod, exists bool) {
 // OldExpiration returns the old "expiration" field's value of the Grant entity.
 // If the Grant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldExpiration(ctx context.Context) (v grant.ExpirationPeriod, err error) {
+func (m *GrantMutation) OldExpiration(ctx context.Context) (v *grant.ExpirationPeriod, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldExpiration is only allowed on UpdateOne operations")
 	}
@@ -35939,9 +35939,22 @@ func (m *GrantMutation) OldExpiration(ctx context.Context) (v grant.ExpirationPe
 	return oldValue.Expiration, nil
 }
 
+// ClearExpiration clears the value of the "expiration" field.
+func (m *GrantMutation) ClearExpiration() {
+	m.expiration = nil
+	m.clearedFields[dbgrant.FieldExpiration] = struct{}{}
+}
+
+// ExpirationCleared returns if the "expiration" field was cleared in this mutation.
+func (m *GrantMutation) ExpirationCleared() bool {
+	_, ok := m.clearedFields[dbgrant.FieldExpiration]
+	return ok
+}
+
 // ResetExpiration resets all changes to the "expiration" field.
 func (m *GrantMutation) ResetExpiration() {
 	m.expiration = nil
+	delete(m.clearedFields, dbgrant.FieldExpiration)
 }
 
 // SetExpiresAt sets the "expires_at" field.
@@ -35961,7 +35974,7 @@ func (m *GrantMutation) ExpiresAt() (r time.Time, exists bool) {
 // OldExpiresAt returns the old "expires_at" field's value of the Grant entity.
 // If the Grant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+func (m *GrantMutation) OldExpiresAt(ctx context.Context) (v *time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
 	}
@@ -35975,9 +35988,22 @@ func (m *GrantMutation) OldExpiresAt(ctx context.Context) (v time.Time, err erro
 	return oldValue.ExpiresAt, nil
 }
 
+// ClearExpiresAt clears the value of the "expires_at" field.
+func (m *GrantMutation) ClearExpiresAt() {
+	m.expires_at = nil
+	m.clearedFields[dbgrant.FieldExpiresAt] = struct{}{}
+}
+
+// ExpiresAtCleared returns if the "expires_at" field was cleared in this mutation.
+func (m *GrantMutation) ExpiresAtCleared() bool {
+	_, ok := m.clearedFields[dbgrant.FieldExpiresAt]
+	return ok
+}
+
 // ResetExpiresAt resets all changes to the "expires_at" field.
 func (m *GrantMutation) ResetExpiresAt() {
 	m.expires_at = nil
+	delete(m.clearedFields, dbgrant.FieldExpiresAt)
 }
 
 // SetVoidedAt sets the "voided_at" field.
@@ -36530,7 +36556,7 @@ func (m *GrantMutation) SetField(name string, value ent.Value) error {
 		m.SetEffectiveAt(v)
 		return nil
 	case dbgrant.FieldExpiration:
-		v, ok := value.(grant.ExpirationPeriod)
+		v, ok := value.(*grant.ExpirationPeriod)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -36668,6 +36694,12 @@ func (m *GrantMutation) ClearedFields() []string {
 	if m.FieldCleared(dbgrant.FieldMetadata) {
 		fields = append(fields, dbgrant.FieldMetadata)
 	}
+	if m.FieldCleared(dbgrant.FieldExpiration) {
+		fields = append(fields, dbgrant.FieldExpiration)
+	}
+	if m.FieldCleared(dbgrant.FieldExpiresAt) {
+		fields = append(fields, dbgrant.FieldExpiresAt)
+	}
 	if m.FieldCleared(dbgrant.FieldVoidedAt) {
 		fields = append(fields, dbgrant.FieldVoidedAt)
 	}
@@ -36699,6 +36731,12 @@ func (m *GrantMutation) ClearField(name string) error {
 		return nil
 	case dbgrant.FieldMetadata:
 		m.ClearMetadata()
+		return nil
+	case dbgrant.FieldExpiration:
+		m.ClearExpiration()
+		return nil
+	case dbgrant.FieldExpiresAt:
+		m.ClearExpiresAt()
 		return nil
 	case dbgrant.FieldVoidedAt:
 		m.ClearVoidedAt()

@@ -157,16 +157,19 @@ func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEnti
 
 			grantInput := meteredentitlement.CreateEntitlementGrantInputs{
 				CreateGrantInput: credit.CreateGrantInput{
-					Amount:      body.Amount,
-					Priority:    defaultx.WithDefault(body.Priority, 0),
-					EffectiveAt: body.EffectiveAt,
-					Expiration: grant.ExpirationPeriod{
-						Count:    body.Expiration.Count,
-						Duration: grant.ExpirationPeriodDuration(body.Expiration.Duration),
-					},
+					Amount:           body.Amount,
+					Priority:         defaultx.WithDefault(body.Priority, 0),
+					EffectiveAt:      body.EffectiveAt,
 					ResetMaxRollover: defaultx.WithDefault(body.MaxRolloverAmount, body.Amount),
 					ResetMinRollover: defaultx.WithDefault(body.MinRolloverAmount, 0),
 				},
+			}
+
+			if body.Expiration != nil {
+				grantInput.Expiration = &grant.ExpirationPeriod{
+					Count:    body.Expiration.Count,
+					Duration: grant.ExpirationPeriodDuration(body.Expiration.Duration),
+				}
 			}
 
 			if body.Annotations != nil && len(lo.FromPtr(body.Annotations)) > 0 {

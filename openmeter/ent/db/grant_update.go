@@ -181,6 +181,12 @@ func (_u *GrantUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
 	}
+	if _u.mutation.ExpirationCleared() {
+		_spec.ClearField(dbgrant.FieldExpiration, field.TypeJSON)
+	}
+	if _u.mutation.ExpiresAtCleared() {
+		_spec.ClearField(dbgrant.FieldExpiresAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.VoidedAt(); ok {
 		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)
 	}
@@ -394,6 +400,12 @@ func (_u *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error)
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
+	}
+	if _u.mutation.ExpirationCleared() {
+		_spec.ClearField(dbgrant.FieldExpiration, field.TypeJSON)
+	}
+	if _u.mutation.ExpiresAtCleared() {
+		_spec.ClearField(dbgrant.FieldExpiresAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.VoidedAt(); ok {
 		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)

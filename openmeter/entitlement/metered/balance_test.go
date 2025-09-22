@@ -207,7 +207,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					Amount:      1000,
 					Priority:    1,
 					EffectiveAt: startTime,
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -217,7 +217,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					Amount:      1000,
 					Priority:    1,
 					EffectiveAt: queryTime.Add(time.Hour),
-					ExpiresAt:   queryTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(queryTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -270,7 +270,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					ResetMaxRollover: 1000,
 					Priority:         2,
 					EffectiveAt:      startTime,
-					ExpiresAt:        startTime.AddDate(0, 0, 10),
+					ExpiresAt:        lo.ToPtr(startTime.AddDate(0, 0, 10)),
 				})
 				require.NoError(t, err)
 
@@ -381,7 +381,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					ResetMaxRollover: 1000,
 					Priority:         1,
 					EffectiveAt:      startTime,
-					ExpiresAt:        startTime.AddDate(1, 0, 0), // far future
+					ExpiresAt:        lo.ToPtr(startTime.AddDate(1, 0, 0)), // far future
 				})
 				require.NoError(t, err)
 
@@ -418,7 +418,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					ResetMaxRollover: 1000,
 					Priority:         10,
 					EffectiveAt:      startTime.AddDate(0, 1, 2), // After the second round of usage is in
-					ExpiresAt:        startTime.AddDate(1, 0, 0),
+					ExpiresAt:        lo.ToPtr(startTime.AddDate(1, 0, 0)),
 				})
 				require.NoError(t, err)
 
@@ -508,7 +508,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					ResetMaxRollover: 1000,
 					Priority:         2,
 					EffectiveAt:      startTime,
-					ExpiresAt:        startTime.AddDate(0, 5, 0),
+					ExpiresAt:        lo.ToPtr(startTime.AddDate(0, 5, 0)),
 				})
 				require.NoError(t, err)
 
@@ -665,7 +665,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      10000,
 					Priority:    1,
 					EffectiveAt: startTime,
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -676,7 +676,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      10000,
 					Priority:    1,
 					EffectiveAt: startTime.Add(time.Hour * 3),
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -687,7 +687,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      10000,
 					Priority:    1,
 					EffectiveAt: startTime.Add(time.Hour * 5).Add(time.Minute * 30),
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -840,7 +840,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      10000,
 					Priority:    1,
 					EffectiveAt: startTime,
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -874,7 +874,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      10000,
 					Priority:    1,
 					EffectiveAt: resetTime,
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -936,7 +936,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      10000,
 					Priority:    1,
 					EffectiveAt: startTime,
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -947,7 +947,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      10000,
 					Priority:    1,
 					EffectiveAt: startTime.Add(time.Hour * 2),
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -1027,7 +1027,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      10000,
 					Priority:    1,
 					EffectiveAt: startOfMeasurement,
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -1038,7 +1038,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      10000,
 					Priority:    1,
 					EffectiveAt: startTime.Add(time.Hour * 2),
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -1119,7 +1119,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      10000,
 					Priority:    1,
 					EffectiveAt: startTime,
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 
@@ -1151,7 +1151,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 					Amount:      7000,
 					Priority:    1,
 					EffectiveAt: resetTime,
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
 				})
 				require.NoError(t, err)
 

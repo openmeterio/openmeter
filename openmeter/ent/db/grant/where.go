@@ -537,6 +537,16 @@ func EffectiveAtLTE(v time.Time) predicate.Grant {
 	return predicate.Grant(sql.FieldLTE(FieldEffectiveAt, v))
 }
 
+// ExpirationIsNil applies the IsNil predicate on the "expiration" field.
+func ExpirationIsNil() predicate.Grant {
+	return predicate.Grant(sql.FieldIsNull(FieldExpiration))
+}
+
+// ExpirationNotNil applies the NotNil predicate on the "expiration" field.
+func ExpirationNotNil() predicate.Grant {
+	return predicate.Grant(sql.FieldNotNull(FieldExpiration))
+}
+
 // ExpiresAtEQ applies the EQ predicate on the "expires_at" field.
 func ExpiresAtEQ(v time.Time) predicate.Grant {
 	return predicate.Grant(sql.FieldEQ(FieldExpiresAt, v))
@@ -575,6 +585,16 @@ func ExpiresAtLT(v time.Time) predicate.Grant {
 // ExpiresAtLTE applies the LTE predicate on the "expires_at" field.
 func ExpiresAtLTE(v time.Time) predicate.Grant {
 	return predicate.Grant(sql.FieldLTE(FieldExpiresAt, v))
+}
+
+// ExpiresAtIsNil applies the IsNil predicate on the "expires_at" field.
+func ExpiresAtIsNil() predicate.Grant {
+	return predicate.Grant(sql.FieldIsNull(FieldExpiresAt))
+}
+
+// ExpiresAtNotNil applies the NotNil predicate on the "expires_at" field.
+func ExpiresAtNotNil() predicate.Grant {
+	return predicate.Grant(sql.FieldNotNull(FieldExpiresAt))
 }
 
 // VoidedAtEQ applies the EQ predicate on the "voided_at" field.

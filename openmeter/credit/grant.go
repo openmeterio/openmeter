@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -24,7 +26,7 @@ type CreateGrantInput struct {
 	Amount           float64
 	Priority         uint8
 	EffectiveAt      time.Time
-	Expiration       grant.ExpirationPeriod
+	Expiration       *grant.ExpirationPeriod
 	Annotations      models.Annotations
 	ResetMaxRollover float64
 	ResetMinRollover float64
@@ -65,19 +67,25 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 		if err != nil {
 			return nil, err
 		}
-		g, err := m.GrantRepo.WithTx(ctx, tx).CreateGrant(ctx, grant.RepoCreateInput{
+		repoInp := grant.RepoCreateInput{
 			OwnerID:          ownerID.ID,
 			Namespace:        ownerID.Namespace,
 			Amount:           input.Amount,
 			Priority:         input.Priority,
 			EffectiveAt:      input.EffectiveAt,
 			Expiration:       input.Expiration,
-			ExpiresAt:        input.Expiration.GetExpiration(input.EffectiveAt),
 			Annotations:      input.Annotations,
 			ResetMaxRollover: input.ResetMaxRollover,
 			ResetMinRollover: input.ResetMinRollover,
 			Recurrence:       input.Recurrence,
-		})
+		}
+
+		if input.Expiration != nil {
+			repoInp.ExpiresAt = lo.ToPtr(input.Expiration.GetExpiration(input.EffectiveAt))
+			repoInp.Expiration = input.Expiration
+		}
+
+		g, err := m.GrantRepo.WithTx(ctx, tx).CreateGrant(ctx, repoInp)
 		if err != nil {
 			return nil, err
 		}

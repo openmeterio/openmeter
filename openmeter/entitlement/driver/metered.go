@@ -103,7 +103,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 					Amount:      apiGrant.Amount,
 					Priority:    defaultx.WithDefault(apiGrant.Priority, 0),
 					EffectiveAt: apiGrant.EffectiveAt,
-					Expiration: grant.ExpirationPeriod{
+					Expiration: &grant.ExpirationPeriod{
 						Count:    apiGrant.Expiration.Count,
 						Duration: grant.ExpirationPeriodDuration(apiGrant.Expiration.Duration),
 					},
@@ -407,20 +407,29 @@ func (h *meteredEntitlementHandler) resolveCustomerFromSubject(ctx context.Conte
 
 func MapEntitlementGrantToAPI(grant *meteredentitlement.EntitlementGrant) api.EntitlementGrant {
 	apiGrant := api.EntitlementGrant{
-		Amount:      grant.Amount,
-		CreatedAt:   grant.CreatedAt,
-		EffectiveAt: grant.EffectiveAt,
-		Expiration: api.ExpirationPeriod{
-			Count:    grant.Expiration.Count,
-			Duration: api.ExpirationDuration(grant.Expiration.Duration),
-		},
-		Id:                grant.ID,
-		Metadata:          MetadataFromAnnotations(grant.Annotations),
-		Priority:          convert.ToPointer(grant.Priority),
-		UpdatedAt:         grant.UpdatedAt,
-		DeletedAt:         grant.DeletedAt,
-		EntitlementId:     grant.EntitlementID,
-		ExpiresAt:         &grant.ExpiresAt,
+		Amount:        grant.Amount,
+		CreatedAt:     grant.CreatedAt,
+		EffectiveAt:   grant.EffectiveAt,
+		Id:            grant.ID,
+		Metadata:      MetadataFromAnnotations(grant.Annotations),
+		Priority:      convert.ToPointer(grant.Priority),
+		UpdatedAt:     grant.UpdatedAt,
+		DeletedAt:     grant.DeletedAt,
+		EntitlementId: grant.EntitlementID,
+		Expiration: func() api.ExpirationPeriod {
+			if grant.Expiration == nil {
+				return api.ExpirationPeriod{
+					Count:    100,
+					Duration: api.ExpirationDuration("YEAR"),
+				}
+			}
+
+			return api.ExpirationPeriod{
+				Count:    grant.Expiration.Count,
+				Duration: api.ExpirationDuration(grant.Expiration.Duration),
+			}
+		}(),
+		ExpiresAt:         lo.ToPtr(lo.FromPtrOr(grant.ExpiresAt, clock.Now().AddDate(100, 0, 0))), // V1 API expects all grants to have an expiresAt so we'll artificially set a very far future date. This is a hack that our users were already doing to get this behavior and we will sunset it later...
 		MaxRolloverAmount: &grant.MaxRolloverAmount,
 		MinRolloverAmount: &grant.MinRolloverAmount,
 		NextRecurrence:    grant.NextRecurrence,

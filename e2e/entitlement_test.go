@@ -80,7 +80,7 @@ func TestEntitlementV2(t *testing.T) {
 		{
 			iv := &api.RecurringPeriodInterval{}
 			require.NoError(t, iv.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
-			me := api.EntitlementMeteredCreateInputs{
+			me := api.EntitlementMeteredV2CreateInputs{
 				Type:      "metered",
 				FeatureId: &v2FeatureId,
 				UsagePeriod: api.RecurringPeriodCreateInput{
@@ -89,7 +89,7 @@ func TestEntitlementV2(t *testing.T) {
 				},
 			}
 			var body api.CreateCustomerEntitlementV2JSONRequestBody
-			require.NoError(t, body.FromEntitlementMeteredCreateInputs(me))
+			require.NoError(t, body.FromEntitlementMeteredV2CreateInputs(me))
 
 			res, err := client.CreateCustomerEntitlementV2WithResponse(ctx, v2CustomerID, body)
 			require.NoError(t, err)
@@ -118,7 +118,7 @@ func TestEntitlementV2(t *testing.T) {
 	t.Run("V2 Create with missing customer should map to 404", func(t *testing.T) {
 		iv := &api.RecurringPeriodInterval{}
 		require.NoError(t, iv.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
-		me := api.EntitlementMeteredCreateInputs{
+		me := api.EntitlementMeteredV2CreateInputs{
 			Type:       "metered",
 			FeatureKey: lo.ToPtr("nonexistent_feature_key"),
 			UsagePeriod: api.RecurringPeriodCreateInput{
@@ -127,7 +127,7 @@ func TestEntitlementV2(t *testing.T) {
 			},
 		}
 		var body api.CreateCustomerEntitlementV2JSONRequestBody
-		require.NoError(t, body.FromEntitlementMeteredCreateInputs(me))
+		require.NoError(t, body.FromEntitlementMeteredV2CreateInputs(me))
 
 		// Use random customer id to ensure not found
 		randomID := fmt.Sprintf("missing-%d", time.Now().UnixNano())
@@ -234,7 +234,7 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 			apiMONTH := &api.RecurringPeriodInterval{}
 			require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
 
-			meteredEntitlement := api.EntitlementMeteredCreateInputs{
+			meteredEntitlement := api.EntitlementMeteredV2CreateInputs{
 				Type:      "metered",
 				FeatureId: &v2FeatureId,
 				UsagePeriod: api.RecurringPeriodCreateInput{
@@ -245,7 +245,7 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 
 			// Build union body for V2
 			var createBody api.CreateCustomerEntitlementV2JSONRequestBody
-			require.NoError(t, createBody.FromEntitlementMeteredCreateInputs(meteredEntitlement))
+			require.NoError(t, createBody.FromEntitlementMeteredV2CreateInputs(meteredEntitlement))
 
 			// Use customerIdOrKey that maps 1:1 to subject
 			res, err := client.CreateCustomerEntitlementV2WithResponse(ctx, subject, createBody)

@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -20,8 +22,10 @@ func (e *engine) getGrantActivityChanges(grants []grant.Grant, period timeutil.C
 			activityChanges = append(activityChanges, grant.EffectiveAt)
 		}
 		// grants that expire in the period
-		if grant.ExpiresAt.After(period.From) && (grant.ExpiresAt.Before(period.To)) {
-			activityChanges = append(activityChanges, grant.ExpiresAt)
+		if grant.ExpiresAt != nil {
+			if grant.ExpiresAt.After(period.From) && (grant.ExpiresAt.Before(period.To)) {
+				activityChanges = append(activityChanges, *grant.ExpiresAt)
+			}
 		}
 		// grants that are deleted in the period
 		if grant.DeletedAt != nil {
@@ -130,7 +134,7 @@ func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.C
 func (e *engine) filterRelevantGrants(grants []grant.Grant, bm balance.Map, period timeutil.ClosedPeriod) []grant.Grant {
 	relevant := []grant.Grant{}
 	for _, grant := range grants {
-		if grant.GetEffectivePeriod().OverlapsInclusive(period) {
+		if grant.GetEffectivePeriod().Open().OverlapsInclusive(period.Open()) {
 			relevant = append(relevant, grant)
 		} else if _, ok := bm[grant.ID]; ok {
 			relevant = append(relevant, grant)
@@ -143,6 +147,7 @@ func (e *engine) filterRelevantGrants(grants []grant.Grant, bm balance.Map, peri
 // The correct order to burn down grants is:
 // 1. Grants with higher priority are burned down first
 // 2. Grants with earlier expiration date are burned down first
+// 3. For a deterministic order, we sort by our general cursor which is created_at + id
 //
 // TODO: figure out if this needs to return an error or not
 func PrioritizeGrants(grants []grant.Grant) error {
@@ -152,9 +157,44 @@ func PrioritizeGrants(grants []grant.Grant) error {
 		return nil
 	}
 
+	// 3. As a tie breaker, we use our general cursor which is created_at then id
+	slices.SortStableFunc(grants, func(i, j grant.Grant) int {
+		switch {
+		case i.CreatedAt.Before(j.CreatedAt):
+			return -1
+		case i.CreatedAt.After(j.CreatedAt):
+			return 1
+		default:
+			return strings.Compare(i.ID, j.ID)
+		}
+	})
+
 	// 2. Grants with earlier expiration date are burned down first
-	sort.SliceStable(grants, func(i, j int) bool {
-		return grants[i].GetExpiration().Unix() < grants[j].GetExpiration().Unix()
+	slices.SortStableFunc(grants, func(i, j grant.Grant) int {
+		exp1 := i.GetExpiration()
+		exp2 := j.GetExpiration()
+
+		switch {
+		// If both have no expiration, we keep the order
+		case exp1 == nil && exp2 == nil:
+			return 0
+		// If the second has an expiration, we put it first
+		case exp1 == nil && exp2 != nil:
+			return 1
+		// If the first has an expiration, we put it first
+		case exp2 == nil && exp1 != nil:
+			return -1
+		}
+
+		// Otherwise we compare the expiration dates
+		switch u1, u2 := exp1.Unix(), exp2.Unix(); {
+		case u1 < u2:
+			return -1
+		case u1 > u2:
+			return 1
+		default:
+			return 0
+		}
 	})
 
 	// 1. Order grant balances by priority

@@ -32,7 +32,7 @@ func TestReset(t *testing.T) {
 		Amount:      100.0,
 		Priority:    1,
 		EffectiveAt: t1,
-		Expiration: grant.ExpirationPeriod{
+		Expiration: &grant.ExpirationPeriod{
 			Duration: grant.ExpirationPeriodDurationDay,
 			Count:    30,
 		},

@@ -29,7 +29,7 @@ interface CustomerEntitlements {
   @operationId("createCustomerEntitlementV2")
   post(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @body entitlement: OpenMeter.Entitlements.EntitlementCreateInputs,
+    @body entitlement: EntitlementV2CreateInputs,
   ): {
     @statusCode _: 201;
     @body body: EntitlementV2;
@@ -88,7 +88,7 @@ interface CustomerEntitlements {
   override(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path entitlementIdOrFeatureKey: ULIDOrExternalKey,
-    @body entitlement: EntitlementCreateInputs,
+    @body entitlement: EntitlementV2CreateInputs,
   ):
     | {
         @statusCode _: 201;

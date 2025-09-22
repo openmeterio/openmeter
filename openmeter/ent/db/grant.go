@@ -45,9 +45,9 @@ type Grant struct {
 	// EffectiveAt holds the value of the "effective_at" field.
 	EffectiveAt time.Time `json:"effective_at,omitempty"`
 	// Expiration holds the value of the "expiration" field.
-	Expiration grant.ExpirationPeriod `json:"expiration,omitempty"`
+	Expiration *grant.ExpirationPeriod `json:"expiration,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
-	ExpiresAt time.Time `json:"expires_at,omitempty"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// VoidedAt holds the value of the "voided_at" field.
 	VoidedAt *time.Time `json:"voided_at,omitempty"`
 	// ResetMaxRollover holds the value of the "reset_max_rollover" field.
@@ -197,7 +197,8 @@ func (_m *Grant) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field expires_at", values[i])
 			} else if value.Valid {
-				_m.ExpiresAt = value.Time
+				_m.ExpiresAt = new(time.Time)
+				*_m.ExpiresAt = value.Time
 			}
 		case dbgrant.FieldVoidedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -308,8 +309,10 @@ func (_m *Grant) String() string {
 	builder.WriteString("expiration=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Expiration))
 	builder.WriteString(", ")
-	builder.WriteString("expires_at=")
-	builder.WriteString(_m.ExpiresAt.Format(time.ANSIC))
+	if v := _m.ExpiresAt; v != nil {
+		builder.WriteString("expires_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	if v := _m.VoidedAt; v != nil {
 		builder.WriteString("voided_at=")
