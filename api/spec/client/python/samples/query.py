@@ -1,5 +1,4 @@
 from os import environ
-import asyncio
 
 from openmeter import OpenMeterCloudClient
 from corehttp.exceptions import HttpResponseError
@@ -16,23 +15,21 @@ client = OpenMeterCloudClient(
 )
 
 
-async def main():
-    async with client as c:
-        try:
-            r = await c.query_meter(meter_id_or_slug="tokens_total")
-            print("Query total values:\n\n", r)
-            r = await c.query_meter(
-                meter_id_or_slug="tokens_total",
-                group_by=["method"],
-            )
-            print("\n\n---\n\nQuery total values grouped by method:\n\n", r)
-            r = await c.query_meter(
-                meter_id_or_slug="tokens_total",
-                filter_group_by={"language": "en"},
-            )
-            print("\n\n---\n\nQuery total values for language=en:\n\n", r)
-        except HttpResponseError as e:
-            print(e)
+def main():
+    try:
+        r = client.meters.query_json(meter_id_or_slug="tokens_total")
+        print("Query total values:\n\n", r)
+        r = client.meters.query_json(
+            meter_id_or_slug="tokens_total",
+            group_by=["language"],
+        )
+        print("\n\n---\n\nQuery total values grouped by language:\n\n", r)
+        r = client.meters.query_json(
+            meter_id_or_slug="tokens_total",
+            filter_group_by={"language": "en"},
+        )
+        print("\n\n---\n\nQuery total values for language=en:\n\n", r)
+    except HttpResponseError as e:
+        print(e)
 
-
-asyncio.run(main())
+main()
