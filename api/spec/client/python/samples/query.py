@@ -16,6 +16,7 @@ client = OpenMeterCloudClient(
     credential=credential,
 )
 
+
 def main() -> None:
     try:
         # Query total values
@@ -39,5 +40,6 @@ def main() -> None:
         print("Query total values for language=en:", r.data[0].value)
     except HttpResponseError as e:
         print(e)
+
 
 main()
