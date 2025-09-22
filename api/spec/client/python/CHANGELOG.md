@@ -1,7 +1,7 @@
 # Release History
 
-## 1.0.0b1 (1970-01-01)
+## 2.0.0-alpha.1
 
 ### Other Changes
 
-  - Initial version
+- Initial version
