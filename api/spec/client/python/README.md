@@ -21,6 +21,9 @@ pip install -e .
 ### Setup
 
 ```python
+from openmeter import OpenMeterCloudClient
+from corehttp.credentials import ServiceKeyCredential
+
 credential = ServiceKeyCredential("api-token")
 
 client = OpenMeterCloudClient(
