@@ -19,6 +19,7 @@ import (
 	realotelslog "go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
@@ -85,16 +86,28 @@ const (
 	DefaultShutdownTimeout = 5 * time.Second
 )
 
-func NewTelemetryResource(metadata Metadata) *resource.Resource {
+func NewTelemetryResource(metadata Metadata, cfg config.TelemetryConfig) *resource.Resource {
+	var attributes resource.Option
+
+	switch cfg.AttributeSchema {
+	case config.AttributeSchemaTypeDatadog:
+		attributes = resource.WithAttributes(
+			attribute.String("service", metadata.ServiceName),
+			attribute.String("service_version", metadata.Version),
+			semconv.DeploymentEnvironmentName(metadata.Environment),
+		)
+	default:
+		attributes = resource.WithAttributes(
+			semconv.ServiceName(metadata.ServiceName),
+			semconv.ServiceVersion(metadata.Version),
+			semconv.DeploymentEnvironmentName(metadata.Environment),
+		)
+	}
 	extraResources, _ := resource.New(
 		// TODO: use the globally available context here?
 		context.Background(),
 		resource.WithContainer(),
-		resource.WithAttributes(
-			semconv.ServiceName(metadata.ServiceName),
-			semconv.ServiceVersion(metadata.Version),
-			semconv.DeploymentEnvironmentName(metadata.Environment),
-		),
+		attributes,
 	)
 
 	res, _ := resource.Merge(

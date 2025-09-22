@@ -59,9 +59,18 @@ func (c OTLPExporterTelemetryConfig) DialExporter(ctx context.Context) (*grpc.Cl
 	return conn, nil
 }
 
+type AttributeSchemaType string
+
+const (
+	AttributeSchemaTypeOTel    AttributeSchemaType = "otel"
+	AttributeSchemaTypeDatadog AttributeSchemaType = "datadog"
+)
+
 type TelemetryConfig struct {
 	// Telemetry HTTP server address
 	Address string
+
+	AttributeSchema AttributeSchemaType
 
 	Trace TraceTelemetryConfig
 
@@ -76,6 +85,10 @@ func (c TelemetryConfig) Validate() error {
 
 	if c.Address == "" {
 		errs = append(errs, errors.New("http server address is required"))
+	}
+
+	if !slices.Contains([]AttributeSchemaType{AttributeSchemaTypeOTel, AttributeSchemaTypeDatadog}, c.AttributeSchema) {
+		errs = append(errs, fmt.Errorf("invalid attribute schema: %s", c.AttributeSchema))
 	}
 
 	if err := c.Trace.Validate(); err != nil {
@@ -597,6 +610,8 @@ func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	flags.String("telemetry-address", ":10000", "Telemetry HTTP server address")
 	_ = v.BindPFlag("telemetry.address", flags.Lookup("telemetry-address"))
 	v.SetDefault("telemetry.address", ":10000")
+
+	v.SetDefault("telemetry.attributeSchema", AttributeSchemaTypeOTel)
 
 	v.SetDefault("telemetry.trace.sampler", "never")
 	v.SetDefault("telemetry.trace.exporters.otlp.enabled", false)
