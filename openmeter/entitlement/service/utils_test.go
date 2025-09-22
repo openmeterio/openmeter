@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subject"
@@ -73,6 +74,7 @@ type dependencies struct {
 	subjectService     subject.Service
 	customerService    customer.Service
 	meterService       meter.ManageService
+	registry           *registry.Entitlement
 }
 
 // Teardown cleans up the dependencies
@@ -163,6 +165,7 @@ func setupDependecies(t *testing.T) (entitlement.Service, *dependencies) {
 		subjectService:     subjectService,
 		customerService:    customerService,
 		meterService:       meterService,
+		registry:           entitlementRegistry,
 	}
 
 	return entitlementRegistry.Entitlement, deps

@@ -73,3 +73,10 @@ var ErrEntitlementCreatePropertyMismatch = models.NewValidationIssue(
 	ErrCodeEntitlementCreatePropertyMismatch,
 	"entitlement create property mismatch",
 )
+
+const ErrCodeEntitlementGrantsOnlySupportedForMeteredEntitlements models.ErrorCode = "entitlement_grants_only_supported_for_metered_entitlements"
+
+var ErrEntitlementGrantsOnlySupportedForMeteredEntitlements = models.NewValidationIssue(
+	ErrCodeEntitlementGrantsOnlySupportedForMeteredEntitlements,
+	"grants are only supported for metered entitlements",
+)

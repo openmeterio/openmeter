@@ -58,10 +58,12 @@ type ListEntitlementsParams struct {
 type Service interface {
 	models.ServiceHooks[Entitlement]
 
-	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
-	ScheduleEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
+	// Meant for API use primarily
+	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs, grants []CreateEntitlementGrantInputs) (*Entitlement, error)
 	// OverrideEntitlement replaces a currently active entitlement with a new one.
-	OverrideEntitlement(ctx context.Context, customerID string, entitlementIdOrFeatureKey string, input CreateEntitlementInputs) (*Entitlement, error)
+	OverrideEntitlement(ctx context.Context, customerID string, entitlementIdOrFeatureKey string, input CreateEntitlementInputs, grants []CreateEntitlementGrantInputs) (*Entitlement, error)
+
+	ScheduleEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
 	// SupersedeEntitlement replaces an entitlement by scheduling a new one
 	SupersedeEntitlement(ctx context.Context, entitlementId string, input CreateEntitlementInputs) (*Entitlement, error)
 

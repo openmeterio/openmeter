@@ -73,7 +73,7 @@ func TestGetAccess(t *testing.T) {
 			FeatureKey:       &featureKey,
 			FeatureID:        &feat.ID,
 			EntitlementType:  entitlement.EntitlementTypeBoolean,
-		})
+		}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, ent)
 
@@ -135,7 +135,7 @@ func TestGetAccess(t *testing.T) {
 				FeatureKey:       lo.ToPtr(fmt.Sprintf("test-%d", i)),
 				FeatureID:        &feat.ID,
 				EntitlementType:  entitlement.EntitlementTypeBoolean,
-			})
+			}, nil)
 			require.NoError(t, err)
 			require.NotNil(t, ent)
 
@@ -199,7 +199,7 @@ func TestGetAccess(t *testing.T) {
 			FeatureKey:       lo.ToPtr("test-bool"),
 			FeatureID:        &feat.ID,
 			EntitlementType:  entitlement.EntitlementTypeBoolean,
-		})
+		}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, ent)
 
@@ -220,7 +220,7 @@ func TestGetAccess(t *testing.T) {
 			FeatureID:        &feat.ID,
 			EntitlementType:  entitlement.EntitlementTypeStatic,
 			Config:           []byte(`{"value": 10}`),
-		})
+		}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, ent)
 
@@ -245,7 +245,7 @@ func TestGetAccess(t *testing.T) {
 				Anchor:   now,
 			})),
 			IssueAfterReset: lo.ToPtr(10.0),
-		})
+		}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, ent)
 
@@ -314,7 +314,7 @@ func TestGetAccess(t *testing.T) {
 				FeatureKey:       lo.ToPtr(fmt.Sprintf("test-%d", i)),
 				FeatureID:        &feat.ID,
 				EntitlementType:  entitlement.EntitlementTypeBoolean,
-			})
+			}, nil)
 			require.NoError(t, err)
 			require.NotNil(t, ent)
 

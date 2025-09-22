@@ -9,15 +9,146 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestCreateEntitlementWithGrants(t *testing.T) {
+	namespace := "ns1"
+
+	conn, deps := setupDependecies(t)
+	defer deps.Teardown()
+
+	mtr, err := deps.meterService.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:     namespace,
+		Name:          "Meter 1",
+		Key:           "meter1",
+		Description:   nil,
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		EventFrom:     nil,
+		ValueProperty: lo.ToPtr("$.value"),
+		GroupBy:       nil,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, mtr)
+
+	// Create feature
+	feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+		Name:      "feature1",
+		Key:       "feature1",
+		Namespace: namespace,
+		MeterSlug: lo.ToPtr(mtr.Key),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, feat)
+
+	cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust1", "Customer 1")
+
+	t.Run("Should error if creating entitlement with grants and entitlement type is not metered", func(t *testing.T) {
+		_, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			FeatureKey:       lo.ToPtr(feat.Key),
+			UsageAttribution: cust.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeBoolean,
+		}, []entitlement.CreateEntitlementGrantInputs{
+			{
+				CreateGrantInput: credit.CreateGrantInput{
+					Amount:      100,
+					Priority:    0,
+					EffectiveAt: time.Now().Truncate(time.Minute).Add(time.Minute),
+					Expiration:  nil,
+				},
+			},
+		})
+		require.ErrorAs(t, err, &entitlement.ErrEntitlementGrantsOnlySupportedForMeteredEntitlements)
+	})
+
+	var entId string
+
+	t.Run("Should create entitlement with grants", func(t *testing.T) {
+		ent, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			FeatureKey:       lo.ToPtr(feat.Key),
+			UsageAttribution: cust.GetUsageAttribution(),
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   time.Now(),
+			})),
+			EntitlementType: entitlement.EntitlementTypeMetered,
+		}, []entitlement.CreateEntitlementGrantInputs{
+			{
+				CreateGrantInput: credit.CreateGrantInput{
+					Amount:      100,
+					Priority:    0,
+					EffectiveAt: time.Now().Truncate(time.Minute).Add(time.Minute),
+					Expiration:  nil,
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, ent)
+		entId = ent.ID
+
+		grants, err := deps.registry.MeteredEntitlement.ListEntitlementGrants(t.Context(), ent.Namespace, meteredentitlement.ListEntitlementGrantsParams{
+			CustomerID:                ent.Customer.ID,
+			EntitlementIDOrFeatureKey: ent.ID,
+			Page:                      pagination.NewPage(1, 100),
+		})
+		require.NoError(t, err)
+
+		require.Len(t, grants.Items, 1)
+		require.Equal(t, 100.0, grants.Items[0].Amount)
+		require.Equal(t, uint8(0), grants.Items[0].Priority)
+		require.Equal(t, ent.ID, grants.Items[0].EntitlementID)
+	})
+
+	t.Run("Should override entitlement with grants", func(t *testing.T) {
+		ent, err := conn.OverrideEntitlement(t.Context(), cust.ID, entId, entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			FeatureKey:       lo.ToPtr(feat.Key),
+			UsageAttribution: cust.GetUsageAttribution(),
+			EntitlementType:  entitlement.EntitlementTypeMetered,
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   time.Now(),
+			})),
+		}, []entitlement.CreateEntitlementGrantInputs{
+			{
+				CreateGrantInput: credit.CreateGrantInput{
+					Amount:      101,
+					Priority:    0,
+					EffectiveAt: time.Now().Truncate(time.Minute).Add(time.Minute),
+					Expiration:  nil,
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, ent)
+		entId = ent.ID
+
+		grants, err := deps.registry.MeteredEntitlement.ListEntitlementGrants(t.Context(), ent.Namespace, meteredentitlement.ListEntitlementGrantsParams{
+			CustomerID:                ent.Customer.ID,
+			EntitlementIDOrFeatureKey: ent.ID,
+			Page:                      pagination.NewPage(1, 100),
+		})
+		require.NoError(t, err)
+
+		require.Len(t, grants.Items, 1)
+		require.Equal(t, 101.0, grants.Items[0].Amount)
+		require.Equal(t, uint8(0), grants.Items[0].Priority)
+		require.Equal(t, ent.ID, grants.Items[0].EntitlementID)
+	})
+}
 
 func TestScheduling(t *testing.T) {
 	namespace := "ns1"
@@ -73,6 +204,7 @@ func TestScheduling(t *testing.T) {
 						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						ActiveFrom:       lo.ToPtr(testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")),
 					},
+					nil,
 				)
 				assert.EqualError(t, err, "activeTo and activeFrom are not supported in CreateEntitlement")
 
@@ -85,6 +217,7 @@ func TestScheduling(t *testing.T) {
 						EntitlementType:  entitlement.EntitlementTypeBoolean,
 						ActiveTo:         lo.ToPtr(testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")),
 					},
+					nil,
 				)
 				assert.EqualError(t, err, "activeTo and activeFrom are not supported in CreateEntitlement")
 			},

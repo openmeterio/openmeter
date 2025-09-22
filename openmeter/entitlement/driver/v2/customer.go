@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -22,7 +22,10 @@ import (
 )
 
 type (
-	CreateCustomerEntitlementHandlerRequest  = entitlement.CreateEntitlementInputs
+	CreateCustomerEntitlementHandlerRequest = struct {
+		Entitlement entitlement.CreateEntitlementInputs
+		Grants      []meteredentitlement.CreateEntitlementGrantInputs
+	}
 	CreateCustomerEntitlementHandlerResponse = api.EntitlementV2
 	CreateCustomerEntitlementHandlerParams   = string // customerIdOrKey
 )
@@ -35,9 +38,9 @@ func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitleme
 		CreateCustomerEntitlementHandlerResponse,
 		CreateCustomerEntitlementHandlerParams,
 	](
-		func(ctx context.Context, r *http.Request, customerIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
-			inp := &api.EntitlementCreateInputs{}
-			request := entitlement.CreateEntitlementInputs{}
+		func(ctx context.Context, r *http.Request, customerIdOrKey string) (CreateCustomerEntitlementHandlerRequest, error) {
+			inp := &api.EntitlementV2CreateInputs{}
+			request := CreateCustomerEntitlementHandlerRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &inp); err != nil {
 				return request, err
 			}
@@ -65,10 +68,10 @@ func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitleme
 			}
 
 			// Reuse v1 parser to build entitlement create inputs using the subject key
-			return entitlementdriver.ParseAPICreateInput(inp, ns, cus.GetUsageAttribution())
+			return ParseAPICreateInputV2(inp, ns, cus.GetUsageAttribution())
 		},
 		func(ctx context.Context, request CreateCustomerEntitlementHandlerRequest) (CreateCustomerEntitlementHandlerResponse, error) {
-			ent, err := h.connector.CreateEntitlement(ctx, request)
+			ent, err := h.connector.CreateEntitlement(ctx, request.Entitlement, request.Grants)
 			if err != nil {
 				return api.EntitlementV2{}, err
 			}
@@ -321,6 +324,7 @@ type (
 		EntitlementIDOrFeatureKey string
 		Namespace                 string
 		Inputs                    entitlement.CreateEntitlementInputs
+		Grants                    []entitlement.CreateEntitlementGrantInputs
 	}
 	OverrideCustomerEntitlementHandlerResponse = *api.EntitlementV2
 )
@@ -337,7 +341,7 @@ func (h *entitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntit
 				return OverrideCustomerEntitlementHandlerRequest{}, err
 			}
 
-			apiInp := &api.EntitlementCreateInputs{}
+			apiInp := &api.EntitlementV2CreateInputs{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &apiInp); err != nil {
 				return OverrideCustomerEntitlementHandlerRequest{}, err
 			}
@@ -360,7 +364,7 @@ func (h *entitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntit
 			}
 
 			// Reuse v1 parser to build entitlement create inputs using the subject key
-			createInp, err := entitlementdriver.ParseAPICreateInput(apiInp, ns, cus.GetUsageAttribution())
+			createInp, err := ParseAPICreateInputV2(apiInp, ns, cus.GetUsageAttribution())
 			if err != nil {
 				return OverrideCustomerEntitlementHandlerRequest{}, err
 			}
@@ -369,7 +373,8 @@ func (h *entitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntit
 				CustomerID:                cus.ID,
 				EntitlementIDOrFeatureKey: params.EntitlementIdOrFeatureKey,
 				Namespace:                 ns,
-				Inputs:                    createInp,
+				Inputs:                    createInp.Entitlement,
+				Grants:                    createInp.Grants,
 			}, nil
 		},
 		func(ctx context.Context, request OverrideCustomerEntitlementHandlerRequest) (OverrideCustomerEntitlementHandlerResponse, error) {
@@ -378,7 +383,7 @@ func (h *entitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntit
 				return nil, err
 			}
 
-			ent, err := h.connector.OverrideEntitlement(ctx, request.CustomerID, oldEnt.ID, request.Inputs)
+			ent, err := h.connector.OverrideEntitlement(ctx, request.CustomerID, oldEnt.ID, request.Inputs, request.Grants)
 			if err != nil {
 				return nil, err
 			}

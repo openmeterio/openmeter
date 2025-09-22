@@ -9,10 +9,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -21,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type (
@@ -85,8 +82,8 @@ func (h *entitlementHandler) ListCustomerEntitlementGrants() ListCustomerEntitle
 				return ListCustomerEntitlementGrantsHandlerResponse{}, err
 			}
 
-			mapped := pagination.MapResult(grants, func(grant meteredentitlement.EntitlementGrant) api.EntitlementGrant {
-				return entitlementdriver.MapEntitlementGrantToAPI(&grant)
+			mapped := pagination.MapResult(grants, func(grant meteredentitlement.EntitlementGrant) api.EntitlementGrantV2 {
+				return MapEntitlementGrantToAPIV2(&grant)
 			})
 
 			return ListCustomerEntitlementGrantsHandlerResponse{
@@ -155,40 +152,9 @@ func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEnti
 				)
 			}
 
-			grantInput := meteredentitlement.CreateEntitlementGrantInputs{
-				CreateGrantInput: credit.CreateGrantInput{
-					Amount:           body.Amount,
-					Priority:         defaultx.WithDefault(body.Priority, 0),
-					EffectiveAt:      body.EffectiveAt,
-					ResetMaxRollover: defaultx.WithDefault(body.MaxRolloverAmount, body.Amount),
-					ResetMinRollover: defaultx.WithDefault(body.MinRolloverAmount, 0),
-				},
-			}
-
-			if body.Expiration != nil {
-				grantInput.Expiration = &grant.ExpirationPeriod{
-					Count:    body.Expiration.Count,
-					Duration: grant.ExpirationPeriodDuration(body.Expiration.Duration),
-				}
-			}
-
-			if body.Annotations != nil && len(lo.FromPtr(body.Annotations)) > 0 {
-				grantInput.Annotations = make(models.Annotations)
-
-				for k, v := range lo.FromPtr(body.Annotations) {
-					grantInput.Annotations[k] = v
-				}
-			}
-
-			if body.Recurrence != nil {
-				iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(body.Recurrence.Interval)
-				if err != nil {
-					return req, err
-				}
-				grantInput.Recurrence = &timeutil.Recurrence{
-					Interval: iv,
-					Anchor:   defaultx.WithDefault(body.Recurrence.Anchor, body.EffectiveAt),
-				}
+			grantInput, err := MapAPIGrantV2ToCreateGrantInput(body)
+			if err != nil {
+				return req, err
 			}
 
 			req = CreateCustomerEntitlementGrantHandlerRequest{
