@@ -18,13 +18,43 @@ pip install -e .
 
 ### Examples
 
-```python
->>> from openmeter import OpenMeterCloudClient
->>> from corehttp.exceptions import HttpResponseError
+### Setup
 
->>> client = OpenMeterCloudClient(endpoint='<endpoint>')
->>> try:
-        <!-- write code here -->
-    except HttpResponseError as e:
-        print('service responds error: {}'.format(e.response.json()))
+```python
+credential = ServiceKeyCredential("api-token")
+
+client = OpenMeterCloudClient(
+    endpoint="https://openmeter.cloud",
+    credential=credential,
+)
+```
+
+### Ingest an Event
+
+```python
+# Create a CloudEvents event
+event = Event(
+    id=str(uuid.uuid4()),
+    source="my-app",
+    specversion="1.0",
+    type="prompt",
+    subject="customer-1",
+    time=datetime.datetime.now(datetime.timezone.utc),
+    data={
+        "value": 100,
+        "model": "gpt-4o",
+        "type": "input",
+    },
+)
+
+# Ingest the event
+client.events.ingest_event(event)
+```
+
+### Query Meter
+
+```python
+# Query total values
+r: MeterQueryResult = client.meters.query_json(meter_id_or_slug="tokens_total")
+print("Query total values:", r.data[0].value)
 ```
