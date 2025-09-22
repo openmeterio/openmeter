@@ -49,11 +49,9 @@ func (s subjectCustomerHook) provision(ctx context.Context, sub *subject.Subject
 			s.logger.WarnContext(ctx, "failed to provision customer for subject", "error", err)
 
 			return nil
-		} else {
-			s.logger.ErrorContext(ctx, "failed to provision customer for subject", "error", err)
-
-			return err
 		}
+
+		return err
 	}
 
 	return nil
@@ -493,10 +491,6 @@ func (p CustomerProvisioner) EnsureStripeCustomer(ctx context.Context, customerI
 		},
 	})
 	if err != nil {
-		if e, ok := lo.ErrorsAs[*app.AppCustomerPreConditionError](err); ok {
-			return models.NewGenericPreConditionFailedError(e.Unwrap())
-		}
-
 		return fmt.Errorf("failed to setup stripe customer id for customer [namespace=%s customer.id=%s]: %w",
 			customerID.Namespace, customerID.ID, err)
 	}
