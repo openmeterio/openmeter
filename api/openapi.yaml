@@ -10572,7 +10572,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EntitlementCreateInputs'
+              $ref: '#/components/schemas/EntitlementV2CreateInputs'
     get:
       operationId: listCustomerEntitlementsV2
       summary: List customer entitlements
@@ -11181,7 +11181,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EntitlementCreateInputs'
+              $ref: '#/components/schemas/EntitlementV2CreateInputs'
   /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset:
     post:
       operationId: resetCustomerEntitlementUsageV2
@@ -16111,7 +16111,6 @@ components:
       required:
         - amount
         - effectiveAt
-        - expiration
       properties:
         amount:
           type: number
@@ -16137,10 +16136,6 @@ components:
           format: date-time
           description: Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
           example: '2023-01-01T01:01:01.001Z'
-        expiration:
-          allOf:
-            - $ref: '#/components/schemas/ExpirationPeriod'
-          description: The grant expiration definition
         minRolloverAmount:
           type: number
           format: double
@@ -16160,6 +16155,10 @@ components:
             Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.
             Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
           example: 100
+        expiration:
+          allOf:
+            - $ref: '#/components/schemas/ExpirationPeriod'
+          description: The grant expiration definition. If no expiration is provided, the grant can be active indefinitely.
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
@@ -16181,7 +16180,6 @@ components:
         - updatedAt
         - amount
         - effectiveAt
-        - expiration
         - id
         - entitlementId
       properties:
@@ -16230,10 +16228,6 @@ components:
           format: date-time
           description: Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
           example: '2023-01-01T01:01:01.001Z'
-        expiration:
-          allOf:
-            - $ref: '#/components/schemas/ExpirationPeriod'
-          description: The grant expiration definition
         minRolloverAmount:
           type: number
           format: double
@@ -16249,6 +16243,10 @@ components:
             Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.
             Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
           example: 100
+        expiration:
+          allOf:
+            - $ref: '#/components/schemas/ExpirationPeriod'
+          description: The grant expiration definition. If no expiration is provided, the grant can be active indefinitely.
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
@@ -17068,6 +17066,19 @@ components:
       description: |-
         Entitlement templates are used to define the entitlements of a plan.
         Features are omitted from the entitlement template, as they are defined in the rate card.
+    EntitlementV2CreateInputs:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/EntitlementMeteredV2CreateInputs'
+        - $ref: '#/components/schemas/EntitlementStaticCreateInputs'
+        - $ref: '#/components/schemas/EntitlementBooleanCreateInputs'
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: '#/components/schemas/EntitlementMeteredV2CreateInputs'
+          static: '#/components/schemas/EntitlementStaticCreateInputs'
+          boolean: '#/components/schemas/EntitlementBooleanCreateInputs'
+      description: Create inputs for entitlement
     EntitlementV2PaginatedResponse:
       type: object
       required:

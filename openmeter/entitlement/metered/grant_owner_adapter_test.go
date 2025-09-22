@@ -680,7 +680,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			Amount:      1000,
 			Priority:    1,
 			EffectiveAt: now,
-			ExpiresAt:   now.AddDate(0, 0, 10),
+			ExpiresAt:   lo.ToPtr(now.AddDate(0, 0, 10)),
 		})
 		require.NoError(t, err)
 

@@ -4,6 +4,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -33,10 +35,10 @@ type Grant struct {
 	EffectiveAt time.Time `json:"effectiveAt"`
 
 	// Expiration The expiration configuration.
-	Expiration ExpirationPeriod `json:"expiration"`
+	Expiration *ExpirationPeriod `json:"expiration,omitempty"`
 	// ExpiresAt contains the exact expiration date calculated from effectiveAt and Expiration for rendering.
 	// ExpiresAt is exclusive, meaning that the grant is no longer active after this time, but it is still active at the time.
-	ExpiresAt time.Time `json:"expiresAt"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 
 	Annotations models.Annotations `json:"annotations,omitempty"`
 
@@ -61,31 +63,41 @@ func (g Grant) Validate() error {
 }
 
 // Calculates expiration from effectiveAt and Expiration.
-func (g Grant) GetExpiration() time.Time {
-	return g.Expiration.GetExpiration(g.EffectiveAt)
+func (g Grant) GetExpiration() *time.Time {
+	if g.Expiration == nil {
+		return nil
+	}
+
+	return lo.ToPtr(g.Expiration.GetExpiration(g.EffectiveAt))
 }
 
-func (g Grant) GetEffectivePeriod() timeutil.ClosedPeriod {
-	p := timeutil.ClosedPeriod{
+func (g Grant) GetEffectivePeriod() timeutil.StartBoundedPeriod {
+	p := timeutil.StartBoundedPeriod{
 		From: g.EffectiveAt,
 		To:   g.ExpiresAt,
 	}
 
 	// Let's bound by deletion time
 	if g.DeletedAt != nil {
-		if g.DeletedAt.Before(p.To) {
-			p.To = *g.DeletedAt
+		switch {
+		case p.To == nil:
+			p.To = g.DeletedAt
+		case g.DeletedAt.Before(*p.To):
+			p.To = g.DeletedAt
 		}
 	}
 
 	if g.VoidedAt != nil {
-		if g.VoidedAt.Before(p.To) {
-			p.To = *g.VoidedAt
+		switch {
+		case p.To == nil:
+			p.To = g.VoidedAt
+		case g.VoidedAt.Before(*p.To):
+			p.To = g.VoidedAt
 		}
 	}
 
-	if p.To.Before(p.From) {
-		p.To = p.From
+	if p.To != nil && p.To.Before(p.From) {
+		p.To = &p.From
 	}
 
 	return p

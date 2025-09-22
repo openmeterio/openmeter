@@ -60,7 +60,7 @@ model GrantV2 {
 model GrantCreateInputV2 {
   ...OmitProperties<
     OpenMeter.Entitlements.GrantCreateInput,
-    "maxRolloverAmount" | "metadata"
+    "maxRolloverAmount" | "metadata" | "expiration"
   >;
 
   /**
@@ -69,6 +69,11 @@ model GrantCreateInputV2 {
    */
   @example(100.0)
   maxRolloverAmount?: float64;
+
+  /**
+   * The grant expiration definition. If no expiration is provided, the grant can be active indefinitely.
+   */
+  expiration?: ExpirationPeriod;
 
   /**
    * The grant metadata.

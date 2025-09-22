@@ -49,7 +49,7 @@ func Test_Fuzzing(t *testing.T) {
 		Amount:      100.0,
 		Priority:    1,
 		EffectiveAt: t1,
-		Expiration: grant.ExpirationPeriod{
+		Expiration: &grant.ExpirationPeriod{
 			Duration: grant.ExpirationPeriodDurationDay,
 			Count:    30,
 		},
@@ -60,7 +60,7 @@ func Test_Fuzzing(t *testing.T) {
 		Amount:      100.0,
 		Priority:    1,
 		EffectiveAt: t1,
-		Expiration: grant.ExpirationPeriod{
+		Expiration: &grant.ExpirationPeriod{
 			Duration: grant.ExpirationPeriodDurationDay,
 			Count:    30,
 		},
@@ -172,7 +172,7 @@ func Test_Fuzzing(t *testing.T) {
 						Amount:      float64(gofakeit.IntRange(10000, 1000000)), // input value limited to ints
 						Priority:    gofakeit.Uint8(),
 						EffectiveAt: gofakeit.DateRange(start, end).Truncate(granularity),
-						Expiration: grant.ExpirationPeriod{
+						Expiration: &grant.ExpirationPeriod{
 							Duration: grant.ExpirationPeriodDurationDay,
 							Count:    gofakeit.Uint32(),
 						},
@@ -262,7 +262,7 @@ func Test_Fuzzing(t *testing.T) {
 						Amount:      float64(gofakeit.IntRange(10000, 1000000)), // input value limited to ints
 						Priority:    gofakeit.Uint8(),
 						EffectiveAt: gofakeit.DateRange(start, end).Truncate(granularity),
-						Expiration: grant.ExpirationPeriod{
+						Expiration: &grant.ExpirationPeriod{
 							Duration: grant.ExpirationPeriodDurationDay,
 							Count:    gofakeit.Uint32(),
 						},

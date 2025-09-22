@@ -272,7 +272,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			ResetMaxRollover: 1000,
 			Priority:         2,
 			EffectiveAt:      startTime,
-			ExpiresAt:        startTime.AddDate(0, 5, 0),
+			ExpiresAt:        lo.ToPtr(startTime.AddDate(0, 5, 0)),
 		})
 		assert.NoError(t, err)
 

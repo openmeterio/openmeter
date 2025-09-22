@@ -30,8 +30,8 @@ type grantEventV2GrantLiteral struct {
 	Amount           float64              `json:"amount"`
 	Priority         uint8                `json:"priority"`
 	EffectiveAt      time.Time            `json:"effectiveAt"`
-	Expiration       ExpirationPeriod     `json:"expiration"`
-	ExpiresAt        time.Time            `json:"expiresAt"`
+	Expiration       *ExpirationPeriod    `json:"expiration"`
+	ExpiresAt        *time.Time           `json:"expiresAt"`
 	Metadata         map[string]string    `json:"metadata,omitempty"`
 	VoidedAt         *time.Time           `json:"voidedAt,omitempty"`
 	ResetMaxRollover float64              `json:"resetMaxRollover"`

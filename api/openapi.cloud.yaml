@@ -10571,7 +10571,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EntitlementCreateInputs'
+              $ref: '#/components/schemas/EntitlementV2CreateInputs'
     get:
       operationId: listCustomerEntitlementsV2
       summary: List customer entitlements
@@ -11184,7 +11184,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EntitlementCreateInputs'
+              $ref: '#/components/schemas/EntitlementV2CreateInputs'
   /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset:
     post:
       operationId: resetCustomerEntitlementUsageV2
@@ -15770,7 +15770,6 @@ components:
       required:
         - amount
         - effectiveAt
-        - expiration
       properties:
         amount:
           type: number
@@ -15796,10 +15795,6 @@ components:
           format: date-time
           description: Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
           example: '2023-01-01T01:01:01.001Z'
-        expiration:
-          allOf:
-            - $ref: '#/components/schemas/ExpirationPeriod'
-          description: The grant expiration definition
         minRolloverAmount:
           type: number
           format: double
@@ -15819,6 +15814,10 @@ components:
             Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.
             Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
           example: 100
+        expiration:
+          allOf:
+            - $ref: '#/components/schemas/ExpirationPeriod'
+          description: The grant expiration definition. If no expiration is provided, the grant can be active indefinitely.
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
@@ -15840,7 +15839,6 @@ components:
         - updatedAt
         - amount
         - effectiveAt
-        - expiration
         - id
         - entitlementId
       properties:
@@ -15889,10 +15887,6 @@ components:
           format: date-time
           description: Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
           example: '2023-01-01T01:01:01.001Z'
-        expiration:
-          allOf:
-            - $ref: '#/components/schemas/ExpirationPeriod'
-          description: The grant expiration definition
         minRolloverAmount:
           type: number
           format: double
@@ -15908,6 +15902,10 @@ components:
             Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.
             Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
           example: 100
+        expiration:
+          allOf:
+            - $ref: '#/components/schemas/ExpirationPeriod'
+          description: The grant expiration definition. If no expiration is provided, the grant can be active indefinitely.
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
@@ -16321,6 +16319,86 @@ components:
       description: |-
         Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
         Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
+    EntitlementMeteredV2CreateInputs:
+      type: object
+      required:
+        - type
+        - usagePeriod
+      properties:
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: |-
+            The feature the subject is entitled to use.
+            Either featureKey or featureId is required.
+          example: example-feature-key
+        featureId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            The feature the subject is entitled to use.
+            Either featureKey or featureId is required.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Additional metadata for the feature.
+        type:
+          type: string
+          enum:
+            - metered
+        isSoftLimit:
+          type: boolean
+          description: If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
+          title: Soft limit
+          default: false
+        usagePeriod:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodCreateInput'
+          description: The usage period associated with the entitlement.
+        measureUsageFrom:
+          allOf:
+            - $ref: '#/components/schemas/MeasureUsageFrom'
+          description: Defines the time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
+        preserveOverageAtReset:
+          type: boolean
+          description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
+          title: Preserve overage at reset
+          default: false
+        issueAfterReset:
+          type: number
+          format: double
+          minimum: 0
+          description: |-
+            You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
+            If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+            That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+            Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
+          title: Initial grant amount
+          deprecated: true
+        issueAfterResetPriority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: Defines the grant priority for the default grant.
+          title: Issue grant after reset priority
+          deprecated: true
+          default: 1
+        issue:
+          allOf:
+            - $ref: '#/components/schemas/IssueAfterReset'
+          description: Issue after reset
+          title: Issue after reset
+        grants:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntitlementGrantCreateInputV2'
+          description: Grants
+          title: Grants
+      description: Create inputs for metered entitlement
     EntitlementOrderBy:
       type: string
       enum:
@@ -16616,6 +16694,19 @@ components:
       description: |-
         Entitlement templates are used to define the entitlements of a plan.
         Features are omitted from the entitlement template, as they are defined in the rate card.
+    EntitlementV2CreateInputs:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/EntitlementMeteredV2CreateInputs'
+        - $ref: '#/components/schemas/EntitlementStaticCreateInputs'
+        - $ref: '#/components/schemas/EntitlementBooleanCreateInputs'
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: '#/components/schemas/EntitlementMeteredV2CreateInputs'
+          static: '#/components/schemas/EntitlementStaticCreateInputs'
+          boolean: '#/components/schemas/EntitlementBooleanCreateInputs'
+      description: Create inputs for entitlement
     EntitlementV2PaginatedResponse:
       type: object
       required:

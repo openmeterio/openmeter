@@ -41,7 +41,7 @@ func (g *grantDBADapter) CreateGrant(ctx context.Context, grant grant.RepoCreate
 		SetPriority(grant.Priority).
 		SetEffectiveAt(grant.EffectiveAt).
 		SetExpiration(grant.Expiration).
-		SetExpiresAt(grant.ExpiresAt).
+		SetNillableExpiresAt(grant.ExpiresAt).
 		SetAnnotations(grant.Annotations).
 		SetResetMaxRollover(grant.ResetMaxRollover).
 		SetResetMinRollover(grant.ResetMinRollover)
@@ -181,7 +181,7 @@ func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner mode
 		Where(db_grant.AmountGTE(0.0)). // For a time we allowed negative grant amounts with an undefined behavior, for continuity we just silently ignore them.
 		Where(
 			db_grant.Or(
-				db_grant.And(db_grant.EffectiveAtLT(from), db_grant.ExpiresAtGT(from)),
+				db_grant.And(db_grant.EffectiveAtLT(from), db_grant.Or(db_grant.ExpiresAtGT(from), db_grant.ExpiresAtIsNil())),
 				db_grant.And(db_grant.EffectiveAtGTE(from), db_grant.EffectiveAtLT(to)),
 				db_grant.EffectiveAt(from),
 				db_grant.EffectiveAt(to),

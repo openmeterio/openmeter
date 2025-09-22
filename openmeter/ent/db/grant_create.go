@@ -120,7 +120,7 @@ func (_c *GrantCreate) SetEffectiveAt(v time.Time) *GrantCreate {
 }
 
 // SetExpiration sets the "expiration" field.
-func (_c *GrantCreate) SetExpiration(v grant.ExpirationPeriod) *GrantCreate {
+func (_c *GrantCreate) SetExpiration(v *grant.ExpirationPeriod) *GrantCreate {
 	_c.mutation.SetExpiration(v)
 	return _c
 }
@@ -128,6 +128,14 @@ func (_c *GrantCreate) SetExpiration(v grant.ExpirationPeriod) *GrantCreate {
 // SetExpiresAt sets the "expires_at" field.
 func (_c *GrantCreate) SetExpiresAt(v time.Time) *GrantCreate {
 	_c.mutation.SetExpiresAt(v)
+	return _c
+}
+
+// SetNillableExpiresAt sets the "expires_at" field if the given value is not nil.
+func (_c *GrantCreate) SetNillableExpiresAt(v *time.Time) *GrantCreate {
+	if v != nil {
+		_c.SetExpiresAt(*v)
+	}
 	return _c
 }
 
@@ -291,12 +299,6 @@ func (_c *GrantCreate) check() error {
 	if _, ok := _c.mutation.EffectiveAt(); !ok {
 		return &ValidationError{Name: "effective_at", err: errors.New(`db: missing required field "Grant.effective_at"`)}
 	}
-	if _, ok := _c.mutation.Expiration(); !ok {
-		return &ValidationError{Name: "expiration", err: errors.New(`db: missing required field "Grant.expiration"`)}
-	}
-	if _, ok := _c.mutation.ExpiresAt(); !ok {
-		return &ValidationError{Name: "expires_at", err: errors.New(`db: missing required field "Grant.expires_at"`)}
-	}
 	if _, ok := _c.mutation.ResetMaxRollover(); !ok {
 		return &ValidationError{Name: "reset_max_rollover", err: errors.New(`db: missing required field "Grant.reset_max_rollover"`)}
 	}
@@ -384,7 +386,7 @@ func (_c *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := _c.mutation.ExpiresAt(); ok {
 		_spec.SetField(dbgrant.FieldExpiresAt, field.TypeTime, value)
-		_node.ExpiresAt = value
+		_node.ExpiresAt = &value
 	}
 	if value, ok := _c.mutation.VoidedAt(); ok {
 		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)

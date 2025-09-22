@@ -36,7 +36,7 @@ func TestEngine(t *testing.T) {
 		Amount:      100.0,
 		Priority:    1,
 		EffectiveAt: t1,
-		Expiration: grant.ExpirationPeriod{
+		Expiration: &grant.ExpirationPeriod{
 			Duration: grant.ExpirationPeriodDurationDay,
 			Count:    30,
 		},
@@ -47,7 +47,7 @@ func TestEngine(t *testing.T) {
 		Amount:      100.0,
 		Priority:    1,
 		EffectiveAt: t1,
-		Expiration: grant.ExpirationPeriod{
+		Expiration: &grant.ExpirationPeriod{
 			Duration: grant.ExpirationPeriodDurationDay,
 			Count:    30,
 		},
@@ -421,7 +421,7 @@ func TestEngine(t *testing.T) {
 								g.ID: 100.0,
 							},
 							Overage: 0,
-							At:      g.ExpiresAt,
+							At:      *g.ExpiresAt,
 						},
 						Until: g.ExpiresAt.AddDate(0, 0, 5),
 					})
@@ -587,7 +587,7 @@ func TestEngine(t *testing.T) {
 						Amount:      100.0,
 						Priority:    1,
 						EffectiveAt: t1,
-						Expiration: grant.ExpirationPeriod{
+						Expiration: &grant.ExpirationPeriod{
 							Duration: grant.ExpirationPeriodDurationDay,
 							Count:    30,
 						},
@@ -931,7 +931,7 @@ func TestEngine(t *testing.T) {
 					Amount:      50.0,
 					Priority:    1,
 					EffectiveAt: start,
-					Expiration: grant.ExpirationPeriod{
+					Expiration: &grant.ExpirationPeriod{
 						Duration: grant.ExpirationPeriodDurationHour,
 						Count:    1, // Expires after 1 hour
 					},
@@ -943,7 +943,7 @@ func TestEngine(t *testing.T) {
 					Amount:      100.0,
 					Priority:    2,
 					EffectiveAt: start,
-					Expiration: grant.ExpirationPeriod{
+					Expiration: &grant.ExpirationPeriod{
 						Duration: grant.ExpirationPeriodDurationDay,
 						Count:    30, // Active for 30 days
 					},
@@ -955,7 +955,7 @@ func TestEngine(t *testing.T) {
 					Amount:      75.0,
 					Priority:    3,
 					EffectiveAt: start.Add(time.Hour), // Becomes effective after 1 hour
-					Expiration: grant.ExpirationPeriod{
+					Expiration: &grant.ExpirationPeriod{
 						Duration: grant.ExpirationPeriodDurationDay,
 						Count:    30,
 					},
@@ -967,7 +967,7 @@ func TestEngine(t *testing.T) {
 					Amount:      200.0,
 					Priority:    4,
 					EffectiveAt: start.Add(time.Hour * 4), // Becomes effective after 4 hours (after our calculation period)
-					Expiration: grant.ExpirationPeriod{
+					Expiration: &grant.ExpirationPeriod{
 						Duration: grant.ExpirationPeriodDurationDay,
 						Count:    30,
 					},
@@ -1022,7 +1022,7 @@ func TestEngine(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			streamingConnector := testutils.NewMockStreamingConnector(t)
 
 			mm := lo.Ternary(tc.meter.Key == "", defaultMeter, tc.meter)

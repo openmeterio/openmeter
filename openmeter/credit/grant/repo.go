@@ -60,8 +60,8 @@ type RepoCreateInput struct {
 	Amount           float64
 	Priority         uint8
 	EffectiveAt      time.Time
-	Expiration       ExpirationPeriod
-	ExpiresAt        time.Time
+	Expiration       *ExpirationPeriod
+	ExpiresAt        *time.Time
 	Annotations      models.Annotations
 	ResetMaxRollover float64
 	ResetMinRollover float64

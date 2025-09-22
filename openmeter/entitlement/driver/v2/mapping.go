@@ -189,24 +189,27 @@ func mapPeriodValue(p *timeutil.ClosedPeriod) api.Period {
 
 func MapEntitlementGrantToAPIV2(grant *meteredentitlement.EntitlementGrant) api.EntitlementGrantV2 {
 	apiGrant := api.EntitlementGrantV2{
-		Amount:      grant.Amount,
-		CreatedAt:   grant.CreatedAt,
-		EffectiveAt: grant.EffectiveAt,
-		Expiration: api.ExpirationPeriod{
-			Count:    grant.Expiration.Count,
-			Duration: api.ExpirationDuration(grant.Expiration.Duration),
-		},
+		Amount:            grant.Amount,
+		CreatedAt:         grant.CreatedAt,
+		EffectiveAt:       grant.EffectiveAt,
 		Id:                grant.ID,
 		Annotations:       lo.ToPtr(api.Annotations(grant.Annotations)),
 		Priority:          convert.ToPointer(grant.Priority),
 		UpdatedAt:         grant.UpdatedAt,
 		DeletedAt:         grant.DeletedAt,
 		EntitlementId:     grant.EntitlementID,
-		ExpiresAt:         &grant.ExpiresAt,
 		MaxRolloverAmount: &grant.MaxRolloverAmount,
 		MinRolloverAmount: &grant.MinRolloverAmount,
 		NextRecurrence:    grant.NextRecurrence,
 		VoidedAt:          grant.VoidedAt,
+	}
+
+	if grant.Expiration != nil {
+		apiGrant.Expiration = &api.ExpirationPeriod{
+			Count:    grant.Expiration.Count,
+			Duration: api.ExpirationDuration(grant.Expiration.Duration),
+		}
+		apiGrant.ExpiresAt = grant.ExpiresAt
 	}
 
 	if grant.Recurrence != nil {

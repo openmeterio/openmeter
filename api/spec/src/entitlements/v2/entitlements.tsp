@@ -88,6 +88,17 @@ union EntitlementV2 {
 }
 
 /**
+ * Create inputs for entitlement
+ */
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+@friendlyName("EntitlementV2CreateInputs")
+union EntitlementV2CreateInputs {
+  metered: EntitlementMeteredV2CreateInputs,
+  static: EntitlementStaticCreateInputs,
+  boolean: EntitlementBooleanCreateInputs,
+}
+
+/**
  * Customer fields for entitlements
  */
 @friendlyName("EntitlementCustomerFields")
