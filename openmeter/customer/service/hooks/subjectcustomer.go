@@ -49,11 +49,9 @@ func (s subjectCustomerHook) provision(ctx context.Context, sub *subject.Subject
 			s.logger.WarnContext(ctx, "failed to provision customer for subject", "error", err)
 
 			return nil
-		} else {
-			s.logger.ErrorContext(ctx, "failed to provision customer for subject", "error", err)
-
-			return err
 		}
+
+		return err
 	}
 
 	return nil
