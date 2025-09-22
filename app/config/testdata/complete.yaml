@@ -48,11 +48,12 @@ ingest:
       - broker
       - topic
       - consumer
-    cacheSize: 200
-    cacheTTL: 15m
-    protectedTopics:
-      - "protected-topic-1"
-      - "protected-topic-2"
+    topicProvisioner:
+      cacheSize: 200
+      cacheTTL: 15m
+      protectedTopics:
+        - "protected-topic-1"
+        - "protected-topic-2"
 
 aggregation:
   clickhouse:
