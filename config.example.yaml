@@ -39,12 +39,13 @@ termination:
 #    debugContexts:
 #      - broker
 #      - topic
-#  # The maximum number of entries stored in topic cache at a time which after the least recently used is evicted.
-#  # Setting it to 0 makes the cache size unlimited.
-#  cacheSize: 250
-#  # CacheTTL stores maximum time an entries is kept in cache before being evicted.
-#  # Setting it to 0 disables cache entry expiration.
-#  cacheTTL: 5m
+#    topicProvisioner:
+#      # The maximum number of entries stored in topic cache at a time which after the least recently used is evicted.
+#      # Setting it to 0 makes the cache size unlimited.
+#      cacheSize: 250
+#      # CacheTTL stores maximum time an entries is kept in cache before being evicted.
+#      # Setting it to 0 disables cache entry expiration.
+#      cacheTTL: 5m
 
 # dedupe:
 #   enabled: true
