@@ -257,6 +257,7 @@ func (h *handler) UpsertSubject() UpsertSubjectHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("upsertSubject"),
+			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
