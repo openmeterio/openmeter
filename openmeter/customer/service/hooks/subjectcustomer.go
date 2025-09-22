@@ -493,10 +493,6 @@ func (p CustomerProvisioner) EnsureStripeCustomer(ctx context.Context, customerI
 		},
 	})
 	if err != nil {
-		if e, ok := lo.ErrorsAs[*app.AppCustomerPreConditionError](err); ok {
-			return models.NewGenericPreConditionFailedError(e.Unwrap())
-		}
-
 		return fmt.Errorf("failed to setup stripe customer id for customer [namespace=%s customer.id=%s]: %w",
 			customerID.Namespace, customerID.ID, err)
 	}
