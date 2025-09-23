@@ -169,7 +169,7 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 
 	phase.Duration, err = (*datetime.ISODurationString)(a.Duration).ParsePtrOrNil()
 	if err != nil {
-		return phase, fmt.Errorf("failed to cast duration to period: %w", err)
+		return phase, models.NewGenericValidationError(fmt.Errorf("invalid duration: failed to cast to period: %w", err))
 	}
 
 	phase.RateCards, err = http.AsRateCards(a.RateCards)
@@ -195,7 +195,7 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 	if a.BillingCadence != "" {
 		billingCadence, err := datetime.ISODurationString(a.BillingCadence).Parse()
 		if err != nil {
-			return req, fmt.Errorf("invalid BillingCadence: %w", err)
+			return req, models.NewGenericValidationError(fmt.Errorf("invalid billingCadence: %w", err))
 		}
 
 		req.BillingCadence = lo.ToPtr(billingCadence)
