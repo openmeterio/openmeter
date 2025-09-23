@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
@@ -29,7 +30,7 @@ func NewIngestEventsHandler(
 			NamespaceDecoder: namespaceDecoder,
 		}).decode,
 		op,
-		encodeIngestEventsResponse,
+		commonhttp.EmptyResponseEncoder[bool](http.StatusNoContent),
 		httptransport.WithErrorEncoder((ingestEventsErrorEncoder{
 			CommonErrorEncoder: commonErrorEncoder,
 		}).encode),
@@ -144,12 +145,6 @@ func (d ingestEventsRequestDecoder) decode(ctx context.Context, r *http.Request)
 	}
 
 	return req, nil
-}
-
-func encodeIngestEventsResponse(_ context.Context, w http.ResponseWriter, _ bool) error {
-	w.WriteHeader(http.StatusNoContent)
-
-	return nil
 }
 
 type ingestEventsErrorEncoder struct {

@@ -232,10 +232,7 @@ func (h *featureHandlers) DeleteFeature() DeleteFeatureHandler {
 			return id, nil
 		},
 		operation.AsNoResponseOperation(h.connector.ArchiveFeature),
-		func(ctx context.Context, w http.ResponseWriter, response any) error {
-			w.WriteHeader(http.StatusNoContent)
-			return nil
-		},
+		commonhttp.EmptyResponseEncoder[DeleteFeatureHandlerResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deleteFeature"),

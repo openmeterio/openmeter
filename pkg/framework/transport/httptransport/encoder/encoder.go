@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-type ResponseEncoder[Response any] func(ctx context.Context, w http.ResponseWriter, response Response) error
+type ResponseEncoder[Response any] func(ctx context.Context, w http.ResponseWriter, r *http.Request, response Response) error
 
 // ErrorEncoder is responsible for encoding an error to the ResponseWriter.
 // Users are encouraged to use custom ErrorEncoders to encode HTTP errors to
