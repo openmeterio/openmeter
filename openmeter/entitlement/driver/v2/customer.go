@@ -22,7 +22,11 @@ import (
 )
 
 type (
-	CreateCustomerEntitlementHandlerRequest  = entitlement.CreateEntitlementInputs
+	CreateCustomerEntitlementHandlerRequest = struct {
+		Namespace       string
+		CustomerIDOrKey string
+		APIInput        *api.EntitlementCreateInputs
+	}
 	CreateCustomerEntitlementHandlerResponse = api.EntitlementV2
 	CreateCustomerEntitlementHandlerParams   = string // customerIdOrKey
 )
@@ -35,9 +39,9 @@ func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitleme
 		CreateCustomerEntitlementHandlerResponse,
 		CreateCustomerEntitlementHandlerParams,
 	](
-		func(ctx context.Context, r *http.Request, customerIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
+		func(ctx context.Context, r *http.Request, customerIdOrKey string) (CreateCustomerEntitlementHandlerRequest, error) {
 			inp := &api.EntitlementCreateInputs{}
-			request := entitlement.CreateEntitlementInputs{}
+			request := CreateCustomerEntitlementHandlerRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &inp); err != nil {
 				return request, err
 			}
@@ -47,37 +51,43 @@ func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitleme
 				return request, err
 			}
 
+			// Reuse v1 parser to build entitlement create inputs using the subject key
+			return CreateCustomerEntitlementHandlerRequest{
+				Namespace:       ns,
+				APIInput:        inp,
+				CustomerIDOrKey: customerIdOrKey,
+			}, nil
+		},
+		func(ctx context.Context, request CreateCustomerEntitlementHandlerRequest) (CreateCustomerEntitlementHandlerResponse, error) {
+			// Let's resolve the customer
 			// Resolve customer
 			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 				CustomerIDOrKey: &customer.CustomerIDOrKey{
-					Namespace: ns,
-					IDOrKey:   customerIdOrKey,
+					Namespace: request.Namespace,
+					IDOrKey:   request.CustomerIDOrKey,
 				},
 			})
 			if err != nil {
-				return request, err
+				return CreateCustomerEntitlementHandlerResponse{}, err
 			}
 
 			if cus != nil && cus.IsDeleted() {
-				return request, models.NewGenericPreConditionFailedError(
+				return CreateCustomerEntitlementHandlerResponse{}, models.NewGenericPreConditionFailedError(
 					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
 				)
 			}
 
-			// Reuse v1 parser to build entitlement create inputs using the subject key
-			return entitlementdriver.ParseAPICreateInput(inp, ns, cus.GetUsageAttribution())
-		},
-		func(ctx context.Context, request CreateCustomerEntitlementHandlerRequest) (CreateCustomerEntitlementHandlerResponse, error) {
-			ent, err := h.connector.CreateEntitlement(ctx, request)
+			parsed, err := entitlementdriver.ParseAPICreateInput(request.APIInput, request.Namespace, cus.GetUsageAttribution())
+			if err != nil {
+				return CreateCustomerEntitlementHandlerResponse{}, err
+			}
+
+			ent, err := h.connector.CreateEntitlement(ctx, parsed)
 			if err != nil {
 				return api.EntitlementV2{}, err
 			}
 
-			if ent.Customer == nil {
-				return api.EntitlementV2{}, commonhttp.NewHTTPError(http.StatusNotFound, errors.New("customer not found"))
-			}
-
-			v2, err := ParserV2.ToAPIGenericV2(ent, ent.Customer.ID, ent.Customer.Key)
+			v2, err := ParserV2.ToAPIGenericV2(ent, cus.ID, cus.Key)
 			if err != nil {
 				return api.EntitlementV2{}, err
 			}
