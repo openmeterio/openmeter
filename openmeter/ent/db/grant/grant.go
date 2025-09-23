@@ -24,8 +24,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldMetadata holds the string denoting the metadata field in the database.
-	FieldMetadata = "metadata"
 	// FieldOwnerID holds the string denoting the owner_id field in the database.
 	FieldOwnerID = "owner_id"
 	// FieldAmount holds the string denoting the amount field in the database.
@@ -86,11 +84,6 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for _, f := range [...]string{FieldMetadata} {
-		if column == f {
 			return true
 		}
 	}

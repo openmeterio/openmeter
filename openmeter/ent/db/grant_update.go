@@ -67,18 +67,6 @@ func (_u *GrantUpdate) ClearDeletedAt() *GrantUpdate {
 	return _u
 }
 
-// SetMetadata sets the "metadata" field.
-func (_u *GrantUpdate) SetMetadata(v map[string]string) *GrantUpdate {
-	_u.mutation.SetMetadata(v)
-	return _u
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (_u *GrantUpdate) ClearMetadata() *GrantUpdate {
-	_u.mutation.ClearMetadata()
-	return _u
-}
-
 // SetVoidedAt sets the "voided_at" field.
 func (_u *GrantUpdate) SetVoidedAt(v time.Time) *GrantUpdate {
 	_u.mutation.SetVoidedAt(v)
@@ -175,12 +163,6 @@ func (_u *GrantUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(dbgrant.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
-	}
-	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
-	}
 	if _u.mutation.ExpirationCleared() {
 		_spec.ClearField(dbgrant.FieldExpiration, field.TypeJSON)
 	}
@@ -254,18 +236,6 @@ func (_u *GrantUpdateOne) SetNillableDeletedAt(v *time.Time) *GrantUpdateOne {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *GrantUpdateOne) ClearDeletedAt() *GrantUpdateOne {
 	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetMetadata sets the "metadata" field.
-func (_u *GrantUpdateOne) SetMetadata(v map[string]string) *GrantUpdateOne {
-	_u.mutation.SetMetadata(v)
-	return _u
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (_u *GrantUpdateOne) ClearMetadata() *GrantUpdateOne {
-	_u.mutation.ClearMetadata()
 	return _u
 }
 
@@ -394,12 +364,6 @@ func (_u *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error)
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(dbgrant.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
-	}
-	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
 	}
 	if _u.mutation.ExpirationCleared() {
 		_spec.ClearField(dbgrant.FieldExpiration, field.TypeJSON)

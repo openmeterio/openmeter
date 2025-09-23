@@ -993,7 +993,7 @@ func init() {
 	// dbgrant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	dbgrant.UpdateDefaultUpdatedAt = dbgrantDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// dbgrantDescPriority is the schema descriptor for priority field.
-	dbgrantDescPriority := dbgrantFields[3].Descriptor()
+	dbgrantDescPriority := dbgrantFields[2].Descriptor()
 	// dbgrant.DefaultPriority holds the default value on creation for the priority field.
 	dbgrant.DefaultPriority = dbgrantDescPriority.Default.(uint8)
 	// dbgrantDescID is the schema descriptor for id field.

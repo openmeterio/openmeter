@@ -32,10 +32,6 @@ type Grant struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// Metadata holds the value of the "metadata" field.
-	//
-	// Deprecated: Field "metadata" was marked as deprecated in the schema.
-	Metadata map[string]string `json:"metadata,omitempty"`
 	// OwnerID holds the value of the "owner_id" field.
 	OwnerID string `json:"owner_id,omitempty"`
 	// Amount holds the value of the "amount" field.
@@ -89,7 +85,7 @@ func (*Grant) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case dbgrant.FieldAnnotations, dbgrant.FieldMetadata, dbgrant.FieldExpiration:
+		case dbgrant.FieldAnnotations, dbgrant.FieldExpiration:
 			values[i] = new([]byte)
 		case dbgrant.FieldAmount, dbgrant.FieldResetMaxRollover, dbgrant.FieldResetMinRollover:
 			values[i] = new(sql.NullFloat64)
@@ -152,14 +148,6 @@ func (_m *Grant) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
-			}
-		case dbgrant.FieldMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
-				}
 			}
 		case dbgrant.FieldOwnerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -290,9 +278,6 @@ func (_m *Grant) String() string {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("owner_id=")
 	builder.WriteString(_m.OwnerID)

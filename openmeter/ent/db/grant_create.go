@@ -81,12 +81,6 @@ func (_c *GrantCreate) SetNillableDeletedAt(v *time.Time) *GrantCreate {
 	return _c
 }
 
-// SetMetadata sets the "metadata" field.
-func (_c *GrantCreate) SetMetadata(v map[string]string) *GrantCreate {
-	_c.mutation.SetMetadata(v)
-	return _c
-}
-
 // SetOwnerID sets the "owner_id" field.
 func (_c *GrantCreate) SetOwnerID(v string) *GrantCreate {
 	_c.mutation.SetOwnerID(v)
@@ -364,10 +358,6 @@ func (_c *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 		_spec.SetField(dbgrant.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
-		_node.Metadata = value
-	}
 	if value, ok := _c.mutation.Amount(); ok {
 		_spec.SetField(dbgrant.FieldAmount, field.TypeFloat64, value)
 		_node.Amount = value
@@ -522,24 +512,6 @@ func (u *GrantUpsert) UpdateDeletedAt() *GrantUpsert {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *GrantUpsert) ClearDeletedAt() *GrantUpsert {
 	u.SetNull(dbgrant.FieldDeletedAt)
-	return u
-}
-
-// SetMetadata sets the "metadata" field.
-func (u *GrantUpsert) SetMetadata(v map[string]string) *GrantUpsert {
-	u.Set(dbgrant.FieldMetadata, v)
-	return u
-}
-
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *GrantUpsert) UpdateMetadata() *GrantUpsert {
-	u.SetExcluded(dbgrant.FieldMetadata)
-	return u
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (u *GrantUpsert) ClearMetadata() *GrantUpsert {
-	u.SetNull(dbgrant.FieldMetadata)
 	return u
 }
 
@@ -698,27 +670,6 @@ func (u *GrantUpsertOne) UpdateDeletedAt() *GrantUpsertOne {
 func (u *GrantUpsertOne) ClearDeletedAt() *GrantUpsertOne {
 	return u.Update(func(s *GrantUpsert) {
 		s.ClearDeletedAt()
-	})
-}
-
-// SetMetadata sets the "metadata" field.
-func (u *GrantUpsertOne) SetMetadata(v map[string]string) *GrantUpsertOne {
-	return u.Update(func(s *GrantUpsert) {
-		s.SetMetadata(v)
-	})
-}
-
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *GrantUpsertOne) UpdateMetadata() *GrantUpsertOne {
-	return u.Update(func(s *GrantUpsert) {
-		s.UpdateMetadata()
-	})
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (u *GrantUpsertOne) ClearMetadata() *GrantUpsertOne {
-	return u.Update(func(s *GrantUpsert) {
-		s.ClearMetadata()
 	})
 }
 
@@ -1047,27 +998,6 @@ func (u *GrantUpsertBulk) UpdateDeletedAt() *GrantUpsertBulk {
 func (u *GrantUpsertBulk) ClearDeletedAt() *GrantUpsertBulk {
 	return u.Update(func(s *GrantUpsert) {
 		s.ClearDeletedAt()
-	})
-}
-
-// SetMetadata sets the "metadata" field.
-func (u *GrantUpsertBulk) SetMetadata(v map[string]string) *GrantUpsertBulk {
-	return u.Update(func(s *GrantUpsert) {
-		s.SetMetadata(v)
-	})
-}
-
-// UpdateMetadata sets the "metadata" field to the value that was provided on create.
-func (u *GrantUpsertBulk) UpdateMetadata() *GrantUpsertBulk {
-	return u.Update(func(s *GrantUpsert) {
-		s.UpdateMetadata()
-	})
-}
-
-// ClearMetadata clears the value of the "metadata" field.
-func (u *GrantUpsertBulk) ClearMetadata() *GrantUpsertBulk {
-	return u.Update(func(s *GrantUpsert) {
-		s.ClearMetadata()
 	})
 }
 

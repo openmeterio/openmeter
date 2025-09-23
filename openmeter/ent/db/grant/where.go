@@ -342,16 +342,6 @@ func DeletedAtNotNil() predicate.Grant {
 	return predicate.Grant(sql.FieldNotNull(FieldDeletedAt))
 }
 
-// MetadataIsNil applies the IsNil predicate on the "metadata" field.
-func MetadataIsNil() predicate.Grant {
-	return predicate.Grant(sql.FieldIsNull(FieldMetadata))
-}
-
-// MetadataNotNil applies the NotNil predicate on the "metadata" field.
-func MetadataNotNil() predicate.Grant {
-	return predicate.Grant(sql.FieldNotNull(FieldMetadata))
-}
-
 // OwnerIDEQ applies the EQ predicate on the "owner_id" field.
 func OwnerIDEQ(v string) predicate.Grant {
 	return predicate.Grant(sql.FieldEQ(FieldOwnerID, v))

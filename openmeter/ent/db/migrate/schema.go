@@ -1574,7 +1574,6 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "amount", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "priority", Type: field.TypeUint8, Default: 0},
 		{Name: "effective_at", Type: field.TypeTime},
@@ -1595,7 +1594,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "grants_entitlements_grant",
-				Columns:    []*schema.Column{GrantsColumns[17]},
+				Columns:    []*schema.Column{GrantsColumns[16]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -1624,12 +1623,12 @@ var (
 			{
 				Name:    "grant_namespace_owner_id",
 				Unique:  false,
-				Columns: []*schema.Column{GrantsColumns[1], GrantsColumns[17]},
+				Columns: []*schema.Column{GrantsColumns[1], GrantsColumns[16]},
 			},
 			{
 				Name:    "grant_effective_at_expires_at",
 				Unique:  false,
-				Columns: []*schema.Column{GrantsColumns[9], GrantsColumns[11]},
+				Columns: []*schema.Column{GrantsColumns[8], GrantsColumns[10]},
 			},
 		},
 	}

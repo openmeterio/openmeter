@@ -2211,20 +2211,6 @@ func (u *GrantUpdateOne) SetOrClearDeletedAt(value *time.Time) *GrantUpdateOne {
 	return u.SetDeletedAt(*value)
 }
 
-func (u *GrantUpdate) SetOrClearMetadata(value *map[string]string) *GrantUpdate {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
-func (u *GrantUpdateOne) SetOrClearMetadata(value *map[string]string) *GrantUpdateOne {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
 func (u *GrantUpdate) SetOrClearVoidedAt(value *time.Time) *GrantUpdate {
 	if value == nil {
 		return u.ClearVoidedAt()

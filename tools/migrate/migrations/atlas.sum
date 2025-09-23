@@ -1,4 +1,4 @@
-h1:4c1TTpjw26MIT2pepO9gO45axT+eOob3gVARLLSYCek=
+h1:GYWAkmFcCaLoWpF28oDgmy3xD6LAexA6AQ9a4kERL7Q=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -126,3 +126,4 @@ h1:4c1TTpjw26MIT2pepO9gO45axT+eOob3gVARLLSYCek=
 20250911154229_subject_deleted_at.up.sql h1:YZCIzZ+WNzM1PMjn5Hg5cU7E2Wx9O36kOp0g5oMfrHE=
 20250912135241_grant-annotations.up.sql h1:g6leHtk8znjlj+CYO4RQTENo6teuiHGw3gwLKjdOYZQ=
 20250922104242_grant-expiration-optional.up.sql h1:onC5YrxO2LqJuEmyK5A27IJ7fNPyNRV8wVOvzFyw3p0=
+20250923101617_grant-remove-metadata-cleanup.up.sql h1:mhxq1ccONKT/XhSxJYFXog50ncQBKhaaPGTOl1ehhDg=
