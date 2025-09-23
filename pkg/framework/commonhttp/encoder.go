@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"net/url"
 
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -36,7 +37,7 @@ func GetMediaType(r *http.Request) (string, error) {
 }
 
 // JSONResponseEncoder encodes a response as JSON.
-func JSONResponseEncoder[Response any](_ context.Context, w http.ResponseWriter, response Response) error {
+func JSONResponseEncoder[Response any](_ context.Context, w http.ResponseWriter, _ *http.Request, response Response) error {
 	return jsonResponseEncoder(w, http.StatusOK, response)
 }
 
@@ -62,13 +63,13 @@ func jsonResponseEncoder[Response any](w http.ResponseWriter, statusCode int, re
 }
 
 func JSONResponseEncoderWithStatus[Response any](statusCode int) encoder.ResponseEncoder[Response] {
-	return func(ctx context.Context, w http.ResponseWriter, r Response) error {
-		return jsonResponseEncoder(w, statusCode, r)
+	return func(ctx context.Context, w http.ResponseWriter, _ *http.Request, response Response) error {
+		return jsonResponseEncoder(w, statusCode, response)
 	}
 }
 
 // PlainTextResponseEncoder encodes a response as PlainText.
-func PlainTextResponseEncoder[Response string](_ context.Context, w http.ResponseWriter, response Response) error {
+func PlainTextResponseEncoder[Response string](_ context.Context, w http.ResponseWriter, _ *http.Request, response Response) error {
 	return plainTextResponseEncoder(w, http.StatusOK, response)
 }
 
@@ -92,7 +93,7 @@ type CSVResponse interface {
 }
 
 // CSVResponseEncoder encodes a response as CSV.
-func CSVResponseEncoder[Response CSVResponse](_ context.Context, w http.ResponseWriter, response Response) error {
+func CSVResponseEncoder[Response CSVResponse](_ context.Context, w http.ResponseWriter, _ *http.Request, response Response) error {
 	return csvResponseEncoder(w, http.StatusOK, response)
 }
 
@@ -117,7 +118,7 @@ func csvResponseEncoder[Response CSVResponse](w http.ResponseWriter, statusCode 
 }
 
 func EmptyResponseEncoder[Response any](statusCode int) encoder.ResponseEncoder[Response] {
-	return func(ctx context.Context, w http.ResponseWriter, r Response) error {
+	return func(_ context.Context, w http.ResponseWriter, _ *http.Request, resp Response) error {
 		w.WriteHeader(statusCode)
 		return nil
 	}
@@ -125,7 +126,7 @@ func EmptyResponseEncoder[Response any](statusCode int) encoder.ResponseEncoder[
 
 // DummyErrorEncoder is a dummy error encoder that always returns a 400 status code with the received error.
 func DummyErrorEncoder() encoder.ErrorEncoder {
-	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
+	return func(ctx context.Context, err error, w http.ResponseWriter, _ *http.Request) bool {
 		NewHTTPError(http.StatusBadRequest, err).EncodeError(ctx, w)
 		return true
 	}
@@ -141,5 +142,24 @@ func GenericErrorEncoder() encoder.ErrorEncoder {
 			HandleErrorIfTypeMatches[*models.GenericNotFoundError](ctx, http.StatusNotFound, err, w) ||
 			HandleErrorIfTypeMatches[*models.GenericUnauthorizedError](ctx, http.StatusUnauthorized, err, w) ||
 			HandleErrorIfTypeMatches[*models.GenericPreConditionFailedError](ctx, http.StatusPreconditionFailed, err, w)
+	}
+}
+
+func RedirectResponseEncoder[Response string](statusCode int) encoder.ResponseEncoder[Response] {
+	return func(ctx context.Context, w http.ResponseWriter, r *http.Request, response Response) error {
+		redirectURL := string(response)
+
+		_, err := url.Parse(redirectURL)
+		if err != nil {
+			return fmt.Errorf("invalid redirect url: %w", err)
+		}
+
+		if statusCode < 300 || statusCode > 399 {
+			return fmt.Errorf("invalid redirect status code: it must be in 3xx range: %w", err)
+		}
+
+		http.Redirect(w, r, redirectURL, statusCode)
+
+		return nil
 	}
 }

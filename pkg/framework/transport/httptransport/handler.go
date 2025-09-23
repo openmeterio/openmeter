@@ -108,7 +108,7 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := h.encodeResponse(ctx, w, response); err != nil {
+	if err := h.encodeResponse(ctx, w, r, response); err != nil {
 		// Always a server error (terminal)?
 
 		h.errorHandler.HandleContext(ctx, err)
