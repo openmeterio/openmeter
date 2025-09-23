@@ -167,7 +167,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 
 			req, err := AsUpdatePlanRequest(body, ns, planID)
 			if err != nil {
-				return UpdatePlanRequest{}, fmt.Errorf("failed to update plan request: %w", err)
+				return UpdatePlanRequest{}, fmt.Errorf("failed to parse update plan request: %w", err)
 			}
 
 			req.NamespacedID = models.NamespacedID{
