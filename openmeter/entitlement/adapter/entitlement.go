@@ -165,16 +165,23 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				Where(
 					db_subject.Key(subjectKey),
 					db_subject.Namespace(ent.Namespace),
+					db_subject.Or(
+						db_subject.DeletedAtIsNil(),
+						db_subject.DeletedAtGTE(now),
+					),
 				).
 				Only(ctx)
 			if err != nil {
-				if db.IsNotFound(err) {
+				switch {
+				case db.IsNotFound(err):
 					return nil, models.NewGenericNotFoundError(
-						fmt.Errorf("subject with key %s not found in %s namespace", subjectKey, ent.Namespace),
+						fmt.Errorf("subject [namespace=%s subject.key=%s]", ent.Namespace, subjectKey),
 					)
+				case db.IsNotSingular(err):
+					return nil, fmt.Errorf("multiple active subjects found with same key [namespace=%s subject.key=%s]: %w", ent.Namespace, subjectKey, err)
+				default:
+					return nil, fmt.Errorf("failed to load subject %s: %w", subjectKey, err)
 				}
-
-				return nil, fmt.Errorf("failed to load subject %s: %w", subjectKey, err)
 			}
 
 			cmd := repo.db.Entitlement.Create().
