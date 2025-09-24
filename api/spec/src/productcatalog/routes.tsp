@@ -509,6 +509,7 @@ interface Subscriptions {
    * Restores a canceled subscription.
    * Any subscription scheduled to start later will be deleted and this subscription will be continued indefinitely.
    */
+  #deprecated "API will be removed by 2025-10-06"
   @post
   @operationId("restoreSubscription")
   @summary("Restore subscription")
