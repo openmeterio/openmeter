@@ -101,6 +101,7 @@ func NewSubscriptionServices(
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
 		Lockr:              lockr,
+		FeatureFlags:       featureFlags,
 	})
 
 	planSubscriptionService := subscriptionchangeservice.New(subscriptionchangeservice.Config{
