@@ -2161,6 +2161,19 @@ var (
 				},
 			},
 			{
+				Name:    "subject_namespace_key_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{SubjectsColumns[1], SubjectsColumns[5], SubjectsColumns[4]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "subject_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubjectsColumns[1], SubjectsColumns[0]},
+			},
+			{
 				Name:    "subject_display_name",
 				Unique:  false,
 				Columns: []*schema.Column{SubjectsColumns[6]},

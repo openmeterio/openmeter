@@ -47,6 +47,11 @@ func (Subject) Indexes() []ent.Index {
 			Annotations(
 				entsql.IndexWhere("deleted_at IS NULL"),
 			).Unique(),
+		index.Fields("namespace", "key", "deleted_at").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).Unique(),
+		index.Fields("namespace", "id").Unique(),
 		// we sort by display name
 		index.Fields("display_name"),
 		// so that we can fetch the recently created subjects, id is there for stable pagination
