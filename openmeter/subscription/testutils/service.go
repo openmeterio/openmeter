@@ -187,8 +187,8 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		TransactionManager:    subItemRepo,
 		Publisher:             publisher,
 		Lockr:                 lockr,
-		FeatureFlags: ffx.NewStaticService(ffx.AccessConfig{
-			subscription.MultiSubscriptionEnabledFF: true,
+		FeatureFlags: ffx.NewTestContextService(ffx.AccessConfig{
+			subscription.MultiSubscriptionEnabledFF: false,
 		}),
 	})
 

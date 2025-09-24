@@ -10,3 +10,11 @@ type Service interface {
 }
 
 type AccessConfig map[Feature]bool
+
+func (c AccessConfig) Merge(other AccessConfig) AccessConfig {
+	for feature, value := range other {
+		c[feature] = value
+	}
+
+	return c
+}

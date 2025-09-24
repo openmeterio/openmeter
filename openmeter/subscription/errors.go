@@ -28,6 +28,8 @@ func IsErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart(err error) boo
 	return IsValidationIssueWithCode(err, ErrCodeSubscriptionBillingPeriodQueriedBeforeSubscriptionStart)
 }
 
+var ErrOnlySingleSubscriptionAllowed = models.NewGenericConflictError(errors.New("only single subscription is allowed per customer at a time"))
+
 // TODO(galexi): "ValidationIssue" is not the right concept here. We should have a different kind of error with all this capability. It's used here as a hack to localize things for the time being.
 
 func IsValidationIssueWithCode(err error, code models.ErrorCode) bool {
