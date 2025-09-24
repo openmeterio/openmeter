@@ -44,6 +44,7 @@ import (
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -140,6 +141,9 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		// framework
 		TransactionManager: subsRepo,
 		Lockr:              lockr,
+		FeatureFlags: ffx.NewStaticService(ffx.AccessConfig{
+			subscription.MultiSubscriptionEnabledFF: true,
+		}),
 		// events
 		Publisher: publisher,
 	})

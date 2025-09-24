@@ -261,7 +261,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher, locker)
+	ffxService := ffx.NewContextService()
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -384,7 +385,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	ffxService := ffx.NewContextService()
 	dedupeConfiguration := conf.Dedupe
 	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger, commonMetadata)
 	if err != nil {
