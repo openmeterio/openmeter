@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/wire"
+
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/server"
