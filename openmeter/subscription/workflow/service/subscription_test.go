@@ -1622,7 +1622,7 @@ func TestMultiSubscription(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
-			ffx.SetAccessOnContext(ctx, ffx.AccessConfig{
+			ctx = ffx.SetAccessOnContext(ctx, ffx.AccessConfig{
 				subscription.MultiSubscriptionEnabledFF: false,
 			})
 
