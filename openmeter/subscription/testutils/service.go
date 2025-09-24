@@ -177,6 +177,10 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 
 	planHelper := NewPlanHelper(planService)
 
+	ffService := ffx.NewTestContextService(ffx.AccessConfig{
+		subscription.MultiSubscriptionEnabledFF: false,
+	})
+
 	svc := service.New(service.ServiceConfig{
 		SubscriptionRepo:      subRepo,
 		SubscriptionPhaseRepo: subPhaseRepo,
@@ -187,9 +191,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		TransactionManager:    subItemRepo,
 		Publisher:             publisher,
 		Lockr:                 lockr,
-		FeatureFlags: ffx.NewTestContextService(ffx.AccessConfig{
-			subscription.MultiSubscriptionEnabledFF: false,
-		}),
+		FeatureFlags:          ffService,
 	})
 
 	addonRepo, err := addonrepo.New(addonrepo.Config{
@@ -242,6 +244,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
 		Lockr:              lockr,
+		FeatureFlags:       ffService,
 	})
 
 	return SubscriptionDependencies{

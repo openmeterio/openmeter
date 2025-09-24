@@ -125,6 +125,9 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 
 	s.EntitlementConnector = s.SetupEntitlements(t, deps)
 
+	ffService := ffx.NewStaticService(ffx.AccessConfig{
+		subscription.MultiSubscriptionEnabledFF: true,
+	})
 	s.SubscriptionService = subscriptionservice.New(subscriptionservice.ServiceConfig{
 		SubscriptionRepo:      subsRepo,
 		SubscriptionPhaseRepo: subscriptionrepo.NewSubscriptionPhaseRepo(deps.DBClient),
@@ -141,9 +144,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		// framework
 		TransactionManager: subsRepo,
 		Lockr:              lockr,
-		FeatureFlags: ffx.NewStaticService(ffx.AccessConfig{
-			subscription.MultiSubscriptionEnabledFF: true,
-		}),
+		FeatureFlags:       ffService,
 		// events
 		Publisher: publisher,
 	})
@@ -204,6 +205,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		TransactionManager: subsRepo,
 		Logger:             slog.Default(),
 		Lockr:              lockr,
+		FeatureFlags:       ffService,
 	})
 }
 

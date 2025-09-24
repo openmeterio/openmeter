@@ -324,6 +324,9 @@ func TestEditRunning(t *testing.T) {
 					AddonService:       tuDeps.SubscriptionAddonService,
 					Logger:             slog.Default(),
 					Lockr:              lockr,
+					FeatureFlags: ffx.NewTestContextService(ffx.AccessConfig{
+						subscription.MultiSubscriptionEnabledFF: false,
+					}),
 				})
 
 				_, err = workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1}, immediate)
@@ -1521,6 +1524,50 @@ func TestRestore(t *testing.T) {
 			_, err = deps.Service.GetView(ctx, new.Subscription.NamespacedID)
 			require.Error(t, err)
 			require.ErrorAs(t, err, lo.ToPtr(&subscription.SubscriptionNotFoundError{}))
+		})
+	})
+
+	t.Run("Should not allow restore if multi-subscription is enabled", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctx = ffx.SetAccessOnContext(ctx, ffx.AccessConfig{
+				subscription.MultiSubscriptionEnabledFF: true,
+			})
+
+			// Let's create an example subscription
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "Example Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			// Let's pass some time
+			clock.SetTime(clock.Now().Add(time.Hour))
+
+			// Let's cancel the subscription
+			s, err := deps.Service.Cancel(ctx, sub.Subscription.NamespacedID, subscription.Timing{
+				Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+			})
+			require.Nil(t, err)
+
+			// Let's validate its canceled
+			require.Equal(t, subscription.SubscriptionStatusCanceled, s.GetStatusAt(clock.Now()))
+
+			// Let's pass some more time
+			clock.SetTime(deps.CurrentTime.AddDate(0, 0, 1))
+
+			// Let's restore the subscription
+			_, err = deps.WorkflowService.Restore(ctx, sub.Subscription.NamespacedID)
+			require.Error(t, err)
+			require.ErrorIs(t, err, subscription.ErrRestoreSubscriptionNotAllowedForMultiSubscription)
 		})
 	})
 }
