@@ -346,6 +346,13 @@ func TestComplete(t *testing.T) {
 				},
 			},
 		},
+		ProductCatalog: ProductCatalogConfiguration{
+			Subscription: SubscriptionConfiguration{
+				MultiSubscriptionNamespaces: []string{
+					"multi-subscription",
+				},
+			},
+		},
 		Notification: NotificationConfiguration{
 			Consumer: ConsumerConfiguration{
 				ProcessingTimeout: 30 * time.Second,
