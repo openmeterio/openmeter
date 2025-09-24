@@ -169,7 +169,7 @@ func ConfigureIngestKafkaConfiguration(v *viper.Viper, prefixes ...string) {
 	v.SetDefault(prefixer("kafka.saslUsername"), "")
 	v.SetDefault(prefixer("kafka.saslPassword"), "")
 	v.SetDefault(prefixer("kafka.statsInterval"), 15*time.Second)
-	v.SetDefault(prefixer("kafka.brokerAddressFamily"), "")
+	v.SetDefault(prefixer("kafka.brokerAddressFamily"), "v4")
 	v.SetDefault(prefixer("kafka.socketKeepAliveEnabled"), true)
 	v.SetDefault(prefixer("kafka.topicMetadataRefreshInterval"), time.Minute)
 }
