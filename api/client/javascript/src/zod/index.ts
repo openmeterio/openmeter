@@ -7903,11 +7903,7 @@ Only meters with SUM and COUNT aggregation are supported for features.
 Features cannot be updated later, only archived.
  * @summary Create feature
  */
-export const createFeatureBodyKeyMax = 64
-
-export const createFeatureBodyKeyRegExp = new RegExp(
-  '^[a-z0-9]+(?:_[a-z0-9]+)*$'
-)
+export const createFeatureBodyKeyMax = 256
 export const createFeatureBodyMeterSlugMax = 64
 
 export const createFeatureBodyMeterSlugRegExp = new RegExp(
@@ -7920,16 +7916,16 @@ export const createFeatureBody = zod
       .string()
       .min(1)
       .max(createFeatureBodyKeyMax)
-      .regex(createFeatureBodyKeyRegExp)
       .describe(
-        'A key is a unique string that is used to identify a resource.'
+        'The unique key of the feature\nUseful to reference the feature in external systems.\nFor example, your database ID.'
       ),
     metadata: zod
       .record(zod.string(), zod.coerce.string())
       .describe(
         'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
       )
-      .optional(),
+      .optional()
+      .describe('Optional metadata'),
     meterGroupByFilters: zod
       .record(zod.string(), zod.coerce.string())
       .optional()
@@ -7943,9 +7939,11 @@ export const createFeatureBody = zod
       .regex(createFeatureBodyMeterSlugRegExp)
       .optional()
       .describe(
-        'A key is a unique string that is used to identify a resource.'
+        'The meter that the feature is associated with and and based on which usage is calculated.'
       ),
-    name: zod.coerce.string(),
+    name: zod.coerce
+      .string()
+      .describe('The human-readable name of the feature'),
   })
   .describe(
     'Represents a feature that can be enabled or disabled for a plan.\nUsed both for product catalog and entitlements.'

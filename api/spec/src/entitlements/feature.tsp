@@ -92,24 +92,33 @@ interface Features {
  */
 @friendlyName("FeatureCreateInputs")
 model FeatureCreateInputs {
+  /**
+   * The unique key of the feature
+   * Useful to reference the feature in external systems.
+   * For example, your database ID.
+   */
   @summary("The unique key of the feature")
-  key: Key;
+  key: ExternalKey;
 
+  /**
+   * The human-readable name of the feature
+   */
   @summary("The human-readable name of the feature")
   name: string;
 
+  /**
+   * Optional metadata
+   */
   @summary("Optional metadata")
   @example(#{ key: "value" })
   metadata?: Metadata;
 
-  // /**
-  //  * The meter that the feature is associated with and and based on which usage is calculated.
-  //  * The meter selected must have SUM or COUNT aggregation.
-  //  */
-  // @summary("Meter key")
-  // @example("tokens_total")
-  // meterKey?: Key;
-
+  /**
+   * The meter that the feature is associated with and and based on which usage is calculated.
+   * @summary("Meter key")
+   * @example("tokens_total")
+   * meterKey?: Key;
+   */
   @summary("Meter slug")
   @example("tokens_total")
   meterSlug?: Key;

@@ -16629,16 +16629,20 @@ components:
         key:
           type: string
           minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A key is a unique string that is used to identify a resource.
+          maxLength: 256
+          description: |-
+            The unique key of the feature
+            Useful to reference the feature in external systems.
+            For example, your database ID.
           title: The unique key of the feature
         name:
           type: string
+          description: The human-readable name of the feature
           title: The human-readable name of the feature
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          description: Optional metadata
           title: Optional metadata
           example:
             key: value
@@ -16647,7 +16651,7 @@ components:
           minLength: 1
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A key is a unique string that is used to identify a resource.
+          description: The meter that the feature is associated with and and based on which usage is calculated.
           title: Meter slug
           example: tokens_total
         meterGroupByFilters:
@@ -16681,16 +16685,20 @@ components:
         key:
           type: string
           minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A key is a unique string that is used to identify a resource.
+          maxLength: 256
+          description: |-
+            The unique key of the feature
+            Useful to reference the feature in external systems.
+            For example, your database ID.
           title: The unique key of the feature
         name:
           type: string
+          description: The human-readable name of the feature
           title: The human-readable name of the feature
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          description: Optional metadata
           title: Optional metadata
           example:
             key: value
@@ -16699,7 +16707,7 @@ components:
           minLength: 1
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: A key is a unique string that is used to identify a resource.
+          description: The meter that the feature is associated with and and based on which usage is calculated.
           title: Meter slug
           example: tokens_total
         meterGroupByFilters:
