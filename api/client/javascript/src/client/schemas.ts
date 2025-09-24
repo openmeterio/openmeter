@@ -2121,6 +2121,7 @@ export interface paths {
     put?: never
     /**
      * Restore subscription
+     * @deprecated
      * @description Restores a canceled subscription.
      *     Any subscription scheduled to start later will be deleted and this subscription will be continued indefinitely.
      */
