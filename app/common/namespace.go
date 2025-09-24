@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 )
 
 var Namespace = wire.NewSet(
@@ -25,4 +26,14 @@ func NewNamespaceManager(
 	}
 
 	return manager, nil
+}
+
+var StaticNamespace = wire.NewSet(
+	NewStaticNamespaceDecoder,
+)
+
+func NewStaticNamespaceDecoder(
+	conf config.NamespaceConfiguration,
+) namespacedriver.NamespaceDecoder {
+	return namespacedriver.StaticNamespaceDecoder(conf.Default)
 }
