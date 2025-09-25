@@ -97,7 +97,6 @@ func (a *adapter) InstallMarketplaceListing(ctx context.Context, input app.Insta
 		// Install app
 		app, err := installer.InstallApp(ctx, app.AppFactoryInstallAppInput{
 			Namespace: input.Namespace,
-			BaseURL:   a.baseURL,
 			Name:      name,
 		})
 		if err != nil {

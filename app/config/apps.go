@@ -29,7 +29,8 @@ func (c AppsConfiguration) Validate() error {
 }
 
 type AppStripeConfiguration struct {
-	DisableWebhookRegistration bool `yaml:"disableWebhookRegistration"`
+	DisableWebhookRegistration bool   `yaml:"disableWebhookRegistration"`
+	WebhookURLPattern          string `yaml:"webhookURLPattern"`
 }
 
 func (c AppStripeConfiguration) Validate() error {
