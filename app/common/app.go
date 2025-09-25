@@ -40,12 +40,10 @@ type AppSandboxProvisioner func(ctx context.Context, orgID string) error
 func NewAppService(
 	logger *slog.Logger,
 	db *entdb.Client,
-	appsConfig config.AppsConfiguration,
 	publisher eventbus.Publisher,
 ) (app.Service, error) {
 	appAdapter, err := appadapter.New(appadapter.Config{
-		Client:  db,
-		BaseURL: appsConfig.BaseURL,
+		Client: db,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app adapter: %w", err)
@@ -69,6 +67,18 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)
 	}
 
+	webhookGenerator, err := appstripeservice.NewBaseURLWebhookURLGenerator(appsConfig.BaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create webhook generator: %w", err)
+	}
+
+	if appsConfig.Stripe.WebhookURLPattern != "" {
+		webhookGenerator, err = appstripeservice.NewPatternWebhookURLGenerator(appsConfig.Stripe.WebhookURLPattern)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create webhook generator: %w", err)
+		}
+	}
+
 	return appstripeservice.New(appstripeservice.Config{
 		Adapter:                    appStripeAdapter,
 		AppService:                 appService,
@@ -77,6 +87,7 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 		Logger:                     logger,
 		DisableWebhookRegistration: appsConfig.Stripe.DisableWebhookRegistration,
 		Publisher:                  publisher,
+		WebhookURLGenerator:        webhookGenerator,
 	})
 }
 

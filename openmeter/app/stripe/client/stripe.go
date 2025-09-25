@@ -61,8 +61,8 @@ type StripePaymentMethod struct {
 }
 
 type SetupWebhookInput struct {
-	AppID   app.AppID
-	BaseURL string
+	AppID      app.AppID
+	WebhookURL string
 }
 
 func (i SetupWebhookInput) Validate() error {
@@ -70,8 +70,8 @@ func (i SetupWebhookInput) Validate() error {
 		return fmt.Errorf("error validating app id: %w", err)
 	}
 
-	if i.BaseURL == "" {
-		return errors.New("base url is required")
+	if i.WebhookURL == "" {
+		return errors.New("webhook url is required")
 	}
 
 	return nil

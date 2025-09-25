@@ -84,7 +84,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Client: client,
 		Logger: logger,
 	}
-	appsConfiguration := conf.Apps
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
@@ -125,7 +124,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	service, err := common.NewAppService(logger, client, appsConfiguration, eventbusPublisher)
+	service, err := common.NewAppService(logger, client, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -135,6 +134,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	appsConfiguration := conf.Apps
 	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/samber/lo"
@@ -85,11 +84,6 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 		return StripeWebhookEndpoint{}, fmt.Errorf("invalid input: %w", err)
 	}
 
-	webhookURL, err := url.JoinPath(input.BaseURL, "/api/v1/apps/", input.AppID.ID, "/stripe/webhook")
-	if err != nil {
-		return StripeWebhookEndpoint{}, fmt.Errorf("failed to join url path: %w", err)
-	}
-
 	params := &stripe.WebhookEndpointParams{
 		EnabledEvents: []*string{
 			// Setup intents
@@ -108,7 +102,7 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 			lo.ToPtr(WebhookEventTypeInvoiceSent),
 			lo.ToPtr(WebhookEventTypeInvoiceVoided),
 		},
-		URL:         lo.ToPtr(webhookURL),
+		URL:         lo.ToPtr(input.WebhookURL),
 		Description: lo.ToPtr("OpenMeter Stripe Webhook, do not delete or modify manually"),
 		Metadata: map[string]string{
 			StripeMetadataNamespace: input.AppID.Namespace,

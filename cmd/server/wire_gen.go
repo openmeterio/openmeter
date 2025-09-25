@@ -150,8 +150,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appsConfiguration := conf.Apps
-	appService, err := common.NewAppService(logger, client, appsConfiguration, eventbusPublisher)
+	appService, err := common.NewAppService(logger, client, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -161,6 +160,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	appsConfiguration := conf.Apps
 	namespaceConfiguration := conf.Namespace
 	manager, err := common.NewNamespaceManager(namespaceConfiguration)
 	if err != nil {

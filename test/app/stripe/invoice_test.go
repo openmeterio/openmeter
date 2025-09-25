@@ -87,13 +87,19 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	})
 	s.Require().NoError(err, "failed to create app stripe adapter")
 
+	webhookURLGenerator, err := appstripeservice.NewBaseURLWebhookURLGenerator("http://localhost:8888")
+	if err != nil {
+		s.Require().NoError(err, "failed to create webhook url generator")
+	}
+
 	appStripeService, err := appstripeservice.New(appstripeservice.Config{
-		Adapter:        appStripeAdapter,
-		AppService:     s.AppService,
-		SecretService:  secretService,
-		BillingService: s.BillingService,
-		Logger:         slog.Default(),
-		Publisher:      eventbus.NewMock(s.T()),
+		Adapter:             appStripeAdapter,
+		AppService:          s.AppService,
+		SecretService:       secretService,
+		BillingService:      s.BillingService,
+		Logger:              slog.Default(),
+		Publisher:           eventbus.NewMock(s.T()),
+		WebhookURLGenerator: webhookURLGenerator,
 	})
 	s.Require().NoError(err, "failed to create app stripe service")
 

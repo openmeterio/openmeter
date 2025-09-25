@@ -29,7 +29,8 @@ func (c AppsConfiguration) Validate() error {
 }
 
 type AppStripeConfiguration struct {
-	DisableWebhookRegistration bool `yaml:"disableWebhookRegistration"`
+	DisableWebhookRegistration bool   `yaml:"disableWebhookRegistration"`
+	WebhookURLPattern          string `yaml:"webhookURLPattern" mapstructure:"webhookURLPattern"`
 }
 
 func (c AppStripeConfiguration) Validate() error {
@@ -40,6 +41,8 @@ func ConfigureApps(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("apps.baseURL", "https://example.com")
 
 	flags.Bool("stripe-disable-webhook-registration", false, "Disable webhook registration for Stripe [for local development]")
+	flags.String("stripe-webhook-url-pattern", "", "Webhook URL pattern for Stripe [for local development]")
 	_ = v.BindPFlag("apps.stripe.disableWebhookRegistration", flags.Lookup("stripe-disable-webhook-registration"))
 	v.SetDefault("apps.stripe.disableWebhookRegistration", false)
+	v.SetDefault("apps.stripe.webhookURLPattern", "")
 }

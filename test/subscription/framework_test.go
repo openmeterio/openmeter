@@ -63,8 +63,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{
-		Client:  deps.DBDeps.DBClient,
-		BaseURL: "http://localhost:8888",
+		Client: deps.DBDeps.DBClient,
 	})
 	require.NoError(t, err)
 

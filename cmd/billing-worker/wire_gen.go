@@ -128,8 +128,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appsConfiguration := conf.Apps
-	service, err := common.NewAppService(logger, client, appsConfiguration, eventbusPublisher)
+	service, err := common.NewAppService(logger, client, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -318,6 +317,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Group:  group,
 		Logger: logger,
 	}
+	appsConfiguration := conf.Apps
 	factory, err := common.NewAppSandboxFactory(appsConfiguration, service, billingService)
 	if err != nil {
 		cleanup7()
