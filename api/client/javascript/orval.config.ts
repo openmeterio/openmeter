@@ -6,16 +6,12 @@ export default defineConfig({
       target: '../../openapi.cloud.yaml',
     },
     output: {
+      biome: true,
       clean: true,
       client: 'zod',
       mode: 'single',
       namingConvention: 'PascalCase',
       override: {
-        header: () => `
-        /* eslint-disable no-useless-escape */
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-nocheck
-        `,
         useDates: true,
         zod: {
           coerce: {
@@ -34,9 +30,9 @@ export default defineConfig({
           },
         },
       },
-      prettier: true,
       propertySortOrder: 'Alphabetical',
       target: './src/zod/index.ts',
+      tsconfig: './tsconfig.json',
     },
   },
 })

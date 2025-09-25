@@ -1,7 +1,7 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type { MeterCreate, operations, paths } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 
 /**
  * Meters
@@ -31,10 +31,7 @@ export class Meters {
    * @param signal - An optional abort signal
    * @returns The meter
    */
-  public async get(
-    idOrSlug: operations['getMeter']['parameters']['path']['meterIdOrSlug'],
-    options?: RequestOptions
-  ) {
+  public async get(idOrSlug: operations['getMeter']['parameters']['path']['meterIdOrSlug'], options?: RequestOptions) {
     const resp = await this.client.GET('/api/v1/meters/{meterIdOrSlug}', {
       params: {
         path: {
@@ -70,7 +67,7 @@ export class Meters {
   public async query(
     idOrSlug: operations['queryMeter']['parameters']['path']['meterIdOrSlug'],
     query?: operations['queryMeter']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/meters/{meterIdOrSlug}/query', {
       headers: {
@@ -85,9 +82,7 @@ export class Meters {
       ...options,
     })
 
-    return transformResponse(
-      resp
-    ) as operations['queryMeter']['responses']['200']['content']['application/json']
+    return transformResponse(resp) as operations['queryMeter']['responses']['200']['content']['application/json']
   }
 
   /**
@@ -100,7 +95,7 @@ export class Meters {
   public async update(
     idOrSlug: operations['updateMeter']['parameters']['path']['meterIdOrSlug'],
     meter: operations['updateMeter']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT('/api/v1/meters/{meterIdOrSlug}', {
       body: meter,
@@ -123,7 +118,7 @@ export class Meters {
    */
   public async delete(
     idOrSlug: operations['deleteMeter']['parameters']['path']['meterIdOrSlug'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE('/api/v1/meters/{meterIdOrSlug}', {
       params: {

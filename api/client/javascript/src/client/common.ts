@@ -18,27 +18,20 @@ export class HTTPError extends Error {
     public title: string,
     public status: number,
     public url: string,
-    protected __raw?: Record<string, any>
+    protected __raw?: Record<string, unknown>,
   ) {
     super(message)
   }
 
-  static fromResponse(resp: {
-    response: Response
-    error?: UnexpectedProblemResponse
-  }): HTTPError {
-    if (
-      resp.response.headers.get('Content-Type') ===
-        'application/problem+json' &&
-      resp.error
-    ) {
+  static fromResponse(resp: { response: Response; error?: UnexpectedProblemResponse }): HTTPError {
+    if (resp.response.headers.get('Content-Type') === 'application/problem+json' && resp.error) {
       return new HTTPError(
         `Request failed (${resp.response.url}) [${resp.response.status}]: ${resp.error.detail}`,
         resp.error.type,
         resp.error.title,
         resp.error.status ?? resp.response.status,
         resp.response.url,
-        resp.error
+        resp.error,
       )
     }
 
@@ -47,7 +40,7 @@ export class HTTPError extends Error {
       resp.response.statusText,
       resp.response.statusText,
       resp.response.status,
-      resp.response.url
+      resp.response.url,
     )
   }
 

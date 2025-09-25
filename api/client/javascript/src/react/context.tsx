@@ -13,11 +13,7 @@ export type OpenMeterProviderProps = {
 }
 
 export function OpenMeterProvider({ children, value }: OpenMeterProviderProps) {
-  return (
-    <OpenMeterContext.Provider value={value}>
-      {children}
-    </OpenMeterContext.Provider>
-  )
+  return <OpenMeterContext.Provider value={value}>{children}</OpenMeterContext.Provider>
 }
 
 export function useOpenMeter() {

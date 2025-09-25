@@ -1,12 +1,7 @@
-import { transformResponse } from './utils.js'
-import type { RequestOptions } from './common.js'
-import type {
-  Feature,
-  FeatureCreateInputs,
-  operations,
-  paths,
-} from './schemas.js'
 import type { Client } from 'openapi-fetch'
+import type { RequestOptions } from './common.js'
+import type { Feature, FeatureCreateInputs, operations, paths } from './schemas.js'
+import { transformResponse } from './utils.js'
 
 /**
  * Features
@@ -36,10 +31,7 @@ export class Features {
    * @param signal - An optional abort signal
    * @returns The feature
    */
-  public async get(
-    id: operations['getFeature']['parameters']['path']['featureId'],
-    options?: RequestOptions
-  ) {
+  public async get(id: operations['getFeature']['parameters']['path']['featureId'], options?: RequestOptions) {
     const resp = await this.client.GET('/api/v1/features/{featureId}', {
       params: {
         path: {
@@ -59,11 +51,8 @@ export class Features {
    * @returns The features
    */
   public async list(
-    query?: Omit<
-      operations['listFeatures']['parameters']['query'],
-      'page' | 'pageSize'
-    >,
-    options?: RequestOptions
+    query?: Omit<operations['listFeatures']['parameters']['query'], 'page' | 'pageSize'>,
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/features', {
       params: {
@@ -81,10 +70,7 @@ export class Features {
    * @param signal - An optional abort signal
    * @returns The deleted feature
    */
-  public async delete(
-    id: operations['deleteFeature']['parameters']['path']['featureId'],
-    options?: RequestOptions
-  ) {
+  public async delete(id: operations['deleteFeature']['parameters']['path']['featureId'], options?: RequestOptions) {
     const resp = await this.client.DELETE('/api/v1/features/{featureId}', {
       params: {
         path: {

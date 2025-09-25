@@ -1,7 +1,7 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type { operations, paths } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 
 export class SubscriptionAddons {
   constructor(private client: Client<paths, `${string}/${string}`>) {}
@@ -16,16 +16,13 @@ export class SubscriptionAddons {
   public async create(
     subscriptionId: string,
     addon: operations['createSubscriptionAddon']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
-    const resp = await this.client.POST(
-      '/api/v1/subscriptions/{subscriptionId}/addons',
-      {
-        body: addon,
-        params: { path: { subscriptionId } },
-        ...options,
-      }
-    )
+    const resp = await this.client.POST('/api/v1/subscriptions/{subscriptionId}/addons', {
+      body: addon,
+      params: { path: { subscriptionId } },
+      ...options,
+    })
 
     return transformResponse(resp)
   }
@@ -37,13 +34,10 @@ export class SubscriptionAddons {
    * @returns A list of subscription addons
    */
   public async list(subscriptionId: string, options?: RequestOptions) {
-    const resp = await this.client.GET(
-      '/api/v1/subscriptions/{subscriptionId}/addons',
-      {
-        params: { path: { subscriptionId } },
-        ...options,
-      }
-    )
+    const resp = await this.client.GET('/api/v1/subscriptions/{subscriptionId}/addons', {
+      params: { path: { subscriptionId } },
+      ...options,
+    })
 
     return transformResponse(resp)
   }
@@ -55,18 +49,11 @@ export class SubscriptionAddons {
    * @param options - Optional request options
    * @returns The subscription addon
    */
-  public async get(
-    subscriptionId: string,
-    subscriptionAddonId: string,
-    options?: RequestOptions
-  ) {
-    const resp = await this.client.GET(
-      '/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}',
-      {
-        params: { path: { subscriptionAddonId, subscriptionId } },
-        ...options,
-      }
-    )
+  public async get(subscriptionId: string, subscriptionAddonId: string, options?: RequestOptions) {
+    const resp = await this.client.GET('/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}', {
+      params: { path: { subscriptionAddonId, subscriptionId } },
+      ...options,
+    })
 
     return transformResponse(resp)
   }
@@ -83,16 +70,13 @@ export class SubscriptionAddons {
     subscriptionId: string,
     subscriptionAddonId: string,
     addon: operations['updateSubscriptionAddon']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
-    const resp = await this.client.PATCH(
-      '/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}',
-      {
-        body: addon,
-        params: { path: { subscriptionAddonId, subscriptionId } },
-        ...options,
-      }
-    )
+    const resp = await this.client.PATCH('/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}', {
+      body: addon,
+      params: { path: { subscriptionAddonId, subscriptionId } },
+      ...options,
+    })
 
     return transformResponse(resp)
   }

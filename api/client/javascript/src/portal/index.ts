@@ -1,16 +1,13 @@
+import type { Client, ClientOptions } from 'openapi-fetch'
 import createClient, { createQuerySerializer } from 'openapi-fetch'
-import { encodeDates, transformResponse } from '../client/utils.js'
 import type { RequestOptions } from '../client/common.js'
 import type { operations, paths } from '../client/schemas.js'
-import type { Client, ClientOptions } from 'openapi-fetch'
+import { encodeDates, transformResponse } from '../client/utils.js'
 
 /**
  * Portal Config
  */
-export type Config = Pick<
-  ClientOptions,
-  'baseUrl' | 'headers' | 'fetch' | 'Request' | 'requestInitExt'
-> & {
+export type Config = Pick<ClientOptions, 'baseUrl' | 'headers' | 'fetch' | 'Request' | 'requestInitExt'> & {
   portalToken: string
 }
 
@@ -66,26 +63,21 @@ export class OpenMeter {
       /** @description If not specified a single aggregate will be returned for each subject and time window. `subject` is a reserved group by value. */
       groupBy?: string[]
     },
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
-    const resp = await this.client.GET(
-      '/api/v1/portal/meters/{meterSlug}/query',
-      {
-        headers: {
-          Accept: 'application/json',
+    const resp = await this.client.GET('/api/v1/portal/meters/{meterSlug}/query', {
+      headers: {
+        Accept: 'application/json',
+      },
+      params: {
+        path: {
+          meterSlug,
         },
-        params: {
-          path: {
-            meterSlug,
-          },
-          query,
-        },
-        ...options,
-      }
-    )
+        query,
+      },
+      ...options,
+    })
 
-    return transformResponse(
-      resp
-    ) as operations['queryPortalMeter']['responses']['200']['content']['application/json']
+    return transformResponse(resp) as operations['queryPortalMeter']['responses']['200']['content']['application/json']
   }
 }

@@ -1,7 +1,7 @@
 import fetchMock from '@fetch-mock/vitest'
-import { describe, expect, it, beforeEach } from 'vitest'
-import { OpenMeter } from './index.js'
+import { beforeEach, describe, expect, it } from 'vitest'
 import type { Event } from './index.js'
+import { OpenMeter } from './index.js'
 
 interface Context {
   baseUrl: string
@@ -21,11 +21,7 @@ describe('Events', () => {
     ctx.client = client
   })
 
-  it<Context>('ingest (POST /api/v1/events)', async ({
-    baseUrl,
-    client,
-    task,
-  }) => {
+  it<Context>('ingest (POST /api/v1/events)', async ({ baseUrl, client, task }) => {
     const route = `${baseUrl}/api/v1/events`
     const event: Event = {
       data: {
@@ -49,7 +45,7 @@ describe('Events', () => {
             source: '@openmeter/sdk',
             specversion: '1.0',
             subject: 'customer_id',
-            time: event.time!.toISOString(),
+            time: event.time?.toISOString(),
             type: 'prompt',
           },
         ],
@@ -58,18 +54,14 @@ describe('Events', () => {
         },
         method: 'POST',
         name: task.name,
-      }
+      },
     )
     const resp = await client.events.ingest(event)
     expect(resp).toBeUndefined()
     expect(fetchMock.callHistory.done(task.name)).toBeTruthy()
   })
 
-  it<Context>('list (GET /api/v1/events)', async ({
-    baseUrl,
-    client,
-    task,
-  }) => {
+  it<Context>('list (GET /api/v1/events)', async ({ baseUrl, client, task }) => {
     const query = {
       from: new Date(),
       hasError: false,
@@ -101,7 +93,7 @@ describe('Events', () => {
           subject: query.subject,
           to: query.to.toISOString(),
         },
-      }
+      },
     )
     const resp = await client.events.list(query)
     expect(resp).toEqual(respBody)

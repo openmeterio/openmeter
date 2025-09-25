@@ -1,10 +1,6 @@
-import { HTTPError } from './common.js'
 import type { FetchResponse, ParseAsResponse } from 'openapi-fetch'
-import type {
-  MediaType,
-  ResponseObjectMap,
-  SuccessResponse,
-} from 'openapi-typescript-helpers'
+import type { MediaType, ResponseObjectMap, SuccessResponse } from 'openapi-typescript-helpers'
+import { HTTPError } from './common.js'
 
 /**
  * Transform a response from the API
@@ -12,30 +8,20 @@ import type {
  * @throws HTTPError if the response is an error
  * @returns The transformed response
  */
-export function transformResponse<
-  T extends Record<string | number, any>,
-  Options,
-  Media extends MediaType,
->(
-  resp: FetchResponse<T, Options, Media>
-):
-  | ParseAsResponse<SuccessResponse<ResponseObjectMap<T>, Media>, Options>
-  | never {
+export function transformResponse<T extends Record<string | number, unknown>, Options, Media extends MediaType>(
+  resp: FetchResponse<T, Options, Media>,
+): ParseAsResponse<SuccessResponse<ResponseObjectMap<T>, Media>, Options> | undefined | never {
   // Handle errors
   if (resp.error || resp.response.status >= 400) {
     throw HTTPError.fromResponse(resp)
   }
 
   // Decode dates
-  if (resp.data) {
-    resp.data = decodeDates(resp.data)
-  }
-
-  return resp.data!
+  resp.data = decodeDates(resp.data)
+  return resp.data
 }
 
-const ISODateFormat =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)?(?:[-+]\d{2}:?\d{2}|Z)?$/
+const ISODateFormat = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)?(?:[-+]\d{2}:?\d{2}|Z)?$/
 
 export function isIsoDateString(value: unknown): value is string {
   return typeof value === 'string' && ISODateFormat.test(value)

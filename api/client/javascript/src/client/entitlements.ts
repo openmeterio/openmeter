@@ -1,4 +1,4 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type {
   Entitlement,
@@ -8,7 +8,7 @@ import type {
   paths,
   ResetEntitlementUsageInput,
 } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 
 /**
  * Entitlements
@@ -40,20 +40,17 @@ export class Entitlements {
   public async create(
     subjectIdOrKey: operations['createEntitlement']['parameters']['path']['subjectIdOrKey'],
     entitlement: EntitlementCreateInputs,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
-    const resp = await this.client.POST(
-      '/api/v1/subjects/{subjectIdOrKey}/entitlements',
-      {
-        body: entitlement,
-        params: {
-          path: {
-            subjectIdOrKey: subjectIdOrKey,
-          },
+    const resp = await this.client.POST('/api/v1/subjects/{subjectIdOrKey}/entitlements', {
+      body: entitlement,
+      params: {
+        path: {
+          subjectIdOrKey: subjectIdOrKey,
         },
-        ...options,
-      }
-    )
+      },
+      ...options,
+    })
 
     return transformResponse(resp)
   }
@@ -65,10 +62,7 @@ export class Entitlements {
    * @param signal - An optional abort signal
    * @returns The entitlement
    */
-  public async get(
-    id: operations['getEntitlement']['parameters']['path']['entitlementId'],
-    options?: RequestOptions
-  ) {
+  public async get(id: operations['getEntitlement']['parameters']['path']['entitlementId'], options?: RequestOptions) {
     const resp = await this.client.GET('/api/v1/entitlements/{entitlementId}', {
       params: {
         path: {
@@ -89,11 +83,8 @@ export class Entitlements {
    * @returns The entitlements
    */
   public async list(
-    query?: Omit<
-      operations['listEntitlements']['parameters']['query'],
-      'page' | 'pageSize'
-    >,
-    options?: RequestOptions
+    query?: Omit<operations['listEntitlements']['parameters']['query'], 'page' | 'pageSize'>,
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/entitlements', {
       params: {
@@ -116,20 +107,17 @@ export class Entitlements {
   public async delete(
     subjectIdOrKey: operations['deleteEntitlement']['parameters']['path']['subjectIdOrKey'],
     entitlementId: operations['deleteEntitlement']['parameters']['path']['entitlementId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
-    const resp = await this.client.DELETE(
-      '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}',
-      {
-        params: {
-          path: {
-            entitlementId,
-            subjectIdOrKey,
-          },
+    const resp = await this.client.DELETE('/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}', {
+      params: {
+        path: {
+          entitlementId,
+          subjectIdOrKey,
         },
-        ...options,
-      }
-    )
+      },
+      ...options,
+    })
 
     return transformResponse(resp)
   }
@@ -148,7 +136,7 @@ export class Entitlements {
     subjectIdOrKey: operations['getEntitlementValue']['parameters']['path']['subjectIdOrKey'],
     entitlementIdOrFeatureKey: operations['getEntitlementValue']['parameters']['path']['entitlementIdOrFeatureKey'],
     query?: operations['getEntitlementValue']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value',
@@ -161,7 +149,7 @@ export class Entitlements {
           query,
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -181,21 +169,18 @@ export class Entitlements {
     subjectIdOrKey: operations['getEntitlementHistory']['parameters']['path']['subjectIdOrKey'],
     entitlementId: operations['getEntitlementHistory']['parameters']['path']['entitlementId'],
     query: operations['getEntitlementHistory']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
-    const resp = await this.client.GET(
-      '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history',
-      {
-        params: {
-          path: {
-            entitlementId,
-            subjectIdOrKey,
-          },
-          query,
+    const resp = await this.client.GET('/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history', {
+      params: {
+        path: {
+          entitlementId,
+          subjectIdOrKey,
         },
-        ...options,
-      }
-    )
+        query,
+      },
+      ...options,
+    })
 
     return transformResponse(resp)
   }
@@ -214,7 +199,7 @@ export class Entitlements {
     subjectIdOrKey: operations['overrideEntitlement']['parameters']['path']['subjectIdOrKey'],
     entitlementIdOrFeatureKey: operations['overrideEntitlement']['parameters']['path']['entitlementIdOrFeatureKey'],
     override: EntitlementCreateInputs,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT(
       '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override',
@@ -227,7 +212,7 @@ export class Entitlements {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -248,21 +233,18 @@ export class Entitlements {
     subjectIdOrKey: operations['resetEntitlementUsage']['parameters']['path']['subjectIdOrKey'],
     entitlementId: operations['resetEntitlementUsage']['parameters']['path']['entitlementId'],
     body: ResetEntitlementUsageInput,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
-    const resp = await this.client.POST(
-      '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset',
-      {
-        body,
-        params: {
-          path: {
-            entitlementId,
-            subjectIdOrKey,
-          },
+    const resp = await this.client.POST('/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset', {
+      body,
+      params: {
+        path: {
+          entitlementId,
+          subjectIdOrKey,
         },
-        ...options,
-      }
-    )
+      },
+      ...options,
+    })
 
     return transformResponse(resp)
   }
@@ -284,7 +266,7 @@ export class Grants {
     subjectIdOrKey: operations['createGrant']['parameters']['path']['subjectIdOrKey'],
     entitlementIdOrFeatureKey: operations['createGrant']['parameters']['path']['entitlementIdOrFeatureKey'],
     grant: EntitlementGrantCreateInput,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants',
@@ -297,7 +279,7 @@ export class Grants {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -315,7 +297,7 @@ export class Grants {
     subjectIdOrKey: operations['listEntitlementGrants']['parameters']['path']['subjectIdOrKey'],
     entitlementIdOrFeatureKey: operations['listEntitlementGrants']['parameters']['path']['entitlementIdOrFeatureKey'],
     query?: operations['listEntitlementGrants']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants',
@@ -328,7 +310,7 @@ export class Grants {
           query,
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -342,10 +324,7 @@ export class Grants {
    * @param options - The request options
    * @returns The grants
    */
-  public async listAll(
-    query?: operations['listGrants']['parameters']['query'],
-    options?: RequestOptions
-  ) {
+  public async listAll(query?: operations['listGrants']['parameters']['query'], options?: RequestOptions) {
     const resp = await this.client.GET('/api/v1/grants', {
       params: {
         query,
@@ -366,10 +345,7 @@ export class Grants {
    * @param options - The request options
    * @returns The voided grant
    */
-  public async void(
-    grantId: operations['voidGrant']['parameters']['path']['grantId'],
-    options?: RequestOptions
-  ) {
+  public async void(grantId: operations['voidGrant']['parameters']['path']['grantId'], options?: RequestOptions) {
     const resp = await this.client.DELETE('/api/v1/grants/{grantId}', {
       params: {
         path: {
@@ -404,7 +380,7 @@ export class EntitlementsV2 {
   public async list(
     options?: RequestOptions & {
       query?: operations['listEntitlementsV2']['parameters']['query']
-    }
+    },
   ) {
     const resp = await this.client.GET('/api/v2/entitlements', {
       params: {
@@ -424,7 +400,7 @@ export class EntitlementsV2 {
    */
   public async get(
     entitlementId: operations['getEntitlementByIdV2']['parameters']['path']['entitlementId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v2/entitlements/{entitlementId}', {
       params: {
@@ -453,7 +429,7 @@ export class GrantsV2 {
   public async list(
     options?: RequestOptions & {
       query?: operations['listGrantsV2']['parameters']['query']
-    }
+    },
   ) {
     const resp = await this.client.GET('/api/v2/grants', {
       params: {
@@ -475,10 +451,7 @@ export class GrantsV2 {
    * @returns The voided grant
    * @deprecated This method uses the legacy V1 endpoint. Consider using customer-specific grant operations instead.
    */
-  public async void(
-    grantId: operations['voidGrant']['parameters']['path']['grantId'],
-    options?: RequestOptions
-  ) {
+  public async void(grantId: operations['voidGrant']['parameters']['path']['grantId'], options?: RequestOptions) {
     const resp = await this.client.DELETE('/api/v1/grants/{grantId}', {
       params: {
         path: {
