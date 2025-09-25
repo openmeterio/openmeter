@@ -272,7 +272,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 					column = "customer_id"
 				}
 
-				return fmt.Sprintf("%s = '%s'", column, sqlbuilder.Escape((value)))
+				return fmt.Sprintf("%s = %s", column, query.Var((value)))
 			}
 
 			query = query.Where(query.Or(slicesx.Map(values, mapFunc)...))
