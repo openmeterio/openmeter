@@ -310,9 +310,15 @@ func (h *entitlementHandler) DeleteCustomerEntitlement() DeleteCustomerEntitleme
 				return nil, err
 			}
 
-			return nil, h.connector.DeleteEntitlement(ctx, request.Namespace, ent.ID, clock.Now())
+			err = h.connector.DeleteEntitlement(ctx, request.Namespace, ent.ID, clock.Now())
+			if err != nil {
+				return nil, err
+			}
+
+			// 204, no content
+			return nil, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[DeleteCustomerEntitlementHandlerResponse](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[DeleteCustomerEntitlementHandlerResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deleteCustomerEntitlementV2"),
@@ -403,8 +409,6 @@ func (h *entitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntit
 		)...,
 	)
 }
-
-func defaultIncludeDeleted(p *bool) bool { return lo.FromPtrOr(p, false) }
 
 func (h *entitlementHandler) resolveNamespace(ctx context.Context) (string, error) {
 	ns, ok := h.namespaceDecoder.GetNamespace(ctx)

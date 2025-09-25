@@ -184,9 +184,10 @@ func (h *handler) InvalidateToken() InvalidateTokenHandler {
 				return nil, fmt.Errorf("failed to invalidate token: %w", err)
 			}
 
+			// 204, no content
 			return nil, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[InvalidateTokenResponse](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[InvalidateTokenResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("invalidatePortalTokens"),
