@@ -16913,6 +16913,7 @@ export const migrateSubscriptionBody = zod.object({
 /**
  * Restores a canceled subscription.
 Any subscription scheduled to start later will be deleted and this subscription will be continued indefinitely.
+ * @deprecated
  * @summary Restore subscription
  */
 export const restoreSubscriptionPathSubscriptionIdRegExp = new RegExp(

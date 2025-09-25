@@ -10411,6 +10411,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subscriptions
+      deprecated: true
   /api/v1/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unscheduleCancelation
