@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v82"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"

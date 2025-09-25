@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v82"
 )
 
 // leveledLogger is a logger that implements the stripe LeveledLogger interface

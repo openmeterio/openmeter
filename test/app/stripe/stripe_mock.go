@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/stretchr/testify/mock"
-	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v82"
 
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 )

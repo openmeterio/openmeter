@@ -9,7 +9,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/samber/mo"
-	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v82"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"

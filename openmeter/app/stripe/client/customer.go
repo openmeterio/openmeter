@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/samber/lo"
-	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v82"
 )
 
 // GetCustomer returns the stripe customer by stripe customer ID

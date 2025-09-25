@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/samber/lo"
-	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v82"
 	"golang.org/x/net/context"
 
 	"github.com/openmeterio/openmeter/pkg/slicesx"
