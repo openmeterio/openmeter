@@ -33,6 +33,8 @@ type Config struct {
 	AsyncInsert         bool
 	AsyncInsertWait     bool
 	InsertQuerySettings map[string]string
+	MeterQuerySettings  map[string]string
+	EnablePrewhere      bool
 	ProgressManager     progressmanager.Service
 	SkipCreateTables    bool
 }
@@ -154,6 +156,8 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		GroupBy:         groupBy,
 		WindowSize:      params.WindowSize,
 		WindowTimeZone:  params.WindowTimeZone,
+		QuerySettings:   c.config.MeterQuerySettings,
+		EnablePrewhere:  c.config.EnablePrewhere,
 	}
 
 	// Load cached rows if any

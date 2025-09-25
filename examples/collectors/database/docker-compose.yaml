@@ -48,7 +48,7 @@ services:
   clickhouse:
     profiles:
       - clickhouse
-    image: clickhouse/clickhouse-server:23.8.9.54-alpine
+    image: clickhouse/clickhouse-server:24.10-alpine
     ports:
       - 127.0.0.1:8123:8123
       - 127.0.0.1:9000:9000

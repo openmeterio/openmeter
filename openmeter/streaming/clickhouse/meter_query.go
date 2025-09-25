@@ -6,6 +6,7 @@ import (
 	"math"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -31,6 +32,8 @@ type queryMeter struct {
 	GroupBy         []string
 	WindowSize      *meterpkg.WindowSize
 	WindowTimeZone  *time.Location
+	QuerySettings   map[string]string
+	EnablePrewhere  bool
 }
 
 // from returns the from time for the query.
@@ -220,17 +223,26 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		query = selectCustomerIdColumn(d.EventsTableName, d.FilterCustomer, query)
 	}
 
-	// Where by ordered columns
+	// Where by ordered columns, going into prewhere clause
 	query = d.whereByOrderedColumns(query)
 
-	// Where by columns not in the order of the event table
+	var sqlBeforeApplyingDataWheres string
+
+	// Where by columns not in the order of the event table, going into where clause
 	if len(d.FilterGroupBy) > 0 {
+		// If prewhere is enabled, we take a copy of the query to build the prewhere clause
+		if d.EnablePrewhere {
+			sqlBeforeApplyingDataWheres, _ = query.Build()
+		}
+
 		// We sort the group by s to ensure the query is deterministic
 		groupByKeys := make([]string, 0, len(d.FilterGroupBy))
 		for k := range d.FilterGroupBy {
 			groupByKeys = append(groupByKeys, k)
 		}
 		sort.Strings(groupByKeys)
+
+		dataColumn := getColumn("data")
 
 		for _, groupByKey := range groupByKeys {
 			if _, ok := d.Meter.GroupBy[groupByKey]; !ok {
@@ -248,7 +260,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 				)
 			}
 			mapFunc := func(value string) string {
-				column := fmt.Sprintf("JSON_VALUE(%s, '%s')", getColumn("data"), groupByJSONPath)
+				column := fmt.Sprintf("JSON_VALUE(%s, '%s')", dataColumn, groupByJSONPath)
 
 				// Subject is a special case
 				if groupByKey == "subject" {
@@ -275,7 +287,34 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		query = query.OrderBy("windowstart")
 	}
 
+	settings := []string{}
 	sql, args := query.Build()
+
+	// Move wheres to prewhere if enabled and there are non prewhere filters
+	if d.EnablePrewhere && sqlBeforeApplyingDataWheres != "" {
+		settings = append(settings, "optimize_move_to_prewhere = 1")
+		settings = append(settings, "allow_reorder_prewhere_conditions = 1")
+
+		sqlParts := strings.Split(sql, sqlBeforeApplyingDataWheres)
+		sqlAfter := sqlParts[1]
+
+		if strings.HasPrefix(sqlAfter, " AND") {
+			sqlAfter = strings.Replace(sqlAfter, "AND", "WHERE", 1)
+		}
+
+		sqlBeforeApplyingDataWheres = strings.Replace(sqlBeforeApplyingDataWheres, "WHERE", "PREWHERE", 1)
+		sql = fmt.Sprintf("%s%s", sqlBeforeApplyingDataWheres, sqlAfter)
+	}
+
+	// Add settings
+	for key, value := range d.QuerySettings {
+		settings = append(settings, fmt.Sprintf("%s = %s", key, value))
+	}
+
+	if len(settings) > 0 {
+		sql = sql + fmt.Sprintf(" SETTINGS %s", strings.Join(settings, ", "))
+	}
+
 	return sql, args, nil
 }
 

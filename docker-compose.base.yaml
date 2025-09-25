@@ -25,7 +25,7 @@ services:
       retries: 30
 
   clickhouse:
-    image: clickhouse/clickhouse-server:24.9-alpine
+    image: clickhouse/clickhouse-server:24.10-alpine
     environment:
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: default

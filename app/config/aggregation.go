@@ -28,6 +28,14 @@ type AggregationConfiguration struct {
 	// For example, you can set the `max_insert_threads` setting to control the number of threads
 	// or the `parallel_view_processing` setting to enable pushing to attached views concurrently.
 	InsertQuerySettings map[string]string
+
+	// MeterQuerySettings is the settings for the meter query
+	// For example, you can set the `enable_parallel_replicas` and `max_parallel_replicas` settings.
+	// See https://clickhouse.com/docs/en/operations/settings/settings
+	MeterQuerySettings map[string]string
+
+	// EnablePrewhere is the setting to enable prewhere for the meter query.
+	EnablePrewhere bool
 }
 
 // Validate validates the configuration.
