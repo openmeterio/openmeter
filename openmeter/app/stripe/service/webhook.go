@@ -16,14 +16,14 @@ type baseURLWebhookURLGenerator struct {
 	baseURL string
 }
 
-func NewBaseURLWebhookURLGenerator(baseURL string) app.WebhookURLGenerator {
+func NewBaseURLWebhookURLGenerator(baseURL string) (app.WebhookURLGenerator, error) {
 	if baseURL == "" {
-		return nil
+		return nil, errors.New("base url is required")
 	}
 
 	return &baseURLWebhookURLGenerator{
 		baseURL: baseURL,
-	}
+	}, nil
 }
 
 func (g *baseURLWebhookURLGenerator) GetWebhookURL(ctx context.Context, appID app.AppID) (string, error) {

@@ -13,17 +13,12 @@ import (
 )
 
 type Config struct {
-	Client  *entdb.Client
-	BaseURL string
+	Client *entdb.Client
 }
 
 func (c Config) Validate() error {
 	if c.Client == nil {
 		return errors.New("ent client is required")
-	}
-
-	if c.BaseURL == "" {
-		return errors.New("base url is required")
 	}
 
 	return nil
@@ -37,7 +32,6 @@ func New(config Config) (app.Adapter, error) {
 	adapter := &adapter{
 		db:       config.Client,
 		registry: map[app.AppType]app.RegistryItem{},
-		baseURL:  config.BaseURL,
 	}
 
 	return adapter, nil
@@ -48,7 +42,6 @@ var _ app.Adapter = (*adapter)(nil)
 type adapter struct {
 	db       *entdb.Client
 	registry map[app.AppType]app.RegistryItem
-	baseURL  string
 }
 
 // Tx implements entutils.TxCreator interface
@@ -67,7 +60,6 @@ func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 	return &adapter{
 		db:       txClient.Client(),
 		registry: a.registry,
-		baseURL:  a.baseURL,
 	}
 }
 

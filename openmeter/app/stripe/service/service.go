@@ -23,6 +23,7 @@ type Service struct {
 	logger                     *slog.Logger
 	publisher                  eventbus.Publisher
 	disableWebhookRegistration bool
+	webhookURLGenerator        app.WebhookURLGenerator
 }
 
 type Config struct {
@@ -33,6 +34,7 @@ type Config struct {
 	Logger                     *slog.Logger
 	DisableWebhookRegistration bool
 	Publisher                  eventbus.Publisher
+	WebhookURLGenerator        app.WebhookURLGenerator
 }
 
 func (c Config) Validate() error {
@@ -60,6 +62,10 @@ func (c Config) Validate() error {
 		return errors.New("publisher cannot be null")
 	}
 
+	if c.WebhookURLGenerator == nil {
+		return errors.New("webhook url generator cannot be null")
+	}
+
 	return nil
 }
 
@@ -76,6 +82,7 @@ func New(config Config) (*Service, error) {
 		logger:                     config.Logger,
 		disableWebhookRegistration: config.DisableWebhookRegistration,
 		publisher:                  config.Publisher,
+		webhookURLGenerator:        config.WebhookURLGenerator,
 	}
 
 	// Register stripe app in marketplace

@@ -75,7 +75,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.AppFactory
 	}
 
 	// Get webhook URL
-	webhookURL, err := input.WebhookURLGenerator.GetWebhookURL(ctx, appID)
+	webhookURL, err := s.webhookURLGenerator.GetWebhookURL(ctx, appID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get webhook url: %w", err)
 	}

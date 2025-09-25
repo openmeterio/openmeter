@@ -18,10 +18,9 @@ type AppFactoryInstallWithAPIKey interface {
 type UninstallAppInput = AppID
 
 type AppFactoryInstallAppWithAPIKeyInput struct {
-	Namespace           string
-	APIKey              string
-	WebhookURLGenerator WebhookURLGenerator
-	Name                string
+	Namespace string
+	APIKey    string
+	Name      string
 }
 
 func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {
@@ -31,10 +30,6 @@ func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {
 
 	if i.APIKey == "" {
 		return errors.New("api key is required")
-	}
-
-	if i.WebhookURLGenerator == nil {
-		return errors.New("webhook url generator is required")
 	}
 
 	if i.Name == "" {

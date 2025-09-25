@@ -167,8 +167,7 @@ func (s *BaseSuite) SetupSuite() {
 
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{
-		Client:  dbClient,
-		BaseURL: "http://localhost:8888",
+		Client: dbClient,
 	})
 	require.NoError(t, err)
 

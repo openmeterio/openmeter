@@ -62,7 +62,6 @@ func (a *adapter) InstallMarketplaceListingWithAPIKey(ctx context.Context, input
 		app, err := installer.InstallAppWithAPIKey(ctx, app.AppFactoryInstallAppWithAPIKeyInput{
 			Namespace: input.Namespace,
 			APIKey:    input.APIKey,
-			BaseURL:   a.baseURL,
 			Name:      name,
 		})
 		if err != nil {
