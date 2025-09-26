@@ -17041,7 +17041,7 @@ export const createCustomerEntitlementV2Body = zod
                     'Set of key-value pairs managed by the system. Cannot be modified by user.'
                   )
                   .optional()
-                  .describe('The grant metadata.'),
+                  .describe('Grant annotations'),
                 effectiveAt: zod.coerce
                   .date()
                   .describe(
@@ -17576,7 +17576,7 @@ export const createCustomerEntitlementGrantV2Body = zod
         'Set of key-value pairs managed by the system. Cannot be modified by user.'
       )
       .optional()
-      .describe('The grant metadata.'),
+      .describe('Grant annotations'),
     effectiveAt: zod.coerce
       .date()
       .describe(
@@ -17824,7 +17824,7 @@ export const overrideCustomerEntitlementV2Body = zod
                     'Set of key-value pairs managed by the system. Cannot be modified by user.'
                   )
                   .optional()
-                  .describe('The grant metadata.'),
+                  .describe('Grant annotations'),
                 effectiveAt: zod.coerce
                   .date()
                   .describe(

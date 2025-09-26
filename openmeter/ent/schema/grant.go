@@ -27,9 +27,7 @@ func (Grant) Mixin() []ent.Mixin {
 
 func (Grant) Fields() []ent.Field {
 	return []ent.Field{
-		// We'll phase this out in future release, not used anymore.
 		field.JSON("metadata", map[string]string{}).
-			Deprecated("Use annotations instead").
 			Optional().
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
