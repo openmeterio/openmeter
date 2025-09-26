@@ -60,7 +60,7 @@ model GrantV2 {
 model GrantCreateInputV2 {
   ...OmitProperties<
     OpenMeter.Entitlements.GrantCreateInput,
-    "maxRolloverAmount" | "metadata" | "expiration"
+    "maxRolloverAmount" | "expiration"
   >;
 
   /**
@@ -76,15 +76,8 @@ model GrantCreateInputV2 {
   expiration?: ExpirationPeriod;
 
   /**
-   * The grant metadata.
+   * Grant annotations
    */
-  #deprecated "Use annotations instead, will be removed in next major version."
-  @example(#{ stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB" })
-  metadata?: Metadata;
-
-  /**
-   * The grant metadata.
-   */
-  @example(#{ stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB" })
+  @example(#{ internal_reference: "internal_reference" })
   annotations?: Annotations;
 }

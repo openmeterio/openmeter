@@ -42,6 +42,8 @@ type Grant struct {
 
 	Annotations models.Annotations `json:"annotations,omitempty"`
 
+	Metadata map[string]string `json:"metadata,omitempty"`
+
 	// For user initiated voiding of the grant.
 	VoidedAt *time.Time `json:"voidedAt,omitempty"`
 

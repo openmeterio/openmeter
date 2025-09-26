@@ -27,6 +27,7 @@ type CreateGrantInput struct {
 	Priority         uint8
 	EffectiveAt      time.Time
 	Expiration       *grant.ExpirationPeriod
+	Metadata         map[string]string
 	Annotations      models.Annotations
 	ResetMaxRollover float64
 	ResetMinRollover float64
@@ -74,6 +75,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 			Priority:         input.Priority,
 			EffectiveAt:      input.EffectiveAt,
 			Expiration:       input.Expiration,
+			Metadata:         input.Metadata,
 			Annotations:      input.Annotations,
 			ResetMaxRollover: input.ResetMaxRollover,
 			ResetMinRollover: input.ResetMinRollover,

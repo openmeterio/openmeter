@@ -2,7 +2,6 @@ package grant
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
@@ -39,32 +38,6 @@ type grantEventV2GrantLiteral struct {
 	Recurrence       *timeutil.Recurrence `json:"recurrence,omitempty"`
 }
 
-func metadataToAnnotations(metadata map[string]string) models.Annotations {
-	if len(metadata) == 0 {
-		return nil
-	}
-
-	result := make(models.Annotations)
-	for k, v := range metadata {
-		result[k] = v
-	}
-
-	return result
-}
-
-func annotationsToMetadata(annotations models.Annotations) map[string]string {
-	if len(annotations) == 0 {
-		return nil
-	}
-
-	result := make(map[string]string)
-	for k, v := range annotations {
-		result[k] = fmt.Sprintf("%v", v)
-	}
-
-	return result
-}
-
 func (g grantEventV2GrantLiteral) ToDomainGrant() Grant {
 	return Grant{
 		ManagedModel:     g.ManagedModel,
@@ -80,7 +53,7 @@ func (g grantEventV2GrantLiteral) ToDomainGrant() Grant {
 		ResetMaxRollover: g.ResetMaxRollover,
 		ResetMinRollover: g.ResetMinRollover,
 		Recurrence:       g.Recurrence,
-		Annotations:      metadataToAnnotations(g.Metadata),
+		Metadata:         g.Metadata,
 	}
 }
 
@@ -107,7 +80,7 @@ func mapGrantToV2Literal(g Grant) grantEventV2GrantLiteral {
 		ResetMaxRollover: g.ResetMaxRollover,
 		ResetMinRollover: g.ResetMinRollover,
 		Recurrence:       g.Recurrence,
-		Metadata:         annotationsToMetadata(g.Annotations),
+		Metadata:         g.Metadata,
 	}
 }
 

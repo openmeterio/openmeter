@@ -411,7 +411,7 @@ func MapEntitlementGrantToAPI(grant *meteredentitlement.EntitlementGrant) api.En
 		CreatedAt:     grant.CreatedAt,
 		EffectiveAt:   grant.EffectiveAt,
 		Id:            grant.ID,
-		Metadata:      MetadataFromAnnotations(grant.Annotations),
+		Metadata:      &grant.Metadata,
 		Priority:      convert.ToPointer(grant.Priority),
 		UpdatedAt:     grant.UpdatedAt,
 		DeletedAt:     grant.DeletedAt,

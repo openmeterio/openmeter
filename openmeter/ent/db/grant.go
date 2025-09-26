@@ -33,8 +33,6 @@ type Grant struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Metadata holds the value of the "metadata" field.
-	//
-	// Deprecated: Field "metadata" was marked as deprecated in the schema.
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// OwnerID holds the value of the "owner_id" field.
 	OwnerID string `json:"owner_id,omitempty"`
