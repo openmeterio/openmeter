@@ -16977,11 +16977,17 @@ export const createCustomerEntitlementV2BodyFeatureIdRegExp = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
 export const createCustomerEntitlementV2BodyIsSoftLimitDefault = false
-export const createCustomerEntitlementV2BodyIsUnlimitedDefault = false
+export const createCustomerEntitlementV2BodyPreserveOverageAtResetDefault = false
 export const createCustomerEntitlementV2BodyIssueAfterResetMin = 0
 export const createCustomerEntitlementV2BodyIssueAfterResetPriorityDefault = 1
 export const createCustomerEntitlementV2BodyIssueAfterResetPriorityMax = 255
-export const createCustomerEntitlementV2BodyPreserveOverageAtResetDefault = false
+export const createCustomerEntitlementV2BodyIssueAmountMin = 0
+export const createCustomerEntitlementV2BodyIssuePriorityDefault = 1
+export const createCustomerEntitlementV2BodyIssuePriorityMax = 255
+export const createCustomerEntitlementV2BodyGrantsItemAmountMin = 0
+export const createCustomerEntitlementV2BodyGrantsItemPriorityMax = 255
+export const createCustomerEntitlementV2BodyGrantsItemMinRolloverAmountDefault = 0
+export const createCustomerEntitlementV2BodyGrantsItemExpirationCountMax = 1000
 export const createCustomerEntitlementV2BodyFeatureKeyMaxOne = 64
 
 export const createCustomerEntitlementV2BodyFeatureKeyRegExpOne = new RegExp(
@@ -17019,12 +17025,130 @@ export const createCustomerEntitlementV2Body = zod
           .describe(
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
+        grants: zod
+          .array(
+            zod
+              .object({
+                amount: zod.coerce
+                  .number()
+                  .min(createCustomerEntitlementV2BodyGrantsItemAmountMin)
+                  .describe(
+                    'The amount to grant. Should be a positive number.'
+                  ),
+                annotations: zod
+                  .record(zod.string(), zod.any())
+                  .describe(
+                    'Set of key-value pairs managed by the system. Cannot be modified by user.'
+                  )
+                  .optional()
+                  .describe('The grant metadata.'),
+                effectiveAt: zod.coerce
+                  .date()
+                  .describe(
+                    'Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).'
+                  ),
+                expiration: zod
+                  .object({
+                    count: zod.coerce
+                      .number()
+                      .min(1)
+                      .max(
+                        createCustomerEntitlementV2BodyGrantsItemExpirationCountMax
+                      )
+                      .describe(
+                        'The number of time units in the expiration period.'
+                      ),
+                    duration: zod
+                      .enum(['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'])
+                      .describe('The expiration duration enum')
+                      .describe('The unit of time for the expiration period.'),
+                  })
+                  .describe('The grant expiration definition')
+                  .optional()
+                  .describe(
+                    'The grant expiration definition. If no expiration is provided, the grant can be active indefinitely.'
+                  ),
+                maxRolloverAmount: zod.coerce
+                  .number()
+                  .optional()
+                  .describe(
+                    'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
+                  ),
+                metadata: zod
+                  .record(zod.string(), zod.coerce.string())
+                  .describe(
+                    'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+                  )
+                  .optional()
+                  .describe('The grant metadata.'),
+                minRolloverAmount: zod.coerce
+                  .number()
+                  .optional()
+                  .describe(
+                    'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
+                  ),
+                priority: zod.coerce
+                  .number()
+                  .min(1)
+                  .max(createCustomerEntitlementV2BodyGrantsItemPriorityMax)
+                  .optional()
+                  .describe(
+                    'The priority of the grant. Grants with higher priority are applied first.\nPriority is a positive decimal numbers. With lower numbers indicating higher importance.\nFor example, a priority of 1 is more urgent than a priority of 2.\nWhen there are several grants available for the same subject, the system selects the grant with the highest priority.\nIn cases where grants share the same priority level, the grant closest to its expiration will be used first.\nIn the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.'
+                  ),
+                recurrence: zod
+                  .object({
+                    anchor: zod.coerce
+                      .date()
+                      .optional()
+                      .describe(
+                        'A date-time anchor to base the recurring period on.'
+                      ),
+                    interval: zod
+                      .union([
+                        zod.coerce
+                          .string()
+                          .regex(
+                            createCustomerEntitlementV2BodyGrantsItemRecurrenceIntervalRegExpTwo
+                          ),
+                        zod
+                          .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+                          .describe(
+                            'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
+                          ),
+                      ])
+                      .describe('Period duration for the recurrence')
+                      .describe('The unit of time for the interval.'),
+                  })
+                  .describe('Recurring period with an interval and an anchor.')
+                  .optional()
+                  .describe('The subject of the grant.'),
+              })
+              .describe('The grant creation input.')
+          )
+          .optional()
+          .describe('Grants'),
         isSoftLimit: zod.coerce
           .boolean()
           .optional()
           .describe(
             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
           ),
+        issue: zod
+          .object({
+            amount: zod.coerce
+              .number()
+              .min(createCustomerEntitlementV2BodyIssueAmountMin)
+              .describe('The initial grant amount'),
+            priority: zod.coerce
+              .number()
+              .min(1)
+              .max(createCustomerEntitlementV2BodyIssuePriorityMax)
+              .default(createCustomerEntitlementV2BodyIssuePriorityDefault)
+              .describe('The priority of the issue after reset'),
+          })
+          .describe('Issue after reset')
+          .optional()
+          .describe('Issue after reset'),
         issueAfterReset: zod.coerce
           .number()
           .min(createCustomerEntitlementV2BodyIssueAfterResetMin)
@@ -17040,12 +17164,6 @@ export const createCustomerEntitlementV2Body = zod
             createCustomerEntitlementV2BodyIssueAfterResetPriorityDefault
           )
           .describe('Defines the grant priority for the default grant.'),
-        isUnlimited: zod.coerce
-          .boolean()
-          .optional()
-          .describe(
-            'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.'
-          ),
         measureUsageFrom: zod
           .union([
             zod
@@ -17101,7 +17219,7 @@ export const createCustomerEntitlementV2Body = zod
           .describe('Recurring period with an interval and an anchor.')
           .describe('The usage period associated with the entitlement.'),
       })
-      .describe('Create inpurs for metered entitlement'),
+      .describe('Create inputs for metered entitlement'),
     zod
       .object({
         config: zod.coerce
@@ -17443,9 +17561,8 @@ export const createCustomerEntitlementGrantV2Params = zod.object({
 
 export const createCustomerEntitlementGrantV2BodyAmountMin = 0
 export const createCustomerEntitlementGrantV2BodyPriorityMax = 255
-export const createCustomerEntitlementGrantV2BodyExpirationCountMax = 1000
-export const createCustomerEntitlementGrantV2BodyMaxRolloverAmountDefault = 0
 export const createCustomerEntitlementGrantV2BodyMinRolloverAmountDefault = 0
+export const createCustomerEntitlementGrantV2BodyExpirationCountMax = 1000
 
 export const createCustomerEntitlementGrantV2Body = zod
   .object({
@@ -17453,6 +17570,13 @@ export const createCustomerEntitlementGrantV2Body = zod
       .number()
       .min(createCustomerEntitlementGrantV2BodyAmountMin)
       .describe('The amount to grant. Should be a positive number.'),
+    annotations: zod
+      .record(zod.string(), zod.any())
+      .describe(
+        'Set of key-value pairs managed by the system. Cannot be modified by user.'
+      )
+      .optional()
+      .describe('The grant metadata.'),
     effectiveAt: zod.coerce
       .date()
       .describe(
@@ -17471,12 +17595,15 @@ export const createCustomerEntitlementGrantV2Body = zod
           .describe('The unit of time for the expiration period.'),
       })
       .describe('The grant expiration definition')
-      .describe('The grant expiration definition'),
+      .optional()
+      .describe(
+        'The grant expiration definition. If no expiration is provided, the grant can be active indefinitely.'
+      ),
     maxRolloverAmount: zod.coerce
       .number()
       .optional()
       .describe(
-        'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
+        'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
       ),
     metadata: zod
       .record(zod.string(), zod.coerce.string())
@@ -17633,11 +17760,17 @@ export const overrideCustomerEntitlementV2BodyFeatureIdRegExp = new RegExp(
   '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'
 )
 export const overrideCustomerEntitlementV2BodyIsSoftLimitDefault = false
-export const overrideCustomerEntitlementV2BodyIsUnlimitedDefault = false
+export const overrideCustomerEntitlementV2BodyPreserveOverageAtResetDefault = false
 export const overrideCustomerEntitlementV2BodyIssueAfterResetMin = 0
 export const overrideCustomerEntitlementV2BodyIssueAfterResetPriorityDefault = 1
 export const overrideCustomerEntitlementV2BodyIssueAfterResetPriorityMax = 255
-export const overrideCustomerEntitlementV2BodyPreserveOverageAtResetDefault = false
+export const overrideCustomerEntitlementV2BodyIssueAmountMin = 0
+export const overrideCustomerEntitlementV2BodyIssuePriorityDefault = 1
+export const overrideCustomerEntitlementV2BodyIssuePriorityMax = 255
+export const overrideCustomerEntitlementV2BodyGrantsItemAmountMin = 0
+export const overrideCustomerEntitlementV2BodyGrantsItemPriorityMax = 255
+export const overrideCustomerEntitlementV2BodyGrantsItemMinRolloverAmountDefault = 0
+export const overrideCustomerEntitlementV2BodyGrantsItemExpirationCountMax = 1000
 export const overrideCustomerEntitlementV2BodyFeatureKeyMaxOne = 64
 
 export const overrideCustomerEntitlementV2BodyFeatureKeyRegExpOne = new RegExp(
@@ -17675,12 +17808,130 @@ export const overrideCustomerEntitlementV2Body = zod
           .describe(
             'The feature the subject is entitled to use.\nEither featureKey or featureId is required.'
           ),
+        grants: zod
+          .array(
+            zod
+              .object({
+                amount: zod.coerce
+                  .number()
+                  .min(overrideCustomerEntitlementV2BodyGrantsItemAmountMin)
+                  .describe(
+                    'The amount to grant. Should be a positive number.'
+                  ),
+                annotations: zod
+                  .record(zod.string(), zod.any())
+                  .describe(
+                    'Set of key-value pairs managed by the system. Cannot be modified by user.'
+                  )
+                  .optional()
+                  .describe('The grant metadata.'),
+                effectiveAt: zod.coerce
+                  .date()
+                  .describe(
+                    'Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).'
+                  ),
+                expiration: zod
+                  .object({
+                    count: zod.coerce
+                      .number()
+                      .min(1)
+                      .max(
+                        overrideCustomerEntitlementV2BodyGrantsItemExpirationCountMax
+                      )
+                      .describe(
+                        'The number of time units in the expiration period.'
+                      ),
+                    duration: zod
+                      .enum(['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'])
+                      .describe('The expiration duration enum')
+                      .describe('The unit of time for the expiration period.'),
+                  })
+                  .describe('The grant expiration definition')
+                  .optional()
+                  .describe(
+                    'The grant expiration definition. If no expiration is provided, the grant can be active indefinitely.'
+                  ),
+                maxRolloverAmount: zod.coerce
+                  .number()
+                  .optional()
+                  .describe(
+                    'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
+                  ),
+                metadata: zod
+                  .record(zod.string(), zod.coerce.string())
+                  .describe(
+                    'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.'
+                  )
+                  .optional()
+                  .describe('The grant metadata.'),
+                minRolloverAmount: zod.coerce
+                  .number()
+                  .optional()
+                  .describe(
+                    'Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.\nBalance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))'
+                  ),
+                priority: zod.coerce
+                  .number()
+                  .min(1)
+                  .max(overrideCustomerEntitlementV2BodyGrantsItemPriorityMax)
+                  .optional()
+                  .describe(
+                    'The priority of the grant. Grants with higher priority are applied first.\nPriority is a positive decimal numbers. With lower numbers indicating higher importance.\nFor example, a priority of 1 is more urgent than a priority of 2.\nWhen there are several grants available for the same subject, the system selects the grant with the highest priority.\nIn cases where grants share the same priority level, the grant closest to its expiration will be used first.\nIn the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.'
+                  ),
+                recurrence: zod
+                  .object({
+                    anchor: zod.coerce
+                      .date()
+                      .optional()
+                      .describe(
+                        'A date-time anchor to base the recurring period on.'
+                      ),
+                    interval: zod
+                      .union([
+                        zod.coerce
+                          .string()
+                          .regex(
+                            overrideCustomerEntitlementV2BodyGrantsItemRecurrenceIntervalRegExpTwo
+                          ),
+                        zod
+                          .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+                          .describe(
+                            'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.'
+                          ),
+                      ])
+                      .describe('Period duration for the recurrence')
+                      .describe('The unit of time for the interval.'),
+                  })
+                  .describe('Recurring period with an interval and an anchor.')
+                  .optional()
+                  .describe('The subject of the grant.'),
+              })
+              .describe('The grant creation input.')
+          )
+          .optional()
+          .describe('Grants'),
         isSoftLimit: zod.coerce
           .boolean()
           .optional()
           .describe(
             'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.'
           ),
+        issue: zod
+          .object({
+            amount: zod.coerce
+              .number()
+              .min(overrideCustomerEntitlementV2BodyIssueAmountMin)
+              .describe('The initial grant amount'),
+            priority: zod.coerce
+              .number()
+              .min(1)
+              .max(overrideCustomerEntitlementV2BodyIssuePriorityMax)
+              .default(overrideCustomerEntitlementV2BodyIssuePriorityDefault)
+              .describe('The priority of the issue after reset'),
+          })
+          .describe('Issue after reset')
+          .optional()
+          .describe('Issue after reset'),
         issueAfterReset: zod.coerce
           .number()
           .min(overrideCustomerEntitlementV2BodyIssueAfterResetMin)
@@ -17696,12 +17947,6 @@ export const overrideCustomerEntitlementV2Body = zod
             overrideCustomerEntitlementV2BodyIssueAfterResetPriorityDefault
           )
           .describe('Defines the grant priority for the default grant.'),
-        isUnlimited: zod.coerce
-          .boolean()
-          .optional()
-          .describe(
-            'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.'
-          ),
         measureUsageFrom: zod
           .union([
             zod
@@ -17757,7 +18002,7 @@ export const overrideCustomerEntitlementV2Body = zod
           .describe('Recurring period with an interval and an anchor.')
           .describe('The usage period associated with the entitlement.'),
       })
-      .describe('Create inpurs for metered entitlement'),
+      .describe('Create inputs for metered entitlement'),
     zod
       .object({
         config: zod.coerce

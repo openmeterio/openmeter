@@ -102,7 +102,7 @@ func TestEntitlementParitySuite(t *testing.T) {
 
 		// Customer-based create (v2)
 		{
-			metered := api.EntitlementMeteredCreateInputs{
+			metered := api.EntitlementMeteredV2CreateInputs{
 				Type:      "metered",
 				FeatureId: &feature2ID,
 				UsagePeriod: api.RecurringPeriodCreateInput{
@@ -111,7 +111,7 @@ func TestEntitlementParitySuite(t *testing.T) {
 				},
 			}
 			var body api.CreateCustomerEntitlementV2JSONRequestBody
-			require.NoError(t, body.FromEntitlementMeteredCreateInputs(metered))
+			require.NoError(t, body.FromEntitlementMeteredV2CreateInputs(metered))
 
 			resp, err := client.CreateCustomerEntitlementV2WithResponse(ctx, customerID, body)
 			require.NoError(t, err)
@@ -194,7 +194,7 @@ func TestEntitlementParitySuite(t *testing.T) {
 			resp, err := client.CreateCustomerEntitlementGrantV2WithResponse(ctx, customerID, customerEntitlementFeatureKey, api.CreateCustomerEntitlementGrantV2JSONRequestBody{
 				Amount:      grantAmount,
 				EffectiveAt: effectiveAt,
-				Expiration:  api.ExpirationPeriod{Duration: "MONTH", Count: 1},
+				Expiration:  &api.ExpirationPeriod{Duration: "MONTH", Count: 1},
 			})
 			require.NoError(t, err)
 			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
@@ -205,7 +205,7 @@ func TestEntitlementParitySuite(t *testing.T) {
 			resp, err := client.CreateCustomerEntitlementGrantV2WithResponse(ctx, customerID, feature1Key, api.CreateCustomerEntitlementGrantV2JSONRequestBody{
 				Amount:      grantAmount,
 				EffectiveAt: effectiveAt,
-				Expiration:  api.ExpirationPeriod{Duration: "MONTH", Count: 1},
+				Expiration:  &api.ExpirationPeriod{Duration: "MONTH", Count: 1},
 			})
 			require.NoError(t, err)
 			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
@@ -233,7 +233,7 @@ func TestEntitlementParitySuite(t *testing.T) {
 		}
 
 		// v2 list grants for subject entitlement (by feature key)
-		var v2GrantsForV1Entitlement api.GrantPaginatedResponse
+		var v2GrantsForV1Entitlement api.GrantV2PaginatedResponse
 		{
 			resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, customerID, feature1Key, &api.ListCustomerEntitlementGrantsV2Params{})
 			require.NoError(t, err)
@@ -243,7 +243,7 @@ func TestEntitlementParitySuite(t *testing.T) {
 		}
 
 		// v2 list grants for v2 entitlement (by feature key)
-		var v2Grants api.GrantPaginatedResponse
+		var v2Grants api.GrantV2PaginatedResponse
 		{
 			resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, customerID, customerEntitlementFeatureKey, &api.ListCustomerEntitlementGrantsV2Params{})
 			require.NoError(t, err)
@@ -366,6 +366,93 @@ func TestEntitlementParitySuite(t *testing.T) {
 			// Parity: ensure that cross-API reads are consistent (we don't assert absolute numbers here, just equality across views)
 			assert.Equal(t, v1ValueForSubjectByID, v2ValueForV1ByKey, "v1(ID) vs v2(by feature1Key) should match")
 			assert.Equal(t, v1ValueForV2ByKey, v2ValueForV2ByKey, "v1(by feature2Key) vs v2(by feature2Key) should match")
+		})
+	})
+}
+
+func TestEntitlementDifferences(t *testing.T) {
+	client := initClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	meterSlug := "entitlement_parity_meter"
+
+	// Test data
+	customerKey := fmt.Sprintf("parity_cust_%d_2", time.Now().Unix())
+	subjectKey := customerKey + "-subject"
+
+	// Create customer and subject mapping
+	cust := CreateCustomerWithSubject(t, client, customerKey, subjectKey)
+	customerID := cust.Id
+
+	// Create a feature to use across both flows
+	var featureID string
+	var feature1Key string
+	{
+		randKey := fmt.Sprintf("entitlement_parity_feature_1_%d_2", time.Now().Unix())
+		resp, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
+			Name:      "Entitlement Parity Feature",
+			MeterSlug: convert.ToPointer(meterSlug),
+			Key:       randKey,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+		featureID = resp.JSON201.Id
+		feature1Key = randKey
+	}
+
+	// Usage period for requests
+	month := &api.RecurringPeriodInterval{}
+	require.NoError(t, month.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+	anchor := convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC))
+
+	t.Run("New API should be able to create grants without expiration", func(t *testing.T) {
+		t.Run("Should create entitlement through V2 API with default grants", func(t *testing.T) {
+			metered := api.EntitlementMeteredV2CreateInputs{
+				Type:      "metered",
+				FeatureId: &featureID,
+				UsagePeriod: api.RecurringPeriodCreateInput{
+					Anchor:   anchor,
+					Interval: *month,
+				},
+				Grants: &[]api.EntitlementGrantCreateInputV2{
+					{
+						Amount:      100,
+						EffectiveAt: time.Now().Truncate(time.Minute).Add(time.Minute),
+						Expiration:  nil,
+					},
+				},
+			}
+			var body api.CreateCustomerEntitlementV2JSONRequestBody
+			require.NoError(t, body.FromEntitlementMeteredV2CreateInputs(metered))
+
+			// Let's create an entitlement with a grant
+			entRes, err := client.CreateCustomerEntitlementV2WithResponse(ctx, customerID, body)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, entRes.StatusCode(), "Invalid status code [response_body=%s]", string(entRes.Body))
+
+			v2EntGrants, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, customerID, feature1Key, &api.ListCustomerEntitlementGrantsV2Params{})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, v2EntGrants.StatusCode(), "Invalid status code [response_body=%s]", string(v2EntGrants.Body))
+
+			require.NotNil(t, v2EntGrants.JSON200)
+			require.GreaterOrEqual(t, len(v2EntGrants.JSON200.Items), 1, "Invalid number of grants [response_body=%s]", string(v2EntGrants.Body))
+
+			for _, grant := range v2EntGrants.JSON200.Items {
+				require.Nil(t, grant.Expiration)
+			}
+		})
+
+		t.Run("Old API should still be able to list grants without expiration with filled-in dummy values", func(t *testing.T) {
+			v1EntGrants, err := client.ListEntitlementGrantsWithResponse(ctx, subjectKey, feature1Key, &api.ListEntitlementGrantsParams{})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, v1EntGrants.StatusCode(), "Invalid status code [response_body=%s]", string(v1EntGrants.Body))
+			require.NotNil(t, v1EntGrants.JSON200)
+
+			require.GreaterOrEqual(t, len(lo.FromPtr(v1EntGrants.JSON200)), 1, "Invalid number of grants [response_body=%s]", string(v1EntGrants.Body))
+			for _, grant := range lo.FromPtr(v1EntGrants.JSON200) {
+				require.NotNil(t, grant.Expiration)
+			}
 		})
 	})
 }

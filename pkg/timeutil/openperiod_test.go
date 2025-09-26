@@ -765,4 +765,109 @@ func TestOpenPeriod(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("OverlapsInclusive", func(t *testing.T) {
+		t.Run("Should be in parity with ClosedPeriod.OverlapsInclusive for convertible periods", func(t *testing.T) {
+			tests := []struct {
+				name    string
+				period1 ClosedPeriod
+				period2 ClosedPeriod
+			}{
+				{
+					name:    "Distant periods",
+					period1: ClosedPeriod{From: before, To: now},
+					period2: ClosedPeriod{From: thirtyMinLater, To: after},
+				},
+				{
+					name:    "Sequential periods",
+					period1: ClosedPeriod{From: before, To: now},
+					period2: ClosedPeriod{From: now, To: after},
+				},
+				{
+					name:    "Overlapping periods",
+					period1: ClosedPeriod{From: before, To: after},
+					period2: ClosedPeriod{From: now, To: after},
+				},
+				{
+					name:    "Containing periods",
+					period1: ClosedPeriod{From: before, To: after},
+					period2: ClosedPeriod{From: now, To: thirtyMinLater},
+				},
+			}
+
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					// First direction
+					{
+						expected := tt.period1.OverlapsInclusive(tt.period2)
+						result := tt.period1.Open().OverlapsInclusive(tt.period2.Open())
+						if expected != result {
+							t.Errorf("OverlapsInclusive() = %v, want %v", result, expected)
+						}
+					}
+					// Second direction
+					{
+						expected := tt.period2.OverlapsInclusive(tt.period1)
+						result := tt.period2.Open().OverlapsInclusive(tt.period1.Open())
+						if expected != result {
+							t.Errorf("OverlapsInclusive() = %v, want %v", result, expected)
+						}
+					}
+				})
+			}
+		})
+
+		t.Run("Should work for open periods", func(t *testing.T) {
+			tests := []struct {
+				name     string
+				period1  OpenPeriod
+				period2  OpenPeriod
+				expected bool
+			}{
+				{
+					name:     "Open Ended Both",
+					period1:  OpenPeriod{From: &before, To: nil},
+					period2:  OpenPeriod{From: &now, To: nil},
+					expected: true,
+				},
+				{
+					name:     "Open Ended One",
+					period1:  OpenPeriod{From: &before, To: nil},
+					period2:  OpenPeriod{From: &now, To: &after},
+					expected: true,
+				},
+				{
+					name:     "Open Start Both",
+					period1:  OpenPeriod{From: nil, To: &after},
+					period2:  OpenPeriod{From: nil, To: &after},
+					expected: true,
+				},
+				{
+					name:     "Open Start One",
+					period1:  OpenPeriod{From: nil, To: &after},
+					period2:  OpenPeriod{From: &now, To: &after},
+					expected: true,
+				},
+			}
+
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					// First direction
+					{
+						result := tt.period1.OverlapsInclusive(tt.period2)
+						if tt.expected != result {
+							t.Errorf("OverlapsInclusive() = %v, want %v", result, tt.expected)
+						}
+					}
+					// Second direction
+					{
+						result := tt.period2.OverlapsInclusive(tt.period1)
+						if tt.expected != result {
+							t.Errorf("OverlapsInclusive() = %v, want %v", result, tt.expected)
+						}
+					}
+				})
+			}
+		})
+	})
 }

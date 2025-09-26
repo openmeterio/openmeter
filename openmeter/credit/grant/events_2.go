@@ -2,6 +2,7 @@ package grant
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
@@ -29,13 +30,39 @@ type grantEventV2GrantLiteral struct {
 	Amount           float64              `json:"amount"`
 	Priority         uint8                `json:"priority"`
 	EffectiveAt      time.Time            `json:"effectiveAt"`
-	Expiration       ExpirationPeriod     `json:"expiration"`
-	ExpiresAt        time.Time            `json:"expiresAt"`
+	Expiration       *ExpirationPeriod    `json:"expiration"`
+	ExpiresAt        *time.Time           `json:"expiresAt"`
 	Metadata         map[string]string    `json:"metadata,omitempty"`
 	VoidedAt         *time.Time           `json:"voidedAt,omitempty"`
 	ResetMaxRollover float64              `json:"resetMaxRollover"`
 	ResetMinRollover float64              `json:"resetMinRollover"`
 	Recurrence       *timeutil.Recurrence `json:"recurrence,omitempty"`
+}
+
+func metadataToAnnotations(metadata map[string]string) models.Annotations {
+	if len(metadata) == 0 {
+		return nil
+	}
+
+	result := make(models.Annotations)
+	for k, v := range metadata {
+		result[k] = v
+	}
+
+	return result
+}
+
+func annotationsToMetadata(annotations models.Annotations) map[string]string {
+	if len(annotations) == 0 {
+		return nil
+	}
+
+	result := make(map[string]string)
+	for k, v := range annotations {
+		result[k] = fmt.Sprintf("%v", v)
+	}
+
+	return result
 }
 
 func (g grantEventV2GrantLiteral) ToDomainGrant() Grant {
@@ -53,7 +80,7 @@ func (g grantEventV2GrantLiteral) ToDomainGrant() Grant {
 		ResetMaxRollover: g.ResetMaxRollover,
 		ResetMinRollover: g.ResetMinRollover,
 		Recurrence:       g.Recurrence,
-		Metadata:         g.Metadata,
+		Annotations:      metadataToAnnotations(g.Metadata),
 	}
 }
 
@@ -80,7 +107,7 @@ func mapGrantToV2Literal(g Grant) grantEventV2GrantLiteral {
 		ResetMaxRollover: g.ResetMaxRollover,
 		ResetMinRollover: g.ResetMinRollover,
 		Recurrence:       g.Recurrence,
-		Metadata:         g.Metadata,
+		Metadata:         annotationsToMetadata(g.Annotations),
 	}
 }
 

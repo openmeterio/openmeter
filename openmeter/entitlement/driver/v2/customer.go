@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -25,7 +24,7 @@ type (
 	CreateCustomerEntitlementHandlerRequest = struct {
 		Namespace       string
 		CustomerIDOrKey string
-		APIInput        *api.EntitlementCreateInputs
+		APIInput        *api.EntitlementV2CreateInputs
 	}
 	CreateCustomerEntitlementHandlerResponse = api.EntitlementV2
 	CreateCustomerEntitlementHandlerParams   = string // customerIdOrKey
@@ -40,15 +39,15 @@ func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitleme
 		CreateCustomerEntitlementHandlerParams,
 	](
 		func(ctx context.Context, r *http.Request, customerIdOrKey string) (CreateCustomerEntitlementHandlerRequest, error) {
-			inp := &api.EntitlementCreateInputs{}
-			request := CreateCustomerEntitlementHandlerRequest{}
+			inp := &api.EntitlementV2CreateInputs{}
+			def := CreateCustomerEntitlementHandlerRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &inp); err != nil {
-				return request, err
+				return def, err
 			}
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return request, err
+				return def, err
 			}
 
 			// Reuse v1 parser to build entitlement create inputs using the subject key
@@ -77,12 +76,12 @@ func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitleme
 				)
 			}
 
-			parsed, err := entitlementdriver.ParseAPICreateInput(request.APIInput, request.Namespace, cus.GetUsageAttribution())
+			createInp, grantsInp, err := ParseAPICreateInputV2(request.APIInput, request.Namespace, cus.GetUsageAttribution())
 			if err != nil {
 				return CreateCustomerEntitlementHandlerResponse{}, err
 			}
 
-			ent, err := h.connector.CreateEntitlement(ctx, parsed)
+			ent, err := h.connector.CreateEntitlement(ctx, createInp, grantsInp)
 			if err != nil {
 				return api.EntitlementV2{}, err
 			}
@@ -333,10 +332,10 @@ type (
 		EntitlementIdOrFeatureKey string
 	}
 	OverrideCustomerEntitlementHandlerRequest struct {
-		CustomerID                string
 		EntitlementIDOrFeatureKey string
+		CustomerIDOrKey           string
 		Namespace                 string
-		Inputs                    entitlement.CreateEntitlementInputs
+		APIInput                  *api.EntitlementV2CreateInputs
 	}
 	OverrideCustomerEntitlementHandlerResponse = *api.EntitlementV2
 )
@@ -346,55 +345,52 @@ type OverrideCustomerEntitlementHandler httptransport.HandlerWithArgs[OverrideCu
 func (h *entitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntitlementHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params OverrideCustomerEntitlementHandlerParams) (OverrideCustomerEntitlementHandlerRequest, error) {
-			var def OverrideCustomerEntitlementHandlerRequest
-
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return OverrideCustomerEntitlementHandlerRequest{}, err
 			}
 
-			apiInp := &api.EntitlementCreateInputs{}
+			apiInp := &api.EntitlementV2CreateInputs{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &apiInp); err != nil {
 				return OverrideCustomerEntitlementHandlerRequest{}, err
 			}
 
-			// Resolve customer
-			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-				CustomerIDOrKey: &customer.CustomerIDOrKey{
-					Namespace: ns,
-					IDOrKey:   params.CustomerIDOrKey,
-				},
-			})
-			if err != nil {
-				return def, err
-			}
-
-			if cus != nil && cus.IsDeleted() {
-				return def, models.NewGenericPreConditionFailedError(
-					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
-				)
-			}
-
-			// Reuse v1 parser to build entitlement create inputs using the subject key
-			createInp, err := entitlementdriver.ParseAPICreateInput(apiInp, ns, cus.GetUsageAttribution())
-			if err != nil {
-				return OverrideCustomerEntitlementHandlerRequest{}, err
-			}
-
 			return OverrideCustomerEntitlementHandlerRequest{
-				CustomerID:                cus.ID,
-				EntitlementIDOrFeatureKey: params.EntitlementIdOrFeatureKey,
 				Namespace:                 ns,
-				Inputs:                    createInp,
+				CustomerIDOrKey:           params.CustomerIDOrKey,
+				EntitlementIDOrFeatureKey: params.EntitlementIdOrFeatureKey,
+				APIInput:                  apiInp,
 			}, nil
 		},
 		func(ctx context.Context, request OverrideCustomerEntitlementHandlerRequest) (OverrideCustomerEntitlementHandlerResponse, error) {
-			oldEnt, err := h.connector.GetEntitlementOfCustomerAt(ctx, request.Namespace, request.CustomerID, request.EntitlementIDOrFeatureKey, clock.Now())
+			// Resolve customer
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					Namespace: request.Namespace,
+					IDOrKey:   request.CustomerIDOrKey,
+				},
+			})
 			if err != nil {
 				return nil, err
 			}
 
-			ent, err := h.connector.OverrideEntitlement(ctx, request.CustomerID, oldEnt.ID, request.Inputs)
+			if cus != nil && cus.IsDeleted() {
+				return nil, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+				)
+			}
+
+			oldEnt, err := h.connector.GetEntitlementOfCustomerAt(ctx, request.Namespace, cus.ID, request.EntitlementIDOrFeatureKey, clock.Now())
+			if err != nil {
+				return nil, err
+			}
+
+			createInp, grantsInp, err := ParseAPICreateInputV2(request.APIInput, request.Namespace, cus.GetUsageAttribution())
+			if err != nil {
+				return nil, err
+			}
+
+			ent, err := h.connector.OverrideEntitlement(ctx, cus.ID, oldEnt.ID, createInp, grantsInp)
 			if err != nil {
 				return nil, err
 			}

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Grant is the model entity for the Grant schema.
@@ -23,14 +24,18 @@ type Grant struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
-	// Metadata holds the value of the "metadata" field.
-	Metadata map[string]string `json:"metadata,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	//
+	// Deprecated: Field "metadata" was marked as deprecated in the schema.
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// OwnerID holds the value of the "owner_id" field.
 	OwnerID string `json:"owner_id,omitempty"`
 	// Amount holds the value of the "amount" field.
@@ -40,9 +45,9 @@ type Grant struct {
 	// EffectiveAt holds the value of the "effective_at" field.
 	EffectiveAt time.Time `json:"effective_at,omitempty"`
 	// Expiration holds the value of the "expiration" field.
-	Expiration grant.ExpirationPeriod `json:"expiration,omitempty"`
+	Expiration *grant.ExpirationPeriod `json:"expiration,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
-	ExpiresAt time.Time `json:"expires_at,omitempty"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// VoidedAt holds the value of the "voided_at" field.
 	VoidedAt *time.Time `json:"voided_at,omitempty"`
 	// ResetMaxRollover holds the value of the "reset_max_rollover" field.
@@ -84,7 +89,7 @@ func (*Grant) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case dbgrant.FieldMetadata, dbgrant.FieldExpiration:
+		case dbgrant.FieldAnnotations, dbgrant.FieldMetadata, dbgrant.FieldExpiration:
 			values[i] = new([]byte)
 		case dbgrant.FieldAmount, dbgrant.FieldResetMaxRollover, dbgrant.FieldResetMinRollover:
 			values[i] = new(sql.NullFloat64)
@@ -121,12 +126,12 @@ func (_m *Grant) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
-		case dbgrant.FieldMetadata:
+		case dbgrant.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
-					return fmt.Errorf("unmarshal field metadata: %w", err)
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
 			}
 		case dbgrant.FieldCreatedAt:
@@ -147,6 +152,14 @@ func (_m *Grant) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
+			}
+		case dbgrant.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
 			}
 		case dbgrant.FieldOwnerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -184,7 +197,8 @@ func (_m *Grant) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field expires_at", values[i])
 			} else if value.Valid {
-				_m.ExpiresAt = value.Time
+				_m.ExpiresAt = new(time.Time)
+				*_m.ExpiresAt = value.Time
 			}
 		case dbgrant.FieldVoidedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -263,8 +277,8 @@ func (_m *Grant) String() string {
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
-	builder.WriteString("metadata=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
@@ -276,6 +290,9 @@ func (_m *Grant) String() string {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("owner_id=")
 	builder.WriteString(_m.OwnerID)
@@ -292,8 +309,10 @@ func (_m *Grant) String() string {
 	builder.WriteString("expiration=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Expiration))
 	builder.WriteString(", ")
-	builder.WriteString("expires_at=")
-	builder.WriteString(_m.ExpiresAt.Format(time.ANSIC))
+	if v := _m.ExpiresAt; v != nil {
+		builder.WriteString("expires_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	if v := _m.VoidedAt; v != nil {
 		builder.WriteString("voided_at=")

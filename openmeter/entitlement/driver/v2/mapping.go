@@ -1,17 +1,26 @@
 package entitlementdriverv2
 
 import (
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/credit"
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -87,11 +96,19 @@ func (parserV2) ToMeteredV2(m *meteredentitlement.Entitlement, e *entitlement.En
 		FeatureKey:         m.FeatureKey,
 		Id:                 m.ID,
 		IsSoftLimit:        convert.ToPointer(m.IsSoftLimit),
-		IsUnlimited:        convert.ToPointer(false),
 		IssueAfterReset:    convert.SafeDeRef(m.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *float64 { return &i.Amount }),
 		IssueAfterResetPriority: convert.SafeDeRef(m.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *uint8 {
 			return convert.SafeDeRef(i.Priority, func(p uint8) *uint8 { return &p })
 		}),
+		Issue: func() *api.IssueAfterReset {
+			if m.IssueAfterReset != nil {
+				return &api.IssueAfterReset{
+					Amount:   m.IssueAfterReset.Amount,
+					Priority: m.IssueAfterReset.Priority,
+				}
+			}
+			return nil
+		}(),
 		LastReset:              m.LastReset,
 		MeasureUsageFrom:       m.MeasureUsageFrom,
 		Metadata:               convert.MapToPointer(m.Metadata),
@@ -177,4 +194,238 @@ func mapPeriodValue(p *timeutil.ClosedPeriod) api.Period {
 		return api.Period{}
 	}
 	return api.Period{From: p.From, To: p.To}
+}
+
+func MapEntitlementGrantToAPIV2(grant *meteredentitlement.EntitlementGrant) api.EntitlementGrantV2 {
+	apiGrant := api.EntitlementGrantV2{
+		Amount:            grant.Amount,
+		CreatedAt:         grant.CreatedAt,
+		EffectiveAt:       grant.EffectiveAt,
+		Id:                grant.ID,
+		Annotations:       lo.ToPtr(api.Annotations(grant.Annotations)),
+		Priority:          convert.ToPointer(grant.Priority),
+		UpdatedAt:         grant.UpdatedAt,
+		DeletedAt:         grant.DeletedAt,
+		EntitlementId:     grant.EntitlementID,
+		MaxRolloverAmount: &grant.MaxRolloverAmount,
+		MinRolloverAmount: &grant.MinRolloverAmount,
+		NextRecurrence:    grant.NextRecurrence,
+		VoidedAt:          grant.VoidedAt,
+	}
+
+	if grant.Expiration != nil {
+		apiGrant.Expiration = &api.ExpirationPeriod{
+			Count:    grant.Expiration.Count,
+			Duration: api.ExpirationDuration(grant.Expiration.Duration),
+		}
+		apiGrant.ExpiresAt = grant.ExpiresAt
+	}
+
+	if grant.Recurrence != nil {
+		apiGrant.Recurrence = &api.RecurringPeriod{
+			Anchor:      grant.Recurrence.Anchor,
+			Interval:    entitlementdriver.MapRecurrenceToAPI(grant.Recurrence.Interval),
+			IntervalISO: grant.Recurrence.Interval.ISOString().String(),
+		}
+	}
+
+	return apiGrant
+}
+
+func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageAttribution streaming.CustomerUsageAttribution) (entitlement.CreateEntitlementInputs, []entitlement.CreateEntitlementGrantInputs, error) {
+	entCreateInp := entitlement.CreateEntitlementInputs{}
+	grantsInp := []entitlement.CreateEntitlementGrantInputs{}
+	if inp == nil {
+		return entCreateInp, grantsInp, errors.New("input is nil")
+	}
+
+	value, err := inp.ValueByDiscriminator()
+	if err != nil {
+		return entCreateInp, grantsInp, err
+	}
+
+	switch v := value.(type) {
+	case api.EntitlementMeteredV2CreateInputs:
+		iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
+		if err != nil {
+			return entCreateInp, grantsInp, fmt.Errorf("failed to map interval: %w", err)
+		}
+
+		entCreateInp = entitlement.CreateEntitlementInputs{
+			Namespace:        ns,
+			FeatureID:        v.FeatureId,
+			FeatureKey:       v.FeatureKey,
+			UsageAttribution: usageAttribution,
+			EntitlementType:  entitlement.EntitlementTypeMetered,
+			IsSoftLimit:      v.IsSoftLimit,
+			// IssueAfterReset:         v.IssueAfterReset,
+			// IssueAfterResetPriority: v.IssueAfterResetPriority,
+			UsagePeriod: lo.ToPtr(timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+				return defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now())
+			})(timeutil.Recurrence{
+				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
+				Interval: iv,
+			})),
+			PreserveOverageAtReset: v.PreserveOverageAtReset,
+		}
+
+		// Let's handle the default grants
+		{
+			issueAmount := v.IssueAfterReset
+			issuePriority := v.IssueAfterResetPriority
+
+			if v.Issue != nil {
+				issueAmount = &v.Issue.Amount
+				issuePriority = v.Issue.Priority
+			}
+
+			switch {
+			case issueAmount != nil && len(lo.FromPtr(v.Grants)) != 0:
+				return entCreateInp, grantsInp, errors.New("issueAfterReset and grants cannot be used together")
+			case issueAmount != nil:
+				entCreateInp.IssueAfterReset = issueAmount
+				entCreateInp.IssueAfterResetPriority = issuePriority
+			case len(lo.FromPtr(v.Grants)) != 0:
+				gs, err := slicesx.MapWithErr(lo.FromPtr(v.Grants), func(g api.EntitlementGrantCreateInputV2) (meteredentitlement.CreateEntitlementGrantInputs, error) {
+					return MapAPIGrantV2ToCreateGrantInput(g)
+				})
+				if err != nil {
+					return entCreateInp, grantsInp, err
+				}
+				grantsInp = gs
+			}
+		}
+
+		if v.Metadata != nil {
+			entCreateInp.Metadata = *v.Metadata
+		}
+		if v.MeasureUsageFrom != nil {
+			measureUsageFrom := &entitlement.MeasureUsageFromInput{}
+			apiTime, err := v.MeasureUsageFrom.AsMeasureUsageFromTime()
+			if err == nil {
+				err := measureUsageFrom.FromTime(apiTime)
+				if err != nil {
+					return entCreateInp, grantsInp, err
+				}
+			} else {
+				apiEnum, err := v.MeasureUsageFrom.AsMeasureUsageFromPreset()
+				if err != nil {
+					return entCreateInp, grantsInp, err
+				}
+
+				// sanity check
+				if entCreateInp.UsagePeriod == nil {
+					return entCreateInp, grantsInp, errors.New("usage period is required for enum measure usage from")
+				}
+
+				cPer, err := entCreateInp.UsagePeriod.GetValue().GetPeriodAt(clock.Now())
+				if err != nil {
+					return entCreateInp, grantsInp, err
+				}
+
+				err = measureUsageFrom.FromEnum(entitlement.MeasureUsageFromEnum(apiEnum), cPer, clock.Now())
+				if err != nil {
+					return entCreateInp, grantsInp, err
+				}
+			}
+			entCreateInp.MeasureUsageFrom = measureUsageFrom
+		}
+	case api.EntitlementStaticCreateInputs:
+		entCreateInp = entitlement.CreateEntitlementInputs{
+			Namespace:        ns,
+			FeatureID:        v.FeatureId,
+			FeatureKey:       v.FeatureKey,
+			UsageAttribution: usageAttribution,
+			EntitlementType:  entitlement.EntitlementTypeStatic,
+			Config:           []byte(v.Config),
+		}
+		if v.UsagePeriod != nil {
+			iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
+			if err != nil {
+				return entCreateInp, grantsInp, fmt.Errorf("failed to map interval: %w", err)
+			}
+
+			entCreateInp.UsagePeriod = lo.ToPtr(timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+				return defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now())
+			})(timeutil.Recurrence{
+				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
+				Interval: iv,
+			}))
+		}
+		if v.Metadata != nil {
+			entCreateInp.Metadata = *v.Metadata
+		}
+	case api.EntitlementBooleanCreateInputs:
+		entCreateInp = entitlement.CreateEntitlementInputs{
+			Namespace:        ns,
+			FeatureID:        v.FeatureId,
+			FeatureKey:       v.FeatureKey,
+			UsageAttribution: usageAttribution,
+			EntitlementType:  entitlement.EntitlementTypeBoolean,
+		}
+		if v.UsagePeriod != nil {
+			iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
+			if err != nil {
+				return entCreateInp, grantsInp, fmt.Errorf("failed to map interval: %w", err)
+			}
+
+			entCreateInp.UsagePeriod = lo.ToPtr(timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
+				return defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now())
+			})(timeutil.Recurrence{
+				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
+				Interval: iv,
+			}))
+		}
+		if v.Metadata != nil {
+			entCreateInp.Metadata = *v.Metadata
+		}
+	default:
+		return entCreateInp, grantsInp, errors.New("unknown entitlement type")
+	}
+
+	// We prune activity data explicitly
+	entCreateInp.ActiveFrom = nil
+	entCreateInp.ActiveTo = nil
+
+	return entCreateInp, grantsInp, nil
+}
+
+func MapAPIGrantV2ToCreateGrantInput(g api.EntitlementGrantCreateInputV2) (meteredentitlement.CreateEntitlementGrantInputs, error) {
+	grantInput := meteredentitlement.CreateEntitlementGrantInputs{
+		CreateGrantInput: credit.CreateGrantInput{
+			Amount:           g.Amount,
+			Priority:         defaultx.WithDefault(g.Priority, 0),
+			EffectiveAt:      g.EffectiveAt,
+			ResetMaxRollover: defaultx.WithDefault(g.MaxRolloverAmount, g.Amount),
+			ResetMinRollover: defaultx.WithDefault(g.MinRolloverAmount, 0),
+		},
+	}
+
+	if g.Expiration != nil {
+		grantInput.Expiration = &grant.ExpirationPeriod{
+			Count:    g.Expiration.Count,
+			Duration: grant.ExpirationPeriodDuration(g.Expiration.Duration),
+		}
+	}
+
+	if g.Annotations != nil && len(lo.FromPtr(g.Annotations)) > 0 {
+		grantInput.Annotations = make(models.Annotations)
+
+		for k, v := range lo.FromPtr(g.Annotations) {
+			grantInput.Annotations[k] = v
+		}
+	}
+
+	if g.Recurrence != nil {
+		iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(g.Recurrence.Interval)
+		if err != nil {
+			return grantInput, err
+		}
+		grantInput.Recurrence = &timeutil.Recurrence{
+			Interval: iv,
+			Anchor:   defaultx.WithDefault(g.Recurrence.Anchor, g.EffectiveAt),
+		}
+	}
+
+	return grantInput, nil
 }

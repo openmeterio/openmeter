@@ -88,6 +88,17 @@ union EntitlementV2 {
 }
 
 /**
+ * Create inputs for entitlement
+ */
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+@friendlyName("EntitlementV2CreateInputs")
+union EntitlementV2CreateInputs {
+  metered: EntitlementMeteredV2CreateInputs,
+  static: EntitlementStaticCreateInputs,
+  boolean: EntitlementBooleanCreateInputs,
+}
+
+/**
  * Customer fields for entitlements
  */
 @friendlyName("EntitlementCustomerFields")
@@ -106,6 +117,70 @@ model EntitlementCustomerFields {
 }
 
 /**
+ * Issue after reset
+ */
+@friendlyName("IssueAfterReset")
+model IssueAfterReset {
+  /**
+   * The initial grant amount
+   */
+  @summary("Initial grant amount")
+  @minValue(0)
+  amount: float64;
+
+  /**
+   * The priority of the issue after reset
+   */
+  @summary("Issue grant after reset priority")
+  @minValue(1)
+  @maxValue(255)
+  priority?: uint8 = 1;
+}
+
+/**
+ * Create inputs for metered entitlement
+ */
+@friendlyName("EntitlementMeteredV2CreateInputs")
+model EntitlementMeteredV2CreateInputs {
+  ...OmitProperties<
+    OpenMeter.Entitlements.EntitlementMeteredCreateInputs,
+    "isUnlimited" | "issueAfterReset" | "issueAfterResetPriority"
+  >;
+
+  /**
+   * You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance.
+   * If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+   * That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+   * Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
+   */
+  #deprecated "Use issue.Amount instead, will be removed in next major version."
+  @minValue(0)
+  @summary("Initial grant amount")
+  issueAfterReset?: float64;
+
+  /**
+   * Defines the grant priority for the default grant.
+   */
+  #deprecated "Use issue.Priority instead, will be removed in next major version."
+  @minValue(1)
+  @maxValue(255)
+  @summary("Issue grant after reset priority")
+  issueAfterResetPriority?: uint8 = 1;
+
+  /**
+   * Issue after reset
+   */
+  @summary("Issue after reset")
+  issue?: IssueAfterReset;
+
+  /**
+   * Grants
+   */
+  @summary("Grants")
+  grants?: GrantCreateInputV2[];
+}
+
+/**
  * Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
  * Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
  */
@@ -113,7 +188,7 @@ model EntitlementCustomerFields {
 model EntitlementMeteredV2 {
   type: EntitlementType.metered;
   ...OmitProperties<
-    EntitlementMeteredCreateInputs,
+    EntitlementMeteredV2CreateInputs,
 
       | "type"
       | "measureUsageFrom"
@@ -122,6 +197,7 @@ model EntitlementMeteredV2 {
       | "featureKey"
       | "featureId"
       | "currentUsagePeriod"
+      | "grants"
   >;
   ...OmitProperties<
     EntitlementSharedFields,

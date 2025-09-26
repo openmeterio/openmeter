@@ -236,15 +236,12 @@ func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlemen
 			Amount:      amountToIssue,
 			Priority:    defaultx.WithDefault(metered.IssueAfterReset.Priority, DefaultIssueAfterResetPriority),
 			EffectiveAt: effectiveAt,
-			Expiration: grant.ExpirationPeriod{
-				Count:    100, // This is a bit of an issue... It would make sense for recurring tags to not have an expiration
-				Duration: grant.ExpirationPeriodDurationYear,
-			},
+			Expiration:  nil, // We don't want to expire the grant
 			// These two in conjunction make the grant always have `amountToIssue` balance after a reset
 			ResetMaxRollover: amountToIssue,
 			ResetMinRollover: amountToIssue,
-			Metadata: map[string]string{
-				IssueAfterResetMetaTag: "true",
+			Annotations: models.Annotations{
+				IssueAfterResetMetaTag: true,
 			},
 		})
 		if err != nil {

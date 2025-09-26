@@ -692,7 +692,7 @@ type NoopEntitlementConnector struct{}
 func (n NoopEntitlementConnector) RegisterHooks(hooks ...models.ServiceHook[entitlement.Entitlement]) {
 }
 
-func (n NoopEntitlementConnector) CreateEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+func (n NoopEntitlementConnector) CreateEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs, grants []entitlement.CreateEntitlementGrantInputs) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
 }
 
@@ -700,7 +700,7 @@ func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input
 	return &entitlement.Entitlement{}, nil
 }
 
-func (n NoopEntitlementConnector) OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+func (n NoopEntitlementConnector) OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs, grants []entitlement.CreateEntitlementGrantInputs) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
 }
 

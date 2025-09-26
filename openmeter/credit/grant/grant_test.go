@@ -18,7 +18,7 @@ func TestEffectivePeriod(t *testing.T) {
 	t.Run("base case", func(t *testing.T) {
 		g := grant.Grant{
 			EffectiveAt: now,
-			ExpiresAt:   now.Add(time.Hour),
+			ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 		}
 
 		p := g.GetEffectivePeriod()
@@ -26,10 +26,20 @@ func TestEffectivePeriod(t *testing.T) {
 		assert.Equal(t, g.ExpiresAt, p.To)
 	})
 
+	t.Run("no expiration", func(t *testing.T) {
+		g := grant.Grant{
+			EffectiveAt: now,
+		}
+
+		p := g.GetEffectivePeriod()
+		assert.Equal(t, g.EffectiveAt, p.From)
+		assert.Nil(t, p.To)
+	})
+
 	t.Run("deleted ineffectual", func(t *testing.T) {
 		g := grant.Grant{
 			EffectiveAt: now,
-			ExpiresAt:   now.Add(time.Hour),
+			ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 			ManagedModel: models.ManagedModel{
 				DeletedAt: lo.ToPtr(now.Add(time.Minute + time.Hour)), // 1H1M
 			},
@@ -43,7 +53,7 @@ func TestEffectivePeriod(t *testing.T) {
 	t.Run("deleted before expiration", func(t *testing.T) {
 		g := grant.Grant{
 			EffectiveAt: now,
-			ExpiresAt:   now.Add(time.Hour),
+			ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 			ManagedModel: models.ManagedModel{
 				DeletedAt: lo.ToPtr(now.Add(time.Minute)), // 1M
 			},
@@ -51,13 +61,26 @@ func TestEffectivePeriod(t *testing.T) {
 
 		p := g.GetEffectivePeriod()
 		assert.Equal(t, g.EffectiveAt, p.From)
-		assert.Equal(t, *g.DeletedAt, p.To)
+		assert.Equal(t, g.DeletedAt, p.To)
+	})
+
+	t.Run("no expiration deleted later", func(t *testing.T) {
+		g := grant.Grant{
+			EffectiveAt: now,
+			ManagedModel: models.ManagedModel{
+				DeletedAt: lo.ToPtr(now.Add(time.Minute)), // 1M
+			},
+		}
+
+		p := g.GetEffectivePeriod()
+		assert.Equal(t, g.EffectiveAt, p.From)
+		assert.Equal(t, g.DeletedAt, p.To)
 	})
 
 	t.Run("deleted before effective", func(t *testing.T) {
 		g := grant.Grant{
 			EffectiveAt: now,
-			ExpiresAt:   now.Add(time.Hour),
+			ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 			ManagedModel: models.ManagedModel{
 				DeletedAt: lo.ToPtr(now.Add(-time.Minute)), // -1M
 			},
@@ -67,13 +90,28 @@ func TestEffectivePeriod(t *testing.T) {
 
 		// Grants that never activate have a 0 length period starting and ending at the effective date
 		assert.Equal(t, g.EffectiveAt, p.From)
-		assert.Equal(t, g.EffectiveAt, p.To)
+		assert.Equal(t, g.EffectiveAt, lo.FromPtr(p.To))
+	})
+
+	t.Run("no expiration deleted before effective", func(t *testing.T) {
+		g := grant.Grant{
+			EffectiveAt: now,
+			ManagedModel: models.ManagedModel{
+				DeletedAt: lo.ToPtr(now.Add(-time.Minute)), // -1M
+			},
+		}
+
+		p := g.GetEffectivePeriod()
+
+		// Grants that never activate have a 0 length period starting and ending at the effective date
+		assert.Equal(t, g.EffectiveAt, p.From)
+		assert.Equal(t, g.EffectiveAt, lo.FromPtr(p.To))
 	})
 
 	t.Run("voided ineffectual", func(t *testing.T) {
 		g := grant.Grant{
 			EffectiveAt: now,
-			ExpiresAt:   now.Add(time.Hour),
+			ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 			VoidedAt:    lo.ToPtr(now.Add(time.Minute + time.Hour)), // 1H1M
 		}
 
@@ -85,31 +123,53 @@ func TestEffectivePeriod(t *testing.T) {
 	t.Run("voided before expiration", func(t *testing.T) {
 		g := grant.Grant{
 			EffectiveAt: now,
-			ExpiresAt:   now.Add(time.Hour),
+			ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 			VoidedAt:    lo.ToPtr(now.Add(time.Minute)), // 1M
 		}
 
 		p := g.GetEffectivePeriod()
 		assert.Equal(t, g.EffectiveAt, p.From)
-		assert.Equal(t, *g.VoidedAt, p.To)
+		assert.Equal(t, g.VoidedAt, p.To)
+	})
+
+	t.Run("no expiration voided later", func(t *testing.T) {
+		g := grant.Grant{
+			EffectiveAt: now,
+			VoidedAt:    lo.ToPtr(now.Add(time.Minute)), // 1M
+		}
+
+		p := g.GetEffectivePeriod()
+		assert.Equal(t, g.EffectiveAt, p.From)
+		assert.Equal(t, g.VoidedAt, p.To)
 	})
 
 	t.Run("voided before effective", func(t *testing.T) {
 		g := grant.Grant{
 			EffectiveAt: now,
-			ExpiresAt:   now.Add(time.Hour),
+			ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 			VoidedAt:    lo.ToPtr(now.Add(-time.Minute)), // -1M
 		}
 
 		p := g.GetEffectivePeriod()
 		assert.Equal(t, g.EffectiveAt, p.From)
-		assert.Equal(t, g.EffectiveAt, p.To)
+		assert.Equal(t, g.EffectiveAt, lo.FromPtr(p.To))
+	})
+
+	t.Run("no expiration voided before effective", func(t *testing.T) {
+		g := grant.Grant{
+			EffectiveAt: now,
+			VoidedAt:    lo.ToPtr(now.Add(-time.Minute)), // -1M
+		}
+
+		p := g.GetEffectivePeriod()
+		assert.Equal(t, g.EffectiveAt, p.From)
+		assert.Equal(t, g.EffectiveAt, lo.FromPtr(p.To))
 	})
 
 	t.Run("voided and deleted", func(t *testing.T) {
 		g := grant.Grant{
 			EffectiveAt: now,
-			ExpiresAt:   now.Add(time.Hour),
+			ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 			VoidedAt:    lo.ToPtr(now.Add(time.Minute)), // 1M
 			ManagedModel: models.ManagedModel{
 				DeletedAt: lo.ToPtr(now.Add(time.Minute + time.Hour)), // 1H1M
@@ -118,7 +178,7 @@ func TestEffectivePeriod(t *testing.T) {
 
 		p := g.GetEffectivePeriod()
 		assert.Equal(t, g.EffectiveAt, p.From)
-		assert.Equal(t, *g.VoidedAt, p.To)
+		assert.Equal(t, g.VoidedAt, p.To)
 	})
 }
 
@@ -135,7 +195,7 @@ func TestIsActiveAt(t *testing.T) {
 			name: "base case",
 			g: grant.Grant{
 				EffectiveAt: now,
-				ExpiresAt:   now.Add(time.Hour),
+				ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 			},
 			at:   now,
 			want: true,
@@ -144,7 +204,7 @@ func TestIsActiveAt(t *testing.T) {
 			name: "not active",
 			g: grant.Grant{
 				EffectiveAt: now,
-				ExpiresAt:   now.Add(time.Hour),
+				ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 			},
 			at:   now.Add(time.Hour),
 			want: false,
@@ -153,7 +213,7 @@ func TestIsActiveAt(t *testing.T) {
 			name: "voided",
 			g: grant.Grant{
 				EffectiveAt: now,
-				ExpiresAt:   now.Add(time.Hour),
+				ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 				VoidedAt:    lo.ToPtr(now.Add(time.Minute)), // 1M
 			},
 			at:   now.Add(time.Minute),
@@ -163,7 +223,7 @@ func TestIsActiveAt(t *testing.T) {
 			name: "deleted",
 			g: grant.Grant{
 				EffectiveAt: now,
-				ExpiresAt:   now.Add(time.Hour),
+				ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 				ManagedModel: models.ManagedModel{
 					DeletedAt: lo.ToPtr(now.Add(time.Minute)), // 1M
 				},
@@ -175,7 +235,7 @@ func TestIsActiveAt(t *testing.T) {
 			name: "voided and deleted",
 			g: grant.Grant{
 				EffectiveAt: now,
-				ExpiresAt:   now.Add(time.Hour),
+				ExpiresAt:   lo.ToPtr(now.Add(time.Hour)),
 				VoidedAt:    lo.ToPtr(now.Add(time.Minute)), // 1M
 				ManagedModel: models.ManagedModel{
 					DeletedAt: lo.ToPtr(now.Add(time.Minute + time.Hour)), // 1H1M
@@ -188,7 +248,7 @@ func TestIsActiveAt(t *testing.T) {
 			name: "0 length",
 			g: grant.Grant{
 				EffectiveAt: now,
-				ExpiresAt:   now,
+				ExpiresAt:   lo.ToPtr(now),
 			},
 			at:   now,
 			want: false,

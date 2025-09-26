@@ -9,10 +9,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -21,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type (
@@ -36,7 +33,7 @@ type (
 		Namespace                 string
 		Params                    api.ListCustomerEntitlementGrantsV2Params
 	}
-	ListCustomerEntitlementGrantsHandlerResponse = api.GrantPaginatedResponse
+	ListCustomerEntitlementGrantsHandlerResponse = api.GrantV2PaginatedResponse
 	ListCustomerEntitlementGrantsHandler         = httptransport.HandlerWithArgs[ListCustomerEntitlementGrantsHandlerRequest, ListCustomerEntitlementGrantsHandlerResponse, ListCustomerEntitlementGrantsHandlerParams]
 )
 
@@ -85,8 +82,8 @@ func (h *entitlementHandler) ListCustomerEntitlementGrants() ListCustomerEntitle
 				return ListCustomerEntitlementGrantsHandlerResponse{}, err
 			}
 
-			mapped := pagination.MapResult(grants, func(grant meteredentitlement.EntitlementGrant) api.EntitlementGrant {
-				return entitlementdriver.MapEntitlementGrantToAPI(&grant)
+			mapped := pagination.MapResult(grants, func(grant meteredentitlement.EntitlementGrant) api.EntitlementGrantV2 {
+				return MapEntitlementGrantToAPIV2(&grant)
 			})
 
 			return ListCustomerEntitlementGrantsHandlerResponse{
@@ -119,7 +116,7 @@ type (
 		Namespace                 string
 		GrantInput                meteredentitlement.CreateEntitlementGrantInputs
 	}
-	CreateCustomerEntitlementGrantHandlerResponse = api.EntitlementGrant
+	CreateCustomerEntitlementGrantHandlerResponse = api.EntitlementGrantV2
 	CreateCustomerEntitlementGrantHandler         = httptransport.HandlerWithArgs[CreateCustomerEntitlementGrantHandlerRequest, CreateCustomerEntitlementGrantHandlerResponse, CreateCustomerEntitlementGrantHandlerParams]
 )
 
@@ -130,7 +127,7 @@ func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEnti
 		CreateCustomerEntitlementGrantHandlerParams,
 	](
 		func(ctx context.Context, r *http.Request, params CreateCustomerEntitlementGrantHandlerParams) (CreateCustomerEntitlementGrantHandlerRequest, error) {
-			var body api.EntitlementGrantCreateInput
+			var body api.EntitlementGrantCreateInputV2
 			var req CreateCustomerEntitlementGrantHandlerRequest
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
@@ -155,33 +152,9 @@ func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEnti
 				)
 			}
 
-			grantInput := meteredentitlement.CreateEntitlementGrantInputs{
-				CreateGrantInput: credit.CreateGrantInput{
-					Amount:      body.Amount,
-					Priority:    defaultx.WithDefault(body.Priority, 0),
-					EffectiveAt: body.EffectiveAt,
-					Expiration: grant.ExpirationPeriod{
-						Count:    body.Expiration.Count,
-						Duration: grant.ExpirationPeriodDuration(body.Expiration.Duration),
-					},
-					ResetMaxRollover: defaultx.WithDefault(body.MaxRolloverAmount, 0),
-					ResetMinRollover: defaultx.WithDefault(body.MinRolloverAmount, 0),
-				},
-			}
-
-			if body.Metadata != nil {
-				grantInput.Metadata = *body.Metadata
-			}
-
-			if body.Recurrence != nil {
-				iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(body.Recurrence.Interval)
-				if err != nil {
-					return req, err
-				}
-				grantInput.Recurrence = &timeutil.Recurrence{
-					Interval: iv,
-					Anchor:   defaultx.WithDefault(body.Recurrence.Anchor, body.EffectiveAt),
-				}
+			grantInput, err := MapAPIGrantV2ToCreateGrantInput(body)
+			if err != nil {
+				return req, err
 			}
 
 			req = CreateCustomerEntitlementGrantHandlerRequest{
@@ -197,7 +170,7 @@ func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEnti
 			if err != nil {
 				return CreateCustomerEntitlementGrantHandlerResponse{}, err
 			}
-			return entitlementdriver.MapEntitlementGrantToAPI(&g), nil
+			return MapEntitlementGrantToAPIV2(&g), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerEntitlementGrantHandlerResponse](http.StatusCreated),
 		httptransport.AppendOptions(

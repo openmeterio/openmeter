@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entitlement_httpdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	entitlement_httpdriverv2 "github.com/openmeterio/openmeter/openmeter/entitlement/driver/v2"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -224,7 +225,7 @@ type (
 	ListGrantsV2HandlerRequest struct {
 		params grant.ListParams
 	}
-	ListGrantsV2HandlerResponse = api.GrantPaginatedResponse
+	ListGrantsV2HandlerResponse = api.GrantV2PaginatedResponse
 	ListGrantsV2HandlerParams   struct {
 		Params api.ListGrantsV2Params
 	}
@@ -287,17 +288,17 @@ func (h *grantHandler) ListGrantsV2() ListGrantsV2Handler {
 				return ListGrantsV2HandlerResponse{}, err
 			}
 
-			apiGrants := make([]api.EntitlementGrant, 0, len(grants.Items))
+			apiGrants := make([]api.EntitlementGrantV2, 0, len(grants.Items))
 			for _, g := range grants.Items {
 				entitlementGrant, err := meteredentitlement.GrantFromCreditGrant(g, clock.Now())
 				if err != nil {
 					return ListGrantsV2HandlerResponse{}, err
 				}
-				a := entitlement_httpdriver.MapEntitlementGrantToAPI(entitlementGrant)
+				a := entitlement_httpdriverv2.MapEntitlementGrantToAPIV2(entitlementGrant)
 				apiGrants = append(apiGrants, a)
 			}
 
-			return api.GrantPaginatedResponse{
+			return api.GrantV2PaginatedResponse{
 				Items:      apiGrants,
 				TotalCount: grants.TotalCount,
 				Page:       grants.Page.PageNumber,

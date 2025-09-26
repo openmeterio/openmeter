@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // GrantUpdate is the builder for updating Grant entities.
@@ -28,15 +29,15 @@ func (_u *GrantUpdate) Where(ps ...predicate.Grant) *GrantUpdate {
 	return _u
 }
 
-// SetMetadata sets the "metadata" field.
-func (_u *GrantUpdate) SetMetadata(v map[string]string) *GrantUpdate {
-	_u.mutation.SetMetadata(v)
+// SetAnnotations sets the "annotations" field.
+func (_u *GrantUpdate) SetAnnotations(v models.Annotations) *GrantUpdate {
+	_u.mutation.SetAnnotations(v)
 	return _u
 }
 
-// ClearMetadata clears the value of the "metadata" field.
-func (_u *GrantUpdate) ClearMetadata() *GrantUpdate {
-	_u.mutation.ClearMetadata()
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *GrantUpdate) ClearAnnotations() *GrantUpdate {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -63,6 +64,18 @@ func (_u *GrantUpdate) SetNillableDeletedAt(v *time.Time) *GrantUpdate {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *GrantUpdate) ClearDeletedAt() *GrantUpdate {
 	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetMetadata sets the "metadata" field.
+func (_u *GrantUpdate) SetMetadata(v map[string]string) *GrantUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *GrantUpdate) ClearMetadata() *GrantUpdate {
+	_u.mutation.ClearMetadata()
 	return _u
 }
 
@@ -147,11 +160,11 @@ func (_u *GrantUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(dbgrant.FieldAnnotations, field.TypeJSON, value)
 	}
-	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(dbgrant.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbgrant.FieldUpdatedAt, field.TypeTime, value)
@@ -161,6 +174,18 @@ func (_u *GrantUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(dbgrant.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
+	}
+	if _u.mutation.ExpirationCleared() {
+		_spec.ClearField(dbgrant.FieldExpiration, field.TypeJSON)
+	}
+	if _u.mutation.ExpiresAtCleared() {
+		_spec.ClearField(dbgrant.FieldExpiresAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.VoidedAt(); ok {
 		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)
@@ -194,15 +219,15 @@ type GrantUpdateOne struct {
 	mutation *GrantMutation
 }
 
-// SetMetadata sets the "metadata" field.
-func (_u *GrantUpdateOne) SetMetadata(v map[string]string) *GrantUpdateOne {
-	_u.mutation.SetMetadata(v)
+// SetAnnotations sets the "annotations" field.
+func (_u *GrantUpdateOne) SetAnnotations(v models.Annotations) *GrantUpdateOne {
+	_u.mutation.SetAnnotations(v)
 	return _u
 }
 
-// ClearMetadata clears the value of the "metadata" field.
-func (_u *GrantUpdateOne) ClearMetadata() *GrantUpdateOne {
-	_u.mutation.ClearMetadata()
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *GrantUpdateOne) ClearAnnotations() *GrantUpdateOne {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -229,6 +254,18 @@ func (_u *GrantUpdateOne) SetNillableDeletedAt(v *time.Time) *GrantUpdateOne {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *GrantUpdateOne) ClearDeletedAt() *GrantUpdateOne {
 	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetMetadata sets the "metadata" field.
+func (_u *GrantUpdateOne) SetMetadata(v map[string]string) *GrantUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *GrantUpdateOne) ClearMetadata() *GrantUpdateOne {
+	_u.mutation.ClearMetadata()
 	return _u
 }
 
@@ -343,11 +380,11 @@ func (_u *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error)
 			}
 		}
 	}
-	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(dbgrant.FieldAnnotations, field.TypeJSON, value)
 	}
-	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(dbgrant.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(dbgrant.FieldUpdatedAt, field.TypeTime, value)
@@ -357,6 +394,18 @@ func (_u *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error)
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(dbgrant.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
+	}
+	if _u.mutation.ExpirationCleared() {
+		_spec.ClearField(dbgrant.FieldExpiration, field.TypeJSON)
+	}
+	if _u.mutation.ExpiresAtCleared() {
+		_spec.ClearField(dbgrant.FieldExpiresAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.VoidedAt(); ok {
 		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)

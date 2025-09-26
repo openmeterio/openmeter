@@ -29,7 +29,7 @@ interface CustomerEntitlements {
   @operationId("createCustomerEntitlementV2")
   post(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @body entitlement: OpenMeter.Entitlements.EntitlementCreateInputs,
+    @body entitlement: EntitlementV2CreateInputs,
   ): {
     @statusCode _: 201;
     @body body: EntitlementV2;
@@ -88,7 +88,7 @@ interface CustomerEntitlements {
   override(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path entitlementIdOrFeatureKey: ULIDOrExternalKey,
-    @body entitlement: EntitlementCreateInputs,
+    @body entitlement: EntitlementV2CreateInputs,
   ):
     | {
         @statusCode _: 201;
@@ -117,7 +117,7 @@ interface CustomerEntitlement {
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<GrantOrderBy>,
-  ): OpenMeter.PaginatedResponse<Grant> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<GrantV2> | OpenMeter.CommonErrors;
 
   /**
    * Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
@@ -139,10 +139,10 @@ interface CustomerEntitlement {
   createCustomerEntitlementGrant(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path entitlementIdOrFeatureKey: ULIDOrKey,
-    @body grant: GrantCreateInput,
+    @body grant: GrantCreateInputV2,
   ): {
     @statusCode _: 201;
-    @body body: Grant;
+    @body body: GrantV2;
   } | OpenMeter.CommonErrors | OpenMeter.ConflictError;
 
   /**
