@@ -36,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/ffx"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
 
@@ -54,6 +55,7 @@ type Application struct {
 	EventPublisher                   eventbus.Publisher
 	EntitlementRegistry              *registry.Entitlement
 	FeatureConnector                 feature.FeatureConnector
+	FeatureFlags                     ffx.Service
 	IngestCollector                  ingest.Collector
 	IngestService                    *ingest.Service
 	KafkaProducer                    *kafka.Producer
@@ -97,12 +99,14 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Database,
 		common.Entitlement,
 		common.Framework,
+		common.FFX,
 		common.Kafka,
 		common.KafkaIngest,
 		common.KafkaNamespaceResolver,
 		common.MeterManageWithConfigMeters,
 		common.MeterEvent,
 		common.Namespace,
+		common.StaticNamespace,
 		common.NewDefaultTextMapPropagator,
 		common.NewKafkaIngestCollector,
 		common.NewIngestCollector,

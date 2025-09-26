@@ -215,6 +215,15 @@ func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.Namesp
 }
 
 func (s *service) Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+	multiSubscriptionEnabled, err := s.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF)
+	if err != nil {
+		return subscription.Subscription{}, fmt.Errorf("failed to check if multi-subscription is enabled: %w", err)
+	}
+
+	if multiSubscriptionEnabled {
+		return subscription.Subscription{}, subscription.ErrRestoreSubscriptionNotAllowedForMultiSubscription
+	}
+
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
 		now := clock.Now()
 

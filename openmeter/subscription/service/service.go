@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -32,6 +33,7 @@ type ServiceConfig struct {
 	TransactionManager transaction.Creator
 	Publisher          eventbus.Publisher
 	Lockr              *lockr.Locker
+	FeatureFlags       ffx.Service
 	// External validations (optional)
 	Validators []subscription.SubscriptionValidator
 }

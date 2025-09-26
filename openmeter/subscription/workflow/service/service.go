@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -22,6 +23,7 @@ type WorkflowServiceConfig struct {
 	TransactionManager transaction.Creator
 	Logger             *slog.Logger
 	Lockr              *lockr.Locker
+	FeatureFlags       ffx.Service
 }
 
 type service struct {
