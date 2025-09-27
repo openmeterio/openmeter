@@ -1,0 +1,16 @@
+# Packaging
+*.egg-info/
+*.egg
+*.eggs/
+dist/
+build/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual envs
+.venv/
+venv/
