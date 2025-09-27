@@ -80,6 +80,11 @@ func (c *stripeAppClient) CreatePortalSession(ctx context.Context, input CreateP
 		Locale:        input.Locale,
 	})
 	if err != nil {
+		// Stripe customer not found error
+		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
+			return PortalSession{}, NewStripeCustomerNotFoundError(input.StripeCustomerID)
+		}
+
 		return PortalSession{}, c.providerError(err)
 	}
 
