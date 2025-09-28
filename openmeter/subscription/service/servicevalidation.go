@@ -11,6 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func (s *service) validateCreate(ctx context.Context, cust customer.Customer, spec subscription.SubscriptionSpec) error {
@@ -60,10 +62,14 @@ func (s *service) validateCreate(ctx context.Context, cust customer.Customer, sp
 	} else {
 		// We're gonna validate uniqueness on the subscription level
 		// Let's build a timeline of every already schedueld subscription
-		scheduled, err := s.SubscriptionRepo.GetAllForCustomerSince(ctx, models.NamespacedID{
-			ID:        spec.CustomerId,
-			Namespace: cust.Namespace,
-		}, clock.Now())
+		scheduled, err := pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[subscription.Subscription], error) {
+			return s.SubscriptionRepo.List(ctx, subscription.ListSubscriptionsInput{
+				CustomerIDs:    []string{cust.ID},
+				Namespaces:     []string{cust.Namespace},
+				ActiveInPeriod: &timeutil.StartBoundedPeriod{From: clock.Now()},
+				Page:           page,
+			})
+		}), 1000)
 		if err != nil {
 			return fmt.Errorf("failed to get scheduled subscriptions: %w", err)
 		}
@@ -193,10 +199,14 @@ func (s *service) validateContinue(ctx context.Context, view subscription.Subscr
 	// Let's make sure there won't be any scheduling conflicts after continuing (no overlapping subscriptions)
 
 	// Let's build a timeline of every already schedueld subscription
-	scheduled, err := s.SubscriptionRepo.GetAllForCustomerSince(ctx, models.NamespacedID{
-		ID:        spec.CustomerId,
-		Namespace: view.Subscription.Namespace,
-	}, clock.Now())
+	scheduled, err := pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[subscription.Subscription], error) {
+		return s.SubscriptionRepo.List(ctx, subscription.ListSubscriptionsInput{
+			CustomerIDs:    []string{spec.CustomerId},
+			Namespaces:     []string{view.Subscription.Namespace},
+			ActiveInPeriod: &timeutil.StartBoundedPeriod{From: clock.Now()},
+			Page:           page,
+		})
+	}), 1000)
 	if err != nil {
 		return fmt.Errorf("failed to get scheduled subscriptions: %w", err)
 	}

@@ -1,6 +1,9 @@
 package timeutil
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type StartBoundedPeriod struct {
 	From time.Time  `json:"from"`
@@ -8,6 +11,18 @@ type StartBoundedPeriod struct {
 }
 
 var _ Period = StartBoundedPeriod{}
+
+func (p StartBoundedPeriod) Validate() error {
+	if p.From.IsZero() {
+		return errors.New("from is required")
+	}
+
+	if p.To != nil && p.From.After(*p.To) {
+		return errors.New("from must be before to")
+	}
+
+	return nil
+}
 
 // Inclusive at both start and end
 func (p StartBoundedPeriod) ContainsInclusive(t time.Time) bool {

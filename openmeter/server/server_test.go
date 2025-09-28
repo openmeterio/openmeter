@@ -62,6 +62,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/ref"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var DefaultNamespace = "test"
@@ -1245,7 +1246,7 @@ func (n NoopSubscriptionService) List(ctx context.Context, params subscription.L
 	return pagination.Result[subscription.Subscription]{}, nil
 }
 
-func (n NoopSubscriptionService) GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error) {
+func (n NoopSubscriptionService) GetAllForCustomer(ctx context.Context, customerID models.NamespacedID, period timeutil.StartBoundedPeriod) ([]subscription.Subscription, error) {
 	return []subscription.Subscription{}, nil
 }
 

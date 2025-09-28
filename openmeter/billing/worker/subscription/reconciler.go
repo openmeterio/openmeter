@@ -7,8 +7,11 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -83,11 +86,11 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 	}
 
 	subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces: in.Namespaces,
-		Customers:  in.Customers,
-		ActiveInPeriod: &timeutil.ClosedPeriod{
-			From: time.Now().Add(-in.Lookback),
-			To:   time.Now(),
+		Namespaces:  in.Namespaces,
+		CustomerIDs: in.Customers,
+		ActiveInPeriod: &timeutil.StartBoundedPeriod{
+			From: clock.Now().Add(-in.Lookback),
+			To:   lo.ToPtr(clock.Now()),
 		},
 	})
 	if err != nil {

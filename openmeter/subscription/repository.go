@@ -40,9 +40,6 @@ type SubscriptionRepository interface {
 
 	models.CadencedResourceRepo[Subscription]
 
-	// Returns all subscriptions active or scheduled after the given timestamp
-	GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]Subscription, error)
-
 	// Returns the subscription by ID
 	GetByID(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
 

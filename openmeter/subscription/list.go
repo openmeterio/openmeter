@@ -13,9 +13,9 @@ type ListSubscriptionsInput struct {
 	pagination.Page
 
 	Namespaces     []string
-	Customers      []string
+	CustomerIDs    []string
 	ActiveAt       *time.Time
-	ActiveInPeriod *timeutil.ClosedPeriod
+	ActiveInPeriod *timeutil.StartBoundedPeriod
 }
 
 func (i ListSubscriptionsInput) Validate() error {

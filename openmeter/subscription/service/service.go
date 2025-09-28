@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -470,12 +469,6 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 	}
 
 	return *view, nil
-}
-
-func (s *service) GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error) {
-	ctx = subscription.NewSubscriptionOperationContext(ctx)
-
-	return s.SubscriptionRepo.GetAllForCustomerSince(ctx, customerID, at)
 }
 
 func (s *service) List(ctx context.Context, input subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {

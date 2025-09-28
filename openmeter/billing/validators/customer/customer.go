@@ -46,8 +46,8 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 
 	// Let's sync any subscriptions pending for this customer
 	subs, err := v.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces: []string{input.Namespace},
-		Customers:  []string{input.ID},
+		Namespaces:  []string{input.Namespace},
+		CustomerIDs: []string{input.ID},
 	})
 	if err != nil {
 		return err
