@@ -2,17 +2,18 @@ package repo
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbsubscriptionitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
-	dbsubscriptionphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type subscriptionItemRepo struct {
@@ -27,20 +28,49 @@ func NewSubscriptionItemRepo(db *db.Client) *subscriptionItemRepo {
 	}
 }
 
-func (r *subscriptionItemRepo) GetForSubscriptionAt(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) ([]subscription.SubscriptionItem, error) {
+func getItemForSubscriptionAtFilter(input subscription.GetForSubscriptionAtInput) predicate.SubscriptionItem {
+	return dbsubscriptionitem.And(
+		dbsubscriptionitem.HasPhaseWith(getPhaseForSubscriptionAtFilter(input)),
+		dbsubscriptionitem.Or(
+			dbsubscriptionitem.DeletedAtIsNil(),
+			dbsubscriptionitem.DeletedAtGT(input.At),
+		),
+	)
+}
+
+func (r *subscriptionItemRepo) GetForSubscriptionAt(ctx context.Context, input subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionItem, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionItemRepo) ([]subscription.SubscriptionItem, error) {
 		items, err := repo.db.SubscriptionItem.Query().
-			Where(dbsubscriptionitem.HasPhaseWith(
-				dbsubscriptionphase.Or(
-					dbsubscriptionphase.DeletedAtIsNil(),
-					dbsubscriptionphase.DeletedAtGT(at),
-				),
-				dbsubscriptionphase.SubscriptionID(subscriptionID.ID),
-				dbsubscriptionphase.Namespace(subscriptionID.Namespace),
-			)).
+			Where(getItemForSubscriptionAtFilter(input)).
+			WithPhase().
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		var result []subscription.SubscriptionItem
+
+		for _, item := range items {
+			r, err := MapDBSubscriptionItem(item)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, r)
+		}
+
+		return result, nil
+	})
+}
+
+func (r *subscriptionItemRepo) GetForSubscriptionsAt(ctx context.Context, input []subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionItem, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionItemRepo) ([]subscription.SubscriptionItem, error) {
+		if len(input) == 0 {
+			return nil, fmt.Errorf("filter is empty")
+		}
+
+		items, err := repo.db.SubscriptionItem.Query().
 			Where(dbsubscriptionitem.Or(
-				dbsubscriptionitem.DeletedAtIsNil(),
-				dbsubscriptionitem.DeletedAtGT(at),
+				slicesx.Map(input, getItemForSubscriptionAtFilter)...,
 			)).
 			WithPhase().
 			All(ctx)

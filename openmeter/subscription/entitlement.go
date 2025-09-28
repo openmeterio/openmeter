@@ -3,7 +3,6 @@ package subscription
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -62,7 +61,9 @@ type EntitlementAdapter interface {
 	// At refers to a point in time for which we're querying the system state, meaning:
 	// if t1 < t2 < t3, and some entitlement was deleted effective at t2, then
 	// with at = t1 the entitlement will be returned, while with at = t3 it won't.
-	GetForSubscriptionAt(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) ([]SubscriptionEntitlement, error)
+	GetForSubscriptionAt(ctx context.Context, input GetForSubscriptionAtInput) ([]SubscriptionEntitlement, error)
+
+	GetForSubscriptionsAt(ctx context.Context, input []GetForSubscriptionAtInput) ([]SubscriptionEntitlement, error)
 
 	DeleteByItemID(ctx context.Context, itemId models.NamespacedID) error
 }

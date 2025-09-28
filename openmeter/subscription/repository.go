@@ -83,11 +83,19 @@ func (i CreateSubscriptionPhaseEntityInput) Equal(other CreateSubscriptionPhaseE
 	return reflect.DeepEqual(i, other)
 }
 
+type GetForSubscriptionAtInput struct {
+	Namespace      string
+	SubscriptionID string
+	At             time.Time
+}
+
 type SubscriptionPhaseRepository interface {
 	entutils.TxCreator
 
 	// Returns the phases for a subscription
-	GetForSubscriptionAt(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) ([]SubscriptionPhase, error)
+	GetForSubscriptionAt(ctx context.Context, input GetForSubscriptionAtInput) ([]SubscriptionPhase, error)
+	// Returns the phases for a list of subscriptions
+	GetForSubscriptionsAt(ctx context.Context, input []GetForSubscriptionAtInput) ([]SubscriptionPhase, error)
 
 	// Create a new subscription phase
 	Create(ctx context.Context, input CreateSubscriptionPhaseEntityInput) (SubscriptionPhase, error)
@@ -135,7 +143,8 @@ func (i CreateSubscriptionItemEntityInput) Equal(other CreateSubscriptionItemEnt
 type SubscriptionItemRepository interface {
 	entutils.TxCreator
 
-	GetForSubscriptionAt(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) ([]SubscriptionItem, error)
+	GetForSubscriptionAt(ctx context.Context, inp GetForSubscriptionAtInput) ([]SubscriptionItem, error)
+	GetForSubscriptionsAt(ctx context.Context, input []GetForSubscriptionAtInput) ([]SubscriptionItem, error)
 
 	Create(ctx context.Context, input CreateSubscriptionItemEntityInput) (SubscriptionItem, error)
 	Delete(ctx context.Context, id models.NamespacedID) error

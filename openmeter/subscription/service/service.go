@@ -408,17 +408,23 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 		return def, fmt.Errorf("customer is nil")
 	}
 
-	phases, err := s.SubscriptionPhaseRepo.GetForSubscriptionAt(ctx, sub.NamespacedID, currentTime)
+	getAtInput := subscription.GetForSubscriptionAtInput{
+		Namespace:      sub.Namespace,
+		SubscriptionID: sub.ID,
+		At:             currentTime,
+	}
+
+	phases, err := s.SubscriptionPhaseRepo.GetForSubscriptionAt(ctx, getAtInput)
 	if err != nil {
 		return def, err
 	}
 
-	items, err := s.SubscriptionItemRepo.GetForSubscriptionAt(ctx, sub.NamespacedID, currentTime)
+	items, err := s.SubscriptionItemRepo.GetForSubscriptionAt(ctx, getAtInput)
 	if err != nil {
 		return def, err
 	}
 
-	ents, err := s.EntitlementAdapter.GetForSubscriptionAt(ctx, sub.NamespacedID, currentTime)
+	ents, err := s.EntitlementAdapter.GetForSubscriptionAt(ctx, getAtInput)
 	if err != nil {
 		return def, err
 	}

@@ -2,14 +2,16 @@ package repo
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbsubscriptionphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type subscriptionPhaseRepo struct {
@@ -24,15 +26,52 @@ func NewSubscriptionPhaseRepo(db *db.Client) *subscriptionPhaseRepo {
 	}
 }
 
-func (r *subscriptionPhaseRepo) GetForSubscriptionAt(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) ([]subscription.SubscriptionPhase, error) {
+func getPhaseForSubscriptionAtFilter(input subscription.GetForSubscriptionAtInput) predicate.SubscriptionPhase {
+	return dbsubscriptionphase.And(
+		dbsubscriptionphase.SubscriptionID(input.SubscriptionID),
+		dbsubscriptionphase.Namespace(input.Namespace),
+		dbsubscriptionphase.Or(
+			dbsubscriptionphase.DeletedAtIsNil(),
+			dbsubscriptionphase.DeletedAtGT(input.At),
+		),
+	)
+}
+
+func (r *subscriptionPhaseRepo) GetForSubscriptionAt(ctx context.Context, input subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionPhase, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionPhaseRepo) ([]subscription.SubscriptionPhase, error) {
 		phases, err := repo.db.SubscriptionPhase.Query().
-			Where(dbsubscriptionphase.SubscriptionID(subscriptionID.ID)).
-			Where(dbsubscriptionphase.Namespace(subscriptionID.Namespace)).
-			Where(dbsubscriptionphase.Or(
-				dbsubscriptionphase.DeletedAtIsNil(),
-				dbsubscriptionphase.DeletedAtGT(at),
-			)).
+			Where(getPhaseForSubscriptionAtFilter(input)).
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		var result []subscription.SubscriptionPhase
+
+		for _, phase := range phases {
+			r, err := MapDBSubscripitonPhase(phase)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, r)
+		}
+
+		return result, nil
+	})
+}
+
+func (r *subscriptionPhaseRepo) GetForSubscriptionsAt(ctx context.Context, input []subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionPhase, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionPhaseRepo) ([]subscription.SubscriptionPhase, error) {
+		if len(input) == 0 {
+			return nil, fmt.Errorf("filter is empty")
+		}
+
+		phases, err := repo.db.SubscriptionPhase.Query().
+			Where(
+				dbsubscriptionphase.Or(
+					slicesx.Map(input, getPhaseForSubscriptionAtFilter)...,
+				),
+			).
 			All(ctx)
 		if err != nil {
 			return nil, err
