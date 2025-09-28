@@ -119,6 +119,12 @@ model Grant {
    * The recurrence period of the grant.
    */
   recurrence?: RecurringPeriod;
+
+  /**
+   * Grant annotations
+   */
+  @example(#{ issueAfterReset: true })
+  annotations?: Annotations;
 }
 
 /**

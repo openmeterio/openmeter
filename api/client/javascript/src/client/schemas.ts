@@ -4692,6 +4692,13 @@ export interface components {
       voidedAt?: Date
       /** @description The recurrence period of the grant. */
       recurrence?: components['schemas']['RecurringPeriod']
+      /**
+       * @description Grant annotations
+       * @example {
+       *       "issueAfterReset": true
+       *     }
+       */
+      annotations?: components['schemas']['Annotations']
     }
     /** @description The grant creation input. */
     EntitlementGrantCreateInput: {

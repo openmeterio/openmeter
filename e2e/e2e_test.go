@@ -896,9 +896,9 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, *metered.IssueAfterReset, (*grantListResp.JSON200)[0].Amount)
 		require.Equal(t, metered.IssueAfterResetPriority, (*grantListResp.JSON200)[0].Priority)
 		require.Equal(t, metered.Id, (*grantListResp.JSON200)[0].EntitlementId)
-		require.Equal(t, map[string]string{
-			"issueAfterReset": "true",
-		}, *(*grantListResp.JSON200)[0].Metadata)
+		require.Equal(t, api.Annotations{
+			"issueAfterReset": true,
+		}, *(*grantListResp.JSON200)[0].Annotations)
 	})
 	t.Run("Create a Entitlement With MeasureUsageFrom enum", func(t *testing.T) {
 		randSubject := ulid.Make().String()

@@ -16043,6 +16043,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/RecurringPeriod'
           description: The recurrence period of the grant.
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Grant annotations
+          example:
+            issueAfterReset: true
       description: The grant.
     EntitlementGrantCreateInput:
       type: object
