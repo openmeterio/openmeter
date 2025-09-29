@@ -74,13 +74,13 @@ jobs:
           fail_on_findings: "true"
           # Let's ignore any rules that are not relevant from the OpenMeter code point of view (later on we can remove these if needed)
           # Why:
-          # - generic.secrets.security.detected-generic-secret.detected-generic-secret: TODO
-          # - generic.secrets.security.detected-jwt-token.detected-jwt-token: TODO
+          # - generic.secrets.security.detected-generic-secret.detected-generic-secret: ticket: Kong/[OM-52]
+          # - generic.secrets.security.detected-jwt-token.detected-jwt-token: ticket: Kong/[OM-52]
           # - python.lang.security.audit.eval-detected.eval-detected: python API generated code, seems safe
           # - go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter: bad rule, we are using json data to be fed into the response writer
           #
           # Others:
-          # - infra hardening is not in scope for now
+          # - infra hardening is not in scope for now (ticket: Kong/[OM-53])
           additional_config: |
             --exclude-rule=generic.secrets.security.detected-generic-secret.detected-generic-secret \
             --exclude-rule=generic.secrets.security.detected-jwt-token.detected-jwt-token \
