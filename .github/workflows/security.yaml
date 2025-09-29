@@ -82,16 +82,16 @@ jobs:
           # Others:
           # - infra hardening is not in scope for now
           additional_config: |
-            --exclude-rule=generic.secrets.security.detected-generic-secret.detected-generic-secret
-            --exclude-rule=generic.secrets.security.detected-jwt-token.detected-jwt-token
-            --exclude-rule=yaml.docker-compose.security.no-new-privileges.no-new-privileges
-            --exclude-rule=yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
-            --exclude-rule=yaml.kubernetes.security.allow-privilege-escalation-no-securitycontext.allow-privilege-escalation-no-securitycontext
-            --exclude-rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root
-            --exclude-rule=dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
-            --exclude-rule=dockerfile.security.missing-user.missing-user
-            --exclude-rule=generic.secrets.security.detected-generic-api-key.detected-generic-api-key
-            --exclude-rule=python.lang.security.audit.eval-detected.eval-detected
+            --exclude-rule=generic.secrets.security.detected-generic-secret.detected-generic-secret \
+            --exclude-rule=generic.secrets.security.detected-jwt-token.detected-jwt-token \
+            --exclude-rule=yaml.docker-compose.security.no-new-privileges.no-new-privileges \
+            --exclude-rule=yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service \
+            --exclude-rule=yaml.kubernetes.security.allow-privilege-escalation-no-securitycontext.allow-privilege-escalation-no-securitycontext \
+            --exclude-rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root \
+            --exclude-rule=dockerfile.security.missing-user-entrypoint.missing-user-entrypoint \
+            --exclude-rule=dockerfile.security.missing-user.missing-user \
+            --exclude-rule=generic.secrets.security.detected-generic-api-key.detected-generic-api-key \
+            --exclude-rule=python.lang.security.audit.eval-detected.eval-detected \
             --exclude-rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter
 
 
