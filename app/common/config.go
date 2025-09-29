@@ -38,6 +38,8 @@ var Config = wire.NewSet(
 	// Notification
 	wire.FieldsOf(new(config.Configuration), "Notification"),
 	wire.FieldsOf(new(config.NotificationConfiguration), "Webhook"),
+	// Subscription
+	wire.FieldsOf(new(config.ProductCatalogConfiguration), "Subscription"),
 	// Portal
 	wire.FieldsOf(new(config.Configuration), "Portal"),
 	// ProductCatalog

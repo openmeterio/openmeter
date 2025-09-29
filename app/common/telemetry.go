@@ -272,7 +272,7 @@ func NewTelemetryServer(conf config.TelemetryConfig, handler TelemetryHandler) (
 	return server, func() { server.Close() }
 }
 
-type TelemetryMiddlewareHook = server.MiddlewareHook
+type TelemetryMiddlewareHook server.MiddlewareHook
 
 func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider trace.TracerProvider) TelemetryMiddlewareHook {
 	return func(m server.MiddlewareManager) {

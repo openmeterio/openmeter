@@ -34,6 +34,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
@@ -260,7 +261,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher, locker)
+	ffxService := ffx.NewContextService()
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -522,9 +524,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
-	routerHooks := common.NewRouterHooks(v6)
-	v7, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
+	telemetryMiddlewareHook := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	subscriptionConfiguration := productCatalogConfiguration.Subscription
+	namespaceDecoder := common.NewStaticNamespaceDecoder(namespaceConfiguration)
+	ffxConfigContextMiddlewareHook := common.NewFFXConfigContextMiddlewareHook(subscriptionConfiguration, namespaceDecoder, logger)
+	routerHooks := common.NewRouterHooks(telemetryMiddlewareHook, ffxConfigContextMiddlewareHook)
+	v6, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -536,7 +541,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v8, err := common.NewSubjectEntitlementValidatorHook(logger, entitlement, subjectService)
+	v7, err := common.NewSubjectEntitlementValidatorHook(logger, entitlement, subjectService)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -562,7 +567,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v9, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v8, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -591,6 +596,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		EventPublisher:                   eventbusPublisher,
 		EntitlementRegistry:              entitlement,
 		FeatureConnector:                 featureConnector,
+		FeatureFlags:                     ffxService,
 		IngestCollector:                  ingestCollector,
 		IngestService:                    ingestService,
 		KafkaProducer:                    producer,
@@ -610,11 +616,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RouterHooks:                      routerHooks,
 		Secret:                           secretserviceService,
 		SubjectService:                   subjectService,
-		SubjectCustomerHook:              v7,
-		SubjectEntitlementValidatorHook:  v8,
+		SubjectCustomerHook:              v6,
+		SubjectEntitlementValidatorHook:  v7,
 		Subscription:                     subscriptionServiceWithWorkflow,
 		StreamingConnector:               connector,
-		TelemetryServer:                  v9,
+		TelemetryServer:                  v8,
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,
@@ -649,6 +655,7 @@ type Application struct {
 	EventPublisher                   eventbus.Publisher
 	EntitlementRegistry              *registry.Entitlement
 	FeatureConnector                 feature.FeatureConnector
+	FeatureFlags                     ffx.Service
 	IngestCollector                  ingest.Collector
 	IngestService                    *ingest.Service
 	KafkaProducer                    *kafka2.Producer
