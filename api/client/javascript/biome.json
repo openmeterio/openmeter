@@ -22,7 +22,7 @@
     "formatter": {
       "arrowParentheses": "always",
       "attributePosition": "auto",
-      "lineWidth": 120,
+      "lineWidth": 80,
       "quoteStyle": "single",
       "semicolons": "asNeeded",
       "trailingCommas": "all"

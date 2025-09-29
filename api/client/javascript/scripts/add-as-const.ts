@@ -48,7 +48,9 @@ function addAsConstAssertions() {
 
       // Handle array literals
       if (initializer.getKind() === SyntaxKind.ArrayLiteralExpression) {
-        const arrayLiteral = initializer.asKindOrThrow(SyntaxKind.ArrayLiteralExpression)
+        const arrayLiteral = initializer.asKindOrThrow(
+          SyntaxKind.ArrayLiteralExpression,
+        )
 
         if (isZodDefault) {
           // For Zod defaults, convert to function that returns mutable array
@@ -68,7 +70,10 @@ function addAsConstAssertions() {
       }
 
       // Handle boolean literals
-      else if (initializer.getKind() === SyntaxKind.TrueKeyword || initializer.getKind() === SyntaxKind.FalseKeyword) {
+      else if (
+        initializer.getKind() === SyntaxKind.TrueKeyword ||
+        initializer.getKind() === SyntaxKind.FalseKeyword
+      ) {
         if (!hasAsConstAssertion(initializer)) {
           declaration.setInitializer(`${initializer.getText()} as const`)
           transformationCount++
@@ -109,7 +114,10 @@ function addAsConstAssertions() {
 function hasAsConstAssertion(node: Expression<ts.Expression>): boolean {
   const parent = node.getParent()
   if (parent?.getKind() === SyntaxKind.AsExpression) {
-    return parent.asKindOrThrow(SyntaxKind.AsExpression).getTypeNode()?.getText() === 'const'
+    return (
+      parent.asKindOrThrow(SyntaxKind.AsExpression).getTypeNode()?.getText() ===
+      'const'
+    )
   }
   return false
 }

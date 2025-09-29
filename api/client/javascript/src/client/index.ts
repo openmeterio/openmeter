@@ -1,4 +1,8 @@
-import createClient, { type Client, type ClientOptions, createQuerySerializer } from 'openapi-fetch'
+import createClient, {
+  type Client,
+  type ClientOptions,
+  createQuerySerializer,
+} from 'openapi-fetch'
 import { Addons } from './addons.js'
 import { Apps } from './apps.js'
 import { Billing } from './billing.js'
@@ -24,7 +28,10 @@ export * from './schemas.js'
 /**
  * OpenMeter Config
  */
-export type Config = Pick<ClientOptions, 'baseUrl' | 'headers' | 'fetch' | 'Request' | 'requestInitExt'> &
+export type Config = Pick<
+  ClientOptions,
+  'baseUrl' | 'headers' | 'fetch' | 'Request' | 'requestInitExt'
+> &
   (
     | {
         apiKey?: string

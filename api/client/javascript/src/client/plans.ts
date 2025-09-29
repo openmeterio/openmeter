@@ -1,6 +1,11 @@
 import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
-import type { operations, PlanCreate, PlanReplaceUpdate, paths } from './schemas.js'
+import type {
+  operations,
+  PlanCreate,
+  PlanReplaceUpdate,
+  paths,
+} from './schemas.js'
 import { transformResponse } from './utils.js'
 
 /**
@@ -58,7 +63,10 @@ export class Plans {
    * @param options - Optional request options
    * @returns A list of plans
    */
-  public async list(params?: operations['listPlans']['parameters']['query'], options?: RequestOptions) {
+  public async list(
+    params?: operations['listPlans']['parameters']['query'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/plans', {
       params: { query: params },
       ...options,
@@ -94,7 +102,10 @@ export class Plans {
    * @param options - Optional request options
    * @returns void or standard error response structure
    */
-  public async delete(planId: operations['deletePlan']['parameters']['path']['planId'], options?: RequestOptions) {
+  public async delete(
+    planId: operations['deletePlan']['parameters']['path']['planId'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.DELETE('/api/v1/plans/{planId}', {
       params: { path: { planId } },
       ...options,
@@ -109,7 +120,10 @@ export class Plans {
    * @param options - Optional request options
    * @returns The archived plan
    */
-  public async archive(planId: operations['archivePlan']['parameters']['path']['planId'], options?: RequestOptions) {
+  public async archive(
+    planId: operations['archivePlan']['parameters']['path']['planId'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.POST('/api/v1/plans/{planId}/archive', {
       params: { path: { planId } },
       ...options,
@@ -124,7 +138,10 @@ export class Plans {
    * @param options - Optional request options
    * @returns The published plan
    */
-  public async publish(planId: operations['publishPlan']['parameters']['path']['planId'], options?: RequestOptions) {
+  public async publish(
+    planId: operations['publishPlan']['parameters']['path']['planId'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.POST('/api/v1/plans/{planId}/publish', {
       params: { path: { planId } },
       ...options,
@@ -197,12 +214,15 @@ export class PlanAddons {
     planAddonId: operations['getPlanAddon']['parameters']['path']['planAddonId'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v1/plans/{planId}/addons/{planAddonId}', {
-      params: {
-        path: { planAddonId, planId },
+    const resp = await this.client.GET(
+      '/api/v1/plans/{planId}/addons/{planAddonId}',
+      {
+        params: {
+          path: { planAddonId, planId },
+        },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -221,11 +241,14 @@ export class PlanAddons {
     planAddon: operations['updatePlanAddon']['requestBody']['content']['application/json'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.PUT('/api/v1/plans/{planId}/addons/{planAddonId}', {
-      body: planAddon,
-      params: { path: { planAddonId, planId } },
-      ...options,
-    })
+    const resp = await this.client.PUT(
+      '/api/v1/plans/{planId}/addons/{planAddonId}',
+      {
+        body: planAddon,
+        params: { path: { planAddonId, planId } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -242,10 +265,13 @@ export class PlanAddons {
     planAddonId: operations['deletePlanAddon']['parameters']['path']['planAddonId'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.DELETE('/api/v1/plans/{planId}/addons/{planAddonId}', {
-      params: { path: { planAddonId, planId } },
-      ...options,
-    })
+    const resp = await this.client.DELETE(
+      '/api/v1/plans/{planId}/addons/{planAddonId}',
+      {
+        params: { path: { planAddonId, planId } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }

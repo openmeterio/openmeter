@@ -100,14 +100,17 @@ export class Customers {
     customerIdOrKey: operations['deleteCustomer']['parameters']['path']['customerIdOrKey'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.DELETE('/api/v1/customers/{customerIdOrKey}', {
-      params: {
-        path: {
-          customerIdOrKey,
+    const resp = await this.client.DELETE(
+      '/api/v1/customers/{customerIdOrKey}',
+      {
+        params: {
+          path: {
+            customerIdOrKey,
+          },
         },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -117,7 +120,10 @@ export class Customers {
    * @param signal - An optional abort signal
    * @returns The list of customers
    */
-  public async list(query?: operations['listCustomers']['parameters']['query'], options?: RequestOptions) {
+  public async list(
+    query?: operations['listCustomers']['parameters']['query'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/customers', {
       params: {
         query,
@@ -138,14 +144,17 @@ export class Customers {
     customerIdOrKey: operations['getCustomerAccess']['parameters']['path']['customerIdOrKey'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v1/customers/{customerIdOrKey}/access', {
-      params: {
-        path: {
-          customerIdOrKey,
+    const resp = await this.client.GET(
+      '/api/v1/customers/{customerIdOrKey}/access',
+      {
+        params: {
+          path: {
+            customerIdOrKey,
+          },
         },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -162,10 +171,13 @@ export class Customers {
     query?: operations['listCustomerSubscriptions']['parameters']['query'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v1/customers/{customerIdOrKey}/subscriptions', {
-      params: { path: { customerIdOrKey }, query },
-      ...options,
-    })
+    const resp = await this.client.GET(
+      '/api/v1/customers/{customerIdOrKey}/subscriptions',
+      {
+        params: { path: { customerIdOrKey }, query },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -190,15 +202,18 @@ export class CustomerApps {
     appData: CustomerAppData[],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.PUT('/api/v1/customers/{customerIdOrKey}/apps', {
-      body: appData,
-      params: {
-        path: {
-          customerIdOrKey,
+    const resp = await this.client.PUT(
+      '/api/v1/customers/{customerIdOrKey}/apps',
+      {
+        body: appData,
+        params: {
+          path: {
+            customerIdOrKey,
+          },
         },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -215,13 +230,16 @@ export class CustomerApps {
     query?: operations['listCustomerAppData']['parameters']['query'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v1/customers/{customerIdOrKey}/apps', {
-      params: {
-        path: { customerIdOrKey },
-        query,
+    const resp = await this.client.GET(
+      '/api/v1/customers/{customerIdOrKey}/apps',
+      {
+        params: {
+          path: { customerIdOrKey },
+          query,
+        },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -238,10 +256,13 @@ export class CustomerApps {
     appId: operations['deleteCustomerAppData']['parameters']['path']['appId'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.DELETE('/api/v1/customers/{customerIdOrKey}/apps/{appId}', {
-      params: { path: { appId, customerIdOrKey } },
-      ...options,
-    })
+    const resp = await this.client.DELETE(
+      '/api/v1/customers/{customerIdOrKey}/apps/{appId}',
+      {
+        params: { path: { appId, customerIdOrKey } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -266,15 +287,18 @@ export class CustomerStripe {
     stripeAppData: StripeCustomerAppDataBase,
     options?: RequestOptions,
   ) {
-    const resp = await this.client.PUT('/api/v1/customers/{customerIdOrKey}/stripe', {
-      body: stripeAppData,
-      params: {
-        path: {
-          customerIdOrKey,
+    const resp = await this.client.PUT(
+      '/api/v1/customers/{customerIdOrKey}/stripe',
+      {
+        body: stripeAppData,
+        params: {
+          path: {
+            customerIdOrKey,
+          },
         },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -290,12 +314,15 @@ export class CustomerStripe {
     customerIdOrKey: operations['getCustomerStripeAppData']['parameters']['path']['customerIdOrKey'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v1/customers/{customerIdOrKey}/apps', {
-      params: {
-        path: { customerIdOrKey },
+    const resp = await this.client.GET(
+      '/api/v1/customers/{customerIdOrKey}/apps',
+      {
+        params: {
+          path: { customerIdOrKey },
+        },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -312,15 +339,18 @@ export class CustomerStripe {
     params: CreateStripeCustomerPortalSessionParams,
     options?: RequestOptions,
   ) {
-    const resp = await this.client.POST('/api/v1/customers/{customerIdOrKey}/stripe/portal', {
-      body: params,
-      params: {
-        path: {
-          customerIdOrKey,
+    const resp = await this.client.POST(
+      '/api/v1/customers/{customerIdOrKey}/stripe/portal',
+      {
+        body: params,
+        params: {
+          path: {
+            customerIdOrKey,
+          },
         },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -344,10 +374,13 @@ export class CustomerEntitlements {
     featureKey: operations['getCustomerEntitlementValue']['parameters']['path']['featureKey'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/value', {
-      params: { path: { customerIdOrKey, featureKey } },
-      ...options,
-    })
+    const resp = await this.client.GET(
+      '/api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/value',
+      {
+        params: { path: { customerIdOrKey, featureKey } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -371,13 +404,16 @@ export class CustomerEntitlementsV2 {
       query?: operations['listCustomerEntitlementsV2']['parameters']['query']
     },
   ) {
-    const resp = await this.client.GET('/api/v2/customers/{customerIdOrKey}/entitlements', {
-      params: {
-        path: { customerIdOrKey },
-        query: options?.query,
+    const resp = await this.client.GET(
+      '/api/v2/customers/{customerIdOrKey}/entitlements',
+      {
+        params: {
+          path: { customerIdOrKey },
+          query: options?.query,
+        },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -394,13 +430,16 @@ export class CustomerEntitlementsV2 {
     entitlement: operations['createCustomerEntitlementV2']['requestBody']['content']['application/json'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.POST('/api/v2/customers/{customerIdOrKey}/entitlements', {
-      body: entitlement,
-      params: {
-        path: { customerIdOrKey },
+    const resp = await this.client.POST(
+      '/api/v2/customers/{customerIdOrKey}/entitlements',
+      {
+        body: entitlement,
+        params: {
+          path: { customerIdOrKey },
+        },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -417,12 +456,15 @@ export class CustomerEntitlementsV2 {
     entitlementIdOrFeatureKey: operations['getCustomerEntitlementV2']['parameters']['path']['entitlementIdOrFeatureKey'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}', {
-      params: {
-        path: { customerIdOrKey, entitlementIdOrFeatureKey },
+    const resp = await this.client.GET(
+      '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}',
+      {
+        params: {
+          path: { customerIdOrKey, entitlementIdOrFeatureKey },
+        },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -577,7 +619,10 @@ export class CustomerEntitlementsV2 {
     entitlementIdOrFeatureKey: operations['getCustomerEntitlementHistoryV2']['parameters']['path']['entitlementIdOrFeatureKey'],
     windowSize: operations['getCustomerEntitlementHistoryV2']['parameters']['query']['windowSize'],
     options?: RequestOptions & {
-      query?: Omit<operations['getCustomerEntitlementHistoryV2']['parameters']['query'], 'windowSize'>
+      query?: Omit<
+        operations['getCustomerEntitlementHistoryV2']['parameters']['query'],
+        'windowSize'
+      >
     },
   ) {
     const resp = await this.client.GET(

@@ -2522,7 +2522,9 @@ export interface components {
        * Validation errors
        * @description List of validation errors.
        */
-      readonly validationErrors: components['schemas']['ValidationError'][] | null
+      readonly validationErrors:
+        | components['schemas']['ValidationError'][]
+        | null
     }
     /** @description Resource create operation model. */
     AddonCreate: {
@@ -2696,7 +2698,12 @@ export interface components {
      * @description App capability type.
      * @enum {string}
      */
-    AppCapabilityType: 'reportUsage' | 'reportEvents' | 'calculateTax' | 'invoiceCustomers' | 'collectPayments'
+    AppCapabilityType:
+      | 'reportUsage'
+      | 'reportEvents'
+      | 'calculateTax'
+      | 'invoiceCustomers'
+      | 'collectPayments'
     /** @description Paginated response */
     AppPaginatedResponse: {
       /**
@@ -3364,7 +3371,9 @@ export interface components {
      * @description Create Stripe checkout session consent collection agreement position.
      * @enum {string}
      */
-    CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition: 'auto' | 'hidden'
+    CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition:
+      | 'auto'
+      | 'hidden'
     /**
      * @description Create Stripe checkout session consent collection promotions.
      * @enum {string}
@@ -3374,7 +3383,9 @@ export interface components {
      * @description Create Stripe checkout session consent collection terms of service.
      * @enum {string}
      */
-    CreateStripeCheckoutSessionConsentCollectionTermsOfService: 'none' | 'required'
+    CreateStripeCheckoutSessionConsentCollectionTermsOfService:
+      | 'none'
+      | 'required'
     /** @description Controls what fields on Customer can be updated by the Checkout Session. */
     CreateStripeCheckoutSessionCustomerUpdate: {
       /** @description Describes whether Checkout saves the billing address onto customer.address.
@@ -3398,7 +3409,10 @@ export interface components {
      * @description Create Stripe checkout session redirect on completion.
      * @enum {string}
      */
-    CreateStripeCheckoutSessionRedirectOnCompletion: 'always' | 'if_required' | 'never'
+    CreateStripeCheckoutSessionRedirectOnCompletion:
+      | 'always'
+      | 'if_required'
+      | 'never'
     /**
      * @description Create Stripe checkout session request.
      * @example {
@@ -6014,7 +6028,9 @@ export interface components {
     }
     /** @description The body of the events request.
      *     Either a single event or a batch of events. */
-    IngestEventsBody: components['schemas']['Event'] | components['schemas']['Event'][]
+    IngestEventsBody:
+      | components['schemas']['Event']
+      | components['schemas']['Event'][]
     /**
      * @description An ingested event with optional validation error.
      * @example {
@@ -6764,7 +6780,13 @@ export interface components {
      * @description InvoiceOrderBy specifies the ordering options for invoice listing.
      * @enum {string}
      */
-    InvoiceOrderBy: 'customer.name' | 'issuedAt' | 'status' | 'createdAt' | 'updatedAt' | 'periodStart'
+    InvoiceOrderBy:
+      | 'customer.name'
+      | 'issuedAt'
+      | 'status'
+      | 'createdAt'
+      | 'updatedAt'
+      | 'periodStart'
     /** @description Paginated response */
     InvoicePaginatedResponse: {
       /**
@@ -7141,7 +7163,9 @@ export interface components {
       | components['schemas']['Entitlement'][]
       | components['schemas']['EntitlementPaginatedResponse']
     /** @description List features result */
-    ListFeaturesResult: components['schemas']['Feature'][] | components['schemas']['FeaturePaginatedResponse']
+    ListFeaturesResult:
+      | components['schemas']['Feature'][]
+      | components['schemas']['FeaturePaginatedResponse']
     /** @description Marketplace install request payload. */
     MarketplaceInstallRequestPayload: {
       /** @description Name of the application to install.
@@ -7231,7 +7255,9 @@ export interface components {
       items: components['schemas']['MarketplaceListing'][]
     }
     /** @description Measure usage from */
-    MeasureUsageFrom: components['schemas']['MeasureUsageFromPreset'] | components['schemas']['MeasureUsageFromTime']
+    MeasureUsageFrom:
+      | components['schemas']['MeasureUsageFromPreset']
+      | components['schemas']['MeasureUsageFromTime']
     /**
      * @description Start of measurement options
      * @enum {string}
@@ -7364,7 +7390,14 @@ export interface components {
      * @description The aggregation type to use for the meter.
      * @enum {string}
      */
-    MeterAggregation: 'SUM' | 'COUNT' | 'UNIQUE_COUNT' | 'AVG' | 'MIN' | 'MAX' | 'LATEST'
+    MeterAggregation:
+      | 'SUM'
+      | 'COUNT'
+      | 'UNIQUE_COUNT'
+      | 'AVG'
+      | 'MIN'
+      | 'MAX'
+      | 'LATEST'
     /**
      * @description A meter create model.
      * @example {
@@ -7922,7 +7955,11 @@ export interface components {
      * @description The delivery state of the notification event to the channel.
      * @enum {string}
      */
-    NotificationEventDeliveryStatusState: 'SUCCESS' | 'FAILED' | 'SENDING' | 'PENDING'
+    NotificationEventDeliveryStatusState:
+      | 'SUCCESS'
+      | 'FAILED'
+      | 'SENDING'
+      | 'PENDING'
     /** @description Base data for any payload with entitlement entitlement value. */
     NotificationEventEntitlementValuePayloadBase: {
       /** Entitlement */
@@ -8554,7 +8591,9 @@ export interface components {
       readonly notes?: string
     }
     /** @description PaymentTerms defines the terms for payment. */
-    PaymentTerms: components['schemas']['PaymentTermInstant'] | components['schemas']['PaymentTermDueDate']
+    PaymentTerms:
+      | components['schemas']['PaymentTermInstant']
+      | components['schemas']['PaymentTermDueDate']
     /**
      * Format: double
      * @description Numeric representation of a percentage
@@ -8693,7 +8732,9 @@ export interface components {
        * Validation errors
        * @description List of validation errors.
        */
-      readonly validationErrors: components['schemas']['ValidationError'][] | null
+      readonly validationErrors:
+        | components['schemas']['ValidationError'][]
+        | null
     }
     /** @description The PlanAddon describes the association between a plan and add-on. */
     PlanAddon: {
@@ -8748,7 +8789,9 @@ export interface components {
        * Validation errors
        * @description List of validation errors.
        */
-      readonly validationErrors: components['schemas']['ValidationError'][] | null
+      readonly validationErrors:
+        | components['schemas']['ValidationError'][]
+        | null
     }
     /** @description A plan add-on assignment create request. */
     PlanAddonCreate: {
@@ -9176,7 +9219,9 @@ export interface components {
       updatedAt: Date
     }
     /** @description A rate card defines the pricing and entitlement of a feature or service. */
-    RateCard: components['schemas']['RateCardFlatFee'] | components['schemas']['RateCardUsageBased']
+    RateCard:
+      | components['schemas']['RateCardFlatFee']
+      | components['schemas']['RateCardUsageBased']
     /** @description Entitlement template of a boolean entitlement. */
     RateCardBooleanEntitlement: {
       /** @description Additional metadata for the feature. */
@@ -9434,7 +9479,9 @@ export interface components {
       anchor?: Date
     }
     /** @description Period duration for the recurrence */
-    RecurringPeriodInterval: string | components['schemas']['RecurringPeriodIntervalEnum']
+    RecurringPeriodInterval:
+      | string
+      | components['schemas']['RecurringPeriodIntervalEnum']
     /**
      * @description The unit of time for the interval.
      *     One of: `day`, `week`, `month`, or `year`.
@@ -10986,7 +11033,9 @@ export interface components {
       /** @description Per line item overrides for the action.
        *
        *     If not specified, the `action` will be applied to all line items. */
-      overrides?: components['schemas']['VoidInvoiceActionLineOverride'][] | null
+      overrides?:
+        | components['schemas']['VoidInvoiceActionLineOverride'][]
+        | null
     }
     /** @description VoidInvoiceLineOverride describes how to handle a specific line item in the invoice when voiding. */
     VoidInvoiceActionLineOverride: {
@@ -11289,7 +11338,8 @@ export type Addon = components['schemas']['Addon']
 export type AddonCreate = components['schemas']['AddonCreate']
 export type AddonInstanceType = components['schemas']['AddonInstanceType']
 export type AddonOrderBy = components['schemas']['AddonOrderBy']
-export type AddonPaginatedResponse = components['schemas']['AddonPaginatedResponse']
+export type AddonPaginatedResponse =
+  components['schemas']['AddonPaginatedResponse']
 export type AddonReplaceUpdate = components['schemas']['AddonReplaceUpdate']
 export type AddonStatus = components['schemas']['AddonStatus']
 export type Address = components['schemas']['Address']
@@ -11303,53 +11353,81 @@ export type AppReference = components['schemas']['AppReference']
 export type AppReplaceUpdate = components['schemas']['AppReplaceUpdate']
 export type AppStatus = components['schemas']['AppStatus']
 export type AppType = components['schemas']['AppType']
-export type BadRequestProblemResponse = components['schemas']['BadRequestProblemResponse']
+export type BadRequestProblemResponse =
+  components['schemas']['BadRequestProblemResponse']
 export type BalanceHistoryWindow = components['schemas']['BalanceHistoryWindow']
-export type BillingCustomerProfile = components['schemas']['BillingCustomerProfile']
-export type BillingDiscountPercentage = components['schemas']['BillingDiscountPercentage']
-export type BillingDiscountReason = components['schemas']['BillingDiscountReason']
+export type BillingCustomerProfile =
+  components['schemas']['BillingCustomerProfile']
+export type BillingDiscountPercentage =
+  components['schemas']['BillingDiscountPercentage']
+export type BillingDiscountReason =
+  components['schemas']['BillingDiscountReason']
 export type BillingDiscountUsage = components['schemas']['BillingDiscountUsage']
 export type BillingDiscounts = components['schemas']['BillingDiscounts']
-export type BillingInvoiceCustomerExtendedDetails = components['schemas']['BillingInvoiceCustomerExtendedDetails']
+export type BillingInvoiceCustomerExtendedDetails =
+  components['schemas']['BillingInvoiceCustomerExtendedDetails']
 export type BillingParty = components['schemas']['BillingParty']
-export type BillingPartyReplaceUpdate = components['schemas']['BillingPartyReplaceUpdate']
-export type BillingPartyTaxIdentity = components['schemas']['BillingPartyTaxIdentity']
+export type BillingPartyReplaceUpdate =
+  components['schemas']['BillingPartyReplaceUpdate']
+export type BillingPartyTaxIdentity =
+  components['schemas']['BillingPartyTaxIdentity']
 export type BillingProfile = components['schemas']['BillingProfile']
-export type BillingProfileAppReferences = components['schemas']['BillingProfileAppReferences']
+export type BillingProfileAppReferences =
+  components['schemas']['BillingProfileAppReferences']
 export type BillingProfileApps = components['schemas']['BillingProfileApps']
-export type BillingProfileAppsCreate = components['schemas']['BillingProfileAppsCreate']
-export type BillingProfileAppsOrReference = components['schemas']['BillingProfileAppsOrReference']
+export type BillingProfileAppsCreate =
+  components['schemas']['BillingProfileAppsCreate']
+export type BillingProfileAppsOrReference =
+  components['schemas']['BillingProfileAppsOrReference']
 export type BillingProfileCreate = components['schemas']['BillingProfileCreate']
-export type BillingProfileCustomerOverride = components['schemas']['BillingProfileCustomerOverride']
-export type BillingProfileCustomerOverrideCreate = components['schemas']['BillingProfileCustomerOverrideCreate']
-export type BillingProfileCustomerOverrideExpand = components['schemas']['BillingProfileCustomerOverrideExpand']
-export type BillingProfileCustomerOverrideOrderBy = components['schemas']['BillingProfileCustomerOverrideOrderBy']
+export type BillingProfileCustomerOverride =
+  components['schemas']['BillingProfileCustomerOverride']
+export type BillingProfileCustomerOverrideCreate =
+  components['schemas']['BillingProfileCustomerOverrideCreate']
+export type BillingProfileCustomerOverrideExpand =
+  components['schemas']['BillingProfileCustomerOverrideExpand']
+export type BillingProfileCustomerOverrideOrderBy =
+  components['schemas']['BillingProfileCustomerOverrideOrderBy']
 export type BillingProfileCustomerOverrideWithDetails =
   components['schemas']['BillingProfileCustomerOverrideWithDetails']
 export type BillingProfileCustomerOverrideWithDetailsPaginatedResponse =
   components['schemas']['BillingProfileCustomerOverrideWithDetailsPaginatedResponse']
 export type BillingProfileExpand = components['schemas']['BillingProfileExpand']
-export type BillingProfileOrderBy = components['schemas']['BillingProfileOrderBy']
-export type BillingProfilePaginatedResponse = components['schemas']['BillingProfilePaginatedResponse']
-export type BillingProfileReplaceUpdateWithWorkflow = components['schemas']['BillingProfileReplaceUpdateWithWorkflow']
-export type BillingTaxIdentificationCode = components['schemas']['BillingTaxIdentificationCode']
+export type BillingProfileOrderBy =
+  components['schemas']['BillingProfileOrderBy']
+export type BillingProfilePaginatedResponse =
+  components['schemas']['BillingProfilePaginatedResponse']
+export type BillingProfileReplaceUpdateWithWorkflow =
+  components['schemas']['BillingProfileReplaceUpdateWithWorkflow']
+export type BillingTaxIdentificationCode =
+  components['schemas']['BillingTaxIdentificationCode']
 export type BillingWorkflow = components['schemas']['BillingWorkflow']
-export type BillingWorkflowCollectionAlignment = components['schemas']['BillingWorkflowCollectionAlignment']
+export type BillingWorkflowCollectionAlignment =
+  components['schemas']['BillingWorkflowCollectionAlignment']
 export type BillingWorkflowCollectionAlignmentSubscription =
   components['schemas']['BillingWorkflowCollectionAlignmentSubscription']
-export type BillingWorkflowCollectionSettings = components['schemas']['BillingWorkflowCollectionSettings']
-export type BillingWorkflowCreate = components['schemas']['BillingWorkflowCreate']
-export type BillingWorkflowInvoicingSettings = components['schemas']['BillingWorkflowInvoicingSettings']
-export type BillingWorkflowPaymentSettings = components['schemas']['BillingWorkflowPaymentSettings']
-export type BillingWorkflowTaxSettings = components['schemas']['BillingWorkflowTaxSettings']
+export type BillingWorkflowCollectionSettings =
+  components['schemas']['BillingWorkflowCollectionSettings']
+export type BillingWorkflowCreate =
+  components['schemas']['BillingWorkflowCreate']
+export type BillingWorkflowInvoicingSettings =
+  components['schemas']['BillingWorkflowInvoicingSettings']
+export type BillingWorkflowPaymentSettings =
+  components['schemas']['BillingWorkflowPaymentSettings']
+export type BillingWorkflowTaxSettings =
+  components['schemas']['BillingWorkflowTaxSettings']
 export type CheckoutSessionCustomTextAfterSubmitParams =
   components['schemas']['CheckoutSessionCustomTextAfterSubmitParams']
-export type CheckoutSessionUiMode = components['schemas']['CheckoutSessionUIMode']
-export type ClientAppStartResponse = components['schemas']['ClientAppStartResponse']
+export type CheckoutSessionUiMode =
+  components['schemas']['CheckoutSessionUIMode']
+export type ClientAppStartResponse =
+  components['schemas']['ClientAppStartResponse']
 export type CollectionMethod = components['schemas']['CollectionMethod']
-export type ConflictProblemResponse = components['schemas']['ConflictProblemResponse']
+export type ConflictProblemResponse =
+  components['schemas']['ConflictProblemResponse']
 export type CountryCode = components['schemas']['CountryCode']
-export type CreateCheckoutSessionTaxIdCollection = components['schemas']['CreateCheckoutSessionTaxIdCollection']
+export type CreateCheckoutSessionTaxIdCollection =
+  components['schemas']['CreateCheckoutSessionTaxIdCollection']
 export type CreateCheckoutSessionTaxIdCollectionRequired =
   components['schemas']['CreateCheckoutSessionTaxIdCollectionRequired']
 export type CreateStripeCheckoutSessionBillingAddressCollection =
@@ -11370,80 +11448,121 @@ export type CreateStripeCheckoutSessionCustomerUpdateBehavior =
   components['schemas']['CreateStripeCheckoutSessionCustomerUpdateBehavior']
 export type CreateStripeCheckoutSessionRedirectOnCompletion =
   components['schemas']['CreateStripeCheckoutSessionRedirectOnCompletion']
-export type CreateStripeCheckoutSessionRequest = components['schemas']['CreateStripeCheckoutSessionRequest']
+export type CreateStripeCheckoutSessionRequest =
+  components['schemas']['CreateStripeCheckoutSessionRequest']
 export type CreateStripeCheckoutSessionRequestOptions =
   components['schemas']['CreateStripeCheckoutSessionRequestOptions']
-export type CreateStripeCheckoutSessionResult = components['schemas']['CreateStripeCheckoutSessionResult']
-export type CreateStripeCustomerPortalSessionParams = components['schemas']['CreateStripeCustomerPortalSessionParams']
-export type CreditNoteOriginalInvoiceRef = components['schemas']['CreditNoteOriginalInvoiceRef']
+export type CreateStripeCheckoutSessionResult =
+  components['schemas']['CreateStripeCheckoutSessionResult']
+export type CreateStripeCustomerPortalSessionParams =
+  components['schemas']['CreateStripeCustomerPortalSessionParams']
+export type CreditNoteOriginalInvoiceRef =
+  components['schemas']['CreditNoteOriginalInvoiceRef']
 export type Currency = components['schemas']['Currency']
 export type CurrencyCode = components['schemas']['CurrencyCode']
 export type CustomInvoicingApp = components['schemas']['CustomInvoicingApp']
-export type CustomInvoicingAppReplaceUpdate = components['schemas']['CustomInvoicingAppReplaceUpdate']
-export type CustomInvoicingCustomerAppData = components['schemas']['CustomInvoicingCustomerAppData']
-export type CustomInvoicingDraftSynchronizedRequest = components['schemas']['CustomInvoicingDraftSynchronizedRequest']
-export type CustomInvoicingFinalizedInvoicingRequest = components['schemas']['CustomInvoicingFinalizedInvoicingRequest']
-export type CustomInvoicingFinalizedPaymentRequest = components['schemas']['CustomInvoicingFinalizedPaymentRequest']
-export type CustomInvoicingFinalizedRequest = components['schemas']['CustomInvoicingFinalizedRequest']
+export type CustomInvoicingAppReplaceUpdate =
+  components['schemas']['CustomInvoicingAppReplaceUpdate']
+export type CustomInvoicingCustomerAppData =
+  components['schemas']['CustomInvoicingCustomerAppData']
+export type CustomInvoicingDraftSynchronizedRequest =
+  components['schemas']['CustomInvoicingDraftSynchronizedRequest']
+export type CustomInvoicingFinalizedInvoicingRequest =
+  components['schemas']['CustomInvoicingFinalizedInvoicingRequest']
+export type CustomInvoicingFinalizedPaymentRequest =
+  components['schemas']['CustomInvoicingFinalizedPaymentRequest']
+export type CustomInvoicingFinalizedRequest =
+  components['schemas']['CustomInvoicingFinalizedRequest']
 export type CustomInvoicingLineDiscountExternalIdMapping =
   components['schemas']['CustomInvoicingLineDiscountExternalIdMapping']
-export type CustomInvoicingLineExternalIdMapping = components['schemas']['CustomInvoicingLineExternalIdMapping']
-export type CustomInvoicingPaymentTrigger = components['schemas']['CustomInvoicingPaymentTrigger']
-export type CustomInvoicingSyncResult = components['schemas']['CustomInvoicingSyncResult']
-export type CustomInvoicingTaxConfig = components['schemas']['CustomInvoicingTaxConfig']
+export type CustomInvoicingLineExternalIdMapping =
+  components['schemas']['CustomInvoicingLineExternalIdMapping']
+export type CustomInvoicingPaymentTrigger =
+  components['schemas']['CustomInvoicingPaymentTrigger']
+export type CustomInvoicingSyncResult =
+  components['schemas']['CustomInvoicingSyncResult']
+export type CustomInvoicingTaxConfig =
+  components['schemas']['CustomInvoicingTaxConfig']
 export type CustomInvoicingUpdatePaymentStatusRequest =
   components['schemas']['CustomInvoicingUpdatePaymentStatusRequest']
 export type CustomPlanInput = components['schemas']['CustomPlanInput']
-export type CustomSubscriptionChange = components['schemas']['CustomSubscriptionChange']
-export type CustomSubscriptionCreate = components['schemas']['CustomSubscriptionCreate']
+export type CustomSubscriptionChange =
+  components['schemas']['CustomSubscriptionChange']
+export type CustomSubscriptionCreate =
+  components['schemas']['CustomSubscriptionCreate']
 export type Customer = components['schemas']['Customer']
 export type CustomerAccess = components['schemas']['CustomerAccess']
 export type CustomerAppData = components['schemas']['CustomerAppData']
-export type CustomerAppDataCreateOrUpdateItem = components['schemas']['CustomerAppDataCreateOrUpdateItem']
-export type CustomerAppDataPaginatedResponse = components['schemas']['CustomerAppDataPaginatedResponse']
+export type CustomerAppDataCreateOrUpdateItem =
+  components['schemas']['CustomerAppDataCreateOrUpdateItem']
+export type CustomerAppDataPaginatedResponse =
+  components['schemas']['CustomerAppDataPaginatedResponse']
 export type CustomerCreate = components['schemas']['CustomerCreate']
 export type CustomerExpand = components['schemas']['CustomerExpand']
 export type CustomerId = components['schemas']['CustomerId']
 export type CustomerKey = components['schemas']['CustomerKey']
 export type CustomerOrderBy = components['schemas']['CustomerOrderBy']
-export type CustomerPaginatedResponse = components['schemas']['CustomerPaginatedResponse']
-export type CustomerReplaceUpdate = components['schemas']['CustomerReplaceUpdate']
-export type CustomerUsageAttribution = components['schemas']['CustomerUsageAttribution']
+export type CustomerPaginatedResponse =
+  components['schemas']['CustomerPaginatedResponse']
+export type CustomerReplaceUpdate =
+  components['schemas']['CustomerReplaceUpdate']
+export type CustomerUsageAttribution =
+  components['schemas']['CustomerUsageAttribution']
 export type DiscountPercentage = components['schemas']['DiscountPercentage']
-export type DiscountReasonMaximumSpend = components['schemas']['DiscountReasonMaximumSpend']
-export type DiscountReasonRatecardPercentage = components['schemas']['DiscountReasonRatecardPercentage']
-export type DiscountReasonRatecardUsage = components['schemas']['DiscountReasonRatecardUsage']
+export type DiscountReasonMaximumSpend =
+  components['schemas']['DiscountReasonMaximumSpend']
+export type DiscountReasonRatecardPercentage =
+  components['schemas']['DiscountReasonRatecardPercentage']
+export type DiscountReasonRatecardUsage =
+  components['schemas']['DiscountReasonRatecardUsage']
 export type DiscountUsage = components['schemas']['DiscountUsage']
 export type Discounts = components['schemas']['Discounts']
-export type DynamicPriceWithCommitments = components['schemas']['DynamicPriceWithCommitments']
-export type EditSubscriptionAddItem = components['schemas']['EditSubscriptionAddItem']
-export type EditSubscriptionAddPhase = components['schemas']['EditSubscriptionAddPhase']
-export type EditSubscriptionRemoveItem = components['schemas']['EditSubscriptionRemoveItem']
-export type EditSubscriptionRemovePhase = components['schemas']['EditSubscriptionRemovePhase']
-export type EditSubscriptionStretchPhase = components['schemas']['EditSubscriptionStretchPhase']
-export type EditSubscriptionUnscheduleEdit = components['schemas']['EditSubscriptionUnscheduleEdit']
+export type DynamicPriceWithCommitments =
+  components['schemas']['DynamicPriceWithCommitments']
+export type EditSubscriptionAddItem =
+  components['schemas']['EditSubscriptionAddItem']
+export type EditSubscriptionAddPhase =
+  components['schemas']['EditSubscriptionAddPhase']
+export type EditSubscriptionRemoveItem =
+  components['schemas']['EditSubscriptionRemoveItem']
+export type EditSubscriptionRemovePhase =
+  components['schemas']['EditSubscriptionRemovePhase']
+export type EditSubscriptionStretchPhase =
+  components['schemas']['EditSubscriptionStretchPhase']
+export type EditSubscriptionUnscheduleEdit =
+  components['schemas']['EditSubscriptionUnscheduleEdit']
 export type Entitlement = components['schemas']['Entitlement']
 export type EntitlementBoolean = components['schemas']['EntitlementBoolean']
-export type EntitlementBooleanCreateInputs = components['schemas']['EntitlementBooleanCreateInputs']
+export type EntitlementBooleanCreateInputs =
+  components['schemas']['EntitlementBooleanCreateInputs']
 export type EntitlementBooleanV2 = components['schemas']['EntitlementBooleanV2']
-export type EntitlementCreateInputs = components['schemas']['EntitlementCreateInputs']
+export type EntitlementCreateInputs =
+  components['schemas']['EntitlementCreateInputs']
 export type EntitlementGrant = components['schemas']['EntitlementGrant']
-export type EntitlementGrantCreateInput = components['schemas']['EntitlementGrantCreateInput']
-export type EntitlementGrantCreateInputV2 = components['schemas']['EntitlementGrantCreateInputV2']
+export type EntitlementGrantCreateInput =
+  components['schemas']['EntitlementGrantCreateInput']
+export type EntitlementGrantCreateInputV2 =
+  components['schemas']['EntitlementGrantCreateInputV2']
 export type EntitlementGrantV2 = components['schemas']['EntitlementGrantV2']
 export type EntitlementMetered = components['schemas']['EntitlementMetered']
-export type EntitlementMeteredCreateInputs = components['schemas']['EntitlementMeteredCreateInputs']
+export type EntitlementMeteredCreateInputs =
+  components['schemas']['EntitlementMeteredCreateInputs']
 export type EntitlementMeteredV2 = components['schemas']['EntitlementMeteredV2']
-export type EntitlementMeteredV2CreateInputs = components['schemas']['EntitlementMeteredV2CreateInputs']
+export type EntitlementMeteredV2CreateInputs =
+  components['schemas']['EntitlementMeteredV2CreateInputs']
 export type EntitlementOrderBy = components['schemas']['EntitlementOrderBy']
-export type EntitlementPaginatedResponse = components['schemas']['EntitlementPaginatedResponse']
+export type EntitlementPaginatedResponse =
+  components['schemas']['EntitlementPaginatedResponse']
 export type EntitlementStatic = components['schemas']['EntitlementStatic']
-export type EntitlementStaticCreateInputs = components['schemas']['EntitlementStaticCreateInputs']
+export type EntitlementStaticCreateInputs =
+  components['schemas']['EntitlementStaticCreateInputs']
 export type EntitlementStaticV2 = components['schemas']['EntitlementStaticV2']
 export type EntitlementType = components['schemas']['EntitlementType']
 export type EntitlementV2 = components['schemas']['EntitlementV2']
-export type EntitlementV2CreateInputs = components['schemas']['EntitlementV2CreateInputs']
-export type EntitlementV2PaginatedResponse = components['schemas']['EntitlementV2PaginatedResponse']
+export type EntitlementV2CreateInputs =
+  components['schemas']['EntitlementV2CreateInputs']
+export type EntitlementV2PaginatedResponse =
+  components['schemas']['EntitlementV2PaginatedResponse']
 export type EntitlementValue = components['schemas']['EntitlementValue']
 export type Event = components['schemas']['Event']
 export type ExpirationDuration = components['schemas']['ExpirationDuration']
@@ -11452,80 +11571,120 @@ export type Feature = components['schemas']['Feature']
 export type FeatureCreateInputs = components['schemas']['FeatureCreateInputs']
 export type FeatureMeta = components['schemas']['FeatureMeta']
 export type FeatureOrderBy = components['schemas']['FeatureOrderBy']
-export type FeaturePaginatedResponse = components['schemas']['FeaturePaginatedResponse']
+export type FeaturePaginatedResponse =
+  components['schemas']['FeaturePaginatedResponse']
 export type FilterIdExact = components['schemas']['FilterIDExact']
 export type FilterString = components['schemas']['FilterString']
 export type FilterTime = components['schemas']['FilterTime']
 export type FlatPrice = components['schemas']['FlatPrice']
-export type FlatPriceWithPaymentTerm = components['schemas']['FlatPriceWithPaymentTerm']
-export type ForbiddenProblemResponse = components['schemas']['ForbiddenProblemResponse']
-export type GatewayTimeoutProblemResponse = components['schemas']['GatewayTimeoutProblemResponse']
-export type GrantBurnDownHistorySegment = components['schemas']['GrantBurnDownHistorySegment']
+export type FlatPriceWithPaymentTerm =
+  components['schemas']['FlatPriceWithPaymentTerm']
+export type ForbiddenProblemResponse =
+  components['schemas']['ForbiddenProblemResponse']
+export type GatewayTimeoutProblemResponse =
+  components['schemas']['GatewayTimeoutProblemResponse']
+export type GrantBurnDownHistorySegment =
+  components['schemas']['GrantBurnDownHistorySegment']
 export type GrantOrderBy = components['schemas']['GrantOrderBy']
-export type GrantPaginatedResponse = components['schemas']['GrantPaginatedResponse']
+export type GrantPaginatedResponse =
+  components['schemas']['GrantPaginatedResponse']
 export type GrantUsageRecord = components['schemas']['GrantUsageRecord']
-export type GrantV2PaginatedResponse = components['schemas']['GrantV2PaginatedResponse']
+export type GrantV2PaginatedResponse =
+  components['schemas']['GrantV2PaginatedResponse']
 export type IdResource = components['schemas']['IDResource']
 export type IngestEventsBody = components['schemas']['IngestEventsBody']
 export type IngestedEvent = components['schemas']['IngestedEvent']
-export type IngestedEventCursorPaginatedResponse = components['schemas']['IngestedEventCursorPaginatedResponse']
+export type IngestedEventCursorPaginatedResponse =
+  components['schemas']['IngestedEventCursorPaginatedResponse']
 export type InstallMethod = components['schemas']['InstallMethod']
-export type InternalServerErrorProblemResponse = components['schemas']['InternalServerErrorProblemResponse']
+export type InternalServerErrorProblemResponse =
+  components['schemas']['InternalServerErrorProblemResponse']
 export type Invoice = components['schemas']['Invoice']
-export type InvoiceAppExternalIds = components['schemas']['InvoiceAppExternalIds']
-export type InvoiceAvailableActionDetails = components['schemas']['InvoiceAvailableActionDetails']
-export type InvoiceAvailableActionInvoiceDetails = components['schemas']['InvoiceAvailableActionInvoiceDetails']
-export type InvoiceAvailableActions = components['schemas']['InvoiceAvailableActions']
+export type InvoiceAppExternalIds =
+  components['schemas']['InvoiceAppExternalIds']
+export type InvoiceAvailableActionDetails =
+  components['schemas']['InvoiceAvailableActionDetails']
+export type InvoiceAvailableActionInvoiceDetails =
+  components['schemas']['InvoiceAvailableActionInvoiceDetails']
+export type InvoiceAvailableActions =
+  components['schemas']['InvoiceAvailableActions']
 export type InvoiceDetailedLine = components['schemas']['InvoiceDetailedLine']
-export type InvoiceDetailedLineCostCategory = components['schemas']['InvoiceDetailedLineCostCategory']
-export type InvoiceDetailedLineRateCard = components['schemas']['InvoiceDetailedLineRateCard']
+export type InvoiceDetailedLineCostCategory =
+  components['schemas']['InvoiceDetailedLineCostCategory']
+export type InvoiceDetailedLineRateCard =
+  components['schemas']['InvoiceDetailedLineRateCard']
 export type InvoiceDocumentRef = components['schemas']['InvoiceDocumentRef']
-export type InvoiceDocumentRefType = components['schemas']['InvoiceDocumentRefType']
+export type InvoiceDocumentRefType =
+  components['schemas']['InvoiceDocumentRefType']
 export type InvoiceExpand = components['schemas']['InvoiceExpand']
-export type InvoiceGenericDocumentRef = components['schemas']['InvoiceGenericDocumentRef']
+export type InvoiceGenericDocumentRef =
+  components['schemas']['InvoiceGenericDocumentRef']
 export type InvoiceLine = components['schemas']['InvoiceLine']
-export type InvoiceLineAmountDiscount = components['schemas']['InvoiceLineAmountDiscount']
-export type InvoiceLineAppExternalIds = components['schemas']['InvoiceLineAppExternalIds']
+export type InvoiceLineAmountDiscount =
+  components['schemas']['InvoiceLineAmountDiscount']
+export type InvoiceLineAppExternalIds =
+  components['schemas']['InvoiceLineAppExternalIds']
 export type InvoiceLineDiscounts = components['schemas']['InvoiceLineDiscounts']
 export type InvoiceLineManagedBy = components['schemas']['InvoiceLineManagedBy']
-export type InvoiceLineReplaceUpdate = components['schemas']['InvoiceLineReplaceUpdate']
+export type InvoiceLineReplaceUpdate =
+  components['schemas']['InvoiceLineReplaceUpdate']
 export type InvoiceLineStatus = components['schemas']['InvoiceLineStatus']
-export type InvoiceLineSubscriptionReference = components['schemas']['InvoiceLineSubscriptionReference']
-export type InvoiceLineTaxBehavior = components['schemas']['InvoiceLineTaxBehavior']
+export type InvoiceLineSubscriptionReference =
+  components['schemas']['InvoiceLineSubscriptionReference']
+export type InvoiceLineTaxBehavior =
+  components['schemas']['InvoiceLineTaxBehavior']
 export type InvoiceLineTaxItem = components['schemas']['InvoiceLineTaxItem']
-export type InvoiceLineUsageDiscount = components['schemas']['InvoiceLineUsageDiscount']
+export type InvoiceLineUsageDiscount =
+  components['schemas']['InvoiceLineUsageDiscount']
 export type InvoiceNumber = components['schemas']['InvoiceNumber']
 export type InvoiceOrderBy = components['schemas']['InvoiceOrderBy']
-export type InvoicePaginatedResponse = components['schemas']['InvoicePaginatedResponse']
+export type InvoicePaginatedResponse =
+  components['schemas']['InvoicePaginatedResponse']
 export type InvoicePaymentTerms = components['schemas']['InvoicePaymentTerms']
-export type InvoicePendingLineCreate = components['schemas']['InvoicePendingLineCreate']
-export type InvoicePendingLineCreateInput = components['schemas']['InvoicePendingLineCreateInput']
-export type InvoicePendingLineCreateResponse = components['schemas']['InvoicePendingLineCreateResponse']
-export type InvoicePendingLinesActionFiltersInput = components['schemas']['InvoicePendingLinesActionFiltersInput']
-export type InvoicePendingLinesActionInput = components['schemas']['InvoicePendingLinesActionInput']
+export type InvoicePendingLineCreate =
+  components['schemas']['InvoicePendingLineCreate']
+export type InvoicePendingLineCreateInput =
+  components['schemas']['InvoicePendingLineCreateInput']
+export type InvoicePendingLineCreateResponse =
+  components['schemas']['InvoicePendingLineCreateResponse']
+export type InvoicePendingLinesActionFiltersInput =
+  components['schemas']['InvoicePendingLinesActionFiltersInput']
+export type InvoicePendingLinesActionInput =
+  components['schemas']['InvoicePendingLinesActionInput']
 export type InvoiceReference = components['schemas']['InvoiceReference']
 export type InvoiceReplaceUpdate = components['schemas']['InvoiceReplaceUpdate']
-export type InvoiceSimulationInput = components['schemas']['InvoiceSimulationInput']
-export type InvoiceSimulationLine = components['schemas']['InvoiceSimulationLine']
+export type InvoiceSimulationInput =
+  components['schemas']['InvoiceSimulationInput']
+export type InvoiceSimulationLine =
+  components['schemas']['InvoiceSimulationLine']
 export type InvoiceStatus = components['schemas']['InvoiceStatus']
 export type InvoiceStatusDetails = components['schemas']['InvoiceStatusDetails']
 export type InvoiceTotals = components['schemas']['InvoiceTotals']
 export type InvoiceType = components['schemas']['InvoiceType']
-export type InvoiceUsageBasedRateCard = components['schemas']['InvoiceUsageBasedRateCard']
+export type InvoiceUsageBasedRateCard =
+  components['schemas']['InvoiceUsageBasedRateCard']
 export type InvoiceWorkflowInvoicingSettingsReplaceUpdate =
   components['schemas']['InvoiceWorkflowInvoicingSettingsReplaceUpdate']
-export type InvoiceWorkflowReplaceUpdate = components['schemas']['InvoiceWorkflowReplaceUpdate']
-export type InvoiceWorkflowSettings = components['schemas']['InvoiceWorkflowSettings']
-export type InvoiceWorkflowSettingsReplaceUpdate = components['schemas']['InvoiceWorkflowSettingsReplaceUpdate']
+export type InvoiceWorkflowReplaceUpdate =
+  components['schemas']['InvoiceWorkflowReplaceUpdate']
+export type InvoiceWorkflowSettings =
+  components['schemas']['InvoiceWorkflowSettings']
+export type InvoiceWorkflowSettingsReplaceUpdate =
+  components['schemas']['InvoiceWorkflowSettingsReplaceUpdate']
 export type IssueAfterReset = components['schemas']['IssueAfterReset']
-export type ListEntitlementsResult = components['schemas']['ListEntitlementsResult']
+export type ListEntitlementsResult =
+  components['schemas']['ListEntitlementsResult']
 export type ListFeaturesResult = components['schemas']['ListFeaturesResult']
-export type MarketplaceInstallRequestPayload = components['schemas']['MarketplaceInstallRequestPayload']
-export type MarketplaceInstallResponse = components['schemas']['MarketplaceInstallResponse']
+export type MarketplaceInstallRequestPayload =
+  components['schemas']['MarketplaceInstallRequestPayload']
+export type MarketplaceInstallResponse =
+  components['schemas']['MarketplaceInstallResponse']
 export type MarketplaceListing = components['schemas']['MarketplaceListing']
-export type MarketplaceListingPaginatedResponse = components['schemas']['MarketplaceListingPaginatedResponse']
+export type MarketplaceListingPaginatedResponse =
+  components['schemas']['MarketplaceListingPaginatedResponse']
 export type MeasureUsageFrom = components['schemas']['MeasureUsageFrom']
-export type MeasureUsageFromPreset = components['schemas']['MeasureUsageFromPreset']
+export type MeasureUsageFromPreset =
+  components['schemas']['MeasureUsageFromPreset']
 export type MeasureUsageFromTime = components['schemas']['MeasureUsageFromTime']
 export type Metadata = components['schemas']['Metadata']
 export type Meter = components['schemas']['Meter']
@@ -11536,53 +11695,82 @@ export type MeterQueryRequest = components['schemas']['MeterQueryRequest']
 export type MeterQueryResult = components['schemas']['MeterQueryResult']
 export type MeterQueryRow = components['schemas']['MeterQueryRow']
 export type MeterUpdate = components['schemas']['MeterUpdate']
-export type NotFoundProblemResponse = components['schemas']['NotFoundProblemResponse']
-export type NotImplementedProblemResponse = components['schemas']['NotImplementedProblemResponse']
+export type NotFoundProblemResponse =
+  components['schemas']['NotFoundProblemResponse']
+export type NotImplementedProblemResponse =
+  components['schemas']['NotImplementedProblemResponse']
 export type NotificationChannel = components['schemas']['NotificationChannel']
-export type NotificationChannelCreateRequest = components['schemas']['NotificationChannelCreateRequest']
-export type NotificationChannelMeta = components['schemas']['NotificationChannelMeta']
-export type NotificationChannelOrderBy = components['schemas']['NotificationChannelOrderBy']
-export type NotificationChannelPaginatedResponse = components['schemas']['NotificationChannelPaginatedResponse']
-export type NotificationChannelType = components['schemas']['NotificationChannelType']
-export type NotificationChannelWebhook = components['schemas']['NotificationChannelWebhook']
-export type NotificationChannelWebhookCreateRequest = components['schemas']['NotificationChannelWebhookCreateRequest']
+export type NotificationChannelCreateRequest =
+  components['schemas']['NotificationChannelCreateRequest']
+export type NotificationChannelMeta =
+  components['schemas']['NotificationChannelMeta']
+export type NotificationChannelOrderBy =
+  components['schemas']['NotificationChannelOrderBy']
+export type NotificationChannelPaginatedResponse =
+  components['schemas']['NotificationChannelPaginatedResponse']
+export type NotificationChannelType =
+  components['schemas']['NotificationChannelType']
+export type NotificationChannelWebhook =
+  components['schemas']['NotificationChannelWebhook']
+export type NotificationChannelWebhookCreateRequest =
+  components['schemas']['NotificationChannelWebhookCreateRequest']
 export type NotificationEvent = components['schemas']['NotificationEvent']
-export type NotificationEventBalanceThresholdPayload = components['schemas']['NotificationEventBalanceThresholdPayload']
+export type NotificationEventBalanceThresholdPayload =
+  components['schemas']['NotificationEventBalanceThresholdPayload']
 export type NotificationEventBalanceThresholdPayloadData =
   components['schemas']['NotificationEventBalanceThresholdPayloadData']
-export type NotificationEventDeliveryStatus = components['schemas']['NotificationEventDeliveryStatus']
-export type NotificationEventDeliveryStatusState = components['schemas']['NotificationEventDeliveryStatusState']
+export type NotificationEventDeliveryStatus =
+  components['schemas']['NotificationEventDeliveryStatus']
+export type NotificationEventDeliveryStatusState =
+  components['schemas']['NotificationEventDeliveryStatusState']
 export type NotificationEventEntitlementValuePayloadBase =
   components['schemas']['NotificationEventEntitlementValuePayloadBase']
-export type NotificationEventInvoiceCreatedPayload = components['schemas']['NotificationEventInvoiceCreatedPayload']
-export type NotificationEventInvoiceUpdatedPayload = components['schemas']['NotificationEventInvoiceUpdatedPayload']
-export type NotificationEventOrderBy = components['schemas']['NotificationEventOrderBy']
-export type NotificationEventPaginatedResponse = components['schemas']['NotificationEventPaginatedResponse']
-export type NotificationEventPayload = components['schemas']['NotificationEventPayload']
-export type NotificationEventResetPayload = components['schemas']['NotificationEventResetPayload']
-export type NotificationEventType = components['schemas']['NotificationEventType']
+export type NotificationEventInvoiceCreatedPayload =
+  components['schemas']['NotificationEventInvoiceCreatedPayload']
+export type NotificationEventInvoiceUpdatedPayload =
+  components['schemas']['NotificationEventInvoiceUpdatedPayload']
+export type NotificationEventOrderBy =
+  components['schemas']['NotificationEventOrderBy']
+export type NotificationEventPaginatedResponse =
+  components['schemas']['NotificationEventPaginatedResponse']
+export type NotificationEventPayload =
+  components['schemas']['NotificationEventPayload']
+export type NotificationEventResetPayload =
+  components['schemas']['NotificationEventResetPayload']
+export type NotificationEventType =
+  components['schemas']['NotificationEventType']
 export type NotificationRule = components['schemas']['NotificationRule']
-export type NotificationRuleBalanceThreshold = components['schemas']['NotificationRuleBalanceThreshold']
+export type NotificationRuleBalanceThreshold =
+  components['schemas']['NotificationRuleBalanceThreshold']
 export type NotificationRuleBalanceThresholdCreateRequest =
   components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
-export type NotificationRuleBalanceThresholdValue = components['schemas']['NotificationRuleBalanceThresholdValue']
+export type NotificationRuleBalanceThresholdValue =
+  components['schemas']['NotificationRuleBalanceThresholdValue']
 export type NotificationRuleBalanceThresholdValueType =
   components['schemas']['NotificationRuleBalanceThresholdValueType']
-export type NotificationRuleCreateRequest = components['schemas']['NotificationRuleCreateRequest']
-export type NotificationRuleEntitlementReset = components['schemas']['NotificationRuleEntitlementReset']
+export type NotificationRuleCreateRequest =
+  components['schemas']['NotificationRuleCreateRequest']
+export type NotificationRuleEntitlementReset =
+  components['schemas']['NotificationRuleEntitlementReset']
 export type NotificationRuleEntitlementResetCreateRequest =
   components['schemas']['NotificationRuleEntitlementResetCreateRequest']
-export type NotificationRuleInvoiceCreated = components['schemas']['NotificationRuleInvoiceCreated']
+export type NotificationRuleInvoiceCreated =
+  components['schemas']['NotificationRuleInvoiceCreated']
 export type NotificationRuleInvoiceCreatedCreateRequest =
   components['schemas']['NotificationRuleInvoiceCreatedCreateRequest']
-export type NotificationRuleInvoiceUpdated = components['schemas']['NotificationRuleInvoiceUpdated']
+export type NotificationRuleInvoiceUpdated =
+  components['schemas']['NotificationRuleInvoiceUpdated']
 export type NotificationRuleInvoiceUpdatedCreateRequest =
   components['schemas']['NotificationRuleInvoiceUpdatedCreateRequest']
-export type NotificationRuleOrderBy = components['schemas']['NotificationRuleOrderBy']
-export type NotificationRulePaginatedResponse = components['schemas']['NotificationRulePaginatedResponse']
+export type NotificationRuleOrderBy =
+  components['schemas']['NotificationRuleOrderBy']
+export type NotificationRulePaginatedResponse =
+  components['schemas']['NotificationRulePaginatedResponse']
 export type Numeric = components['schemas']['Numeric']
-export type OAuth2AuthorizationCodeGrantErrorType = components['schemas']['OAuth2AuthorizationCodeGrantErrorType']
-export type PackagePriceWithCommitments = components['schemas']['PackagePriceWithCommitments']
+export type OAuth2AuthorizationCodeGrantErrorType =
+  components['schemas']['OAuth2AuthorizationCodeGrantErrorType']
+export type PackagePriceWithCommitments =
+  components['schemas']['PackagePriceWithCommitments']
 export type PaymentDueDate = components['schemas']['PaymentDueDate']
 export type PaymentTermDueDate = components['schemas']['PaymentTermDueDate']
 export type PaymentTermInstant = components['schemas']['PaymentTermInstant']
@@ -11593,104 +11781,158 @@ export type Plan = components['schemas']['Plan']
 export type PlanAddon = components['schemas']['PlanAddon']
 export type PlanAddonCreate = components['schemas']['PlanAddonCreate']
 export type PlanAddonOrderBy = components['schemas']['PlanAddonOrderBy']
-export type PlanAddonPaginatedResponse = components['schemas']['PlanAddonPaginatedResponse']
-export type PlanAddonReplaceUpdate = components['schemas']['PlanAddonReplaceUpdate']
+export type PlanAddonPaginatedResponse =
+  components['schemas']['PlanAddonPaginatedResponse']
+export type PlanAddonReplaceUpdate =
+  components['schemas']['PlanAddonReplaceUpdate']
 export type PlanCreate = components['schemas']['PlanCreate']
 export type PlanOrderBy = components['schemas']['PlanOrderBy']
-export type PlanPaginatedResponse = components['schemas']['PlanPaginatedResponse']
+export type PlanPaginatedResponse =
+  components['schemas']['PlanPaginatedResponse']
 export type PlanPhase = components['schemas']['PlanPhase']
 export type PlanReference = components['schemas']['PlanReference']
 export type PlanReferenceInput = components['schemas']['PlanReferenceInput']
 export type PlanReplaceUpdate = components['schemas']['PlanReplaceUpdate']
 export type PlanStatus = components['schemas']['PlanStatus']
-export type PlanSubscriptionChange = components['schemas']['PlanSubscriptionChange']
-export type PlanSubscriptionCreate = components['schemas']['PlanSubscriptionCreate']
+export type PlanSubscriptionChange =
+  components['schemas']['PlanSubscriptionChange']
+export type PlanSubscriptionCreate =
+  components['schemas']['PlanSubscriptionCreate']
 export type PortalToken = components['schemas']['PortalToken']
-export type PreconditionFailedProblemResponse = components['schemas']['PreconditionFailedProblemResponse']
+export type PreconditionFailedProblemResponse =
+  components['schemas']['PreconditionFailedProblemResponse']
 export type PricePaymentTerm = components['schemas']['PricePaymentTerm']
 export type PriceTier = components['schemas']['PriceTier']
 export type ProRatingConfig = components['schemas']['ProRatingConfig']
 export type ProRatingMode = components['schemas']['ProRatingMode']
 export type Progress = components['schemas']['Progress']
 export type RateCard = components['schemas']['RateCard']
-export type RateCardBooleanEntitlement = components['schemas']['RateCardBooleanEntitlement']
+export type RateCardBooleanEntitlement =
+  components['schemas']['RateCardBooleanEntitlement']
 export type RateCardEntitlement = components['schemas']['RateCardEntitlement']
 export type RateCardFlatFee = components['schemas']['RateCardFlatFee']
-export type RateCardMeteredEntitlement = components['schemas']['RateCardMeteredEntitlement']
-export type RateCardStaticEntitlement = components['schemas']['RateCardStaticEntitlement']
+export type RateCardMeteredEntitlement =
+  components['schemas']['RateCardMeteredEntitlement']
+export type RateCardStaticEntitlement =
+  components['schemas']['RateCardStaticEntitlement']
 export type RateCardUsageBased = components['schemas']['RateCardUsageBased']
-export type RateCardUsageBasedPrice = components['schemas']['RateCardUsageBasedPrice']
+export type RateCardUsageBasedPrice =
+  components['schemas']['RateCardUsageBasedPrice']
 export type RecurringPeriod = components['schemas']['RecurringPeriod']
-export type RecurringPeriodCreateInput = components['schemas']['RecurringPeriodCreateInput']
-export type RecurringPeriodInterval = components['schemas']['RecurringPeriodInterval']
-export type RecurringPeriodIntervalEnum = components['schemas']['RecurringPeriodIntervalEnum']
+export type RecurringPeriodCreateInput =
+  components['schemas']['RecurringPeriodCreateInput']
+export type RecurringPeriodInterval =
+  components['schemas']['RecurringPeriodInterval']
+export type RecurringPeriodIntervalEnum =
+  components['schemas']['RecurringPeriodIntervalEnum']
 export type RemovePhaseShifting = components['schemas']['RemovePhaseShifting']
-export type ResetEntitlementUsageInput = components['schemas']['ResetEntitlementUsageInput']
+export type ResetEntitlementUsageInput =
+  components['schemas']['ResetEntitlementUsageInput']
 export type SandboxApp = components['schemas']['SandboxApp']
-export type SandboxAppReplaceUpdate = components['schemas']['SandboxAppReplaceUpdate']
-export type SandboxCustomerAppData = components['schemas']['SandboxCustomerAppData']
-export type ServiceUnavailableProblemResponse = components['schemas']['ServiceUnavailableProblemResponse']
+export type SandboxAppReplaceUpdate =
+  components['schemas']['SandboxAppReplaceUpdate']
+export type SandboxCustomerAppData =
+  components['schemas']['SandboxCustomerAppData']
+export type ServiceUnavailableProblemResponse =
+  components['schemas']['ServiceUnavailableProblemResponse']
 export type SortOrder = components['schemas']['SortOrder']
 export type StripeApiKeyInput = components['schemas']['StripeAPIKeyInput']
 export type StripeApp = components['schemas']['StripeApp']
-export type StripeAppReplaceUpdate = components['schemas']['StripeAppReplaceUpdate']
-export type StripeCheckoutSessionMode = components['schemas']['StripeCheckoutSessionMode']
-export type StripeCustomerAppData = components['schemas']['StripeCustomerAppData']
-export type StripeCustomerAppDataBase = components['schemas']['StripeCustomerAppDataBase']
-export type StripeCustomerAppDataCreateOrUpdateItem = components['schemas']['StripeCustomerAppDataCreateOrUpdateItem']
-export type StripeCustomerPortalSession = components['schemas']['StripeCustomerPortalSession']
+export type StripeAppReplaceUpdate =
+  components['schemas']['StripeAppReplaceUpdate']
+export type StripeCheckoutSessionMode =
+  components['schemas']['StripeCheckoutSessionMode']
+export type StripeCustomerAppData =
+  components['schemas']['StripeCustomerAppData']
+export type StripeCustomerAppDataBase =
+  components['schemas']['StripeCustomerAppDataBase']
+export type StripeCustomerAppDataCreateOrUpdateItem =
+  components['schemas']['StripeCustomerAppDataCreateOrUpdateItem']
+export type StripeCustomerPortalSession =
+  components['schemas']['StripeCustomerPortalSession']
 export type StripeTaxConfig = components['schemas']['StripeTaxConfig']
 export type StripeWebhookEvent = components['schemas']['StripeWebhookEvent']
-export type StripeWebhookResponse = components['schemas']['StripeWebhookResponse']
+export type StripeWebhookResponse =
+  components['schemas']['StripeWebhookResponse']
 export type Subject = components['schemas']['Subject']
 export type SubjectUpsert = components['schemas']['SubjectUpsert']
 export type Subscription = components['schemas']['Subscription']
 export type SubscriptionAddon = components['schemas']['SubscriptionAddon']
-export type SubscriptionAddonCreate = components['schemas']['SubscriptionAddonCreate']
-export type SubscriptionAddonRateCard = components['schemas']['SubscriptionAddonRateCard']
-export type SubscriptionAddonTimelineSegment = components['schemas']['SubscriptionAddonTimelineSegment']
-export type SubscriptionAddonUpdate = components['schemas']['SubscriptionAddonUpdate']
-export type SubscriptionAlignment = components['schemas']['SubscriptionAlignment']
+export type SubscriptionAddonCreate =
+  components['schemas']['SubscriptionAddonCreate']
+export type SubscriptionAddonRateCard =
+  components['schemas']['SubscriptionAddonRateCard']
+export type SubscriptionAddonTimelineSegment =
+  components['schemas']['SubscriptionAddonTimelineSegment']
+export type SubscriptionAddonUpdate =
+  components['schemas']['SubscriptionAddonUpdate']
+export type SubscriptionAlignment =
+  components['schemas']['SubscriptionAlignment']
 export type SubscriptionChange = components['schemas']['SubscriptionChange']
-export type SubscriptionChangeResponseBody = components['schemas']['SubscriptionChangeResponseBody']
+export type SubscriptionChangeResponseBody =
+  components['schemas']['SubscriptionChangeResponseBody']
 export type SubscriptionCreate = components['schemas']['SubscriptionCreate']
 export type SubscriptionEdit = components['schemas']['SubscriptionEdit']
-export type SubscriptionEditOperation = components['schemas']['SubscriptionEditOperation']
+export type SubscriptionEditOperation =
+  components['schemas']['SubscriptionEditOperation']
 export type SubscriptionExpanded = components['schemas']['SubscriptionExpanded']
 export type SubscriptionItem = components['schemas']['SubscriptionItem']
-export type SubscriptionItemIncluded = components['schemas']['SubscriptionItemIncluded']
-export type SubscriptionPaginatedResponse = components['schemas']['SubscriptionPaginatedResponse']
-export type SubscriptionPhaseCreate = components['schemas']['SubscriptionPhaseCreate']
-export type SubscriptionPhaseExpanded = components['schemas']['SubscriptionPhaseExpanded']
+export type SubscriptionItemIncluded =
+  components['schemas']['SubscriptionItemIncluded']
+export type SubscriptionPaginatedResponse =
+  components['schemas']['SubscriptionPaginatedResponse']
+export type SubscriptionPhaseCreate =
+  components['schemas']['SubscriptionPhaseCreate']
+export type SubscriptionPhaseExpanded =
+  components['schemas']['SubscriptionPhaseExpanded']
 export type SubscriptionStatus = components['schemas']['SubscriptionStatus']
 export type SubscriptionTiming = components['schemas']['SubscriptionTiming']
-export type SubscriptionTimingEnum = components['schemas']['SubscriptionTimingEnum']
+export type SubscriptionTimingEnum =
+  components['schemas']['SubscriptionTimingEnum']
 export type TaxBehavior = components['schemas']['TaxBehavior']
 export type TaxConfig = components['schemas']['TaxConfig']
 export type TieredPriceMode = components['schemas']['TieredPriceMode']
-export type TieredPriceWithCommitments = components['schemas']['TieredPriceWithCommitments']
+export type TieredPriceWithCommitments =
+  components['schemas']['TieredPriceWithCommitments']
 export type UlidOrExternalKey = components['schemas']['ULIDOrExternalKey']
-export type UnauthorizedProblemResponse = components['schemas']['UnauthorizedProblemResponse']
-export type UnexpectedProblemResponse = components['schemas']['UnexpectedProblemResponse']
+export type UnauthorizedProblemResponse =
+  components['schemas']['UnauthorizedProblemResponse']
+export type UnexpectedProblemResponse =
+  components['schemas']['UnexpectedProblemResponse']
 export type UnitPrice = components['schemas']['UnitPrice']
-export type UnitPriceWithCommitments = components['schemas']['UnitPriceWithCommitments']
+export type UnitPriceWithCommitments =
+  components['schemas']['UnitPriceWithCommitments']
 export type ValidationError = components['schemas']['ValidationError']
-export type ValidationErrorProblemResponse = components['schemas']['ValidationErrorProblemResponse']
+export type ValidationErrorProblemResponse =
+  components['schemas']['ValidationErrorProblemResponse']
 export type ValidationIssue = components['schemas']['ValidationIssue']
-export type ValidationIssueSeverity = components['schemas']['ValidationIssueSeverity']
-export type VoidInvoiceActionCreate = components['schemas']['VoidInvoiceActionCreate']
-export type VoidInvoiceActionCreateItem = components['schemas']['VoidInvoiceActionCreateItem']
-export type VoidInvoiceActionInput = components['schemas']['VoidInvoiceActionInput']
-export type VoidInvoiceActionLineOverride = components['schemas']['VoidInvoiceActionLineOverride']
-export type VoidInvoiceLineActionCreate = components['schemas']['VoidInvoiceLineActionCreate']
-export type VoidInvoiceLineActionCreateItem = components['schemas']['VoidInvoiceLineActionCreateItem']
-export type VoidInvoiceLineDiscardAction = components['schemas']['VoidInvoiceLineDiscardAction']
-export type VoidInvoiceLinePendingActionCreate = components['schemas']['VoidInvoiceLinePendingActionCreate']
-export type VoidInvoiceLinePendingActionCreateItem = components['schemas']['VoidInvoiceLinePendingActionCreateItem']
+export type ValidationIssueSeverity =
+  components['schemas']['ValidationIssueSeverity']
+export type VoidInvoiceActionCreate =
+  components['schemas']['VoidInvoiceActionCreate']
+export type VoidInvoiceActionCreateItem =
+  components['schemas']['VoidInvoiceActionCreateItem']
+export type VoidInvoiceActionInput =
+  components['schemas']['VoidInvoiceActionInput']
+export type VoidInvoiceActionLineOverride =
+  components['schemas']['VoidInvoiceActionLineOverride']
+export type VoidInvoiceLineActionCreate =
+  components['schemas']['VoidInvoiceLineActionCreate']
+export type VoidInvoiceLineActionCreateItem =
+  components['schemas']['VoidInvoiceLineActionCreateItem']
+export type VoidInvoiceLineDiscardAction =
+  components['schemas']['VoidInvoiceLineDiscardAction']
+export type VoidInvoiceLinePendingActionCreate =
+  components['schemas']['VoidInvoiceLinePendingActionCreate']
+export type VoidInvoiceLinePendingActionCreateItem =
+  components['schemas']['VoidInvoiceLinePendingActionCreateItem']
 export type WindowSize = components['schemas']['WindowSize']
-export type WindowedBalanceHistory = components['schemas']['WindowedBalanceHistory']
-export type ParameterAddonOrderByOrderingOrder = components['parameters']['AddonOrderByOrdering.order']
-export type ParameterAddonOrderByOrderingOrderBy = components['parameters']['AddonOrderByOrdering.orderBy']
+export type WindowedBalanceHistory =
+  components['schemas']['WindowedBalanceHistory']
+export type ParameterAddonOrderByOrderingOrder =
+  components['parameters']['AddonOrderByOrdering.order']
+export type ParameterAddonOrderByOrderingOrderBy =
+  components['parameters']['AddonOrderByOrdering.orderBy']
 export type ParameterBillingProfileCustomerOverrideOrderByOrderingOrder =
   components['parameters']['BillingProfileCustomerOverrideOrderByOrdering.order']
 export type ParameterBillingProfileCustomerOverrideOrderByOrderingOrderBy =
@@ -11715,48 +11957,83 @@ export type ParameterBillingProfileOrderByOrderingOrder =
   components['parameters']['BillingProfileOrderByOrdering.order']
 export type ParameterBillingProfileOrderByOrderingOrderBy =
   components['parameters']['BillingProfileOrderByOrdering.orderBy']
-export type ParameterCursorPaginationCursor = components['parameters']['CursorPagination.cursor']
-export type ParameterCursorPaginationLimit = components['parameters']['CursorPagination.limit']
-export type ParameterCustomerOrderByOrderingOrder = components['parameters']['CustomerOrderByOrdering.order']
-export type ParameterCustomerOrderByOrderingOrderBy = components['parameters']['CustomerOrderByOrdering.orderBy']
-export type ParameterEntitlementOrderByOrderingOrder = components['parameters']['EntitlementOrderByOrdering.order']
-export type ParameterEntitlementOrderByOrderingOrderBy = components['parameters']['EntitlementOrderByOrdering.orderBy']
-export type ParameterFeatureOrderByOrderingOrder = components['parameters']['FeatureOrderByOrdering.order']
-export type ParameterFeatureOrderByOrderingOrderBy = components['parameters']['FeatureOrderByOrdering.orderBy']
-export type ParameterGrantOrderByOrderingOrder = components['parameters']['GrantOrderByOrdering.order']
-export type ParameterGrantOrderByOrderingOrderBy = components['parameters']['GrantOrderByOrdering.orderBy']
-export type ParameterInvoiceListParamsCreatedAfter = components['parameters']['InvoiceListParams.createdAfter']
-export type ParameterInvoiceListParamsCreatedBefore = components['parameters']['InvoiceListParams.createdBefore']
-export type ParameterInvoiceListParamsCustomers = components['parameters']['InvoiceListParams.customers']
-export type ParameterInvoiceListParamsExpand = components['parameters']['InvoiceListParams.expand']
-export type ParameterInvoiceListParamsExtendedStatuses = components['parameters']['InvoiceListParams.extendedStatuses']
-export type ParameterInvoiceListParamsIncludeDeleted = components['parameters']['InvoiceListParams.includeDeleted']
-export type ParameterInvoiceListParamsIssuedAfter = components['parameters']['InvoiceListParams.issuedAfter']
-export type ParameterInvoiceListParamsIssuedBefore = components['parameters']['InvoiceListParams.issuedBefore']
-export type ParameterInvoiceListParamsPeriodStartAfter = components['parameters']['InvoiceListParams.periodStartAfter']
+export type ParameterCursorPaginationCursor =
+  components['parameters']['CursorPagination.cursor']
+export type ParameterCursorPaginationLimit =
+  components['parameters']['CursorPagination.limit']
+export type ParameterCustomerOrderByOrderingOrder =
+  components['parameters']['CustomerOrderByOrdering.order']
+export type ParameterCustomerOrderByOrderingOrderBy =
+  components['parameters']['CustomerOrderByOrdering.orderBy']
+export type ParameterEntitlementOrderByOrderingOrder =
+  components['parameters']['EntitlementOrderByOrdering.order']
+export type ParameterEntitlementOrderByOrderingOrderBy =
+  components['parameters']['EntitlementOrderByOrdering.orderBy']
+export type ParameterFeatureOrderByOrderingOrder =
+  components['parameters']['FeatureOrderByOrdering.order']
+export type ParameterFeatureOrderByOrderingOrderBy =
+  components['parameters']['FeatureOrderByOrdering.orderBy']
+export type ParameterGrantOrderByOrderingOrder =
+  components['parameters']['GrantOrderByOrdering.order']
+export type ParameterGrantOrderByOrderingOrderBy =
+  components['parameters']['GrantOrderByOrdering.orderBy']
+export type ParameterInvoiceListParamsCreatedAfter =
+  components['parameters']['InvoiceListParams.createdAfter']
+export type ParameterInvoiceListParamsCreatedBefore =
+  components['parameters']['InvoiceListParams.createdBefore']
+export type ParameterInvoiceListParamsCustomers =
+  components['parameters']['InvoiceListParams.customers']
+export type ParameterInvoiceListParamsExpand =
+  components['parameters']['InvoiceListParams.expand']
+export type ParameterInvoiceListParamsExtendedStatuses =
+  components['parameters']['InvoiceListParams.extendedStatuses']
+export type ParameterInvoiceListParamsIncludeDeleted =
+  components['parameters']['InvoiceListParams.includeDeleted']
+export type ParameterInvoiceListParamsIssuedAfter =
+  components['parameters']['InvoiceListParams.issuedAfter']
+export type ParameterInvoiceListParamsIssuedBefore =
+  components['parameters']['InvoiceListParams.issuedBefore']
+export type ParameterInvoiceListParamsPeriodStartAfter =
+  components['parameters']['InvoiceListParams.periodStartAfter']
 export type ParameterInvoiceListParamsPeriodStartBefore =
   components['parameters']['InvoiceListParams.periodStartBefore']
-export type ParameterInvoiceListParamsStatuses = components['parameters']['InvoiceListParams.statuses']
-export type ParameterInvoiceOrderByOrderingOrder = components['parameters']['InvoiceOrderByOrdering.order']
-export type ParameterInvoiceOrderByOrderingOrderBy = components['parameters']['InvoiceOrderByOrdering.orderBy']
-export type ParameterLimitOffsetLimit = components['parameters']['LimitOffset.limit']
-export type ParameterLimitOffsetOffset = components['parameters']['LimitOffset.offset']
+export type ParameterInvoiceListParamsStatuses =
+  components['parameters']['InvoiceListParams.statuses']
+export type ParameterInvoiceOrderByOrderingOrder =
+  components['parameters']['InvoiceOrderByOrdering.order']
+export type ParameterInvoiceOrderByOrderingOrderBy =
+  components['parameters']['InvoiceOrderByOrdering.orderBy']
+export type ParameterLimitOffsetLimit =
+  components['parameters']['LimitOffset.limit']
+export type ParameterLimitOffsetOffset =
+  components['parameters']['LimitOffset.offset']
 export type ParameterMarketplaceApiKeyInstallRequestType =
   components['parameters']['MarketplaceApiKeyInstallRequest.type']
-export type ParameterMarketplaceInstallRequestType = components['parameters']['MarketplaceInstallRequest.type']
+export type ParameterMarketplaceInstallRequestType =
+  components['parameters']['MarketplaceInstallRequest.type']
 export type ParameterMarketplaceOAuth2InstallAuthorizeRequestType =
   components['parameters']['MarketplaceOAuth2InstallAuthorizeRequest.type']
-export type ParameterMeterOrderByOrderingOrder = components['parameters']['MeterOrderByOrdering.order']
-export type ParameterMeterOrderByOrderingOrderBy = components['parameters']['MeterOrderByOrdering.orderBy']
-export type ParameterMeterQueryClientId = components['parameters']['MeterQuery.clientId']
-export type ParameterMeterQueryFilterCustomerId = components['parameters']['MeterQuery.filterCustomerId']
-export type ParameterMeterQueryFilterGroupBy = components['parameters']['MeterQuery.filterGroupBy']
-export type ParameterMeterQueryFrom = components['parameters']['MeterQuery.from']
-export type ParameterMeterQueryGroupBy = components['parameters']['MeterQuery.groupBy']
-export type ParameterMeterQuerySubject = components['parameters']['MeterQuery.subject']
+export type ParameterMeterOrderByOrderingOrder =
+  components['parameters']['MeterOrderByOrdering.order']
+export type ParameterMeterOrderByOrderingOrderBy =
+  components['parameters']['MeterOrderByOrdering.orderBy']
+export type ParameterMeterQueryClientId =
+  components['parameters']['MeterQuery.clientId']
+export type ParameterMeterQueryFilterCustomerId =
+  components['parameters']['MeterQuery.filterCustomerId']
+export type ParameterMeterQueryFilterGroupBy =
+  components['parameters']['MeterQuery.filterGroupBy']
+export type ParameterMeterQueryFrom =
+  components['parameters']['MeterQuery.from']
+export type ParameterMeterQueryGroupBy =
+  components['parameters']['MeterQuery.groupBy']
+export type ParameterMeterQuerySubject =
+  components['parameters']['MeterQuery.subject']
 export type ParameterMeterQueryTo = components['parameters']['MeterQuery.to']
-export type ParameterMeterQueryWindowSize = components['parameters']['MeterQuery.windowSize']
-export type ParameterMeterQueryWindowTimeZone = components['parameters']['MeterQuery.windowTimeZone']
+export type ParameterMeterQueryWindowSize =
+  components['parameters']['MeterQuery.windowSize']
+export type ParameterMeterQueryWindowTimeZone =
+  components['parameters']['MeterQuery.windowTimeZone']
 export type ParameterNotificationChannelOrderByOrderingOrder =
   components['parameters']['NotificationChannelOrderByOrdering.order']
 export type ParameterNotificationChannelOrderByOrderingOrderBy =
@@ -11779,22 +12056,38 @@ export type ParameterOAuth2AuthorizationCodeGrantSuccessParamsCode =
   components['parameters']['OAuth2AuthorizationCodeGrantSuccessParams.code']
 export type ParameterOAuth2AuthorizationCodeGrantSuccessParamsState =
   components['parameters']['OAuth2AuthorizationCodeGrantSuccessParams.state']
-export type ParameterPaginationPage = components['parameters']['Pagination.page']
-export type ParameterPaginationPageSize = components['parameters']['Pagination.pageSize']
-export type ParameterPlanAddonOrderByOrderingOrder = components['parameters']['PlanAddonOrderByOrdering.order']
-export type ParameterPlanAddonOrderByOrderingOrderBy = components['parameters']['PlanAddonOrderByOrdering.orderBy']
-export type ParameterPlanOrderByOrderingOrder = components['parameters']['PlanOrderByOrdering.order']
-export type ParameterPlanOrderByOrderingOrderBy = components['parameters']['PlanOrderByOrdering.orderBy']
-export type ParameterListCustomerAppDataParamsType = components['parameters']['listCustomerAppDataParams.type']
-export type ParameterQueryCustomerGet = components['parameters']['queryCustomerGet']
-export type ParameterQueryCustomerListExpand = components['parameters']['queryCustomerList.expand']
-export type ParameterQueryCustomerListIncludeDeleted = components['parameters']['queryCustomerList.includeDeleted']
-export type ParameterQueryCustomerListKey = components['parameters']['queryCustomerList.key']
-export type ParameterQueryCustomerListName = components['parameters']['queryCustomerList.name']
-export type ParameterQueryCustomerListPlanKey = components['parameters']['queryCustomerList.planKey']
-export type ParameterQueryCustomerListPrimaryEmail = components['parameters']['queryCustomerList.primaryEmail']
-export type ParameterQueryCustomerListSubject = components['parameters']['queryCustomerList.subject']
-export type ParameterQueryMeterListIncludeDeleted = components['parameters']['queryMeterList.includeDeleted']
+export type ParameterPaginationPage =
+  components['parameters']['Pagination.page']
+export type ParameterPaginationPageSize =
+  components['parameters']['Pagination.pageSize']
+export type ParameterPlanAddonOrderByOrderingOrder =
+  components['parameters']['PlanAddonOrderByOrdering.order']
+export type ParameterPlanAddonOrderByOrderingOrderBy =
+  components['parameters']['PlanAddonOrderByOrdering.orderBy']
+export type ParameterPlanOrderByOrderingOrder =
+  components['parameters']['PlanOrderByOrdering.order']
+export type ParameterPlanOrderByOrderingOrderBy =
+  components['parameters']['PlanOrderByOrdering.orderBy']
+export type ParameterListCustomerAppDataParamsType =
+  components['parameters']['listCustomerAppDataParams.type']
+export type ParameterQueryCustomerGet =
+  components['parameters']['queryCustomerGet']
+export type ParameterQueryCustomerListExpand =
+  components['parameters']['queryCustomerList.expand']
+export type ParameterQueryCustomerListIncludeDeleted =
+  components['parameters']['queryCustomerList.includeDeleted']
+export type ParameterQueryCustomerListKey =
+  components['parameters']['queryCustomerList.key']
+export type ParameterQueryCustomerListName =
+  components['parameters']['queryCustomerList.name']
+export type ParameterQueryCustomerListPlanKey =
+  components['parameters']['queryCustomerList.planKey']
+export type ParameterQueryCustomerListPrimaryEmail =
+  components['parameters']['queryCustomerList.primaryEmail']
+export type ParameterQueryCustomerListSubject =
+  components['parameters']['queryCustomerList.subject']
+export type ParameterQueryMeterListIncludeDeleted =
+  components['parameters']['queryMeterList.includeDeleted']
 export type $defs = Record<string, never>
 export interface operations {
   listAddons: {

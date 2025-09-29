@@ -17,7 +17,9 @@ export class Events {
    * @returns The ingested events
    */
   public async ingest(events: Event | Event[], options?: RequestOptions) {
-    const body = await Promise.all((Array.isArray(events) ? events : [events]).map(setDefaultsForEvent))
+    const body = await Promise.all(
+      (Array.isArray(events) ? events : [events]).map(setDefaultsForEvent),
+    )
 
     const resp = await this.client.POST('/api/v1/events', {
       body,
@@ -36,7 +38,10 @@ export class Events {
    * @param options - Optional request options
    * @returns The events
    */
-  public async list(params?: operations['listEvents']['parameters']['query'], options?: RequestOptions) {
+  public async list(
+    params?: operations['listEvents']['parameters']['query'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/events', {
       params: { query: params },
       ...options,
@@ -52,7 +57,10 @@ export class Events {
    * @param options - Optional request options
    * @returns The events
    */
-  public async listV2(params?: operations['listEventsV2']['parameters']['query'], options?: RequestOptions) {
+  public async listV2(
+    params?: operations['listEventsV2']['parameters']['query'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v2/events', {
       params: { query: params },
       ...options,

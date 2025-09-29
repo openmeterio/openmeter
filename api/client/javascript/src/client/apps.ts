@@ -1,6 +1,11 @@
 import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
-import type { AppReplaceUpdate, CreateStripeCheckoutSessionRequest, operations, paths } from './schemas.js'
+import type {
+  AppReplaceUpdate,
+  CreateStripeCheckoutSessionRequest,
+  operations,
+  paths,
+} from './schemas.js'
 import { transformResponse } from './utils.js'
 
 /**
@@ -24,7 +29,10 @@ export class Apps {
    * @param signal - An optional abort signal
    * @returns The apps
    */
-  public async list(query?: operations['listApps']['parameters']['query'], options?: RequestOptions) {
+  public async list(
+    query?: operations['listApps']['parameters']['query'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/apps', {
       params: { query },
       ...options,
@@ -39,7 +47,10 @@ export class Apps {
    * @param signal - An optional abort signal
    * @returns The app
    */
-  public async get(id: operations['getApp']['parameters']['path']['id'], options?: RequestOptions) {
+  public async get(
+    id: operations['getApp']['parameters']['path']['id'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/apps/{id}', {
       params: { path: { id } },
       ...options,
@@ -75,7 +86,10 @@ export class Apps {
    * @param signal - An optional abort signal
    * @returns The app
    */
-  public async uninstall(id: operations['uninstallApp']['parameters']['path']['id'], options?: RequestOptions) {
+  public async uninstall(
+    id: operations['uninstallApp']['parameters']['path']['id'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.DELETE('/api/v1/apps/{id}', {
       params: { path: { id } },
       ...options,
@@ -98,7 +112,10 @@ export class AppMarketplace {
    * @param signal - An optional abort signal
    * @returns The apps
    */
-  public async list(query?: operations['listMarketplaceListings']['parameters']['query'], options?: RequestOptions) {
+  public async list(
+    query?: operations['listMarketplaceListings']['parameters']['query'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/marketplace/listings', {
       params: { query },
       ...options,
@@ -113,7 +130,10 @@ export class AppMarketplace {
    * @param signal - An optional abort signal
    * @returns The listing
    */
-  public async get(type: operations['getMarketplaceListing']['parameters']['path']['type'], options?: RequestOptions) {
+  public async get(
+    type: operations['getMarketplaceListing']['parameters']['path']['type'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/marketplace/listings/{type}', {
       params: { path: { type } },
       ...options,
@@ -132,10 +152,13 @@ export class AppMarketplace {
     type: operations['marketplaceOAuth2InstallGetURL']['parameters']['path']['type'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v1/marketplace/listings/{type}/install/oauth2', {
-      params: { path: { type } },
-      ...options,
-    })
+    const resp = await this.client.GET(
+      '/api/v1/marketplace/listings/{type}/install/oauth2',
+      {
+        params: { path: { type } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -150,10 +173,13 @@ export class AppMarketplace {
     type: operations['marketplaceOAuth2InstallAuthorize']['parameters']['path']['type'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v1/marketplace/listings/{type}/install/oauth2/authorize', {
-      params: { path: { type } },
-      ...options,
-    })
+    const resp = await this.client.GET(
+      '/api/v1/marketplace/listings/{type}/install/oauth2/authorize',
+      {
+        params: { path: { type } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -169,11 +195,14 @@ export class AppMarketplace {
     body: operations['marketplaceAppAPIKeyInstall']['requestBody']['content']['application/json'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.POST('/api/v1/marketplace/listings/{type}/install/apikey', {
-      body,
-      params: { path: { type } },
-      ...options,
-    })
+    const resp = await this.client.POST(
+      '/api/v1/marketplace/listings/{type}/install/apikey',
+      {
+        body,
+        params: { path: { type } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -191,7 +220,10 @@ export class AppStripe {
    * @param signal - An optional abort signal
    * @returns The checkout session
    */
-  public async createCheckoutSession(body: CreateStripeCheckoutSessionRequest, options?: RequestOptions) {
+  public async createCheckoutSession(
+    body: CreateStripeCheckoutSessionRequest,
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.POST('/api/v1/stripe/checkout/sessions', {
       body,
       ...options,
@@ -241,11 +273,14 @@ export class AppCustomInvoicing {
     body: operations['appCustomInvoicingDraftSynchronized']['requestBody']['content']['application/json'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.POST('/api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized', {
-      body,
-      params: { path: { invoiceId } },
-      ...options,
-    })
+    const resp = await this.client.POST(
+      '/api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized',
+      {
+        body,
+        params: { path: { invoiceId } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -262,11 +297,14 @@ export class AppCustomInvoicing {
     body: operations['appCustomInvoicingIssuingSynchronized']['requestBody']['content']['application/json'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.POST('/api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized', {
-      body,
-      params: { path: { invoiceId } },
-      ...options,
-    })
+    const resp = await this.client.POST(
+      '/api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized',
+      {
+        body,
+        params: { path: { invoiceId } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -283,11 +321,14 @@ export class AppCustomInvoicing {
     body: operations['appCustomInvoicingUpdatePaymentStatus']['requestBody']['content']['application/json'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.POST('/api/v1/apps/custom-invoicing/{invoiceId}/payment/status', {
-      body,
-      params: { path: { invoiceId } },
-      ...options,
-    })
+    const resp = await this.client.POST(
+      '/api/v1/apps/custom-invoicing/{invoiceId}/payment/status',
+      {
+        body,
+        params: { path: { invoiceId } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }

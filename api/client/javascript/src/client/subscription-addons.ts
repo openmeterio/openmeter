@@ -18,11 +18,14 @@ export class SubscriptionAddons {
     addon: operations['createSubscriptionAddon']['requestBody']['content']['application/json'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.POST('/api/v1/subscriptions/{subscriptionId}/addons', {
-      body: addon,
-      params: { path: { subscriptionId } },
-      ...options,
-    })
+    const resp = await this.client.POST(
+      '/api/v1/subscriptions/{subscriptionId}/addons',
+      {
+        body: addon,
+        params: { path: { subscriptionId } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -34,10 +37,13 @@ export class SubscriptionAddons {
    * @returns A list of subscription addons
    */
   public async list(subscriptionId: string, options?: RequestOptions) {
-    const resp = await this.client.GET('/api/v1/subscriptions/{subscriptionId}/addons', {
-      params: { path: { subscriptionId } },
-      ...options,
-    })
+    const resp = await this.client.GET(
+      '/api/v1/subscriptions/{subscriptionId}/addons',
+      {
+        params: { path: { subscriptionId } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -49,11 +55,18 @@ export class SubscriptionAddons {
    * @param options - Optional request options
    * @returns The subscription addon
    */
-  public async get(subscriptionId: string, subscriptionAddonId: string, options?: RequestOptions) {
-    const resp = await this.client.GET('/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}', {
-      params: { path: { subscriptionAddonId, subscriptionId } },
-      ...options,
-    })
+  public async get(
+    subscriptionId: string,
+    subscriptionAddonId: string,
+    options?: RequestOptions,
+  ) {
+    const resp = await this.client.GET(
+      '/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}',
+      {
+        params: { path: { subscriptionAddonId, subscriptionId } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }
@@ -72,11 +85,14 @@ export class SubscriptionAddons {
     addon: operations['updateSubscriptionAddon']['requestBody']['content']['application/json'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.PATCH('/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}', {
-      body: addon,
-      params: { path: { subscriptionAddonId, subscriptionId } },
-      ...options,
-    })
+    const resp = await this.client.PATCH(
+      '/api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}',
+      {
+        body: addon,
+        params: { path: { subscriptionAddonId, subscriptionId } },
+        ...options,
+      },
+    )
 
     return transformResponse(resp)
   }

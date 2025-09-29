@@ -18,7 +18,10 @@ export class Subjects {
    * @param signal - An optional abort signal
    * @returns The upserted subjects
    */
-  public async upsert(subjects: SubjectUpsert | SubjectUpsert[], options?: RequestOptions) {
+  public async upsert(
+    subjects: SubjectUpsert | SubjectUpsert[],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.POST('/api/v1/subjects', {
       body: Array.isArray(subjects) ? subjects : [subjects],
       ...options,

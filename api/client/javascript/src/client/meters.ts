@@ -31,7 +31,10 @@ export class Meters {
    * @param signal - An optional abort signal
    * @returns The meter
    */
-  public async get(idOrSlug: operations['getMeter']['parameters']['path']['meterIdOrSlug'], options?: RequestOptions) {
+  public async get(
+    idOrSlug: operations['getMeter']['parameters']['path']['meterIdOrSlug'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/meters/{meterIdOrSlug}', {
       params: {
         path: {
@@ -82,7 +85,9 @@ export class Meters {
       ...options,
     })
 
-    return transformResponse(resp) as operations['queryMeter']['responses']['200']['content']['application/json']
+    return transformResponse(
+      resp,
+    ) as operations['queryMeter']['responses']['200']['content']['application/json']
   }
 
   /**

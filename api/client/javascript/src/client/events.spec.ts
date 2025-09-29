@@ -21,7 +21,11 @@ describe('Events', () => {
     ctx.client = client
   })
 
-  it<Context>('ingest (POST /api/v1/events)', async ({ baseUrl, client, task }) => {
+  it<Context>('ingest (POST /api/v1/events)', async ({
+    baseUrl,
+    client,
+    task,
+  }) => {
     const route = `${baseUrl}/api/v1/events`
     const event: Event = {
       data: {
@@ -61,7 +65,11 @@ describe('Events', () => {
     expect(fetchMock.callHistory.done(task.name)).toBeTruthy()
   })
 
-  it<Context>('list (GET /api/v1/events)', async ({ baseUrl, client, task }) => {
+  it<Context>('list (GET /api/v1/events)', async ({
+    baseUrl,
+    client,
+    task,
+  }) => {
     const query = {
       from: new Date(),
       hasError: false,

@@ -27,7 +27,10 @@ export class Addons {
    * @param options - Optional request options
    * @returns A list of addons
    */
-  public async list(params?: operations['listAddons']['parameters']['query'], options?: RequestOptions) {
+  public async list(
+    params?: operations['listAddons']['parameters']['query'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/addons', {
       params: { query: params },
       ...options,

@@ -23,8 +23,15 @@ export class HTTPError extends Error {
     super(message)
   }
 
-  static fromResponse(resp: { response: Response; error?: UnexpectedProblemResponse }): HTTPError {
-    if (resp.response.headers.get('Content-Type') === 'application/problem+json' && resp.error) {
+  static fromResponse(resp: {
+    response: Response
+    error?: UnexpectedProblemResponse
+  }): HTTPError {
+    if (
+      resp.response.headers.get('Content-Type') ===
+        'application/problem+json' &&
+      resp.error
+    ) {
       return new HTTPError(
         `Request failed (${resp.response.url}) [${resp.response.status}]: ${resp.error.detail}`,
         resp.error.type,

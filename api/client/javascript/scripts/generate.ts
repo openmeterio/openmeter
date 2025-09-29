@@ -27,7 +27,9 @@ const ast = await openapiTS(schema, {
     }
     if (schemaObject.format === 'date-time') {
       const allowString =
-        (metadata.schema && 'in' in metadata.schema && metadata.schema.in === 'query') ||
+        (metadata.schema &&
+          'in' in metadata.schema &&
+          metadata.schema.in === 'query') ||
         metadata.path?.includes('/parameters/query')
 
       // allow string in query parameters
@@ -37,7 +39,9 @@ const ast = await openapiTS(schema, {
           : factory.createUnionTypeNode([DATE, STRING])
       }
 
-      return schemaObject.nullable ? factory.createUnionTypeNode([DATE, NULL]) : DATE
+      return schemaObject.nullable
+        ? factory.createUnionTypeNode([DATE, NULL])
+        : DATE
     }
   },
 })

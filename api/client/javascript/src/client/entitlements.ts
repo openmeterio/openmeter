@@ -42,15 +42,18 @@ export class Entitlements {
     entitlement: EntitlementCreateInputs,
     options?: RequestOptions,
   ) {
-    const resp = await this.client.POST('/api/v1/subjects/{subjectIdOrKey}/entitlements', {
-      body: entitlement,
-      params: {
-        path: {
-          subjectIdOrKey: subjectIdOrKey,
+    const resp = await this.client.POST(
+      '/api/v1/subjects/{subjectIdOrKey}/entitlements',
+      {
+        body: entitlement,
+        params: {
+          path: {
+            subjectIdOrKey: subjectIdOrKey,
+          },
         },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -62,7 +65,10 @@ export class Entitlements {
    * @param signal - An optional abort signal
    * @returns The entitlement
    */
-  public async get(id: operations['getEntitlement']['parameters']['path']['entitlementId'], options?: RequestOptions) {
+  public async get(
+    id: operations['getEntitlement']['parameters']['path']['entitlementId'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/entitlements/{entitlementId}', {
       params: {
         path: {
@@ -83,7 +89,10 @@ export class Entitlements {
    * @returns The entitlements
    */
   public async list(
-    query?: Omit<operations['listEntitlements']['parameters']['query'], 'page' | 'pageSize'>,
+    query?: Omit<
+      operations['listEntitlements']['parameters']['query'],
+      'page' | 'pageSize'
+    >,
     options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/entitlements', {
@@ -109,15 +118,18 @@ export class Entitlements {
     entitlementId: operations['deleteEntitlement']['parameters']['path']['entitlementId'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.DELETE('/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}', {
-      params: {
-        path: {
-          entitlementId,
-          subjectIdOrKey,
+    const resp = await this.client.DELETE(
+      '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}',
+      {
+        params: {
+          path: {
+            entitlementId,
+            subjectIdOrKey,
+          },
         },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -171,16 +183,19 @@ export class Entitlements {
     query: operations['getEntitlementHistory']['parameters']['query'],
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history', {
-      params: {
-        path: {
-          entitlementId,
-          subjectIdOrKey,
+    const resp = await this.client.GET(
+      '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history',
+      {
+        params: {
+          path: {
+            entitlementId,
+            subjectIdOrKey,
+          },
+          query,
         },
-        query,
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -235,16 +250,19 @@ export class Entitlements {
     body: ResetEntitlementUsageInput,
     options?: RequestOptions,
   ) {
-    const resp = await this.client.POST('/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset', {
-      body,
-      params: {
-        path: {
-          entitlementId,
-          subjectIdOrKey,
+    const resp = await this.client.POST(
+      '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset',
+      {
+        body,
+        params: {
+          path: {
+            entitlementId,
+            subjectIdOrKey,
+          },
         },
+        ...options,
       },
-      ...options,
-    })
+    )
 
     return transformResponse(resp)
   }
@@ -324,7 +342,10 @@ export class Grants {
    * @param options - The request options
    * @returns The grants
    */
-  public async listAll(query?: operations['listGrants']['parameters']['query'], options?: RequestOptions) {
+  public async listAll(
+    query?: operations['listGrants']['parameters']['query'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/grants', {
       params: {
         query,
@@ -345,7 +366,10 @@ export class Grants {
    * @param options - The request options
    * @returns The voided grant
    */
-  public async void(grantId: operations['voidGrant']['parameters']['path']['grantId'], options?: RequestOptions) {
+  public async void(
+    grantId: operations['voidGrant']['parameters']['path']['grantId'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.DELETE('/api/v1/grants/{grantId}', {
       params: {
         path: {
@@ -451,7 +475,10 @@ export class GrantsV2 {
    * @returns The voided grant
    * @deprecated This method uses the legacy V1 endpoint. Consider using customer-specific grant operations instead.
    */
-  public async void(grantId: operations['voidGrant']['parameters']['path']['grantId'], options?: RequestOptions) {
+  public async void(
+    grantId: operations['voidGrant']['parameters']['path']['grantId'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.DELETE('/api/v1/grants/{grantId}', {
       params: {
         path: {

@@ -7,7 +7,10 @@ import { encodeDates, transformResponse } from '../client/utils.js'
 /**
  * Portal Config
  */
-export type Config = Pick<ClientOptions, 'baseUrl' | 'headers' | 'fetch' | 'Request' | 'requestInitExt'> & {
+export type Config = Pick<
+  ClientOptions,
+  'baseUrl' | 'headers' | 'fetch' | 'Request' | 'requestInitExt'
+> & {
   portalToken: string
 }
 
@@ -65,19 +68,24 @@ export class OpenMeter {
     },
     options?: RequestOptions,
   ) {
-    const resp = await this.client.GET('/api/v1/portal/meters/{meterSlug}/query', {
-      headers: {
-        Accept: 'application/json',
-      },
-      params: {
-        path: {
-          meterSlug,
+    const resp = await this.client.GET(
+      '/api/v1/portal/meters/{meterSlug}/query',
+      {
+        headers: {
+          Accept: 'application/json',
         },
-        query,
+        params: {
+          path: {
+            meterSlug,
+          },
+          query,
+        },
+        ...options,
       },
-      ...options,
-    })
+    )
 
-    return transformResponse(resp) as operations['queryPortalMeter']['responses']['200']['content']['application/json']
+    return transformResponse(
+      resp,
+    ) as operations['queryPortalMeter']['responses']['200']['content']['application/json']
   }
 }

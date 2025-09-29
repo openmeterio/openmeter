@@ -29,7 +29,10 @@ export class Info {
    * @param options - The request options
    * @returns The progress
    */
-  public async getProgress(id: operations['getProgress']['parameters']['path']['id'], options?: RequestOptions) {
+  public async getProgress(
+    id: operations['getProgress']['parameters']['path']['id'],
+    options?: RequestOptions,
+  ) {
     const resp = await this.client.GET('/api/v1/info/progress/{id}', {
       params: {
         path: { id },
