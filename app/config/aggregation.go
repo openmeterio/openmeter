@@ -122,7 +122,9 @@ func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Optio
 	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
 	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
 	if c.TLS {
-		options.TLS = &tls.Config{}
+		options.TLS = &tls.Config{
+			MinVersion: tls.VersionTLS13,
+		}
 	}
 
 	return options

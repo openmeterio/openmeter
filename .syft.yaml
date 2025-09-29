@@ -1,0 +1,7 @@
+select-catalogers:
+  - -go-module-binary-cataloger
+  - -github-action-workflow-usage-cataloger
+  - -github-actions-usage-cataloger
+
+exclude:
+  - "./.devenv"

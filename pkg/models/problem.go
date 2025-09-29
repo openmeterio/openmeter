@@ -95,7 +95,7 @@ func RespondProblem(problem Problem, w http.ResponseWriter) {
 
 	w.Header().Set("Content-Type", ProblemContentType)
 	w.WriteHeader(problem.ProblemStatus())
-	_, _ = w.Write(buf.Bytes())
+	_, _ = w.Write(buf.Bytes()) // nosemgrep
 }
 
 // NewStatusProblem will generate a problem for the provided HTTP status

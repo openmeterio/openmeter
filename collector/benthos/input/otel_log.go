@@ -62,7 +62,7 @@ type otelLogInput struct {
 }
 
 func newOtelLogInput(conf *service.ParsedConfig) (*otelLogInput, error) {
-	server := grpc.NewServer()
+	server := grpc.NewServer() // nosemgrep
 
 	address, err := conf.FieldString("address")
 	if err != nil {

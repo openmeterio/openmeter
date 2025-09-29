@@ -61,7 +61,7 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 
 	owner, err := m.OwnerConnector.DescribeOwner(ctx, ownerID)
 	if err != nil {
-		return def, fmt.Errorf("failed to describe owner %s: %w", owner.ID, err)
+		return def, fmt.Errorf("failed to describe owner %s: %w", ownerID.ID, err)
 	}
 
 	// get all relevant grants

@@ -68,14 +68,14 @@ func (a Authenticator) NewAuthenticatorMiddlewareFunc(swagger *openapi3.T) func(
 				return
 			}
 
-			r, err = a.validateSecurityRequirements(*sr, w, r)
+			rWithContext, err := a.validateSecurityRequirements(*sr, w, r)
 			if err != nil {
 				models.NewStatusProblem(r.Context(), err, http.StatusUnauthorized).Respond(w)
 
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, rWithContext)
 		})
 	}
 }

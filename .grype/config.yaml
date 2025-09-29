@@ -1,0 +1,5 @@
+
+ignore:
+  # Nats server admin api authorization bypass: https://github.com/advisories/ghsa-fhg8-qxh5-7q3w
+  # This is not an issue, as we never start a nats server in our codebase
+  - vulnerability: GHSA-fhg8-qxh5-7q3w
