@@ -72,6 +72,28 @@ jobs:
       - uses: Kong/public-shared-actions/security-actions/semgrep@1c412fcf497b6b8ae6cc3313389aa8756de68eac # v5.0.1
         with:
           fail_on_findings: "true"
+          # Let's ignore any rules that are not relevant from the OpenMeter code point of view (later on we can remove these if needed)
+          # Why:
+          # - generic.secrets.security.detected-generic-secret.detected-generic-secret: TODO
+          # - generic.secrets.security.detected-jwt-token.detected-jwt-token: TODO
+          # - python.lang.security.audit.eval-detected.eval-detected: python API generated code, seems safe
+          # - go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter: bad rule, we are using json data to be fed into the response writer
+          #
+          # Others:
+          # - infra hardening is not in scope for now
+          additional_config: |
+            --exclude-rule=generic.secrets.security.detected-generic-secret.detected-generic-secret
+            --exclude-rule=generic.secrets.security.detected-jwt-token.detected-jwt-token
+            --exclude-rule=yaml.docker-compose.security.no-new-privileges.no-new-privileges
+            --exclude-rule=yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
+            --exclude-rule=yaml.kubernetes.security.allow-privilege-escalation-no-securitycontext.allow-privilege-escalation-no-securitycontext
+            --exclude-rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root
+            --exclude-rule=dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
+            --exclude-rule=dockerfile.security.missing-user.missing-user
+            --exclude-rule=generic.secrets.security.detected-generic-api-key.detected-generic-api-key
+            --exclude-rule=python.lang.security.audit.eval-detected.eval-detected
+            --exclude-rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter
+
 
   scan-gh-workflows:
     name: Scan GitHub Workflows

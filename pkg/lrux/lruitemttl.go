@@ -77,7 +77,8 @@ func (c *CacheWithItemTTL[K, V]) Get(ctx context.Context, key K) (V, error) {
 
 	item, err := c.fetchItem(ctx, key)
 	if err != nil {
-		return item.Value, err
+		var empty V
+		return empty, err
 	}
 
 	c.Cache.Add(key, item)
@@ -89,7 +90,8 @@ func (c *CacheWithItemTTL[K, V]) Get(ctx context.Context, key K) (V, error) {
 func (c *CacheWithItemTTL[K, V]) Refresh(ctx context.Context, key K) (V, error) {
 	item, err := c.fetchItem(ctx, key)
 	if err != nil {
-		return item.Value, err
+		var empty V
+		return empty, err
 	}
 
 	c.Cache.Add(key, item)

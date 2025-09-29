@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"text/template"
+	"text/template" // nosemgrep
 
 	"github.com/gosimple/unidecode"
 

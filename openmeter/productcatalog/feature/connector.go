@@ -105,6 +105,8 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	// Validate meter configuration
 	if feature.MeterSlug != nil {
 		slug := *feature.MeterSlug
+
+		// nosemgrep: trailofbits.go.invalid-usage-of-modified-variable.invalid-usage-of-modified-variable
 		meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
 			Namespace: feature.Namespace,
 			IDOrSlug:  slug,

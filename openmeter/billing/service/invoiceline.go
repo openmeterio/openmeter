@@ -121,27 +121,28 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			return nil, fmt.Errorf("creating invoice Line: %w", err)
 		}
 
+		gatheringInvoiceID := gatheringInvoice.InvoiceID()
 		// Let's reload the invoice after the lines has been assigned
 		gatheringInvoice, err = s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-			Invoice: gatheringInvoice.InvoiceID(),
+			Invoice: gatheringInvoiceID,
 			Expand:  billing.InvoiceExpandAll,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("fetching invoice[%s]: %w", gatheringInvoice.ID, err)
+			return nil, fmt.Errorf("fetching invoice[%s]: %w", gatheringInvoiceID, err)
 		}
 
 		if err := s.invoiceCalculator.CalculateGatheringInvoice(&gatheringInvoice); err != nil {
-			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoice.ID, err)
+			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoiceID, err)
 		}
 
 		gatheringInvoice, err = s.adapter.UpdateInvoice(ctx, gatheringInvoice)
 		if err != nil {
-			return nil, fmt.Errorf("failed to update invoice[%s]: %w", gatheringInvoice.ID, err)
+			return nil, fmt.Errorf("failed to update invoice[%s]: %w", gatheringInvoiceID, err)
 		}
 
 		gatheringInvoice, err = s.resolveWorkflowApps(ctx, gatheringInvoice)
 		if err != nil {
-			return nil, fmt.Errorf("error resolving workflow apps for invoice [%s]: %w", gatheringInvoice.ID, err)
+			return nil, fmt.Errorf("error resolving workflow apps for invoice [%s]: %w", gatheringInvoiceID, err)
 		}
 
 		// Let's resolve the created lines from the final invoice
@@ -164,7 +165,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			}
 
 			if err := s.publisher.Publish(ctx, event); err != nil {
-				return nil, fmt.Errorf("publishing invoice[%s] created event: %w", gatheringInvoice.ID, err)
+				return nil, fmt.Errorf("publishing invoice[%s] created event: %w", gatheringInvoiceID, err)
 			}
 		}
 
@@ -244,9 +245,11 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 	if invoice.DeletedAt != nil {
 		invoice.DeletedAt = nil
 
+		invoiceID := invoice.ID
+
 		invoice, err = s.adapter.UpdateInvoice(ctx, invoice)
 		if err != nil {
-			return nil, fmt.Errorf("restoring deleted invoice[id=%s]: %w", invoice.ID, err)
+			return nil, fmt.Errorf("restoring deleted invoice[id=%s]: %w", invoiceID, err)
 		}
 	}
 
