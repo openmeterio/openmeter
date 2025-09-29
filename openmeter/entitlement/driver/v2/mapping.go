@@ -417,6 +417,13 @@ func MapAPIGrantV2ToCreateGrantInput(g api.EntitlementGrantCreateInputV2) (meter
 		}
 	}
 
+	if g.Metadata != nil && len(lo.FromPtr(g.Metadata)) > 0 {
+		grantInput.Metadata = make(map[string]string)
+		for k, v := range lo.FromPtr(g.Metadata) {
+			grantInput.Metadata[k] = v
+		}
+	}
+
 	if g.Recurrence != nil {
 		iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(g.Recurrence.Interval)
 		if err != nil {
