@@ -3,6 +3,10 @@ name: PR Checks
 on:
   pull_request:
     types: [opened, labeled, unlabeled, synchronize]
+permissions:
+  contents: read
+  actions: read
+  checks: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,7 +16,9 @@ jobs:
   release-label:
     name: Release note label
     runs-on: ubuntu-latest
-
+    permissions:
+      checks: write
+      pull-requests: write
     steps:
       - name: Check minimum labels
         uses: mheap/github-action-required-labels@8afbe8ae6ab7647d0c9f0cfa7c2f939650d22509 # v5.5

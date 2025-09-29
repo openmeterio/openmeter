@@ -49,6 +49,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Set up Depot CLI
         uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1.6.0
@@ -95,14 +97,19 @@ jobs:
 
       - name: Set image ref
         id: image-ref
-        run: echo "value=${{ steps.image-name.outputs.value }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+        run: echo "value=${STEPS_IMAGE_NAME_OUTPUTS_VALUE}@${STEPS_BUILD_OUTPUTS_DIGEST}" >> "$GITHUB_OUTPUT"
+        env:
+          STEPS_IMAGE_NAME_OUTPUTS_VALUE: ${{ steps.image-name.outputs.value }}
+          STEPS_BUILD_OUTPUTS_DIGEST: ${{ steps.build.outputs.digest }}
 
       - name: Retrieve pull token
         id: pull-token
         run: |
-          PULL_TOKEN="$(depot pull-token --project ${{ vars.DEPOT_PROJECT }})"
+          PULL_TOKEN="$(depot pull-token --project ${VARS_DEPOT_PROJECT})"
           echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
           echo "::add-mask::$PULL_TOKEN"
+        env:
+          VARS_DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
@@ -146,6 +153,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Set up Depot CLI
         uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1.6.0
@@ -193,14 +202,19 @@ jobs:
 
       - name: Set image ref
         id: image-ref
-        run: echo "value=${{ steps.image-name.outputs.value }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+        run: echo "value=${STEPS_IMAGE_NAME_OUTPUTS_VALUE}@${STEPS_BUILD_OUTPUTS_DIGEST}" >> "$GITHUB_OUTPUT"
+        env:
+          STEPS_IMAGE_NAME_OUTPUTS_VALUE: ${{ steps.image-name.outputs.value }}
+          STEPS_BUILD_OUTPUTS_DIGEST: ${{ steps.build.outputs.digest }}
 
       - name: Retrieve pull token
         id: pull-token
         run: |
-          PULL_TOKEN="$(depot pull-token --project ${{ vars.DEPOT_PROJECT }})"
+          PULL_TOKEN="$(depot pull-token --project ${VARS_DEPOT_PROJECT})"
           echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
           echo "::add-mask::$PULL_TOKEN"
+        env:
+          VARS_DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
