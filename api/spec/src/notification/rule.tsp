@@ -106,7 +106,7 @@ enum NotificationRuleOrderBy {
   updatedAt: "updatedAt",
 }
 
-@route("/api/v1/notification/rules")
+@route("/v1/notification/rules")
 @tag("Notifications")
 interface Rules {
   /**

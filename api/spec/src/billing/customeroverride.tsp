@@ -3,7 +3,7 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Billing;
 
-@route("/api/v1/billing/customers")
+@route("/v1/billing/customers")
 @tag("Billing")
 interface CustomerOverrides {
   /**

@@ -47,7 +47,7 @@ model CustomInvoicingApp {
 @tag("App: Custom Invoicing")
 interface AppCustomInvoicing {
   @post
-  @route("/api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized")
+  @route("/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized")
   @operationId("appCustomInvoicingDraftSynchronized")
   @summary("Submit draft synchronization results")
   draftSyncronized(
@@ -56,7 +56,7 @@ interface AppCustomInvoicing {
   ): void | CommonErrors;
 
   @post
-  @route("/api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized")
+  @route("/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized")
   @operationId("appCustomInvoicingIssuingSynchronized")
   @summary("Submit issuing synchronization results")
   finalized(
@@ -65,7 +65,7 @@ interface AppCustomInvoicing {
   ): void | CommonErrors;
 
   @post
-  @route("/api/v1/apps/custom-invoicing/{invoiceId}/payment/status")
+  @route("/v1/apps/custom-invoicing/{invoiceId}/payment/status")
   @operationId("appCustomInvoicingUpdatePaymentStatus")
   @summary("Update payment status")
   paymentStatus(

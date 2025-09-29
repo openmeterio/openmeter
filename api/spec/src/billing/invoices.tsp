@@ -7,7 +7,7 @@ namespace OpenMeter.Billing;
  * InvoicesEndpoints is a collection of endpoints that allow invoice operations without prior
  * knowledge of the invoice ID.
  */
-@route("/api/v1/billing/invoices")
+@route("/v1/billing/invoices")
 @tag("Billing")
 interface InvoicesEndpoints {
   /**
@@ -56,7 +56,7 @@ interface InvoicesEndpoints {
 /**
  * CustomerInvoice is a collection of endpoints that allow operations on a specific invoice.
  */
-@route("/api/v1/billing/invoices/{invoiceId}")
+@route("/v1/billing/invoices/{invoiceId}")
 @tag("Billing")
 interface InvoiceEndpoints {
   /**
@@ -210,7 +210,7 @@ interface InvoiceEndpoints {
   ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
-@route("/api/v1/billing/customers/{customerId}/invoices")
+@route("/v1/billing/customers/{customerId}/invoices")
 @tag("Billing")
 interface CustomerInvoiceEndpoints {
   /**

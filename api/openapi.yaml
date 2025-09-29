@@ -42,7 +42,7 @@ tags:
   - name: Apps
     description: "Manage integrations for extending OpenMeter's functionality. "
 paths:
-  /api/v1/addons:
+  /v1/addons:
     get:
       operationId: listAddons
       summary: List add-ons
@@ -237,7 +237,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AddonCreate'
-  /api/v1/addons/{addonId}:
+  /v1/addons/{addonId}:
     put:
       operationId: updateAddon
       summary: Update add-on
@@ -465,7 +465,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-  /api/v1/addons/{addonId}/archive:
+  /v1/addons/{addonId}/archive:
     post:
       operationId: archiveAddon
       summary: Archive add-on version
@@ -535,7 +535,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-  /api/v1/addons/{addonId}/publish:
+  /v1/addons/{addonId}/publish:
     post:
       operationId: publishAddon
       summary: Publish add-on
@@ -605,7 +605,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-  /api/v1/apps:
+  /v1/apps:
     get:
       operationId: listApps
       summary: List apps
@@ -664,7 +664,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
-  /api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized:
+  /v1/apps/custom-invoicing/{invoiceId}/draft/synchronized:
     post:
       operationId: appCustomInvoicingDraftSynchronized
       summary: Submit draft synchronization results
@@ -729,7 +729,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CustomInvoicingDraftSynchronizedRequest'
-  /api/v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized:
+  /v1/apps/custom-invoicing/{invoiceId}/issuing/synchronized:
     post:
       operationId: appCustomInvoicingIssuingSynchronized
       summary: Submit issuing synchronization results
@@ -794,7 +794,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CustomInvoicingFinalizedRequest'
-  /api/v1/apps/custom-invoicing/{invoiceId}/payment/status:
+  /v1/apps/custom-invoicing/{invoiceId}/payment/status:
     post:
       operationId: appCustomInvoicingUpdatePaymentStatus
       summary: Update payment status
@@ -859,7 +859,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CustomInvoicingUpdatePaymentStatusRequest'
-  /api/v1/apps/{id}:
+  /v1/apps/{id}:
     get:
       operationId: getApp
       summary: Get app
@@ -1069,7 +1069,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
-  /api/v1/apps/{id}/stripe/api-key:
+  /v1/apps/{id}/stripe/api-key:
     put:
       operationId: updateStripeAPIKey
       summary: Update Stripe API key
@@ -1136,7 +1136,7 @@ paths:
             schema:
               $ref: '#/components/schemas/StripeAPIKeyInput'
       deprecated: true
-  /api/v1/apps/{id}/stripe/webhook:
+  /v1/apps/{id}/stripe/webhook:
     post:
       operationId: appStripeWebhook
       summary: Stripe webhook
@@ -1214,7 +1214,7 @@ paths:
               $ref: '#/components/schemas/StripeWebhookEvent'
       security:
         - {}
-  /api/v1/billing/customers:
+  /v1/billing/customers:
     get:
       operationId: listBillingProfileCustomerOverrides
       summary: List customer overrides
@@ -1290,7 +1290,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing
-  /api/v1/billing/customers/{customerId}:
+  /v1/billing/customers/{customerId}:
     put:
       operationId: upsertBillingProfileCustomerOverride
       summary: Create a new or update a customer override
@@ -1523,7 +1523,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing
-  /api/v1/billing/customers/{customerId}/invoices/pending-lines:
+  /v1/billing/customers/{customerId}/invoices/pending-lines:
     post:
       operationId: createPendingInvoiceLine
       summary: Create pending line items
@@ -1601,7 +1601,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/InvoicePendingLineCreateInput'
-  /api/v1/billing/customers/{customerId}/invoices/simulate:
+  /v1/billing/customers/{customerId}/invoices/simulate:
     post:
       operationId: simulateInvoice
       summary: Simulate an invoice for a customer
@@ -1676,7 +1676,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/InvoiceSimulationInput'
-  /api/v1/billing/invoices:
+  /v1/billing/invoices:
     get:
       operationId: listInvoices
       summary: List invoices
@@ -1754,7 +1754,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing
-  /api/v1/billing/invoices/invoice:
+  /v1/billing/invoices/invoice:
     post:
       operationId: invoicePendingLinesAction
       summary: Invoice a customer based on the pending line items
@@ -1828,7 +1828,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/InvoicePendingLinesActionInput'
-  /api/v1/billing/invoices/{invoiceId}:
+  /v1/billing/invoices/{invoiceId}:
     get:
       operationId: getInvoice
       summary: Get an invoice
@@ -2067,7 +2067,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/InvoiceReplaceUpdate'
-  /api/v1/billing/invoices/{invoiceId}/advance:
+  /v1/billing/invoices/{invoiceId}/advance:
     post:
       operationId: advanceInvoiceAction
       summary: Advance the invoice's state to the next status
@@ -2142,7 +2142,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing
-  /api/v1/billing/invoices/{invoiceId}/approve:
+  /v1/billing/invoices/{invoiceId}/approve:
     post:
       operationId: approveInvoiceAction
       summary: Send the invoice to the customer
@@ -2219,7 +2219,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing
-  /api/v1/billing/invoices/{invoiceId}/retry:
+  /v1/billing/invoices/{invoiceId}/retry:
     post:
       operationId: retryInvoiceAction
       summary: Retry advancing the invoice after a failed attempt.
@@ -2292,7 +2292,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing
-  /api/v1/billing/invoices/{invoiceId}/snapshot-quantities:
+  /v1/billing/invoices/{invoiceId}/snapshot-quantities:
     post:
       operationId: snapshotQuantitiesInvoiceAction
       summary: Snapshot quantities for usage based line items
@@ -2368,7 +2368,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing
-  /api/v1/billing/invoices/{invoiceId}/taxes/recalculate:
+  /v1/billing/invoices/{invoiceId}/taxes/recalculate:
     post:
       operationId: recalculateInvoiceTaxAction
       summary: Recalculate an invoice's tax amounts
@@ -2441,7 +2441,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing
-  /api/v1/billing/invoices/{invoiceId}/void:
+  /v1/billing/invoices/{invoiceId}/void:
     post:
       operationId: voidInvoiceAction
       summary: Void an invoice
@@ -2522,7 +2522,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VoidInvoiceActionInput'
-  /api/v1/billing/profiles:
+  /v1/billing/profiles:
     get:
       operationId: listBillingProfiles
       summary: List billing profiles
@@ -2670,7 +2670,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingProfileCreate'
-  /api/v1/billing/profiles/{id}:
+  /v1/billing/profiles/{id}:
     delete:
       operationId: deleteBillingProfile
       summary: Delete a billing profile
@@ -2903,7 +2903,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingProfileReplaceUpdateWithWorkflow'
-  /api/v1/customers:
+  /v1/customers:
     post:
       operationId: createCustomer
       summary: Create customer
@@ -3033,7 +3033,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
-  /api/v1/customers/{customerIdOrKey}:
+  /v1/customers/{customerIdOrKey}:
     get:
       operationId: getCustomer
       summary: Get customer
@@ -3238,7 +3238,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
-  /api/v1/customers/{customerIdOrKey}/access:
+  /v1/customers/{customerIdOrKey}/access:
     get:
       operationId: getCustomerAccess
       summary: Get customer access
@@ -3307,7 +3307,7 @@ paths:
       tags:
         - Entitlements
         - Customers
-  /api/v1/customers/{customerIdOrKey}/apps:
+  /v1/customers/{customerIdOrKey}/apps:
     get:
       operationId: listCustomerAppData
       summary: List customer app data
@@ -3455,7 +3455,7 @@ paths:
               type: array
               items:
                 $ref: '#/components/schemas/CustomerAppDataCreateOrUpdateItem'
-  /api/v1/customers/{customerIdOrKey}/apps/{appId}:
+  /v1/customers/{customerIdOrKey}/apps/{appId}:
     delete:
       operationId: deleteCustomerAppData
       summary: Delete customer app data
@@ -3526,7 +3526,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - CustomersApps
-  /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/value:
+  /v1/customers/{customerIdOrKey}/entitlements/{featureKey}/value:
     get:
       operationId: getCustomerEntitlementValue
       summary: Get customer entitlement value
@@ -3611,7 +3611,7 @@ paths:
       tags:
         - Entitlements
         - Customers
-  /api/v1/customers/{customerIdOrKey}/stripe:
+  /v1/customers/{customerIdOrKey}/stripe:
     get:
       operationId: getCustomerStripeAppData
       summary: Get customer stripe app data
@@ -3756,7 +3756,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/StripeCustomerAppDataBase'
-  /api/v1/customers/{customerIdOrKey}/stripe/portal:
+  /v1/customers/{customerIdOrKey}/stripe/portal:
     post:
       operationId: createCustomerStripePortalSession
       summary: Create Stripe customer portal session
@@ -3835,7 +3835,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateStripeCustomerPortalSessionParams'
-  /api/v1/customers/{customerIdOrKey}/subscriptions:
+  /v1/customers/{customerIdOrKey}/subscriptions:
     get:
       operationId: listCustomerSubscriptions
       summary: List customer subscriptions
@@ -3905,7 +3905,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
-  /api/v1/debug/metrics:
+  /v1/debug/metrics:
     get:
       operationId: getDebugMetrics
       summary: Get event metrics
@@ -3965,7 +3965,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Debug
-  /api/v1/entitlements:
+  /v1/entitlements:
     get:
       operationId: listEntitlements
       summary: List all entitlements
@@ -4076,7 +4076,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v1/entitlements/{entitlementId}:
+  /v1/entitlements/{entitlementId}:
     get:
       operationId: getEntitlementById
       summary: Get entitlement by id
@@ -4146,7 +4146,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v1/events:
+  /v1/events:
     get:
       operationId: listEvents
       summary: List ingested events
@@ -4375,7 +4375,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IngestEventsBody'
-  /api/v1/features:
+  /v1/features:
     get:
       operationId: listFeatures
       summary: List features
@@ -4522,7 +4522,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/FeatureCreateInputs'
-  /api/v1/features/{featureId}:
+  /v1/features/{featureId}:
     get:
       operationId: getFeature
       summary: Get feature
@@ -4657,7 +4657,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v1/grants:
+  /v1/grants:
     get:
       operationId: listGrants
       summary: List grants
@@ -4760,7 +4760,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v1/grants/{grantId}:
+  /v1/grants/{grantId}:
     delete:
       operationId: voidGrant
       summary: Void grant
@@ -4832,7 +4832,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v1/info/currencies:
+  /v1/info/currencies:
     get:
       operationId: listCurrencies
       summary: List supported currencies
@@ -4891,7 +4891,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Lookup Information
-  /api/v1/info/progress/{id}:
+  /v1/info/progress/{id}:
     get:
       operationId: getProgress
       summary: Get progress
@@ -4959,7 +4959,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Lookup Information
-  /api/v1/marketplace/listings:
+  /v1/marketplace/listings:
     get:
       operationId: listMarketplaceListings
       summary: List available apps
@@ -5018,7 +5018,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
-  /api/v1/marketplace/listings/{type}:
+  /v1/marketplace/listings/{type}:
     get:
       operationId: getMarketplaceListing
       summary: Get app details by type
@@ -5080,7 +5080,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
-  /api/v1/marketplace/listings/{type}/install:
+  /v1/marketplace/listings/{type}/install:
     post:
       operationId: marketplaceAppInstall
       summary: Install app
@@ -5144,7 +5144,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MarketplaceInstallRequestPayload'
-  /api/v1/marketplace/listings/{type}/install/apikey:
+  /v1/marketplace/listings/{type}/install/apikey:
     post:
       operationId: marketplaceAppAPIKeyInstall
       summary: Install app via API key
@@ -5228,7 +5228,7 @@ paths:
                     For example, the Stripe API key.
               required:
                 - apiKey
-  /api/v1/marketplace/listings/{type}/install/oauth2:
+  /v1/marketplace/listings/{type}/install/oauth2:
     get:
       operationId: marketplaceOAuth2InstallGetURL
       summary: Get OAuth2 install URL
@@ -5292,7 +5292,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
-  /api/v1/marketplace/listings/{type}/install/oauth2/authorize:
+  /v1/marketplace/listings/{type}/install/oauth2/authorize:
     get:
       operationId: marketplaceOAuth2InstallAuthorize
       summary: Install app via OAuth2
@@ -5353,7 +5353,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps
-  /api/v1/meters:
+  /v1/meters:
     get:
       operationId: listMeters
       summary: List meters
@@ -5479,7 +5479,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterCreate'
-  /api/v1/meters/{meterIdOrSlug}:
+  /v1/meters/{meterIdOrSlug}:
     get:
       operationId: getMeter
       summary: Get meter
@@ -5680,7 +5680,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Meters
-  /api/v1/meters/{meterIdOrSlug}/query:
+  /v1/meters/{meterIdOrSlug}/query:
     get:
       operationId: queryMeter
       parameters:
@@ -5838,7 +5838,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
-  /api/v1/meters/{meterIdOrSlug}/subjects:
+  /v1/meters/{meterIdOrSlug}/subjects:
     get:
       operationId: listMeterSubjects
       summary: List meter subjects
@@ -5905,7 +5905,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Meters
-  /api/v1/notification/channels:
+  /v1/notification/channels:
     get:
       operationId: listNotificationChannels
       summary: List notification channels
@@ -6052,7 +6052,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NotificationChannelCreateRequest'
-  /api/v1/notification/channels/{channelId}:
+  /v1/notification/channels/{channelId}:
     put:
       operationId: updateNotificationChannel
       summary: Update a notification channel
@@ -6265,7 +6265,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Notifications
-  /api/v1/notification/events:
+  /v1/notification/events:
     get:
       operationId: listNotificationEvents
       summary: List notification events
@@ -6402,7 +6402,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Notifications
-  /api/v1/notification/events/{eventId}:
+  /v1/notification/events/{eventId}:
     get:
       operationId: getNotificationEvent
       summary: Get notification event
@@ -6470,7 +6470,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Notifications
-  /api/v1/notification/rules:
+  /v1/notification/rules:
     get:
       operationId: listNotificationRules
       summary: List notification rules
@@ -6649,7 +6649,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NotificationRuleCreateRequest'
-  /api/v1/notification/rules/{ruleId}:
+  /v1/notification/rules/{ruleId}:
     put:
       operationId: updateNotificationRule
       summary: Update a notification rule
@@ -6862,7 +6862,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Notifications
-  /api/v1/notification/rules/{ruleId}/test:
+  /v1/notification/rules/{ruleId}/test:
     post:
       operationId: testNotificationRule
       summary: Test notification rule
@@ -6932,7 +6932,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Notifications
-  /api/v1/plans:
+  /v1/plans:
     get:
       operationId: listPlans
       summary: List plans
@@ -7127,7 +7127,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanCreate'
-  /api/v1/plans/{planIdOrKey}/next:
+  /v1/plans/{planIdOrKey}/next:
     post:
       operationId: nextPlan
       summary: New draft plan
@@ -7203,7 +7203,7 @@ paths:
       tags:
         - Product Catalog
       deprecated: true
-  /api/v1/plans/{planId}:
+  /v1/plans/{planId}:
     put:
       operationId: updatePlan
       summary: Update a plan
@@ -7431,7 +7431,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-  /api/v1/plans/{planId}/addons:
+  /v1/plans/{planId}/addons:
     get:
       operationId: listPlanAddons
       summary: List all available add-ons for plan
@@ -7635,7 +7635,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanAddonCreate'
-  /api/v1/plans/{planId}/addons/{planAddonId}:
+  /v1/plans/{planId}/addons/{planAddonId}:
     put:
       operationId: updatePlanAddon
       summary: Update add-on assignment for plan
@@ -7871,7 +7871,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-  /api/v1/plans/{planId}/archive:
+  /v1/plans/{planId}/archive:
     post:
       operationId: archivePlan
       summary: Archive plan version
@@ -7941,7 +7941,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-  /api/v1/plans/{planId}/publish:
+  /v1/plans/{planId}/publish:
     post:
       operationId: publishPlan
       summary: Publish plan
@@ -8011,7 +8011,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
-  /api/v1/portal/meters/{meterSlug}/query:
+  /v1/portal/meters/{meterSlug}/query:
     get:
       operationId: queryPortalMeter
       parameters:
@@ -8095,7 +8095,7 @@ paths:
         - Portal
       security:
         - PortalTokenAuth: []
-  /api/v1/portal/tokens:
+  /v1/portal/tokens:
     post:
       operationId: createPortalToken
       summary: Create consumer portal token
@@ -8226,7 +8226,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Portal
-  /api/v1/portal/tokens/invalidate:
+  /v1/portal/tokens/invalidate:
     post:
       operationId: invalidatePortalTokens
       summary: Invalidate portal tokens
@@ -8292,7 +8292,7 @@ paths:
                 subject:
                   type: string
                   description: Invalidate all portal tokens for a subject.
-  /api/v1/stripe/checkout/sessions:
+  /v1/stripe/checkout/sessions:
     post:
       operationId: createStripeCheckoutSession
       summary: Create checkout session
@@ -8361,7 +8361,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
-  /api/v1/subjects:
+  /v1/subjects:
     get:
       operationId: listSubjects
       summary: List subjects
@@ -8490,7 +8490,7 @@ paths:
               type: array
               items:
                 $ref: '#/components/schemas/SubjectUpsert'
-  /api/v1/subjects/{subjectIdOrKey}:
+  /v1/subjects/{subjectIdOrKey}:
     get:
       operationId: getSubject
       summary: Get subject
@@ -8615,7 +8615,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subjects
-  /api/v1/subjects/{subjectIdOrKey}/entitlements:
+  /v1/subjects/{subjectIdOrKey}/entitlements:
     post:
       operationId: createEntitlement
       summary: Create a subject entitlement
@@ -8769,7 +8769,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
+  /v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
     get:
       operationId: listEntitlementGrants
       summary: List subject entitlement grants
@@ -8943,7 +8943,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementGrantCreateInput'
-  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override:
+  /v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override:
     put:
       operationId: overrideEntitlement
       summary: Override subject entitlement
@@ -9031,7 +9031,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
-  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
+  /v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
     get:
       operationId: getEntitlementValue
       summary: Get subject entitlement value
@@ -9115,7 +9115,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}:
+  /v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}:
     get:
       operationId: getEntitlement
       summary: Get subject entitlement
@@ -9258,7 +9258,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history:
+  /v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history:
     get:
       operationId: getEntitlementHistory
       summary: Get subject entitlement history
@@ -9373,7 +9373,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset:
+  /v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset:
     post:
       operationId: resetEntitlementUsage
       summary: Reset subject entitlement
@@ -9451,7 +9451,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResetEntitlementUsageInput'
-  /api/v1/subscriptions:
+  /v1/subscriptions:
     post:
       operationId: createSubscription
       summary: Create subscription
@@ -9519,7 +9519,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SubscriptionCreate'
-  /api/v1/subscriptions/{subscriptionId}:
+  /v1/subscriptions/{subscriptionId}:
     get:
       operationId: getSubscription
       summary: Get subscription
@@ -9745,7 +9745,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subscriptions
-  /api/v1/subscriptions/{subscriptionId}/addons:
+  /v1/subscriptions/{subscriptionId}/addons:
     post:
       operationId: createSubscriptionAddon
       summary: Create subscription addon
@@ -9898,7 +9898,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subscriptions
-  /api/v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}:
+  /v1/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}:
     get:
       operationId: getSubscriptionAddon
       summary: Get subscription addon
@@ -10057,7 +10057,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SubscriptionAddonUpdate'
-  /api/v1/subscriptions/{subscriptionId}/cancel:
+  /v1/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancelSubscription
       summary: Cancel subscription
@@ -10146,7 +10146,7 @@ paths:
                   allOf:
                     - $ref: '#/components/schemas/SubscriptionTiming'
                   description: If not provided the subscription is canceled immediately.
-  /api/v1/subscriptions/{subscriptionId}/change:
+  /v1/subscriptions/{subscriptionId}/change:
     post:
       operationId: changeSubscription
       summary: Change subscription
@@ -10230,7 +10230,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SubscriptionChange'
-  /api/v1/subscriptions/{subscriptionId}/migrate:
+  /v1/subscriptions/{subscriptionId}/migrate:
     post:
       operationId: migrateSubscription
       summary: Migrate subscription
@@ -10340,7 +10340,7 @@ paths:
                   format: date-time
                   description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
                   example: '2023-01-01T01:01:01.001Z'
-  /api/v1/subscriptions/{subscriptionId}/restore:
+  /v1/subscriptions/{subscriptionId}/restore:
     post:
       operationId: restoreSubscription
       summary: Restore subscription
@@ -10413,7 +10413,7 @@ paths:
       tags:
         - Subscriptions
       deprecated: true
-  /api/v1/subscriptions/{subscriptionId}/unschedule-cancelation:
+  /v1/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unscheduleCancelation
       summary: Unschedule cancelation
@@ -10489,7 +10489,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subscriptions
-  /api/v2/customers/{customerIdOrKey}/entitlements:
+  /v2/customers/{customerIdOrKey}/entitlements:
     post:
       operationId: createCustomerEntitlementV2
       summary: Create a customer entitlement
@@ -10646,7 +10646,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}:
+  /v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}:
     get:
       operationId: getCustomerEntitlementV2
       summary: Get customer entitlement
@@ -10797,7 +10797,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
+  /v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
     get:
       operationId: listCustomerEntitlementGrantsV2
       summary: List customer entitlement grants
@@ -10975,7 +10975,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementGrantCreateInputV2'
-  /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history:
+  /v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history:
     get:
       operationId: getCustomerEntitlementHistoryV2
       summary: Get customer entitlement history
@@ -11094,7 +11094,7 @@ paths:
       tags:
         - Entitlements
         - Customers
-  /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override:
+  /v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override:
     put:
       operationId: overrideCustomerEntitlementV2
       summary: Override customer entitlement
@@ -11182,7 +11182,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementV2CreateInputs'
-  /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset:
+  /v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset:
     post:
       operationId: resetCustomerEntitlementUsageV2
       summary: Reset customer entitlement
@@ -11264,7 +11264,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResetEntitlementUsageInput'
-  /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
+  /v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
     get:
       operationId: getCustomerEntitlementValueV2
       summary: Get customer entitlement value
@@ -11349,7 +11349,7 @@ paths:
       tags:
         - Entitlements
         - Customers
-  /api/v2/entitlements:
+  /v2/entitlements:
     get:
       operationId: listEntitlementsV2
       summary: List all entitlements
@@ -11471,7 +11471,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v2/entitlements/{entitlementId}:
+  /v2/entitlements/{entitlementId}:
     get:
       operationId: getEntitlementByIdV2
       summary: Get entitlement by id
@@ -11541,7 +11541,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
-  /api/v2/events:
+  /v2/events:
     get:
       operationId: listEventsV2
       summary: List ingested events
@@ -11635,7 +11635,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Events
-  /api/v2/grants:
+  /v2/grants:
     get:
       operationId: listGrantsV2
       summary: List grants
@@ -25316,6 +25316,6 @@ components:
       scheme: Bearer
       description: Consumer portal token.
 servers:
-  - url: https://127.0.0.1
+  - url: https://127.0.0.1/api
     description: Local
     variables: {}

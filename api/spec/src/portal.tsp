@@ -8,7 +8,7 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Portal;
 
-@route("/api/v1/portal/tokens")
+@route("/v1/portal/tokens")
 @tag("Portal")
 interface Tokens {
   /**
@@ -99,7 +99,7 @@ model Token {
   allowedMeterSlugs?: string[];
 }
 
-@route("/api/v1/portal/meters")
+@route("/v1/portal/meters")
 @tag("Portal")
 @useAuth(PortalTokenAuth)
 interface Meters {

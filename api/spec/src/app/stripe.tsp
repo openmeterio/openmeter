@@ -23,7 +23,7 @@ interface AppStripe {
    * Handle stripe webhooks for apps.
    */
   @post
-  @route("/api/v1/apps/{id}/stripe/webhook")
+  @route("/v1/apps/{id}/stripe/webhook")
   @operationId("appStripeWebhook")
   @useAuth(NoAuth)
   @summary("Stripe webhook")
@@ -37,7 +37,7 @@ interface AppStripe {
    */
   #deprecated "Use /api/v1/apps/{id} instead"
   @put
-  @route("/api/v1/apps/{id}/stripe/api-key")
+  @route("/v1/apps/{id}/stripe/api-key")
   @operationId("updateStripeAPIKey")
   @summary("Update Stripe API key")
   updateStripeAPIKey(
@@ -49,7 +49,7 @@ interface AppStripe {
    * Create checkout session.
    */
   @post
-  @route("/api/v1/stripe/checkout/sessions")
+  @route("/v1/stripe/checkout/sessions")
   @operationId("createStripeCheckoutSession")
   @summary("Create checkout session")
   createCheckoutSession(@body body: CreateStripeCheckoutSessionRequest): {

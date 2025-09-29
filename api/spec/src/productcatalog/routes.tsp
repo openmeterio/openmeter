@@ -6,7 +6,7 @@ namespace OpenMeter.ProductCatalog;
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-@route("/api/v1/plans")
+@route("/v1/plans")
 @tag("Product Catalog")
 interface Plans {
   /**
@@ -163,7 +163,7 @@ interface Plans {
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
-@route("/api/v1/plans/{planId}/addons")
+@route("/v1/plans/{planId}/addons")
 @tag("Product Catalog")
 interface PlanAddons {
   /**
@@ -260,7 +260,7 @@ interface PlanAddons {
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
-@route("/api/v1/addons")
+@route("/v1/addons")
 @tag("Product Catalog")
 interface Addons {
   /**
@@ -399,7 +399,7 @@ interface Addons {
   ): Addon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
-@route("/api/v1/subscriptions")
+@route("/v1/subscriptions")
 @tag("Subscriptions")
 interface Subscriptions {
   @get
@@ -565,7 +565,7 @@ interface Subscriptions {
   } | OpenMeter.NotFoundError | CommonErrors;
 }
 
-@route("/api/v1/subscriptions/{subscriptionId}/addons")
+@route("/v1/subscriptions/{subscriptionId}/addons")
 @tag("Subscriptions")
 interface SubscriptionAddons {
   /**

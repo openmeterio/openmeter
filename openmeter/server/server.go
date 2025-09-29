@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -64,17 +65,6 @@ type Config struct {
 }
 
 func NewServer(config *Config) (*Server, error) {
-	// Get the OpenAPI spec
-	swagger, err := api.GetSwagger()
-	if err != nil {
-		slog.Error("failed to get swagger", "error", err)
-		return nil, err
-	}
-
-	// Clear out the servers array in the swagger spec, that skips validating
-	// that server names match. We don't know how this thing will be run.
-	swagger.Servers = nil
-
 	impl, err := router.NewRouter(config.RouterConfig)
 	if err != nil {
 		slog.Error("failed to create API", "error", err)
@@ -123,6 +113,17 @@ func NewServer(config *Config) (*Server, error) {
 		models.NewStatusProblem(r.Context(), nil, http.StatusMethodNotAllowed).Respond(w)
 	})
 
+	// Get the OpenAPI spec
+	swagger, err := api.GetSwagger()
+	if err != nil {
+		slog.Error("failed to get swagger", "error", err)
+		return nil, err
+	}
+
+	// Set the base path to the API base path
+	apiBaseURL := config.RouterConfig.ApiBaseURL
+	swagger.Servers = []*openapi3.Server{{URL: apiBaseURL}}
+
 	// Serve the OpenAPI spec
 	r.Get("/api/swagger.json", func(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, swagger)
@@ -136,6 +137,7 @@ func NewServer(config *Config) (*Server, error) {
 	// Use validator middleware to check requests against the OpenAPI schema
 	_ = api.HandlerWithOptions(impl, api.ChiServerOptions{
 		BaseRouter: r,
+		BaseURL:    apiBaseURL,
 		Middlewares: []api.MiddlewareFunc{
 			authenticator.NewAuthenticator(config.RouterConfig.Portal, config.RouterConfig.ErrorHandler).NewAuthenticatorMiddlewareFunc(swagger),
 			oapimiddleware.OapiRequestValidatorWithOptions(swagger, &oapimiddleware.Options{

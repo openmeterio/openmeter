@@ -20,6 +20,7 @@ import (
 type Configuration struct {
 	Address     string
 	Environment string
+	ApiBaseURL  string
 
 	Telemetry TelemetryConfig
 
@@ -162,6 +163,9 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	flags.String("address", ":8888", "Server address")
 	_ = v.BindPFlag("address", flags.Lookup("address"))
 	v.SetDefault("address", ":8888")
+
+	// API Base URL configuration
+	v.SetDefault("apiBaseURL", "/api")
 
 	// Environment used for identifying the service environment
 	v.SetDefault("environment", "unknown")

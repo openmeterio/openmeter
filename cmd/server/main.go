@@ -182,6 +182,7 @@ func main() {
 			SubscriptionAddonService:    app.Subscription.SubscriptionAddonService,
 			SubjectService:              app.SubjectService,
 			StreamingConnector:          app.StreamingConnector,
+			ApiBaseURL:                  conf.ApiBaseURL,
 		},
 		RouterHooks: lo.FromPtr(app.RouterHooks),
 	})

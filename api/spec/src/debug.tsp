@@ -6,7 +6,7 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
-@route("/api/v1/debug")
+@route("/v1/debug")
 @tag("Debug")
 interface Debug {
   /**
