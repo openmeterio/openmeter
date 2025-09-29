@@ -1,2 +1,8 @@
 api/client/python/src/openmeter/_serialization.py
 **/*_test.go
+
+# These are only included due to bugous //nosemgrep support in current version, please remove them once the semgrep has been upgraded
+
+openmeter/billing/service/seq.go
+collector/benthos/input/otel_log.go
+openmeter/productcatalog/feature/connector.go
