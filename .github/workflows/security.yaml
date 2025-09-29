@@ -1,0 +1,90 @@
+permissions:
+  contents: read
+  actions: read
+  checks: read
+on:
+  pull_request:
+    branches:
+    - main
+  push:
+    branches:
+    - main
+
+name: Security
+
+jobs:
+  secret-scanning:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    if: (github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]')
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - uses: Kong/public-shared-actions/security-actions/secret-scan@fd6bf1150a8cc1a4f2a553dec2ede4eef7059ba2 # 1.1.1
+      name: Running Secret Scan using Trufflehog
+      with:
+        fail_on_findings: 'true'
+
+  sca:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: read
+      checks: write
+      pull-requests: write
+    name: Repository Scan
+    if: (github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]')
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan Repository
+        id: sca_repo
+        uses: Kong/public-shared-actions/security-actions/sca@ba5f6140d799d220f6417e74d9bfda1116fddc9a # 6.0.0
+        with:
+          asset_prefix: openmeter-cloud
+          dir: "."
+          config: .syft.yaml
+          fail_build: "true"
+
+  semgrep:
+    name: SAST (semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      # required for all workflows
+      security-events: write
+      # only required for workflows in private repositories
+      actions: read
+      contents: read
+
+    if: (github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]')
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          # Required by semgrep
+          persist-credentials: true
+
+      - uses: Kong/public-shared-actions/security-actions/semgrep@1c412fcf497b6b8ae6cc3313389aa8756de68eac # v5.0.1
+        with:
+          fail_on_findings: "true"
+
+  scan-gh-workflows:
+    name: Scan GitHub Workflows
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan GitHub Workflows
+        id: scan_gh_workflows
+        uses: Kong/public-shared-actions/security-actions/scan-gh-workflows@916a6f6221b7eab6f5ae53d061274d588c965ae6 # 5.0.2
+        with:
+          fail_on_findings: "true"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
