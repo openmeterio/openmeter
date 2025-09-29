@@ -18,7 +18,7 @@ export class HTTPError extends Error {
     public title: string,
     public status: number,
     public url: string,
-    protected __raw?: Record<string, any>
+    protected __raw?: Record<string, unknown>,
   ) {
     super(message)
   }
@@ -38,7 +38,7 @@ export class HTTPError extends Error {
         resp.error.title,
         resp.error.status ?? resp.response.status,
         resp.response.url,
-        resp.error
+        resp.error,
       )
     }
 
@@ -47,7 +47,7 @@ export class HTTPError extends Error {
       resp.response.statusText,
       resp.response.statusText,
       resp.response.status,
-      resp.response.url
+      resp.response.url,
     )
   }
 

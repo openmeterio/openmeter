@@ -1,4 +1,4 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type {
   CreateStripeCustomerPortalSessionParams,
@@ -9,7 +9,7 @@ import type {
   paths,
   StripeCustomerAppDataBase,
 } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 
 /**
  * Customers
@@ -51,7 +51,7 @@ export class Customers {
    */
   public async get(
     customerIdOrKey: operations['getCustomer']['parameters']['path']['customerIdOrKey'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/customers/{customerIdOrKey}', {
       params: {
@@ -75,7 +75,7 @@ export class Customers {
   public async update(
     customerIdOrKey: operations['updateCustomer']['parameters']['path']['customerIdOrKey'],
     customer: CustomerReplaceUpdate,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT('/api/v1/customers/{customerIdOrKey}', {
       body: customer,
@@ -98,7 +98,7 @@ export class Customers {
    */
   public async delete(
     customerIdOrKey: operations['deleteCustomer']['parameters']['path']['customerIdOrKey'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE(
       '/api/v1/customers/{customerIdOrKey}',
@@ -109,7 +109,7 @@ export class Customers {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -122,7 +122,7 @@ export class Customers {
    */
   public async list(
     query?: operations['listCustomers']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/customers', {
       params: {
@@ -142,7 +142,7 @@ export class Customers {
    */
   public async getAccess(
     customerIdOrKey: operations['getCustomerAccess']['parameters']['path']['customerIdOrKey'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/customers/{customerIdOrKey}/access',
@@ -153,7 +153,7 @@ export class Customers {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -169,14 +169,14 @@ export class Customers {
   public async listSubscriptions(
     customerIdOrKey: operations['listCustomerSubscriptions']['parameters']['path']['customerIdOrKey'],
     query?: operations['listCustomerSubscriptions']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/customers/{customerIdOrKey}/subscriptions',
       {
         params: { path: { customerIdOrKey }, query },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -200,7 +200,7 @@ export class CustomerApps {
   public async upsert(
     customerIdOrKey: operations['upsertCustomerAppData']['parameters']['path']['customerIdOrKey'],
     appData: CustomerAppData[],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT(
       '/api/v1/customers/{customerIdOrKey}/apps',
@@ -212,7 +212,7 @@ export class CustomerApps {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -228,7 +228,7 @@ export class CustomerApps {
   public async list(
     customerIdOrKey: operations['listCustomerAppData']['parameters']['path']['customerIdOrKey'],
     query?: operations['listCustomerAppData']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/customers/{customerIdOrKey}/apps',
@@ -238,7 +238,7 @@ export class CustomerApps {
           query,
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -254,14 +254,14 @@ export class CustomerApps {
   public async delete(
     customerIdOrKey: operations['deleteCustomerAppData']['parameters']['path']['customerIdOrKey'],
     appId: operations['deleteCustomerAppData']['parameters']['path']['appId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE(
       '/api/v1/customers/{customerIdOrKey}/apps/{appId}',
       {
         params: { path: { appId, customerIdOrKey } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -285,7 +285,7 @@ export class CustomerStripe {
   public async upsert(
     customerIdOrKey: operations['upsertCustomerStripeAppData']['parameters']['path']['customerIdOrKey'],
     stripeAppData: StripeCustomerAppDataBase,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT(
       '/api/v1/customers/{customerIdOrKey}/stripe',
@@ -297,7 +297,7 @@ export class CustomerStripe {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -312,7 +312,7 @@ export class CustomerStripe {
    */
   public async get(
     customerIdOrKey: operations['getCustomerStripeAppData']['parameters']['path']['customerIdOrKey'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/customers/{customerIdOrKey}/apps',
@@ -321,7 +321,7 @@ export class CustomerStripe {
           path: { customerIdOrKey },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -337,7 +337,7 @@ export class CustomerStripe {
   public async createPortalSession(
     customerIdOrKey: operations['createCustomerStripePortalSession']['parameters']['path']['customerIdOrKey'],
     params: CreateStripeCustomerPortalSessionParams,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/customers/{customerIdOrKey}/stripe/portal',
@@ -349,7 +349,7 @@ export class CustomerStripe {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -372,14 +372,14 @@ export class CustomerEntitlements {
   public async value(
     customerIdOrKey: operations['getCustomerEntitlementValue']['parameters']['path']['customerIdOrKey'],
     featureKey: operations['getCustomerEntitlementValue']['parameters']['path']['featureKey'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/value',
       {
         params: { path: { customerIdOrKey, featureKey } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -402,7 +402,7 @@ export class CustomerEntitlementsV2 {
     customerIdOrKey: operations['listCustomerEntitlementsV2']['parameters']['path']['customerIdOrKey'],
     options?: RequestOptions & {
       query?: operations['listCustomerEntitlementsV2']['parameters']['query']
-    }
+    },
   ) {
     const resp = await this.client.GET(
       '/api/v2/customers/{customerIdOrKey}/entitlements',
@@ -412,7 +412,7 @@ export class CustomerEntitlementsV2 {
           query: options?.query,
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -428,7 +428,7 @@ export class CustomerEntitlementsV2 {
   public async create(
     customerIdOrKey: operations['createCustomerEntitlementV2']['parameters']['path']['customerIdOrKey'],
     entitlement: operations['createCustomerEntitlementV2']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v2/customers/{customerIdOrKey}/entitlements',
@@ -438,7 +438,7 @@ export class CustomerEntitlementsV2 {
           path: { customerIdOrKey },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -454,7 +454,7 @@ export class CustomerEntitlementsV2 {
   public async get(
     customerIdOrKey: operations['getCustomerEntitlementV2']['parameters']['path']['customerIdOrKey'],
     entitlementIdOrFeatureKey: operations['getCustomerEntitlementV2']['parameters']['path']['entitlementIdOrFeatureKey'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}',
@@ -463,7 +463,7 @@ export class CustomerEntitlementsV2 {
           path: { customerIdOrKey, entitlementIdOrFeatureKey },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -479,7 +479,7 @@ export class CustomerEntitlementsV2 {
   public async delete(
     customerIdOrKey: operations['deleteCustomerEntitlementV2']['parameters']['path']['customerIdOrKey'],
     entitlementIdOrFeatureKey: operations['deleteCustomerEntitlementV2']['parameters']['path']['entitlementIdOrFeatureKey'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE(
       '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}',
@@ -488,7 +488,7 @@ export class CustomerEntitlementsV2 {
           path: { customerIdOrKey, entitlementIdOrFeatureKey },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -506,7 +506,7 @@ export class CustomerEntitlementsV2 {
     customerIdOrKey: operations['overrideCustomerEntitlementV2']['parameters']['path']['customerIdOrKey'],
     entitlementIdOrFeatureKey: operations['overrideCustomerEntitlementV2']['parameters']['path']['entitlementIdOrFeatureKey'],
     entitlement: operations['overrideCustomerEntitlementV2']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT(
       '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override',
@@ -516,7 +516,7 @@ export class CustomerEntitlementsV2 {
           path: { customerIdOrKey, entitlementIdOrFeatureKey },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -534,7 +534,7 @@ export class CustomerEntitlementsV2 {
     entitlementIdOrFeatureKey: operations['listCustomerEntitlementGrantsV2']['parameters']['path']['entitlementIdOrFeatureKey'],
     options?: RequestOptions & {
       query?: operations['listCustomerEntitlementGrantsV2']['parameters']['query']
-    }
+    },
   ) {
     const resp = await this.client.GET(
       '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants',
@@ -544,7 +544,7 @@ export class CustomerEntitlementsV2 {
           query: options?.query,
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -562,7 +562,7 @@ export class CustomerEntitlementsV2 {
     customerIdOrKey: operations['createCustomerEntitlementGrantV2']['parameters']['path']['customerIdOrKey'],
     entitlementIdOrFeatureKey: operations['createCustomerEntitlementGrantV2']['parameters']['path']['entitlementIdOrFeatureKey'],
     grant: operations['createCustomerEntitlementGrantV2']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants',
@@ -572,7 +572,7 @@ export class CustomerEntitlementsV2 {
           path: { customerIdOrKey, entitlementIdOrFeatureKey },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -590,7 +590,7 @@ export class CustomerEntitlementsV2 {
     entitlementIdOrFeatureKey: operations['getCustomerEntitlementValueV2']['parameters']['path']['entitlementIdOrFeatureKey'],
     options?: RequestOptions & {
       query?: operations['getCustomerEntitlementValueV2']['parameters']['query']
-    }
+    },
   ) {
     const resp = await this.client.GET(
       '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value',
@@ -600,7 +600,7 @@ export class CustomerEntitlementsV2 {
           query: options?.query,
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -623,7 +623,7 @@ export class CustomerEntitlementsV2 {
         operations['getCustomerEntitlementHistoryV2']['parameters']['query'],
         'windowSize'
       >
-    }
+    },
   ) {
     const resp = await this.client.GET(
       '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history',
@@ -636,7 +636,7 @@ export class CustomerEntitlementsV2 {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -654,7 +654,7 @@ export class CustomerEntitlementsV2 {
     customerIdOrKey: operations['resetCustomerEntitlementUsageV2']['parameters']['path']['customerIdOrKey'],
     entitlementIdOrFeatureKey: operations['resetCustomerEntitlementUsageV2']['parameters']['path']['entitlementIdOrFeatureKey'],
     reset: operations['resetCustomerEntitlementUsageV2']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset',
@@ -664,7 +664,7 @@ export class CustomerEntitlementsV2 {
           path: { customerIdOrKey, entitlementIdOrFeatureKey },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)

@@ -1,7 +1,7 @@
 import fetchMock from '@fetch-mock/vitest'
-import { describe, expect, it, beforeEach } from 'vitest'
-import { OpenMeter } from './index.js'
+import { beforeEach, describe, expect, it } from 'vitest'
 import type { Event } from './index.js'
+import { OpenMeter } from './index.js'
 
 interface Context {
   baseUrl: string
@@ -49,7 +49,7 @@ describe('Events', () => {
             source: '@openmeter/sdk',
             specversion: '1.0',
             subject: 'customer_id',
-            time: event.time!.toISOString(),
+            time: event.time?.toISOString(),
             type: 'prompt',
           },
         ],
@@ -58,7 +58,7 @@ describe('Events', () => {
         },
         method: 'POST',
         name: task.name,
-      }
+      },
     )
     const resp = await client.events.ingest(event)
     expect(resp).toBeUndefined()
@@ -101,7 +101,7 @@ describe('Events', () => {
           subject: query.subject,
           to: query.to.toISOString(),
         },
-      }
+      },
     )
     const resp = await client.events.list(query)
     expect(resp).toEqual(respBody)

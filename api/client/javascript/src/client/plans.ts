@@ -1,12 +1,12 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type {
   operations,
-  paths,
   PlanCreate,
   PlanReplaceUpdate,
+  paths,
 } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 
 /**
  * Plans
@@ -44,7 +44,7 @@ export class Plans {
   public async get(
     planId: operations['getPlan']['parameters']['path']['planId'],
     params?: operations['getPlan']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/plans/{planId}', {
       params: {
@@ -65,7 +65,7 @@ export class Plans {
    */
   public async list(
     params?: operations['listPlans']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/plans', {
       params: { query: params },
@@ -85,7 +85,7 @@ export class Plans {
   public async update(
     planId: operations['updatePlan']['parameters']['path']['planId'],
     plan: PlanReplaceUpdate,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT('/api/v1/plans/{planId}', {
       body: plan,
@@ -104,7 +104,7 @@ export class Plans {
    */
   public async delete(
     planId: operations['deletePlan']['parameters']['path']['planId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE('/api/v1/plans/{planId}', {
       params: { path: { planId } },
@@ -122,7 +122,7 @@ export class Plans {
    */
   public async archive(
     planId: operations['archivePlan']['parameters']['path']['planId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST('/api/v1/plans/{planId}/archive', {
       params: { path: { planId } },
@@ -140,7 +140,7 @@ export class Plans {
    */
   public async publish(
     planId: operations['publishPlan']['parameters']['path']['planId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST('/api/v1/plans/{planId}/publish', {
       params: { path: { planId } },
@@ -168,7 +168,7 @@ export class PlanAddons {
   public async list(
     planId: operations['listPlanAddons']['parameters']['path']['planId'],
     params?: operations['listPlanAddons']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/plans/{planId}/addons', {
       params: {
@@ -191,7 +191,7 @@ export class PlanAddons {
   public async create(
     planId: operations['createPlanAddon']['parameters']['path']['planId'],
     planAddon: operations['createPlanAddon']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST('/api/v1/plans/{planId}/addons', {
       body: planAddon,
@@ -212,7 +212,7 @@ export class PlanAddons {
   public async get(
     planId: operations['getPlanAddon']['parameters']['path']['planId'],
     planAddonId: operations['getPlanAddon']['parameters']['path']['planAddonId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/plans/{planId}/addons/{planAddonId}',
@@ -221,7 +221,7 @@ export class PlanAddons {
           path: { planAddonId, planId },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -239,7 +239,7 @@ export class PlanAddons {
     planId: operations['updatePlanAddon']['parameters']['path']['planId'],
     planAddonId: operations['updatePlanAddon']['parameters']['path']['planAddonId'],
     planAddon: operations['updatePlanAddon']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT(
       '/api/v1/plans/{planId}/addons/{planAddonId}',
@@ -247,7 +247,7 @@ export class PlanAddons {
         body: planAddon,
         params: { path: { planAddonId, planId } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -263,14 +263,14 @@ export class PlanAddons {
   public async delete(
     planId: operations['deletePlanAddon']['parameters']['path']['planId'],
     planAddonId: operations['deletePlanAddon']['parameters']['path']['planAddonId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE(
       '/api/v1/plans/{planId}/addons/{planAddonId}',
       {
         params: { path: { planAddonId, planId } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)

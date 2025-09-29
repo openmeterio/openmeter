@@ -1,7 +1,7 @@
-import { transformResponse } from './utils.js'
-import type { RequestOptions } from './common.js'
-import type { paths, AddonCreate, operations } from './schemas.js'
 import type { Client } from 'openapi-fetch'
+import type { RequestOptions } from './common.js'
+import type { AddonCreate, operations, paths } from './schemas.js'
+import { transformResponse } from './utils.js'
 
 export class Addons {
   constructor(private client: Client<paths, `${string}/${string}`>) {}
@@ -29,7 +29,7 @@ export class Addons {
    */
   public async list(
     params?: operations['listAddons']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/addons', {
       params: { query: params },
@@ -64,7 +64,7 @@ export class Addons {
   public async update(
     addonId: string,
     addon: operations['updateAddon']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT('/api/v1/addons/{addonId}', {
       body: addon,

@@ -1,10 +1,10 @@
-import { HTTPError } from './common.js'
 import type { FetchResponse, ParseAsResponse } from 'openapi-fetch'
 import type {
   MediaType,
   ResponseObjectMap,
   SuccessResponse,
 } from 'openapi-typescript-helpers'
+import { HTTPError } from './common.js'
 
 /**
  * Transform a response from the API
@@ -13,13 +13,14 @@ import type {
  * @returns The transformed response
  */
 export function transformResponse<
-  T extends Record<string | number, any>,
+  T extends Record<string | number, unknown>,
   Options,
   Media extends MediaType,
 >(
-  resp: FetchResponse<T, Options, Media>
+  resp: FetchResponse<T, Options, Media>,
 ):
   | ParseAsResponse<SuccessResponse<ResponseObjectMap<T>, Media>, Options>
+  | undefined
   | never {
   // Handle errors
   if (resp.error || resp.response.status >= 400) {
@@ -27,11 +28,8 @@ export function transformResponse<
   }
 
   // Decode dates
-  if (resp.data) {
-    resp.data = decodeDates(resp.data)
-  }
-
-  return resp.data!
+  resp.data = decodeDates(resp.data)
+  return resp.data
 }
 
 const ISODateFormat =

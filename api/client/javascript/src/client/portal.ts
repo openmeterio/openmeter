@@ -1,7 +1,7 @@
-import { transformResponse } from './utils.js'
-import type { RequestOptions } from './common.js'
-import type { operations, paths, PortalToken } from './schemas.js'
 import type { Client } from 'openapi-fetch'
+import type { RequestOptions } from './common.js'
+import type { operations, PortalToken, paths } from './schemas.js'
+import { transformResponse } from './utils.js'
 
 /**
  * Portal
@@ -33,7 +33,7 @@ export class Portal {
    */
   public async list(
     query?: operations['listPortalTokens']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/portal/tokens', {
       params: { query },
@@ -51,7 +51,7 @@ export class Portal {
    */
   public async invalidate(
     body: operations['invalidatePortalTokens']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST('/api/v1/portal/tokens/invalidate', {
       body,

@@ -1,4 +1,4 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type {
   operations,
@@ -7,7 +7,7 @@ import type {
   SubscriptionCreate,
   SubscriptionEdit,
 } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 
 /**
  * Subscriptions
@@ -38,14 +38,14 @@ export class Subscriptions {
    */
   public async get(
     id: operations['getSubscription']['parameters']['path']['subscriptionId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/subscriptions/{subscriptionId}',
       {
         params: { path: { subscriptionId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -61,7 +61,7 @@ export class Subscriptions {
   public async edit(
     id: operations['editSubscription']['parameters']['path']['subscriptionId'],
     body: SubscriptionEdit,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PATCH(
       '/api/v1/subscriptions/{subscriptionId}',
@@ -69,7 +69,7 @@ export class Subscriptions {
         body,
         params: { path: { subscriptionId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -85,7 +85,7 @@ export class Subscriptions {
   public async cancel(
     id: operations['cancelSubscription']['parameters']['path']['subscriptionId'],
     body: operations['cancelSubscription']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/subscriptions/{subscriptionId}/cancel',
@@ -93,7 +93,7 @@ export class Subscriptions {
         body,
         params: { path: { subscriptionId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -110,7 +110,7 @@ export class Subscriptions {
   public async change(
     id: operations['changeSubscription']['parameters']['path']['subscriptionId'],
     body: SubscriptionChange,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/subscriptions/{subscriptionId}/change',
@@ -118,7 +118,7 @@ export class Subscriptions {
         body,
         params: { path: { subscriptionId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -135,7 +135,7 @@ export class Subscriptions {
   public async migrate(
     id: operations['migrateSubscription']['parameters']['path']['subscriptionId'],
     body: operations['migrateSubscription']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/subscriptions/{subscriptionId}/migrate',
@@ -143,7 +143,7 @@ export class Subscriptions {
         body,
         params: { path: { subscriptionId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -157,14 +157,14 @@ export class Subscriptions {
    */
   public async unscheduleCancelation(
     id: operations['unscheduleCancelation']['parameters']['path']['subscriptionId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/subscriptions/{subscriptionId}/unschedule-cancelation',
       {
         params: { path: { subscriptionId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -179,7 +179,7 @@ export class Subscriptions {
    */
   public async delete(
     subscriptionId: operations['deleteSubscription']['parameters']['path']['subscriptionId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE(
       '/api/v1/subscriptions/{subscriptionId}',
@@ -188,7 +188,7 @@ export class Subscriptions {
           path: { subscriptionId },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)

@@ -1,4 +1,4 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type {
   Feature,
@@ -6,7 +6,7 @@ import type {
   operations,
   paths,
 } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 
 /**
  * Features
@@ -38,7 +38,7 @@ export class Features {
    */
   public async get(
     id: operations['getFeature']['parameters']['path']['featureId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/features/{featureId}', {
       params: {
@@ -63,7 +63,7 @@ export class Features {
       operations['listFeatures']['parameters']['query'],
       'page' | 'pageSize'
     >,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/features', {
       params: {
@@ -83,7 +83,7 @@ export class Features {
    */
   public async delete(
     id: operations['deleteFeature']['parameters']['path']['featureId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE('/api/v1/features/{featureId}', {
       params: {

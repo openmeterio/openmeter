@@ -1,7 +1,7 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type { operations, paths } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 
 /**
  * Info utilities for OpenMeter
@@ -31,7 +31,7 @@ export class Info {
    */
   public async getProgress(
     id: operations['getProgress']['parameters']['path']['id'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/info/progress/{id}', {
       params: {

@@ -1,4 +1,4 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type {
   NotificationChannel,
@@ -6,7 +6,7 @@ import type {
   operations,
   paths,
 } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 
 /**
  * Notifications
@@ -39,7 +39,7 @@ export class NotificationChannels {
    */
   public async create(
     notification: NotificationChannel,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST('/api/v1/notification/channels', {
       body: notification,
@@ -57,7 +57,7 @@ export class NotificationChannels {
    */
   public async get(
     id: operations['getNotificationChannel']['parameters']['path']['channelId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/notification/channels/{channelId}',
@@ -68,7 +68,7 @@ export class NotificationChannels {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -84,7 +84,7 @@ export class NotificationChannels {
   public async update(
     id: operations['updateNotificationChannel']['parameters']['path']['channelId'],
     notification: NotificationChannel,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT(
       '/api/v1/notification/channels/{channelId}',
@@ -96,7 +96,7 @@ export class NotificationChannels {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -110,7 +110,7 @@ export class NotificationChannels {
    */
   public async list(
     query?: operations['listNotificationChannels']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/notification/channels', {
       params: {
@@ -130,7 +130,7 @@ export class NotificationChannels {
    */
   public async delete(
     id: operations['deleteNotificationChannel']['parameters']['path']['channelId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE(
       '/api/v1/notification/channels/{channelId}',
@@ -141,7 +141,7 @@ export class NotificationChannels {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -163,7 +163,7 @@ export class NotificationRules {
    */
   public async create(
     rule: NotificationRuleCreateRequest,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST('/api/v1/notification/rules', {
       body: rule,
@@ -181,7 +181,7 @@ export class NotificationRules {
    */
   public async get(
     id: operations['getNotificationRule']['parameters']['path']['ruleId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/notification/rules/{ruleId}', {
       params: {
@@ -205,7 +205,7 @@ export class NotificationRules {
   public async update(
     id: operations['updateNotificationRule']['parameters']['path']['ruleId'],
     rule: NotificationRuleCreateRequest,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT('/api/v1/notification/rules/{ruleId}', {
       body: rule,
@@ -228,7 +228,7 @@ export class NotificationRules {
    */
   public async list(
     query?: operations['listNotificationRules']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/notification/rules', {
       params: {
@@ -248,7 +248,7 @@ export class NotificationRules {
    */
   public async delete(
     id: operations['deleteNotificationRule']['parameters']['path']['ruleId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE(
       '/api/v1/notification/rules/{ruleId}',
@@ -259,7 +259,7 @@ export class NotificationRules {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -281,7 +281,7 @@ export class NotificationEvents {
    */
   public async get(
     id: operations['getNotificationEvent']['parameters']['path']['eventId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/notification/events/{eventId}',
@@ -292,7 +292,7 @@ export class NotificationEvents {
           },
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -306,7 +306,7 @@ export class NotificationEvents {
    */
   public async list(
     query?: operations['listNotificationEvents']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/notification/events', {
       params: {

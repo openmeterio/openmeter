@@ -1,4 +1,4 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type {
   BillingProfileCreate,
@@ -11,7 +11,7 @@ import type {
   paths,
   VoidInvoiceActionInput,
 } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 /**
  * Billing
  */
@@ -41,7 +41,7 @@ export class BillingProfiles {
    */
   public async create(
     billingProfile: BillingProfileCreate,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST('/api/v1/billing/profiles', {
       body: billingProfile,
@@ -59,7 +59,7 @@ export class BillingProfiles {
    */
   public async get(
     id: operations['getBillingProfile']['parameters']['path']['id'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/billing/profiles/{id}', {
       params: {
@@ -79,7 +79,7 @@ export class BillingProfiles {
    */
   public async list(
     query?: operations['listBillingProfiles']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/billing/profiles', {
       params: {
@@ -101,7 +101,7 @@ export class BillingProfiles {
   public async update(
     id: operations['updateBillingProfile']['parameters']['path']['id'],
     billingProfile: BillingProfileReplaceUpdateWithWorkflow,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT('/api/v1/billing/profiles/{id}', {
       body: billingProfile,
@@ -122,7 +122,7 @@ export class BillingProfiles {
    */
   public async delete(
     id: operations['deleteBillingProfile']['parameters']['path']['id'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE('/api/v1/billing/profiles/{id}', {
       params: {
@@ -149,7 +149,7 @@ export class BillingInvoices {
    */
   public async list(
     query?: operations['listInvoices']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/billing/invoices', {
       params: {
@@ -169,7 +169,7 @@ export class BillingInvoices {
    */
   public async get(
     id: operations['getInvoice']['parameters']['path']['invoiceId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/billing/invoices/{invoiceId}', {
       params: {
@@ -192,7 +192,7 @@ export class BillingInvoices {
   public async update(
     id: operations['updateInvoice']['parameters']['path']['invoiceId'],
     invoice: InvoiceReplaceUpdate,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT('/api/v1/billing/invoices/{invoiceId}', {
       body: invoice,
@@ -212,14 +212,14 @@ export class BillingInvoices {
    */
   public async delete(
     id: operations['deleteInvoice']['parameters']['path']['invoiceId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE(
       '/api/v1/billing/invoices/{invoiceId}',
       {
         params: { path: { invoiceId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -234,14 +234,14 @@ export class BillingInvoices {
    */
   public async advance(
     id: operations['advanceInvoiceAction']['parameters']['path']['invoiceId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/billing/invoices/{invoiceId}/advance',
       {
         params: { path: { invoiceId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -256,14 +256,14 @@ export class BillingInvoices {
    */
   public async approve(
     id: operations['approveInvoiceAction']['parameters']['path']['invoiceId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/billing/invoices/{invoiceId}/approve',
       {
         params: { path: { invoiceId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -277,14 +277,14 @@ export class BillingInvoices {
    */
   public async retry(
     id: operations['retryInvoiceAction']['parameters']['path']['invoiceId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/billing/invoices/{invoiceId}/retry',
       {
         params: { path: { invoiceId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -302,7 +302,7 @@ export class BillingInvoices {
   public async void(
     id: operations['voidInvoiceAction']['parameters']['path']['invoiceId'],
     body: VoidInvoiceActionInput,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/billing/invoices/{invoiceId}/void',
@@ -310,7 +310,7 @@ export class BillingInvoices {
         body,
         params: { path: { invoiceId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -324,14 +324,14 @@ export class BillingInvoices {
    */
   public async recalculateTax(
     id: operations['recalculateInvoiceTaxAction']['parameters']['path']['invoiceId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/billing/invoices/{invoiceId}/taxes/recalculate',
       {
         params: { path: { invoiceId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -346,7 +346,7 @@ export class BillingInvoices {
   public async simulate(
     id: operations['simulateInvoice']['parameters']['path']['customerId'],
     body: InvoiceSimulationInput,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/billing/customers/{customerId}/invoices/simulate',
@@ -354,7 +354,7 @@ export class BillingInvoices {
         body,
         params: { path: { customerId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -377,7 +377,7 @@ export class BillingInvoices {
   public async createLineItems(
     customerId: operations['createPendingInvoiceLine']['parameters']['path']['customerId'],
     body: InvoicePendingLineCreateInput,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST(
       '/api/v1/billing/customers/{customerId}/invoices/pending-lines',
@@ -385,7 +385,7 @@ export class BillingInvoices {
         body,
         params: { path: { customerId } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -400,7 +400,7 @@ export class BillingInvoices {
    */
   public async invoicePendingLines(
     body: operations['invoicePendingLinesAction']['requestBody']['content']['application/json'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST('/api/v1/billing/invoices/invoice', {
       body,
@@ -427,7 +427,7 @@ export class BillingCustomers {
   public async createOverride(
     id: operations['upsertBillingProfileCustomerOverride']['parameters']['path']['customerId'],
     body: BillingProfileCustomerOverrideCreate,
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.PUT(
       '/api/v1/billing/customers/{customerId}',
@@ -435,7 +435,7 @@ export class BillingCustomers {
         body,
         params: { path: { customerId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -449,14 +449,14 @@ export class BillingCustomers {
    */
   public async getOverride(
     id: operations['getBillingProfileCustomerOverride']['parameters']['path']['customerId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/billing/customers/{customerId}',
       {
         params: { path: { customerId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)
@@ -470,7 +470,7 @@ export class BillingCustomers {
    */
   public async listOverrides(
     query?: operations['listBillingProfileCustomerOverrides']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/billing/customers', {
       params: { query },
@@ -488,14 +488,14 @@ export class BillingCustomers {
    */
   public async deleteOverride(
     id: operations['deleteBillingProfileCustomerOverride']['parameters']['path']['customerId'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE(
       '/api/v1/billing/customers/{customerId}',
       {
         params: { path: { customerId: id } },
         ...options,
-      }
+      },
     )
 
     return transformResponse(resp)

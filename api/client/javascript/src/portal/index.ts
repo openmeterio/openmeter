@@ -1,8 +1,8 @@
+import type { Client, ClientOptions } from 'openapi-fetch'
 import createClient, { createQuerySerializer } from 'openapi-fetch'
-import { encodeDates, transformResponse } from '../client/utils.js'
 import type { RequestOptions } from '../client/common.js'
 import type { operations, paths } from '../client/schemas.js'
-import type { Client, ClientOptions } from 'openapi-fetch'
+import { encodeDates, transformResponse } from '../client/utils.js'
 
 /**
  * Portal Config
@@ -66,7 +66,7 @@ export class OpenMeter {
       /** @description If not specified a single aggregate will be returned for each subject and time window. `subject` is a reserved group by value. */
       groupBy?: string[]
     },
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
       '/api/v1/portal/meters/{meterSlug}/query',
@@ -81,11 +81,11 @@ export class OpenMeter {
           query,
         },
         ...options,
-      }
+      },
     )
 
     return transformResponse(
-      resp
+      resp,
     ) as operations['queryPortalMeter']['responses']['200']['content']['application/json']
   }
 }

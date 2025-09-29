@@ -1,29 +1,29 @@
 {
   "compilerOptions": {
-    "moduleResolution": "nodenext",
-    "target": "ESNext",
-    "declaration": true,
-    "lib": ["esnext"],
     "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "esModuleInterop": true,
-    "module": "NodeNext",
-    "incremental": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "jsx": "react-jsx",
+    "lib": ["esnext"],
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
     "outDir": "./dist",
+    "skipLibCheck": true,
     "sourceMap": true,
-    "jsx": "react-jsx"
+    "strict": true,
+    "target": "ESNext"
   },
-  "include": ["**/*.ts", "src/react/**/*.tsx"],
   "exclude": [
     "**/*.spec.ts",
     "**/*.test.ts",
     "scripts/**/*.ts",
     "dist/**/*.ts",
     "*.config.ts"
-  ]
+  ],
+  "include": ["**/*.ts", "src/react/**/*.tsx"]
 }

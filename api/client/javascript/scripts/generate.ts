@@ -1,4 +1,4 @@
-import fs from 'fs'
+import fs from 'node:fs'
 import openapiTS, { astToString } from 'openapi-typescript'
 import { factory, SyntaxKind } from 'typescript'
 

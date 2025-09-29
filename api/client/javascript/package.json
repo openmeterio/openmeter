@@ -9,6 +9,7 @@
     "url": "https://github.com/openmeterio/openmeter.git",
     "directory": "api/client/javascript"
   },
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -53,64 +54,49 @@
       "default": "./dist/src/zod/index.js"
     }
   },
-  "type": "module",
+  "scripts": {
+    "build": "duel",
+    "format": "biome format --write .",
+    "generate": "pnpm run generate:client && pnpm run generate:zod",
+    "generate:client": "tsx scripts/generate.ts && biome format --write ./src/client/schemas.ts",
+    "generate:zod": "orval && tsx scripts/add-as-const.ts && biome lint --write ./src/zod/index.ts && biome format --write ./src/zod/index.ts",
+    "lint": "tsc --noEmit && biome lint .",
+    "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run lint && pnpm run test",
+    "pretest": "pnpm run build",
+    "test": "vitest --run",
+    "test:watch": "vitest --watch"
+  },
   "engines": {
     "node": ">=22.0.0"
   },
-  "scripts": {
-    "lint": "eslint . --format=pretty",
-    "format": "prettier --write .",
-    "build": "duel",
-    "generate": "tsx scripts/generate.ts && prettier --write ./src/client/schemas.ts && orval && eslint ./src/zod/index.ts --fix",
-    "pretest": "pnpm run build",
-    "test": "vitest --run",
-    "test:watch": "vitest --watch",
-    "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run lint && pnpm run test"
-  },
-  "devDependencies": {
-    "@eslint/compat": "1.3.1",
-    "@eslint/eslintrc": "3.3.1",
-    "@eslint/js": "9.32.0",
-    "@fetch-mock/vitest": "0.2.14",
-    "@knighted/duel": "2.1.5",
-    "@types/node": "22.15.19",
-    "@types/node-fetch": "2.6.13",
-    "@types/react": "19.1.9",
-    "@typescript-eslint/eslint-plugin": "8.38.0",
-    "@typescript-eslint/parser": "8.38.0",
-    "eslint": "9.32.0",
-    "eslint-config-prettier": "10.1.8",
-    "eslint-formatter-pretty": "6.0.1",
-    "eslint-import-resolver-typescript": "4.4.4",
-    "eslint-plugin-compat": "6.0.2",
-    "eslint-plugin-import": "2.32.0",
-    "eslint-plugin-perfectionist": "4.15.0",
-    "eslint-plugin-require-extensions": "0.1.3",
-    "eslint-plugin-unused-imports": "4.1.4",
-    "eslint-plugin-vitest": "0.5.4",
-    "fetch-mock": "12.5.3",
-    "openapi-typescript": "7.8.0",
-    "orval": "7.11.0",
-    "prettier": "3.6.2",
-    "react": "19.1.1",
-    "rollup": "4.46.2",
-    "tslib": "2.8.1",
-    "tsx": "4.20.3",
-    "typescript": "5.8.3",
-    "vitest": "3.2.4",
-    "zod": "3.25.7"
-  },
-  "browserslist": [
-    "current node"
-  ],
   "dependencies": {
     "openapi-fetch": "0.14.0",
     "openapi-typescript-helpers": "0.0.15"
   },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.4",
+    "@fetch-mock/vitest": "0.2.15",
+    "@knighted/duel": "2.1.5",
+    "@types/node": "24.5.2",
+    "@types/node-fetch": "2.6.13",
+    "@types/react": "19.1.15",
+    "fetch-mock": "12.5.4",
+    "openapi-typescript": "7.8.0",
+    "orval": "7.13.0",
+    "prettier": "3.6.2",
+    "react": "19.1.1",
+    "rollup": "4.52.3",
+    "ts-morph": "27.0.0",
+    "tslib": "2.8.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.2",
+    "vitest": "3.2.4",
+    "zod": "3.25.7"
+  },
+  "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a",
   "peerDependencies": {
     "react": ">=18.0.0"
   },
-  "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
@@ -118,10 +104,6 @@
     ],
     "patchedDependencies": {
       "openapi-typescript": "patches/openapi-typescript.patch"
-    },
-    "overrides": {
-      "brace-expansion@>=1.0.0 <=1.1.11": ">=1.1.12",
-      "brace-expansion@>=2.0.0 <=2.0.1": ">=2.0.2"
     }
   }
 }

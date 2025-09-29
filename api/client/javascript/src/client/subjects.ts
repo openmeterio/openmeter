@@ -1,7 +1,7 @@
-import { transformResponse } from './utils.js'
+import type { Client } from 'openapi-fetch'
 import type { RequestOptions } from './common.js'
 import type { operations, paths, SubjectUpsert } from './schemas.js'
-import type { Client } from 'openapi-fetch'
+import { transformResponse } from './utils.js'
 
 /**
  * Subjects
@@ -20,7 +20,7 @@ export class Subjects {
    */
   public async upsert(
     subjects: SubjectUpsert | SubjectUpsert[],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.POST('/api/v1/subjects', {
       body: Array.isArray(subjects) ? subjects : [subjects],
@@ -38,7 +38,7 @@ export class Subjects {
    */
   public async get(
     idOrKey: operations['getSubject']['parameters']['path']['subjectIdOrKey'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/subjects/{subjectIdOrKey}', {
       params: {
@@ -73,7 +73,7 @@ export class Subjects {
    */
   public async delete(
     idOrKey: operations['deleteSubject']['parameters']['path']['subjectIdOrKey'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.DELETE('/api/v1/subjects/{subjectIdOrKey}', {
       params: {

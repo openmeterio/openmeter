@@ -1,7 +1,7 @@
-import { transformResponse } from './utils.js'
-import type { RequestOptions } from './common.js'
-import type { operations, paths, Event } from './schemas.js'
 import type { Client } from 'openapi-fetch'
+import type { RequestOptions } from './common.js'
+import type { Event, operations, paths } from './schemas.js'
+import { transformResponse } from './utils.js'
 
 /**
  * Events are used to track usage of your product or service.
@@ -18,7 +18,7 @@ export class Events {
    */
   public async ingest(events: Event | Event[], options?: RequestOptions) {
     const body = await Promise.all(
-      (Array.isArray(events) ? events : [events]).map(setDefaultsForEvent)
+      (Array.isArray(events) ? events : [events]).map(setDefaultsForEvent),
     )
 
     const resp = await this.client.POST('/api/v1/events', {
@@ -40,7 +40,7 @@ export class Events {
    */
   public async list(
     params?: operations['listEvents']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v1/events', {
       params: { query: params },
@@ -59,7 +59,7 @@ export class Events {
    */
   public async listV2(
     params?: operations['listEventsV2']['parameters']['query'],
-    options?: RequestOptions
+    options?: RequestOptions,
   ) {
     const resp = await this.client.GET('/api/v2/events', {
       params: { query: params },
