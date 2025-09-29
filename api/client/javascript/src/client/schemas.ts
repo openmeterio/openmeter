@@ -4692,6 +4692,13 @@ export interface components {
       voidedAt?: Date
       /** @description The recurrence period of the grant. */
       recurrence?: components['schemas']['RecurringPeriod']
+      /**
+       * @description Grant annotations
+       * @example {
+       *       "issueAfterReset": true
+       *     }
+       */
+      annotations?: components['schemas']['Annotations']
     }
     /** @description The grant creation input. */
     EntitlementGrantCreateInput: {
@@ -4779,6 +4786,13 @@ export interface components {
        * @example 100
        */
       minRolloverAmount?: number
+      /**
+       * @description The grant metadata.
+       * @example {
+       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       *     }
+       */
+      metadata?: components['schemas']['Metadata']
       /** @description The subject of the grant. */
       recurrence?: components['schemas']['RecurringPeriodCreateInput']
       /**
@@ -4791,17 +4805,9 @@ export interface components {
       /** @description The grant expiration definition. If no expiration is provided, the grant can be active indefinitely. */
       expiration?: components['schemas']['ExpirationPeriod']
       /**
-       * @deprecated
-       * @description The grant metadata.
+       * @description Grant annotations
        * @example {
-       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
-       *     }
-       */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * @description The grant metadata.
-       * @example {
-       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       *       "internal_reference": "internal_reference"
        *     }
        */
       annotations?: components['schemas']['Annotations']
@@ -4861,6 +4867,13 @@ export interface components {
        */
       minRolloverAmount?: number
       /**
+       * @description The grant metadata.
+       * @example {
+       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       *     }
+       */
+      metadata?: components['schemas']['Metadata']
+      /**
        * Format: double
        * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.
        *     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
@@ -4870,17 +4883,9 @@ export interface components {
       /** @description The grant expiration definition. If no expiration is provided, the grant can be active indefinitely. */
       expiration?: components['schemas']['ExpirationPeriod']
       /**
-       * @deprecated
-       * @description The grant metadata.
+       * @description Grant annotations
        * @example {
-       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
-       *     }
-       */
-      metadata?: components['schemas']['Metadata']
-      /**
-       * @description The grant metadata.
-       * @example {
-       *       "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       *       "internal_reference": "internal_reference"
        *     }
        */
       annotations?: components['schemas']['Annotations']

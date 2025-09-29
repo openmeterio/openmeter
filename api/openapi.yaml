@@ -16043,6 +16043,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/RecurringPeriod'
           description: The recurrence period of the grant.
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Grant annotations
+          example:
+            issueAfterReset: true
       description: The grant.
     EntitlementGrantCreateInput:
       type: object
@@ -16144,6 +16150,12 @@ components:
             Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
           example: 100
           default: 0
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: The grant metadata.
+          example:
+            stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
         recurrence:
           allOf:
             - $ref: '#/components/schemas/RecurringPeriodCreateInput'
@@ -16159,19 +16171,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/ExpirationPeriod'
           description: The grant expiration definition. If no expiration is provided, the grant can be active indefinitely.
-        metadata:
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          description: The grant metadata.
-          deprecated: true
-          example:
-            stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
         annotations:
           allOf:
             - $ref: '#/components/schemas/Annotations'
-          description: The grant metadata.
+          description: Grant annotations
           example:
-            stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
+            internal_reference: internal_reference
       description: The grant creation input.
     EntitlementGrantV2:
       type: object
@@ -16236,6 +16241,12 @@ components:
             Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
           example: 100
           default: 0
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: The grant metadata.
+          example:
+            stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
         maxRolloverAmount:
           type: number
           format: double
@@ -16247,19 +16258,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/ExpirationPeriod'
           description: The grant expiration definition. If no expiration is provided, the grant can be active indefinitely.
-        metadata:
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          description: The grant metadata.
-          deprecated: true
-          example:
-            stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
         annotations:
           allOf:
             - $ref: '#/components/schemas/Annotations'
-          description: The grant metadata.
+          description: Grant annotations
           example:
-            stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
+            internal_reference: internal_reference
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$

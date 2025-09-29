@@ -43,6 +43,7 @@ func (g *grantDBADapter) CreateGrant(ctx context.Context, grant grant.RepoCreate
 		SetExpiration(grant.Expiration).
 		SetNillableExpiresAt(grant.ExpiresAt).
 		SetAnnotations(grant.Annotations).
+		SetMetadata(grant.Metadata).
 		SetResetMaxRollover(grant.ResetMaxRollover).
 		SetResetMinRollover(grant.ResetMinRollover)
 
@@ -237,6 +238,7 @@ func mapGrantEntity(entity *db.Grant) grant.Grant {
 		Expiration:       entity.Expiration,
 		ExpiresAt:        entity.ExpiresAt,
 		Annotations:      entity.Annotations,
+		Metadata:         entity.Metadata,
 		ResetMaxRollover: entity.ResetMaxRollover,
 		ResetMinRollover: entity.ResetMinRollover,
 	}
