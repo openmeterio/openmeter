@@ -154,6 +154,8 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionsAt(ctx context.Conte
 		return nil, err
 	}
 
+	items = lo.Filter(items, func(s subscription.SubscriptionItem, _ int) bool { return s.EntitlementID != nil })
+
 	if len(items) == 0 {
 		return nil, nil
 	}

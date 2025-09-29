@@ -10,7 +10,6 @@ import (
 	"github.com/samber/mo/result"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -100,9 +99,8 @@ func (s *service) validateCreate(ctx context.Context, cust customer.Customer, sp
 	return nil
 }
 
+// TODO: rename this, etc...
 func (s *service) ValidateUniqueness(ctx context.Context, cust customer.Customer, spec subscription.SubscriptionSpec) error {
-	now := clock.Now()
-
 	subs := mo.Try(func() ([]subscription.Subscription, error) {
 		return pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[subscription.Subscription], error) {
 			return s.SubscriptionRepo.List(ctx, subscription.ListSubscriptionsInput{
@@ -118,135 +116,8 @@ func (s *service) ValidateUniqueness(ctx context.Context, cust customer.Customer
 
 	mapSubsToViews := result.FlatMap(
 		func(subs []subscription.Subscription) mo.Result[[]*subscription.SubscriptionView] {
-			getAtInputs := slicesx.Map(subs, func(s subscription.Subscription) subscription.GetForSubscriptionAtInput {
-				return subscription.GetForSubscriptionAtInput{
-					Namespace:      s.Namespace,
-					SubscriptionID: s.ID,
-					At:             now,
-				}
-			})
-
-			phases, err := s.SubscriptionPhaseRepo.GetForSubscriptionsAt(ctx, getAtInputs)
-			if err != nil {
-				return mo.Err[[]*subscription.SubscriptionView](fmt.Errorf("failed to get phases: %w", err))
-			}
-
-			items, err := s.SubscriptionItemRepo.GetForSubscriptionsAt(ctx, getAtInputs)
-			if err != nil {
-				return mo.Err[[]*subscription.SubscriptionView](fmt.Errorf("failed to get items: %w", err))
-			}
-
-			ents, err := s.EntitlementAdapter.GetForSubscriptionsAt(ctx, getAtInputs)
-			if err != nil {
-				return mo.Err[[]*subscription.SubscriptionView](fmt.Errorf("failed to get entitlements: %w", err))
-			}
-
-			featsOfEnts, err := s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
-				Namespace:       cust.Namespace,
-				IncludeArchived: true,
-				IDsOrKeys: lo.Uniq(slicesx.Map(ents, func(e subscription.SubscriptionEntitlement) string {
-					return e.Entitlement.FeatureID
-				})),
-			})
-			if err != nil {
-				return mo.Err[[]*subscription.SubscriptionView](fmt.Errorf("failed to get features of entitlements: %w", err))
-			}
-
-			// TODO[galexi]: SubscriptionItems should hard reference exact versions of features, currently only key is stored
-			featsOfItems, err := s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
-				Namespace:       cust.Namespace,
-				IncludeArchived: false,
-				IDsOrKeys: lo.Uniq(slicesx.Map(items, func(i subscription.SubscriptionItem) string {
-					return *i.RateCard.AsMeta().FeatureKey
-				})),
-			})
-			if err != nil {
-				return mo.Err[[]*subscription.SubscriptionView](fmt.Errorf("failed to get features of items: %w", err))
-			}
-
-			phasesBySub := lo.GroupBy(phases, func(p subscription.SubscriptionPhase) string {
-				return p.SubscriptionID
-			})
-
-			if diff := numNotGrouped(phases, phasesBySub); diff > 0 {
-				return mo.Err[[]*subscription.SubscriptionView](fmt.Errorf("%d phases are not grouped by subscription id", diff))
-			}
-
-			itemsBySub := lo.GroupBy(items, func(i subscription.SubscriptionItem) string {
-				phase, ok := lo.Find(phases, func(p subscription.SubscriptionPhase) bool {
-					return p.ID == i.PhaseId
-				})
-				if !ok {
-					return ""
-				}
-
-				return phase.SubscriptionID
-			})
-
-			if diff := numNotGrouped(items, itemsBySub); diff > 0 {
-				return mo.Err[[]*subscription.SubscriptionView](fmt.Errorf("%d items are not grouped by subscription id", diff))
-			}
-
-			entsBySub := lo.MapEntries(itemsBySub, func(key string, items []subscription.SubscriptionItem) (string, []subscription.SubscriptionEntitlement) {
-				ents := make([]subscription.SubscriptionEntitlement, 0)
-				for _, item := range items {
-					ent, ok := lo.Find(ents, func(e subscription.SubscriptionEntitlement) bool {
-						return e.Entitlement.ID == *item.EntitlementID
-					})
-					if ok {
-						ents = append(ents, ent)
-					}
-				}
-
-				return key, ents
-			})
-
-			if diff := numNotGrouped(ents, entsBySub); diff > 0 {
-				return mo.Err[[]*subscription.SubscriptionView](fmt.Errorf("%d entitlements are not grouped by subscription id", diff))
-			}
-
-			featsOfEntsBySub := lo.MapEntries(entsBySub, func(key string, ents []subscription.SubscriptionEntitlement) (string, []feature.Feature) {
-				feats := make([]feature.Feature, 0)
-				for _, ent := range ents {
-					feat, ok := lo.Find(featsOfEnts.Items, func(f feature.Feature) bool {
-						return f.ID == ent.Entitlement.FeatureID
-					})
-					if ok {
-						feats = append(feats, feat)
-					}
-				}
-
-				return key, feats
-			})
-
-			if diff := numNotGrouped(featsOfEnts.Items, featsOfEntsBySub); diff > 0 {
-				return mo.Err[[]*subscription.SubscriptionView](fmt.Errorf("%d features of entitlements are not grouped by subscription id", diff))
-			}
-
-			featsOfItemsBySub := lo.MapEntries(itemsBySub, func(key string, items []subscription.SubscriptionItem) (string, []feature.Feature) {
-				feats := make([]feature.Feature, 0)
-				for _, item := range items {
-					feat, ok := lo.Find(featsOfItems.Items, func(f feature.Feature) bool {
-						return f.ID == *item.RateCard.AsMeta().FeatureKey
-					})
-					if ok {
-						feats = append(feats, feat)
-					}
-				}
-
-				return key, feats
-			})
-
 			return mo.Try(func() ([]*subscription.SubscriptionView, error) {
-				return slicesx.MapWithErr(subs, func(s subscription.Subscription) (*subscription.SubscriptionView, error) {
-					return subscription.NewSubscriptionView(s, cust,
-						phasesBySub[s.ID],
-						itemsBySub[s.ID],
-						entsBySub[s.ID],
-						featsOfEntsBySub[s.ID],
-						featsOfItemsBySub[s.ID],
-					)
-				})
+				return s.getViewsForSubs(ctx, cust, subs)
 			})
 		},
 	)
