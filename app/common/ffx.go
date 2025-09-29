@@ -23,7 +23,7 @@ type FFXConfigContextMiddlewareHook server.MiddlewareHook
 // This hook MUST register after any session authentication step so user namespaces are available.
 func NewFFXConfigContextMiddlewareHook(
 	subsConfig config.SubscriptionConfiguration,
-	namesapceDriver namespacedriver.NamespaceDecoder,
+	namespaceDriver namespacedriver.NamespaceDecoder,
 	logger *slog.Logger,
 ) FFXConfigContextMiddlewareHook {
 	return func(m server.MiddlewareManager) {
@@ -43,7 +43,7 @@ func NewFFXConfigContextMiddlewareHook(
 				ctx := r.Context()
 
 				// Let's try to figure out which namespace we're in
-				namespace, ok := namesapceDriver.GetNamespace(ctx)
+				namespace, ok := namespaceDriver.GetNamespace(ctx)
 				if !ok {
 					logger.WarnContext(ctx, "no namespace found in request, continuing without feature flag access")
 				}
