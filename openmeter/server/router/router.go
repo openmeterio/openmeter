@@ -116,6 +116,7 @@ type Config struct {
 	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionWorkflowService subscriptionworkflow.Service
 	SubjectService              subject.Service
+	ApiBaseURL                  string
 }
 
 func (c Config) Validate() error {

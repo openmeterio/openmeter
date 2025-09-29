@@ -39,7 +39,7 @@ using TypeSpec.OpenAPI;
     url: "http://www.apache.org/licenses/LICENSE-2.0.html",
   },
 })
-@server("https://127.0.0.1", "Local")
+@server("https://127.0.0.1/api", "Local")
 // Tags will appear in alphabetical order in the API documentation
 @tagMetadata(
   "Apps",

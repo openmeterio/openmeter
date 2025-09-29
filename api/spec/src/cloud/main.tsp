@@ -23,8 +23,8 @@ using TypeSpec.OpenAPI;
   },
   termsOfService: "https://openmeter.cloud/terms-of-service",
 })
-@server("https://127.0.0.1:8888", "Local")
-@server("https://openmeter.cloud", "Cloud")
+@server("https://127.0.0.1:8888/api", "Local")
+@server("https://openmeter.cloud/api", "Cloud")
 @useAuth(CloudTokenAuth | CloudCookieAuth)
 // Tags will appear in alphabetical order in the API documentation
 @tagMetadata(
@@ -103,39 +103,39 @@ using TypeSpec.OpenAPI;
 )
 namespace OpenMeterCloud;
 
-@route("/api/v1/events")
+@route("/v1/events")
 @tag("Events")
 interface Events extends OpenMeter.Events {}
 
-@route("/api/v2/events")
+@route("/v2/events")
 @tag("Events")
 interface EventsV2 extends OpenMeter.EventsV2 {}
 
-@route("/api/v1/meters")
+@route("/v1/meters")
 @tag("Meters")
 interface Meters extends OpenMeter.Meters {}
 
 namespace OpenMeterCloud.Portal {
-  @route("/api/v1/portal/tokens")
+  @route("/v1/portal/tokens")
   @tag("Portal")
   interface Tokens extends OpenMeter.Portal.Tokens {}
 
-  @route("/api/v1/portal/meters")
+  @route("/v1/portal/meters")
   @tag("Portal")
   @useAuth(CloudPortalTokenAuth)
   interface Meters extends OpenMeter.Portal.Meters {}
 }
 
-@route("/api/v1/debug")
+@route("/v1/debug")
 @tag("Debug")
 interface Debug extends OpenMeter.Debug {}
 
 namespace OpenMeterCloud.App {
-  @route("/api/v1/marketplace")
+  @route("/v1/marketplace")
   @tag("Apps")
   interface Marketplace extends OpenMeter.App.Marketplace {}
 
-  @route("/api/v1/apps")
+  @route("/v1/apps")
   @tag("Apps")
   interface Apps extends OpenMeter.App.Apps {}
 
@@ -147,140 +147,140 @@ namespace OpenMeterCloud.App {
 }
 
 namespace OpenMeterCloud.Notification {
-  @route("/api/v1/notification/channels")
+  @route("/v1/notification/channels")
   @tag("Notifications")
   interface Channels extends OpenMeter.Notification.Channels {}
 
-  @route("/api/v1/notification/rules")
+  @route("/v1/notification/rules")
   @tag("Notifications")
   interface Rules extends OpenMeter.Notification.Rules {}
 
-  @route("/api/v1/notification/events")
+  @route("/v1/notification/events")
   @tag("Notifications")
   interface Events extends OpenMeter.Notification.Events {}
 }
 
 namespace OpenMeterCloud.Entitlements {
-  @route("/api/v1/entitlements")
+  @route("/v1/entitlements")
   @tag("Entitlements")
   interface Entitlements extends OpenMeter.Entitlements.Entitlements {}
 
-  @route("/api/v1/features")
+  @route("/v1/features")
   @tag("Entitlements")
   interface Features extends OpenMeter.Entitlements.Features {}
 
-  @route("/api/v1/grants")
+  @route("/v1/grants")
   @tag("Entitlements")
   interface Grants extends OpenMeter.Entitlements.Grants {}
 
-  @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
+  @route("/v1/subjects/{subjectIdOrKey}/entitlements")
   @tag("Entitlements")
   interface Subjects extends OpenMeter.Entitlements.Subjects {}
 
-  @route("/api/v1/customers/{customerIdOrKey}")
+  @route("/v1/customers/{customerIdOrKey}")
   @tag("Entitlements")
   @tag("Customers")
   interface Customer extends OpenMeter.Entitlements.Customer {}
 
-  @route("/api/v1/customers/{customerIdOrKey}/apps")
+  @route("/v1/customers/{customerIdOrKey}/apps")
   @tag("Customers")
   interface CustomersApps extends OpenMeter.Customer.CustomersApps {}
 
-  @route("/api/v1/customers/{customerIdOrKey}/stripe")
+  @route("/v1/customers/{customerIdOrKey}/stripe")
   @tag("Customers")
   interface CustomersStripe extends OpenMeter.Customer.CustomersStripe {}
 
-  @route("/api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}")
+  @route("/v1/customers/{customerIdOrKey}/entitlements/{featureKey}")
   @tag("Entitlements")
   @tag("Customers")
   interface CustomerEntitlement
     extends OpenMeter.Entitlements.CustomerEntitlement {}
 
   namespace V2 {
-    @route("/api/v2/customers/{customerIdOrKey}/entitlements")
+    @route("/v2/customers/{customerIdOrKey}/entitlements")
     @tag("Entitlements")
     @tag("Customers")
     interface CustomerEntitlements
       extends OpenMeter.Entitlements.V2.CustomerEntitlements {}
 
-    @route("/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}")
+    @route("/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}")
     @tag("Entitlements")
     @tag("Customers")
     interface CustomerEntitlement
       extends OpenMeter.Entitlements.V2.CustomerEntitlement {}
 
-    @route("/api/v2/grants")
+    @route("/v2/grants")
     @tag("Entitlements")
     interface Grants extends OpenMeter.Entitlements.V2.Grants {}
 
-    @route("/api/v2/entitlements")
+    @route("/v2/entitlements")
     @tag("Entitlements")
     interface Entitlements extends OpenMeter.Entitlements.V2.Entitlements {}
   }
 }
 
 namespace OpenMeterCloud.Billing {
-  @route("/api/v1/customers")
+  @route("/v1/customers")
   @tag("Customers")
   interface Customers extends OpenMeter.Customer.Customers {}
 
-  @route("/api/v1/billing/customers")
+  @route("/v1/billing/customers")
   @tag("Billing")
   interface CustomerOverrides extends OpenMeter.Billing.CustomerOverrides {}
 
-  @route("/api/v1/billing/profiles")
+  @route("/v1/billing/profiles")
   @tag("Billing")
   interface BillingProfiles extends OpenMeter.Billing.Profiles {}
 
-  @route("/api/v1/billing/invoices")
+  @route("/v1/billing/invoices")
   @tag("Billing")
   interface InvoicesEndpoints extends OpenMeter.Billing.InvoicesEndpoints {}
 
-  @route("/api/v1/billing/invoices/{invoiceId}")
+  @route("/v1/billing/invoices/{invoiceId}")
   @tag("Billing")
   interface InvoiceEndpoints extends OpenMeter.Billing.InvoiceEndpoints {}
 
-  @route("/api/v1/billing/customers/{customerId}/invoices")
+  @route("/v1/billing/customers/{customerId}/invoices")
   @tag("Billing")
   interface CustomerInvoiceEndpoints
     extends OpenMeter.Billing.CustomerInvoiceEndpoints {}
 }
 
 namespace OpenMeterCloud.ProductCatalog {
-  @route("/api/v1/plans")
+  @route("/v1/plans")
   @tag("Product Catalog")
   interface PlansById extends OpenMeter.ProductCatalog.Plans {}
 
-  @route("/api/v1/addons")
+  @route("/v1/addons")
   @tag("Product Catalog")
   interface Addons extends OpenMeter.ProductCatalog.Addons {}
 
-  @route("/api/v1/plans/{planId}/addons")
+  @route("/v1/plans/{planId}/addons")
   @tag("Product Catalog")
   interface PlanAddons extends OpenMeter.ProductCatalog.PlanAddons {}
 
-  @route("/api/v1/subscriptions")
+  @route("/v1/subscriptions")
   @tag("Subscriptions")
   interface Subscriptions extends OpenMeter.ProductCatalog.Subscriptions {}
 
-  @route("/api/v1/subscriptions/{subscriptionId}/addons")
+  @route("/v1/subscriptions/{subscriptionId}/addons")
   @tag("Subscriptions")
   interface SubscriptionAddons
     extends OpenMeter.ProductCatalog.SubscriptionAddons {}
 }
 
 namespace OpenMeterCloud.Subjects {
-  @route("/api/v1/subjects")
+  @route("/v1/subjects")
   @tag("Subjects")
   interface Subjects extends OpenMeter.Subjects {}
 }
 
 namespace OpenMeterCloud.Info {
-  @route("/api/v1/info/currencies")
+  @route("/v1/info/currencies")
   @tag("Lookup Information")
   interface Currencies extends OpenMeter.Info.Currencies {}
 
-  @route("/api/v1/info/progress")
+  @route("/v1/info/progress")
   @tag("Lookup Information")
   interface Progress extends OpenMeter.Info.Progresses {}
 }

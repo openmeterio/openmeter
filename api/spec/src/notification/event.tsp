@@ -149,7 +149,7 @@ enum NotificationEventOrderBy {
   createdAt: "createdAt",
 }
 
-@route("/api/v1/notification/events")
+@route("/v1/notification/events")
 @tag("Notifications")
 interface Events {
   /**

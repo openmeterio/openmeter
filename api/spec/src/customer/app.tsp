@@ -16,7 +16,7 @@ namespace OpenMeter.Customer;
 /**
  * Customer App Data API.
  */
-@route("/api/v1/customers/{customerIdOrKey}/apps")
+@route("/v1/customers/{customerIdOrKey}/apps")
 @tag("CustomersApps")
 interface CustomersApps {
   /**

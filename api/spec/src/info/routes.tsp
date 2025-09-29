@@ -5,7 +5,7 @@ namespace OpenMeter.Info;
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-@route("/api/v1/info/currencies")
+@route("/v1/info/currencies")
 @tag("Lookup Information")
 interface Currencies {
   /**

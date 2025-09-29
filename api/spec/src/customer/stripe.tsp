@@ -13,7 +13,7 @@ namespace OpenMeter.Customer;
 /**
  * Customer Stripe API.
  */
-@route("/api/v1/customers/{customerIdOrKey}/stripe")
+@route("/v1/customers/{customerIdOrKey}/stripe")
 @tag("CustomersStripe")
 interface CustomersStripe {
   /**

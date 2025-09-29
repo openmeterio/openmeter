@@ -7,7 +7,7 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
-@route("/api/v1/events")
+@route("/v1/events")
 @tag("Events")
 interface Events {
   /**
@@ -137,7 +137,7 @@ interface Events {
   } | CommonErrors;
 }
 
-@route("/api/v2/events")
+@route("/v2/events")
 @tag("Events")
 interface EventsV2 {
   /**

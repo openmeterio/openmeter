@@ -142,7 +142,7 @@ enum NotificationChannelOrderBy {
   updatedAt: "updatedAt",
 }
 
-@route("/api/v1/notification/channels")
+@route("/v1/notification/channels")
 @tag("Notifications")
 interface Channels {
   /**

@@ -43,7 +43,7 @@ enum MeterOrderBy {
   UpdatedAt: "updatedAt",
 }
 
-@route("/api/v1/meters")
+@route("/v1/meters")
 @tag("Meters")
 interface Meters {
   /**

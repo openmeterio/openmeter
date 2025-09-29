@@ -3,7 +3,7 @@ namespace OpenMeter.Info;
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-@route("/api/v1/info/progress")
+@route("/v1/info/progress")
 @tag("Lookup Information")
 interface Progresses {
   /**

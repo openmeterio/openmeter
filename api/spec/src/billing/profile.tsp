@@ -5,7 +5,7 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Billing;
 
-@route("/api/v1/billing/profiles")
+@route("/v1/billing/profiles")
 @tag("Billing")
 interface Profiles {
   /**

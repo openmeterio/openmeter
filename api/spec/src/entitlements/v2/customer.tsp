@@ -9,7 +9,7 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Entitlements.V2;
 
-@route("/api/v2/customers/{customerIdOrKey}/entitlements")
+@route("/v2/customers/{customerIdOrKey}/entitlements")
 @tag("Entitlements")
 interface CustomerEntitlements {
   /**
@@ -99,7 +99,7 @@ interface CustomerEntitlements {
     | OpenMeter.NotFoundError;
 }
 
-@route("/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}")
+@route("/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}")
 @tag("Entitlements")
 @tag("Customers")
 interface CustomerEntitlement {

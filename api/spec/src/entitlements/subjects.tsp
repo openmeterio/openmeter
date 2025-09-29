@@ -7,7 +7,7 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Entitlements;
 
-@route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
+@route("/v1/subjects/{subjectIdOrKey}/entitlements")
 @tag("Entitlements")
 interface Subjects {
   /**

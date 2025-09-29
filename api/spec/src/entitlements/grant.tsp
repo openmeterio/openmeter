@@ -20,7 +20,7 @@ enum GrantOrderBy {
   UpdatedAt: "updatedAt",
 }
 
-@route("/api/v1/grants")
+@route("/v1/grants")
 @tag("Entitlements")
 interface Grants {
   /**

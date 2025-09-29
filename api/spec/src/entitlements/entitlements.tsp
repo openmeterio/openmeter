@@ -19,7 +19,7 @@ enum EntitlementOrderBy {
   UpdatedAt: "updatedAt",
 }
 
-@route("/api/v1/entitlements")
+@route("/v1/entitlements")
 @tag("Entitlements")
 interface Entitlements {
   /**
