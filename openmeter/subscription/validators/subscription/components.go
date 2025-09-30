@@ -79,3 +79,11 @@ func (v SubscriptionUniqueConstraintValidator) includeSubViewUnique(view subscri
 		},
 	)
 }
+
+func (v SubscriptionUniqueConstraintValidator) filterSubViews(fn func(subscription.SubscriptionView) bool) func(mo.Result[[]subscription.SubscriptionView]) mo.Result[[]subscription.SubscriptionView] {
+	return result.FlatMap(
+		func(views []subscription.SubscriptionView) mo.Result[[]subscription.SubscriptionView] {
+			return mo.Ok(lo.Filter(views, slicesx.AsFilterIteratee(fn)))
+		},
+	)
+}

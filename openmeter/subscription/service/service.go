@@ -370,6 +370,15 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 
 	// We can use sync to do this
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
+		if err := errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
+			return v.ValidateContinue(ctx, view)
+		})...); err != nil {
+			return subscription.Subscription{}, fmt.Errorf("failed to validate subscription: %w", err)
+		}
+
 		sub, err := s.sync(ctx, view, spec)
 		if err != nil {
 			return sub, err
@@ -380,9 +389,6 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 		if err != nil {
 			return sub, err
 		}
-
-		s.mu.RLock()
-		defer s.mu.RUnlock()
 
 		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
 			return v.ValidateContinued(ctx, view)

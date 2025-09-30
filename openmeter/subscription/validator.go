@@ -3,7 +3,10 @@ package subscription
 import "context"
 
 type SubscriptionCommandValidator interface {
+	// These happen before the fact
 	ValidateCreate(context.Context, string, SubscriptionSpec) error
+	ValidateContinue(context.Context, SubscriptionView) error
+	// These happen after the fact
 	ValidateCreated(context.Context, SubscriptionView) error
 	ValidateUpdated(context.Context, SubscriptionView) error
 	ValidateCanceled(context.Context, SubscriptionView) error
@@ -16,6 +19,10 @@ var _ SubscriptionCommandValidator = (*NoOpSubscriptionCommandValidator)(nil)
 type NoOpSubscriptionCommandValidator struct{}
 
 func (NoOpSubscriptionCommandValidator) ValidateCreate(context.Context, string, SubscriptionSpec) error {
+	return nil
+}
+
+func (NoOpSubscriptionCommandValidator) ValidateContinue(context.Context, SubscriptionView) error {
 	return nil
 }
 
