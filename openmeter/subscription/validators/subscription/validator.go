@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samber/mo"
-	"github.com/samber/mo/result"
-
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/ffx"
@@ -54,7 +51,7 @@ func NewSubscriptionUniqueConstraintValidator(config SubscriptionUniqueConstrain
 }
 
 func (v SubscriptionUniqueConstraintValidator) ValidateCreate(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) error {
-	return result.Pipe5(
+	return pipe5(
 		v.collectSubs(ctx, namespace, spec.CustomerId, spec.ActiveFrom),
 		v.mapSubsToViews(ctx),
 		v.mapViewsToSpecs(),
@@ -71,7 +68,7 @@ func (v SubscriptionUniqueConstraintValidator) ValidateContinue(ctx context.Cont
 	spec := view.AsSpec()
 	spec.ActiveTo = nil
 
-	return result.Pipe6(
+	return pipe6(
 		v.collectSubs(ctx, view.Customer.Namespace, view.Customer.ID, view.Subscription.ActiveFrom),
 		v.mapSubsToViews(ctx),
 		v.filterSubViews(func(v subscription.SubscriptionView) bool {
@@ -106,8 +103,8 @@ func (v SubscriptionUniqueConstraintValidator) ValidateDeleted(ctx context.Conte
 	return v.pipelineAfter(ctx, view).Error()
 }
 
-func (v SubscriptionUniqueConstraintValidator) pipelineAfter(ctx context.Context, view subscription.SubscriptionView) mo.Result[[]subscription.SubscriptionSpec] {
-	return result.Pipe4(
+func (v SubscriptionUniqueConstraintValidator) pipelineAfter(ctx context.Context, view subscription.SubscriptionView) result[[]subscription.SubscriptionSpec] {
+	return pipe4(
 		v.collectSubs(ctx, view.Customer.Namespace, view.Customer.ID, view.Subscription.ActiveFrom),
 		v.mapSubsToViews(ctx),
 		v.includeSubViewUnique(view),
