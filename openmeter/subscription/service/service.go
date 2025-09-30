@@ -7,8 +7,6 @@ import (
 	"sync"
 
 	"github.com/samber/lo"
-	"github.com/samber/mo"
-	"github.com/samber/mo/result"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -517,65 +515,46 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 		return nil, fmt.Errorf("failed to get entitlements: %w", err)
 	}
 
-	featsOfEnts, err := result.Pipe2(
-		mo.Ok(ents),
-		result.Map(func(ents []subscription.SubscriptionEntitlement) []string {
-			return lo.Uniq(slicesx.Map(ents, func(e subscription.SubscriptionEntitlement) string {
-				return e.Entitlement.FeatureID
-			}))
-		}),
-		result.FlatMap(func(idsOrKeys []string) mo.Result[pagination.Result[feature.Feature]] {
-			if len(idsOrKeys) == 0 {
-				return mo.Ok(pagination.Result[feature.Feature]{})
-			}
+	var featsOfEnts pagination.Result[feature.Feature]
 
-			return mo.Try(func() (pagination.Result[feature.Feature], error) {
-				return s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
-					Namespace:       cus.Namespace,
-					IncludeArchived: true,
-					IDsOrKeys:       idsOrKeys,
-				})
-			}).MapErr(func(err error) (pagination.Result[feature.Feature], error) {
-				return pagination.Result[feature.Feature]{}, fmt.Errorf("failed to get features of entitlements: %w", err)
+	{
+		uniqFeatureIDs := lo.Uniq(slicesx.Map(ents, func(e subscription.SubscriptionEntitlement) string {
+			return e.Entitlement.FeatureID
+		}))
+
+		if len(uniqFeatureIDs) > 0 {
+			featsOfEnts, err = s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
+				Namespace:       cus.Namespace,
+				IncludeArchived: true,
+				IDsOrKeys:       uniqFeatureIDs,
 			})
-		}),
-	).Get()
-	if err != nil {
-		return nil, err
+			if err != nil {
+				return nil, fmt.Errorf("failed to get features of entitlements: %w", err)
+			}
+		}
 	}
 
-	featsOfItems, err := result.Pipe2(
-		mo.Ok(items),
-		result.Map(func(items []subscription.SubscriptionItem) []string {
-			items = lo.Filter(items, func(i subscription.SubscriptionItem, _ int) bool {
-				return i.RateCard.AsMeta().FeatureKey != nil
-			})
+	var featsOfItems pagination.Result[feature.Feature]
 
-			keys := lo.Map(items, func(i subscription.SubscriptionItem, _ int) string {
-				return lo.FromPtr(i.RateCard.AsMeta().FeatureKey)
-			})
+	{
+		itemsWithFeatures := lo.Filter(items, func(i subscription.SubscriptionItem, _ int) bool {
+			return i.RateCard.AsMeta().FeatureKey != nil
+		})
 
-			return lo.Uniq(keys)
-		}),
-		result.FlatMap(func(idsOrKeys []string) mo.Result[pagination.Result[feature.Feature]] {
-			if len(idsOrKeys) == 0 {
-				return mo.Ok(pagination.Result[feature.Feature]{})
+		uniqFeatureKeys := lo.Uniq(slicesx.Map(itemsWithFeatures, func(i subscription.SubscriptionItem) string {
+			return lo.FromPtr(i.RateCard.AsMeta().FeatureKey)
+		}))
+
+		if len(uniqFeatureKeys) > 0 {
+			featsOfItems, err = s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
+				Namespace:       cus.Namespace,
+				IncludeArchived: true,
+				IDsOrKeys:       uniqFeatureKeys,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get features of items: %w", err)
 			}
-
-			// TODO[galexi]: SubscriptionItems should hard reference exact versions of features, currently only key is stored
-			return mo.Try(func() (pagination.Result[feature.Feature], error) {
-				return s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
-					Namespace:       cus.Namespace,
-					IncludeArchived: false,
-					IDsOrKeys:       idsOrKeys,
-				})
-			}).MapErr(func(err error) (pagination.Result[feature.Feature], error) {
-				return pagination.Result[feature.Feature]{}, fmt.Errorf("failed to get features of items: %w", err)
-			})
-		}),
-	).Get()
-	if err != nil {
-		return nil, err
+		}
 	}
 
 	phasesBySub := lo.GroupBy(phases, func(p subscription.SubscriptionPhase) string {
