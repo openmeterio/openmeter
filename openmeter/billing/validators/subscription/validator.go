@@ -13,11 +13,11 @@ import (
 )
 
 type Validator struct {
-	subscription.NoOpSubscriptionValidator
+	subscription.NoOpSubscriptionCommandValidator
 	billingService billing.Service
 }
 
-func NewValidator(billingService billing.Service) (*Validator, error) {
+func NewValidator(billingService billing.Service) (subscription.SubscriptionCommandValidator, error) {
 	if billingService == nil {
 		return nil, fmt.Errorf("billing service is required")
 	}
@@ -27,7 +27,7 @@ func NewValidator(billingService billing.Service) (*Validator, error) {
 	}, nil
 }
 
-func (v Validator) ValidateCreate(ctx context.Context, view subscription.SubscriptionView) error {
+func (v Validator) ValidateCreated(ctx context.Context, view subscription.SubscriptionView) error {
 	err := v.validateBillingSetup(ctx, view)
 	if err != nil {
 		return models.NewGenericConflictError(fmt.Errorf("invalid billing setup: %w", err))
@@ -36,7 +36,7 @@ func (v Validator) ValidateCreate(ctx context.Context, view subscription.Subscri
 	return nil
 }
 
-func (v Validator) ValidateUpdate(ctx context.Context, view subscription.SubscriptionView) error {
+func (v Validator) ValidateUpdated(ctx context.Context, view subscription.SubscriptionView) error {
 	err := v.validateBillingSetup(ctx, view)
 	if err != nil {
 		return models.NewGenericConflictError(fmt.Errorf("invalid billing setup: %w", err))

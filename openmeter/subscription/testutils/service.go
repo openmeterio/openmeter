@@ -181,7 +181,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		subscription.MultiSubscriptionEnabledFF: false,
 	})
 
-	svc := service.New(service.ServiceConfig{
+	svc, err := service.New(service.ServiceConfig{
 		SubscriptionRepo:      subRepo,
 		SubscriptionPhaseRepo: subPhaseRepo,
 		SubscriptionItemRepo:  subItemRepo,
@@ -193,6 +193,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Lockr:                 lockr,
 		FeatureFlags:          ffService,
 	})
+	require.NoError(t, err)
 
 	addonRepo, err := addonrepo.New(addonrepo.Config{
 		Client: dbDeps.DBClient,

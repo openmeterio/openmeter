@@ -7,12 +7,11 @@ import (
 	"sync"
 
 	"github.com/samber/lo"
-	"github.com/samber/mo"
-	"github.com/samber/mo/result"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionvalidators "github.com/openmeterio/openmeter/openmeter/subscription/validators/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/ffx"
@@ -38,13 +37,28 @@ type ServiceConfig struct {
 	Lockr              *lockr.Locker
 	FeatureFlags       ffx.Service
 	// External validations (optional)
-	Validators []subscription.SubscriptionValidator
+	Validators []subscription.SubscriptionCommandValidator
 }
 
-func New(conf ServiceConfig) subscription.Service {
-	return &service{
+func New(conf ServiceConfig) (subscription.Service, error) {
+	svc := &service{
 		ServiceConfig: conf,
 	}
+
+	val, err := subscriptionvalidators.NewSubscriptionUniqueConstraintValidator(subscriptionvalidators.SubscriptionUniqueConstraintValidatorConfig{
+		FeatureFlags:    conf.FeatureFlags,
+		QueryService:    svc,
+		CustomerService: svc.CustomerService,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := svc.RegisterValidator(val); err != nil {
+		return nil, err
+	}
+
+	return svc, nil
 }
 
 var _ subscription.Service = &service{}
@@ -55,7 +69,7 @@ type service struct {
 	mu sync.RWMutex
 }
 
-func (s *service) RegisterValidator(validator subscription.SubscriptionValidator) error {
+func (s *service) RegisterValidator(validator subscription.SubscriptionCommandValidator) error {
 	if validator == nil {
 		return errors.New("invalid subscription validator: nil")
 	}
@@ -116,6 +130,16 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return def, err
 		}
 
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
+		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
+			return v.ValidateCreate(ctx, namespace, spec)
+		})...)
+		if err != nil {
+			return def, fmt.Errorf("failed to validate subscription: %w", err)
+		}
+
 		// Create subscription entity
 		sub, err := s.SubscriptionRepo.Create(ctx, spec.ToCreateSubscriptionEntityInput(namespace))
 		if err != nil {
@@ -149,11 +173,8 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return sub, err
 		}
 
-		s.mu.RLock()
-		defer s.mu.RUnlock()
-
-		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
-			return v.ValidateCreate(ctx, view)
+		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
+			return v.ValidateCreated(ctx, view)
 		})...)
 		if err != nil {
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
@@ -199,8 +220,8 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
-		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
-			return v.ValidateUpdate(ctx, view)
+		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
+			return v.ValidateUpdated(ctx, view)
 		})...)
 		if err != nil {
 			return subs, fmt.Errorf("failed to validate subscription: %w", err)
@@ -236,8 +257,8 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
-		return v.ValidateDelete(ctx, view)
+	err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
+		return v.ValidateDeleted(ctx, view)
 	})...)
 	if err != nil {
 		return fmt.Errorf("failed to validate subscription: %w", err)
@@ -310,8 +331,8 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
-		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
-			return v.ValidateCancel(ctx, view)
+		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
+			return v.ValidateCanceled(ctx, view)
 		})...)
 		if err != nil {
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
@@ -347,6 +368,15 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 
 	// We can use sync to do this
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
+		if err := errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
+			return v.ValidateContinue(ctx, view)
+		})...); err != nil {
+			return subscription.Subscription{}, fmt.Errorf("failed to validate subscription: %w", err)
+		}
+
 		sub, err := s.sync(ctx, view, spec)
 		if err != nil {
 			return sub, err
@@ -358,11 +388,8 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 			return sub, err
 		}
 
-		s.mu.RLock()
-		defer s.mu.RUnlock()
-
-		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
-			return v.ValidateContinue(ctx, view)
+		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
+			return v.ValidateContinued(ctx, view)
 		})...)
 		if err != nil {
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
@@ -411,7 +438,7 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 		return def, fmt.Errorf("customer is nil")
 	}
 
-	views, err := s.getViewsForSubs(ctx, *cus, []subscription.Subscription{sub})
+	views, err := s.ExpandViews(ctx, []subscription.Subscription{sub})
 	if err != nil {
 		return def, fmt.Errorf("failed to get views: %w", err)
 	}
@@ -420,7 +447,7 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 		return def, fmt.Errorf("expected 1 view, got %d", len(views))
 	}
 
-	return lo.FromPtr(views[0]), nil
+	return views[0], nil
 }
 
 func (s *service) List(ctx context.Context, input subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
@@ -433,57 +460,37 @@ func (s *service) List(ctx context.Context, input subscription.ListSubscriptions
 	return s.SubscriptionRepo.List(ctx, input)
 }
 
-func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscription.Subscription, currentSpec subscription.SubscriptionSpec) error {
-	cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-		CustomerID: &customer.CustomerID{
-			Namespace: sub.Namespace,
-			ID:        sub.CustomerId,
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("failed to get customer: %w", err)
-	}
-
-	if cus != nil && cus.IsDeleted() {
-		return models.NewGenericPreConditionFailedError(
-			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
-		)
-	}
-
-	if cus == nil {
-		return fmt.Errorf("customer is nil")
-	}
-
-	// Let's set the customer's currency to the subscription currency for paid subscriptions (if not already set)
-	if cus.Currency == nil && currentSpec.HasBillables() {
-		if _, err := s.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
-			CustomerID: cus.GetID(),
-			CustomerMutate: customer.CustomerMutate{
-				Name:             cus.Name,
-				Key:              cus.Key,
-				Description:      cus.Description,
-				UsageAttribution: cus.UsageAttribution,
-				PrimaryEmail:     cus.PrimaryEmail,
-				BillingAddress:   cus.BillingAddress,
-				Currency:         &currentSpec.Currency,
-				Metadata:         cus.Metadata,
-				Annotation:       cus.Annotation,
-			},
-		}); err != nil {
-			return fmt.Errorf("failed to update customer currency: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// enriches one or more of a customer with their views
-func (s *service) getViewsForSubs(ctx context.Context, cust customer.Customer, subs []subscription.Subscription) ([]*subscription.SubscriptionView, error) {
-	now := clock.Now()
+func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error) {
+	ctx = subscription.NewSubscriptionOperationContext(ctx)
 
 	if len(subs) == 0 {
 		return nil, nil
 	}
+
+	// If we have multiple customer ids, we can't expand the views
+	if len(lo.Uniq(slicesx.Map(subs, func(s subscription.Subscription) string {
+		return s.CustomerId
+	}))) != 1 {
+		return nil, fmt.Errorf("ExpandViews only supports a single customer id for now")
+	}
+
+	customerID := subs[0].CustomerId
+
+	cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerID: &customer.CustomerID{
+			Namespace: subs[0].Namespace,
+			ID:        customerID,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get customer: %w", err)
+	}
+
+	if cus == nil {
+		return nil, fmt.Errorf("customer is nil")
+	}
+
+	now := clock.Now()
 
 	getAtInputs := slicesx.Map(subs, func(s subscription.Subscription) subscription.GetForSubscriptionAtInput {
 		return subscription.GetForSubscriptionAtInput{
@@ -508,65 +515,46 @@ func (s *service) getViewsForSubs(ctx context.Context, cust customer.Customer, s
 		return nil, fmt.Errorf("failed to get entitlements: %w", err)
 	}
 
-	featsOfEnts, err := result.Pipe2(
-		mo.Ok(ents),
-		result.Map(func(ents []subscription.SubscriptionEntitlement) []string {
-			return lo.Uniq(slicesx.Map(ents, func(e subscription.SubscriptionEntitlement) string {
-				return e.Entitlement.FeatureID
-			}))
-		}),
-		result.FlatMap(func(idsOrKeys []string) mo.Result[pagination.Result[feature.Feature]] {
-			if len(idsOrKeys) == 0 {
-				return mo.Ok(pagination.Result[feature.Feature]{})
-			}
+	var featsOfEnts pagination.Result[feature.Feature]
 
-			return mo.Try(func() (pagination.Result[feature.Feature], error) {
-				return s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
-					Namespace:       cust.Namespace,
-					IncludeArchived: true,
-					IDsOrKeys:       idsOrKeys,
-				})
-			}).MapErr(func(err error) (pagination.Result[feature.Feature], error) {
-				return pagination.Result[feature.Feature]{}, fmt.Errorf("failed to get features of entitlements: %w", err)
+	{
+		uniqFeatureIDs := lo.Uniq(slicesx.Map(ents, func(e subscription.SubscriptionEntitlement) string {
+			return e.Entitlement.FeatureID
+		}))
+
+		if len(uniqFeatureIDs) > 0 {
+			featsOfEnts, err = s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
+				Namespace:       cus.Namespace,
+				IncludeArchived: true,
+				IDsOrKeys:       uniqFeatureIDs,
 			})
-		}),
-	).Get()
-	if err != nil {
-		return nil, err
+			if err != nil {
+				return nil, fmt.Errorf("failed to get features of entitlements: %w", err)
+			}
+		}
 	}
 
-	featsOfItems, err := result.Pipe2(
-		mo.Ok(items),
-		result.Map(func(items []subscription.SubscriptionItem) []string {
-			items = lo.Filter(items, func(i subscription.SubscriptionItem, _ int) bool {
-				return i.RateCard.AsMeta().FeatureKey != nil
-			})
+	var featsOfItems pagination.Result[feature.Feature]
 
-			keys := lo.Map(items, func(i subscription.SubscriptionItem, _ int) string {
-				return lo.FromPtr(i.RateCard.AsMeta().FeatureKey)
-			})
+	{
+		itemsWithFeatures := lo.Filter(items, func(i subscription.SubscriptionItem, _ int) bool {
+			return i.RateCard.AsMeta().FeatureKey != nil
+		})
 
-			return lo.Uniq(keys)
-		}),
-		result.FlatMap(func(idsOrKeys []string) mo.Result[pagination.Result[feature.Feature]] {
-			if len(idsOrKeys) == 0 {
-				return mo.Ok(pagination.Result[feature.Feature]{})
+		uniqFeatureKeys := lo.Uniq(slicesx.Map(itemsWithFeatures, func(i subscription.SubscriptionItem) string {
+			return lo.FromPtr(i.RateCard.AsMeta().FeatureKey)
+		}))
+
+		if len(uniqFeatureKeys) > 0 {
+			featsOfItems, err = s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
+				Namespace:       cus.Namespace,
+				IncludeArchived: true,
+				IDsOrKeys:       uniqFeatureKeys,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get features of items: %w", err)
 			}
-
-			// TODO[galexi]: SubscriptionItems should hard reference exact versions of features, currently only key is stored
-			return mo.Try(func() (pagination.Result[feature.Feature], error) {
-				return s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
-					Namespace:       cust.Namespace,
-					IncludeArchived: false,
-					IDsOrKeys:       idsOrKeys,
-				})
-			}).MapErr(func(err error) (pagination.Result[feature.Feature], error) {
-				return pagination.Result[feature.Feature]{}, fmt.Errorf("failed to get features of items: %w", err)
-			})
-		}),
-	).Get()
-	if err != nil {
-		return nil, err
+		}
 	}
 
 	phasesBySub := lo.GroupBy(phases, func(p subscription.SubscriptionPhase) string {
@@ -650,13 +638,59 @@ func (s *service) getViewsForSubs(ctx context.Context, cust customer.Customer, s
 		return key, found
 	})
 
-	return slicesx.MapWithErr(subs, func(s subscription.Subscription) (*subscription.SubscriptionView, error) {
-		return subscription.NewSubscriptionView(s, cust,
+	return slicesx.MapWithErr(subs, func(s subscription.Subscription) (subscription.SubscriptionView, error) {
+		view, err := subscription.NewSubscriptionView(s, lo.FromPtr(cus),
 			phasesBySub[s.ID],
 			itemsBySub[s.ID],
 			entsBySub[s.ID],
 			featsOfEntsBySub[s.ID],
 			featsOfItemsBySub[s.ID],
 		)
+
+		return lo.FromPtr(view), err
 	})
+}
+
+func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscription.Subscription, currentSpec subscription.SubscriptionSpec) error {
+	cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerID: &customer.CustomerID{
+			Namespace: sub.Namespace,
+			ID:        sub.CustomerId,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get customer: %w", err)
+	}
+
+	if cus != nil && cus.IsDeleted() {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+		)
+	}
+
+	if cus == nil {
+		return fmt.Errorf("customer is nil")
+	}
+
+	// Let's set the customer's currency to the subscription currency for paid subscriptions (if not already set)
+	if cus.Currency == nil && currentSpec.HasBillables() {
+		if _, err := s.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
+			CustomerID: cus.GetID(),
+			CustomerMutate: customer.CustomerMutate{
+				Name:             cus.Name,
+				Key:              cus.Key,
+				Description:      cus.Description,
+				UsageAttribution: cus.UsageAttribution,
+				PrimaryEmail:     cus.PrimaryEmail,
+				BillingAddress:   cus.BillingAddress,
+				Currency:         &currentSpec.Currency,
+				Metadata:         cus.Metadata,
+				Annotation:       cus.Annotation,
+			},
+		}); err != nil {
+			return fmt.Errorf("failed to update customer currency: %w", err)
+		}
+	}
+
+	return nil
 }

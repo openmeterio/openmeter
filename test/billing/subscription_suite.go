@@ -128,7 +128,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	ffService := ffx.NewStaticService(ffx.AccessConfig{
 		subscription.MultiSubscriptionEnabledFF: true,
 	})
-	s.SubscriptionService = subscriptionservice.New(subscriptionservice.ServiceConfig{
+	s.SubscriptionService, err = subscriptionservice.New(subscriptionservice.ServiceConfig{
 		SubscriptionRepo:      subsRepo,
 		SubscriptionPhaseRepo: subscriptionrepo.NewSubscriptionPhaseRepo(deps.DBClient),
 		SubscriptionItemRepo:  subsItemRepo,
@@ -148,6 +148,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		// events
 		Publisher: publisher,
 	})
+	require.NoError(t, err)
 
 	addonRepo, err := addonrepo.New(addonrepo.Config{
 		Client: deps.DBClient,
