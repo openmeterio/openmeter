@@ -1210,7 +1210,7 @@ var _ subscription.Service = (*NoopSubscriptionService)(nil)
 // for use in testing
 type NoopSubscriptionService struct{}
 
-func (n NoopSubscriptionService) RegisterValidator(validator subscription.SubscriptionValidator) error {
+func (n NoopSubscriptionService) RegisterValidator(validator subscription.SubscriptionCommandValidator) error {
 	return nil
 }
 
@@ -1248,6 +1248,10 @@ func (n NoopSubscriptionService) List(ctx context.Context, params subscription.L
 
 func (n NoopSubscriptionService) GetAllForCustomer(ctx context.Context, customerID models.NamespacedID, period timeutil.StartBoundedPeriod) ([]subscription.Subscription, error) {
 	return []subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) ExpandViews(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error) {
+	return []subscription.SubscriptionView{}, nil
 }
 
 var _ subscriptionworkflow.Service = (*NoopSubscriptionWorkflowService)(nil)

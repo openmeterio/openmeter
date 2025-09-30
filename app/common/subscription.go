@@ -64,7 +64,7 @@ func NewSubscriptionServices(
 		subscriptionItemRepo,
 	)
 
-	subscriptionService := subscriptionservice.New(subscriptionservice.ServiceConfig{
+	subscriptionService, err := subscriptionservice.New(subscriptionservice.ServiceConfig{
 		SubscriptionRepo:      subscriptionRepo,
 		SubscriptionPhaseRepo: subscriptionPhaseRepo,
 		SubscriptionItemRepo:  subscriptionItemRepo,
@@ -76,6 +76,9 @@ func NewSubscriptionServices(
 		FeatureFlags:          featureFlags,
 		Lockr:                 lockr,
 	})
+	if err != nil {
+		return SubscriptionServiceWithWorkflow{}, err
+	}
 
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(db)
 	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(db)

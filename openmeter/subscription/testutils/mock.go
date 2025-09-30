@@ -19,11 +19,12 @@ type MockService struct {
 	GetFn               func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 	GetViewFn           func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error)
 	ListFn              func(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error)
+	ExpandViewsFn       func(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error)
 	GetAllForCustomerFn func(ctx context.Context, customerID models.NamespacedID, period timeutil.StartBoundedPeriod) ([]subscription.Subscription, error)
-	Validators          []subscription.SubscriptionValidator
+	Validators          []subscription.SubscriptionCommandValidator
 }
 
-func (s *MockService) RegisterValidator(validator subscription.SubscriptionValidator) error {
+func (s *MockService) RegisterValidator(validator subscription.SubscriptionCommandValidator) error {
 	if validator == nil {
 		return errors.New("invalid subscription validator: nil")
 	}
@@ -65,6 +66,10 @@ func (s *MockService) GetView(ctx context.Context, subscriptionID models.Namespa
 
 func (s *MockService) List(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
 	return s.ListFn(ctx, params)
+}
+
+func (s *MockService) ExpandViews(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error) {
+	return s.ExpandViewsFn(ctx, subs)
 }
 
 func (s *MockService) GetAllForCustomer(ctx context.Context, customerID models.NamespacedID, period timeutil.StartBoundedPeriod) ([]subscription.Subscription, error) {
