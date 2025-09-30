@@ -64,7 +64,7 @@ func (v SubscriptionUniqueConstraintValidator) ValidateCreate(ctx context.Contex
 }
 
 func (v SubscriptionUniqueConstraintValidator) ValidateContinue(ctx context.Context, view subscription.SubscriptionView) error {
-	// We're only validatint that the subscription can be continued indefinitely
+	// We're only validating that the subscription can be continued indefinitely
 	spec := view.AsSpec()
 	spec.ActiveTo = nil
 
