@@ -6,3 +6,4 @@ api/client/python/src/openmeter/_serialization.py
 openmeter/billing/service/seq.go
 collector/benthos/input/otel_log.go
 openmeter/productcatalog/feature/connector.go
+openmeter/watermill/driver/kafka/broker.go
