@@ -125,7 +125,7 @@ func TestAddAddon(t *testing.T) {
 		_ = deps.FeatureConnector.CreateExampleFeatures(t)
 
 		// Let's create a plan
-		p, err := deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.BuildTestPlan(t).
+		p, err := deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.BuildTestPlanInput(t).
 			AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
 			Build())
 		require.Nil(t, err)
@@ -497,7 +497,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
-			subscriptiontestutils.BuildTestPlan(t).
+			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t,
@@ -551,7 +551,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
-			subscriptiontestutils.BuildTestPlan(t).
+			subscriptiontestutils.BuildTestPlanInput(t).
 				SetMeta(productcatalog.PlanMeta{
 					Name:           "Test Plan",
 					Key:            "test_plan",
@@ -664,7 +664,7 @@ func TestAddonCombinations(t *testing.T) {
 
 	t.Run("Should handle repeated add/remove of single instance addon with dynamic price", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		// Create a plan with mixed rate cards
-		planInput := subscriptiontestutils.BuildTestPlan(t).
+		planInput := subscriptiontestutils.BuildTestPlanInput(t).
 			AddPhase(nil,
 				&subscriptiontestutils.ExampleRateCard1, // Flat price
 				&productcatalog.UsageBasedRateCard{ // Dynamic price
