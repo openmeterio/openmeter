@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -51,66 +54,120 @@ func NewSubscriptionUniqueConstraintValidator(config SubscriptionUniqueConstrain
 }
 
 func (v SubscriptionUniqueConstraintValidator) ValidateCreate(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) error {
-	return pipe5(
-		v.collectSubs(ctx, namespace, spec.CustomerId, spec.ActiveFrom),
-		v.mapSubsToViews(ctx),
-		v.mapViewsToSpecs(),
-		v.validateUniqueConstraint(ctx, func(err error) error {
-			return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
-		}),
-		v.includeSubSpec(spec),
-		v.validateUniqueConstraint(ctx, nil),
-	).Error()
+	subs, err := v.collectCustomerSubscriptionsStarting(ctx, namespace, spec.CustomerId, spec.ActiveFrom)
+	if err != nil {
+		return err
+	}
+
+	views, err := v.Config.QueryService.ExpandViews(ctx, subs)
+	if err != nil {
+		return err
+	}
+
+	specs := slicesx.Map(views, func(v subscription.SubscriptionView) subscription.SubscriptionSpec {
+		return v.AsSpec()
+	})
+
+	specs, err = v.validateUniqueConstraint(ctx, specs)
+	if err != nil {
+		return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
+	}
+
+	specs = append(specs, spec)
+
+	_, err = v.validateUniqueConstraint(ctx, specs)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (v SubscriptionUniqueConstraintValidator) ValidateContinue(ctx context.Context, view subscription.SubscriptionView) error {
-	// We're only validating that the subscription can be continued indefinitely
+	// We're only validatint that the subscription can be continued indefinitely
 	spec := view.AsSpec()
 	spec.ActiveTo = nil
 
-	return pipe6(
-		v.collectSubs(ctx, view.Customer.Namespace, view.Customer.ID, view.Subscription.ActiveFrom),
-		v.mapSubsToViews(ctx),
-		v.filterSubViews(func(v subscription.SubscriptionView) bool {
-			return v.Subscription.ID != view.Subscription.ID
-		}),
-		v.mapViewsToSpecs(),
-		v.validateUniqueConstraint(ctx, func(err error) error {
-			return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
-		}),
-		v.includeSubSpec(spec),
-		v.validateUniqueConstraint(ctx, nil),
-	).Error()
+	subs, err := v.collectCustomerSubscriptionsStarting(ctx, view.Customer.Namespace, view.Customer.ID, view.Subscription.ActiveFrom)
+	if err != nil {
+		return err
+	}
+
+	views, err := v.Config.QueryService.ExpandViews(ctx, subs)
+	if err != nil {
+		return err
+	}
+
+	views = lo.Filter(views, func(v subscription.SubscriptionView, _ int) bool {
+		return v.Subscription.ID != view.Subscription.ID
+	})
+
+	specs := slicesx.Map(views, func(v subscription.SubscriptionView) subscription.SubscriptionSpec {
+		return v.AsSpec()
+	})
+
+	specs, err = v.validateUniqueConstraint(ctx, specs)
+	if err != nil {
+		return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
+	}
+
+	specs = append(specs, spec)
+
+	_, err = v.validateUniqueConstraint(ctx, specs)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (v SubscriptionUniqueConstraintValidator) ValidateCreated(ctx context.Context, view subscription.SubscriptionView) error {
-	return v.pipelineAfter(ctx, view).Error()
+	return v.pipelineAfter(ctx, view)
 }
 
 func (v SubscriptionUniqueConstraintValidator) ValidateUpdated(ctx context.Context, view subscription.SubscriptionView) error {
-	return v.pipelineAfter(ctx, view).Error()
+	return v.pipelineAfter(ctx, view)
 }
 
 func (v SubscriptionUniqueConstraintValidator) ValidateCanceled(ctx context.Context, view subscription.SubscriptionView) error {
-	return v.pipelineAfter(ctx, view).Error()
+	return v.pipelineAfter(ctx, view)
 }
 
 func (v SubscriptionUniqueConstraintValidator) ValidateContinued(ctx context.Context, view subscription.SubscriptionView) error {
-	return v.pipelineAfter(ctx, view).Error()
+	return v.pipelineAfter(ctx, view)
 }
 
 func (v SubscriptionUniqueConstraintValidator) ValidateDeleted(ctx context.Context, view subscription.SubscriptionView) error {
-	return v.pipelineAfter(ctx, view).Error()
+	return v.pipelineAfter(ctx, view)
 }
 
-func (v SubscriptionUniqueConstraintValidator) pipelineAfter(ctx context.Context, view subscription.SubscriptionView) result[[]subscription.SubscriptionSpec] {
-	return pipe4(
-		v.collectSubs(ctx, view.Customer.Namespace, view.Customer.ID, view.Subscription.ActiveFrom),
-		v.mapSubsToViews(ctx),
-		v.includeSubViewUnique(view),
-		v.mapViewsToSpecs(),
-		v.validateUniqueConstraint(ctx, nil),
-	)
+func (v SubscriptionUniqueConstraintValidator) pipelineAfter(ctx context.Context, view subscription.SubscriptionView) error {
+	subs, err := v.collectCustomerSubscriptionsStarting(ctx, view.Customer.Namespace, view.Customer.ID, view.Subscription.ActiveFrom)
+	if err != nil {
+		return err
+	}
+
+	views, err := v.mapSubsToViews(ctx)(subs)
+	if err != nil {
+		return err
+	}
+
+	views, err = v.includeSubViewUnique(view)(views)
+	if err != nil {
+		return err
+	}
+
+	specs, err := v.mapViewsToSpecs()(views)
+	if err != nil {
+		return err
+	}
+
+	_, err = v.validateUniqueConstraint(ctx, specs)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (v SubscriptionUniqueConstraintValidator) collectCustomerSubscriptionsStarting(ctx context.Context, namespace string, customerID string, starting time.Time) ([]subscription.Subscription, error) {
