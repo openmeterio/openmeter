@@ -113,7 +113,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			}
 
 			if apiGrant.Metadata != nil {
-				req.GrantInput.Annotations = AnnotationsFromMetadata(lo.FromPtr(apiGrant.Metadata))
+				req.GrantInput.Metadata = lo.FromPtr(apiGrant.Metadata)
 			}
 
 			if apiGrant.Recurrence != nil {
@@ -446,34 +446,4 @@ func MapEntitlementGrantToAPI(grant *meteredentitlement.EntitlementGrant) api.En
 	}
 
 	return apiGrant
-}
-
-func MetadataFromAnnotations(annotations models.Annotations) *api.Metadata {
-	if len(annotations) == 0 {
-		return nil
-	}
-
-	result := make(api.Metadata)
-	if len(annotations) > 0 {
-		for k, v := range annotations {
-			result[k] = fmt.Sprintf("%v", v)
-		}
-	}
-
-	return &result
-}
-
-func AnnotationsFromMetadata(metadata api.Metadata) models.Annotations {
-	if len(metadata) == 0 {
-		return nil
-	}
-
-	result := make(models.Annotations)
-	if len(metadata) > 0 {
-		for k, v := range metadata {
-			result[k] = v
-		}
-	}
-
-	return result
 }
