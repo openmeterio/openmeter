@@ -6,13 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -59,21 +56,25 @@ func (v SubscriptionUniqueConstraintValidator) ValidateCreate(ctx context.Contex
 		return err
 	}
 
-	views, err := v.Config.QueryService.ExpandViews(ctx, subs)
+	views, err := v.mapSubsToViews(ctx, subs)
 	if err != nil {
 		return err
 	}
 
-	specs := slicesx.Map(views, func(v subscription.SubscriptionView) subscription.SubscriptionSpec {
-		return v.AsSpec()
-	})
+	specs, err := v.mapViewsToSpecs(views)
+	if err != nil {
+		return err
+	}
 
 	specs, err = v.validateUniqueConstraint(ctx, specs)
 	if err != nil {
 		return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
 	}
 
-	specs = append(specs, spec)
+	specs, err = v.includeSubSpec(spec, specs)
+	if err != nil {
+		return err
+	}
 
 	_, err = v.validateUniqueConstraint(ctx, specs)
 	if err != nil {
@@ -93,25 +94,32 @@ func (v SubscriptionUniqueConstraintValidator) ValidateContinue(ctx context.Cont
 		return err
 	}
 
-	views, err := v.Config.QueryService.ExpandViews(ctx, subs)
+	views, err := v.mapSubsToViews(ctx, subs)
 	if err != nil {
 		return err
 	}
 
-	views = lo.Filter(views, func(v subscription.SubscriptionView, _ int) bool {
+	views, err = v.filterSubViews(func(v subscription.SubscriptionView) bool {
 		return v.Subscription.ID != view.Subscription.ID
-	})
+	}, views)
+	if err != nil {
+		return err
+	}
 
-	specs := slicesx.Map(views, func(v subscription.SubscriptionView) subscription.SubscriptionSpec {
-		return v.AsSpec()
-	})
+	specs, err := v.mapViewsToSpecs(views)
+	if err != nil {
+		return err
+	}
 
 	specs, err = v.validateUniqueConstraint(ctx, specs)
 	if err != nil {
 		return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
 	}
 
-	specs = append(specs, spec)
+	specs, err = v.includeSubSpec(spec, specs)
+	if err != nil {
+		return err
+	}
 
 	_, err = v.validateUniqueConstraint(ctx, specs)
 	if err != nil {
@@ -147,17 +155,17 @@ func (v SubscriptionUniqueConstraintValidator) pipelineAfter(ctx context.Context
 		return err
 	}
 
-	views, err := v.mapSubsToViews(ctx)(subs)
+	views, err := v.mapSubsToViews(ctx, subs)
 	if err != nil {
 		return err
 	}
 
-	views, err = v.includeSubViewUnique(view)(views)
+	views, err = v.includeSubViewUnique(view, views)
 	if err != nil {
 		return err
 	}
 
-	specs, err := v.mapViewsToSpecs()(views)
+	specs, err := v.mapViewsToSpecs(views)
 	if err != nil {
 		return err
 	}

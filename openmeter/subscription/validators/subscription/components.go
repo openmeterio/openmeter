@@ -3,7 +3,6 @@ package subscriptionvalidators
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -23,40 +22,26 @@ func (v SubscriptionUniqueConstraintValidator) validateUniqueConstraint(ctx cont
 	}
 }
 
-func (v SubscriptionUniqueConstraintValidator) collectSubs(ctx context.Context, namespace string, customerID string, starting time.Time) ([]subscription.Subscription, error) {
-	return v.collectCustomerSubscriptionsStarting(ctx, namespace, customerID, starting)
+func (v SubscriptionUniqueConstraintValidator) mapSubsToViews(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error) {
+	return v.Config.QueryService.ExpandViews(ctx, subs)
 }
 
-func (v SubscriptionUniqueConstraintValidator) mapSubsToViews(ctx context.Context) func([]subscription.Subscription) ([]subscription.SubscriptionView, error) {
-	return func(subs []subscription.Subscription) ([]subscription.SubscriptionView, error) {
-		return v.Config.QueryService.ExpandViews(ctx, subs)
-	}
+func (v SubscriptionUniqueConstraintValidator) mapViewsToSpecs(views []subscription.SubscriptionView) ([]subscription.SubscriptionSpec, error) {
+	return slicesx.Map(views, func(v subscription.SubscriptionView) subscription.SubscriptionSpec {
+		return v.AsSpec()
+	}), nil
 }
 
-func (v SubscriptionUniqueConstraintValidator) mapViewsToSpecs() func([]subscription.SubscriptionView) ([]subscription.SubscriptionSpec, error) {
-	return func(views []subscription.SubscriptionView) ([]subscription.SubscriptionSpec, error) {
-		return slicesx.Map(views, func(v subscription.SubscriptionView) subscription.SubscriptionSpec {
-			return v.AsSpec()
-		}), nil
-	}
+func (v SubscriptionUniqueConstraintValidator) includeSubSpec(spec subscription.SubscriptionSpec, subs []subscription.SubscriptionSpec) ([]subscription.SubscriptionSpec, error) {
+	return append(subs, spec), nil
 }
 
-func (v SubscriptionUniqueConstraintValidator) includeSubSpec(spec subscription.SubscriptionSpec) func([]subscription.SubscriptionSpec) ([]subscription.SubscriptionSpec, error) {
-	return func(specs []subscription.SubscriptionSpec) ([]subscription.SubscriptionSpec, error) {
-		return append(specs, spec), nil
-	}
+func (v SubscriptionUniqueConstraintValidator) includeSubViewUnique(view subscription.SubscriptionView, views []subscription.SubscriptionView) ([]subscription.SubscriptionView, error) {
+	return lo.UniqBy(append(views, view), func(i subscription.SubscriptionView) string {
+		return i.Subscription.ID
+	}), nil
 }
 
-func (v SubscriptionUniqueConstraintValidator) includeSubViewUnique(view subscription.SubscriptionView) func([]subscription.SubscriptionView) ([]subscription.SubscriptionView, error) {
-	return func(views []subscription.SubscriptionView) ([]subscription.SubscriptionView, error) {
-		return lo.UniqBy(append(views, view), func(i subscription.SubscriptionView) string {
-			return i.Subscription.ID
-		}), nil
-	}
-}
-
-func (v SubscriptionUniqueConstraintValidator) filterSubViews(fn func(subscription.SubscriptionView) bool) func([]subscription.SubscriptionView) ([]subscription.SubscriptionView, error) {
-	return func(views []subscription.SubscriptionView) ([]subscription.SubscriptionView, error) {
-		return lo.Filter(views, slicesx.AsFilterIteratee(fn)), nil
-	}
+func (v SubscriptionUniqueConstraintValidator) filterSubViews(fn func(subscription.SubscriptionView) bool, views []subscription.SubscriptionView) ([]subscription.SubscriptionView, error) {
+	return lo.Filter(views, slicesx.AsFilterIteratee(fn)), nil
 }
