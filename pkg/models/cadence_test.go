@@ -14,6 +14,10 @@ type MockCadenceItem struct {
 	ActiveTo   *time.Time
 }
 
+func (m MockCadenceItem) GetCadence() CadencedModel {
+	return CadencedModel(m)
+}
+
 func (m MockCadenceItem) cadence() CadencedModel {
 	return CadencedModel(m)
 }
@@ -26,132 +30,120 @@ func (m MockCadenceItem) cadenced() cadencedMarker {
 var _ Cadenced = MockCadenceItem{} // Verify that MockCadenceItem implements Cadenced
 
 func TestCadenceList_GetOverlaps(t *testing.T) {
-	tests := []struct {
-		name     string
-		list     CadenceList[MockCadenceItem]
-		expected []OverlapDetail[MockCadenceItem]
-	}{
-		{
-			name:     "empty list",
-			list:     CadenceList[MockCadenceItem]{},
-			expected: []OverlapDetail[MockCadenceItem]{},
-		},
-		{
-			name: "no overlaps",
-			list: CadenceList[MockCadenceItem]{
-				{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC))},
-				{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
-			},
-			expected: []OverlapDetail[MockCadenceItem]{},
-		},
-		{
-			name: "overlap with nil ActiveTo",
-			list: CadenceList[MockCadenceItem]{
-				{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-				{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
-			},
-			expected: []OverlapDetail[MockCadenceItem]{
-				{
-					Index1: 0,
-					Index2: 1,
-					Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-					Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
-					Reason: OverlapReasonActiveToNil,
-				},
-			},
-		},
-		{
-			name: "overlap with non-nil ActiveTo",
-			list: CadenceList[MockCadenceItem]{
-				{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
-				{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
-			},
-			expected: []OverlapDetail[MockCadenceItem]{
-				{
-					Index1: 0,
-					Index2: 1,
-					Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
-					Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
-					Reason: OverlapReasonActiveToAfterActiveFrom,
-				},
-			},
-		},
-		{
-			name: "multiple overlaps",
-			list: CadenceList[MockCadenceItem]{
-				{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
-				{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
-				{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-				{ActiveFrom: time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 6, 0, 0, 0, 0, time.UTC))},
-			},
-			expected: []OverlapDetail[MockCadenceItem]{
-				{
-					Index1: 0,
-					Index2: 1,
-					Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
-					Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
-					Reason: OverlapReasonActiveToAfterActiveFrom,
-				},
-				{
-					Index1: 1,
-					Index2: 2,
-					Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
-					Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-					Reason: OverlapReasonActiveToAfterActiveFrom,
-				},
-				{
-					Index1: 2,
-					Index2: 3,
-					Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-					Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 6, 0, 0, 0, 0, time.UTC))},
-					Reason: OverlapReasonActiveToNil,
-				},
-			},
-		},
-		{
-			name: "no overlap - adjacent",
-			list: CadenceList[MockCadenceItem]{
-				{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC))},
-				{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
-			},
-			expected: []OverlapDetail[MockCadenceItem]{},
-		},
-		{
-			name: "single item",
-			list: CadenceList[MockCadenceItem]{
-				{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC))},
-			},
-			expected: []OverlapDetail[MockCadenceItem]{},
-		},
-		{
-			name: "all nil ActiveTo",
-			list: CadenceList[MockCadenceItem]{
-				{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-				{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-				{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-			},
-			expected: []OverlapDetail[MockCadenceItem]{
-				{
-					Index1: 0,
-					Index2: 1,
-					Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-					Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-					Reason: OverlapReasonActiveToNil,
-				},
-				{
-					Index1: 1,
-					Index2: 2,
-					Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-					Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
-					Reason: OverlapReasonActiveToNil,
-				},
-			},
-		},
-	}
+	t.Run("empty list", func(t *testing.T) {
+		list := CadenceList[MockCadenceItem]{}
+		expected := []OverlapDetail[MockCadenceItem]{}
+		assert.ElementsMatch(t, expected, list.GetOverlaps(), "Elements should match in any order")
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.ElementsMatch(t, tt.expected, tt.list.GetOverlaps(), "Elements should match in any order")
-		})
-	}
+	t.Run("no overlaps", func(t *testing.T) {
+		list := CadenceList[MockCadenceItem]{
+			{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC))},
+			{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
+		}
+		expected := []OverlapDetail[MockCadenceItem]{}
+		assert.ElementsMatch(t, expected, list.GetOverlaps(), "Elements should match in any order")
+	})
+
+	t.Run("overlap with nil ActiveTo", func(t *testing.T) {
+		list := CadenceList[MockCadenceItem]{
+			{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+			{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
+		}
+		expected := []OverlapDetail[MockCadenceItem]{
+			{
+				Index1: 0,
+				Index2: 1,
+				Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+				Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
+			},
+		}
+		assert.ElementsMatch(t, expected, list.GetOverlaps(), "Elements should match in any order")
+	})
+
+	t.Run("overlap with non-nil ActiveTo", func(t *testing.T) {
+		list := CadenceList[MockCadenceItem]{
+			{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
+			{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
+		}
+		expected := []OverlapDetail[MockCadenceItem]{
+			{
+				Index1: 0,
+				Index2: 1,
+				Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
+				Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
+			},
+		}
+		assert.ElementsMatch(t, expected, list.GetOverlaps(), "Elements should match in any order")
+	})
+
+	t.Run("multiple overlaps", func(t *testing.T) {
+		list := CadenceList[MockCadenceItem]{
+			{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
+			{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
+			{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+			{ActiveFrom: time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 6, 0, 0, 0, 0, time.UTC))},
+		}
+		expected := []OverlapDetail[MockCadenceItem]{
+			{
+				Index1: 0,
+				Index2: 1,
+				Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
+				Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
+			},
+			{
+				Index1: 1,
+				Index2: 2,
+				Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC))},
+				Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+			},
+			{
+				Index1: 2,
+				Index2: 3,
+				Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+				Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 6, 0, 0, 0, 0, time.UTC))},
+			},
+		}
+		assert.ElementsMatch(t, expected, list.GetOverlaps(), "Elements should match in any order")
+	})
+
+	t.Run("no overlap - adjacent", func(t *testing.T) {
+		list := CadenceList[MockCadenceItem]{
+			{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC))},
+			{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC))},
+		}
+		expected := []OverlapDetail[MockCadenceItem]{}
+		assert.ElementsMatch(t, expected, list.GetOverlaps(), "Elements should match in any order")
+	})
+
+	t.Run("single item", func(t *testing.T) {
+		list := CadenceList[MockCadenceItem]{
+			{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: lo.ToPtr(time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC))},
+		}
+		expected := []OverlapDetail[MockCadenceItem]{}
+		assert.ElementsMatch(t, expected, list.GetOverlaps(), "Elements should match in any order")
+	})
+
+	t.Run("all nil ActiveTo", func(t *testing.T) {
+		list := CadenceList[MockCadenceItem]{
+			{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+			{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+			{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+		}
+		expected := []OverlapDetail[MockCadenceItem]{
+			{
+				Index1: 0,
+				Index2: 1,
+				Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+				Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+			},
+			{
+				Index1: 1,
+				Index2: 2,
+				Item1:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+				Item2:  MockCadenceItem{ActiveFrom: time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC), ActiveTo: nil},
+			},
+		}
+		assert.ElementsMatch(t, expected, list.GetOverlaps(), "Elements should match in any order")
+	})
 }

@@ -28,7 +28,13 @@ func IsErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart(err error) boo
 	return IsValidationIssueWithCode(err, ErrCodeSubscriptionBillingPeriodQueriedBeforeSubscriptionStart)
 }
 
-var ErrOnlySingleSubscriptionAllowed = models.NewGenericConflictError(errors.New("only single subscription is allowed per customer at a time"))
+const ErrCodeOnlySingleSubscriptionAllowed models.ErrorCode = "only_single_subscription_allowed_per_customer_at_a_time"
+
+// FIXME(galexi): This should be a conflict error by type, not a validation issue, but until attributes are implemented for other errors we'll use this workaround
+var ErrOnlySingleSubscriptionAllowed = models.NewValidationIssue(
+	ErrCodeOnlySingleSubscriptionAllowed,
+	"only single subscription is allowed per customer at a time",
+)
 
 var ErrRestoreSubscriptionNotAllowedForMultiSubscription = models.NewGenericForbiddenError(errors.New("restore subscription is not allowed for multi-subscription"))
 

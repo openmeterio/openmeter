@@ -1652,7 +1652,10 @@ func TestMultiSubscription(t *testing.T) {
 			}, deps.Plan1)
 
 			require.Error(t, err)
-			require.ErrorIs(t, err, subscription.ErrOnlySingleSubscriptionAllowed)
+			issues, err := models.AsValidationIssues(err)
+			require.NoError(t, err)
+			require.Len(t, issues, 1)
+			require.Equal(t, subscription.ErrOnlySingleSubscriptionAllowed.Code(), issues[0].Code())
 		})
 	})
 
