@@ -368,6 +368,39 @@ func TestEntitlementParitySuite(t *testing.T) {
 			assert.Equal(t, v1ValueForV2ByKey, v2ValueForV2ByKey, "v1(by feature2Key) vs v2(by feature2Key) should match")
 		})
 	})
+
+	t.Run("Annotations and metadata parity (create and get)", func(t *testing.T) {
+		t.Run("Annotations created with V2 API should show up in V1 API", func(t *testing.T) {
+			createGrantResponse, err := client.CreateCustomerEntitlementGrantV2WithResponse(ctx, customerID, feature1Key, api.CreateCustomerEntitlementGrantV2JSONRequestBody{
+				Amount:      100,
+				EffectiveAt: time.Now().Truncate(time.Minute).Add(time.Minute),
+				Expiration:  nil,
+				Annotations: &api.Annotations{
+					"some_annotation": "some_annotation_value",
+				},
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, createGrantResponse.StatusCode(), "Invalid status code [response_body=%s]", string(createGrantResponse.Body))
+
+			getGrantResponse, err := client.ListEntitlementGrantsWithResponse(ctx, subjectKey, feature1Key, &api.ListEntitlementGrantsParams{})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, getGrantResponse.StatusCode(), "Invalid status code [response_body=%s]", string(getGrantResponse.Body))
+			require.NotNil(t, getGrantResponse.JSON200)
+			require.GreaterOrEqual(t, len(lo.FromPtr(getGrantResponse.JSON200)), 1, "Invalid number of grants [response_body=%s]", string(getGrantResponse.Body))
+
+			var found *api.EntitlementGrant
+
+			for _, grant := range lo.FromPtr(getGrantResponse.JSON200) {
+				if grant.Id == createGrantResponse.JSON201.Id {
+					found = &grant
+					break
+				}
+			}
+
+			require.NotNil(t, found, "Grant not found [response_body=%s]", string(getGrantResponse.Body))
+			require.Equal(t, "some_annotation_value", lo.FromPtr(found.Annotations)["some_annotation"])
+		})
+	})
 }
 
 func TestEntitlementDifferences(t *testing.T) {

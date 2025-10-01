@@ -956,6 +956,9 @@ func TestCredit(t *testing.T) {
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: *apiYEAR,
 			},
+			Metadata: &api.Metadata{
+				"some_key": "some_value",
+			},
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
@@ -981,6 +984,9 @@ func TestCredit(t *testing.T) {
 				Anchor:      time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Interval:    *apiYEAR,
 				IntervalISO: "P1Y",
+			},
+			Metadata: &api.Metadata{
+				"some_key": "some_value",
 			},
 		}
 
