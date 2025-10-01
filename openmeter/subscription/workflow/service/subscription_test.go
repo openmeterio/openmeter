@@ -134,7 +134,7 @@ func TestCreateFromPlan(t *testing.T) {
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 		deps.FeatureConnector.CreateExampleFeatures(t)
 
-		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlan(t).
+		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
 			AddPhase(nil, &subscriptiontestutils.ExampleRateCard3ForAddons, &subscriptiontestutils.ExampleRateCard4ForAddons).
 			Build())
 
@@ -1119,7 +1119,7 @@ func TestEditCombinations(t *testing.T) {
 
 	t.Run("Should add boolean entitlement count annotations", func(t *testing.T) {
 		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
-			plan := deps.SubsDeps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlan(t).
+			plan := deps.SubsDeps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard3ForAddons).
 				Build())
 
