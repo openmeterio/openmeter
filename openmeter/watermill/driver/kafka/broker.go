@@ -80,9 +80,9 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 		config.Net.SASL.Handshake = true
 
 		config.Net.TLS.Enable = true
-		config.Net.TLS.Config = &tls.Config{
-			MinVersion: tls.VersionTLS13,
-		}
+		// Sarama has issues with min version TLS 1.3, so let's use the defaults for now
+		// remote error: tls: protocol version not supported
+		config.Net.TLS.Config = &tls.Config{} // nosemgrep
 
 		config.Net.SASL.User = o.KafkaConfig.SaslUsername
 		config.Net.SASL.Password = o.KafkaConfig.SaslPassword
