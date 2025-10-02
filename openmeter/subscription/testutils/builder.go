@@ -11,6 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -100,6 +102,7 @@ func (b *testSubscriptionSpecBuilder) AddPhase(dur *datetime.ISODuration, rcs ..
 			SortHint:    lo.ToPtr(uint8(idx)),
 		},
 		CreateSubscriptionPhaseCustomerInput: subscription.CreateSubscriptionPhaseCustomerInput{},
+		ItemsByKey:                           make(map[string][]*subscription.SubscriptionItemSpec),
 	}
 
 	// Let's add the RateCards as Items
@@ -139,4 +142,30 @@ func (b *testSubscriptionSpecBuilder) Build() (subscription.SubscriptionSpec, er
 	}
 
 	return spec, nil
+}
+
+func BuildTestSubscriptionSpec(t *testing.T) *testSubscriptionSpecBuilder {
+	now := clock.Now()
+
+	return &testSubscriptionSpecBuilder{
+		s: subscription.SubscriptionSpec{
+			CreateSubscriptionPlanInput: subscription.CreateSubscriptionPlanInput{
+				Plan: &subscription.PlanRef{
+					Key:     "test_plan",
+					Version: 1,
+				},
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
+			},
+			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
+				CustomerId:    "01K6JCPG631MH1EKEQB2YMDBJW",
+				ActiveFrom:    now,
+				ActiveTo:      nil,
+				Name:          "test_subscription",
+				BillingAnchor: now,
+				Currency:      currencyx.Code(currency.USD),
+			},
+			Phases: make(map[string]*subscription.SubscriptionPhaseSpec),
+		},
+		t: t,
+	}
 }

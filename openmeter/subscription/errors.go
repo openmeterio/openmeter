@@ -3,8 +3,10 @@ package subscription
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -30,13 +32,21 @@ func IsErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart(err error) boo
 
 const ErrCodeOnlySingleSubscriptionAllowed models.ErrorCode = "only_single_subscription_allowed_per_customer_at_a_time"
 
-// FIXME(galexi): This should be a conflict error by type, not a validation issue, but until attributes are implemented for other errors we'll use this workaround
 var ErrOnlySingleSubscriptionAllowed = models.NewValidationIssue(
 	ErrCodeOnlySingleSubscriptionAllowed,
 	"only single subscription is allowed per customer at a time",
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
 )
 
 var ErrRestoreSubscriptionNotAllowedForMultiSubscription = models.NewGenericForbiddenError(errors.New("restore subscription is not allowed for multi-subscription"))
+
+const ErrCodeOnlySingleBillableItemAllowedAtATime models.ErrorCode = "only_single_billable_item_allowed_at_a_time"
+
+var ErrOnlySingleBillableItemAllowedAtATime = models.NewValidationIssue(
+	ErrCodeOnlySingleBillableItemAllowedAtATime,
+	"only single billable item is allowed at a time",
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
+)
 
 // TODO(galexi): "ValidationIssue" is not the right concept here. We should have a different kind of error with all this capability. It's used here as a hack to localize things for the time being.
 
