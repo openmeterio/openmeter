@@ -236,6 +236,14 @@ func (i ValidationIssue) AsErrorExtension() ErrorExtension {
 type ValidationIssueOption func(*ValidationIssue)
 
 func WithAttribute(key any, value any) ValidationIssueOption {
+	if key == nil {
+		panic("validation issue attribute key must not be nil")
+	}
+
+	if t := reflect.TypeOf(key); t == nil || !t.Comparable() {
+		panic("validation issue attribute key is not comparable")
+	}
+
 	return func(i *ValidationIssue) {
 		i.attributes = i.attributes.Merge(Attributes{key: value})
 	}
