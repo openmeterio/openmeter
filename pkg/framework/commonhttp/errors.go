@@ -147,6 +147,10 @@ func HandleIssueIfHTTPStatusKnown(ctx context.Context, err error, w http.Respons
 		issuesByCodeMap[issueCode] = issues
 	}
 
+	if len(issuesByCodeMap) == 0 {
+		return false
+	}
+
 	extendProblemFuncs := make([]ExtendProblemFunc, 0)
 	responseStatusCode := 500 // default to internal server error
 
