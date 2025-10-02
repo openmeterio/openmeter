@@ -135,7 +135,8 @@ func DummyErrorEncoder() encoder.ErrorEncoder {
 // GenericErrorEncoder is an error encoder that encodes the error as a generic error.
 func GenericErrorEncoder() encoder.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
-		return HandleErrorIfTypeMatches[*models.GenericConflictError](ctx, http.StatusConflict, err, w) ||
+		return HandleIssueIfHTTPStatusKnown(ctx, err, w) ||
+			HandleErrorIfTypeMatches[*models.GenericConflictError](ctx, http.StatusConflict, err, w) ||
 			HandleErrorIfTypeMatches[*models.GenericForbiddenError](ctx, http.StatusForbidden, err, w) ||
 			HandleErrorIfTypeMatches[*models.GenericNotImplementedError](ctx, http.StatusNotImplemented, err, w) ||
 			HandleErrorIfTypeMatches[*models.GenericValidationError](ctx, http.StatusBadRequest, err, w) ||

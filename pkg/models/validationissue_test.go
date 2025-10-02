@@ -55,7 +55,7 @@ func TestValidationIssue_JSON(t *testing.T) {
 				code:      "invalid_param",
 				component: "openmeter",
 				severity:  ErrorSeverityWarning,
-				attributes: map[string]interface{}{
+				attributes: Attributes{
 					"attr1": "value1",
 				},
 			},
@@ -290,7 +290,7 @@ func TestAsValidationIssues(t *testing.T) {
 													NewFieldSelector("field4"),
 												),
 												WithWarningSeverity(),
-												WithAttributes(map[string]interface{}{
+												WithAttributes(Attributes{
 													"attr1": "value1",
 												}),
 											),
@@ -356,7 +356,7 @@ func TestAsValidationIssues(t *testing.T) {
 						NewFieldSelector("field4"),
 					),
 					severity: ErrorSeverityWarning,
-					attributes: map[string]interface{}{
+					attributes: Attributes{
 						"attr1": "value1",
 					},
 				},
