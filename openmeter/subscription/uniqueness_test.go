@@ -1,6 +1,7 @@
 package subscription_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -49,15 +50,14 @@ func TestValidateUniqueConstraintBySubscriptions(t *testing.T) {
 		// Now let's assert the error is correct
 		issues, err := models.AsValidationIssues(err)
 		require.NoError(t, err)
-		require.Len(t, issues, 1)
-		require.Equal(t, subscription.ErrOnlySingleSubscriptionAllowed.Code(), issues[0].Code())
+		require.Len(t, issues, 2)
 
-		detail := issues[0].Attributes()["overlaps"].([]models.OverlapDetail[subscription.SubscriptionSpec])
-		require.Len(t, detail, 1)
-		require.Equal(t, 0, detail[0].Index1)
-		require.Equal(t, 1, detail[0].Index2)
-		require.Equal(t, s1, detail[0].Item1)
-		require.Equal(t, s2, detail[0].Item2)
+		for _, issue := range issues {
+			require.Equal(t, subscription.ErrOnlySingleSubscriptionAllowed.Code(), issue.Code())
+
+			_, ok := issue.Attributes()[subscription.ErrCodeOnlySingleSubscriptionAllowed].(subscription.SubscriptionSubscriptionLevelUniqueConstraintErrorDetail)
+			require.True(t, ok)
+		}
 	})
 
 	t.Run("Should not error if they're touching", func(t *testing.T) {
@@ -276,6 +276,43 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 		})
 	})
 
+	// simple helper that contains assertions
+	requireOverlapErrorForTwoSubs := func(t *testing.T, err error, sub1, sub2 subscription.SubscriptionSpec) {
+		t.Helper()
+
+		require.Error(t, err)
+
+		// let's assert the error is correct
+		issues, err := models.AsValidationIssues(err)
+		require.NoError(t, err)
+		require.Len(t, issues, 2)
+		require.Equal(t, subscription.ErrOnlySingleSubscriptionItemAllowedAtATime.Code(), issues[0].Code())
+
+		assertForSied := func(t *testing.T, issue models.ValidationIssue, this, other subscription.SubscriptionSpec) {
+			t.Helper()
+
+			attrs := issue.Attributes()
+			detail, ok := attrs[subscription.ErrCodeOnlySingleSubscriptionItemAllowedAtATime]
+
+			require.True(t, ok)
+			require.NotNil(t, detail)
+
+			detailTyped, ok := detail.(subscription.SubscriptionFeatureLevelUniqueConstraintErrorDetail)
+			require.True(t, ok)
+
+			selectorForSub := func(sub subscription.SubscriptionSpec) string {
+				return fmt.Sprintf(`$.plans[?(@.key=='test_plan' && @.version=='1')].subscriptions[?(@.customerId=='%s' && @.activeFrom=='%s' && @.activeTo=='%s')].phases[?(@.key=='test_phase_1')].items[?(@.key=='feature1')].idx[0]`, sub.CustomerId, sub.ActiveFrom, sub.ActiveTo)
+			}
+
+			require.Equal(t, selectorForSub(this), detailTyped.This.Selectors.JSONPath())
+			require.Equal(t, selectorForSub(other), detailTyped.Other.Selectors.JSONPath())
+			require.Equal(t, selectorForSub(this), issue.Field().JSONPath())
+		}
+
+		assertForSied(t, issues[0], sub1, sub2)
+		assertForSied(t, issues[1], sub2, sub1)
+	}
+
 	t.Run("Should error if two subscriptions have overlapping billable features", func(t *testing.T) {
 		clock.FreezeTime(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
 		defer clock.UnFreeze()
@@ -322,42 +359,113 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 			s2.ActiveTo = lo.ToPtr(time.Date(2025, 1, 4, 0, 0, 0, 0, time.UTC))
 
 			err := subscription.ValidateUniqueConstraintByFeatures([]subscription.SubscriptionSpec{s1, s2})
-			require.Error(t, err)
-
-			// let's assert the error is correct
-			issues, err := models.AsValidationIssues(err)
-			require.NoError(t, err)
-			require.Len(t, issues, 1)
-			require.Equal(t, subscription.ErrOnlySingleBillableItemAllowedAtATime.Code(), issues[0].Code())
-
-			attrs := issues[0].Attributes()
-			detail, ok := attrs[subscription.ErrCodeOnlySingleBillableItemAllowedAtATime]
-			require.True(t, ok)
-
-			require.NotNil(t, detail)
-
-			detailTyped, ok := detail.(subscription.SubscriptionUniqueConstraintErrorDetail)
-			require.True(t, ok)
-
-			require.Equal(t, subscription.SpecPath("/phases/test_phase_1/items/feature1/idx/0"), detailTyped.Left.Path)
-			require.Equal(t, subscription.SpecPath("/phases/test_phase_1/items/feature1/idx/0"), detailTyped.Right.Path)
+			requireOverlapErrorForTwoSubs(t, err, s1, s2)
 		})
 	})
 
 	t.Run("Should error if two subscriptions have overlapping features with entitlements", func(t *testing.T) {
-		t.Fatal("Not implemented")
+		clock.FreezeTime(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
+		defer clock.UnFreeze()
+
+		overlappingFeatureKey := "feature1"
+		overlappingFeatureID := "01K6JCPG631MH1EKEQB2YMDBJW"
+
+		builder1 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
+		builder1 = builder1.AddPhase(nil, &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Name:       "overlapping feature",
+				Key:        overlappingFeatureKey,
+				FeatureKey: &overlappingFeatureKey,
+				FeatureID:  &overlappingFeatureID,
+				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+					UsagePeriod:     subscriptiontestutils.ISOMonth,
+					IssueAfterReset: lo.ToPtr(100.0),
+				}),
+			},
+		})
+		s1, err := builder1.Build()
+		require.NoError(t, err)
+
+		builder2 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
+		builder2 = builder2.AddPhase(nil, &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Name:                "overlapping feature",
+				Key:                 overlappingFeatureKey,
+				FeatureKey:          &overlappingFeatureKey,
+				FeatureID:           &overlappingFeatureID,
+				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
+			},
+		})
+		s2, err := builder2.Build()
+		require.NoError(t, err)
+
+		t.Run("Should error when overlapping", func(t *testing.T) {
+			s1.ActiveFrom = time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+			s1.ActiveTo = lo.ToPtr(time.Date(2025, 1, 3, 0, 0, 0, 0, time.UTC))
+			s2.ActiveFrom = time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
+			s2.ActiveTo = lo.ToPtr(time.Date(2025, 1, 4, 0, 0, 0, 0, time.UTC))
+
+			err := subscription.ValidateUniqueConstraintByFeatures([]subscription.SubscriptionSpec{s1, s2})
+			requireOverlapErrorForTwoSubs(t, err, s1, s2)
+		})
 	})
 
 	t.Run("Should error if two subscriptions have overlapping features with entitlements or are billable", func(t *testing.T) {
-		t.Fatal("Not implemented")
+		clock.FreezeTime(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
+		defer clock.UnFreeze()
+
+		overlappingFeatureKey := "feature1"
+		overlappingFeatureID := "01K6JCPG631MH1EKEQB2YMDBJW"
+
+		builder1 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
+		builder1 = builder1.AddPhase(nil, &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Name:       "overlapping feature",
+				Key:        overlappingFeatureKey,
+				FeatureKey: &overlappingFeatureKey,
+				FeatureID:  &overlappingFeatureID,
+				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+					UsagePeriod:     subscriptiontestutils.ISOMonth,
+					IssueAfterReset: lo.ToPtr(100.0),
+				}),
+			},
+		})
+		s1, err := builder1.Build()
+		require.NoError(t, err)
+
+		builder2 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
+		builder2 = builder2.AddPhase(nil, &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Name:       "overlapping feature",
+				Key:        overlappingFeatureKey,
+				FeatureKey: &overlappingFeatureKey,
+				FeatureID:  &overlappingFeatureID,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(int64(100)),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+		})
+		s2, err := builder2.Build()
+		require.NoError(t, err)
+
+		t.Run("Should error when overlapping", func(t *testing.T) {
+			s1.ActiveFrom = time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+			s1.ActiveTo = lo.ToPtr(time.Date(2025, 1, 3, 0, 0, 0, 0, time.UTC))
+			s2.ActiveFrom = time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
+			s2.ActiveTo = lo.ToPtr(time.Date(2025, 1, 4, 0, 0, 0, 0, time.UTC))
+
+			err := subscription.ValidateUniqueConstraintByFeatures([]subscription.SubscriptionSpec{s1, s2})
+			requireOverlapErrorForTwoSubs(t, err, s1, s2)
+		})
 	})
 
 	t.Run("Should error if multiple subscriptions have overlaps", func(t *testing.T) {
-		t.Fatal("Not implemented")
+		t.Skip("Not implemented")
 	})
 
 	t.Run("Should not error if multiple subscriptions have overlapping timelines but we don't double charge or have doubled entitlements", func(t *testing.T) {
-		t.Fatal("Not implemented")
+		t.Skip("Not implemented")
 	})
 }
 

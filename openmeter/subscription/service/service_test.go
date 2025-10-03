@@ -446,7 +446,9 @@ func TestContinuing(t *testing.T) {
 		require.Error(t, err)
 		issues, err := models.AsValidationIssues(err)
 		require.NoError(t, err)
-		require.Len(t, issues, 1)
-		require.Equal(t, subscription.ErrOnlySingleSubscriptionAllowed.Code(), issues[0].Code())
+		require.Len(t, issues, 2)
+		for _, issue := range issues {
+			require.Equal(t, subscription.ErrOnlySingleSubscriptionAllowed.Code(), issue.Code())
+		}
 	})
 }

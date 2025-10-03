@@ -11,59 +11,88 @@ import (
 )
 
 func ValidateUniqueConstraintBySubscriptions(subs []SubscriptionSpec) error {
+	var errs []error
+
 	if overlaps := models.NewSortedCadenceList(subs).GetOverlaps(); len(overlaps) > 0 {
-		return ErrOnlySingleSubscriptionAllowed.WithAttrs(models.Attributes{
-			// FIXME[galexi]: improve on this
-			"overlaps": overlaps,
-		})
+		for _, overlap := range overlaps {
+			// to get proper selectors we'll add two errors (one for each side)
+			errs = append(errs,
+				ErrOnlySingleSubscriptionAllowed.WithAttrs(models.Attributes{
+					ErrCodeOnlySingleSubscriptionAllowed: SubscriptionSubscriptionLevelUniqueConstraintErrorDetail{
+						This: SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide{
+							Subscription: overlap.Item1,
+							Cadence:      overlap.Item1.GetCadence(),
+							Selectors:    subscriptionSpecToFieldSelectors(lo.ToPtr(overlap.Item1)),
+						},
+						Other: SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide{
+							Subscription: overlap.Item2,
+							Cadence:      overlap.Item2.GetCadence(),
+							Selectors:    subscriptionSpecToFieldSelectors(lo.ToPtr(overlap.Item2)),
+						},
+					},
+				}).WithField(subscriptionSpecToFieldSelectors(lo.ToPtr(overlap.Item1))...))
+
+			errs = append(errs,
+				ErrOnlySingleSubscriptionAllowed.WithAttrs(models.Attributes{
+					ErrCodeOnlySingleSubscriptionAllowed: SubscriptionSubscriptionLevelUniqueConstraintErrorDetail{
+						This: SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide{
+							Subscription: overlap.Item2,
+							Cadence:      overlap.Item2.GetCadence(),
+							Selectors:    subscriptionSpecToFieldSelectors(lo.ToPtr(overlap.Item2)),
+						},
+					},
+				}).WithField(subscriptionSpecToFieldSelectors(lo.ToPtr(overlap.Item2))...))
+		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func ValidateUniqueConstraintByFeatures(subs []SubscriptionSpec) error {
 	return featureLevelUniqueConstraintValidator{}.Validate(subs)
 }
 
-type SubscriptionUniqueConstraintErrorDetailSide struct {
-	Item    SubscriptionItemSpec `json:"-"` // useful internally but let's not expose it to the client
-	Path    SpecPath             `json:"path"`
-	PlanRef PlanRef              `json:"plan_ref"`
+type SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide struct {
+	Subscription SubscriptionSpec      `json:"subscription"`
+	Cadence      models.CadencedModel  `json:"cadence"`
+	Selectors    models.FieldSelectors `json:"selectors"`
 }
 
-type SubscriptionUniqueConstraintErrorDetail struct {
-	Left  SubscriptionUniqueConstraintErrorDetailSide `json:"left"`
-	Right SubscriptionUniqueConstraintErrorDetailSide `json:"right"`
+type SubscriptionSubscriptionLevelUniqueConstraintErrorDetail = models.Overlap[SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide]
+
+type SubscriptionFeatureLevelUniqueConstraintErrorDetailSide struct {
+	Item      SubscriptionItemSpec  `json:"-"` // useful internally but let's not expose it to the client
+	Cadence   models.CadencedModel  `json:"cadence"`
+	Selectors models.FieldSelectors `json:"selectors"`
+	PlanRef   PlanRef               `json:"plan_ref"`
 }
+
+type SubscriptionFeatureLevelUniqueConstraintErrorDetail = models.Overlap[SubscriptionFeatureLevelUniqueConstraintErrorDetailSide]
 
 // let's localize all logic on this struct to avoid scope pollution
 type featureLevelUniqueConstraintValidator struct{}
 
 func (v featureLevelUniqueConstraintValidator) Validate(subs []SubscriptionSpec) error {
-	billableItems := v.collectRelevantItems(subs, v.itemIsBillable)
-	timelinesForBillableItems, err := v.buildRelevantTimelines(billableItems)
+	relevantItems := v.collectRelevantItems(subs, v.itemIsRelevant)
+	timelinesForRelevantItems, err := v.buildRelevantTimelines(relevantItems)
 	if err != nil {
 		return err
 	}
 
 	var errs []error
-	for _, timeline := range timelinesForBillableItems {
+	for _, timeline := range timelinesForRelevantItems {
 		if overlaps := timeline.GetOverlaps(); len(overlaps) > 0 {
 			for _, overlap := range overlaps {
-				errs = append(errs, ErrOnlySingleBillableItemAllowedAtATime.WithAttrs(models.Attributes{
-					ErrCodeOnlySingleBillableItemAllowedAtATime: SubscriptionUniqueConstraintErrorDetail{
-						Left: SubscriptionUniqueConstraintErrorDetailSide{
-							Item:    lo.FromPtr(overlap.Item1.Item.SubscriptionItemSpec),
-							Path:    overlap.Item1.Item.GetPath(),
-							PlanRef: lo.FromPtr(overlap.Item1.Item.SubscriptionSpec.Plan),
-						},
-						Right: SubscriptionUniqueConstraintErrorDetailSide{
-							Item:    lo.FromPtr(overlap.Item2.Item.SubscriptionItemSpec),
-							Path:    overlap.Item2.Item.GetPath(),
-							PlanRef: lo.FromPtr(overlap.Item2.Item.SubscriptionSpec.Plan),
-						},
-					},
-				}))
+				// To get proper FieldSelectors, we'll add two errors (one for each side)
+				errs = append(errs,
+					ErrOnlySingleSubscriptionItemAllowedAtATime.
+						WithAttrs(overlap.Item1.GetErrorAttributes(overlap.Item2)).
+						WithField(overlap.Item1.Item.GetSelectors()...))
+
+				errs = append(errs,
+					ErrOnlySingleSubscriptionItemAllowedAtATime.
+						WithAttrs(overlap.Item2.GetErrorAttributes(overlap.Item1)).
+						WithField(overlap.Item2.Item.GetSelectors()...))
 			}
 		}
 	}
@@ -121,6 +150,22 @@ func (v featureLevelUniqueConstraintValidator) collectRelevantItems(subs []Subsc
 	return relevantItems
 }
 
+func (v featureLevelUniqueConstraintValidator) itemIsRelevant(item *SubscriptionItemSpec) bool {
+	if item == nil {
+		return false
+	}
+
+	return v.itemHasEntitlements(item) || v.itemIsBillable(item)
+}
+
+func (v featureLevelUniqueConstraintValidator) itemHasEntitlements(item *SubscriptionItemSpec) bool {
+	if item == nil {
+		return false
+	}
+
+	return item.RateCard.AsMeta().EntitlementTemplate != nil
+}
+
 func (v featureLevelUniqueConstraintValidator) itemIsBillable(item *SubscriptionItemSpec) bool {
 	if item == nil {
 		return false
@@ -137,8 +182,15 @@ type itemSpecWithCircularReferences struct {
 	SubscriptionSpec        *SubscriptionSpec
 }
 
-func (i itemSpecWithCircularReferences) GetPath() SpecPath {
-	return NewItemVersionPath(i.SubscriptionPhaseSpec.PhaseKey, i.SubscriptionItemSpec.ItemKey, i.SubscriptionItemVersion)
+func (i itemSpecWithCircularReferences) GetSelectors() models.FieldSelectors {
+	selectors := subscriptionSpecToFieldSelectors(i.SubscriptionSpec)
+	selectors = append(selectors,
+		models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", i.SubscriptionPhaseSpec.PhaseKey)),
+		models.NewFieldSelector("items").WithExpression(models.NewFieldAttrValue("key", i.SubscriptionItemSpec.ItemKey)),
+		models.NewFieldSelector("idx").WithExpression(models.NewFieldArrIndex(i.SubscriptionItemVersion)),
+	)
+
+	return models.NewFieldSelectors(selectors...)
 }
 
 type validationTimelineEntry struct {
@@ -148,4 +200,63 @@ type validationTimelineEntry struct {
 
 func (i validationTimelineEntry) GetCadence() models.CadencedModel {
 	return i.Cadence
+}
+
+func (i validationTimelineEntry) GetErrorAttributes(other validationTimelineEntry) models.Attributes {
+	return models.Attributes{
+		ErrCodeOnlySingleSubscriptionItemAllowedAtATime: SubscriptionFeatureLevelUniqueConstraintErrorDetail{
+			This: SubscriptionFeatureLevelUniqueConstraintErrorDetailSide{
+				Item:      lo.FromPtr(i.Item.SubscriptionItemSpec),
+				PlanRef:   lo.FromPtr(i.Item.SubscriptionSpec.Plan),
+				Cadence:   i.GetCadence(),
+				Selectors: i.Item.GetSelectors(),
+			},
+			Other: SubscriptionFeatureLevelUniqueConstraintErrorDetailSide{
+				Item:      lo.FromPtr(other.Item.SubscriptionItemSpec),
+				PlanRef:   lo.FromPtr(other.Item.SubscriptionSpec.Plan),
+				Cadence:   other.GetCadence(),
+				Selectors: other.Item.GetSelectors(),
+			},
+		},
+	}
+}
+
+func subscriptionSpecToFieldSelectors(subscriptionSpec *SubscriptionSpec) models.FieldSelectors {
+	if subscriptionSpec == nil {
+		return models.FieldSelectors{}
+	}
+
+	return models.NewFieldSelectors(
+		planRefToFieldSelector(subscriptionSpec.Plan),
+		models.NewFieldSelector("subscriptions").WithExpression(models.NewMultiFieldAttrValue(
+			models.NewFieldAttrValue("customerId", subscriptionSpec.CustomerId),
+			models.NewFieldAttrValue("activeFrom", subscriptionSpec.ActiveFrom),
+			models.NewFieldAttrValue("activeTo", subscriptionSpec.ActiveTo),
+		)))
+}
+
+func planRefToFieldSelector(planRef *PlanRef) models.FieldSelector {
+	if planRef == nil {
+		return models.FieldSelector{}
+	}
+
+	return models.NewFieldSelector("plans").WithExpression(models.NewMultiFieldAttrValue(
+		func() []models.FieldAttrValue {
+			res := []models.FieldAttrValue{}
+
+			if planRef.Key != "" {
+				res = append(res, models.NewFieldAttrValue("key", planRef.Key))
+			}
+
+			if planRef.Version != 0 {
+				res = append(res, models.NewFieldAttrValue("version", planRef.Version))
+			}
+
+			if planRef.Id != "" {
+				res = append(res, models.NewFieldAttrValue("id", planRef.Id))
+			}
+
+			return res
+		}()...,
+	))
 }
