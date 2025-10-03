@@ -58,9 +58,12 @@ type RouterHooks struct {
 	Routes      []RouteHook
 }
 
+type PostAuthMiddlewares []api.MiddlewareFunc
+
 type Config struct {
-	RouterConfig router.Config
-	RouterHooks  RouterHooks
+	RouterConfig        router.Config
+	RouterHooks         RouterHooks
+	PostAuthMiddlewares PostAuthMiddlewares
 }
 
 func NewServer(config *Config) (*Server, error) {
@@ -133,26 +136,30 @@ func NewServer(config *Config) (*Server, error) {
 		routeHook(r)
 	}
 
+	middlewares := []api.MiddlewareFunc{
+		authenticator.NewAuthenticator(config.RouterConfig.Portal, config.RouterConfig.ErrorHandler).NewAuthenticatorMiddlewareFunc(swagger),
+		oapimiddleware.OapiRequestValidatorWithOptions(swagger, &oapimiddleware.Options{
+			ErrorHandler: func(w http.ResponseWriter, message string, statusCode int) {
+				models.NewStatusProblem(context.Background(), errors.New(message), statusCode).Respond(w)
+			},
+			Options: openapi3filter.Options{
+				// Unfortunately, the OpenAPI 3 filter library doesn't support context changes
+				AuthenticationFunc:  openapi3filter.NoopAuthenticationFunc,
+				SkipSettingDefaults: true,
+
+				// Excluding read-only validation because required and readOnly fields in our Go models are translated to non-nil fields, leading to a zero-value being passed to the API
+				// The OpenAPI spec says read-only fields SHOULD NOT be sent in requests, so technically it should be fine, hence disabling validation for now to make our life easier
+				ExcludeReadOnlyValidations: true,
+			},
+		}),
+	}
+
+	middlewares = append(middlewares, config.PostAuthMiddlewares...)
+
 	// Use validator middleware to check requests against the OpenAPI schema
 	_ = api.HandlerWithOptions(impl, api.ChiServerOptions{
-		BaseRouter: r,
-		Middlewares: []api.MiddlewareFunc{
-			authenticator.NewAuthenticator(config.RouterConfig.Portal, config.RouterConfig.ErrorHandler).NewAuthenticatorMiddlewareFunc(swagger),
-			oapimiddleware.OapiRequestValidatorWithOptions(swagger, &oapimiddleware.Options{
-				ErrorHandler: func(w http.ResponseWriter, message string, statusCode int) {
-					models.NewStatusProblem(context.Background(), errors.New(message), statusCode).Respond(w)
-				},
-				Options: openapi3filter.Options{
-					// Unfortunately, the OpenAPI 3 filter library doesn't support context changes
-					AuthenticationFunc:  openapi3filter.NoopAuthenticationFunc,
-					SkipSettingDefaults: true,
-
-					// Excluding read-only validation because required and readOnly fields in our Go models are translated to non-nil fields, leading to a zero-value being passed to the API
-					// The OpenAPI spec says read-only fields SHOULD NOT be sent in requests, so technically it should be fine, hence disabling validation for now to make our life easier
-					ExcludeReadOnlyValidations: true,
-				},
-			}),
-		},
+		BaseRouter:  r,
+		Middlewares: middlewares,
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			config.RouterConfig.ErrorHandler.HandleContext(r.Context(), err)
 			errorHandlerReply(w, r, err)
