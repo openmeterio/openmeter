@@ -3,11 +3,13 @@ package models
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"reflect"
 
 	"github.com/samber/lo"
 )
 
-type Attributes map[string]any
+type Attributes map[any]any
 
 func (a Attributes) Clone() Attributes {
 	if a == nil {
@@ -25,6 +27,34 @@ func (a Attributes) Clone() Attributes {
 	}
 
 	return m
+}
+
+// AsStringMap converts Attributes into a map[string]any by:
+// - keeping string keys as-is
+// - stringifying comparable non-string keys as "<type>:<value>"
+func (a Attributes) AsStringMap() map[string]any {
+	if len(a) == 0 {
+		return nil
+	}
+
+	out := make(map[string]any, len(a))
+	for k, v := range a {
+		if sk, ok := k.(string); ok {
+			out[sk] = v
+			continue
+		}
+
+		t := reflect.TypeOf(k)
+		if t == nil {
+			continue
+		}
+		if t.Comparable() {
+			key := fmt.Sprintf("%T:%v", k, k)
+			out[key] = v
+		}
+	}
+
+	return out
 }
 
 func (a Attributes) Merge(m Attributes) Attributes {
@@ -122,7 +152,15 @@ func (i ValidationIssue) WithSeverity(s ErrorSeverity) ValidationIssue {
 	return v
 }
 
-func (i ValidationIssue) WithAttr(key string, value any) ValidationIssue {
+func (i ValidationIssue) WithAttr(key any, value any) ValidationIssue {
+	if key == nil {
+		panic("validation issue attribute key must not be nil")
+	}
+
+	if t := reflect.TypeOf(key); t == nil || !t.Comparable() {
+		panic("validation issue attribute key is not comparable")
+	}
+
 	return i.WithAttrs(Attributes{
 		key: value,
 	})
@@ -133,9 +171,29 @@ func (i ValidationIssue) WithAttrs(attrs Attributes) ValidationIssue {
 		return i
 	}
 
+	for k := range attrs {
+		if k == nil {
+			panic("validation issue attribute key must not be nil")
+		}
+
+		if t := reflect.TypeOf(k); t == nil || !t.Comparable() {
+			panic("validation issue attribute key is not comparable")
+		}
+	}
+
 	v := i.Clone()
 	v.attributes = i.attributes.Merge(attrs)
 
+	return v
+}
+
+func (i ValidationIssue) SetAttributes(attrs Attributes) ValidationIssue {
+	if len(attrs) == 0 {
+		return i
+	}
+
+	v := i.Clone()
+	v.attributes = attrs
 	return v
 }
 
@@ -144,14 +202,16 @@ func (i ValidationIssue) Error() string {
 }
 
 func (i ValidationIssue) AsErrorExtension() ErrorExtension {
-	m := make(ErrorExtension, len(i.attributes)+5)
+	attrs := i.attributes.AsStringMap()
+	m := make(ErrorExtension, len(attrs)+5)
 
-	for k, v := range i.attributes {
-		switch k {
+	for key, v := range attrs {
+		switch key {
 		// NOTE: skip reserved keys
 		case "field", "code", "component", "severity", "message":
+			// skip
 		default:
-			m[k] = v
+			m[key] = v
 		}
 	}
 
@@ -175,8 +235,27 @@ func (i ValidationIssue) AsErrorExtension() ErrorExtension {
 
 type ValidationIssueOption func(*ValidationIssue)
 
-func WithAttributes(attrs map[string]interface{}) ValidationIssueOption {
+func WithAttribute(key any, value any) ValidationIssueOption {
+	if key == nil {
+		panic("validation issue attribute key must not be nil")
+	}
+
+	if t := reflect.TypeOf(key); t == nil || !t.Comparable() {
+		panic("validation issue attribute key is not comparable")
+	}
+
 	return func(i *ValidationIssue) {
+		i.attributes = i.attributes.Merge(Attributes{key: value})
+	}
+}
+
+func WithAttributes(attrs Attributes) ValidationIssueOption {
+	return func(i *ValidationIssue) {
+		if len(attrs) == 0 {
+			i.attributes = nil
+			return
+		}
+
 		i.attributes = attrs
 	}
 }

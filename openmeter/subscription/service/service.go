@@ -206,6 +206,16 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 	}
 
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
+		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
+			return v.ValidateUpdate(ctx, subscriptionID, newSpec)
+		})...)
+		if err != nil {
+			return def, fmt.Errorf("failed to validate subscription: %w", err)
+		}
+
 		subs, err := s.sync(ctx, view, newSpec)
 		if err != nil {
 			return subs, err
@@ -216,9 +226,6 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		if err != nil {
 			return subs, err
 		}
-
-		s.mu.RLock()
-		defer s.mu.RUnlock()
 
 		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
 			return v.ValidateUpdated(ctx, view)

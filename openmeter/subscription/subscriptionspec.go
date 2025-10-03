@@ -354,6 +354,15 @@ func (s *SubscriptionSpec) ValidateAlignment() error {
 	return errors.Join(errs...)
 }
 
+var _ models.CadenceComparable = SubscriptionSpec{}
+
+func (s SubscriptionSpec) GetCadence() models.CadencedModel {
+	return models.CadencedModel{
+		ActiveFrom: s.ActiveFrom,
+		ActiveTo:   s.ActiveTo,
+	}
+}
+
 type CreateSubscriptionPhasePlanInput struct {
 	PhaseKey    string               `json:"key"`
 	StartAfter  datetime.ISODuration `json:"startAfter"`
@@ -572,7 +581,6 @@ func (s SubscriptionPhaseSpec) Validate(
 							WithExpression(models.NewFieldArrIndex(overlap.Index1)),
 					).WithAttrs(models.Attributes{
 						"overlaps_with_idx": overlap.Index2,
-						"reason":            overlap.Reason,
 						"cadence":           overlap.Item1,
 						"spec":              itemSpec1,
 					}),
@@ -587,7 +595,6 @@ func (s SubscriptionPhaseSpec) Validate(
 							WithExpression(models.NewFieldArrIndex(overlap.Index2)),
 					).WithAttrs(models.Attributes{
 						"overlaps_with_idx": overlap.Index1,
-						"reason":            overlap.Reason,
 						"cadence":           overlap.Item2,
 						"spec":              itemSpec2,
 					}),
@@ -972,6 +979,10 @@ func (s *SubscriptionItemSpec) SyncAnnotations() error {
 	if met.EntitlementTemplate != nil && met.EntitlementTemplate.Type() == entitlement.EntitlementTypeBoolean {
 		count := AnnotationParser.GetBooleanEntitlementCount(s.Annotations)
 		if count == 0 {
+			if s.Annotations == nil {
+				s.Annotations = models.Annotations{}
+			}
+
 			if _, err := AnnotationParser.SetBooleanEntitlementCount(s.Annotations, 1); err != nil {
 				return fmt.Errorf("failed to set boolean entitlement count: %w", err)
 			}

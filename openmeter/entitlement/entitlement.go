@@ -302,6 +302,15 @@ func (e Entitlement) GetType() EntitlementType {
 	return e.EntitlementType
 }
 
+var _ models.CadenceComparable = Entitlement{}
+
+func (e Entitlement) GetCadence() models.CadencedModel {
+	return models.CadencedModel{
+		ActiveFrom: e.ActiveFromTime(),
+		ActiveTo:   e.ActiveToTime(),
+	}
+}
+
 type EntitlementType string
 
 const (

@@ -282,7 +282,7 @@ func TestApply(t *testing.T) {
 			env := buildSubAndAddon(
 				t,
 				&deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(nil, &subscriptiontestutils.ExampleRateCard5ForAddons).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -315,7 +315,7 @@ func TestApply(t *testing.T) {
 			env := buildSubAndAddon(
 				t,
 				&deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(nil, &subscriptiontestutils.ExampleRateCard4ForAddons).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -351,7 +351,7 @@ func TestApply(t *testing.T) {
 			env := buildSubAndAddon(
 				t,
 				&deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -389,7 +389,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
 					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
 					Build(),
@@ -445,7 +445,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
 					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
 					Build(),
@@ -511,7 +511,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
 					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
 					Build(),
@@ -622,7 +622,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
@@ -730,7 +730,7 @@ func TestApply(t *testing.T) {
 			pl, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
@@ -826,7 +826,7 @@ func TestApplyWithMultiInstance(t *testing.T) {
 			pl, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
