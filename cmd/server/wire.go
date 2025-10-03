@@ -73,6 +73,7 @@ type Application struct {
 	Portal                           portal.Service
 	ProgressManager                  progressmanager.Service
 	RouterHooks                      *server.RouterHooks
+	PostAuthMiddlewares              server.PostAuthMiddlewares
 	Secret                           secret.Service
 	SubjectService                   subject.Service
 	SubjectCustomerHook              subjecthooks.CustomerSubjectHook

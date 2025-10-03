@@ -525,10 +525,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryMiddlewareHook := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	routerHooks := common.NewRouterHooks(telemetryMiddlewareHook)
 	subscriptionConfiguration := productCatalogConfiguration.Subscription
 	namespaceDecoder := common.NewStaticNamespaceDecoder(namespaceConfiguration)
-	ffxConfigContextMiddlewareHook := common.NewFFXConfigContextMiddlewareHook(subscriptionConfiguration, namespaceDecoder, logger)
-	routerHooks := common.NewRouterHooks(telemetryMiddlewareHook, ffxConfigContextMiddlewareHook)
+	ffxConfigContextMiddleware := common.NewFFXConfigContextMiddleware(subscriptionConfiguration, namespaceDecoder, logger)
+	postAuthMiddlewares := common.NewPostAuthMiddlewares(ffxConfigContextMiddleware)
 	v6, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
 	if err != nil {
 		cleanup8()
@@ -614,6 +615,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Portal:                           portalService,
 		ProgressManager:                  progressmanagerService,
 		RouterHooks:                      routerHooks,
+		PostAuthMiddlewares:              postAuthMiddlewares,
 		Secret:                           secretserviceService,
 		SubjectService:                   subjectService,
 		SubjectCustomerHook:              v6,
@@ -673,6 +675,7 @@ type Application struct {
 	Portal                           portal.Service
 	ProgressManager                  progressmanager.Service
 	RouterHooks                      *server.RouterHooks
+	PostAuthMiddlewares              server.PostAuthMiddlewares
 	Secret                           secret.Service
 	SubjectService                   subject.Service
 	SubjectCustomerHook              hooks.CustomerSubjectHook

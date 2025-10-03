@@ -183,7 +183,8 @@ func main() {
 			SubjectService:              app.SubjectService,
 			StreamingConnector:          app.StreamingConnector,
 		},
-		RouterHooks: lo.FromPtr(app.RouterHooks),
+		RouterHooks:         lo.FromPtr(app.RouterHooks),
+		PostAuthMiddlewares: app.PostAuthMiddlewares,
 	})
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
