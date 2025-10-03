@@ -22,15 +22,15 @@ func ValidateUniqueConstraintBySubscriptions(subs []SubscriptionSpec) error {
 						This: SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide{
 							Subscription: overlap.Item1,
 							Cadence:      overlap.Item1.GetCadence(),
-							Selectors:    subscriptionSpecToFieldSelectors(lo.ToPtr(overlap.Item1)),
+							Selectors:    subscriptionSpecToFieldSelectors(overlap.Item1),
 						},
 						Other: SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide{
 							Subscription: overlap.Item2,
 							Cadence:      overlap.Item2.GetCadence(),
-							Selectors:    subscriptionSpecToFieldSelectors(lo.ToPtr(overlap.Item2)),
+							Selectors:    subscriptionSpecToFieldSelectors(overlap.Item2),
 						},
 					},
-				}).WithField(subscriptionSpecToFieldSelectors(lo.ToPtr(overlap.Item1))...))
+				}).WithField(subscriptionSpecToFieldSelectors(overlap.Item1)...))
 
 			errs = append(errs,
 				ErrOnlySingleSubscriptionAllowed.WithAttrs(models.Attributes{
@@ -38,10 +38,10 @@ func ValidateUniqueConstraintBySubscriptions(subs []SubscriptionSpec) error {
 						This: SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide{
 							Subscription: overlap.Item2,
 							Cadence:      overlap.Item2.GetCadence(),
-							Selectors:    subscriptionSpecToFieldSelectors(lo.ToPtr(overlap.Item2)),
+							Selectors:    subscriptionSpecToFieldSelectors(overlap.Item2),
 						},
 					},
-				}).WithField(subscriptionSpecToFieldSelectors(lo.ToPtr(overlap.Item2))...))
+				}).WithField(subscriptionSpecToFieldSelectors(overlap.Item2)...))
 		}
 	}
 
@@ -183,7 +183,7 @@ type itemSpecWithCircularReferences struct {
 }
 
 func (i itemSpecWithCircularReferences) GetSelectors() models.FieldSelectors {
-	selectors := subscriptionSpecToFieldSelectors(i.SubscriptionSpec)
+	selectors := subscriptionSpecToFieldSelectors(lo.FromPtr(i.SubscriptionSpec))
 	selectors = append(selectors,
 		models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", i.SubscriptionPhaseSpec.PhaseKey)),
 		models.NewFieldSelector("items").WithExpression(models.NewFieldAttrValue("key", i.SubscriptionItemSpec.ItemKey)),
@@ -221,23 +221,37 @@ func (i validationTimelineEntry) GetErrorAttributes(other validationTimelineEntr
 	}
 }
 
-func subscriptionSpecToFieldSelectors(subscriptionSpec *SubscriptionSpec) models.FieldSelectors {
-	if subscriptionSpec == nil {
-		return models.FieldSelectors{}
+func subscriptionSpecToFieldSelectors(subscriptionSpec SubscriptionSpec) models.FieldSelectors {
+	selectors := []models.FieldSelector{}
+
+	if subscriptionSpec.Plan != nil {
+		selectors = append(selectors, planRefToFieldSelector(subscriptionSpec.Plan))
+	} else {
+		selectors = append(selectors, models.NewFieldSelector("plans"))
 	}
 
-	return models.NewFieldSelectors(
-		planRefToFieldSelector(subscriptionSpec.Plan),
+	selectors = append(selectors,
 		models.NewFieldSelector("subscriptions").WithExpression(models.NewMultiFieldAttrValue(
-			models.NewFieldAttrValue("customerId", subscriptionSpec.CustomerId),
-			models.NewFieldAttrValue("activeFrom", subscriptionSpec.ActiveFrom),
-			models.NewFieldAttrValue("activeTo", subscriptionSpec.ActiveTo),
+			func() []models.FieldAttrValue {
+				res := []models.FieldAttrValue{
+					models.NewFieldAttrValue("customerId", subscriptionSpec.CustomerId),
+					models.NewFieldAttrValue("activeFrom", subscriptionSpec.ActiveFrom),
+				}
+
+				if subscriptionSpec.ActiveTo != nil {
+					res = append(res, models.NewFieldAttrValue("activeTo", subscriptionSpec.ActiveTo))
+				}
+
+				return res
+			}()...,
 		)))
+
+	return models.NewFieldSelectors(selectors...)
 }
 
 func planRefToFieldSelector(planRef *PlanRef) models.FieldSelector {
 	if planRef == nil {
-		return models.FieldSelector{}
+		return models.NewFieldSelector("plans")
 	}
 
 	return models.NewFieldSelector("plans").WithExpression(models.NewMultiFieldAttrValue(
