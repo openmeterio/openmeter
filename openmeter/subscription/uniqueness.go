@@ -130,10 +130,13 @@ func (v featureLevelUniqueConstraintValidator) buildRelevantTimelines(itemMap ma
 func (v featureLevelUniqueConstraintValidator) collectRelevantItems(subs []SubscriptionSpec, condition func(item *SubscriptionItemSpec) bool) map[string][]itemSpecWithCircularReferences {
 	relevantItems := make(map[string][]itemSpecWithCircularReferences)
 
-	for _, sub := range subs {
-		for _, phase := range sub.Phases {
+	for si := range subs {
+		sub := subs[si]
+		for pi := range sub.Phases {
+			phase := sub.Phases[pi]
 			for itemKey, items := range phase.ItemsByKey {
-				for idx, item := range items {
+				for idx := range items {
+					item := items[idx]
 					if condition(item) {
 						relevantItems[itemKey] = append(relevantItems[itemKey], itemSpecWithCircularReferences{
 							SubscriptionItemVersion: idx,

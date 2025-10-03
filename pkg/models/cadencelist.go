@@ -104,6 +104,13 @@ func (t CadenceList[T]) sort() {
 		aC := a.GetCadence()
 		bC := b.GetCadence()
 
-		return int(aC.ActiveFrom.Sub(bC.ActiveFrom).Milliseconds())
+		switch {
+		case aC.ActiveFrom.Before(bC.ActiveFrom):
+			return -1
+		case aC.ActiveFrom.After(bC.ActiveFrom):
+			return 1
+		default:
+			return 0
+		}
 	})
 }
