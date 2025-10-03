@@ -8,14 +8,9 @@ import "..";
 
 // Package Contents
 import "./entitlements.tsp";
-import "./feature.tsp";
+import "../productcatalog/features.tsp";
 import "./grant.tsp";
 import "./subjects.tsp";
 import "./customer.tsp";
-
-using TypeSpec.Http;
-using TypeSpec.Rest;
-using TypeSpec.OpenAPI;
-using TypeSpec.Versioning;
 
 namespace OpenMeter.Entitlements;

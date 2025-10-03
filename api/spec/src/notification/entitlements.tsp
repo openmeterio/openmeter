@@ -54,7 +54,7 @@ model NotificationEventEntitlementValuePayloadBase {
 
   @visibility(Lifecycle.Read)
   @summary("Feature")
-  feature: OpenMeter.Entitlements.Feature;
+  feature: OpenMeter.ProductCatalog.Feature;
 
   @visibility(Lifecycle.Read)
   @summary("Subject")

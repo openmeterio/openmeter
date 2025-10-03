@@ -4455,7 +4455,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements
+        - Product Catalog
     post:
       operationId: createFeature
       summary: Create feature
@@ -4515,7 +4515,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements
+        - Product Catalog
       requestBody:
         required: true
         content:
@@ -4589,7 +4589,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements
+        - Product Catalog
     delete:
       operationId: deleteFeature
       summary: Delete feature
@@ -4656,7 +4656,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements
+        - Product Catalog
   /api/v1/grants:
     get:
       operationId: listGrants
