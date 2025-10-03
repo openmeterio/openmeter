@@ -165,10 +165,6 @@ namespace OpenMeterCloud.Entitlements {
   @tag("Entitlements")
   interface Entitlements extends OpenMeter.Entitlements.Entitlements {}
 
-  @route("/api/v1/features")
-  @tag("Entitlements")
-  interface Features extends OpenMeter.Entitlements.Features {}
-
   @route("/api/v1/grants")
   @tag("Entitlements")
   interface Grants extends OpenMeter.Entitlements.Grants {}
@@ -247,6 +243,10 @@ namespace OpenMeterCloud.Billing {
 }
 
 namespace OpenMeterCloud.ProductCatalog {
+  @route("/api/v1/features")
+  @tag("Product Catalog")
+  interface Features extends OpenMeter.ProductCatalog.Features {}
+
   @route("/api/v1/plans")
   @tag("Product Catalog")
   interface PlansById extends OpenMeter.ProductCatalog.Plans {}

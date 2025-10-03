@@ -5,7 +5,7 @@ import "@typespec/openapi3";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Entitlements;
+namespace OpenMeter.ProductCatalog;
 
 /**
  * Order by options for features.
@@ -19,71 +19,6 @@ enum FeatureOrderBy {
   CreatedAt: "createdAt",
   #suppress "@openmeter/api-spec/casing" "Use existing values"
   UpdatedAt: "updatedAt",
-}
-
-@route("/api/v1/features")
-@tag("Entitlements")
-interface Features {
-  /**
-   * List features.
-   */
-  @get
-  @operationId("listFeatures")
-  @summary("List features")
-  list(
-    /**
-     * Filter by meterSlug
-     */
-    @query(#{ explode: true })
-    meterSlug?: string[],
-
-    /**
-     * Filter by meterGroupByFilters
-     */
-    @query
-    includeArchived?: boolean = false,
-
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<FeatureOrderBy>,
-  ): ListFeaturesResult | OpenMeter.CommonErrors;
-
-  /**
-   * Features are either metered or static. A feature is metered if meterSlug is provided at creation.
-   * For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
-   * Only meters with SUM and COUNT aggregation are supported for features.
-   * Features cannot be updated later, only archived.
-   */
-  @post
-  @operationId("createFeature")
-  @summary("Create feature")
-  create(@body feature: FeatureCreateInputs): {
-    @statusCode _: 201;
-    @body body: Feature;
-  } | OpenMeter.CommonErrors;
-
-  /**
-   * Get a feature by ID.
-   */
-  @get
-  @operationId("getFeature")
-  @summary("Get feature")
-  get(
-    @path featureId: string,
-  ): Feature | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  /**
-   * Archive a feature by ID.
-   *
-   * Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements cannot be created for it, but archiving the feature does not affect existing entitlements.
-   * This means, if you want to create a new feature with the same key, and then create entitlements for it, the previous entitlements have to be deleted first on a per subject basis.
-   */
-  @delete
-  @operationId("deleteFeature")
-  @summary("Delete feature")
-  delete(@path featureId: string): {
-    @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
 /**

@@ -284,7 +284,7 @@ model SubscriptionItemIncluded {
   /**
    * The feature the customer is entitled to use.
    */
-  feature: Entitlements.Feature;
+  feature: ProductCatalog.Feature;
 
   /**
    * The entitlement of the Subscription Item.
