@@ -3,7 +3,6 @@ package subscriptionentitlement
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type EntitlementSubscriptionAdapter struct {
@@ -105,8 +105,8 @@ func (a *EntitlementSubscriptionAdapter) GetByItemID(ctx context.Context, id mod
 	}, nil
 }
 
-func (a *EntitlementSubscriptionAdapter) GetForSubscriptionAt(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) ([]subscription.SubscriptionEntitlement, error) {
-	items, err := a.itemRepo.GetForSubscriptionAt(ctx, subscriptionID, at)
+func (a *EntitlementSubscriptionAdapter) GetForSubscriptionAt(ctx context.Context, input subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionEntitlement, error) {
+	items, err := a.itemRepo.GetForSubscriptionAt(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionAt(ctx context.Contex
 	if len(items) > 0 {
 		ents, err = a.entitlementConnector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
 			IDs:        lo.Map(items, func(s subscription.SubscriptionItem, _ int) string { return *s.EntitlementID }),
-			Namespaces: []string{subscriptionID.Namespace},
+			Namespaces: []string{input.Namespace},
 			Page:       pagination.Page{}, // zero value so all entitlements are fetched
 		})
 		if err != nil {
@@ -146,6 +146,42 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionAt(ctx context.Contex
 	}
 
 	return subEnts, nil
+}
+
+func (a *EntitlementSubscriptionAdapter) GetForSubscriptionsAt(ctx context.Context, input []subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionEntitlement, error) {
+	items, err := a.itemRepo.GetForSubscriptionsAt(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	items = lo.Filter(items, func(s subscription.SubscriptionItem, _ int) bool { return s.EntitlementID != nil })
+
+	if len(items) == 0 {
+		return nil, nil
+	}
+
+	ents, err := a.entitlementConnector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+		IDs:        lo.Map(items, func(s subscription.SubscriptionItem, _ int) string { return *s.EntitlementID }),
+		Namespaces: lo.Uniq(lo.Map(input, func(s subscription.GetForSubscriptionAtInput, _ int) string { return s.Namespace })),
+		Page:       pagination.Page{}, // zero value so all entitlements are fetched
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return slicesx.MapWithErr(ents.Items, func(ent entitlement.Entitlement) (subscription.SubscriptionEntitlement, error) {
+		if ent.ActiveFrom == nil {
+			return subscription.SubscriptionEntitlement{}, fmt.Errorf("entitlement active from is nil, entitlement doesn't have cadence")
+		}
+
+		return subscription.SubscriptionEntitlement{
+			Entitlement: ent,
+			Cadence: models.CadencedModel{
+				ActiveFrom: *ent.ActiveFrom,
+				ActiveTo:   ent.ActiveTo,
+			},
+		}, nil
+	})
 }
 
 func (a *EntitlementSubscriptionAdapter) DeleteByItemID(ctx context.Context, id models.NamespacedID) error {

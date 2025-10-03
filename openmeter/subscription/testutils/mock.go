@@ -3,27 +3,28 @@ package subscriptiontestutils
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type MockService struct {
-	CreateFn                 func(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error)
-	UpdateFn                 func(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error)
-	DeleteFn                 func(ctx context.Context, subscriptionID models.NamespacedID) error
-	CancelFn                 func(ctx context.Context, subscriptionID models.NamespacedID, at subscription.Timing) (subscription.Subscription, error)
-	ContinueFn               func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
-	GetFn                    func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
-	GetViewFn                func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error)
-	ListFn                   func(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error)
-	GetAllForCustomerSinceFn func(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error)
-	Validators               []subscription.SubscriptionValidator
+	CreateFn            func(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error)
+	UpdateFn            func(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error)
+	DeleteFn            func(ctx context.Context, subscriptionID models.NamespacedID) error
+	CancelFn            func(ctx context.Context, subscriptionID models.NamespacedID, at subscription.Timing) (subscription.Subscription, error)
+	ContinueFn          func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
+	GetFn               func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
+	GetViewFn           func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error)
+	ListFn              func(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error)
+	ExpandViewsFn       func(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error)
+	GetAllForCustomerFn func(ctx context.Context, customerID models.NamespacedID, period timeutil.StartBoundedPeriod) ([]subscription.Subscription, error)
+	Validators          []subscription.SubscriptionCommandValidator
 }
 
-func (s *MockService) RegisterValidator(validator subscription.SubscriptionValidator) error {
+func (s *MockService) RegisterValidator(validator subscription.SubscriptionCommandValidator) error {
 	if validator == nil {
 		return errors.New("invalid subscription validator: nil")
 	}
@@ -67,8 +68,12 @@ func (s *MockService) List(ctx context.Context, params subscription.ListSubscrip
 	return s.ListFn(ctx, params)
 }
 
-func (s *MockService) GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error) {
-	return s.GetAllForCustomerSinceFn(ctx, customerID, at)
+func (s *MockService) ExpandViews(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error) {
+	return s.ExpandViewsFn(ctx, subs)
+}
+
+func (s *MockService) GetAllForCustomer(ctx context.Context, customerID models.NamespacedID, period timeutil.StartBoundedPeriod) ([]subscription.Subscription, error) {
+	return s.GetAllForCustomerFn(ctx, customerID, period)
 }
 
 type MockWorkflowService struct {

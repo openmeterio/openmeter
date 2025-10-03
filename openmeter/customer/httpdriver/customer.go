@@ -92,9 +92,9 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				})
 
 				subscriptions, err := h.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-					Namespaces: []string{request.Namespace},
-					Customers:  customerIDs,
-					ActiveAt:   lo.ToPtr(time.Now()),
+					Namespaces:  []string{request.Namespace},
+					CustomerIDs: customerIDs,
+					ActiveAt:    lo.ToPtr(time.Now()),
 				})
 				if err != nil {
 					return ListCustomersResponse{}, err
@@ -475,9 +475,9 @@ func (h *handler) GetCustomerAccess() GetCustomerAccessHandler {
 func (h *handler) mapCustomerWithSubscriptionsToAPI(ctx context.Context, customer customer.Customer, expand []api.CustomerExpand) (api.Customer, error) {
 	// Get the customer's subscriptions
 	subscriptions, err := h.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces: []string{customer.Namespace},
-		Customers:  []string{customer.ID},
-		ActiveAt:   lo.ToPtr(time.Now()),
+		Namespaces:  []string{customer.Namespace},
+		CustomerIDs: []string{customer.ID},
+		ActiveAt:    lo.ToPtr(time.Now()),
 	})
 	if err != nil {
 		return GetCustomerResponse{}, err

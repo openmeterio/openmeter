@@ -48,37 +48,6 @@ func (r *subscriptionRepo) SetEndOfCadence(ctx context.Context, id models.Namesp
 	})
 }
 
-func (r *subscriptionRepo) GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error) {
-	return entutils.TransactingRepo(
-		ctx,
-		r,
-		func(ctx context.Context, repo *subscriptionRepo) ([]subscription.Subscription, error) {
-			ents, err := repo.db.Subscription.Query().Where(
-				dbsubscription.CustomerID(customerID.ID),
-				dbsubscription.Namespace(customerID.Namespace),
-			).Where(
-				SubscriptionActiveAfter(at)...,
-			).Where(
-				SubscriptionNotDeletedAt(at)...,
-			).All(ctx)
-			if err != nil {
-				return nil, err
-			}
-
-			var subs []subscription.Subscription
-			for _, ent := range ents {
-				sub, err := MapDBSubscription(ent)
-				if err != nil {
-					return nil, err
-				}
-				subs = append(subs, sub)
-			}
-
-			return subs, nil
-		},
-	)
-}
-
 func (r *subscriptionRepo) GetByID(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {
 		res, err := repo.db.Subscription.Query().WithPlan().Where(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).Where(SubscriptionNotDeletedAt(clock.Now())...).First(ctx)
@@ -169,8 +138,8 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 			query = query.Where(dbsubscription.NamespaceIn(in.Namespaces...))
 		}
 
-		if len(in.Customers) > 0 {
-			query = query.Where(dbsubscription.CustomerIDIn(in.Customers...))
+		if len(in.CustomerIDs) > 0 {
+			query = query.Where(dbsubscription.CustomerIDIn(in.CustomerIDs...))
 		}
 
 		if in.ActiveAt != nil {
@@ -186,15 +155,7 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 		}
 
 		if in.ActiveInPeriod != nil {
-			query = query.Where(
-				dbsubscription.And(
-					dbsubscription.ActiveFromLTE(in.ActiveInPeriod.To),
-					dbsubscription.Or(
-						dbsubscription.ActiveToIsNil(),
-						dbsubscription.ActiveToGT(in.ActiveInPeriod.From),
-					),
-				),
-			)
+			query = query.Where(SubscriptionActiveInPeriod(*in.ActiveInPeriod)...)
 		}
 
 		query = query.Order(dbsubscription.ByActiveFrom(sql.OrderAsc()))

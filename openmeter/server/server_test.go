@@ -62,6 +62,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/ref"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var DefaultNamespace = "test"
@@ -1209,7 +1210,7 @@ var _ subscription.Service = (*NoopSubscriptionService)(nil)
 // for use in testing
 type NoopSubscriptionService struct{}
 
-func (n NoopSubscriptionService) RegisterValidator(validator subscription.SubscriptionValidator) error {
+func (n NoopSubscriptionService) RegisterValidator(validator subscription.SubscriptionCommandValidator) error {
 	return nil
 }
 
@@ -1245,8 +1246,12 @@ func (n NoopSubscriptionService) List(ctx context.Context, params subscription.L
 	return pagination.Result[subscription.Subscription]{}, nil
 }
 
-func (n NoopSubscriptionService) GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error) {
+func (n NoopSubscriptionService) GetAllForCustomer(ctx context.Context, customerID models.NamespacedID, period timeutil.StartBoundedPeriod) ([]subscription.Subscription, error) {
 	return []subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) ExpandViews(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error) {
+	return []subscription.SubscriptionView{}, nil
 }
 
 var _ subscriptionworkflow.Service = (*NoopSubscriptionWorkflowService)(nil)

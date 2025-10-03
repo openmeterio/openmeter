@@ -113,9 +113,9 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 			var def ListCustomerSubscriptionsResponse
 
 			subs, err := h.SubscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-				Page:       req.Page,
-				Namespaces: []string{req.CustomerID.Namespace},
-				Customers:  []string{req.CustomerID.ID},
+				Page:        req.Page,
+				Namespaces:  []string{req.CustomerID.Namespace},
+				CustomerIDs: []string{req.CustomerID.ID},
 			})
 			if err != nil {
 				return def, err

@@ -2,12 +2,24 @@ package subscription
 
 import (
 	"context"
-	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type Service interface {
+type QueryService interface {
+	// Get the subscription with the given ID
+	Get(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
+	// GetView returns a full view of the subscription with the given ID
+	GetView(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error)
+	// List lists the subscriptions matching the set criteria
+	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
+	// ExpandViews expands the subscriptions to views
+	ExpandViews(ctx context.Context, subs []Subscription) ([]SubscriptionView, error)
+}
+
+type CommandService interface {
+	ValidatorService
+
 	// Create a new subscription accotding to the given spec
 	Create(ctx context.Context, namespace string, spec SubscriptionSpec) (Subscription, error)
 	// Update the subscription with the given ID to the target spec
@@ -18,18 +30,13 @@ type Service interface {
 	Cancel(ctx context.Context, subscriptionID models.NamespacedID, timing Timing) (Subscription, error)
 	// Continue a canceled subscription (effectively undoing the cancellation)
 	Continue(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
-	// Get the subscription with the given ID
-	Get(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
-	// GetView returns a full view of the subscription with the given ID
-	GetView(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error)
-	// List lists the subscriptions matching the set criteria
-	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
-	// GetAllForCustomerSince returns all subscriptions for the given customer that are active or scheduled to start after the given timestamp
-	GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]Subscription, error)
+}
 
-	ValidatorService
+type Service interface {
+	QueryService
+	CommandService
 }
 
 type ValidatorService interface {
-	RegisterValidator(SubscriptionValidator) error
+	RegisterValidator(SubscriptionCommandValidator) error
 }

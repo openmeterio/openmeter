@@ -49,44 +49,6 @@ func (s *service) validateCreate(ctx context.Context, cust customer.Customer, sp
 		}
 	}
 
-	// 5. Let's make sure there's no scheduling conflict (no overlapping subscriptions)
-	multiSubscriptionEnabled, err := s.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF)
-	if err != nil {
-		return fmt.Errorf("failed to check if multi-subscription is enabled: %w", err)
-	}
-
-	if multiSubscriptionEnabled {
-		// TODO[galexi]: Implement feature specific validation
-	} else {
-		// We're gonna validate uniqueness on the subscription level
-		// Let's build a timeline of every already schedueld subscription
-		scheduled, err := s.SubscriptionRepo.GetAllForCustomerSince(ctx, models.NamespacedID{
-			ID:        spec.CustomerId,
-			Namespace: cust.Namespace,
-		}, clock.Now())
-		if err != nil {
-			return fmt.Errorf("failed to get scheduled subscriptions: %w", err)
-		}
-
-		scheduledInps := lo.Map(scheduled, func(i subscription.Subscription, _ int) subscription.CreateSubscriptionEntityInput {
-			return i.AsEntityInput()
-		})
-
-		subscriptionTimeline := models.NewSortedCadenceList(scheduledInps)
-
-		// Sanity check, lets validate that the scheduled timeline is consistent (without the new spec)
-		if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
-			return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
-		}
-
-		// Now let's check that the new Spec also fits into the timeline
-		subscriptionTimeline = models.NewSortedCadenceList(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(cust.Namespace)))
-
-		if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
-			return subscription.ErrOnlySingleSubscriptionAllowed
-		}
-	}
-
 	return nil
 }
 
@@ -180,48 +142,14 @@ func (s *service) validateContinue(ctx context.Context, view subscription.Subscr
 		return err
 	}
 
-	// Continuation means, that we recalculate the deactivation deadlines as if there was no cancellation
-	// This is handled by the SubscriptionSpec as all Cadences are derived from the Subscription Cadence
-	spec := view.AsSpec()
-
-	spec.ActiveTo = nil
-
-	if err := spec.Validate(); err != nil {
-		return fmt.Errorf("spec is invalid after unsetting cancelation time: %w", err)
-	}
-
-	// Let's make sure there won't be any scheduling conflicts after continuing (no overlapping subscriptions)
-
-	// Let's build a timeline of every already schedueld subscription
-	scheduled, err := s.SubscriptionRepo.GetAllForCustomerSince(ctx, models.NamespacedID{
-		ID:        spec.CustomerId,
-		Namespace: view.Subscription.Namespace,
-	}, clock.Now())
-	if err != nil {
-		return fmt.Errorf("failed to get scheduled subscriptions: %w", err)
-	}
-
-	// Let's filter out the current subscription from the scheduled list
-	scheduled = lo.Filter(scheduled, func(i subscription.Subscription, _ int) bool {
-		return i.ID != view.Subscription.ID
-	})
-
-	scheduledInps := lo.Map(scheduled, func(i subscription.Subscription, _ int) subscription.CreateSubscriptionEntityInput {
-		return i.AsEntityInput()
-	})
-
-	subscriptionTimeline := models.NewSortedCadenceList(scheduledInps)
-
-	// Sanity check, lets validate that the scheduled timeline is consistent (before continuing)
-	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
-		return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
-	}
-
-	// Now let's check that the new Spec also fits into the timeline
-	subscriptionTimeline = models.NewSortedCadenceList(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(view.Subscription.Namespace)))
-
-	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
-		return models.NewGenericConflictError(errors.New("continued subscription would overlap with existing ones"))
-	}
 	return nil
+}
+
+func numNotGrouped[T any, K comparable](source []T, grouped map[K][]T) int {
+	count := len(source)
+	for _, group := range grouped {
+		count -= len(group)
+	}
+
+	return count
 }

@@ -41,9 +41,9 @@ func (v *Validator) ValidateUpdateCustomer(ctx context.Context, input customer.U
 
 	// The subject association can only be changed if the customer doesn't have a subscription
 	subscriptions, err := v.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces: []string{input.CustomerID.Namespace},
-		Customers:  []string{input.CustomerID.ID},
-		ActiveAt:   lo.ToPtr(clock.Now()),
+		Namespaces:  []string{input.CustomerID.Namespace},
+		CustomerIDs: []string{input.CustomerID.ID},
+		ActiveAt:    lo.ToPtr(clock.Now()),
 	})
 	if err != nil {
 		return err
@@ -100,9 +100,9 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	}
 
 	subscriptions, err := v.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces: []string{input.Namespace},
-		Customers:  []string{input.ID},
-		ActiveAt:   lo.ToPtr(clock.Now()),
+		Namespaces:  []string{input.Namespace},
+		CustomerIDs: []string{input.ID},
+		ActiveAt:    lo.ToPtr(clock.Now()),
 	})
 	if err != nil {
 		return err
