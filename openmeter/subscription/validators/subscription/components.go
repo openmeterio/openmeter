@@ -12,14 +12,16 @@ import (
 
 // This file contains components from which the validation pipelines are built
 func (v SubscriptionUniqueConstraintValidator) validateUniqueConstraint(ctx context.Context, specs []subscription.SubscriptionSpec) ([]subscription.SubscriptionSpec, error) {
-	switch multiSubscriptionEnabled, err := v.Config.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF); {
-	case err != nil:
+	multiSubscriptionEnabled, err := v.Config.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF)
+	if err != nil {
 		return nil, fmt.Errorf("failed to check if multi-subscription is enabled: %w", err)
-	case multiSubscriptionEnabled:
-		return specs, subscription.ValidateUniqueConstraintByFeatures(specs)
-	default:
-		return specs, subscription.ValidateUniqueConstraintBySubscriptions(specs)
 	}
+
+	if multiSubscriptionEnabled {
+		return specs, subscription.ValidateUniqueConstraintByFeatures(specs)
+	}
+
+	return specs, subscription.ValidateUniqueConstraintBySubscriptions(specs)
 }
 
 func (v SubscriptionUniqueConstraintValidator) mapSubsToViews(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error) {
