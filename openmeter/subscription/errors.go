@@ -40,11 +40,11 @@ var ErrOnlySingleSubscriptionAllowed = models.NewValidationIssue(
 
 var ErrRestoreSubscriptionNotAllowedForMultiSubscription = models.NewGenericForbiddenError(errors.New("restore subscription is not allowed for multi-subscription"))
 
-const ErrCodeOnlySingleBillableItemAllowedAtATime models.ErrorCode = "only_single_billable_item_allowed_at_a_time"
+const ErrCodeOnlySingleSubscriptionItemAllowedAtATime models.ErrorCode = "only_single_subscription_item_allowed_at_a_time"
 
-var ErrOnlySingleBillableItemAllowedAtATime = models.NewValidationIssue(
-	ErrCodeOnlySingleBillableItemAllowedAtATime,
-	"only single billable item is allowed at a time",
+var ErrOnlySingleSubscriptionItemAllowedAtATime = models.NewValidationIssue(
+	ErrCodeOnlySingleSubscriptionItemAllowedAtATime,
+	"for any given feature, only one subscription item with entitlements or billable prices can exist at a time",
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
 )
 

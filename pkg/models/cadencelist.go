@@ -13,6 +13,11 @@ type CadenceComparable interface {
 	GetCadence() CadencedModel
 }
 
+type Overlap[T any] struct {
+	This  T `json:"this"`
+	Other T `json:"other"`
+}
+
 type OverlapDetail[T CadenceComparable] struct {
 	Index1 int
 	Index2 int

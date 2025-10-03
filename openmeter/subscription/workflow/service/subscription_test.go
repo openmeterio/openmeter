@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -1654,8 +1653,10 @@ func TestMultiSubscription(t *testing.T) {
 			require.Error(t, err)
 			issues, err := models.AsValidationIssues(err)
 			require.NoError(t, err)
-			require.Len(t, issues, 1)
-			require.Equal(t, subscription.ErrOnlySingleSubscriptionAllowed.Code(), issues[0].Code())
+			require.Len(t, issues, 2)
+			for _, issue := range issues {
+				require.Equal(t, subscription.ErrOnlySingleSubscriptionAllowed.Code(), issue.Code())
+			}
 		})
 	})
 
@@ -1694,7 +1695,14 @@ func TestMultiSubscription(t *testing.T) {
 			}, deps.Plan1)
 
 			require.Error(t, err)
-			require.ErrorAs(t, err, lo.ToPtr(&entitlement.AlreadyExistsError{}))
+
+			issues, err := models.AsValidationIssues(err)
+			require.NoError(t, err)
+
+			require.Len(t, issues, 12) // We'll have two issues per conflicting items (one for each side)
+			for _, issue := range issues {
+				require.Equal(t, subscription.ErrOnlySingleSubscriptionItemAllowedAtATime.Code(), issue.Code())
+			}
 		})
 	})
 }

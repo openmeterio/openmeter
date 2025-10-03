@@ -979,6 +979,10 @@ func (s *SubscriptionItemSpec) SyncAnnotations() error {
 	if met.EntitlementTemplate != nil && met.EntitlementTemplate.Type() == entitlement.EntitlementTypeBoolean {
 		count := AnnotationParser.GetBooleanEntitlementCount(s.Annotations)
 		if count == 0 {
+			if s.Annotations == nil {
+				s.Annotations = models.Annotations{}
+			}
+
 			if _, err := AnnotationParser.SetBooleanEntitlementCount(s.Annotations, 1); err != nil {
 				return fmt.Errorf("failed to set boolean entitlement count: %w", err)
 			}
