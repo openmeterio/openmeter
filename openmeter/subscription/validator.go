@@ -1,11 +1,16 @@
 package subscription
 
-import "context"
+import (
+	"context"
+
+	"github.com/openmeterio/openmeter/pkg/models"
+)
 
 type SubscriptionCommandValidator interface {
 	// These happen before the fact
 	ValidateCreate(context.Context, string, SubscriptionSpec) error
 	ValidateContinue(context.Context, SubscriptionView) error
+	ValidateUpdate(context.Context, models.NamespacedID, SubscriptionSpec) error
 	// These happen after the fact
 	ValidateCreated(context.Context, SubscriptionView) error
 	ValidateUpdated(context.Context, SubscriptionView) error
@@ -23,6 +28,10 @@ func (NoOpSubscriptionCommandValidator) ValidateCreate(context.Context, string, 
 }
 
 func (NoOpSubscriptionCommandValidator) ValidateContinue(context.Context, SubscriptionView) error {
+	return nil
+}
+
+func (NoOpSubscriptionCommandValidator) ValidateUpdate(context.Context, models.NamespacedID, SubscriptionSpec) error {
 	return nil
 }
 
