@@ -907,7 +907,13 @@ func FromValidationAttributes(attrs models.Attributes) *api.Annotations {
 		return nil
 	}
 
-	return lo.ToPtr((api.Annotations)(attrs))
+	out := api.Annotations(attrs.AsStringMap())
+
+	if len(out) == 0 {
+		return nil
+	}
+
+	return &out
 }
 
 func FromAnnotations(annotations models.Annotations) *api.Annotations {
