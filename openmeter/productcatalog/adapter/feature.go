@@ -45,8 +45,8 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 		SetMetadata(feat.Metadata).
 		SetNillableMeterSlug(feat.MeterSlug)
 
-	if feat.MeterGroupByFilters != nil {
-		query = query.SetMeterGroupByFilters(feat.MeterGroupByFilters)
+	if len(feat.MeterGroupByFilters) > 0 {
+		query = query.SetMeterGroupByFilters(feature.ConvertMeterGroupByFiltersToMapString(feat.MeterGroupByFilters))
 	}
 
 	entity, err := query.
@@ -254,7 +254,7 @@ func MapFeatureEntity(entity *db.Feature) feature.Feature {
 	}
 
 	if len(entity.MeterGroupByFilters) > 0 {
-		f.MeterGroupByFilters = entity.MeterGroupByFilters
+		f.MeterGroupByFilters = feature.ConvertMapStringToMeterGroupByFilters(entity.MeterGroupByFilters)
 	}
 
 	return f

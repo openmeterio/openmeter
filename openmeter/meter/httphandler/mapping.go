@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -161,14 +162,17 @@ func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, r
 	}
 
 	if request.FilterGroupBy != nil {
+		params.FilterGroupBy = map[string]filter.FilterString{}
 		for k, v := range *request.FilterGroupBy {
 			// GroupBy filters
 			if _, ok := m.GroupBy[k]; ok {
-				if params.FilterGroupBy == nil {
-					params.FilterGroupBy = map[string][]string{}
+				// Convert []string to FilterString using $in operator
+				if len(v) > 0 {
+					// Multiple values use $in
+					params.FilterGroupBy[k] = filter.FilterString{
+						In: lo.ToPtr(v),
+					}
 				}
-
-				params.FilterGroupBy[k] = v
 				continue
 			} else {
 				err := fmt.Errorf("invalid group by filter: %s", k)

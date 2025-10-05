@@ -136,7 +136,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 		Key:                 TestFeatureKey,
 		Namespace:           s.namespace,
 		MeterSlug:           convert.ToPointer(meter.Key),
-		MeterGroupByFilters: meter.GroupBy,
+		MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(meter.GroupBy),
 	})
 	require.NoError(t, err, "Creating feature must not return error")
 
@@ -438,7 +438,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 		Key:                 TestFeature2Key,
 		Namespace:           s.namespace,
 		MeterSlug:           convert.ToPointer(meter.Key),
-		MeterGroupByFilters: meter.GroupBy,
+		MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(meter.GroupBy),
 	})
 	require.NoError(t, err, "Creating feature must not return error")
 
@@ -447,7 +447,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 		Key:                 TestFeature3Key,
 		Namespace:           s.namespace,
 		MeterSlug:           convert.ToPointer(meter.Key),
-		MeterGroupByFilters: meter.GroupBy,
+		MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(meter.GroupBy),
 	})
 	require.NoError(t, err, "Creating feature must not return error")
 	require.NotNil(t, feature3, "Feature must not be nil")

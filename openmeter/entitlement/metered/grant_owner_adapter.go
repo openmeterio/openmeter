@@ -90,7 +90,9 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 		return def, fmt.Errorf("failed to get meter: %w", err)
 	}
 
-	queryParams := streaming.QueryParams{}
+	queryParams := streaming.QueryParams{
+		FilterGroupBy: feature.MeterGroupByFilters,
+	}
 
 	// Require filtering by customer; error if missing
 	if ent.Customer == nil {
@@ -104,13 +106,6 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 	}
 
 	queryParams.FilterCustomer = []streaming.Customer{streamingCustomer}
-
-	if feature.MeterGroupByFilters != nil {
-		queryParams.FilterGroupBy = map[string][]string{}
-		for k, v := range feature.MeterGroupByFilters {
-			queryParams.FilterGroupBy[k] = []string{v}
-		}
-	}
 
 	return grant.Owner{
 		NamespacedID:       id,

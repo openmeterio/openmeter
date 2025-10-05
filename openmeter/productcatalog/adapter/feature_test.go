@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -44,8 +46,10 @@ func TestCreateFeature(t *testing.T) {
 		Name:      "feature-1",
 		Key:       "feature-1",
 		MeterSlug: &meter.Key,
-		MeterGroupByFilters: map[string]string{
-			"key": "value",
+		MeterGroupByFilters: feature.MeterGroupByFilters{
+			"key": filter.FilterString{
+				Eq: lo.ToPtr("value"),
+			},
 		},
 	}
 
@@ -295,8 +299,10 @@ func TestArchiveFeature(t *testing.T) {
 		Name:      "feature-1",
 		Key:       "feature-1",
 		MeterSlug: &meter.Key,
-		MeterGroupByFilters: map[string]string{
-			"key": "value",
+		MeterGroupByFilters: feature.MeterGroupByFilters{
+			"key": filter.FilterString{
+				Eq: lo.ToPtr("value"),
+			},
 		},
 	}
 
@@ -385,8 +391,10 @@ func TestFetchingArchivedFeature(t *testing.T) {
 		Name:      "feature-1",
 		Key:       "feature-1",
 		MeterSlug: &meter.Key,
-		MeterGroupByFilters: map[string]string{
-			"key": "value",
+		MeterGroupByFilters: feature.MeterGroupByFilters{
+			"key": filter.FilterString{
+				Eq: lo.ToPtr("value"),
+			},
 		},
 	}
 

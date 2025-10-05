@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -15,7 +16,7 @@ type QueryParams struct {
 	To             *time.Time
 	FilterCustomer []Customer
 	FilterSubject  []string
-	FilterGroupBy  map[string][]string
+	FilterGroupBy  map[string]filter.FilterString
 	GroupBy        []string
 	WindowSize     *meter.WindowSize
 	WindowTimeZone *time.Location
@@ -55,6 +56,13 @@ func (p *QueryParams) Validate() error {
 	// To support this we need to map all subjects to customer_ids
 	if slices.Contains(p.GroupBy, "customer_id") && len(p.FilterCustomer) == 0 {
 		errs = append(errs, errors.New("customer filter is required with customer_id group by"))
+	}
+
+	// Validate the group by filters
+	for _, filter := range p.FilterGroupBy {
+		if err := filter.Validate(); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	if len(errs) > 0 {

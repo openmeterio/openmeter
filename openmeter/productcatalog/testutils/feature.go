@@ -27,7 +27,7 @@ func NewTestFeatureFromMeter(t *testing.T, meter *meter.Meter) feature.CreateFea
 		Key:                 meter.Key,
 		Namespace:           meter.Namespace,
 		MeterSlug:           lo.ToPtr(meter.Key),
-		MeterGroupByFilters: meter.GroupBy,
+		MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(meter.GroupBy),
 		Metadata:            map[string]string{},
 	}
 }
