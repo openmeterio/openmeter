@@ -40,6 +40,11 @@ func ValidateUniqueConstraintBySubscriptions(subs []SubscriptionSpec) error {
 							Cadence:      overlap.Item2.GetCadence(),
 							Selectors:    subscriptionSpecToFieldSelectors(overlap.Item2),
 						},
+						Other: SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide{
+							Subscription: overlap.Item1,
+							Cadence:      overlap.Item1.GetCadence(),
+							Selectors:    subscriptionSpecToFieldSelectors(overlap.Item1),
+						},
 					},
 				}).WithField(subscriptionSpecToFieldSelectors(overlap.Item2)...))
 		}
