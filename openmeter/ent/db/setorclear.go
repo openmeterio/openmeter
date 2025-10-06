@@ -8,6 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -2167,6 +2168,20 @@ func (u *FeatureUpdateOne) SetOrClearMeterGroupByFilters(value *map[string]strin
 		return u.ClearMeterGroupByFilters()
 	}
 	return u.SetMeterGroupByFilters(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearAdvancedMeterGroupByFilters(value *feature.MeterGroupByFilters) *FeatureUpdate {
+	if value == nil {
+		return u.ClearAdvancedMeterGroupByFilters()
+	}
+	return u.SetAdvancedMeterGroupByFilters(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearAdvancedMeterGroupByFilters(value *feature.MeterGroupByFilters) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearAdvancedMeterGroupByFilters()
+	}
+	return u.SetAdvancedMeterGroupByFilters(*value)
 }
 
 func (u *FeatureUpdate) SetOrClearArchivedAt(value *time.Time) *FeatureUpdate {

@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -461,7 +461,7 @@ func (_u *PlanRateCardUpdate) sqlSave(ctx context.Context) (_node int, err error
 			Columns: []string{planratecard.FeaturesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -474,7 +474,7 @@ func (_u *PlanRateCardUpdate) sqlSave(ctx context.Context) (_node int, err error
 			Columns: []string{planratecard.FeaturesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -961,7 +961,7 @@ func (_u *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRateCa
 			Columns: []string{planratecard.FeaturesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -974,7 +974,7 @@ func (_u *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRateCa
 			Columns: []string{planratecard.FeaturesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

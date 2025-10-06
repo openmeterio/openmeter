@@ -14,8 +14,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 // FeatureCreate is the builder for creating a Feature entity.
@@ -109,6 +110,12 @@ func (_c *FeatureCreate) SetNillableMeterSlug(v *string) *FeatureCreate {
 // SetMeterGroupByFilters sets the "meter_group_by_filters" field.
 func (_c *FeatureCreate) SetMeterGroupByFilters(v map[string]string) *FeatureCreate {
 	_c.mutation.SetMeterGroupByFilters(v)
+	return _c
+}
+
+// SetAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field.
+func (_c *FeatureCreate) SetAdvancedMeterGroupByFilters(v feature.MeterGroupByFilters) *FeatureCreate {
+	_c.mutation.SetAdvancedMeterGroupByFilters(v)
 	return _c
 }
 
@@ -221,15 +228,15 @@ func (_c *FeatureCreate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (_c *FeatureCreate) defaults() {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
-		v := feature.DefaultCreatedAt()
+		v := dbfeature.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		v := feature.DefaultUpdatedAt()
+		v := dbfeature.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
-		v := feature.DefaultID()
+		v := dbfeature.DefaultID()
 		_c.mutation.SetID(v)
 	}
 }
@@ -246,7 +253,7 @@ func (_c *FeatureCreate) check() error {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "Feature.namespace"`)}
 	}
 	if v, ok := _c.mutation.Namespace(); ok {
-		if err := feature.NamespaceValidator(v); err != nil {
+		if err := dbfeature.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "Feature.namespace": %w`, err)}
 		}
 	}
@@ -254,7 +261,7 @@ func (_c *FeatureCreate) check() error {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Feature.name"`)}
 	}
 	if v, ok := _c.mutation.Name(); ok {
-		if err := feature.NameValidator(v); err != nil {
+		if err := dbfeature.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
 	}
@@ -262,7 +269,7 @@ func (_c *FeatureCreate) check() error {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "Feature.key"`)}
 	}
 	if v, ok := _c.mutation.Key(); ok {
-		if err := feature.KeyValidator(v); err != nil {
+		if err := dbfeature.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "Feature.key": %w`, err)}
 		}
 	}
@@ -295,7 +302,7 @@ func (_c *FeatureCreate) sqlSave(ctx context.Context) (*Feature, error) {
 func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Feature{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(feature.Table, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
+		_spec = sqlgraph.NewCreateSpec(dbfeature.Table, sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString))
 	)
 	_spec.OnConflict = _c.conflict
 	if id, ok := _c.mutation.ID(); ok {
@@ -303,51 +310,55 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 		_spec.ID.Value = id
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(feature.FieldCreatedAt, field.TypeTime, value)
+		_spec.SetField(dbfeature.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
 	if value, ok := _c.mutation.UpdatedAt(); ok {
-		_spec.SetField(feature.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbfeature.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
 	if value, ok := _c.mutation.DeletedAt(); ok {
-		_spec.SetField(feature.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbfeature.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbfeature.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.Namespace(); ok {
-		_spec.SetField(feature.FieldNamespace, field.TypeString, value)
+		_spec.SetField(dbfeature.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
 	if value, ok := _c.mutation.Name(); ok {
-		_spec.SetField(feature.FieldName, field.TypeString, value)
+		_spec.SetField(dbfeature.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
 	if value, ok := _c.mutation.Key(); ok {
-		_spec.SetField(feature.FieldKey, field.TypeString, value)
+		_spec.SetField(dbfeature.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
 	if value, ok := _c.mutation.MeterSlug(); ok {
-		_spec.SetField(feature.FieldMeterSlug, field.TypeString, value)
+		_spec.SetField(dbfeature.FieldMeterSlug, field.TypeString, value)
 		_node.MeterSlug = &value
 	}
 	if value, ok := _c.mutation.MeterGroupByFilters(); ok {
-		_spec.SetField(feature.FieldMeterGroupByFilters, field.TypeJSON, value)
+		_spec.SetField(dbfeature.FieldMeterGroupByFilters, field.TypeJSON, value)
 		_node.MeterGroupByFilters = value
 	}
+	if value, ok := _c.mutation.AdvancedMeterGroupByFilters(); ok {
+		_spec.SetField(dbfeature.FieldAdvancedMeterGroupByFilters, field.TypeJSON, value)
+		_node.AdvancedMeterGroupByFilters = value
+	}
 	if value, ok := _c.mutation.ArchivedAt(); ok {
-		_spec.SetField(feature.FieldArchivedAt, field.TypeTime, value)
+		_spec.SetField(dbfeature.FieldArchivedAt, field.TypeTime, value)
 		_node.ArchivedAt = &value
 	}
 	if nodes := _c.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.EntitlementTable,
-			Columns: []string{feature.EntitlementColumn},
+			Table:   dbfeature.EntitlementTable,
+			Columns: []string{dbfeature.EntitlementColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
@@ -362,8 +373,8 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.RatecardTable,
-			Columns: []string{feature.RatecardColumn},
+			Table:   dbfeature.RatecardTable,
+			Columns: []string{dbfeature.RatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
@@ -378,8 +389,8 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.AddonRatecardTable,
-			Columns: []string{feature.AddonRatecardColumn},
+			Table:   dbfeature.AddonRatecardTable,
+			Columns: []string{dbfeature.AddonRatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
@@ -444,97 +455,115 @@ type (
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *FeatureUpsert) SetUpdatedAt(v time.Time) *FeatureUpsert {
-	u.Set(feature.FieldUpdatedAt, v)
+	u.Set(dbfeature.FieldUpdatedAt, v)
 	return u
 }
 
 // UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
 func (u *FeatureUpsert) UpdateUpdatedAt() *FeatureUpsert {
-	u.SetExcluded(feature.FieldUpdatedAt)
+	u.SetExcluded(dbfeature.FieldUpdatedAt)
 	return u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
 func (u *FeatureUpsert) SetDeletedAt(v time.Time) *FeatureUpsert {
-	u.Set(feature.FieldDeletedAt, v)
+	u.Set(dbfeature.FieldDeletedAt, v)
 	return u
 }
 
 // UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
 func (u *FeatureUpsert) UpdateDeletedAt() *FeatureUpsert {
-	u.SetExcluded(feature.FieldDeletedAt)
+	u.SetExcluded(dbfeature.FieldDeletedAt)
 	return u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *FeatureUpsert) ClearDeletedAt() *FeatureUpsert {
-	u.SetNull(feature.FieldDeletedAt)
+	u.SetNull(dbfeature.FieldDeletedAt)
 	return u
 }
 
 // SetMetadata sets the "metadata" field.
 func (u *FeatureUpsert) SetMetadata(v map[string]string) *FeatureUpsert {
-	u.Set(feature.FieldMetadata, v)
+	u.Set(dbfeature.FieldMetadata, v)
 	return u
 }
 
 // UpdateMetadata sets the "metadata" field to the value that was provided on create.
 func (u *FeatureUpsert) UpdateMetadata() *FeatureUpsert {
-	u.SetExcluded(feature.FieldMetadata)
+	u.SetExcluded(dbfeature.FieldMetadata)
 	return u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
 func (u *FeatureUpsert) ClearMetadata() *FeatureUpsert {
-	u.SetNull(feature.FieldMetadata)
+	u.SetNull(dbfeature.FieldMetadata)
 	return u
 }
 
 // SetName sets the "name" field.
 func (u *FeatureUpsert) SetName(v string) *FeatureUpsert {
-	u.Set(feature.FieldName, v)
+	u.Set(dbfeature.FieldName, v)
 	return u
 }
 
 // UpdateName sets the "name" field to the value that was provided on create.
 func (u *FeatureUpsert) UpdateName() *FeatureUpsert {
-	u.SetExcluded(feature.FieldName)
+	u.SetExcluded(dbfeature.FieldName)
 	return u
 }
 
 // SetMeterGroupByFilters sets the "meter_group_by_filters" field.
 func (u *FeatureUpsert) SetMeterGroupByFilters(v map[string]string) *FeatureUpsert {
-	u.Set(feature.FieldMeterGroupByFilters, v)
+	u.Set(dbfeature.FieldMeterGroupByFilters, v)
 	return u
 }
 
 // UpdateMeterGroupByFilters sets the "meter_group_by_filters" field to the value that was provided on create.
 func (u *FeatureUpsert) UpdateMeterGroupByFilters() *FeatureUpsert {
-	u.SetExcluded(feature.FieldMeterGroupByFilters)
+	u.SetExcluded(dbfeature.FieldMeterGroupByFilters)
 	return u
 }
 
 // ClearMeterGroupByFilters clears the value of the "meter_group_by_filters" field.
 func (u *FeatureUpsert) ClearMeterGroupByFilters() *FeatureUpsert {
-	u.SetNull(feature.FieldMeterGroupByFilters)
+	u.SetNull(dbfeature.FieldMeterGroupByFilters)
+	return u
+}
+
+// SetAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field.
+func (u *FeatureUpsert) SetAdvancedMeterGroupByFilters(v feature.MeterGroupByFilters) *FeatureUpsert {
+	u.Set(dbfeature.FieldAdvancedMeterGroupByFilters, v)
+	return u
+}
+
+// UpdateAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateAdvancedMeterGroupByFilters() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldAdvancedMeterGroupByFilters)
+	return u
+}
+
+// ClearAdvancedMeterGroupByFilters clears the value of the "advanced_meter_group_by_filters" field.
+func (u *FeatureUpsert) ClearAdvancedMeterGroupByFilters() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldAdvancedMeterGroupByFilters)
 	return u
 }
 
 // SetArchivedAt sets the "archived_at" field.
 func (u *FeatureUpsert) SetArchivedAt(v time.Time) *FeatureUpsert {
-	u.Set(feature.FieldArchivedAt, v)
+	u.Set(dbfeature.FieldArchivedAt, v)
 	return u
 }
 
 // UpdateArchivedAt sets the "archived_at" field to the value that was provided on create.
 func (u *FeatureUpsert) UpdateArchivedAt() *FeatureUpsert {
-	u.SetExcluded(feature.FieldArchivedAt)
+	u.SetExcluded(dbfeature.FieldArchivedAt)
 	return u
 }
 
 // ClearArchivedAt clears the value of the "archived_at" field.
 func (u *FeatureUpsert) ClearArchivedAt() *FeatureUpsert {
-	u.SetNull(feature.FieldArchivedAt)
+	u.SetNull(dbfeature.FieldArchivedAt)
 	return u
 }
 
@@ -545,7 +574,7 @@ func (u *FeatureUpsert) ClearArchivedAt() *FeatureUpsert {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(feature.FieldID)
+//				u.SetIgnore(dbfeature.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -553,19 +582,19 @@ func (u *FeatureUpsertOne) UpdateNewValues() *FeatureUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.ID(); exists {
-			s.SetIgnore(feature.FieldID)
+			s.SetIgnore(dbfeature.FieldID)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
-			s.SetIgnore(feature.FieldCreatedAt)
+			s.SetIgnore(dbfeature.FieldCreatedAt)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
-			s.SetIgnore(feature.FieldNamespace)
+			s.SetIgnore(dbfeature.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.Key(); exists {
-			s.SetIgnore(feature.FieldKey)
+			s.SetIgnore(dbfeature.FieldKey)
 		}
 		if _, exists := u.create.mutation.MeterSlug(); exists {
-			s.SetIgnore(feature.FieldMeterSlug)
+			s.SetIgnore(dbfeature.FieldMeterSlug)
 		}
 	}))
 	return u
@@ -686,6 +715,27 @@ func (u *FeatureUpsertOne) UpdateMeterGroupByFilters() *FeatureUpsertOne {
 func (u *FeatureUpsertOne) ClearMeterGroupByFilters() *FeatureUpsertOne {
 	return u.Update(func(s *FeatureUpsert) {
 		s.ClearMeterGroupByFilters()
+	})
+}
+
+// SetAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field.
+func (u *FeatureUpsertOne) SetAdvancedMeterGroupByFilters(v feature.MeterGroupByFilters) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetAdvancedMeterGroupByFilters(v)
+	})
+}
+
+// UpdateAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateAdvancedMeterGroupByFilters() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateAdvancedMeterGroupByFilters()
+	})
+}
+
+// ClearAdvancedMeterGroupByFilters clears the value of the "advanced_meter_group_by_filters" field.
+func (u *FeatureUpsertOne) ClearAdvancedMeterGroupByFilters() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearAdvancedMeterGroupByFilters()
 	})
 }
 
@@ -882,7 +932,7 @@ type FeatureUpsertBulk struct {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(feature.FieldID)
+//				u.SetIgnore(dbfeature.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -891,19 +941,19 @@ func (u *FeatureUpsertBulk) UpdateNewValues() *FeatureUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
-				s.SetIgnore(feature.FieldID)
+				s.SetIgnore(dbfeature.FieldID)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
-				s.SetIgnore(feature.FieldCreatedAt)
+				s.SetIgnore(dbfeature.FieldCreatedAt)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
-				s.SetIgnore(feature.FieldNamespace)
+				s.SetIgnore(dbfeature.FieldNamespace)
 			}
 			if _, exists := b.mutation.Key(); exists {
-				s.SetIgnore(feature.FieldKey)
+				s.SetIgnore(dbfeature.FieldKey)
 			}
 			if _, exists := b.mutation.MeterSlug(); exists {
-				s.SetIgnore(feature.FieldMeterSlug)
+				s.SetIgnore(dbfeature.FieldMeterSlug)
 			}
 		}
 	}))
@@ -1025,6 +1075,27 @@ func (u *FeatureUpsertBulk) UpdateMeterGroupByFilters() *FeatureUpsertBulk {
 func (u *FeatureUpsertBulk) ClearMeterGroupByFilters() *FeatureUpsertBulk {
 	return u.Update(func(s *FeatureUpsert) {
 		s.ClearMeterGroupByFilters()
+	})
+}
+
+// SetAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field.
+func (u *FeatureUpsertBulk) SetAdvancedMeterGroupByFilters(v feature.MeterGroupByFilters) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetAdvancedMeterGroupByFilters(v)
+	})
+}
+
+// UpdateAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateAdvancedMeterGroupByFilters() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateAdvancedMeterGroupByFilters()
+	})
+}
+
+// ClearAdvancedMeterGroupByFilters clears the value of the "advanced_meter_group_by_filters" field.
+func (u *FeatureUpsertBulk) ClearAdvancedMeterGroupByFilters() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearAdvancedMeterGroupByFilters()
 	})
 }
 

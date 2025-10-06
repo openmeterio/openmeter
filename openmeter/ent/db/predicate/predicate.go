@@ -169,7 +169,7 @@ func EntitlementOrErr(p Entitlement, err error) Entitlement {
 	}
 }
 
-// Feature is the predicate function for feature builders.
+// Feature is the predicate function for dbfeature builders.
 type Feature func(*sql.Selector)
 
 // Grant is the predicate function for dbgrant builders.

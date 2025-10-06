@@ -15,7 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -24,7 +24,7 @@ import (
 type FeatureQuery struct {
 	config
 	ctx               *QueryContext
-	order             []feature.OrderOption
+	order             []dbfeature.OrderOption
 	inters            []Interceptor
 	predicates        []predicate.Feature
 	withEntitlement   *EntitlementQuery
@@ -62,7 +62,7 @@ func (_q *FeatureQuery) Unique(unique bool) *FeatureQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (_q *FeatureQuery) Order(o ...feature.OrderOption) *FeatureQuery {
+func (_q *FeatureQuery) Order(o ...dbfeature.OrderOption) *FeatureQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
@@ -79,9 +79,9 @@ func (_q *FeatureQuery) QueryEntitlement() *EntitlementQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(feature.Table, feature.FieldID, selector),
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, feature.EntitlementTable, feature.EntitlementColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.EntitlementTable, dbfeature.EntitlementColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -101,9 +101,9 @@ func (_q *FeatureQuery) QueryRatecard() *PlanRateCardQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(feature.Table, feature.FieldID, selector),
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
 			sqlgraph.To(planratecard.Table, planratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, feature.RatecardTable, feature.RatecardColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.RatecardTable, dbfeature.RatecardColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -123,9 +123,9 @@ func (_q *FeatureQuery) QueryAddonRatecard() *AddonRateCardQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(feature.Table, feature.FieldID, selector),
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
 			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, feature.AddonRatecardTable, feature.AddonRatecardColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.AddonRatecardTable, dbfeature.AddonRatecardColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -141,7 +141,7 @@ func (_q *FeatureQuery) First(ctx context.Context) (*Feature, error) {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{feature.Label}
+		return nil, &NotFoundError{dbfeature.Label}
 	}
 	return nodes[0], nil
 }
@@ -163,7 +163,7 @@ func (_q *FeatureQuery) FirstID(ctx context.Context) (id string, err error) {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{feature.Label}
+		err = &NotFoundError{dbfeature.Label}
 		return
 	}
 	return ids[0], nil
@@ -190,9 +190,9 @@ func (_q *FeatureQuery) Only(ctx context.Context) (*Feature, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{feature.Label}
+		return nil, &NotFoundError{dbfeature.Label}
 	default:
-		return nil, &NotSingularError{feature.Label}
+		return nil, &NotSingularError{dbfeature.Label}
 	}
 }
 
@@ -217,9 +217,9 @@ func (_q *FeatureQuery) OnlyID(ctx context.Context) (id string, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{feature.Label}
+		err = &NotFoundError{dbfeature.Label}
 	default:
-		err = &NotSingularError{feature.Label}
+		err = &NotSingularError{dbfeature.Label}
 	}
 	return
 }
@@ -258,7 +258,7 @@ func (_q *FeatureQuery) IDs(ctx context.Context) (ids []string, err error) {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(feature.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(dbfeature.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
@@ -322,7 +322,7 @@ func (_q *FeatureQuery) Clone() *FeatureQuery {
 	return &FeatureQuery{
 		config:            _q.config,
 		ctx:               _q.ctx.Clone(),
-		order:             append([]feature.OrderOption{}, _q.order...),
+		order:             append([]dbfeature.OrderOption{}, _q.order...),
 		inters:            append([]Interceptor{}, _q.inters...),
 		predicates:        append([]predicate.Feature{}, _q.predicates...),
 		withEntitlement:   _q.withEntitlement.Clone(),
@@ -378,14 +378,14 @@ func (_q *FeatureQuery) WithAddonRatecard(opts ...func(*AddonRateCardQuery)) *Fe
 //	}
 //
 //	client.Feature.Query().
-//		GroupBy(feature.FieldCreatedAt).
+//		GroupBy(dbfeature.FieldCreatedAt).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (_q *FeatureQuery) GroupBy(field string, fields ...string) *FeatureGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &FeatureGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = feature.Label
+	grbuild.label = dbfeature.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -400,12 +400,12 @@ func (_q *FeatureQuery) GroupBy(field string, fields ...string) *FeatureGroupBy 
 //	}
 //
 //	client.Feature.Query().
-//		Select(feature.FieldCreatedAt).
+//		Select(dbfeature.FieldCreatedAt).
 //		Scan(ctx, &v)
 func (_q *FeatureQuery) Select(fields ...string) *FeatureSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
 	sbuild := &FeatureSelect{FeatureQuery: _q}
-	sbuild.label = feature.Label
+	sbuild.label = dbfeature.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
@@ -427,7 +427,7 @@ func (_q *FeatureQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !feature.ValidColumn(f) {
+		if !dbfeature.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -510,7 +510,7 @@ func (_q *FeatureQuery) loadEntitlement(ctx context.Context, query *EntitlementQ
 		query.ctx.AppendFieldOnce(entitlement.FieldFeatureID)
 	}
 	query.Where(predicate.Entitlement(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(feature.EntitlementColumn), fks...))
+		s.Where(sql.InValues(s.C(dbfeature.EntitlementColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -540,7 +540,7 @@ func (_q *FeatureQuery) loadRatecard(ctx context.Context, query *PlanRateCardQue
 		query.ctx.AppendFieldOnce(planratecard.FieldFeatureID)
 	}
 	query.Where(predicate.PlanRateCard(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(feature.RatecardColumn), fks...))
+		s.Where(sql.InValues(s.C(dbfeature.RatecardColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -573,7 +573,7 @@ func (_q *FeatureQuery) loadAddonRatecard(ctx context.Context, query *AddonRateC
 		query.ctx.AppendFieldOnce(addonratecard.FieldFeatureID)
 	}
 	query.Where(predicate.AddonRateCard(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(feature.AddonRatecardColumn), fks...))
+		s.Where(sql.InValues(s.C(dbfeature.AddonRatecardColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -606,7 +606,7 @@ func (_q *FeatureQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (_q *FeatureQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
+	_spec := sqlgraph.NewQuerySpec(dbfeature.Table, dbfeature.Columns, sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -615,9 +615,9 @@ func (_q *FeatureQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, feature.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, dbfeature.FieldID)
 		for i := range fields {
-			if fields[i] != feature.FieldID {
+			if fields[i] != dbfeature.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -647,10 +647,10 @@ func (_q *FeatureQuery) querySpec() *sqlgraph.QuerySpec {
 
 func (_q *FeatureQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(feature.Table)
+	t1 := builder.Table(dbfeature.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = feature.Columns
+		columns = dbfeature.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {

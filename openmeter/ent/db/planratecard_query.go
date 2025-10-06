@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -99,7 +99,7 @@ func (_q *PlanRateCardQuery) QueryFeatures() *FeatureQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(planratecard.Table, planratecard.FieldID, selector),
-			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, planratecard.FeaturesTable, planratecard.FeaturesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
@@ -494,7 +494,7 @@ func (_q *PlanRateCardQuery) loadFeatures(ctx context.Context, query *FeatureQue
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(feature.IDIn(ids...))
+	query.Where(dbfeature.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
