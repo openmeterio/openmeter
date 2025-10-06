@@ -3,7 +3,9 @@ package commonhttp
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/samber/lo"
 
@@ -72,4 +74,122 @@ func HandleErrorIfTypeMatches[T error](ctx context.Context, statusCode int, err 
 	}
 
 	return false
+}
+
+type httpAttributeKey string
+
+const httpStatusCodeErrorAttribute httpAttributeKey = "openmeter.http.status_code"
+
+func WithHTTPStatusCodeAttribute(code int) models.ValidationIssueOption {
+	return models.WithAttribute(httpStatusCodeErrorAttribute, code)
+}
+
+// Options for the Handler methods
+type handleIssueIfHTTPStatusKnownOptions struct {
+	statusPriorizationBehavior HTTPStatusAttributePriorizationBehavior
+}
+
+type HTTPStatusAttributePriorizationBehavior string
+
+const (
+	// In case there are multiple status codes, the errors won't be mapped. This is the default and recommended behavior
+	HTTPStatusAttributePriorizationBehaviorSingular HTTPStatusAttributePriorizationBehavior = "singular"
+
+	// This below options could be added but I fear they'd only cause more confusion
+	//
+	// // In case of conflicts, the status of the first error will be used
+	// HTTPStatusAttributePriorizationBehaviorFirst HTTPStatusAttributePriorizationBehavior = "first"
+	// // In case of conflicts, if there's an auth-authz error, it will be used, otherwise the status of the first error will be used
+	// HTTPStatusAttributePriorizationBehaviorAuthAuthz HTTPStatusAttributePriorizationBehavior = "auth-authz"
+)
+
+type HandleIssueIfHTTPStatusKnownOptions func(*handleIssueIfHTTPStatusKnownOptions)
+
+func WithHTTPStatusAttributePriorizationBehavior(behavior HTTPStatusAttributePriorizationBehavior) HandleIssueIfHTTPStatusKnownOptions {
+	return func(o *handleIssueIfHTTPStatusKnownOptions) {
+		o.statusPriorizationBehavior = behavior
+	}
+}
+
+func HandleIssueIfHTTPStatusKnown(ctx context.Context, err error, w http.ResponseWriter, options ...HandleIssueIfHTTPStatusKnownOptions) bool {
+	opts := &handleIssueIfHTTPStatusKnownOptions{
+		statusPriorizationBehavior: HTTPStatusAttributePriorizationBehaviorSingular,
+	}
+	for _, opt := range options {
+		opt(opts)
+	}
+
+	issues, err := models.AsValidationIssues(err)
+	if err != nil {
+		return false
+	}
+
+	if len(issues) == 0 {
+		return false
+	}
+
+	issuesByCodeMap := make(map[int]models.ValidationIssues)
+
+	for _, issue := range issues {
+		code, ok := issue.Attributes()[httpStatusCodeErrorAttribute]
+		if !ok {
+			continue
+		}
+
+		issueCode, ok := code.(int)
+		if !ok {
+			slog.Default().DebugContext(ctx, "issue does has HTTP status code attribute but it's not an integer", "issue", issue)
+			continue
+		}
+
+		issues := issuesByCodeMap[issueCode]
+		issues = append(issues, issue)
+		issuesByCodeMap[issueCode] = issues
+	}
+
+	if len(issuesByCodeMap) == 0 {
+		return false
+	}
+
+	extendProblemFuncs := make([]ExtendProblemFunc, 0)
+	responseStatusCode := 500 // default to internal server error
+
+	switch opts.statusPriorizationBehavior {
+	case HTTPStatusAttributePriorizationBehaviorSingular:
+		if len(issuesByCodeMap) > 1 {
+			return false
+		}
+
+		for code, issues := range issuesByCodeMap {
+			responseStatusCode = code
+			extendProblemFuncs = append(extendProblemFuncs, func() map[string]interface{} {
+				codeStr := strconv.Itoa(code)
+
+				// This is for backwards compatibility with how we used to encode validation issues for productcatalog
+				// TODO[galexi]: remove this once we've migrated to the new format
+				if code == http.StatusBadRequest {
+					codeStr = "validationIssues"
+				}
+
+				return map[string]interface{}{
+					codeStr: lo.Map(issues, func(issue models.ValidationIssue, _ int) map[string]interface{} {
+						// We don't want to expose this attribute to the client
+						attrs := issue.Attributes()
+						delete(attrs, httpStatusCodeErrorAttribute)
+						issue = issue.SetAttributes(attrs)
+
+						return issue.AsErrorExtension()
+					}),
+				}
+			})
+		}
+	default:
+		slog.Default().WarnContext(ctx, "unknown HTTP status attribute priorization behavior", "behavior", opts.statusPriorizationBehavior)
+		return false
+	}
+
+	// The returned error message will be a joined error(ValidationIssues.AsError().Error()), not sure if this is the best approach
+	NewHTTPError(responseStatusCode, err, extendProblemFuncs...).EncodeError(ctx, w)
+
+	return true
 }
