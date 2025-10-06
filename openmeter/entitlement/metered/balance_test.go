@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -38,7 +39,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		Name:                "feature1",
 		Key:                 "feature-1",
 		MeterSlug:           &meterSlug,
-		MeterGroupByFilters: map[string]string{},
+		MeterGroupByFilters: map[string]filter.FilterString{},
 	}
 
 	getEntitlement := func(t *testing.T, feature feature.Feature, usageAttribution streaming.CustomerUsageAttribution) entitlement.CreateEntitlementRepoInputs {
@@ -591,7 +592,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 		Name:                "feature1",
 		Key:                 "feature1",
 		MeterSlug:           &meterSlug,
-		MeterGroupByFilters: map[string]string{},
+		MeterGroupByFilters: map[string]filter.FilterString{},
 	}
 
 	getEntitlement := func(t *testing.T, feature feature.Feature, usageAttribution streaming.CustomerUsageAttribution) entitlement.CreateEntitlementRepoInputs {

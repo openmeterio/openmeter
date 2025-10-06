@@ -197,7 +197,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 			Key:                 TestFeatureKey,
 			Namespace:           s.Env.Namespace(),
 			MeterSlug:           convert.ToPointer(m.Key),
-			MeterGroupByFilters: m.GroupBy,
+			MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(m.GroupBy),
 		})
 	}
 	require.NoError(t, err, "Creating feature must not return error")

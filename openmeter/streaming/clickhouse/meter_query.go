@@ -15,8 +15,8 @@ import (
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type queryMeter struct {
@@ -26,7 +26,7 @@ type queryMeter struct {
 	Meter           meterpkg.Meter
 	FilterCustomer  []streaming.Customer
 	FilterSubject   []string
-	FilterGroupBy   map[string][]string
+	FilterGroupBy   map[string]filter.FilterString
 	From            *time.Time
 	To              *time.Time
 	GroupBy         []string
@@ -183,12 +183,12 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	case meterpkg.MeterAggregationCount:
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(*)) AS value", sqlAggregation))
 	case meterpkg.MeterAggregationUniqueCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
+		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
 	case meterpkg.MeterAggregationLatest:
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null), %s) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty), timeColumn))
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
 	default:
 		// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
 	}
 
 	for _, groupByKey := range d.GroupBy {
@@ -207,7 +207,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 		// Group by columns need to be parsed from the JSON data
 		groupByColumn := sqlbuilder.Escape(groupByKey)
-		groupByJSONPath := sqlbuilder.Escape(d.Meter.GroupBy[groupByKey])
+		groupByJSONPath := escapeJSONPathLiteral(d.Meter.GroupBy[groupByKey])
 		selectColumn := fmt.Sprintf("JSON_VALUE(%s, '%s') as %s", getColumn("data"), groupByJSONPath, groupByColumn)
 
 		selectColumns = append(selectColumns, selectColumn)
@@ -251,31 +251,37 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 				)
 			}
 
-			groupByJSONPath := sqlbuilder.Escape(d.Meter.GroupBy[groupByKey])
+			groupByJSONPath := d.Meter.GroupBy[groupByKey]
+			filterString := d.FilterGroupBy[groupByKey]
 
-			values := d.FilterGroupBy[groupByKey]
-			if len(values) == 0 {
+			// Skip empty filters
+			if filterString.IsEmpty() {
+				continue
+			}
+
+			// Validate the filter
+			if err := filterString.Validate(); err != nil {
 				return "", nil, models.NewGenericValidationError(
-					fmt.Errorf("empty filter for group by: %s", groupByKey),
+					fmt.Errorf("invalid filter for group by %s: %w", groupByKey, err),
 				)
 			}
-			mapFunc := func(value string) string {
-				column := fmt.Sprintf("JSON_VALUE(%s, '%s')", dataColumn, groupByJSONPath)
 
-				// Subject is a special case
-				if groupByKey == "subject" {
-					column = "subject"
-				}
+			// Determine the column name
+			column := fmt.Sprintf("JSON_VALUE(%s, '%s')", dataColumn, escapeJSONPathLiteral(groupByJSONPath))
 
-				// Customer ID is a special case
-				if groupByKey == "customer_id" {
-					column = "customer_id"
-				}
-
-				return fmt.Sprintf("%s = %s", column, query.Var((value)))
+			// Subject is a special case
+			if groupByKey == "subject" {
+				column = "subject"
 			}
 
-			query = query.Where(query.Or(slicesx.Map(values, mapFunc)...))
+			// Customer ID is a special case
+			if groupByKey == "customer_id" {
+				column = "customer_id"
+			}
+
+			// Use the filter's SelectWhereExpr method to generate the WHERE clause
+			whereExpr := filterString.SelectWhereExpr(column, query)
+			query = query.Where(whereExpr)
 		}
 	}
 
@@ -438,4 +444,31 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 	}
 
 	return values, nil
+}
+
+// escapeJSONPathLiteral escapes a string so it can be safely embedded
+// inside a single-quoted ClickHouse string literal (i.e. '…').
+//
+// It handles backslashes, single quotes, and double quotes.
+func escapeJSONPathLiteral(s string) string {
+	var sb strings.Builder
+	// Reserve approximate capacity
+	sb.Grow(len(s) * 2)
+
+	for _, r := range s {
+		switch r {
+		case '\\':
+			sb.WriteString(`\\`)
+		case '\'':
+			// Use backslash-escape for single quote (\' ), or you could also use ''
+			sb.WriteString(`\'`)
+		case '"':
+			// Escape double quotes (optional, depending on JSON path syntax)
+			sb.WriteString(`\"`)
+		default:
+			// For other runes, just write them
+			sb.WriteRune(r)
+		}
+	}
+	return sb.String()
 }

@@ -58,13 +58,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 		FilterCustomer: []streaming.Customer{in.Customer},
 		From:           &in.Line.Period.Start,
 		To:             &in.Line.Period.End,
-	}
-
-	if in.Feature.MeterGroupByFilters != nil {
-		meterQueryParams.FilterGroupBy = map[string][]string{}
-		for k, v := range in.Feature.MeterGroupByFilters {
-			meterQueryParams.FilterGroupBy[k] = []string{v}
-		}
+		FilterGroupBy:  in.Feature.MeterGroupByFilters,
 	}
 
 	lineHierarchy := in.Line.SplitLineHierarchy

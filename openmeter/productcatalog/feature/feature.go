@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 type FeatureNotFoundError struct {
@@ -17,7 +18,7 @@ func (e *FeatureNotFoundError) Error() string {
 }
 
 type FeatureInvalidFiltersError struct {
-	RequestedFilters    map[string]string
+	RequestedFilters    MeterGroupByFilters
 	MeterGroupByColumns []string
 }
 
@@ -63,7 +64,7 @@ func (e *ForbiddenError) Error() string {
 }
 
 // MeterGroupByFilters is a map of filters that can be applied to a meter when querying the usage for a feature.
-type MeterGroupByFilters map[string]string
+type MeterGroupByFilters map[string]filter.FilterString
 
 func (f MeterGroupByFilters) Validate(meter meter.Meter) error {
 	for filterProp := range f {
@@ -80,6 +81,38 @@ func (f MeterGroupByFilters) Validate(meter meter.Meter) error {
 	}
 
 	return nil
+}
+
+// ConvertMapStringToMeterGroupByFilters converts a map[string]string legacy format to MeterGroupByFilters
+func ConvertMapStringToMeterGroupByFilters(m map[string]string) MeterGroupByFilters {
+	if m == nil {
+		return MeterGroupByFilters{}
+	}
+
+	result := make(MeterGroupByFilters, len(m))
+	for k, v := range m {
+		result[k] = filter.FilterString{Eq: &v}
+	}
+
+	return result
+}
+
+// ConvertMeterGroupByFiltersToMapString converts a MeterGroupByFilters to a legacy map[string]string format
+// if all filters are equality filters, otherwise returns nil.
+func ConvertMeterGroupByFiltersToMapString(f MeterGroupByFilters) map[string]string {
+	if f == nil {
+		return nil
+	}
+
+	result := make(map[string]string, len(f))
+	for k, v := range f {
+		if v.Eq == nil {
+			return nil
+		}
+		result[k] = *v.Eq
+	}
+
+	return result
 }
 
 // Feature is a feature or service offered to a customer.

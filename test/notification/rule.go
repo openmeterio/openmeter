@@ -104,7 +104,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 			Key:                 TestFeatureKey,
 			Namespace:           s.Env.Namespace(),
 			MeterSlug:           convert.ToPointer(meter.Key),
-			MeterGroupByFilters: meter.GroupBy,
+			MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(meter.GroupBy),
 		})
 	}
 	require.NoError(t, err, "Creating feature must not return error")

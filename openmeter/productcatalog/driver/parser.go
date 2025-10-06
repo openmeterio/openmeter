@@ -7,6 +7,8 @@ import (
 )
 
 func MapFeatureToResponse(f feature.Feature) api.Feature {
+	meterGroupByFilters := feature.ConvertMeterGroupByFiltersToMapString(f.MeterGroupByFilters)
+
 	return api.Feature{
 		CreatedAt:           f.CreatedAt,
 		DeletedAt:           nil,
@@ -16,7 +18,7 @@ func MapFeatureToResponse(f feature.Feature) api.Feature {
 		Metadata:            convert.MapToPointer(f.Metadata),
 		Name:                f.Name,
 		ArchivedAt:          f.ArchivedAt,
-		MeterGroupByFilters: convert.MapToPointer(f.MeterGroupByFilters),
+		MeterGroupByFilters: convert.MapToPointer(meterGroupByFilters),
 		MeterSlug:           f.MeterSlug,
 	}
 }
