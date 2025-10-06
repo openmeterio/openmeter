@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -134,7 +133,7 @@ func TestCreateFromPlan(t *testing.T) {
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 		deps.FeatureConnector.CreateExampleFeatures(t)
 
-		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlan(t).
+		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
 			AddPhase(nil, &subscriptiontestutils.ExampleRateCard3ForAddons, &subscriptiontestutils.ExampleRateCard4ForAddons).
 			Build())
 
@@ -1119,7 +1118,7 @@ func TestEditCombinations(t *testing.T) {
 
 	t.Run("Should add boolean entitlement count annotations", func(t *testing.T) {
 		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
-			plan := deps.SubsDeps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlan(t).
+			plan := deps.SubsDeps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard3ForAddons).
 				Build())
 
@@ -1581,6 +1580,7 @@ func TestMultiSubscription(t *testing.T) {
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
 		Plan1           subscription.Plan
+		SubsDeps        *subscriptiontestutils.SubscriptionDependencies
 	}
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
@@ -1612,6 +1612,7 @@ func TestMultiSubscription(t *testing.T) {
 			tcDeps.Service = deps.SubscriptionService
 			tcDeps.WorkflowService = deps.WorkflowService
 			tcDeps.Plan1 = plan1
+			tcDeps.SubsDeps = &deps
 
 			fn(t, tcDeps)
 		}
@@ -1652,11 +1653,16 @@ func TestMultiSubscription(t *testing.T) {
 			}, deps.Plan1)
 
 			require.Error(t, err)
-			require.ErrorIs(t, err, subscription.ErrOnlySingleSubscriptionAllowed)
+			issues, err := models.AsValidationIssues(err)
+			require.NoError(t, err)
+			require.Len(t, issues, 2)
+			for _, issue := range issues {
+				require.Equal(t, subscription.ErrOnlySingleSubscriptionAllowed.Code(), issue.Code())
+			}
 		})
 	})
 
-	t.Run("Should still error if multi-subscription is enabled when entitlements conflict", func(t *testing.T) {
+	t.Run("Should still error if multi-subscription when relevant items conflict", func(t *testing.T) {
 		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
@@ -1691,7 +1697,71 @@ func TestMultiSubscription(t *testing.T) {
 			}, deps.Plan1)
 
 			require.Error(t, err)
-			require.ErrorAs(t, err, lo.ToPtr(&entitlement.AlreadyExistsError{}))
+
+			issues, err := models.AsValidationIssues(err)
+			require.NoError(t, err)
+
+			require.Len(t, issues, 12) // We'll have two issues per conflicting items (one for each side)
+			for _, issue := range issues {
+				require.Equal(t, subscription.ErrOnlySingleSubscriptionItemAllowedAtATime.Code(), issue.Code())
+			}
+		})
+	})
+
+	t.Run("Should not error if two overlapping subscriptions don't share relevant items", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+
+			ctx = ffx.SetAccessOnContext(ctx, ffx.AccessConfig{
+				subscription.MultiSubscriptionEnabledFF: true,
+			})
+
+			// Let's set up two plans with different features
+			plan1 := deps.SubsDeps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
+				AddPhase(nil, &productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Name:       "feature1",
+						Key:        subscriptiontestutils.ExampleFeatureKey,
+						FeatureKey: lo.ToPtr(subscriptiontestutils.ExampleFeatureKey),
+						FeatureID:  nil,
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount: alpacadecimal.NewFromInt(int64(100)),
+						}),
+					},
+				}).
+				Build())
+
+			plan2 := deps.SubsDeps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
+				AddPhase(nil, &productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Name: "feature2",
+						Key:  subscriptiontestutils.ExampleFeatureKey2,
+					},
+				}).Build())
+
+			// Let's create two subscriptions with the plans
+			_, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, plan1)
+			require.Nil(t, err)
+
+			_, err = deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, plan2)
+			require.Nil(t, err)
 		})
 	})
 }

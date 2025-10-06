@@ -40,36 +40,22 @@ func ValidateUniqueConstraint(ents []Entitlement) error {
 		return fmt.Errorf("entitlements must belong to the same subject, found %v", keys)
 	}
 
-	type cadencedEnt struct {
-		models.CadencedModel
-		ent Entitlement
-	}
-
 	// We use models.CadenceList to validate the uniqueness constraint.
 	timeline := models.NewSortedCadenceList(
 		// As entitlements where e.ActiveFromTime() == e.ActiveToTime() can never be active, we should ignore them.
-		lo.Map(
-			lo.Filter(ents, func(e Entitlement, _ int) bool {
-				if e.ActiveToTime() != nil && e.ActiveFromTime().Equal(*e.ActiveToTime()) {
-					return false
-				}
+		lo.Filter(ents, func(e Entitlement, _ int) bool {
+			if e.ActiveToTime() != nil && e.ActiveFromTime().Equal(*e.ActiveToTime()) {
+				return false
+			}
 
-				return true
-			}),
-			func(e Entitlement, _ int) cadencedEnt {
-				return cadencedEnt{
-					CadencedModel: models.CadencedModel{
-						ActiveFrom: e.ActiveFromTime(),
-						ActiveTo:   e.ActiveToTime(),
-					},
-					ent: e,
-				}
-			}))
+			return true
+		}),
+	)
 
 	if overlaps := timeline.GetOverlaps(); len(overlaps) > 0 {
 		// We only return the first overlap
 		items := timeline.Cadences()
-		return &UniquenessConstraintError{E1: items[overlaps[0].Index1].ent, E2: items[overlaps[0].Index2].ent}
+		return &UniquenessConstraintError{E1: items[overlaps[0].Index1], E2: items[overlaps[0].Index2]}
 	}
 
 	return nil

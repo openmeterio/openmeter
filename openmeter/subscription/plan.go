@@ -14,6 +14,10 @@ type PlanRef struct {
 	Version int    `json:"version"`
 }
 
+func (p PlanRef) GetPath() SpecPath {
+	return SpecPath(fmt.Sprintf("%s/%d", p.Key, p.Version))
+}
+
 func (p PlanRef) Equal(p2 PlanRef) bool {
 	if p.Id != p2.Id {
 		return false

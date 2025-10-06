@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/ffx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -72,6 +73,58 @@ func (v SubscriptionUniqueConstraintValidator) ValidateCreate(ctx context.Contex
 	}
 
 	specs, err = v.includeSubSpec(spec, specs)
+	if err != nil {
+		return err
+	}
+
+	_, err = v.validateUniqueConstraint(ctx, specs)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (v SubscriptionUniqueConstraintValidator) ValidateUpdate(ctx context.Context, currentId models.NamespacedID, targetSpec subscription.SubscriptionSpec) error {
+	// We only do these validations if multi-subscription is enabled
+	multiSubscriptionEnabled, err := v.Config.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF)
+	if err != nil {
+		return err
+	}
+
+	if !multiSubscriptionEnabled {
+		return nil
+	}
+
+	subs, err := v.collectCustomerSubscriptionsStarting(ctx, currentId.Namespace, targetSpec.CustomerId, targetSpec.ActiveFrom)
+	if err != nil {
+		return err
+	}
+
+	views, err := v.mapSubsToViews(ctx, subs)
+	if err != nil {
+		return err
+	}
+
+	views, err = v.filterSubViews(func(v subscription.SubscriptionView) bool {
+		// Let's exclude the current subscription as we'll include the new version in the validation instead
+		return v.Subscription.ID != currentId.ID
+	}, views)
+	if err != nil {
+		return err
+	}
+
+	specs, err := v.mapViewsToSpecs(views)
+	if err != nil {
+		return err
+	}
+
+	specs, err = v.validateUniqueConstraint(ctx, specs)
+	if err != nil {
+		return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
+	}
+
+	specs, err = v.includeSubSpec(targetSpec, specs)
 	if err != nil {
 		return err
 	}

@@ -48,7 +48,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).Build(),
+			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
 			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard1),
@@ -77,7 +77,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).Build(),
+			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
 			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard1),
@@ -109,7 +109,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).AddPhase(nil, &subscriptiontestutils.ExampleRateCard1, &subscriptiontestutils.ExampleRateCard2).Build(),
+			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, &subscriptiontestutils.ExampleRateCard1, &subscriptiontestutils.ExampleRateCard2).Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
 			}, productcatalog.AddonInstanceTypeSingle, &subscriptiontestutils.ExampleAddonRateCard1),
@@ -145,7 +145,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).
+			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(&oneMonth, &subscriptiontestutils.ExampleRateCard1, &subscriptiontestutils.ExampleRateCard2).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).
 				Build(),
@@ -176,7 +176,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).
+			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -208,7 +208,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).
+			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -248,7 +248,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).
+			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -305,7 +305,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).
+			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -341,7 +341,7 @@ func TestRestore(t *testing.T) {
 		p, a := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).
+			subscriptiontestutils.BuildTestPlanInput(t).
 				SetMeta(productcatalog.PlanMeta{
 					Name:           "Test Plan",
 					Key:            "test_plan",
@@ -432,7 +432,7 @@ func TestRestore(t *testing.T) {
 			env := buildSubAndAddon(
 				t,
 				&deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(nil, &subscriptiontestutils.ExampleRateCard4ForAddons).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -468,7 +468,7 @@ func TestRestore(t *testing.T) {
 			env := buildSubAndAddon(
 				t,
 				&deps.deps,
-				subscriptiontestutils.BuildTestPlan(t).
+				subscriptiontestutils.BuildTestPlanInput(t).
 					AddPhase(nil, &subscriptiontestutils.ExampleRateCard5ForAddons).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -505,7 +505,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndMultiInstanceAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).
+			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -564,7 +564,7 @@ func TestRestore(t *testing.T) {
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps.deps,
-			subscriptiontestutils.BuildTestPlan(t).
+			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil,
 					&subscriptiontestutils.ExampleRateCard1, // Flat price
 					&productcatalog.UsageBasedRateCard{ // Dynamic price

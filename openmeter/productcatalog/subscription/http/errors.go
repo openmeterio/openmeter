@@ -30,6 +30,19 @@ func errorEncoder() encoder.ErrorEncoder {
 				return false // Server dies if mapping fails
 			}
 
+			// This should be cleaned up by implementing attributes to non-validation issues
+			if errors.Is(err, subscription.ErrOnlySingleSubscriptionAllowed) {
+				problem := models.NewStatusProblem(ctx, errors.New("conflict"), http.StatusConflict)
+				problem.Extensions = map[string]interface{}{
+					"conflicts": lo.Map(mappedIssues, func(issue models.ValidationIssue, _ int) map[string]interface{} {
+						return issue.AsErrorExtension()
+					}),
+				}
+
+				problem.Respond(w)
+				return true
+			}
+
 			// And let's respond with an error
 			problem := models.NewStatusProblem(ctx, errors.New("validation error"), http.StatusBadRequest)
 			problem.Extensions = map[string]interface{}{

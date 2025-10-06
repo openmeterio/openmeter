@@ -3,8 +3,10 @@ package subscription
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -28,9 +30,23 @@ func IsErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart(err error) boo
 	return IsValidationIssueWithCode(err, ErrCodeSubscriptionBillingPeriodQueriedBeforeSubscriptionStart)
 }
 
-var ErrOnlySingleSubscriptionAllowed = models.NewGenericConflictError(errors.New("only single subscription is allowed per customer at a time"))
+const ErrCodeOnlySingleSubscriptionAllowed models.ErrorCode = "only_single_subscription_allowed_per_customer_at_a_time"
+
+var ErrOnlySingleSubscriptionAllowed = models.NewValidationIssue(
+	ErrCodeOnlySingleSubscriptionAllowed,
+	"only single subscription is allowed per customer at a time",
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
+)
 
 var ErrRestoreSubscriptionNotAllowedForMultiSubscription = models.NewGenericForbiddenError(errors.New("restore subscription is not allowed for multi-subscription"))
+
+const ErrCodeOnlySingleSubscriptionItemAllowedAtATime models.ErrorCode = "only_single_subscription_item_allowed_at_a_time"
+
+var ErrOnlySingleSubscriptionItemAllowedAtATime = models.NewValidationIssue(
+	ErrCodeOnlySingleSubscriptionItemAllowedAtATime,
+	"for any given feature, only one subscription item with entitlements or billable prices can exist at a time",
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
+)
 
 // TODO(galexi): "ValidationIssue" is not the right concept here. We should have a different kind of error with all this capability. It's used here as a hack to localize things for the time being.
 

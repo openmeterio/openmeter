@@ -444,6 +444,11 @@ func TestContinuing(t *testing.T) {
 		// Fourth, let's continue the first subscription
 		_, err = service.Continue(ctx, sub1.NamespacedID)
 		require.Error(t, err)
-		require.ErrorAs(t, err, lo.ToPtr(&models.GenericConflictError{}))
+		issues, err := models.AsValidationIssues(err)
+		require.NoError(t, err)
+		require.Len(t, issues, 2)
+		for _, issue := range issues {
+			require.Equal(t, subscription.ErrOnlySingleSubscriptionAllowed.Code(), issue.Code())
+		}
 	})
 }
