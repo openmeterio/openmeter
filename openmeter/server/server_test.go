@@ -534,7 +534,7 @@ func getTestServer(t *testing.T) *Server {
 			// Use the subject service
 			SubjectService: subjectService,
 		},
-		RouterHooks: RouterHooks{},
+		RouterHooks: NewRouterHookManager(),
 	}
 
 	// Create server

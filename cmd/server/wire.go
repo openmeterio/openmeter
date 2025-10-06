@@ -72,8 +72,7 @@ type Application struct {
 	PlanAddon                        planaddon.Service
 	Portal                           portal.Service
 	ProgressManager                  progressmanager.Service
-	RouterHooks                      *server.RouterHooks
-	PostAuthMiddlewares              server.PostAuthMiddlewares
+	RouterHooks                      server.RouterHookManager
 	Secret                           secret.Service
 	SubjectService                   subject.Service
 	SubjectCustomerHook              subjecthooks.CustomerSubjectHook

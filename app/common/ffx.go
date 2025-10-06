@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/wire"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 )
@@ -17,7 +17,7 @@ var FFX = wire.NewSet(
 	ffx.NewContextService,
 )
 
-type FFXConfigContextMiddleware api.MiddlewareFunc
+type FFXConfigContextMiddleware server.Middleware
 
 // NewFFXConfigContextMiddleware creates a middleware hook that sets the feature flag access context on the request context.
 // This hook MUST register after any session authentication step so user namespaces are available.
