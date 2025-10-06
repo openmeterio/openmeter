@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -27,7 +28,13 @@ func (i ListSubscriptionsInput) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	if !i.Page.IsZero() {
+		if err := i.Page.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("page: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type SubscriptionList = pagination.Result[Subscription]

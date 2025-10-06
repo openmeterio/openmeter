@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -104,9 +106,21 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 				)
 			}
 
+			page := pagination.Page{}
+
+			if params.Params.Page != nil || params.Params.PageSize != nil {
+				pageNumber := lo.FromPtrOr(params.Params.Page, 1)
+				pageSize := lo.FromPtrOr(params.Params.PageSize, 100)
+
+				page = pagination.Page{
+					PageNumber: pageNumber,
+					PageSize:   pageSize,
+				}
+			}
+
 			return ListCustomerSubscriptionsRequest{
 				CustomerID: cus.GetID(),
-				Page:       pagination.NewPageFromRef(params.Params.Page, params.Params.PageSize),
+				Page:       page,
 			}, nil
 		},
 		func(ctx context.Context, req ListCustomerSubscriptionsRequest) (ListCustomerSubscriptionsResponse, error) {
