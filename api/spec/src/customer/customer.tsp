@@ -84,8 +84,19 @@ interface Customers {
   @summary("List customer subscriptions")
   listCustomerSubscriptions(
     @path customerIdOrKey: ULIDOrExternalKey,
+    @query(#{ explode: true }) status?: ProductCatalog.SubscriptionStatus[],
+    ...OpenMeter.QueryOrdering<CustomerSubscriptionOrderBy>,
     ...QueryPagination,
   ): PaginatedResponse<ProductCatalog.Subscription> | NotFoundError | CommonErrors;
+}
+
+/**
+ * Order by options for customer subscriptions.
+ */
+@friendlyName("CustomerSubscriptionOrderBy")
+enum CustomerSubscriptionOrderBy {
+  activeFrom: "activeFrom",
+  activeTo: "activeTo",
 }
 
 /**

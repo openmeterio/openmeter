@@ -4237,6 +4237,11 @@ export interface components {
        */
       billingAddress?: components['schemas']['Address']
     }
+    /**
+     * @description Order by options for customer subscriptions.
+     * @enum {string}
+     */
+    CustomerSubscriptionOrderBy: 'activeFrom' | 'activeTo'
     /** @description Mapping to attribute metered usage to the customer.
      *     One customer can have multiple subjects,
      *     but one subject can only belong to one customer. */
@@ -11212,6 +11217,10 @@ export interface components {
     /** @description The order by field. */
     'CustomerOrderByOrdering.orderBy': components['schemas']['CustomerOrderBy']
     /** @description The order direction. */
+    'CustomerSubscriptionOrderByOrdering.order': components['schemas']['SortOrder']
+    /** @description The order by field. */
+    'CustomerSubscriptionOrderByOrdering.orderBy': components['schemas']['CustomerSubscriptionOrderBy']
+    /** @description The order direction. */
     'EntitlementOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'EntitlementOrderByOrdering.orderBy': components['schemas']['EntitlementOrderBy']
@@ -11564,6 +11573,8 @@ export type CustomerPaginatedResponse =
   components['schemas']['CustomerPaginatedResponse']
 export type CustomerReplaceUpdate =
   components['schemas']['CustomerReplaceUpdate']
+export type CustomerSubscriptionOrderBy =
+  components['schemas']['CustomerSubscriptionOrderBy']
 export type CustomerUsageAttribution =
   components['schemas']['CustomerUsageAttribution']
 export type DiscountPercentage = components['schemas']['DiscountPercentage']
@@ -12023,6 +12034,10 @@ export type ParameterCustomerOrderByOrderingOrder =
   components['parameters']['CustomerOrderByOrdering.order']
 export type ParameterCustomerOrderByOrderingOrderBy =
   components['parameters']['CustomerOrderByOrdering.orderBy']
+export type ParameterCustomerSubscriptionOrderByOrderingOrder =
+  components['parameters']['CustomerSubscriptionOrderByOrdering.order']
+export type ParameterCustomerSubscriptionOrderByOrderingOrderBy =
+  components['parameters']['CustomerSubscriptionOrderByOrdering.orderBy']
 export type ParameterEntitlementOrderByOrderingOrder =
   components['parameters']['EntitlementOrderByOrdering.order']
 export type ParameterEntitlementOrderByOrderingOrderBy =
@@ -17036,6 +17051,11 @@ export interface operations {
   listCustomerSubscriptions: {
     parameters: {
       query?: {
+        status?: components['schemas']['SubscriptionStatus'][]
+        /** @description The order direction. */
+        order?: components['parameters']['CustomerSubscriptionOrderByOrdering.order']
+        /** @description The order by field. */
+        orderBy?: components['parameters']['CustomerSubscriptionOrderByOrdering.orderBy']
         /** @description Page index.
          *
          *     Default is 1. */

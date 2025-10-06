@@ -3,19 +3,21 @@ package repo
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
-	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type subscriptionRepo struct {
@@ -130,9 +132,11 @@ func (r *subscriptionRepo) Delete(ctx context.Context, id models.NamespacedID) e
 
 func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.SubscriptionList, error) {
+		now := clock.Now()
+
 		query := repo.db.Subscription.Query().
 			WithPlan().
-			Where(SubscriptionNotDeletedAt(clock.Now())...)
+			Where(SubscriptionNotDeletedAt(now)...)
 
 		if len(in.Namespaces) > 0 {
 			query = query.Where(dbsubscription.NamespaceIn(in.Namespaces...))
@@ -144,13 +148,7 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 
 		if in.ActiveAt != nil {
 			query = query.Where(
-				dbsubscription.And(
-					dbsubscription.ActiveFromLTE(*in.ActiveAt),
-					dbsubscription.Or(
-						dbsubscription.ActiveToIsNil(),
-						dbsubscription.ActiveToGT(*in.ActiveAt),
-					),
-				),
+				SubscriptionActiveAt(*in.ActiveAt)...,
 			)
 		}
 
@@ -158,7 +156,53 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 			query = query.Where(SubscriptionActiveInPeriod(*in.ActiveInPeriod)...)
 		}
 
-		query = query.Order(dbsubscription.ByActiveFrom(sql.OrderAsc()))
+		if len(in.Status) > 0 {
+			var predicates []predicate.Subscription
+
+			if slices.Contains(in.Status, subscription.SubscriptionStatusActive) {
+				predicates = append(predicates, dbsubscription.And(
+					dbsubscription.And(SubscriptionActiveAt(now)...),
+					dbsubscription.ActiveToIsNil(),
+				))
+			}
+
+			if slices.Contains(in.Status, subscription.SubscriptionStatusCanceled) {
+				predicates = append(predicates, dbsubscription.And(
+					dbsubscription.And(SubscriptionActiveAt(now)...),
+					dbsubscription.ActiveToGT(now),
+				))
+			}
+
+			if slices.Contains(in.Status, subscription.SubscriptionStatusInactive) {
+				predicates = append(predicates, dbsubscription.And(
+					dbsubscription.ActiveToLTE(now),
+				))
+			}
+
+			if slices.Contains(in.Status, subscription.SubscriptionStatusScheduled) {
+				predicates = append(predicates, dbsubscription.And(
+					dbsubscription.ActiveFromGT(now),
+				))
+			}
+
+			if len(predicates) > 0 {
+				query = query.Where(dbsubscription.Or(predicates...))
+			}
+		}
+
+		order := entutils.GetOrdering(sortx.OrderDefault)
+		if !in.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(in.Order)
+		}
+
+		switch in.OrderBy {
+		case subscription.OrderByActiveFrom:
+			query = query.Order(dbsubscription.ByActiveFrom(order...))
+		case subscription.OrderByActiveTo:
+			query = query.Order(dbsubscription.ByActiveTo(order...))
+		default:
+			query = query.Order(dbsubscription.ByActiveFrom(order...))
+		}
 
 		paged, err := query.Paginate(ctx, in.Page)
 		if err != nil {

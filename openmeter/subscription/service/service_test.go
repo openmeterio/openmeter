@@ -3,6 +3,7 @@ package service_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -450,5 +451,172 @@ func TestContinuing(t *testing.T) {
 		for _, issue := range issues {
 			require.Equal(t, subscription.ErrOnlySingleSubscriptionAllowed.Code(), issue.Code())
 		}
+	})
+}
+
+func TestList(t *testing.T) {
+	t.Run("Should list subscription by status", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
+
+		cust1, err := deps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			CustomerMutate: customer.CustomerMutate{
+				Name: "Test Customer 1",
+				UsageAttribution: customer.CustomerUsageAttribution{
+					SubjectKeys: []string{"subject-1"},
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		cust2, err := deps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			CustomerMutate: customer.CustomerMutate{
+				Name: "Test Customer 2",
+				UsageAttribution: customer.CustomerUsageAttribution{
+					SubjectKeys: []string{"subject-2"},
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		cust3, err := deps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			CustomerMutate: customer.CustomerMutate{
+				Name: "Test Customer 3",
+				UsageAttribution: customer.CustomerUsageAttribution{
+					SubjectKeys: []string{"subject-3"},
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		cust4, err := deps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			CustomerMutate: customer.CustomerMutate{
+				Name: "Test Customer 4",
+				UsageAttribution: customer.CustomerUsageAttribution{
+					SubjectKeys: []string{"subject-4"},
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+
+		// Let's create some subscriptions:
+		// - One active
+		spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust1.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime,
+			BillingAnchor: currentTime,
+			Name:          "Test Subscription",
+		})
+		require.Nil(t, err)
+
+		sub1, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec1)
+		require.Nil(t, err)
+
+		// - One canceled
+		spec2, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust2.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime,
+			BillingAnchor: currentTime,
+			Name:          "Test Subscription",
+		})
+		require.Nil(t, err)
+
+		sub2, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec2)
+		require.Nil(t, err)
+
+		sub2, err = service.Cancel(ctx, sub2.NamespacedID, subscription.Timing{
+			Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+		})
+		require.Nil(t, err, "error canceling subscription: %v", err)
+
+		// - One inactive
+		spec3, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust3.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime.Add(-1 * time.Minute),
+			BillingAnchor: currentTime.Add(-1 * time.Minute),
+			Name:          "Test Subscription",
+		})
+		require.Nil(t, err)
+
+		sub3, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec3)
+		require.Nil(t, err)
+
+		sub3, err = service.Cancel(ctx, sub3.NamespacedID, subscription.Timing{
+			Enum: lo.ToPtr(subscription.TimingImmediate),
+		})
+		require.Nil(t, err)
+
+		// - One scheduled
+		spec4, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust4.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime.AddDate(0, 0, 3),
+			BillingAnchor: currentTime.AddDate(0, 0, 3),
+			Name:          "Test Subscription",
+		})
+		require.Nil(t, err)
+
+		sub4, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec4)
+		require.Nil(t, err)
+
+		// And let's validate the list for each and check that the correct ones are returned and the correct statuses are displayed
+		t.Run("Should list active subscriptions", func(t *testing.T) {
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Status: []subscription.SubscriptionStatus{subscription.SubscriptionStatusActive},
+			})
+			require.Nil(t, err)
+			require.Equal(t, 1, len(list.Items))
+			require.Equal(t, sub1.ID, list.Items[0].ID)
+			require.Equal(t, subscription.SubscriptionStatusActive, list.Items[0].GetStatusAt(clock.Now()))
+		})
+
+		t.Run("Should list canceled subscriptions", func(t *testing.T) {
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Status: []subscription.SubscriptionStatus{subscription.SubscriptionStatusCanceled},
+			})
+			require.Nil(t, err)
+			require.Equal(t, 1, len(list.Items))
+			require.Equal(t, sub2.ID, list.Items[0].ID)
+			require.Equal(t, subscription.SubscriptionStatusCanceled, list.Items[0].GetStatusAt(clock.Now()))
+		})
+
+		t.Run("Should list inactive subscriptions", func(t *testing.T) {
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Status: []subscription.SubscriptionStatus{subscription.SubscriptionStatusInactive},
+			})
+			require.Nil(t, err)
+			require.Equal(t, 1, len(list.Items))
+			require.Equal(t, sub3.ID, list.Items[0].ID)
+			require.Equal(t, subscription.SubscriptionStatusInactive, list.Items[0].GetStatusAt(clock.Now()))
+		})
+
+		t.Run("Should list scheduled subscriptions", func(t *testing.T) {
+			list, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Status: []subscription.SubscriptionStatus{subscription.SubscriptionStatusScheduled},
+			})
+			require.Nil(t, err)
+			require.Equal(t, 1, len(list.Items))
+			require.Equal(t, sub4.ID, list.Items[0].ID)
+			require.Equal(t, subscription.SubscriptionStatusScheduled, list.Items[0].GetStatusAt(clock.Now()))
+		})
 	})
 }
