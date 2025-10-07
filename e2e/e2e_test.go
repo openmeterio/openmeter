@@ -791,6 +791,11 @@ func TestCredit(t *testing.T) {
 			MeterGroupByFilters: &map[string]string{
 				"model": "gpt-4",
 			},
+			AdvancedMeterGroupByFilters: &map[string]api.FilterString{
+				"model": {
+					Eq: convert.ToPointer("gpt-4"),
+				},
+			},
 		}
 
 		require.NotEmpty(t, resp.JSON201.CreatedAt)
