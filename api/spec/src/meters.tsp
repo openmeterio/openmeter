@@ -157,7 +157,29 @@ interface Meters {
   @route("/{meterIdOrSlug}/subjects")
   @operationId("listMeterSubjects")
   @summary("List meter subjects")
-  listSubjects(@path meterIdOrSlug: MeterIdentifier): {
+  listSubjects(
+    @path meterIdOrSlug: MeterIdentifier,
+
+    /**
+     * Start date-time in RFC 3339 format.
+     *
+     * Inclusive. Defaults to the beginning of time.
+     *
+     * For example: ?from=2025-01-01T00%3A00%3A00.000Z
+     */
+    @query(#{ explode: true })
+    from?: DateTime,
+
+    /**
+     * End date-time in RFC 3339 format.
+     *
+     * Inclusive.
+     *
+     * For example: ?to=2025-02-01T00%3A00%3A00.000Z
+     */
+    @query(#{ explode: true })
+    to?: DateTime,
+  ): {
     @body
     @example(#["customer_1", "customer_2"])
     _: string[];

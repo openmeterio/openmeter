@@ -63,10 +63,10 @@ func (a *Router) QueryMeterPost(w http.ResponseWriter, r *http.Request, meterIDO
 }
 
 // GET /api/v1/meters/{meterIdOrSlug}/subjects
-func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIDOrSlug string) {
-	params := httpdriver.ListSubjectsParams{
+func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.ListMeterSubjectsParams) {
+	a.meterHandler.ListSubjects().With(httpdriver.ListSubjectsParams{
 		IdOrSlug: meterIDOrSlug,
-	}
-
-	a.meterHandler.ListSubjects().With(params).ServeHTTP(w, r)
+		From:     params.From,
+		To:       params.To,
+	}).ServeHTTP(w, r)
 }
