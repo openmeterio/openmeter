@@ -14,7 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -99,7 +99,7 @@ func (_q *AddonRateCardQuery) QueryFeatures() *FeatureQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, selector),
-			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.FeaturesTable, addonratecard.FeaturesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
@@ -494,7 +494,7 @@ func (_q *AddonRateCardQuery) loadFeatures(ctx context.Context, query *FeatureQu
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(feature.IDIn(ids...))
+	query.Where(dbfeature.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err

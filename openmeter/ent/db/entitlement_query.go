@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
@@ -176,7 +176,7 @@ func (_q *EntitlementQuery) QueryFeature() *FeatureQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
-			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.FeatureTable, entitlement.FeatureColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
@@ -807,7 +807,7 @@ func (_q *EntitlementQuery) loadFeature(ctx context.Context, query *FeatureQuery
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(feature.IDIn(ids...))
+	query.Where(dbfeature.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err

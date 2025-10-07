@@ -13,9 +13,10 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 // FeatureUpdate is the builder for updating Feature entities.
@@ -92,6 +93,18 @@ func (_u *FeatureUpdate) SetMeterGroupByFilters(v map[string]string) *FeatureUpd
 // ClearMeterGroupByFilters clears the value of the "meter_group_by_filters" field.
 func (_u *FeatureUpdate) ClearMeterGroupByFilters() *FeatureUpdate {
 	_u.mutation.ClearMeterGroupByFilters()
+	return _u
+}
+
+// SetAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field.
+func (_u *FeatureUpdate) SetAdvancedMeterGroupByFilters(v feature.MeterGroupByFilters) *FeatureUpdate {
+	_u.mutation.SetAdvancedMeterGroupByFilters(v)
+	return _u
+}
+
+// ClearAdvancedMeterGroupByFilters clears the value of the "advanced_meter_group_by_filters" field.
+func (_u *FeatureUpdate) ClearAdvancedMeterGroupByFilters() *FeatureUpdate {
+	_u.mutation.ClearAdvancedMeterGroupByFilters()
 	return _u
 }
 
@@ -259,7 +272,7 @@ func (_u *FeatureUpdate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (_u *FeatureUpdate) defaults() {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
-		v := feature.UpdateDefaultUpdatedAt()
+		v := dbfeature.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
 }
@@ -267,7 +280,7 @@ func (_u *FeatureUpdate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (_u *FeatureUpdate) check() error {
 	if v, ok := _u.mutation.Name(); ok {
-		if err := feature.NameValidator(v); err != nil {
+		if err := dbfeature.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
 	}
@@ -278,7 +291,7 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(dbfeature.Table, dbfeature.Columns, sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -287,44 +300,50 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(feature.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbfeature.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(feature.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbfeature.FieldDeletedAt, field.TypeTime, value)
 	}
 	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(feature.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(dbfeature.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbfeature.FieldMetadata, field.TypeJSON, value)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(feature.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbfeature.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(feature.FieldName, field.TypeString, value)
+		_spec.SetField(dbfeature.FieldName, field.TypeString, value)
 	}
 	if _u.mutation.MeterSlugCleared() {
-		_spec.ClearField(feature.FieldMeterSlug, field.TypeString)
+		_spec.ClearField(dbfeature.FieldMeterSlug, field.TypeString)
 	}
 	if value, ok := _u.mutation.MeterGroupByFilters(); ok {
-		_spec.SetField(feature.FieldMeterGroupByFilters, field.TypeJSON, value)
+		_spec.SetField(dbfeature.FieldMeterGroupByFilters, field.TypeJSON, value)
 	}
 	if _u.mutation.MeterGroupByFiltersCleared() {
-		_spec.ClearField(feature.FieldMeterGroupByFilters, field.TypeJSON)
+		_spec.ClearField(dbfeature.FieldMeterGroupByFilters, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.AdvancedMeterGroupByFilters(); ok {
+		_spec.SetField(dbfeature.FieldAdvancedMeterGroupByFilters, field.TypeJSON, value)
+	}
+	if _u.mutation.AdvancedMeterGroupByFiltersCleared() {
+		_spec.ClearField(dbfeature.FieldAdvancedMeterGroupByFilters, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.ArchivedAt(); ok {
-		_spec.SetField(feature.FieldArchivedAt, field.TypeTime, value)
+		_spec.SetField(dbfeature.FieldArchivedAt, field.TypeTime, value)
 	}
 	if _u.mutation.ArchivedAtCleared() {
-		_spec.ClearField(feature.FieldArchivedAt, field.TypeTime)
+		_spec.ClearField(dbfeature.FieldArchivedAt, field.TypeTime)
 	}
 	if _u.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.EntitlementTable,
-			Columns: []string{feature.EntitlementColumn},
+			Table:   dbfeature.EntitlementTable,
+			Columns: []string{dbfeature.EntitlementColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
@@ -336,8 +355,8 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.EntitlementTable,
-			Columns: []string{feature.EntitlementColumn},
+			Table:   dbfeature.EntitlementTable,
+			Columns: []string{dbfeature.EntitlementColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
@@ -352,8 +371,8 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.EntitlementTable,
-			Columns: []string{feature.EntitlementColumn},
+			Table:   dbfeature.EntitlementTable,
+			Columns: []string{dbfeature.EntitlementColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
@@ -368,8 +387,8 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.RatecardTable,
-			Columns: []string{feature.RatecardColumn},
+			Table:   dbfeature.RatecardTable,
+			Columns: []string{dbfeature.RatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
@@ -381,8 +400,8 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.RatecardTable,
-			Columns: []string{feature.RatecardColumn},
+			Table:   dbfeature.RatecardTable,
+			Columns: []string{dbfeature.RatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
@@ -397,8 +416,8 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.RatecardTable,
-			Columns: []string{feature.RatecardColumn},
+			Table:   dbfeature.RatecardTable,
+			Columns: []string{dbfeature.RatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
@@ -413,8 +432,8 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.AddonRatecardTable,
-			Columns: []string{feature.AddonRatecardColumn},
+			Table:   dbfeature.AddonRatecardTable,
+			Columns: []string{dbfeature.AddonRatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
@@ -426,8 +445,8 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.AddonRatecardTable,
-			Columns: []string{feature.AddonRatecardColumn},
+			Table:   dbfeature.AddonRatecardTable,
+			Columns: []string{dbfeature.AddonRatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
@@ -442,8 +461,8 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.AddonRatecardTable,
-			Columns: []string{feature.AddonRatecardColumn},
+			Table:   dbfeature.AddonRatecardTable,
+			Columns: []string{dbfeature.AddonRatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
@@ -456,7 +475,7 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{feature.Label}
+			err = &NotFoundError{dbfeature.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -535,6 +554,18 @@ func (_u *FeatureUpdateOne) SetMeterGroupByFilters(v map[string]string) *Feature
 // ClearMeterGroupByFilters clears the value of the "meter_group_by_filters" field.
 func (_u *FeatureUpdateOne) ClearMeterGroupByFilters() *FeatureUpdateOne {
 	_u.mutation.ClearMeterGroupByFilters()
+	return _u
+}
+
+// SetAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field.
+func (_u *FeatureUpdateOne) SetAdvancedMeterGroupByFilters(v feature.MeterGroupByFilters) *FeatureUpdateOne {
+	_u.mutation.SetAdvancedMeterGroupByFilters(v)
+	return _u
+}
+
+// ClearAdvancedMeterGroupByFilters clears the value of the "advanced_meter_group_by_filters" field.
+func (_u *FeatureUpdateOne) ClearAdvancedMeterGroupByFilters() *FeatureUpdateOne {
+	_u.mutation.ClearAdvancedMeterGroupByFilters()
 	return _u
 }
 
@@ -715,7 +746,7 @@ func (_u *FeatureUpdateOne) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (_u *FeatureUpdateOne) defaults() {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
-		v := feature.UpdateDefaultUpdatedAt()
+		v := dbfeature.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
 }
@@ -723,7 +754,7 @@ func (_u *FeatureUpdateOne) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (_u *FeatureUpdateOne) check() error {
 	if v, ok := _u.mutation.Name(); ok {
-		if err := feature.NameValidator(v); err != nil {
+		if err := dbfeature.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
 	}
@@ -734,7 +765,7 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(dbfeature.Table, dbfeature.Columns, sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Feature.id" for update`)}
@@ -742,12 +773,12 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 	_spec.Node.ID.Value = id
 	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, feature.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, dbfeature.FieldID)
 		for _, f := range fields {
-			if !feature.ValidColumn(f) {
+			if !dbfeature.ValidColumn(f) {
 				return nil, &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 			}
-			if f != feature.FieldID {
+			if f != dbfeature.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, f)
 			}
 		}
@@ -760,44 +791,50 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 		}
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(feature.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbfeature.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(feature.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbfeature.FieldDeletedAt, field.TypeTime, value)
 	}
 	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(feature.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(dbfeature.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbfeature.FieldMetadata, field.TypeJSON, value)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(feature.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbfeature.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(feature.FieldName, field.TypeString, value)
+		_spec.SetField(dbfeature.FieldName, field.TypeString, value)
 	}
 	if _u.mutation.MeterSlugCleared() {
-		_spec.ClearField(feature.FieldMeterSlug, field.TypeString)
+		_spec.ClearField(dbfeature.FieldMeterSlug, field.TypeString)
 	}
 	if value, ok := _u.mutation.MeterGroupByFilters(); ok {
-		_spec.SetField(feature.FieldMeterGroupByFilters, field.TypeJSON, value)
+		_spec.SetField(dbfeature.FieldMeterGroupByFilters, field.TypeJSON, value)
 	}
 	if _u.mutation.MeterGroupByFiltersCleared() {
-		_spec.ClearField(feature.FieldMeterGroupByFilters, field.TypeJSON)
+		_spec.ClearField(dbfeature.FieldMeterGroupByFilters, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.AdvancedMeterGroupByFilters(); ok {
+		_spec.SetField(dbfeature.FieldAdvancedMeterGroupByFilters, field.TypeJSON, value)
+	}
+	if _u.mutation.AdvancedMeterGroupByFiltersCleared() {
+		_spec.ClearField(dbfeature.FieldAdvancedMeterGroupByFilters, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.ArchivedAt(); ok {
-		_spec.SetField(feature.FieldArchivedAt, field.TypeTime, value)
+		_spec.SetField(dbfeature.FieldArchivedAt, field.TypeTime, value)
 	}
 	if _u.mutation.ArchivedAtCleared() {
-		_spec.ClearField(feature.FieldArchivedAt, field.TypeTime)
+		_spec.ClearField(dbfeature.FieldArchivedAt, field.TypeTime)
 	}
 	if _u.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.EntitlementTable,
-			Columns: []string{feature.EntitlementColumn},
+			Table:   dbfeature.EntitlementTable,
+			Columns: []string{dbfeature.EntitlementColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
@@ -809,8 +846,8 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.EntitlementTable,
-			Columns: []string{feature.EntitlementColumn},
+			Table:   dbfeature.EntitlementTable,
+			Columns: []string{dbfeature.EntitlementColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
@@ -825,8 +862,8 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.EntitlementTable,
-			Columns: []string{feature.EntitlementColumn},
+			Table:   dbfeature.EntitlementTable,
+			Columns: []string{dbfeature.EntitlementColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
@@ -841,8 +878,8 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.RatecardTable,
-			Columns: []string{feature.RatecardColumn},
+			Table:   dbfeature.RatecardTable,
+			Columns: []string{dbfeature.RatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
@@ -854,8 +891,8 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.RatecardTable,
-			Columns: []string{feature.RatecardColumn},
+			Table:   dbfeature.RatecardTable,
+			Columns: []string{dbfeature.RatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
@@ -870,8 +907,8 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.RatecardTable,
-			Columns: []string{feature.RatecardColumn},
+			Table:   dbfeature.RatecardTable,
+			Columns: []string{dbfeature.RatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
@@ -886,8 +923,8 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.AddonRatecardTable,
-			Columns: []string{feature.AddonRatecardColumn},
+			Table:   dbfeature.AddonRatecardTable,
+			Columns: []string{dbfeature.AddonRatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
@@ -899,8 +936,8 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.AddonRatecardTable,
-			Columns: []string{feature.AddonRatecardColumn},
+			Table:   dbfeature.AddonRatecardTable,
+			Columns: []string{dbfeature.AddonRatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
@@ -915,8 +952,8 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   feature.AddonRatecardTable,
-			Columns: []string{feature.AddonRatecardColumn},
+			Table:   dbfeature.AddonRatecardTable,
+			Columns: []string{dbfeature.AddonRatecardColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
@@ -932,7 +969,7 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 	_spec.ScanValues = _node.scanValues
 	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{feature.Label}
+			err = &NotFoundError{dbfeature.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}

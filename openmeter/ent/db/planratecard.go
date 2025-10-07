@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -90,7 +90,7 @@ func (e PlanRateCardEdges) FeaturesOrErr() (*Feature, error) {
 	if e.Features != nil {
 		return e.Features, nil
 	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: feature.Label}
+		return nil, &NotFoundError{label: dbfeature.Label}
 	}
 	return nil, &NotLoadedError{edge: "features"}
 }

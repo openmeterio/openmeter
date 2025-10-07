@@ -1538,6 +1538,7 @@ var (
 		{Name: "key", Type: field.TypeString},
 		{Name: "meter_slug", Type: field.TypeString, Nullable: true},
 		{Name: "meter_group_by_filters", Type: field.TypeJSON, Nullable: true},
+		{Name: "advanced_meter_group_by_filters", Type: field.TypeJSON, Nullable: true},
 		{Name: "archived_at", Type: field.TypeTime, Nullable: true},
 	}
 	// FeaturesTable holds the schema information for the "features" table.

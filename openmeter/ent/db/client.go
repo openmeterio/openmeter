@@ -40,7 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
@@ -879,7 +879,7 @@ func (c *AddonRateCardClient) QueryFeatures(_m *AddonRateCard) *FeatureQuery {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, id),
-			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.FeaturesTable, addonratecard.FeaturesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
@@ -4994,7 +4994,7 @@ func (c *EntitlementClient) QueryFeature(_m *Entitlement) *FeatureQuery {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
-			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.FeatureTable, entitlement.FeatureColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
@@ -5071,13 +5071,13 @@ func NewFeatureClient(c config) *FeatureClient {
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `feature.Hooks(f(g(h())))`.
+// A call to `Use(f, g, h)` equals to `dbfeature.Hooks(f(g(h())))`.
 func (c *FeatureClient) Use(hooks ...Hook) {
 	c.hooks.Feature = append(c.hooks.Feature, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `feature.Intercept(f(g(h())))`.
+// A call to `Intercept(f, g, h)` equals to `dbfeature.Intercept(f(g(h())))`.
 func (c *FeatureClient) Intercept(interceptors ...Interceptor) {
 	c.inters.Feature = append(c.inters.Feature, interceptors...)
 }
@@ -5139,7 +5139,7 @@ func (c *FeatureClient) DeleteOne(_m *Feature) *FeatureDeleteOne {
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *FeatureClient) DeleteOneID(id string) *FeatureDeleteOne {
-	builder := c.Delete().Where(feature.ID(id))
+	builder := c.Delete().Where(dbfeature.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &FeatureDeleteOne{builder}
@@ -5156,7 +5156,7 @@ func (c *FeatureClient) Query() *FeatureQuery {
 
 // Get returns a Feature entity by its id.
 func (c *FeatureClient) Get(ctx context.Context, id string) (*Feature, error) {
-	return c.Query().Where(feature.ID(id)).Only(ctx)
+	return c.Query().Where(dbfeature.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -5174,9 +5174,9 @@ func (c *FeatureClient) QueryEntitlement(_m *Feature) *EntitlementQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(feature.Table, feature.FieldID, id),
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, id),
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, feature.EntitlementTable, feature.EntitlementColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.EntitlementTable, dbfeature.EntitlementColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -5190,9 +5190,9 @@ func (c *FeatureClient) QueryRatecard(_m *Feature) *PlanRateCardQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(feature.Table, feature.FieldID, id),
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, id),
 			sqlgraph.To(planratecard.Table, planratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, feature.RatecardTable, feature.RatecardColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.RatecardTable, dbfeature.RatecardColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -5206,9 +5206,9 @@ func (c *FeatureClient) QueryAddonRatecard(_m *Feature) *AddonRateCardQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(feature.Table, feature.FieldID, id),
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, id),
 			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, feature.AddonRatecardTable, feature.AddonRatecardColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.AddonRatecardTable, dbfeature.AddonRatecardColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -6793,7 +6793,7 @@ func (c *PlanRateCardClient) QueryFeatures(_m *PlanRateCard) *FeatureQuery {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(planratecard.Table, planratecard.FieldID, id),
-			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, planratecard.FeaturesTable, planratecard.FeaturesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)

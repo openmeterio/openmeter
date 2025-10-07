@@ -67,7 +67,7 @@ const (
 	// FeaturesTable is the table that holds the features relation/edge.
 	FeaturesTable = "plan_rate_cards"
 	// FeaturesInverseTable is the table name for the Feature entity.
-	// It exists in this package in order to avoid circular dependency with the "feature" package.
+	// It exists in this package in order to avoid circular dependency with the "dbfeature" package.
 	FeaturesInverseTable = "features"
 	// FeaturesColumn is the table column denoting the features relation/edge.
 	FeaturesColumn = "feature_id"

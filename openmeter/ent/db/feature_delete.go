@@ -8,8 +8,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 )
 
 // FeatureDelete is the builder for deleting a Feature entity.
@@ -40,7 +41,7 @@ func (_d *FeatureDelete) ExecX(ctx context.Context) int {
 }
 
 func (_d *FeatureDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(feature.Table, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
+	_spec := sqlgraph.NewDeleteSpec(dbfeature.Table, sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString))
 	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -74,7 +75,7 @@ func (_d *FeatureDeleteOne) Exec(ctx context.Context) error {
 	case err != nil:
 		return err
 	case n == 0:
-		return &NotFoundError{feature.Label}
+		return &NotFoundError{dbfeature.Label}
 	default:
 		return nil
 	}

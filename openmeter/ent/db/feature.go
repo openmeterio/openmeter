@@ -10,7 +10,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 // Feature is the model entity for the Feature schema.
@@ -36,6 +37,8 @@ type Feature struct {
 	MeterSlug *string `json:"meter_slug,omitempty"`
 	// MeterGroupByFilters holds the value of the "meter_group_by_filters" field.
 	MeterGroupByFilters map[string]string `json:"meter_group_by_filters,omitempty"`
+	// AdvancedMeterGroupByFilters holds the value of the "advanced_meter_group_by_filters" field.
+	AdvancedMeterGroupByFilters feature.MeterGroupByFilters `json:"advanced_meter_group_by_filters,omitempty"`
 	// ArchivedAt holds the value of the "archived_at" field.
 	ArchivedAt *time.Time `json:"archived_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -89,11 +92,11 @@ func (*Feature) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case feature.FieldMetadata, feature.FieldMeterGroupByFilters:
+		case dbfeature.FieldMetadata, dbfeature.FieldMeterGroupByFilters, dbfeature.FieldAdvancedMeterGroupByFilters:
 			values[i] = new([]byte)
-		case feature.FieldID, feature.FieldNamespace, feature.FieldName, feature.FieldKey, feature.FieldMeterSlug:
+		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldKey, dbfeature.FieldMeterSlug:
 			values[i] = new(sql.NullString)
-		case feature.FieldCreatedAt, feature.FieldUpdatedAt, feature.FieldDeletedAt, feature.FieldArchivedAt:
+		case dbfeature.FieldCreatedAt, dbfeature.FieldUpdatedAt, dbfeature.FieldDeletedAt, dbfeature.FieldArchivedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -110,32 +113,32 @@ func (_m *Feature) assignValues(columns []string, values []any) error {
 	}
 	for i := range columns {
 		switch columns[i] {
-		case feature.FieldID:
+		case dbfeature.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
 			}
-		case feature.FieldCreatedAt:
+		case dbfeature.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case feature.FieldUpdatedAt:
+		case dbfeature.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case feature.FieldDeletedAt:
+		case dbfeature.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case feature.FieldMetadata:
+		case dbfeature.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -143,32 +146,32 @@ func (_m *Feature) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
-		case feature.FieldNamespace:
+		case dbfeature.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
-		case feature.FieldName:
+		case dbfeature.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				_m.Name = value.String
 			}
-		case feature.FieldKey:
+		case dbfeature.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
 				_m.Key = value.String
 			}
-		case feature.FieldMeterSlug:
+		case dbfeature.FieldMeterSlug:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field meter_slug", values[i])
 			} else if value.Valid {
 				_m.MeterSlug = new(string)
 				*_m.MeterSlug = value.String
 			}
-		case feature.FieldMeterGroupByFilters:
+		case dbfeature.FieldMeterGroupByFilters:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field meter_group_by_filters", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -176,7 +179,15 @@ func (_m *Feature) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field meter_group_by_filters: %w", err)
 				}
 			}
-		case feature.FieldArchivedAt:
+		case dbfeature.FieldAdvancedMeterGroupByFilters:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field advanced_meter_group_by_filters", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AdvancedMeterGroupByFilters); err != nil {
+					return fmt.Errorf("unmarshal field advanced_meter_group_by_filters: %w", err)
+				}
+			}
+		case dbfeature.FieldArchivedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field archived_at", values[i])
 			} else if value.Valid {
@@ -264,6 +275,9 @@ func (_m *Feature) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("meter_group_by_filters=")
 	builder.WriteString(fmt.Sprintf("%v", _m.MeterGroupByFilters))
+	builder.WriteString(", ")
+	builder.WriteString("advanced_meter_group_by_filters=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AdvancedMeterGroupByFilters))
 	builder.WriteString(", ")
 	if v := _m.ArchivedAt; v != nil {
 		builder.WriteString("archived_at=")

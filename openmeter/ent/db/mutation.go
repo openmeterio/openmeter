@@ -41,7 +41,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
@@ -63,6 +63,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -34159,32 +34160,33 @@ func (m *EntitlementMutation) ResetEdge(name string) error {
 // FeatureMutation represents an operation that mutates the Feature nodes in the graph.
 type FeatureMutation struct {
 	config
-	op                     Op
-	typ                    string
-	id                     *string
-	created_at             *time.Time
-	updated_at             *time.Time
-	deleted_at             *time.Time
-	metadata               *map[string]string
-	namespace              *string
-	name                   *string
-	key                    *string
-	meter_slug             *string
-	meter_group_by_filters *map[string]string
-	archived_at            *time.Time
-	clearedFields          map[string]struct{}
-	entitlement            map[string]struct{}
-	removedentitlement     map[string]struct{}
-	clearedentitlement     bool
-	ratecard               map[string]struct{}
-	removedratecard        map[string]struct{}
-	clearedratecard        bool
-	addon_ratecard         map[string]struct{}
-	removedaddon_ratecard  map[string]struct{}
-	clearedaddon_ratecard  bool
-	done                   bool
-	oldValue               func(context.Context) (*Feature, error)
-	predicates             []predicate.Feature
+	op                              Op
+	typ                             string
+	id                              *string
+	created_at                      *time.Time
+	updated_at                      *time.Time
+	deleted_at                      *time.Time
+	metadata                        *map[string]string
+	namespace                       *string
+	name                            *string
+	key                             *string
+	meter_slug                      *string
+	meter_group_by_filters          *map[string]string
+	advanced_meter_group_by_filters *feature.MeterGroupByFilters
+	archived_at                     *time.Time
+	clearedFields                   map[string]struct{}
+	entitlement                     map[string]struct{}
+	removedentitlement              map[string]struct{}
+	clearedentitlement              bool
+	ratecard                        map[string]struct{}
+	removedratecard                 map[string]struct{}
+	clearedratecard                 bool
+	addon_ratecard                  map[string]struct{}
+	removedaddon_ratecard           map[string]struct{}
+	clearedaddon_ratecard           bool
+	done                            bool
+	oldValue                        func(context.Context) (*Feature, error)
+	predicates                      []predicate.Feature
 }
 
 var _ ent.Mutation = (*FeatureMutation)(nil)
@@ -34397,19 +34399,19 @@ func (m *FeatureMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err e
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (m *FeatureMutation) ClearDeletedAt() {
 	m.deleted_at = nil
-	m.clearedFields[feature.FieldDeletedAt] = struct{}{}
+	m.clearedFields[dbfeature.FieldDeletedAt] = struct{}{}
 }
 
 // DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
 func (m *FeatureMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[feature.FieldDeletedAt]
+	_, ok := m.clearedFields[dbfeature.FieldDeletedAt]
 	return ok
 }
 
 // ResetDeletedAt resets all changes to the "deleted_at" field.
 func (m *FeatureMutation) ResetDeletedAt() {
 	m.deleted_at = nil
-	delete(m.clearedFields, feature.FieldDeletedAt)
+	delete(m.clearedFields, dbfeature.FieldDeletedAt)
 }
 
 // SetMetadata sets the "metadata" field.
@@ -34446,19 +34448,19 @@ func (m *FeatureMutation) OldMetadata(ctx context.Context) (v map[string]string,
 // ClearMetadata clears the value of the "metadata" field.
 func (m *FeatureMutation) ClearMetadata() {
 	m.metadata = nil
-	m.clearedFields[feature.FieldMetadata] = struct{}{}
+	m.clearedFields[dbfeature.FieldMetadata] = struct{}{}
 }
 
 // MetadataCleared returns if the "metadata" field was cleared in this mutation.
 func (m *FeatureMutation) MetadataCleared() bool {
-	_, ok := m.clearedFields[feature.FieldMetadata]
+	_, ok := m.clearedFields[dbfeature.FieldMetadata]
 	return ok
 }
 
 // ResetMetadata resets all changes to the "metadata" field.
 func (m *FeatureMutation) ResetMetadata() {
 	m.metadata = nil
-	delete(m.clearedFields, feature.FieldMetadata)
+	delete(m.clearedFields, dbfeature.FieldMetadata)
 }
 
 // SetNamespace sets the "namespace" field.
@@ -34603,19 +34605,19 @@ func (m *FeatureMutation) OldMeterSlug(ctx context.Context) (v *string, err erro
 // ClearMeterSlug clears the value of the "meter_slug" field.
 func (m *FeatureMutation) ClearMeterSlug() {
 	m.meter_slug = nil
-	m.clearedFields[feature.FieldMeterSlug] = struct{}{}
+	m.clearedFields[dbfeature.FieldMeterSlug] = struct{}{}
 }
 
 // MeterSlugCleared returns if the "meter_slug" field was cleared in this mutation.
 func (m *FeatureMutation) MeterSlugCleared() bool {
-	_, ok := m.clearedFields[feature.FieldMeterSlug]
+	_, ok := m.clearedFields[dbfeature.FieldMeterSlug]
 	return ok
 }
 
 // ResetMeterSlug resets all changes to the "meter_slug" field.
 func (m *FeatureMutation) ResetMeterSlug() {
 	m.meter_slug = nil
-	delete(m.clearedFields, feature.FieldMeterSlug)
+	delete(m.clearedFields, dbfeature.FieldMeterSlug)
 }
 
 // SetMeterGroupByFilters sets the "meter_group_by_filters" field.
@@ -34652,19 +34654,68 @@ func (m *FeatureMutation) OldMeterGroupByFilters(ctx context.Context) (v map[str
 // ClearMeterGroupByFilters clears the value of the "meter_group_by_filters" field.
 func (m *FeatureMutation) ClearMeterGroupByFilters() {
 	m.meter_group_by_filters = nil
-	m.clearedFields[feature.FieldMeterGroupByFilters] = struct{}{}
+	m.clearedFields[dbfeature.FieldMeterGroupByFilters] = struct{}{}
 }
 
 // MeterGroupByFiltersCleared returns if the "meter_group_by_filters" field was cleared in this mutation.
 func (m *FeatureMutation) MeterGroupByFiltersCleared() bool {
-	_, ok := m.clearedFields[feature.FieldMeterGroupByFilters]
+	_, ok := m.clearedFields[dbfeature.FieldMeterGroupByFilters]
 	return ok
 }
 
 // ResetMeterGroupByFilters resets all changes to the "meter_group_by_filters" field.
 func (m *FeatureMutation) ResetMeterGroupByFilters() {
 	m.meter_group_by_filters = nil
-	delete(m.clearedFields, feature.FieldMeterGroupByFilters)
+	delete(m.clearedFields, dbfeature.FieldMeterGroupByFilters)
+}
+
+// SetAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field.
+func (m *FeatureMutation) SetAdvancedMeterGroupByFilters(fgbf feature.MeterGroupByFilters) {
+	m.advanced_meter_group_by_filters = &fgbf
+}
+
+// AdvancedMeterGroupByFilters returns the value of the "advanced_meter_group_by_filters" field in the mutation.
+func (m *FeatureMutation) AdvancedMeterGroupByFilters() (r feature.MeterGroupByFilters, exists bool) {
+	v := m.advanced_meter_group_by_filters
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdvancedMeterGroupByFilters returns the old "advanced_meter_group_by_filters" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldAdvancedMeterGroupByFilters(ctx context.Context) (v feature.MeterGroupByFilters, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdvancedMeterGroupByFilters is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdvancedMeterGroupByFilters requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdvancedMeterGroupByFilters: %w", err)
+	}
+	return oldValue.AdvancedMeterGroupByFilters, nil
+}
+
+// ClearAdvancedMeterGroupByFilters clears the value of the "advanced_meter_group_by_filters" field.
+func (m *FeatureMutation) ClearAdvancedMeterGroupByFilters() {
+	m.advanced_meter_group_by_filters = nil
+	m.clearedFields[dbfeature.FieldAdvancedMeterGroupByFilters] = struct{}{}
+}
+
+// AdvancedMeterGroupByFiltersCleared returns if the "advanced_meter_group_by_filters" field was cleared in this mutation.
+func (m *FeatureMutation) AdvancedMeterGroupByFiltersCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldAdvancedMeterGroupByFilters]
+	return ok
+}
+
+// ResetAdvancedMeterGroupByFilters resets all changes to the "advanced_meter_group_by_filters" field.
+func (m *FeatureMutation) ResetAdvancedMeterGroupByFilters() {
+	m.advanced_meter_group_by_filters = nil
+	delete(m.clearedFields, dbfeature.FieldAdvancedMeterGroupByFilters)
 }
 
 // SetArchivedAt sets the "archived_at" field.
@@ -34701,19 +34752,19 @@ func (m *FeatureMutation) OldArchivedAt(ctx context.Context) (v *time.Time, err 
 // ClearArchivedAt clears the value of the "archived_at" field.
 func (m *FeatureMutation) ClearArchivedAt() {
 	m.archived_at = nil
-	m.clearedFields[feature.FieldArchivedAt] = struct{}{}
+	m.clearedFields[dbfeature.FieldArchivedAt] = struct{}{}
 }
 
 // ArchivedAtCleared returns if the "archived_at" field was cleared in this mutation.
 func (m *FeatureMutation) ArchivedAtCleared() bool {
-	_, ok := m.clearedFields[feature.FieldArchivedAt]
+	_, ok := m.clearedFields[dbfeature.FieldArchivedAt]
 	return ok
 }
 
 // ResetArchivedAt resets all changes to the "archived_at" field.
 func (m *FeatureMutation) ResetArchivedAt() {
 	m.archived_at = nil
-	delete(m.clearedFields, feature.FieldArchivedAt)
+	delete(m.clearedFields, dbfeature.FieldArchivedAt)
 }
 
 // AddEntitlementIDs adds the "entitlement" edge to the Entitlement entity by ids.
@@ -34912,36 +34963,39 @@ func (m *FeatureMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FeatureMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.created_at != nil {
-		fields = append(fields, feature.FieldCreatedAt)
+		fields = append(fields, dbfeature.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
-		fields = append(fields, feature.FieldUpdatedAt)
+		fields = append(fields, dbfeature.FieldUpdatedAt)
 	}
 	if m.deleted_at != nil {
-		fields = append(fields, feature.FieldDeletedAt)
+		fields = append(fields, dbfeature.FieldDeletedAt)
 	}
 	if m.metadata != nil {
-		fields = append(fields, feature.FieldMetadata)
+		fields = append(fields, dbfeature.FieldMetadata)
 	}
 	if m.namespace != nil {
-		fields = append(fields, feature.FieldNamespace)
+		fields = append(fields, dbfeature.FieldNamespace)
 	}
 	if m.name != nil {
-		fields = append(fields, feature.FieldName)
+		fields = append(fields, dbfeature.FieldName)
 	}
 	if m.key != nil {
-		fields = append(fields, feature.FieldKey)
+		fields = append(fields, dbfeature.FieldKey)
 	}
 	if m.meter_slug != nil {
-		fields = append(fields, feature.FieldMeterSlug)
+		fields = append(fields, dbfeature.FieldMeterSlug)
 	}
 	if m.meter_group_by_filters != nil {
-		fields = append(fields, feature.FieldMeterGroupByFilters)
+		fields = append(fields, dbfeature.FieldMeterGroupByFilters)
+	}
+	if m.advanced_meter_group_by_filters != nil {
+		fields = append(fields, dbfeature.FieldAdvancedMeterGroupByFilters)
 	}
 	if m.archived_at != nil {
-		fields = append(fields, feature.FieldArchivedAt)
+		fields = append(fields, dbfeature.FieldArchivedAt)
 	}
 	return fields
 }
@@ -34951,25 +35005,27 @@ func (m *FeatureMutation) Fields() []string {
 // schema.
 func (m *FeatureMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case feature.FieldCreatedAt:
+	case dbfeature.FieldCreatedAt:
 		return m.CreatedAt()
-	case feature.FieldUpdatedAt:
+	case dbfeature.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case feature.FieldDeletedAt:
+	case dbfeature.FieldDeletedAt:
 		return m.DeletedAt()
-	case feature.FieldMetadata:
+	case dbfeature.FieldMetadata:
 		return m.Metadata()
-	case feature.FieldNamespace:
+	case dbfeature.FieldNamespace:
 		return m.Namespace()
-	case feature.FieldName:
+	case dbfeature.FieldName:
 		return m.Name()
-	case feature.FieldKey:
+	case dbfeature.FieldKey:
 		return m.Key()
-	case feature.FieldMeterSlug:
+	case dbfeature.FieldMeterSlug:
 		return m.MeterSlug()
-	case feature.FieldMeterGroupByFilters:
+	case dbfeature.FieldMeterGroupByFilters:
 		return m.MeterGroupByFilters()
-	case feature.FieldArchivedAt:
+	case dbfeature.FieldAdvancedMeterGroupByFilters:
+		return m.AdvancedMeterGroupByFilters()
+	case dbfeature.FieldArchivedAt:
 		return m.ArchivedAt()
 	}
 	return nil, false
@@ -34980,25 +35036,27 @@ func (m *FeatureMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *FeatureMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case feature.FieldCreatedAt:
+	case dbfeature.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case feature.FieldUpdatedAt:
+	case dbfeature.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case feature.FieldDeletedAt:
+	case dbfeature.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case feature.FieldMetadata:
+	case dbfeature.FieldMetadata:
 		return m.OldMetadata(ctx)
-	case feature.FieldNamespace:
+	case dbfeature.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case feature.FieldName:
+	case dbfeature.FieldName:
 		return m.OldName(ctx)
-	case feature.FieldKey:
+	case dbfeature.FieldKey:
 		return m.OldKey(ctx)
-	case feature.FieldMeterSlug:
+	case dbfeature.FieldMeterSlug:
 		return m.OldMeterSlug(ctx)
-	case feature.FieldMeterGroupByFilters:
+	case dbfeature.FieldMeterGroupByFilters:
 		return m.OldMeterGroupByFilters(ctx)
-	case feature.FieldArchivedAt:
+	case dbfeature.FieldAdvancedMeterGroupByFilters:
+		return m.OldAdvancedMeterGroupByFilters(ctx)
+	case dbfeature.FieldArchivedAt:
 		return m.OldArchivedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown Feature field %s", name)
@@ -35009,70 +35067,77 @@ func (m *FeatureMutation) OldField(ctx context.Context, name string) (ent.Value,
 // type.
 func (m *FeatureMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case feature.FieldCreatedAt:
+	case dbfeature.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case feature.FieldUpdatedAt:
+	case dbfeature.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case feature.FieldDeletedAt:
+	case dbfeature.FieldDeletedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case feature.FieldMetadata:
+	case dbfeature.FieldMetadata:
 		v, ok := value.(map[string]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMetadata(v)
 		return nil
-	case feature.FieldNamespace:
+	case dbfeature.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
 		return nil
-	case feature.FieldName:
+	case dbfeature.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
 		return nil
-	case feature.FieldKey:
+	case dbfeature.FieldKey:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKey(v)
 		return nil
-	case feature.FieldMeterSlug:
+	case dbfeature.FieldMeterSlug:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMeterSlug(v)
 		return nil
-	case feature.FieldMeterGroupByFilters:
+	case dbfeature.FieldMeterGroupByFilters:
 		v, ok := value.(map[string]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMeterGroupByFilters(v)
 		return nil
-	case feature.FieldArchivedAt:
+	case dbfeature.FieldAdvancedMeterGroupByFilters:
+		v, ok := value.(feature.MeterGroupByFilters)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdvancedMeterGroupByFilters(v)
+		return nil
+	case dbfeature.FieldArchivedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -35109,20 +35174,23 @@ func (m *FeatureMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *FeatureMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(feature.FieldDeletedAt) {
-		fields = append(fields, feature.FieldDeletedAt)
+	if m.FieldCleared(dbfeature.FieldDeletedAt) {
+		fields = append(fields, dbfeature.FieldDeletedAt)
 	}
-	if m.FieldCleared(feature.FieldMetadata) {
-		fields = append(fields, feature.FieldMetadata)
+	if m.FieldCleared(dbfeature.FieldMetadata) {
+		fields = append(fields, dbfeature.FieldMetadata)
 	}
-	if m.FieldCleared(feature.FieldMeterSlug) {
-		fields = append(fields, feature.FieldMeterSlug)
+	if m.FieldCleared(dbfeature.FieldMeterSlug) {
+		fields = append(fields, dbfeature.FieldMeterSlug)
 	}
-	if m.FieldCleared(feature.FieldMeterGroupByFilters) {
-		fields = append(fields, feature.FieldMeterGroupByFilters)
+	if m.FieldCleared(dbfeature.FieldMeterGroupByFilters) {
+		fields = append(fields, dbfeature.FieldMeterGroupByFilters)
 	}
-	if m.FieldCleared(feature.FieldArchivedAt) {
-		fields = append(fields, feature.FieldArchivedAt)
+	if m.FieldCleared(dbfeature.FieldAdvancedMeterGroupByFilters) {
+		fields = append(fields, dbfeature.FieldAdvancedMeterGroupByFilters)
+	}
+	if m.FieldCleared(dbfeature.FieldArchivedAt) {
+		fields = append(fields, dbfeature.FieldArchivedAt)
 	}
 	return fields
 }
@@ -35138,19 +35206,22 @@ func (m *FeatureMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *FeatureMutation) ClearField(name string) error {
 	switch name {
-	case feature.FieldDeletedAt:
+	case dbfeature.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
-	case feature.FieldMetadata:
+	case dbfeature.FieldMetadata:
 		m.ClearMetadata()
 		return nil
-	case feature.FieldMeterSlug:
+	case dbfeature.FieldMeterSlug:
 		m.ClearMeterSlug()
 		return nil
-	case feature.FieldMeterGroupByFilters:
+	case dbfeature.FieldMeterGroupByFilters:
 		m.ClearMeterGroupByFilters()
 		return nil
-	case feature.FieldArchivedAt:
+	case dbfeature.FieldAdvancedMeterGroupByFilters:
+		m.ClearAdvancedMeterGroupByFilters()
+		return nil
+	case dbfeature.FieldArchivedAt:
 		m.ClearArchivedAt()
 		return nil
 	}
@@ -35161,34 +35232,37 @@ func (m *FeatureMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *FeatureMutation) ResetField(name string) error {
 	switch name {
-	case feature.FieldCreatedAt:
+	case dbfeature.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case feature.FieldUpdatedAt:
+	case dbfeature.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case feature.FieldDeletedAt:
+	case dbfeature.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case feature.FieldMetadata:
+	case dbfeature.FieldMetadata:
 		m.ResetMetadata()
 		return nil
-	case feature.FieldNamespace:
+	case dbfeature.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case feature.FieldName:
+	case dbfeature.FieldName:
 		m.ResetName()
 		return nil
-	case feature.FieldKey:
+	case dbfeature.FieldKey:
 		m.ResetKey()
 		return nil
-	case feature.FieldMeterSlug:
+	case dbfeature.FieldMeterSlug:
 		m.ResetMeterSlug()
 		return nil
-	case feature.FieldMeterGroupByFilters:
+	case dbfeature.FieldMeterGroupByFilters:
 		m.ResetMeterGroupByFilters()
 		return nil
-	case feature.FieldArchivedAt:
+	case dbfeature.FieldAdvancedMeterGroupByFilters:
+		m.ResetAdvancedMeterGroupByFilters()
+		return nil
+	case dbfeature.FieldArchivedAt:
 		m.ResetArchivedAt()
 		return nil
 	}
@@ -35199,13 +35273,13 @@ func (m *FeatureMutation) ResetField(name string) error {
 func (m *FeatureMutation) AddedEdges() []string {
 	edges := make([]string, 0, 3)
 	if m.entitlement != nil {
-		edges = append(edges, feature.EdgeEntitlement)
+		edges = append(edges, dbfeature.EdgeEntitlement)
 	}
 	if m.ratecard != nil {
-		edges = append(edges, feature.EdgeRatecard)
+		edges = append(edges, dbfeature.EdgeRatecard)
 	}
 	if m.addon_ratecard != nil {
-		edges = append(edges, feature.EdgeAddonRatecard)
+		edges = append(edges, dbfeature.EdgeAddonRatecard)
 	}
 	return edges
 }
@@ -35214,19 +35288,19 @@ func (m *FeatureMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *FeatureMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case feature.EdgeEntitlement:
+	case dbfeature.EdgeEntitlement:
 		ids := make([]ent.Value, 0, len(m.entitlement))
 		for id := range m.entitlement {
 			ids = append(ids, id)
 		}
 		return ids
-	case feature.EdgeRatecard:
+	case dbfeature.EdgeRatecard:
 		ids := make([]ent.Value, 0, len(m.ratecard))
 		for id := range m.ratecard {
 			ids = append(ids, id)
 		}
 		return ids
-	case feature.EdgeAddonRatecard:
+	case dbfeature.EdgeAddonRatecard:
 		ids := make([]ent.Value, 0, len(m.addon_ratecard))
 		for id := range m.addon_ratecard {
 			ids = append(ids, id)
@@ -35240,13 +35314,13 @@ func (m *FeatureMutation) AddedIDs(name string) []ent.Value {
 func (m *FeatureMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 3)
 	if m.removedentitlement != nil {
-		edges = append(edges, feature.EdgeEntitlement)
+		edges = append(edges, dbfeature.EdgeEntitlement)
 	}
 	if m.removedratecard != nil {
-		edges = append(edges, feature.EdgeRatecard)
+		edges = append(edges, dbfeature.EdgeRatecard)
 	}
 	if m.removedaddon_ratecard != nil {
-		edges = append(edges, feature.EdgeAddonRatecard)
+		edges = append(edges, dbfeature.EdgeAddonRatecard)
 	}
 	return edges
 }
@@ -35255,19 +35329,19 @@ func (m *FeatureMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *FeatureMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case feature.EdgeEntitlement:
+	case dbfeature.EdgeEntitlement:
 		ids := make([]ent.Value, 0, len(m.removedentitlement))
 		for id := range m.removedentitlement {
 			ids = append(ids, id)
 		}
 		return ids
-	case feature.EdgeRatecard:
+	case dbfeature.EdgeRatecard:
 		ids := make([]ent.Value, 0, len(m.removedratecard))
 		for id := range m.removedratecard {
 			ids = append(ids, id)
 		}
 		return ids
-	case feature.EdgeAddonRatecard:
+	case dbfeature.EdgeAddonRatecard:
 		ids := make([]ent.Value, 0, len(m.removedaddon_ratecard))
 		for id := range m.removedaddon_ratecard {
 			ids = append(ids, id)
@@ -35281,13 +35355,13 @@ func (m *FeatureMutation) RemovedIDs(name string) []ent.Value {
 func (m *FeatureMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 3)
 	if m.clearedentitlement {
-		edges = append(edges, feature.EdgeEntitlement)
+		edges = append(edges, dbfeature.EdgeEntitlement)
 	}
 	if m.clearedratecard {
-		edges = append(edges, feature.EdgeRatecard)
+		edges = append(edges, dbfeature.EdgeRatecard)
 	}
 	if m.clearedaddon_ratecard {
-		edges = append(edges, feature.EdgeAddonRatecard)
+		edges = append(edges, dbfeature.EdgeAddonRatecard)
 	}
 	return edges
 }
@@ -35296,11 +35370,11 @@ func (m *FeatureMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *FeatureMutation) EdgeCleared(name string) bool {
 	switch name {
-	case feature.EdgeEntitlement:
+	case dbfeature.EdgeEntitlement:
 		return m.clearedentitlement
-	case feature.EdgeRatecard:
+	case dbfeature.EdgeRatecard:
 		return m.clearedratecard
-	case feature.EdgeAddonRatecard:
+	case dbfeature.EdgeAddonRatecard:
 		return m.clearedaddon_ratecard
 	}
 	return false
@@ -35318,13 +35392,13 @@ func (m *FeatureMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *FeatureMutation) ResetEdge(name string) error {
 	switch name {
-	case feature.EdgeEntitlement:
+	case dbfeature.EdgeEntitlement:
 		m.ResetEntitlement()
 		return nil
-	case feature.EdgeRatecard:
+	case dbfeature.EdgeRatecard:
 		m.ResetRatecard()
 		return nil
-	case feature.EdgeAddonRatecard:
+	case dbfeature.EdgeAddonRatecard:
 		m.ResetAddonRatecard()
 		return nil
 	}
