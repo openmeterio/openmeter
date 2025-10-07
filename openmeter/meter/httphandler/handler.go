@@ -28,6 +28,7 @@ type MeterHandler interface {
 	QueryMeterPost() QueryMeterPostHandler
 	QueryMeterCSV() QueryMeterCSVHandler
 	ListSubjects() ListSubjectsHandler
+	ListGroupByValues() ListGroupByValuesHandler
 }
 
 var _ Handler = (*handler)(nil)

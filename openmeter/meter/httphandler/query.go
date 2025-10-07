@@ -205,3 +205,74 @@ func (h *handler) QueryMeterPost() QueryMeterPostHandler {
 		)...,
 	)
 }
+
+type (
+	ListGroupByValuesResponse = *[]string
+	ListGroupByValuesHandler  httptransport.HandlerWithArgs[ListGroupByValuesRequest, ListGroupByValuesResponse, ListGroupByValuesParams]
+)
+
+type ListGroupByValuesParams struct {
+	IdOrSlug   string
+	GroupByKey string
+	From       *time.Time
+	To         *time.Time
+	Search     *string
+}
+
+type ListGroupByValuesRequest struct {
+	namespace  string
+	idOrSlug   string
+	groupByKey string
+	from       *time.Time
+	to         *time.Time
+	search     *string
+}
+
+// ListGroupByValues returns a handler for list group by values.
+func (h *handler) ListGroupByValues() ListGroupByValuesHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params ListGroupByValuesParams) (ListGroupByValuesRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ListGroupByValuesRequest{}, err
+			}
+
+			return ListGroupByValuesRequest{
+				namespace:  ns,
+				idOrSlug:   params.IdOrSlug,
+				groupByKey: params.GroupByKey,
+				from:       params.From,
+				to:         params.To,
+				search:     params.Search,
+			}, nil
+		},
+		func(ctx context.Context, request ListGroupByValuesRequest) (ListGroupByValuesResponse, error) {
+			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+				Namespace: request.namespace,
+				IDOrSlug:  request.idOrSlug,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get meter: %w", err)
+			}
+
+			groupByValues, err := h.streaming.ListGroupByValues(ctx, streaming.ListGroupByValuesParams{
+				Namespace:  request.namespace,
+				Meter:      meter,
+				GroupByKey: request.groupByKey,
+				From:       request.from,
+				To:         request.to,
+				Search:     request.search,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to list group by values: %w", err)
+			}
+
+			return &groupByValues, nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[ListGroupByValuesResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("listGroupByValues"),
+		)...,
+	)
+}

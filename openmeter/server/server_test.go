@@ -360,6 +360,17 @@ func TestRoutes(t *testing.T) {
 				body:   []string{"s1"},
 			},
 		},
+		{
+			name: "list meter group by values",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   fmt.Sprintf("/api/v1/meters/%s/group-by/%s/values", mockMeters[0].Key, "groupByKey"),
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body:   []string{"v1"},
+			},
+		},
 		// Portal
 		{
 			name: "create portal token",
@@ -650,6 +661,10 @@ func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 
 func (c *MockStreamingConnector) ListSubjects(ctx context.Context, params streaming.ListSubjectsParams) ([]string, error) {
 	return []string{"s1"}, nil
+}
+
+func (c *MockStreamingConnector) ListGroupByValues(ctx context.Context, params streaming.ListGroupByValuesParams) ([]string, error) {
+	return []string{"v1"}, nil
 }
 
 func (c *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
