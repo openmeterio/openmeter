@@ -1,3 +1,7 @@
+import "@typespec/openapi3";
+
+using TypeSpec.OpenAPI;
+
 namespace OpenMeter;
 
 /**
@@ -8,11 +12,13 @@ model FilterString {
   /**
    * The field must be equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $eq?: string | null;
 
   /**
    * The field must not be equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $ne?: string | null;
 
   /**
@@ -21,6 +27,7 @@ model FilterString {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(100)
+  @extension("x-omitempty", true)
   $in?: string[] | null;
 
   /**
@@ -29,46 +36,55 @@ model FilterString {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(100)
+  @extension("x-omitempty", true)
   $nin?: string[] | null;
 
   /**
    * The field must match the provided value.
    */
+  @extension("x-omitempty", true)
   $like?: string | null;
 
   /**
    * The field must not match the provided value.
    */
+  @extension("x-omitempty", true)
   $nlike?: string | null;
 
   /**
    * The field must match the provided value, ignoring case.
    */
+  @extension("x-omitempty", true)
   $ilike?: string | null;
 
   /**
    * The field must not match the provided value, ignoring case.
    */
+  @extension("x-omitempty", true)
   $nilike?: string | null;
 
   /**
    * The field must be greater than the provided value.
    */
+  @extension("x-omitempty", true)
   $gt?: string | null;
 
   /**
    * The field must be greater than or equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $gte?: string | null;
 
   /**
    * The field must be less than the provided value.
    */
+  @extension("x-omitempty", true)
   $lt?: string | null;
 
   /**
    * The field must be less than or equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $lte?: string | null;
 
   /**
@@ -77,6 +93,7 @@ model FilterString {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(10)
+  @extension("x-omitempty", true)
   $and?: FilterString[] | null;
 
   /**
@@ -85,6 +102,7 @@ model FilterString {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(10)
+  @extension("x-omitempty", true)
   $or?: FilterString[] | null;
 }
 
@@ -100,6 +118,7 @@ model FilterIDExact {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(100)
+  @extension("x-omitempty", true)
   $in?: ULID[] | null;
 }
 
@@ -111,31 +130,37 @@ model FilterInteger {
   /**
    * The field must be equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $eq?: integer | null;
 
   /**
    * The field must not be equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $ne?: integer | null;
 
   /**
    * The field must be greater than the provided value.
    */
+  @extension("x-omitempty", true)
   $gt?: integer | null;
 
   /**
    * The field must be greater than or equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $gte?: integer | null;
 
   /**
    * The field must be less than the provided value.
    */
+  @extension("x-omitempty", true)
   $lt?: integer | null;
 
   /**
    * The field must be less than or equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $lte?: integer | null;
 
   /**
@@ -144,6 +169,7 @@ model FilterInteger {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(10)
+  @extension("x-omitempty", true)
   $and?: FilterInteger[] | null;
 
   /**
@@ -152,6 +178,7 @@ model FilterInteger {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(10)
+  @extension("x-omitempty", true)
   $or?: FilterInteger[] | null;
 }
 
@@ -163,31 +190,37 @@ model FilterFloat {
   /**
    * The field must be equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $eq?: float64 | null;
 
   /**
    * The field must not be equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $ne?: float64 | null;
 
   /**
    * The field must be greater than the provided value.
    */
+  @extension("x-omitempty", true)
   $gt?: float64 | null;
 
   /**
    * The field must be greater than or equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $gte?: float64 | null;
 
   /**
    * The field must be less than the provided value.
    */
+  @extension("x-omitempty", true)
   $lt?: float64 | null;
 
   /**
    * The field must be less than or equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $lte?: float64 | null;
 
   /**
@@ -196,6 +229,7 @@ model FilterFloat {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(10)
+  @extension("x-omitempty", true)
   $and?: FilterFloat[] | null;
 
   /**
@@ -204,6 +238,7 @@ model FilterFloat {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(10)
+  @extension("x-omitempty", true)
   $or?: FilterFloat[] | null;
 }
 
@@ -215,6 +250,7 @@ model FilterBoolean {
   /**
    * The field must be equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $eq?: boolean | null;
 }
 
@@ -226,21 +262,25 @@ model FilterTime {
   /**
    * The field must be greater than the provided value.
    */
+  @extension("x-omitempty", true)
   $gt?: utcDateTime | null;
 
   /**
    * The field must be greater than or equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $gte?: utcDateTime | null;
 
   /**
    * The field must be less than the provided value.
    */
+  @extension("x-omitempty", true)
   $lt?: utcDateTime | null;
 
   /**
    * The field must be less than or equal to the provided value.
    */
+  @extension("x-omitempty", true)
   $lte?: utcDateTime | null;
 
   /**
@@ -249,6 +289,7 @@ model FilterTime {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(10)
+  @extension("x-omitempty", true)
   $and?: FilterTime[] | null;
 
   /**
@@ -257,5 +298,6 @@ model FilterTime {
   // Not supported for nullable types
   // @minItems(1)
   // @maxItems(10)
+  @extension("x-omitempty", true)
   $or?: FilterTime[] | null;
 }

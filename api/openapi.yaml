@@ -17468,6 +17468,7 @@ components:
           type: boolean
           nullable: true
           description: The field must be equal to the provided value.
+          x-omitempty: true
       description: A filter for a boolean field.
     FilterFloat:
       type: object
@@ -17477,43 +17478,51 @@ components:
           format: double
           nullable: true
           description: The field must be equal to the provided value.
+          x-omitempty: true
         $ne:
           type: number
           format: double
           nullable: true
           description: The field must not be equal to the provided value.
+          x-omitempty: true
         $gt:
           type: number
           format: double
           nullable: true
           description: The field must be greater than the provided value.
+          x-omitempty: true
         $gte:
           type: number
           format: double
           nullable: true
           description: The field must be greater than or equal to the provided value.
+          x-omitempty: true
         $lt:
           type: number
           format: double
           nullable: true
           description: The field must be less than the provided value.
+          x-omitempty: true
         $lte:
           type: number
           format: double
           nullable: true
           description: The field must be less than or equal to the provided value.
+          x-omitempty: true
         $and:
           type: array
           items:
             $ref: '#/components/schemas/FilterFloat'
           nullable: true
           description: Provide a list of filters to be combined with a logical AND.
+          x-omitempty: true
         $or:
           type: array
           items:
             $ref: '#/components/schemas/FilterFloat'
           nullable: true
           description: Provide a list of filters to be combined with a logical OR.
+          x-omitempty: true
       description: A filter for a float field.
     FilterIDExact:
       type: object
@@ -17527,6 +17536,7 @@ components:
             example: 01G65Z755AFWAKHE12NY0CQ9FH
           nullable: true
           description: The field must be in the provided list of values.
+          x-omitempty: true
       description: A filter for a ID (ULID) field allowing only equality or inclusion.
     FilterInteger:
       type: object
@@ -17535,38 +17545,46 @@ components:
           type: integer
           nullable: true
           description: The field must be equal to the provided value.
+          x-omitempty: true
         $ne:
           type: integer
           nullable: true
           description: The field must not be equal to the provided value.
+          x-omitempty: true
         $gt:
           type: integer
           nullable: true
           description: The field must be greater than the provided value.
+          x-omitempty: true
         $gte:
           type: integer
           nullable: true
           description: The field must be greater than or equal to the provided value.
+          x-omitempty: true
         $lt:
           type: integer
           nullable: true
           description: The field must be less than the provided value.
+          x-omitempty: true
         $lte:
           type: integer
           nullable: true
           description: The field must be less than or equal to the provided value.
+          x-omitempty: true
         $and:
           type: array
           items:
             $ref: '#/components/schemas/FilterInteger'
           nullable: true
           description: Provide a list of filters to be combined with a logical AND.
+          x-omitempty: true
         $or:
           type: array
           items:
             $ref: '#/components/schemas/FilterInteger'
           nullable: true
           description: Provide a list of filters to be combined with a logical OR.
+          x-omitempty: true
       description: A filter for an integer field.
     FilterString:
       type: object
@@ -17575,66 +17593,80 @@ components:
           type: string
           nullable: true
           description: The field must be equal to the provided value.
+          x-omitempty: true
         $ne:
           type: string
           nullable: true
           description: The field must not be equal to the provided value.
+          x-omitempty: true
         $in:
           type: array
           items:
             type: string
           nullable: true
           description: The field must be in the provided list of values.
+          x-omitempty: true
         $nin:
           type: array
           items:
             type: string
           nullable: true
           description: The field must not be in the provided list of values.
+          x-omitempty: true
         $like:
           type: string
           nullable: true
           description: The field must match the provided value.
+          x-omitempty: true
         $nlike:
           type: string
           nullable: true
           description: The field must not match the provided value.
+          x-omitempty: true
         $ilike:
           type: string
           nullable: true
           description: The field must match the provided value, ignoring case.
+          x-omitempty: true
         $nilike:
           type: string
           nullable: true
           description: The field must not match the provided value, ignoring case.
+          x-omitempty: true
         $gt:
           type: string
           nullable: true
           description: The field must be greater than the provided value.
+          x-omitempty: true
         $gte:
           type: string
           nullable: true
           description: The field must be greater than or equal to the provided value.
+          x-omitempty: true
         $lt:
           type: string
           nullable: true
           description: The field must be less than the provided value.
+          x-omitempty: true
         $lte:
           type: string
           nullable: true
           description: The field must be less than or equal to the provided value.
+          x-omitempty: true
         $and:
           type: array
           items:
             $ref: '#/components/schemas/FilterString'
           nullable: true
           description: Provide a list of filters to be combined with a logical AND.
+          x-omitempty: true
         $or:
           type: array
           items:
             $ref: '#/components/schemas/FilterString'
           nullable: true
           description: Provide a list of filters to be combined with a logical OR.
+          x-omitempty: true
       description: A filter for a string field.
     FilterTime:
       type: object
@@ -17644,33 +17676,39 @@ components:
           format: date-time
           nullable: true
           description: The field must be greater than the provided value.
+          x-omitempty: true
         $gte:
           type: string
           format: date-time
           nullable: true
           description: The field must be greater than or equal to the provided value.
+          x-omitempty: true
         $lt:
           type: string
           format: date-time
           nullable: true
           description: The field must be less than the provided value.
+          x-omitempty: true
         $lte:
           type: string
           format: date-time
           nullable: true
           description: The field must be less than or equal to the provided value.
+          x-omitempty: true
         $and:
           type: array
           items:
             $ref: '#/components/schemas/FilterTime'
           nullable: true
           description: Provide a list of filters to be combined with a logical AND.
+          x-omitempty: true
         $or:
           type: array
           items:
             $ref: '#/components/schemas/FilterTime'
           nullable: true
           description: Provide a list of filters to be combined with a logical OR.
+          x-omitempty: true
       description: A filter for a time field.
     FlatPrice:
       type: object
