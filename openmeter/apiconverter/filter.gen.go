@@ -147,6 +147,34 @@ func init() {
 		}
 		return filterFilterString
 	}
+	ConvertStringMap = func(source map[string]api.FilterString) map[string]filter.FilterString {
+		var mapStringFilterFilterString map[string]filter.FilterString
+		if source != nil {
+			mapStringFilterFilterString = make(map[string]filter.FilterString, len(source))
+			for key, value := range source {
+				mapStringFilterFilterString[key] = ConvertString(value)
+			}
+		}
+		return mapStringFilterFilterString
+	}
+	ConvertStringMapPtr = func(source *map[string]api.FilterString) *map[string]filter.FilterString {
+		var pMapStringFilterFilterString *map[string]filter.FilterString
+		if source != nil {
+			mapStringFilterFilterString := ConvertStringMap((*source))
+			pMapStringFilterFilterString = &mapStringFilterFilterString
+		}
+		return pMapStringFilterFilterString
+	}
+	ConvertStringMapToAPIPtr = func(source map[string]filter.FilterString) map[string]api.FilterString {
+		var mapStringApiFilterString map[string]api.FilterString
+		if source != nil {
+			mapStringApiFilterString = make(map[string]api.FilterString, len(source))
+			for key, value := range source {
+				mapStringApiFilterString[key] = filterFilterStringToApiFilterString(value)
+			}
+		}
+		return mapStringApiFilterString
+	}
 	ConvertStringPtr = func(source *api.FilterString) *filter.FilterString {
 		var pFilterFilterString *filter.FilterString
 		if source != nil {
@@ -154,6 +182,14 @@ func init() {
 			pFilterFilterString = &filterFilterString
 		}
 		return pFilterFilterString
+	}
+	ConvertStringToAPI = func(source *filter.FilterString) *api.FilterString {
+		var pApiFilterString *api.FilterString
+		if source != nil {
+			apiFilterString := filterFilterStringToApiFilterString((*source))
+			pApiFilterString = &apiFilterString
+		}
+		return pApiFilterString
 	}
 	ConvertTime = func(source api.FilterTime) filter.FilterTime {
 		var filterFilterTime filter.FilterTime
@@ -191,4 +227,40 @@ func init() {
 		}
 		return pFilterFilterTime
 	}
+}
+func filterFilterStringToApiFilterString(source filter.FilterString) api.FilterString {
+	var apiFilterString api.FilterString
+	if source.And != nil {
+		var apiFilterStringList []api.FilterString
+		if (*source.And) != nil {
+			apiFilterStringList = make([]api.FilterString, len((*source.And)))
+			for i := 0; i < len((*source.And)); i++ {
+				apiFilterStringList[i] = filterFilterStringToApiFilterString((*source.And)[i])
+			}
+		}
+		apiFilterString.And = &apiFilterStringList
+	}
+	apiFilterString.Eq = source.Eq
+	apiFilterString.Gt = source.Gt
+	apiFilterString.Gte = source.Gte
+	apiFilterString.Ilike = source.Ilike
+	apiFilterString.In = source.In
+	apiFilterString.Like = source.Like
+	apiFilterString.Lt = source.Lt
+	apiFilterString.Lte = source.Lte
+	apiFilterString.Ne = source.Ne
+	apiFilterString.Nilike = source.Nilike
+	apiFilterString.Nin = source.Nin
+	apiFilterString.Nlike = source.Nlike
+	if source.Or != nil {
+		var apiFilterStringList2 []api.FilterString
+		if (*source.Or) != nil {
+			apiFilterStringList2 = make([]api.FilterString, len((*source.Or)))
+			for j := 0; j < len((*source.Or)); j++ {
+				apiFilterStringList2[j] = filterFilterStringToApiFilterString((*source.Or)[j])
+			}
+		}
+		apiFilterString.Or = &apiFilterStringList2
+	}
+	return apiFilterString
 }

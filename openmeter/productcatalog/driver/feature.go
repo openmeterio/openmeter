@@ -73,6 +73,7 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 			if err != nil {
 				return api.Feature{}, err
 			}
+
 			return MapFeatureToResponse(*feature), nil
 		},
 		commonhttp.JSONResponseEncoder,
@@ -105,16 +106,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 				return emptyFeature, err
 			}
 
-			meterGroupByFilters := feature.ConvertMapStringToMeterGroupByFilters(lo.FromPtrOr(parsedBody.MeterGroupByFilters, map[string]string{}))
-
-			return feature.CreateFeatureInputs{
-				Namespace:           ns,
-				Name:                parsedBody.Name,
-				Key:                 parsedBody.Key,
-				MeterSlug:           parsedBody.MeterSlug,
-				MeterGroupByFilters: meterGroupByFilters,
-				Metadata:            convert.DerefHeaderPtr[string](parsedBody.Metadata),
-			}, nil
+			return MapFeatureCreateInputsRequest(ns, parsedBody), nil
 		},
 		func(ctx context.Context, feature feature.CreateFeatureInputs) (api.Feature, error) {
 			createdFeature, err := h.connector.CreateFeature(ctx, feature)

@@ -5730,6 +5730,25 @@ export interface components {
         [key: string]: string
       }
       /**
+       * Advanced meter group by filters
+       * @description Optional advanced meter group by filters.
+       *     You can use this to filter for values of the meter groupBy fields.
+       * @example {
+       *       "model": {
+       *         "$in": [
+       *           "gpt-4",
+       *           "gpt-4o"
+       *         ]
+       *       },
+       *       "type": {
+       *         "$eq": "input"
+       *       }
+       *     }
+       */
+      advancedMeterGroupByFilters?: {
+        [key: string]: components['schemas']['FilterString']
+      }
+      /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
@@ -5771,6 +5790,25 @@ export interface components {
        */
       meterGroupByFilters?: {
         [key: string]: string
+      }
+      /**
+       * Advanced meter group by filters
+       * @description Optional advanced meter group by filters.
+       *     You can use this to filter for values of the meter groupBy fields.
+       * @example {
+       *       "model": {
+       *         "$in": [
+       *           "gpt-4",
+       *           "gpt-4o"
+       *         ]
+       *       },
+       *       "type": {
+       *         "$eq": "input"
+       *       }
+       *     }
+       */
+      advancedMeterGroupByFilters?: {
+        [key: string]: components['schemas']['FilterString']
       }
     }
     /** @description Limited representation of a feature resource which includes only its unique identifiers (id, key). */
