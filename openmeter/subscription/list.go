@@ -59,6 +59,14 @@ func (i ListSubscriptionsInput) Validate() error {
 		}
 	}
 
+	if len(i.Status) > 0 {
+		for _, status := range i.Status {
+			if err := status.Validate(); err != nil {
+				errs = append(errs, fmt.Errorf("status: %w", err))
+			}
+		}
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
