@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	httpdriver "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
-	"github.com/samber/lo"
 )
 
 // GET /api/v1/meters
