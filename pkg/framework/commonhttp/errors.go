@@ -138,7 +138,7 @@ func HandleIssueIfHTTPStatusKnown(ctx context.Context, err error, w http.Respons
 
 		issueCode, ok := code.(int)
 		if !ok {
-			slog.Default().DebugContext(ctx, "issue does has HTTP status code attribute but it's not an integer", "issue", issue)
+			slog.Default().DebugContext(ctx, "issue does have HTTP status code attribute but it's not an integer", "issue", issue)
 			continue
 		}
 
