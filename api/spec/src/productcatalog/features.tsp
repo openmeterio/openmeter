@@ -63,7 +63,10 @@ model FeatureCreateInputs {
    * You can use this to filter for values of the meter groupBy fields.
    */
   @summary("Advanced meter group by filters")
-  @example(#{ `model`: #{ $in: #["gpt-4", "gpt-4o"] }, type: #{ $eq: "input" } })
+  @example(#{
+    `model`: #{ $in: #["gpt-4", "gpt-4o"] },
+    type: #{ $eq: "input" },
+  })
   advancedMeterGroupByFilters?: Record<FilterString>;
 }
 
