@@ -7927,6 +7927,88 @@ export const createFeatureBodyMeterSlugRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 
 export const createFeatureBody = zod
   .object({
+    advancedMeterGroupByFilters: zod
+      .record(
+        zod.string(),
+        zod
+          .object({
+            $and: zod
+              .array(zod.any())
+              .nullish()
+              .describe(
+                'Provide a list of filters to be combined with a logical AND.',
+              ),
+            $eq: zod.coerce
+              .string()
+              .nullish()
+              .describe('The field must be equal to the provided value.'),
+            $gt: zod.coerce
+              .string()
+              .nullish()
+              .describe('The field must be greater than the provided value.'),
+            $gte: zod.coerce
+              .string()
+              .nullish()
+              .describe(
+                'The field must be greater than or equal to the provided value.',
+              ),
+            $ilike: zod.coerce
+              .string()
+              .nullish()
+              .describe(
+                'The field must match the provided value, ignoring case.',
+              ),
+            $in: zod
+              .array(zod.coerce.string())
+              .nullish()
+              .describe('The field must be in the provided list of values.'),
+            $like: zod.coerce
+              .string()
+              .nullish()
+              .describe('The field must match the provided value.'),
+            $lt: zod.coerce
+              .string()
+              .nullish()
+              .describe('The field must be less than the provided value.'),
+            $lte: zod.coerce
+              .string()
+              .nullish()
+              .describe(
+                'The field must be less than or equal to the provided value.',
+              ),
+            $ne: zod.coerce
+              .string()
+              .nullish()
+              .describe('The field must not be equal to the provided value.'),
+            $nilike: zod.coerce
+              .string()
+              .nullish()
+              .describe(
+                'The field must not match the provided value, ignoring case.',
+              ),
+            $nin: zod
+              .array(zod.coerce.string())
+              .nullish()
+              .describe(
+                'The field must not be in the provided list of values.',
+              ),
+            $nlike: zod.coerce
+              .string()
+              .nullish()
+              .describe('The field must not match the provided value.'),
+            $or: zod
+              .array(zod.any())
+              .nullish()
+              .describe(
+                'Provide a list of filters to be combined with a logical OR.',
+              ),
+          })
+          .describe('A filter for a string field.'),
+      )
+      .optional()
+      .describe(
+        'Optional advanced meter group by filters.\nYou can use this to filter for values of the meter groupBy fields.',
+      ),
     key: zod.coerce
       .string()
       .min(1)

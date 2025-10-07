@@ -2,7 +2,6 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 
-using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter.ProductCatalog;
@@ -58,9 +57,15 @@ model FeatureCreateInputs {
   @summary("Meter group by filters")
   @example(#{ `model`: "gpt-4", type: "input" })
   meterGroupByFilters?: Record<string>;
-}
 
-// TODO: Remove in v2
+  /**
+   * Optional advanced meter group by filters.
+   * You can use this to filter for values of the meter groupBy fields.
+   */
+  @summary("Advanced meter group by filters")
+  @example(#{ `model`: #{ $in: #["gpt-4", "gpt-4o"] }, type: #{ $eq: "input" } })
+  advancedMeterGroupByFilters?: Record<FilterString>;
+}
 
 /**
  * List features result
