@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -19,11 +20,15 @@ type (
 
 type ListSubjectsParams struct {
 	IdOrSlug string
+	From     *time.Time
+	To       *time.Time
 }
 
 type ListSubjectsRequest struct {
 	namespace string
 	idOrSlug  string
+	from      *time.Time
+	to        *time.Time
 }
 
 // ListSubjects returns a handler for query meter.
@@ -38,6 +43,8 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 			return ListSubjectsRequest{
 				namespace: ns,
 				idOrSlug:  params.IdOrSlug,
+				from:      params.From,
+				to:        params.To,
 			}, nil
 		},
 		func(ctx context.Context, request ListSubjectsRequest) (ListSubjectsResponse, error) {
@@ -52,6 +59,8 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 			subjectKeys, err := h.streaming.ListSubjects(ctx, streaming.ListSubjectsParams{
 				Namespace: request.namespace,
 				Meter:     &meter,
+				From:      request.from,
+				To:        request.to,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to list subjects: %w", err)

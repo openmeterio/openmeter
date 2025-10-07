@@ -19636,7 +19636,20 @@ export interface operations {
   }
   listMeterSubjects: {
     parameters: {
-      query?: never
+      query?: {
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. Defaults to the beginning of time.
+         *
+         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z */
+        from?: Date | string
+        /** @description End date-time in RFC 3339 format.
+         *
+         *     Inclusive.
+         *
+         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z */
+        to?: Date | string
+      }
       header?: never
       path: {
         meterIdOrSlug: string
