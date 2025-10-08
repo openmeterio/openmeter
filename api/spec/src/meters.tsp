@@ -199,7 +199,7 @@ interface Meters {
     /**
      * Start date-time in RFC 3339 format.
      *
-     * Inclusive. Defaults to the beginning of time.
+     * Inclusive. Defaults to 24 hours ago.
      *
      * For example: ?from=2025-01-01T00%3A00%3A00.000Z
      */

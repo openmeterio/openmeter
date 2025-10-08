@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/samber/lo"
 )
 
 type (
@@ -235,6 +236,11 @@ func (h *handler) ListGroupByValues() ListGroupByValuesHandler {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return ListGroupByValuesRequest{}, err
+			}
+
+			// Set default to last 24 hours
+			if params.From == nil && params.To == nil {
+				params.From = lo.ToPtr(time.Now().Add(-time.Hour * 24))
 			}
 
 			return ListGroupByValuesRequest{

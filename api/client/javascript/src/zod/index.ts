@@ -8506,7 +8506,7 @@ export const listMeterGroupByValuesQueryParams = zod.object({
     .date()
     .optional()
     .describe(
-      'Start date-time in RFC 3339 format.\n\nInclusive. Defaults to the beginning of time.\n\nFor example: ?from=2025-01-01T00%3A00%3A00.000Z',
+      'Start date-time in RFC 3339 format.\n\nInclusive. Defaults to 24 hours ago.\n\nFor example: ?from=2025-01-01T00%3A00%3A00.000Z',
     ),
   to: zod.coerce
     .date()

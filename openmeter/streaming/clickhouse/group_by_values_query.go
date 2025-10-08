@@ -29,7 +29,7 @@ func (d listGroupByValuesQuery) toSQL() (string, []interface{}) {
 	groupByJSONPath := d.Meter.GroupBy[d.GroupByKey]
 
 	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
-	sb.Select(sb.As(fmt.Sprintf("DISTINCT JSON_VALUE(%s, '%s')", getColumn("data"), escapeJSONPathLiteral(groupByJSONPath)), "group_by_values"))
+	sb.Select(sb.As(fmt.Sprintf("DISTINCT JSON_VALUE(%s, %s)", getColumn("data"), sb.Var(groupByJSONPath)), "group_by_values"))
 	sb.Where(sb.Equal("namespace", d.Namespace), sb.Equal("type", d.Meter.EventType))
 
 	sb.From(tableName)

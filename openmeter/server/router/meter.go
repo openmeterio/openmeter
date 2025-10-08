@@ -2,9 +2,6 @@ package router
 
 import (
 	"net/http"
-	"time"
-
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	httpdriver "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
@@ -76,13 +73,10 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 
 // GET /api/v1/meters/{meterIdOrSlug}/group-by/{groupByKey}/values
 func (a *Router) ListMeterGroupByValues(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, groupByKey string, params api.ListMeterGroupByValuesParams) {
-	// Set default to 24 hours ago
-	from := lo.ToPtr(lo.FromPtrOr(params.From, time.Now().Add(-time.Hour*24)))
-
 	a.meterHandler.ListGroupByValues().With(httpdriver.ListGroupByValuesParams{
 		IdOrSlug:   meterIDOrSlug,
 		GroupByKey: groupByKey,
-		From:       from,
+		From:       params.From,
 		To:         params.To,
 	}).ServeHTTP(w, r)
 }

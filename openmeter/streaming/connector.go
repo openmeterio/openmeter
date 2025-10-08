@@ -112,6 +112,12 @@ func (p ListGroupByValuesParams) Validate() error {
 		errs = append(errs, errors.New("group by key is not valid for this meter"))
 	}
 
+	if p.From != nil {
+		if time.Since(*p.From) >= time.Hour*24*90 {
+			errs = append(errs, errors.New("from time must not be more than 90 days ago"))
+		}
+	}
+
 	if p.From != nil && p.To != nil {
 		if p.From.Equal(*p.To) {
 			errs = append(errs, errors.New("from and to cannot be equal"))
@@ -121,14 +127,8 @@ func (p ListGroupByValuesParams) Validate() error {
 			errs = append(errs, errors.New("from time must be before to time"))
 		}
 
-		if p.To.Sub(*p.From) > time.Hour*24*3 {
-			errs = append(errs, errors.New("time window must be less than 3 days"))
-		}
-	}
-
-	if p.To == nil && p.From != nil {
-		if time.Since(*p.From) > time.Hour*24*3 {
-			errs = append(errs, errors.New("time window must be less than 3 days"))
+		if p.To.Sub(*p.From) > time.Hour*24*30 {
+			errs = append(errs, errors.New("time window must be less than 30 days"))
 		}
 	}
 
