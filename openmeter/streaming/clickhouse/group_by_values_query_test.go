@@ -36,8 +36,8 @@ func TestListGroupByValues(t *testing.T) {
 				},
 				GroupByKey: "group1",
 			},
-			wantSQL:  "SELECT DISTINCT JSON_VALUE(om_events.data, '$.group1') AS group_by_values FROM openmeter.om_events WHERE namespace = ? AND type = ? ORDER BY group_by_values",
-			wantArgs: []interface{}{"my_namespace", "event1"},
+			wantSQL:  "SELECT DISTINCT JSON_VALUE(om_events.data, ?) AS group_by_values FROM openmeter.om_events WHERE namespace = ? AND type = ? ORDER BY group_by_values",
+			wantArgs: []interface{}{"$.group1", "my_namespace", "event1"},
 		},
 		{
 			name: "query with meter",
@@ -55,8 +55,8 @@ func TestListGroupByValues(t *testing.T) {
 				},
 				GroupByKey: "group1",
 			},
-			wantSQL:  "SELECT DISTINCT JSON_VALUE(om_events.data, '$.group1') AS group_by_values FROM openmeter.om_events WHERE namespace = ? AND type = ? ORDER BY group_by_values",
-			wantArgs: []interface{}{"my_namespace", "event1"},
+			wantSQL:  "SELECT DISTINCT JSON_VALUE(om_events.data, ?) AS group_by_values FROM openmeter.om_events WHERE namespace = ? AND type = ? ORDER BY group_by_values",
+			wantArgs: []interface{}{"$.group1", "my_namespace", "event1"},
 		},
 		{
 			name: "query with from time",
@@ -75,8 +75,8 @@ func TestListGroupByValues(t *testing.T) {
 				GroupByKey: "group1",
 				From:       &from,
 			},
-			wantSQL:  "SELECT DISTINCT JSON_VALUE(om_events.data, '$.group1') AS group_by_values FROM openmeter.om_events WHERE namespace = ? AND type = ? AND time >= ? ORDER BY group_by_values",
-			wantArgs: []interface{}{"my_namespace", "event1", from.Unix()},
+			wantSQL:  "SELECT DISTINCT JSON_VALUE(om_events.data, ?) AS group_by_values FROM openmeter.om_events WHERE namespace = ? AND type = ? AND time >= ? ORDER BY group_by_values",
+			wantArgs: []interface{}{"$.group1", "my_namespace", "event1", from.Unix()},
 		},
 		{
 			name: "query with to time",
@@ -96,8 +96,8 @@ func TestListGroupByValues(t *testing.T) {
 				To:         &to,
 				GroupByKey: "group1",
 			},
-			wantSQL:  "SELECT DISTINCT JSON_VALUE(om_events.data, '$.group1') AS group_by_values FROM openmeter.om_events WHERE namespace = ? AND type = ? AND time >= ? AND time < ? ORDER BY group_by_values",
-			wantArgs: []interface{}{"my_namespace", "event1", from.Unix(), to.Unix()},
+			wantSQL:  "SELECT DISTINCT JSON_VALUE(om_events.data, ?) AS group_by_values FROM openmeter.om_events WHERE namespace = ? AND type = ? AND time >= ? AND time < ? ORDER BY group_by_values",
+			wantArgs: []interface{}{"$.group1", "my_namespace", "event1", from.Unix(), to.Unix()},
 		},
 		{
 			name: "query with search",
@@ -116,8 +116,8 @@ func TestListGroupByValues(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "SELECT DISTINCT JSON_VALUE(om_events.data, '$.group1') AS group_by_values FROM openmeter.om_events WHERE namespace = ? AND type = ? AND positionCaseInsensitive(group_by_values, ?) > 0 ORDER BY group_by_values",
-			wantArgs: []interface{}{"my_namespace", "event1", "arch"},
+			wantSQL:  "SELECT DISTINCT JSON_VALUE(om_events.data, ?) AS group_by_values FROM openmeter.om_events WHERE namespace = ? AND type = ? AND positionCaseInsensitive(group_by_values, ?) > 0 ORDER BY group_by_values",
+			wantArgs: []interface{}{"$.group1", "my_namespace", "event1", "arch"},
 		},
 	}
 
