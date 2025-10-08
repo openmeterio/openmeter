@@ -70,3 +70,13 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 		To:       params.To,
 	}).ServeHTTP(w, r)
 }
+
+// GET /api/v1/meters/{meterIdOrSlug}/group-by/{groupByKey}/values
+func (a *Router) ListMeterGroupByValues(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, groupByKey string, params api.ListMeterGroupByValuesParams) {
+	a.meterHandler.ListGroupByValues().With(httpdriver.ListGroupByValuesParams{
+		IdOrSlug:   meterIDOrSlug,
+		GroupByKey: groupByKey,
+		From:       params.From,
+		To:         params.To,
+	}).ServeHTTP(w, r)
+}

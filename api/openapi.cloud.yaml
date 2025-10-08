@@ -5679,6 +5679,106 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Meters
+  /api/v1/meters/{meterIdOrSlug}/group-by/{groupByKey}/values:
+    get:
+      operationId: listMeterGroupByValues
+      summary: List meter group by values
+      description: List meter group by values.
+      parameters:
+        - name: meterIdOrSlug
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: groupByKey
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          description: |-
+            Start date-time in RFC 3339 format.
+
+            Inclusive. Defaults to 24 hours ago.
+
+            For example: ?from=2025-01-01T00%3A00%3A00.000Z
+          schema:
+            type: string
+            format: date-time
+            example: '2023-01-01T01:01:01.001Z'
+          style: form
+        - name: to
+          in: query
+          required: false
+          description: |-
+            End date-time in RFC 3339 format.
+
+            Inclusive.
+
+            For example: ?to=2025-02-01T00%3A00%3A00.000Z
+          schema:
+            type: string
+            format: date-time
+            example: '2023-01-01T01:01:01.001Z'
+          style: form
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Meters
   /api/v1/meters/{meterIdOrSlug}/query:
     get:
       operationId: queryMeter

@@ -43,6 +43,8 @@ type Connector interface {
 	ListEventsV2(ctx context.Context, params ListEventsV2Params) ([]RawEvent, error)
 	// ListSubjects lists the subjects that have events in the database
 	ListSubjects(ctx context.Context, params ListSubjectsParams) ([]string, error)
+	// ListGroupByValues lists the group by values that have events in the database
+	ListGroupByValues(ctx context.Context, params ListGroupByValuesParams) ([]string, error)
 	QueryMeter(ctx context.Context, namespace string, meter meter.Meter, params QueryParams) ([]meter.MeterQueryRow, error)
 	BatchInsert(ctx context.Context, events []RawEvent) error
 	ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error)
@@ -81,9 +83,54 @@ func (p ListSubjectsParams) Validate() error {
 		}
 	}
 
-	if len(errs) > 0 {
-		return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ListGroupByValuesParams is a parameter object for listing group by values.
+type ListGroupByValuesParams struct {
+	Namespace  string
+	Meter      meter.Meter
+	GroupByKey string
+	From       *time.Time
+	To         *time.Time
+	Search     *string
+}
+
+// Validate validates the list group by values parameters.
+func (p ListGroupByValuesParams) Validate() error {
+	var errs []error
+
+	if p.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	return errors.Join(errs...)
+	if p.GroupByKey == "" {
+		errs = append(errs, errors.New("group by key is required"))
+	}
+
+	if p.Meter.GroupBy[p.GroupByKey] == "" {
+		errs = append(errs, errors.New("group by key is not valid for this meter"))
+	}
+
+	if p.From != nil {
+		if time.Since(*p.From) >= time.Hour*24*90 {
+			errs = append(errs, errors.New("from time must not be more than 90 days ago"))
+		}
+	}
+
+	if p.From != nil && p.To != nil {
+		if p.From.Equal(*p.To) {
+			errs = append(errs, errors.New("from and to cannot be equal"))
+		}
+
+		if p.From.After(*p.To) {
+			errs = append(errs, errors.New("from time must be before to time"))
+		}
+
+		if p.To.Sub(*p.From) > time.Hour*24*30 {
+			errs = append(errs, errors.New("time window must be less than 30 days"))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

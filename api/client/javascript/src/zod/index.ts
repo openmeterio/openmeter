@@ -8484,6 +8484,39 @@ export const deleteMeterParams = zod.object({
 })
 
 /**
+ * List meter group by values.
+ * @summary List meter group by values
+ */
+export const listMeterGroupByValuesPathMeterIdOrSlugMax = 64 as const
+
+export const listMeterGroupByValuesPathMeterIdOrSlugRegExp =
+  /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
+
+export const listMeterGroupByValuesParams = zod.object({
+  groupByKey: zod.coerce.string(),
+  meterIdOrSlug: zod.coerce
+    .string()
+    .min(1)
+    .max(listMeterGroupByValuesPathMeterIdOrSlugMax)
+    .regex(listMeterGroupByValuesPathMeterIdOrSlugRegExp),
+})
+
+export const listMeterGroupByValuesQueryParams = zod.object({
+  from: zod.coerce
+    .date()
+    .optional()
+    .describe(
+      'Start date-time in RFC 3339 format.\n\nInclusive. Defaults to 24 hours ago.\n\nFor example: ?from=2025-01-01T00%3A00%3A00.000Z',
+    ),
+  to: zod.coerce
+    .date()
+    .optional()
+    .describe(
+      'End date-time in RFC 3339 format.\n\nInclusive.\n\nFor example: ?to=2025-02-01T00%3A00%3A00.000Z',
+    ),
+})
+
+/**
  * Query meter for usage.
  * @summary Query meter
  */
