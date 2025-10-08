@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type (
@@ -76,6 +77,9 @@ type (
 	ListCustomerSubscriptionsRequest = struct {
 		CustomerID customer.CustomerID
 		Page       pagination.Page
+		OrderBy    subscription.OrderBy
+		Order      sortx.Order
+		Status     []subscription.SubscriptionStatus
 	}
 	ListCustomerSubscriptionsResponse = pagination.Result[api.Subscription]
 	ListCustomerSubscriptionsHandler  = httptransport.HandlerWithArgs[ListCustomerSubscriptionsRequest, ListCustomerSubscriptionsResponse, ListCustomerSubscriptionsParams]
@@ -121,6 +125,19 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 			return ListCustomerSubscriptionsRequest{
 				CustomerID: cus.GetID(),
 				Page:       page,
+				OrderBy:    subscription.OrderBy(lo.FromPtrOr(params.Params.OrderBy, api.CustomerSubscriptionOrderByActiveFrom)),
+				Order:      sortx.Order(lo.FromPtrOr(params.Params.Order, api.SortOrderDESC)),
+				Status: func() []subscription.SubscriptionStatus {
+					apiStatusFilter := lo.FromPtrOr(params.Params.Status, []api.SubscriptionStatus{})
+					statusFilter := lo.Map(apiStatusFilter, func(status api.SubscriptionStatus, _ int) subscription.SubscriptionStatus {
+						return subscription.SubscriptionStatus(status)
+					})
+
+					if len(statusFilter) == 0 {
+						return nil
+					}
+					return statusFilter
+				}(),
 			}, nil
 		},
 		func(ctx context.Context, req ListCustomerSubscriptionsRequest) (ListCustomerSubscriptionsResponse, error) {
@@ -130,6 +147,9 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 				Page:        req.Page,
 				Namespaces:  []string{req.CustomerID.Namespace},
 				CustomerIDs: []string{req.CustomerID.ID},
+				Status:      req.Status,
+				OrderBy:     req.OrderBy,
+				Order:       req.Order,
 			})
 			if err != nil {
 				return def, err

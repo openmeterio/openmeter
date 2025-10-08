@@ -3845,6 +3845,16 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/ULIDOrExternalKey'
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/SubscriptionStatus'
+          style: form
+        - $ref: '#/components/parameters/CustomerSubscriptionOrderByOrdering.order'
+        - $ref: '#/components/parameters/CustomerSubscriptionOrderByOrdering.orderBy'
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
       responses:
@@ -12052,6 +12062,25 @@ components:
         $ref: '#/components/schemas/CustomerOrderBy'
       explode: false
       style: form
+    CustomerSubscriptionOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+        default: ASC
+      explode: false
+      style: form
+    CustomerSubscriptionOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/CustomerSubscriptionOrderBy'
+      explode: false
+      style: form
     EntitlementOrderByOrdering.order:
       name: order
       in: query
@@ -15213,6 +15242,12 @@ components:
             Used for tax and invoicing.
           title: Billing Address
       description: Resource update operation model.
+    CustomerSubscriptionOrderBy:
+      type: string
+      enum:
+        - activeFrom
+        - activeTo
+      description: Order by options for customer subscriptions.
     CustomerUsageAttribution:
       type: object
       required:

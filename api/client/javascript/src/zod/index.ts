@@ -7577,6 +7577,11 @@ export const listCustomerSubscriptionsQueryPageSizeDefault = 100 as const
 export const listCustomerSubscriptionsQueryPageSizeMax = 1000 as const
 
 export const listCustomerSubscriptionsQueryParams = zod.object({
+  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  orderBy: zod
+    .enum(['activeFrom', 'activeTo'])
+    .optional()
+    .describe('The order by field.'),
   page: zod.coerce
     .number()
     .min(1)
@@ -7588,6 +7593,13 @@ export const listCustomerSubscriptionsQueryParams = zod.object({
     .max(listCustomerSubscriptionsQueryPageSizeMax)
     .default(listCustomerSubscriptionsQueryPageSizeDefault)
     .describe('The maximum number of items per page.\n\nDefault is 100.'),
+  status: zod
+    .array(
+      zod
+        .enum(['active', 'inactive', 'canceled', 'scheduled'])
+        .describe('Subscription status.'),
+    )
+    .optional(),
 })
 
 /**
