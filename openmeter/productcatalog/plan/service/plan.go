@@ -389,12 +389,16 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
+		pp := p.AsProductCatalogPlan()
+
 		allowedPlanStatuses := []productcatalog.PlanStatus{
 			productcatalog.PlanStatusDraft,
 			productcatalog.PlanStatusScheduled,
 		}
-		planStatus := p.Status()
-		if !lo.Contains(allowedPlanStatuses, p.Status()) {
+
+		planStatus := pp.Status()
+
+		if !lo.Contains(allowedPlanStatuses, planStatus) {
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus),
 			)
@@ -405,6 +409,11 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		// NOTE(chrisgacsal): we only allow updating the state of the Plan via Publish/Archive,
 		// therefore the EffectivePeriod attribute must be zeroed before updating the Plan.
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
+
+		// Validate the Plan with changes applied
+		if err = params.ValidateWithPlan(pp); err != nil {
+			return nil, fmt.Errorf("invalid Plan update: %w", err)
+		}
 
 		p, err = s.adapter.UpdatePlan(ctx, params)
 		if err != nil {
@@ -483,7 +492,8 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		}
 
 		planStatus := pp.Status()
-		if !lo.Contains(allowedPlanStatuses, pp.Status()) {
+
+		if !lo.Contains(allowedPlanStatuses, planStatus) {
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("invalid Plan: only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus),
 			)
