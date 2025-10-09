@@ -270,7 +270,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 			require.NoError(t, err)
 
 			mapped, err := slicesx.MapWithErr(issues, func(issue models.ValidationIssue) (models.ValidationIssue, error) {
-				return subscription.MapSubscriptionSpecValidationIssueFieldSelectors(issue)
+				return subscription.MapSubscriptionSpecValidationIssueField(issue)
 			})
 
 			require.NoError(t, err)
@@ -341,7 +341,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 
 				require.Equal(t, "$.phases[?(@.key=='phase1')].itemsByKey.item1[0].key", iss.Field().JSONPath())
 
-				mapped, err := subscription.MapSubscriptionSpecValidationIssueFieldSelectors(iss)
+				mapped, err := subscription.MapSubscriptionSpecValidationIssueField(iss)
 				require.NoError(t, err)
 
 				models.RequireValidationIssuesMatch(t,

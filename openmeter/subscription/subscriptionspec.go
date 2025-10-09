@@ -494,7 +494,7 @@ func (s SubscriptionPhaseSpec) FieldDescriptor() *models.FieldDescriptor {
 		models.NewFieldSelector("phases"),
 		models.NewFieldSelector(s.PhaseKey),
 	).WithAttributes(models.Attributes{
-		PhaseSelector: true,
+		PhaseDescriptor: true,
 	})
 }
 

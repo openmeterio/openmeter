@@ -184,8 +184,14 @@ type FieldDescriptorTree struct {
 
 // If called while walking the tree, you MUST start backtracking (return true)
 // otherwise you'll keep walking the detached subtree!
-func (t *FieldDescriptorTree) Swap(old *treex.Node[*FieldDescriptor], new *FieldDescriptor) error {
-	return t.Tree.SwapNode(old, new.node)
+func (t *FieldDescriptorTree) Swap(old, new *FieldDescriptor) error {
+	return t.Tree.SwapNode(old.node, new.node)
+}
+
+func (t *FieldDescriptorTree) Leafs() []*FieldDescriptor {
+	return lo.Map(t.Tree.Leafs(), func(n *treex.Node[*FieldDescriptor], _ int) *FieldDescriptor {
+		return n.Value()
+	})
 }
 
 // Tree returns a treex.Tree[*FieldDescriptor] from the FieldDescriptor so it can be traversed
