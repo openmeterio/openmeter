@@ -176,7 +176,13 @@ func (d Deduplicator) Close() error {
 	return nil
 }
 
+var ErrNoDedupItems = errors.New("no dedup items provided")
+
 func (d Deduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item) (dedupe.CheckUniqueBatchResult, error) {
+	if len(items) == 0 {
+		return dedupe.CheckUniqueBatchResult{}, ErrNoDedupItems
+	}
+
 	keys := make([]string, 0, len(items))
 	for _, item := range items {
 		switch d.Mode {

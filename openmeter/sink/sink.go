@@ -284,7 +284,7 @@ func (s *Sink) flush(ctx context.Context) error {
 	dedupedMessages := dedupeSinkMessages(messages)
 
 	// If deduplicator is set, let's reexecute the deduplication to decrease the number of messages double persisted
-	if s.config.Deduplicator != nil {
+	if s.config.Deduplicator != nil && len(dedupedMessages) > 0 {
 		dedupeResults, err := s.config.Deduplicator.CheckUniqueBatch(ctx, lo.Map(dedupedMessages, func(message sinkmodels.SinkMessage, _ int) dedupe.Item {
 			return message.GetDedupeItem()
 		}))
@@ -989,6 +989,7 @@ func dedupeSinkMessages(events []sinkmodels.SinkMessage) []sinkmodels.SinkMessag
 				ID:        event.Serialized.Id,
 				Source:    event.Serialized.Source,
 			}.Key()
+
 			if _, value := keys[key]; !value {
 				keys[key] = true
 				list = append(list, event)
@@ -1000,5 +1001,6 @@ func dedupeSinkMessages(events []sinkmodels.SinkMessage) []sinkmodels.SinkMessag
 			continue
 		}
 	}
+
 	return list
 }
