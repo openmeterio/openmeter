@@ -34,8 +34,6 @@ func (c ProcessingState) String() string {
 	switch c {
 	case OK:
 		state = "ok"
-	case INVALID:
-		state = "invalid"
 	case DROP:
 		state = "drop"
 	default:
@@ -48,7 +46,6 @@ func (c ProcessingState) String() string {
 const (
 	OK ProcessingState = iota
 	DROP
-	INVALID
 )
 
 type ProcessingStatus struct {

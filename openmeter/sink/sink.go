@@ -409,7 +409,7 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []sinkmodels.SinkM
 	// Flter out dropped messages
 	for _, message := range messages {
 		switch message.Status.State {
-		case sinkmodels.OK, sinkmodels.INVALID:
+		case sinkmodels.OK:
 			// Do nothing: include in batch
 		case sinkmodels.DROP:
 			// Skip event from batch
