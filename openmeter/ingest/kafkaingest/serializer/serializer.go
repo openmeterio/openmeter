@@ -106,7 +106,7 @@ func ValidateKafkaPayloadToCloudEvent(ce CloudEventsKafkaPayload) error {
 		errs = append(errs, errors.New("subject is empty"))
 	}
 
-	if ce.Time == 0 {
+	if ce.Time <= 0 {
 		errs = append(errs, errors.New("time is zero"))
 	}
 
