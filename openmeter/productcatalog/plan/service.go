@@ -253,6 +253,49 @@ func (i UpdatePlanInput) Validate() error {
 	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
+func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
+	var errs []error
+
+	if i.Name != nil {
+		p.Name = *i.Name
+	}
+
+	if i.Description != nil {
+		p.Description = i.Description
+	}
+
+	if i.Metadata != nil {
+		p.Metadata = *i.Metadata
+	}
+
+	if i.BillingCadence != nil {
+		p.BillingCadence = *i.BillingCadence
+	}
+
+	if i.ProRatingConfig != nil {
+		p.ProRatingConfig = *i.ProRatingConfig
+	}
+
+	if i.Phases != nil {
+		p.Phases = *i.Phases
+	}
+
+	if err := p.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	issues, err := models.AsValidationIssues(errors.Join(errs...))
+	if err != nil {
+		return models.NewGenericValidationError(err)
+	}
+
+	if i.IgnoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
+}
+
 // ExpandFields defines which fields to expand when returning the Plan.
 type ExpandFields struct {
 	PlanAddons bool `json:"addons,omitempty"`

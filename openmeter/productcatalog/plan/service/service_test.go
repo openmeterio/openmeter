@@ -617,6 +617,8 @@ func TestPlanService(t *testing.T) {
 						})),
 					}
 
+					updateInput.IgnoreNonCriticalIssues = true
+
 					_, err = env.Plan.UpdatePlan(ctx, updateInput)
 					require.NoError(t, err)
 
