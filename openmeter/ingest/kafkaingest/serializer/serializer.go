@@ -86,3 +86,29 @@ func FromKafkaPayloadToCloudEvents(payload CloudEventsKafkaPayload) (event.Event
 
 	return ev, nil
 }
+
+func ValidateKafkaPayloadToCloudEvent(ce CloudEventsKafkaPayload) error {
+	var errs []error
+
+	if ce.Id == "" {
+		errs = append(errs, errors.New("id is empty"))
+	}
+
+	if ce.Type == "" {
+		errs = append(errs, errors.New("type is empty"))
+	}
+
+	if ce.Source == "" {
+		errs = append(errs, errors.New("source is empty"))
+	}
+
+	if ce.Subject == "" {
+		errs = append(errs, errors.New("subject is empty"))
+	}
+
+	if ce.Time <= 0 {
+		errs = append(errs, errors.New("time is zero"))
+	}
+
+	return errors.Join(errs...)
+}
