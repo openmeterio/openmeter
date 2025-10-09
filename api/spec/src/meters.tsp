@@ -454,6 +454,19 @@ model MeterQuery {
   filterGroupBy?: Record<string>;
 
   /**
+   * Optional advanced meter group by filters.
+   * You can use this to filter for values of the meter groupBy fields.
+   */
+  @query
+  @summary("Advanced meter group by filters")
+  @example(#{
+    `model`: #{ $in: #["gpt-4", "gpt-4o"] },
+    type: #{ $eq: "input" },
+  })
+  @encode("application/json")
+  advancedMeterGroupByFilters?: Record<FilterString>;
+
+  /**
    * If not specified a single aggregate will be returned for each subject and time window.
    * `subject` is a reserved group by value.
    *
@@ -524,6 +537,16 @@ model MeterQueryRequest {
    */
   @example(#{ `model`: #["gpt-4-turbo", "gpt-4o"], type: #["prompt"] })
   filterGroupBy?: Record<string[]>;
+
+  /**
+   * Optional advanced meter group by filters.
+   * You can use this to filter for values of the meter groupBy fields.
+   */
+  @example(#{
+    `model`: #{ $in: #["gpt-4", "gpt-4o"] },
+    type: #{ $eq: "input" },
+  })
+  advancedMeterGroupByFilters?: Record<FilterString>;
 
   /**
    * If not specified a single aggregate will be returned for each subject and time window.

@@ -5809,6 +5809,7 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.subject'
         - $ref: '#/components/parameters/MeterQuery.filterCustomerId'
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
+        - $ref: '#/components/parameters/MeterQuery.advancedMeterGroupByFilters'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
       description: Query meter for usage.
       summary: Query meter
@@ -8167,6 +8168,7 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.windowTimeZone'
         - $ref: '#/components/parameters/MeterQuery.filterCustomerId'
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
+        - $ref: '#/components/parameters/MeterQuery.advancedMeterGroupByFilters'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
       description: Query meter for consumer portal. This endpoint is publicly exposable to consumers. Query meter for consumer portal. This endpoint is publicly exposable to consumers.
       summary: Query meter Query meter
@@ -12350,6 +12352,20 @@ components:
         $ref: '#/components/schemas/MeterOrderBy'
       explode: false
       style: form
+    MeterQuery.advancedMeterGroupByFilters:
+      name: advancedMeterGroupByFilters
+      in: query
+      required: false
+      description: |-
+        Optional advanced meter group by filters.
+        You can use this to filter for values of the meter groupBy fields.
+      content:
+        application/json:
+          schema:
+            additionalProperties:
+              $ref: '#/components/schemas/FilterString'
+            title: Advanced meter group by filters
+            format: application/json
     MeterQuery.clientId:
       name: clientId
       in: query
@@ -19778,6 +19794,20 @@ components:
               - gpt-4o
             type:
               - prompt
+        advancedMeterGroupByFilters:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/FilterString'
+          description: |-
+            Optional advanced meter group by filters.
+            You can use this to filter for values of the meter groupBy fields.
+          example:
+            model:
+              $in:
+                - gpt-4
+                - gpt-4o
+            type:
+              $eq: input
         groupBy:
           type: array
           items:
