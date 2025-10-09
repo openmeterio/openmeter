@@ -982,14 +982,22 @@ func dedupeSinkMessages(events []sinkmodels.SinkMessage) []sinkmodels.SinkMessag
 	list := []sinkmodels.SinkMessage{}
 
 	for _, event := range events {
-		key := dedupe.Item{
-			Namespace: event.Namespace,
-			ID:        event.Serialized.Id,
-			Source:    event.Serialized.Source,
-		}.Key()
-		if _, value := keys[key]; !value {
-			keys[key] = true
-			list = append(list, event)
+		switch event.Status.State {
+		case sinkmodels.OK:
+			key := dedupe.Item{
+				Namespace: event.Namespace,
+				ID:        event.Serialized.Id,
+				Source:    event.Serialized.Source,
+			}.Key()
+			if _, value := keys[key]; !value {
+				keys[key] = true
+				list = append(list, event)
+			}
+		case sinkmodels.DROP:
+			continue
+		default:
+			// TODO: we should log/error in this case
+			continue
 		}
 	}
 	return list
