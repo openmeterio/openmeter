@@ -456,18 +456,31 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 
 	dedupeItems := []dedupe.Item{}
 	for _, message := range messages {
-		// Let's not insert already dropped messages into the deduplicator as this signals
-		// that we had a problem validating the message, we could redo any validation as needed
-		// later but if any error was transient let's retry the message if it's sent again.
-		if message.Status.State == sinkmodels.DROP {
-			continue
-		}
+		switch message.Status.State {
+		case sinkmodels.OK:
+			dedupeItems = append(dedupeItems, dedupe.Item{
+				Namespace: message.Namespace,
+				ID:        message.Serialized.Id,
+				Source:    message.Serialized.Source,
+			})
+		case sinkmodels.DROP:
+			// Let's not insert already dropped messages into the deduplicator as this signals
+			// that we had a problem validating the message, we could redo any validation as needed
+			// later but if any error was transient let's retry the message if it's sent again.
 
-		dedupeItems = append(dedupeItems, dedupe.Item{
-			Namespace: message.Namespace,
-			ID:        message.Serialized.Id,
-			Source:    message.Serialized.Source,
-		})
+			if s.config.LogDroppedEvents {
+				logger.WarnContext(ctx, "event dropped",
+					slog.String("namespace", message.Namespace),
+					slog.String("event", string(message.KafkaMessage.Value)),
+					slog.String("error", message.Status.DropError.Error()),
+					slog.String("status", message.Status.State.String()),
+				)
+			}
+
+			continue
+		default:
+			logger.ErrorContext(ctx, "unknown state type in dedup set", "state", message.Status.State.String())
+		}
 	}
 
 	if len(dedupeItems) == 0 {
