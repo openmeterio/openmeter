@@ -677,7 +677,13 @@ func (s *Sink) Run(ctx context.Context) error {
 				s.messageCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr))
 
 				s.buffer.Add(*sinkMessage)
-				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", sinkMessage.Serialized)
+
+				logger.DebugContext(ctx, "event added to buffer",
+					"partition", e.TopicPartition.Partition,
+					"offset", e.TopicPartition.Offset,
+					"event", sinkMessage.Serialized,
+					"state", sinkMessage.Status.State.String(),
+				)
 
 				// Flush buffer and commit messages
 				if s.buffer.Size() >= s.config.MinCommitCount {
@@ -872,8 +878,8 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 	sinkMessage.Namespace = namespace
 
 	// Parse Kafka Event
-	kafkaCloudEvent := &serializer.CloudEventsKafkaPayload{}
-	err := json.Unmarshal(e.Value, kafkaCloudEvent)
+	kafkaCloudEvent := serializer.CloudEventsKafkaPayload{}
+	err := json.Unmarshal(e.Value, &kafkaCloudEvent)
 	if err != nil {
 		sinkMessage.Status = sinkmodels.ProcessingStatus{
 			State:     sinkmodels.DROP,
@@ -883,7 +889,17 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 		// We should never have events we can't json parse, so we drop them
 		return sinkMessage, nil
 	}
-	sinkMessage.Serialized = kafkaCloudEvent
+
+	if err = serializer.ValidateKafkaPayloadToCloudEvent(kafkaCloudEvent); err != nil {
+		sinkMessage.Status = sinkmodels.ProcessingStatus{
+			State:     sinkmodels.DROP,
+			DropError: fmt.Errorf("failed to validate cloudevents message: %w", err),
+		}
+
+		return sinkMessage, nil
+	}
+
+	sinkMessage.Serialized = &kafkaCloudEvent
 
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
 	// Dedupe is an optional dependency, so we check if it's set
