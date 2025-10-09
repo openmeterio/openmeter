@@ -60,7 +60,7 @@ func PlanFromPlanInput(input plan.CreatePlanInput) (subscription.Plan, error) {
 	p.Version = 1
 
 	if err := p.Validate(); err != nil {
-		return nil, models.ErrorWithFieldPrefix(models.NewFieldSelectors(
+		return nil, models.ErrorWithFieldPrefix(models.NewFieldSelectorGroup(
 			models.NewFieldSelector("plan")), err)
 	}
 

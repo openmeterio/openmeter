@@ -30,7 +30,7 @@ func ValidateUniqueConstraintBySubscriptions(subs []SubscriptionSpec) error {
 							Selectors:    subscriptionSpecToFieldSelectors(overlap.Item2),
 						},
 					},
-				}).WithField(subscriptionSpecToFieldSelectors(overlap.Item1)...))
+				}).WithField(subscriptionSpecToFieldSelectors(overlap.Item1)))
 
 			errs = append(errs,
 				ErrOnlySingleSubscriptionAllowed.WithAttrs(models.Attributes{
@@ -46,7 +46,7 @@ func ValidateUniqueConstraintBySubscriptions(subs []SubscriptionSpec) error {
 							Selectors:    subscriptionSpecToFieldSelectors(overlap.Item1),
 						},
 					},
-				}).WithField(subscriptionSpecToFieldSelectors(overlap.Item2)...))
+				}).WithField(subscriptionSpecToFieldSelectors(overlap.Item2)))
 		}
 	}
 
@@ -58,18 +58,18 @@ func ValidateUniqueConstraintByFeatures(subs []SubscriptionSpec) error {
 }
 
 type SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide struct {
-	Subscription SubscriptionSpec      `json:"subscription"`
-	Cadence      models.CadencedModel  `json:"cadence"`
-	Selectors    models.FieldSelectors `json:"selectors"`
+	Subscription SubscriptionSpec        `json:"subscription"`
+	Cadence      models.CadencedModel    `json:"cadence"`
+	Selectors    *models.FieldDescriptor `json:"selectors"`
 }
 
 type SubscriptionSubscriptionLevelUniqueConstraintErrorDetail = models.Overlap[SubscriptionSubscriptionLevelUniqueConstraintErrorDetailSide]
 
 type SubscriptionFeatureLevelUniqueConstraintErrorDetailSide struct {
-	Item      SubscriptionItemSpec  `json:"-"` // useful internally but let's not expose it to the client
-	Cadence   models.CadencedModel  `json:"cadence"`
-	Selectors models.FieldSelectors `json:"selectors"`
-	PlanRef   PlanRef               `json:"plan_ref"`
+	Item      SubscriptionItemSpec    `json:"-"` // useful internally but let's not expose it to the client
+	Cadence   models.CadencedModel    `json:"cadence"`
+	Selectors *models.FieldDescriptor `json:"selectors"`
+	PlanRef   PlanRef                 `json:"plan_ref"`
 }
 
 type SubscriptionFeatureLevelUniqueConstraintErrorDetail = models.Overlap[SubscriptionFeatureLevelUniqueConstraintErrorDetailSide]
@@ -92,12 +92,12 @@ func (v featureLevelUniqueConstraintValidator) Validate(subs []SubscriptionSpec)
 				errs = append(errs,
 					ErrOnlySingleSubscriptionItemAllowedAtATime.
 						WithAttrs(overlap.Item1.GetErrorAttributes(overlap.Item2)).
-						WithField(overlap.Item1.Item.GetSelectors()...))
+						WithField(overlap.Item1.Item.GetSelectors()))
 
 				errs = append(errs,
 					ErrOnlySingleSubscriptionItemAllowedAtATime.
 						WithAttrs(overlap.Item2.GetErrorAttributes(overlap.Item1)).
-						WithField(overlap.Item2.Item.GetSelectors()...))
+						WithField(overlap.Item2.Item.GetSelectors()))
 			}
 		}
 	}
@@ -190,15 +190,13 @@ type itemSpecWithCircularReferences struct {
 	SubscriptionSpec        *SubscriptionSpec
 }
 
-func (i itemSpecWithCircularReferences) GetSelectors() models.FieldSelectors {
-	selectors := subscriptionSpecToFieldSelectors(lo.FromPtr(i.SubscriptionSpec))
-	selectors = append(selectors,
+func (i itemSpecWithCircularReferences) GetSelectors() *models.FieldDescriptor {
+	return models.NewFieldSelectorGroup(
+		subscriptionSpecToFieldSelectors(lo.FromPtr(i.SubscriptionSpec)),
 		models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", i.SubscriptionPhaseSpec.PhaseKey)),
 		models.NewFieldSelector("items").WithExpression(models.NewFieldAttrValue("key", i.SubscriptionItemSpec.ItemKey)),
 		models.NewFieldSelector("idx").WithExpression(models.NewFieldArrIndex(i.SubscriptionItemVersion)),
 	)
-
-	return models.NewFieldSelectors(selectors...)
 }
 
 type validationTimelineEntry struct {
@@ -229,8 +227,8 @@ func (i validationTimelineEntry) GetErrorAttributes(other validationTimelineEntr
 	}
 }
 
-func subscriptionSpecToFieldSelectors(subscriptionSpec SubscriptionSpec) models.FieldSelectors {
-	selectors := []models.FieldSelector{}
+func subscriptionSpecToFieldSelectors(subscriptionSpec SubscriptionSpec) *models.FieldDescriptor {
+	selectors := []*models.FieldDescriptor{}
 
 	if subscriptionSpec.Plan != nil {
 		selectors = append(selectors, planRefToFieldSelector(subscriptionSpec.Plan))
@@ -254,10 +252,10 @@ func subscriptionSpecToFieldSelectors(subscriptionSpec SubscriptionSpec) models.
 			}()...,
 		)))
 
-	return models.NewFieldSelectors(selectors...)
+	return models.NewFieldSelectorGroup(selectors...)
 }
 
-func planRefToFieldSelector(planRef *PlanRef) models.FieldSelector {
+func planRefToFieldSelector(planRef *PlanRef) *models.FieldDescriptor {
 	if planRef == nil {
 		return models.NewFieldSelector("plans")
 	}

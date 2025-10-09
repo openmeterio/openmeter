@@ -3,77 +3,10 @@ package models
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"reflect"
 
 	"github.com/samber/lo"
 )
-
-type Attributes map[any]any
-
-func (a Attributes) Clone() Attributes {
-	if a == nil {
-		return nil
-	}
-
-	m := make(Attributes)
-
-	if len(a) == 0 {
-		return m
-	}
-
-	for k, v := range a {
-		m[k] = v
-	}
-
-	return m
-}
-
-// AsStringMap converts Attributes into a map[string]any by:
-// - keeping string keys as-is
-// - stringifying comparable non-string keys as "<type>:<value>"
-func (a Attributes) AsStringMap() map[string]any {
-	if len(a) == 0 {
-		return nil
-	}
-
-	out := make(map[string]any, len(a))
-	for k, v := range a {
-		if sk, ok := k.(string); ok {
-			out[sk] = v
-			continue
-		}
-
-		t := reflect.TypeOf(k)
-		if t == nil {
-			continue
-		}
-		if t.Comparable() {
-			key := fmt.Sprintf("%T:%v", k, k)
-			out[key] = v
-		}
-	}
-
-	return out
-}
-
-func (a Attributes) Merge(m Attributes) Attributes {
-	if len(m) == 0 {
-		return a.Clone()
-	}
-
-	r := make(Attributes, len(a)+len(m))
-
-	for k, v := range a {
-		r[k] = v
-	}
-
-	for k, v := range m {
-		r[k] = v
-	}
-
-	return r
-}
 
 type ErrorExtension map[string]any
 
@@ -87,7 +20,7 @@ type ValidationIssue struct {
 	code       ErrorCode
 	component  ComponentName
 	message    string
-	field      FieldSelectors
+	field      *FieldDescriptor
 	severity   ErrorSeverity
 }
 
@@ -124,7 +57,11 @@ func (i ValidationIssue) Message() string {
 	return i.message
 }
 
-func (i ValidationIssue) Field() FieldSelectors {
+func (i ValidationIssue) Field() *FieldDescriptor {
+	if i.field == nil {
+		return NewFieldSelectorGroup()
+	}
+
 	return i.field
 }
 
@@ -132,15 +69,25 @@ func (i ValidationIssue) Severity() ErrorSeverity {
 	return i.severity
 }
 
-func (i ValidationIssue) WithField(parts ...FieldSelector) ValidationIssue {
+func (i ValidationIssue) With(opts ...ValidationIssueOption) ValidationIssue {
 	v := i.Clone()
-	v.field = parts
+	for _, opt := range opts {
+		opt(&v)
+	}
+	return v
+}
+
+func (i ValidationIssue) WithField(parts ...*FieldDescriptor) ValidationIssue {
+	v := i.Clone()
+	group := NewFieldSelectorGroup(parts...)
+
+	v.field = group
 
 	return v
 }
 
 func (i ValidationIssue) WithPathString(parts ...string) ValidationIssue {
-	return i.WithField(lo.Map(parts, func(item string, _ int) FieldSelector {
+	return i.WithField(lo.Map(parts, func(item string, _ int) *FieldDescriptor {
 		return NewFieldSelector(item)
 	})...)
 }
@@ -215,7 +162,7 @@ func (i ValidationIssue) AsErrorExtension() ErrorExtension {
 		}
 	}
 
-	if path := i.field.JSONPath(); path != "" {
+	if path := i.Field().JSONPath(); path != "" {
 		m["field"] = i.field
 	}
 
@@ -266,17 +213,21 @@ func WithComponent(component ComponentName) ValidationIssueOption {
 	}
 }
 
-func WithField(parts ...FieldSelector) ValidationIssueOption {
+func WithField(parts ...*FieldDescriptor) ValidationIssueOption {
 	return func(i *ValidationIssue) {
-		i.field = parts
+		sels := NewFieldSelectorGroup(parts...)
+
+		i.field = sels
 	}
 }
 
 func WithFieldString(parts ...string) ValidationIssueOption {
 	return func(i *ValidationIssue) {
-		i.field = lo.Map(parts, func(item string, _ int) FieldSelector {
+		sels := NewFieldSelectorGroup(lo.Map(parts, func(item string, _ int) *FieldDescriptor {
 			return NewFieldSelector(item)
-		})
+		})...)
+
+		i.field = sels
 	}
 }
 
@@ -294,18 +245,41 @@ func WithWarningSeverity() ValidationIssueOption {
 	return WithSeverity(ErrorSeverityWarning)
 }
 
-// NewValidationIssue returns a new ValidationIssue with code and message.
-func NewValidationIssue(code ErrorCode, message string, opts ...ValidationIssueOption) ValidationIssue {
-	i := ValidationIssue{
-		message: message,
-		code:    code,
+func withMessage(message string) ValidationIssueOption {
+	return func(i *ValidationIssue) {
+		i.message = message
 	}
+}
+
+func withCode(code ErrorCode) ValidationIssueOption {
+	return func(i *ValidationIssue) {
+		i.code = code
+	}
+}
+
+// We internally construct each ValidationIssue with this private constructor
+// so Option Functions are always used to guarantee correct creation of the ValidationIssue.
+func newValidationIssue(opts ...ValidationIssueOption) ValidationIssue {
+	i := ValidationIssue{}
 
 	for _, opt := range opts {
 		opt(&i)
 	}
 
 	return i
+}
+
+// NewValidationIssue returns a new ValidationIssue with code and message.
+func NewValidationIssue(code ErrorCode, message string, opts ...ValidationIssueOption) ValidationIssue {
+	return newValidationIssue(
+		append(
+			[]ValidationIssueOption{
+				withMessage(message),
+				withCode(code),
+			},
+			opts...,
+		)...,
+	)
 }
 
 // NewValidationError returns a new ValidationIssue with code and message and its severity set to SeverityCritical.
@@ -359,7 +333,7 @@ func AsValidationIssues(errIn error) (ValidationIssues, error) {
 		return nil, nil
 	}
 
-	issues, err := asValidationIssues(errIn, NewFieldSelectors(), "", false)
+	issues, err := asValidationIssues(errIn, NewFieldSelectorGroup(), "", false)
 	if err != nil {
 		return nil, errIn
 	}
@@ -367,7 +341,7 @@ func AsValidationIssues(errIn error) (ValidationIssues, error) {
 	return issues, nil
 }
 
-func asValidationIssues(err error, prefix FieldSelectors, component ComponentName, unknownAsValidationIssue bool) (ValidationIssues, error) {
+func asValidationIssues(err error, prefix *FieldDescriptor, component ComponentName, unknownAsValidationIssue bool) (ValidationIssues, error) {
 	if err == nil {
 		return nil, nil
 	}
@@ -378,21 +352,26 @@ func asValidationIssues(err error, prefix FieldSelectors, component ComponentNam
 	case fieldPrefixedWrapper:
 		return asValidationIssues(e.err, e.prefix.WithPrefix(prefix), component, true)
 	case ValidationIssue:
-		return ValidationIssues{
-			ValidationIssue{
-				attributes: e.attributes,
-				code:       e.code,
-				component: func() ComponentName {
-					if component == "" {
-						return e.component
-					}
+		opts := []ValidationIssueOption{
+			withMessage(e.message),
+			withCode(e.code),
+			WithComponent(func() ComponentName {
+				if component == "" {
+					return e.component
+				}
 
-					return component
-				}(),
-				message:  e.message,
-				field:    e.field.WithPrefix(prefix),
-				severity: e.severity,
-			},
+				return component
+			}()),
+			WithSeverity(e.severity),
+			WithAttributes(e.attributes),
+		}
+
+		if e.field != nil {
+			opts = append(opts, WithField(e.field.WithPrefix(prefix)))
+		}
+
+		return ValidationIssues{
+			newValidationIssue(opts...),
 		}, nil
 	}
 
@@ -419,12 +398,12 @@ func asValidationIssues(err error, prefix FieldSelectors, component ComponentNam
 	default:
 		if unknownAsValidationIssue {
 			return ValidationIssues{
-				ValidationIssue{
-					component: component,
-					message:   err.Error(),
-					field:     prefix,
-					severity:  ErrorSeverityCritical,
-				},
+				newValidationIssue(
+					withMessage(err.Error()),
+					WithField(prefix),
+					WithSeverity(ErrorSeverityCritical),
+					WithComponent(component),
+				),
 			}, nil
 		}
 

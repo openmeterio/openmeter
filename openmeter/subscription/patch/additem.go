@@ -36,7 +36,7 @@ func (a PatchAddItem) Validate() error {
 	}
 
 	if err := a.CreateInput.Validate(); err != nil {
-		return models.ErrorWithFieldPrefix(models.NewFieldSelectors(
+		return models.ErrorWithFieldPrefix(models.NewFieldSelectorGroup(
 			models.NewFieldSelector("phases"),
 			models.NewFieldSelector(a.PhaseKey),
 			models.NewFieldSelector("items"),

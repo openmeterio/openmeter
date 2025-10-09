@@ -32,7 +32,7 @@ func TestValidationIssue_JSON(t *testing.T) {
 			name: "generic",
 			issue: ValidationIssue{
 				message:   "error message",
-				field:     NewFieldSelectors(NewFieldSelector("field_name")),
+				field:     NewFieldSelectorGroup(NewFieldSelector("field_name")),
 				code:      "invalid_param",
 				component: "openmeter",
 				severity:  ErrorSeverityCritical,
@@ -49,7 +49,7 @@ func TestValidationIssue_JSON(t *testing.T) {
 			name: "with attributes",
 			issue: ValidationIssue{
 				message: "error message",
-				field: NewFieldSelectors(NewFieldSelector("field_name").WithExpression(
+				field: NewFieldSelectorGroup(NewFieldSelector("field_name").WithExpression(
 					NewFieldAttrValue("key", "value"),
 				)),
 				code:      "invalid_param",
@@ -83,7 +83,7 @@ func TestValidationIssue_JSON(t *testing.T) {
 var errTestValidationIssue = ValidationIssue{
 	code:     "test_validation_issue",
 	message:  "test validation issue",
-	field:    NewFieldSelectors(NewFieldSelector("field")),
+	field:    NewFieldSelectorGroup(NewFieldSelector("field")),
 	severity: ErrorSeverityCritical,
 }
 
@@ -119,31 +119,25 @@ func TestValidationIssue_WithAttrs(t *testing.T) {
 }
 
 func TestValidationIssue_WithField(t *testing.T) {
-	tests := []struct {
-		name  string
-		issue ValidationIssue
-		path  FieldSelectors
-	}{
-		{
-			name:  "empty",
-			issue: errTestValidationIssue,
-			path:  nil,
-		},
-		{
-			name:  "new",
-			issue: errTestValidationIssue,
-			path:  NewFieldSelectors(NewFieldSelector("field_name")),
-		},
-	}
+	t.Run("Should UNSET field if nil is passed", func(t *testing.T) {
+		issue := errTestValidationIssue.Clone()
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actual := test.issue.WithField(test.path...)
+		withField := issue.WithField()
 
-			assert.Equalf(t, "field", errTestValidationIssue.Field().String(), "path not must be overwritten in the source error")
-			assert.Equalf(t, test.path, actual.Field(), "path must match")
-		})
-	}
+		assert.Equal(t, "", withField.Field().String(), "field must match")
+		assert.Equal(t, "", withField.Field().JSONPath(), "field path must match")
+	})
+
+	t.Run("Should override field if non-nil path is passed", func(t *testing.T) {
+		issue := errTestValidationIssue.Clone()
+
+		desc := NewFieldSelectorGroup(NewFieldSelector("field_name"))
+
+		withField := issue.WithField(desc)
+
+		assert.Equal(t, desc.String(), withField.Field().String(), "field must match")
+		assert.Equal(t, "$.field_name", withField.Field().JSONPath(), "field path must match")
+	})
 }
 
 func TestValidationIssue_Clone(t *testing.T) {
@@ -267,7 +261,7 @@ func TestAsValidationIssues(t *testing.T) {
 						errors.New("error 1"),
 					),
 					ErrorWithComponent("component2",
-						ErrorWithFieldPrefix(NewFieldSelectors(NewFieldSelector("prefix")),
+						ErrorWithFieldPrefix(NewFieldSelectorGroup(NewFieldSelector("prefix")),
 							errors.Join(
 								NewValidationIssue("errcode1", "error message 1",
 									WithFieldString("field1"),
@@ -277,7 +271,7 @@ func TestAsValidationIssues(t *testing.T) {
 									WithFieldString("field2"),
 									WithWarningSeverity(),
 								),
-								ErrorWithFieldPrefix(NewFieldSelectors(NewFieldSelector("prefix2")),
+								ErrorWithFieldPrefix(NewFieldSelectorGroup(NewFieldSelector("prefix2")),
 									ErrorWithComponent("component3",
 										errors.Join(
 											NewValidationIssue("errcode3", "error message 3",
@@ -318,7 +312,7 @@ func TestAsValidationIssues(t *testing.T) {
 					code:      "errcode1",
 					component: "component2",
 					message:   "error message 1",
-					field: NewFieldSelectors(
+					field: NewFieldSelectorGroup(
 						NewFieldSelector("prefix"),
 						NewFieldSelector("field1"),
 					),
@@ -328,7 +322,7 @@ func TestAsValidationIssues(t *testing.T) {
 					code:      "errcode2",
 					component: "component2",
 					message:   "error message 2",
-					field: NewFieldSelectors(
+					field: NewFieldSelectorGroup(
 						NewFieldSelector("prefix"),
 						NewFieldSelector("field2"),
 					),
@@ -338,7 +332,7 @@ func TestAsValidationIssues(t *testing.T) {
 					code:      "errcode3",
 					component: "component3",
 					message:   "error message 3",
-					field: NewFieldSelectors(
+					field: NewFieldSelectorGroup(
 						NewFieldSelector("prefix"),
 						NewFieldSelector("prefix2"),
 						NewFieldSelector("field3"),
@@ -349,7 +343,7 @@ func TestAsValidationIssues(t *testing.T) {
 					code:      "errcode4",
 					component: "component3",
 					message:   "error message 4",
-					field: NewFieldSelectors(
+					field: NewFieldSelectorGroup(
 						NewFieldSelector("prefix"),
 						NewFieldSelector("prefix2"),
 						NewFieldSelector("prefix3"),
@@ -364,7 +358,7 @@ func TestAsValidationIssues(t *testing.T) {
 					code:      "errcode5",
 					component: "component4",
 					message:   "error message 5",
-					field: NewFieldSelectors(
+					field: NewFieldSelectorGroup(
 						NewFieldSelector("field5"),
 					),
 					severity: ErrorSeverityCritical,
@@ -383,7 +377,7 @@ func TestAsValidationIssues(t *testing.T) {
 				require.NoError(t, err, "error must be nil")
 			}
 
-			require.Equalf(t, test.expectedIssues, actual, "issues must match")
+			RequireValidationIssuesMatch(t, test.expectedIssues, actual)
 		})
 	}
 }
@@ -394,7 +388,7 @@ func TestValidationIssues_AsError(t *testing.T) {
 			severity:  ErrorSeverityCritical,
 			message:   "error1",
 			component: "component1",
-			field:     NewFieldSelectors(NewFieldSelector("field1")),
+			field:     NewFieldSelectorGroup(NewFieldSelector("field1")),
 		},
 	}
 
@@ -402,5 +396,5 @@ func TestValidationIssues_AsError(t *testing.T) {
 
 	validationIssues, err := AsValidationIssues(err)
 	require.NoError(t, err)
-	require.Equal(t, issues, validationIssues)
+	RequireValidationIssuesMatch(t, issues, validationIssues)
 }

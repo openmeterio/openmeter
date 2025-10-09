@@ -73,7 +73,7 @@ func ValidatePlanPhases() models.ValidatorFunc[Plan] {
 		lastPhaseIdx := len(p.Phases) - 1
 
 		for idx, phase := range p.Phases {
-			phaseFieldSelector := models.NewFieldSelectors(
+			phaseFieldSelector := models.NewFieldSelectorGroup(
 				models.NewFieldSelector("phases").
 					WithExpression(
 						models.NewFieldAttrValue("key", phase.Key),
@@ -92,7 +92,7 @@ func ValidatePlanPhases() models.ValidatorFunc[Plan] {
 
 			// Check for duplicated phase keys
 			if _, ok := phaseKeys[phase.Key]; ok {
-				selector := models.NewFieldSelectors(
+				selector := models.NewFieldSelectorGroup(
 					models.NewFieldSelector("phases").
 						WithExpression(
 							models.NewFieldAttrValue("key", phase.Key),
@@ -135,7 +135,7 @@ func ValidatePlanHasAlignedBillingCadences() models.ValidatorFunc[Plan] {
 
 		for _, phase := range p.Phases {
 			for _, rateCard := range phase.RateCards.Billables() {
-				rateCardFieldSelector := models.NewFieldSelectors(
+				rateCardFieldSelector := models.NewFieldSelectorGroup(
 					models.NewFieldSelector("phases").
 						WithExpression(
 							models.NewFieldAttrValue("key", phase.Key),

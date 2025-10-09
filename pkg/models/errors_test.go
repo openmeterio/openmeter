@@ -16,7 +16,7 @@ func TestErrorWrappers(t *testing.T) {
 		{
 			name: "prefix",
 			err: ErrorWithFieldPrefix(
-				NewFieldSelectors(
+				NewFieldSelectorGroup(
 					NewFieldSelector("plan").
 						WithExpression(NewMultiFieldAttrValue(
 							NewFieldAttrValue("key", "pro"),
@@ -24,12 +24,12 @@ func TestErrorWrappers(t *testing.T) {
 						)),
 				),
 				ErrorWithFieldPrefix(
-					NewFieldSelectors(
+					NewFieldSelectorGroup(
 						NewFieldSelector("phases").
 							WithExpression(NewFieldAttrValue("key", "trial")),
 					),
 					ErrorWithFieldPrefix(
-						NewFieldSelectors(
+						NewFieldSelectorGroup(
 							NewFieldSelector("rateCards").
 								WithExpression(NewFieldAttrValue("key", "storage")),
 						),
@@ -43,7 +43,7 @@ func TestErrorWrappers(t *testing.T) {
 			name: "component",
 			err: ErrorWithComponent("openmeter",
 				ErrorWithFieldPrefix(
-					NewFieldSelectors(NewFieldSelector("plan").
+					NewFieldSelectorGroup(NewFieldSelector("plan").
 						WithExpression(NewMultiFieldAttrValue(
 							NewFieldAttrValue("key", "pro"),
 							NewFieldAttrValue("version", "1"),

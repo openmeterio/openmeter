@@ -346,7 +346,7 @@ func (t *MeteredEntitlementTemplate) Validate() error {
 	if err := errors.Join(errs...); err != nil {
 		return models.NewGenericValidationError(
 			models.ErrorWithFieldPrefix(
-				models.NewFieldSelectors(models.NewFieldSelector("entitlementTemplate")),
+				models.NewFieldSelectorGroup(models.NewFieldSelector("entitlementTemplate")),
 				err),
 		)
 	}

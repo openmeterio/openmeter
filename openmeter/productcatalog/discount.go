@@ -174,7 +174,7 @@ func (d *Discounts) Validate() error {
 	if d.Percentage != nil {
 		if err := d.Percentage.Validate(); err != nil {
 			errs = append(errs, models.ErrorWithFieldPrefix(
-				models.NewFieldSelectors(models.NewFieldSelector("percentage")),
+				models.NewFieldSelectorGroup(models.NewFieldSelector("percentage")),
 				err),
 			)
 		}
@@ -183,7 +183,7 @@ func (d *Discounts) Validate() error {
 	if d.Usage != nil {
 		if err := d.Usage.Validate(); err != nil {
 			errs = append(errs, models.ErrorWithFieldPrefix(
-				models.NewFieldSelectors(models.NewFieldSelector("usage")),
+				models.NewFieldSelectorGroup(models.NewFieldSelector("usage")),
 				err),
 			)
 		}
@@ -191,7 +191,7 @@ func (d *Discounts) Validate() error {
 
 	if err := errors.Join(errs...); err != nil {
 		return models.NewGenericValidationError(models.ErrorWithFieldPrefix(
-			models.NewFieldSelectors(models.NewFieldSelector("discounts")),
+			models.NewFieldSelectorGroup(models.NewFieldSelector("discounts")),
 			err),
 		)
 	}
@@ -209,7 +209,7 @@ func (d Discounts) ValidateForPrice(price *Price) error {
 	if d.Percentage != nil {
 		if err := d.Percentage.ValidateForPrice(price); err != nil {
 			errs = append(errs, models.ErrorWithFieldPrefix(
-				models.NewFieldSelectors(models.NewFieldSelector("percentage")),
+				models.NewFieldSelectorGroup(models.NewFieldSelector("percentage")),
 				err),
 			)
 		}
@@ -218,7 +218,7 @@ func (d Discounts) ValidateForPrice(price *Price) error {
 	if d.Usage != nil {
 		if err := d.Usage.ValidateForPrice(price); err != nil {
 			errs = append(errs, models.ErrorWithFieldPrefix(
-				models.NewFieldSelectors(models.NewFieldSelector("usage")),
+				models.NewFieldSelectorGroup(models.NewFieldSelector("usage")),
 				err),
 			)
 		}
@@ -226,7 +226,7 @@ func (d Discounts) ValidateForPrice(price *Price) error {
 
 	if err := errors.Join(errs...); err != nil {
 		return models.NewGenericValidationError(models.ErrorWithFieldPrefix(
-			models.NewFieldSelectors(models.NewFieldSelector("discounts")),
+			models.NewFieldSelectorGroup(models.NewFieldSelector("discounts")),
 			err),
 		)
 	}

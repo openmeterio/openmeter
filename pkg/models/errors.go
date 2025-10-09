@@ -320,7 +320,7 @@ func (s ErrorSeverity) Values() []string {
 }
 
 type fieldPrefixedWrapper struct {
-	prefix FieldSelectors
+	prefix *FieldDescriptor
 	err    error
 }
 
@@ -337,7 +337,7 @@ func (p fieldPrefixedWrapper) Unwrap() error {
 }
 
 // ErrorWithFieldPrefix wraps an error with a field prefix. It returns nil if err is also nil.
-func ErrorWithFieldPrefix(prefix FieldSelectors, err error) error {
+func ErrorWithFieldPrefix(prefix *FieldDescriptor, err error) error {
 	if err == nil {
 		return nil
 	}

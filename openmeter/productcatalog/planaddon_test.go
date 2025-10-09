@@ -595,7 +595,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 			issues, err := test.planAddon.ValidationErrors()
 			assert.NoErrorf(t, err, "expected no error")
 
-			assert.ElementsMatchf(t, test.expectedIssues, issues, "expected issues %v, got %v", test.expectedIssues, issues)
+			models.RequireValidationIssuesMatch(t, test.expectedIssues, issues)
 		})
 	}
 }

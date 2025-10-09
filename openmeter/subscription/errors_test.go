@@ -186,7 +186,8 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 			},
 		}
 
-		err := spec.Validate()
+		specValidateError := spec.Validate()
+		err := specValidateError
 		require.Error(t, err)
 
 		issues, err := models.AsValidationIssues(err)
@@ -199,56 +200,61 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 
 		require.Len(t, issues, 4, "got %s", string(byts))
 
-		require.ElementsMatch(t, []models.ErrorExtension{
-			{
-				"code": subscription.ErrCodeSubscriptionPhaseStartAfterIsNegative,
-				"field": models.NewFieldSelectors(
-					models.NewFieldSelector("phases"),
-					models.NewFieldSelector("phase2"),
-					models.NewFieldSelector("startAfter"),
+		models.RequireValidationIssuesMatch(t, models.ValidationIssues{
+			models.NewValidationIssue(
+				subscription.ErrCodeSubscriptionPhaseStartAfterIsNegative,
+				"subscription phase start after cannot be negative",
+				models.WithField(
+					models.NewFieldSelectorGroup(
+						models.NewFieldSelector("phases"),
+						models.NewFieldSelector("phase2"),
+						models.NewFieldSelector("startAfter"),
+					),
 				),
-				"message":  "subscription phase start after cannot be negative",
-				"severity": "critical",
-			},
-			{
-				"allowed_during_applying_to_spec_error": true,
-				"code":                                  subscription.ErrCodeSubscriptionPhaseHasNoItems,
-				"field": models.NewFieldSelectors(
-					models.NewFieldSelector("phases"),
-					models.NewFieldSelector("phase2"),
-					models.NewFieldSelector("items"),
+			),
+			models.NewValidationIssue(
+				subscription.ErrCodeSubscriptionPhaseHasNoItems,
+				"subscription phase must have at least one item",
+				models.WithField(
+					models.NewFieldSelectorGroup(
+						models.NewFieldSelector("phases"),
+						models.NewFieldSelector("phase2"),
+						models.NewFieldSelector("items"),
+					),
 				),
-				"message":  "subscription phase must have at least one item",
-				"severity": "critical",
-			},
-			{
-				"code":      productcatalog.ErrCodeEntitlementTemplateInvalidIssueAfterResetWithPriority,
-				"component": "rateCard",
-				"field": models.NewFieldSelectors(
-					models.NewFieldSelector("phases"),
-					models.NewFieldSelector("phase1"),
-					models.NewFieldSelector("itemsByKey"),
-					models.NewFieldSelector("item1").WithExpression(models.NewFieldArrIndex(0)),
-					models.NewFieldSelector("entitlementTemplate"),
-					models.NewFieldSelector("issueAfterReset"),
+				subscription.AllowedDuringApplyingToSpecError(),
+			),
+			models.NewValidationIssue(
+				productcatalog.ErrCodeEntitlementTemplateInvalidIssueAfterResetWithPriority,
+				"invalid entitlement template as issue after reset is required if issue after reset priority is set",
+				models.WithField(
+					models.NewFieldSelectorGroup(
+						models.NewFieldSelector("phases"),
+						models.NewFieldSelector("phase1"),
+						models.NewFieldSelector("itemsByKey"),
+						models.NewFieldSelector("item1").WithExpression(models.NewFieldArrIndex(0)),
+						models.NewFieldSelector("entitlementTemplate"),
+						models.NewFieldSelector("issueAfterReset"),
+					),
 				),
-				"message":  "invalid entitlement template as issue after reset is required if issue after reset priority is set",
-				"severity": "warning",
-			},
-			{
-				"code":      productcatalog.ErrCodeRateCardKeyFeatureKeyMismatch,
-				"component": "rateCard",
-				"field": models.NewFieldSelectors(
-					models.NewFieldSelector("phases"),
-					models.NewFieldSelector("phase1"),
-					models.NewFieldSelector("itemsByKey"),
-					models.NewFieldSelector("item1").WithExpression(models.NewFieldArrIndex(0)),
-					models.NewFieldSelector("key"),
+				models.WithComponent("rateCard"),
+				models.WithWarningSeverity(),
+			),
+			models.NewValidationIssue(
+				productcatalog.ErrCodeRateCardKeyFeatureKeyMismatch,
+				"rate card key must match feature key",
+				models.WithField(
+					models.NewFieldSelectorGroup(
+						models.NewFieldSelector("phases"),
+						models.NewFieldSelector("phase1"),
+						models.NewFieldSelector("itemsByKey"),
+						models.NewFieldSelector("item1").WithExpression(models.NewFieldArrIndex(0)),
+						models.NewFieldSelector("key"),
+					),
 				),
-				"message":  "rate card key must match feature key",
-				"severity": "critical",
-			},
-		}, exts)
+				models.WithComponent("rateCard"),
+			),
+		}, issues)
 
 		// Expected issues:
 		// - BillingAnchor is a hours after subscription start hours after subscription startfter subscription start
@@ -258,61 +264,68 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 		// - Phase2 has no items
 
 		t.Run("MapSubscriptionSpecValidationIssueFieldSelectors", func(t *testing.T) {
+			ogErr := specValidateError
+			require.Error(t, ogErr)
+			issues, err := models.AsValidationIssues(ogErr)
+			require.NoError(t, err)
+
 			mapped, err := slicesx.MapWithErr(issues, func(issue models.ValidationIssue) (models.ValidationIssue, error) {
 				return subscription.MapSubscriptionSpecValidationIssueFieldSelectors(issue)
 			})
 
 			require.NoError(t, err)
-			mappedIssues := models.ValidationIssues(mapped)
 
-			exts := mappedIssues.AsErrorExtensions()
-
-			require.ElementsMatch(t, []models.ErrorExtension{
-				{
-					"code": subscription.ErrCodeSubscriptionPhaseStartAfterIsNegative,
-					"field": models.NewFieldSelectors(
-						models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", "phase2")),
-						models.NewFieldSelector("startAfter"),
+			models.RequireValidationIssuesMatch(t, models.ValidationIssues{
+				models.NewValidationIssue(
+					subscription.ErrCodeSubscriptionPhaseStartAfterIsNegative,
+					"subscription phase start after cannot be negative",
+					models.WithField(
+						models.NewFieldSelectorGroup(
+							models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", "phase2")),
+							models.NewFieldSelector("startAfter"),
+						),
 					),
-					"message":  "subscription phase start after cannot be negative",
-					"severity": "critical",
-				},
-				{
-					"allowed_during_applying_to_spec_error": true,
-					"code":                                  subscription.ErrCodeSubscriptionPhaseHasNoItems,
-					"field": models.NewFieldSelectors(
-						models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", "phase2")),
-						models.NewFieldSelector("items"),
+				),
+				models.NewValidationIssue(
+					subscription.ErrCodeSubscriptionPhaseHasNoItems,
+					"subscription phase must have at least one item",
+					models.WithField(
+						models.NewFieldSelectorGroup(
+							models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", "phase2")),
+							models.NewFieldSelector("items"),
+						),
 					),
-					"message":  "subscription phase must have at least one item",
-					"severity": "critical",
-				},
-				{
-					"code":      productcatalog.ErrCodeEntitlementTemplateInvalidIssueAfterResetWithPriority,
-					"component": "rateCard",
-					"field": models.NewFieldSelectors(
-						models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", "phase1")),
-						models.NewFieldSelector("itemsByKey"),
-						models.NewFieldSelector("item1").WithExpression(models.NewFieldArrIndex(0)),
-						models.NewFieldSelector("entitlementTemplate"),
-						models.NewFieldSelector("issueAfterReset"),
+					subscription.AllowedDuringApplyingToSpecError(),
+				),
+				models.NewValidationIssue(
+					productcatalog.ErrCodeEntitlementTemplateInvalidIssueAfterResetWithPriority,
+					"invalid entitlement template as issue after reset is required if issue after reset priority is set",
+					models.WithField(
+						models.NewFieldSelectorGroup(
+							models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", "phase1")),
+							models.NewFieldSelector("itemsByKey"),
+							models.NewFieldSelector("item1").WithExpression(models.NewFieldArrIndex(0)),
+							models.NewFieldSelector("entitlementTemplate"),
+							models.NewFieldSelector("issueAfterReset"),
+						),
 					),
-					"message":  "invalid entitlement template as issue after reset is required if issue after reset priority is set",
-					"severity": "warning",
-				},
-				{
-					"code":      productcatalog.ErrCodeRateCardKeyFeatureKeyMismatch,
-					"component": "rateCard",
-					"field": models.NewFieldSelectors(
-						models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", "phase1")),
-						models.NewFieldSelector("itemsByKey"),
-						models.NewFieldSelector("item1").WithExpression(models.NewFieldArrIndex(0)),
-						models.NewFieldSelector("key"),
+					models.WithComponent("rateCard"),
+					models.WithWarningSeverity(),
+				),
+				models.NewValidationIssue(
+					productcatalog.ErrCodeRateCardKeyFeatureKeyMismatch,
+					"rate card key must match feature key",
+					models.WithField(
+						models.NewFieldSelectorGroup(
+							models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", "phase1")),
+							models.NewFieldSelector("itemsByKey"),
+							models.NewFieldSelector("item1").WithExpression(models.NewFieldArrIndex(0)),
+							models.NewFieldSelector("key"),
+						),
 					),
-					"message":  "rate card key must match feature key",
-					"severity": "critical",
-				},
-			}, exts)
+					models.WithComponent("rateCard"),
+				),
+			}, mapped)
 
 			t.Run("Should not map already mapped issue", func(t *testing.T) {
 				iss := models.NewValidationIssue(
@@ -326,14 +339,15 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 					),
 				)
 
-				ext := iss.AsErrorExtension()
+				require.Equal(t, "$.phases[?(@.key=='phase1')].itemsByKey.item1[0].key", iss.Field().JSONPath())
 
 				mapped, err := subscription.MapSubscriptionSpecValidationIssueFieldSelectors(iss)
 				require.NoError(t, err)
 
-				mappedExt := mapped.AsErrorExtension()
-
-				require.Equal(t, ext, mappedExt)
+				models.RequireValidationIssuesMatch(t,
+					models.ValidationIssues{iss},
+					models.ValidationIssues{mapped},
+				)
 			})
 		})
 	})

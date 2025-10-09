@@ -195,7 +195,7 @@ func (r RateCardMeta) Validate() error {
 		if err := r.TaxConfig.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid tax config: %w",
 				models.ErrorWithFieldPrefix(
-					models.NewFieldSelectors(models.NewFieldSelector("taxConfig")),
+					models.NewFieldSelectorGroup(models.NewFieldSelector("taxConfig")),
 					err),
 			))
 		}
@@ -205,7 +205,7 @@ func (r RateCardMeta) Validate() error {
 		if err := r.Price.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid price: %w",
 				models.ErrorWithFieldPrefix(
-					models.NewFieldSelectors(models.NewFieldSelector("price")),
+					models.NewFieldSelectorGroup(models.NewFieldSelector("price")),
 					err),
 			))
 		}
@@ -607,7 +607,7 @@ func ValidateRateCards() models.ValidatorFunc[RateCards] {
 		rateCardKeys := make(map[string]RateCard)
 
 		for _, rateCard := range ratecards {
-			fieldSelector := models.NewFieldSelectors(
+			fieldSelector := models.NewFieldSelectorGroup(
 				models.NewFieldSelector("ratecards").WithExpression(
 					models.NewFieldAttrValue("key", rateCard.Key())),
 			)
@@ -668,7 +668,7 @@ var ValidateRateCardsShareSameKey = models.ValidatorFunc[RateCardWithOverlay](fu
 		return nil
 	}
 
-	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+	fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
 		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
 
 	if r.base.Key() != r.overlay.Key() {
@@ -687,7 +687,7 @@ var ValidateRateCardsHaveCompatiblePrice = models.ValidatorFunc[RateCardWithOver
 
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
-	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+	fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
 		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
 
 	// Validate Price
@@ -719,7 +719,7 @@ var ValidateRateCardsHaveCompatibleFeatureKey = models.ValidatorFunc[RateCardWit
 
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
-	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+	fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
 		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
 
 	if rMeta.FeatureKey != nil && vMeta.FeatureKey != nil && *rMeta.FeatureKey != *vMeta.FeatureKey {
@@ -736,7 +736,7 @@ var ValidateRateCardsHaveCompatibleFeatureID = models.ValidatorFunc[RateCardWith
 
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
-	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+	fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
 		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
 
 	if rMeta.FeatureID != nil && vMeta.FeatureID != nil && *rMeta.FeatureID != *vMeta.FeatureID {
@@ -755,7 +755,7 @@ var ValidateRateCardsHaveCompatibleBillingCadence = models.ValidatorFunc[RateCar
 
 	rBillingCadence, vBillingCadence := r.base.GetBillingCadence(), r.overlay.GetBillingCadence()
 
-	fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+	fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
 		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
 
 	if rBillingCadence != nil && vBillingCadence != nil && !rBillingCadence.Equal(vBillingCadence) {
@@ -802,7 +802,7 @@ var ValidateRateCardsHaveCompatibleEntitlementTemplate = models.ValidatorFunc[Ra
 
 	err := errors.Join(errs...)
 	if err != nil {
-		fieldSelector := models.NewFieldSelectors(
+		fieldSelector := models.NewFieldSelectorGroup(
 			models.NewFieldSelector("ratecards").
 				WithExpression(models.NewFieldAttrValue("key", r.base.Key())),
 			models.NewFieldSelector("entitlementTemplate"),
@@ -824,14 +824,14 @@ var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWith
 	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
 
 	if rMeta.Discounts.Percentage != nil && vMeta.Discounts.Percentage != nil {
-		fieldSelector := models.NewFieldSelectors(models.NewFieldSelector("discounts"))
+		fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("discounts"))
 
 		errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardPercentageDiscountNotAllowed))
 	}
 
 	err := errors.Join(errs...)
 	if err != nil {
-		fieldSelector := models.NewFieldSelectors(
+		fieldSelector := models.NewFieldSelectorGroup(
 			models.NewFieldSelector("ratecards").
 				WithExpression(models.NewFieldAttrValue("key", r.base.Key())),
 		)
