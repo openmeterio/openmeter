@@ -24,7 +24,7 @@ func errorEncoder() encoder.ErrorEncoder {
 		if err == nil && len(issues) > 0 {
 			// Let's map the FieldSelectors to the public schema
 			mappedIssues, err := slicesx.MapWithErr(issues, func(issue models.ValidationIssue) (models.ValidationIssue, error) {
-				return subscription.MapSubscriptionSpecValidationIssueFieldSelectors(issue)
+				return subscription.MapSubscriptionSpecValidationIssueField(issue)
 			})
 			if err != nil {
 				return false // Server dies if mapping fails

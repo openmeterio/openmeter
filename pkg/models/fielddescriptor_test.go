@@ -7,26 +7,22 @@ import (
 	"github.com/bhmj/jsonslice"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/pkg/treex"
 )
 
 func TestFieldSelector(t *testing.T) {
 	tests := []struct {
 		name             string
-		selector         FieldSelector
+		selector         *FieldDescriptor
 		expectedString   string
 		expectedJSONPath string
 	}{
 		{
-			name:             "empty",
-			selector:         FieldSelector{},
-			expectedString:   "",
-			expectedJSONPath: "",
-		},
-		{
 			name:             "field",
 			selector:         NewFieldSelector("test"),
 			expectedString:   `test`,
-			expectedJSONPath: `test`,
+			expectedJSONPath: `$.test`,
 		},
 		{
 			name: "with attribute",
@@ -35,7 +31,7 @@ func TestFieldSelector(t *testing.T) {
 					NewFieldAttrValue("key", "value"),
 				),
 			expectedString:   `test[key=value]`,
-			expectedJSONPath: `test[?(@.key=='value')]`,
+			expectedJSONPath: `$.test[?(@.key=='value')]`,
 		},
 		{
 			name: "with array index",
@@ -44,7 +40,7 @@ func TestFieldSelector(t *testing.T) {
 					NewFieldArrIndex(1),
 				),
 			expectedString:   `test[1]`,
-			expectedJSONPath: `test[1]`,
+			expectedJSONPath: `$.test[1]`,
 		},
 		{
 			name: "with multiple attributes",
@@ -54,7 +50,7 @@ func TestFieldSelector(t *testing.T) {
 					NewFieldAttrValue("key2", "value2"),
 				)),
 			expectedString:   `test[key=value, key2=value2]`,
-			expectedJSONPath: `test[?(@.key=='value' && @.key2=='value2')]`,
+			expectedJSONPath: `$.test[?(@.key=='value' && @.key2=='value2')]`,
 		},
 	}
 
@@ -72,23 +68,20 @@ func TestFieldSelector(t *testing.T) {
 func TestFieldSelectors(t *testing.T) {
 	tests := []struct {
 		name             string
-		selector         FieldSelectors
+		selector         *FieldDescriptor
+		expectNil        bool
 		expectedString   string
 		expectedJSONPath string
 	}{
 		{
-			name:     "empty",
-			selector: FieldSelectors{},
-		},
-		{
 			name:             "single",
-			selector:         NewFieldSelectors(NewFieldSelector("test")),
+			selector:         NewFieldSelectorGroup(NewFieldSelector("test")),
 			expectedString:   `test`,
 			expectedJSONPath: `$.test`,
 		},
 		{
 			name: "multiple",
-			selector: NewFieldSelectors(
+			selector: NewFieldSelectorGroup(
 				NewFieldSelector("test1").WithExpression(WildCard),
 				NewFieldSelector("test2").
 					WithExpression(
@@ -110,7 +103,7 @@ func TestFieldSelectors(t *testing.T) {
 		},
 		{
 			name: "prefix",
-			selector: NewFieldSelectors(
+			selector: NewFieldSelectorGroup(
 				NewFieldSelector("test3").
 					WithExpression(
 						NewMultiFieldAttrValue(
@@ -119,7 +112,7 @@ func TestFieldSelectors(t *testing.T) {
 						),
 					),
 				NewFieldSelector("test4"),
-			).WithPrefix(NewFieldSelectors(
+			).WithPrefix(NewFieldSelectorGroup(
 				NewFieldSelector("test1"),
 				NewFieldSelector("test2").
 					WithExpression(
@@ -129,10 +122,63 @@ func TestFieldSelectors(t *testing.T) {
 			expectedString:   `test1.test2[key2=value2].test3[key=value, key2=value2].test4`,
 			expectedJSONPath: `$.test1.test2[?(@.key2=='value2')].test3[?(@.key=='value' && @.key2=='value2')].test4`,
 		},
+		{
+			name: "empty groupings",
+			selector: NewFieldSelectorGroup(
+				NewFieldSelectorGroup(
+					NewFieldSelectorGroup(),
+					NewFieldSelectorGroup(),
+				),
+				NewFieldSelectorGroup(
+					NewFieldSelectorGroup(),
+					NewFieldSelectorGroup(),
+					NewFieldSelectorGroup(
+						NewFieldSelectorGroup(),
+						NewFieldSelectorGroup(),
+					),
+				),
+			),
+			expectNil:        true,
+			expectedString:   "",
+			expectedJSONPath: "",
+		},
+		{
+			name: "multiple prefix",
+			selector: NewFieldSelectorGroup(
+				NewFieldSelector("test5").
+					WithExpression(
+						NewMultiFieldAttrValue(
+							NewFieldAttrValue("key", "value"),
+							NewFieldAttrValue("key2", "value2"),
+						),
+					),
+				NewFieldSelector("test6"),
+			).WithPrefix(NewFieldSelectorGroup(
+				NewFieldSelector("test3"),
+				NewFieldSelector("test4").
+					WithExpression(
+						NewFieldAttrValue("key2", "value2"),
+					),
+			)).WithPrefix(NewFieldSelectorGroup(
+				NewFieldSelector("test1").WithExpression(WildCard),
+				NewFieldSelector("test2"),
+			).WithPrefix(
+				NewFieldSelector("test0").WithExpression(NewFieldAttrValue("attr1", "value1")),
+			)),
+			expectedString:   `test0[attr1=value1].test1.test2.test3.test4[key2=value2].test5[key=value, key2=value2].test6`,
+			expectedJSONPath: `$.test0[?(@.attr1=='value1')].test1[*].test2.test3.test4[?(@.key2=='value2')].test5[?(@.key=='value' && @.key2=='value2')].test6`,
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			if test.expectNil {
+				require.Nil(t, test.selector, "selector must be nil")
+				return
+			} else {
+				require.NotNil(t, test.selector, "selector must not be nil")
+			}
+
 			actualString := test.selector.String()
 			assert.Equalf(t, test.expectedString, actualString, "string must be equal")
 
@@ -183,23 +229,23 @@ var testJSON = `
 func TestFieldSelectors_JSONPathQuery(t *testing.T) {
 	tests := []struct {
 		name           string
-		selector       FieldSelectors
+		selector       *FieldDescriptor
 		expectedResult string
 	}{
 		{
 			name: "single",
-			selector: FieldSelectors{
+			selector: NewFieldSelectorGroup(
 				NewFieldSelector("store"),
 				NewFieldSelector("book").WithExpression(
 					NewFieldAttrValue("category", "reference"),
 				),
 				NewFieldSelector("author"),
-			},
+			),
 			expectedResult: `["Nigel Rees"]`,
 		},
 		{
 			name: "multi",
-			selector: FieldSelectors{
+			selector: NewFieldSelectorGroup(
 				NewFieldSelector("store"),
 				NewFieldSelector("book").WithExpression(
 					NewMultiFieldAttrValue(
@@ -208,7 +254,7 @@ func TestFieldSelectors_JSONPathQuery(t *testing.T) {
 					),
 				),
 				NewFieldSelector("author"),
-			},
+			),
 			expectedResult: `["J. R. R. Tolkien"]`,
 		},
 	}
@@ -229,4 +275,89 @@ func TestFieldSelectors_JSONPathQuery(t *testing.T) {
 			assert.Equalf(t, test.expectedResult, string(v), "must be equal")
 		})
 	}
+}
+
+func TestFieldSelectorGroup_WithAttributes(t *testing.T) {
+	t.Run("Should add and retrieve new set of attributes", func(t *testing.T) {
+		selector := NewFieldSelectorGroup(NewFieldSelector("test"))
+
+		desc := selector.WithAttributes(Attributes{
+			"attr1": "value1",
+		})
+
+		assert.Equal(t, Attributes{
+			"attr1": "value1",
+		}, desc.GetAttributes(), "attributes must match")
+	})
+
+	t.Run("Should merge with existing attributes", func(t *testing.T) {
+		selector := NewFieldSelectorGroup(NewFieldSelector("test"))
+		desc := selector.WithAttributes(Attributes{
+			"attr1": "value1",
+		})
+		desc = desc.WithAttributes(Attributes{
+			"attr2": "value2",
+		})
+
+		assert.Equal(t, Attributes{
+			"attr1": "value1",
+			"attr2": "value2",
+		}, desc.GetAttributes(), "attributes must match")
+	})
+
+	t.Run("Should keep attributes on child when prefixing", func(t *testing.T) {
+		sel := NewFieldSelector("someField").WithAttributes(Attributes{
+			"attr1": "value1",
+		})
+
+		pref := NewFieldSelector("myPrefix").WithAttributes(Attributes{
+			"attr2": "value2",
+		})
+
+		full := sel.WithPrefix(pref)
+
+		// we'll compare by field as trees use cloned values
+		visited := make(map[string]bool)
+
+		require.NoError(t, full.Tree(func(tr *FieldDescriptorTree) error {
+			return tr.DFS(func(n *treex.Node[*FieldDescriptor]) (bool, error) {
+				desc := n.Value()
+
+				if desc != nil {
+					visited[desc.field] = true
+				}
+
+				if desc.field == sel.field {
+					assert.Equal(t, Attributes{
+						"attr1": "value1",
+					}, desc.GetAttributes(), "attributes must match, %+v", desc)
+				}
+
+				if desc.field == pref.field {
+					assert.Equal(t, Attributes{
+						"attr2": "value2",
+					}, desc.GetAttributes(), "attributes must match, %+v", desc)
+				}
+
+				return false, nil
+			})
+		}))
+
+		assert.True(t, visited[sel.field], "sel must be visited")
+		assert.True(t, visited[pref.field], "pref must be visited")
+	})
+}
+
+func TestMethodArgumentsStayUnchanged(t *testing.T) {
+	selector := NewFieldSelector("test")
+	selector2 := NewFieldSelector("test2")
+	selector3 := NewFieldSelector("test3")
+
+	prefixed := selector.WithPrefix(selector2)
+	prefixed2 := prefixed.WithPrefix(selector3)
+
+	assert.Equal(t, "$.test", selector.JSONPath())
+	assert.Equal(t, "$.test2", selector2.JSONPath())
+	assert.Equal(t, "$.test2.test", prefixed.JSONPath())
+	assert.Equal(t, "$.test3.test2.test", prefixed2.JSONPath())
 }

@@ -280,7 +280,7 @@ func ValidateAddonHasSingleBillingCadence() models.ValidatorFunc[Addon] {
 		}
 
 		return models.ErrorWithFieldPrefix(
-			models.NewFieldSelectors(models.NewFieldSelector("ratecards").WithExpression(models.WildCard)),
+			models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").WithExpression(models.WildCard)),
 			ErrRateCardMultipleBillingCadence,
 		)
 	}
@@ -295,7 +295,7 @@ func ValidateAddonHasCompatiblePrices() models.ValidatorFunc[Addon] {
 			for _, rc := range a.RateCards {
 				if price := rc.AsMeta().Price; price != nil && price.Type() != FlatPriceType {
 					return models.ErrorWithFieldPrefix(
-						models.NewFieldSelectors(models.NewFieldSelector("ratecards").
+						models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
 							WithExpression(models.NewFieldAttrValue("key", rc.Key()))),
 						ErrAddonInvalidPriceForMultiInstance,
 					)

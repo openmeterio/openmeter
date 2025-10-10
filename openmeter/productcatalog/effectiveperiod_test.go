@@ -83,7 +83,8 @@ func TestEffectivePeriod_Validate(t *testing.T) {
 
 				issues, err := models.AsValidationIssues(err)
 				assert.NoError(t, err)
-				assert.Equalf(t, test.ExpectedValidationIssues, issues, "expected validation issues %v, got %v", test.ExpectedValidationIssues, issues)
+
+				models.RequireValidationIssuesMatch(t, test.ExpectedValidationIssues, issues)
 			} else {
 				assert.NoErrorf(t, test.EffectivePeriod.Validate(), "expected valid effective period")
 			}

@@ -28,6 +28,10 @@ const (
 	subscriptionPatchErrAttrNameAllowedDuringApplyingToSpecError = "allowed_during_applying_to_spec_error"
 )
 
+func AllowedDuringApplyingToSpecError() models.ValidationIssueOption {
+	return models.WithAttribute(subscriptionPatchErrAttrNameAllowedDuringApplyingToSpecError, true)
+}
+
 func NewAppliesToSpec(fn func(spec *SubscriptionSpec, actx ApplyContext) error) AppliesToSpec {
 	return &someAppliesToSpec{
 		Fn: fn,

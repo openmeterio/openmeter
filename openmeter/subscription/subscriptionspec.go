@@ -333,9 +333,8 @@ func (s *SubscriptionSpec) ValidateAlignment() error {
 	for _, phase := range s.GetSortedPhases() {
 		for _, itemsByKey := range phase.GetBillableItemsByKey() {
 			for idx, item := range itemsByKey {
-				fieldSelector := models.NewFieldSelectors(
-					models.NewFieldSelector("phases"),
-					models.NewFieldSelector(phase.PhaseKey),
+				fieldSelector := models.NewFieldSelectorGroup(
+					phase.FieldDescriptor(),
 					models.NewFieldSelector("itemsByKey"),
 					models.NewFieldSelector(item.ItemKey).
 						WithExpression(models.NewFieldArrIndex(idx)),
@@ -490,15 +489,21 @@ func (s SubscriptionPhaseSpec) SyncAnnotations() error {
 	return nil
 }
 
+func (s SubscriptionPhaseSpec) FieldDescriptor() *models.FieldDescriptor {
+	return models.NewFieldSelectorGroup(
+		models.NewFieldSelector("phases"),
+		models.NewFieldSelector(s.PhaseKey),
+	).WithAttributes(models.Attributes{
+		PhaseDescriptor: true,
+	})
+}
+
 func (s SubscriptionPhaseSpec) Validate(
 	phaseCadence models.CadencedModel,
 ) error {
 	var errs []error
 
-	phaseSelector := models.NewFieldSelectors(
-		models.NewFieldSelector("phases"),
-		models.NewFieldSelector(s.PhaseKey),
-	)
+	phaseSelector := s.FieldDescriptor()
 
 	// Phase StartAfter really should not be negative
 	if s.StartAfter.IsNegative() {
@@ -513,25 +518,24 @@ func (s SubscriptionPhaseSpec) Validate(
 	if len(flat) == 0 {
 		errs = append(errs, models.ErrorWithFieldPrefix(
 			phaseSelector,
-			ErrSubscriptionPhaseHasNoItems.WithAttr(
-				subscriptionPatchErrAttrNameAllowedDuringApplyingToSpecError,
-				true,
+			ErrSubscriptionPhaseHasNoItems.With(
+				AllowedDuringApplyingToSpecError(),
 			),
 		))
 	}
 
 	for key, items := range s.ItemsByKey {
 		for idx, item := range items {
-			itemSelector := models.NewFieldSelectors(
+			itemSelector := models.NewFieldSelectorGroup(
 				models.NewFieldSelector("itemsByKey"),
 				models.NewFieldSelector(key).
 					WithExpression(models.NewFieldArrIndex(idx)),
-			).WithPrefix(phaseSelector)
+			)
 
 			// Let's validate key is correct
 			if item.ItemKey != key {
 				errs = append(errs, models.ErrorWithFieldPrefix(
-					itemSelector,
+					itemSelector.WithPrefix(phaseSelector),
 					ErrSubscriptionPhaseItemHistoryKeyMismatch,
 				))
 			}
@@ -539,7 +543,7 @@ func (s SubscriptionPhaseSpec) Validate(
 			// Let's validate the phase linking is correct
 			if item.PhaseKey != s.PhaseKey {
 				errs = append(errs, models.ErrorWithFieldPrefix(
-					itemSelector,
+					itemSelector.WithPrefix(phaseSelector),
 					ErrSubscriptionPhaseItemKeyMismatchWithPhaseKey,
 				))
 			}
@@ -547,7 +551,7 @@ func (s SubscriptionPhaseSpec) Validate(
 			// Let's validate the item contents
 			if err := item.Validate(); err != nil {
 				errs = append(errs, models.ErrorWithFieldPrefix(
-					itemSelector,
+					itemSelector.WithPrefix(phaseSelector),
 					err,
 				))
 			}

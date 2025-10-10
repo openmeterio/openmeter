@@ -36,15 +36,23 @@ func (a PatchAddItem) Validate() error {
 	}
 
 	if err := a.CreateInput.Validate(); err != nil {
-		return models.ErrorWithFieldPrefix(models.NewFieldSelectors(
-			models.NewFieldSelector("phases"),
-			models.NewFieldSelector(a.PhaseKey),
-			models.NewFieldSelector("items"),
-			models.NewFieldSelector(a.ItemKey),
-		), err)
+		return models.ErrorWithFieldPrefix(a.FieldDescriptor(), err)
 	}
 
 	return nil
+}
+
+func (a PatchAddItem) FieldDescriptor() *models.FieldDescriptor {
+	return models.NewFieldSelectorGroup(
+		models.NewFieldSelectorGroup(
+			models.NewFieldSelector("phases"),
+			models.NewFieldSelector(a.PhaseKey),
+		).WithAttributes(models.Attributes{
+			subscription.PhaseDescriptor: true,
+		}),
+		models.NewFieldSelector("items"),
+		models.NewFieldSelector(a.ItemKey),
+	)
 }
 
 func (a PatchAddItem) ValueAsAny() any {
