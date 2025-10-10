@@ -404,6 +404,17 @@ func TestAddonService(t *testing.T) {
 					require.NotNil(t, deletedAddonV2, "deleted add-on version must not be empty")
 
 					assert.NotNilf(t, deletedAddonV2.DeletedAt, "deletedAt must not be empty")
+
+					err = env.Addon.DeleteAddon(ctx, deleteInput)
+					require.NoErrorf(t, err, "deleting add-on must not fail")
+
+					deletedAddonV2Next, err := env.Addon.GetAddon(ctx, addon.GetAddonInput{
+						NamespacedID: addonV2.NamespacedID,
+					})
+					require.NoErrorf(t, err, "getting deleted add-on version must not fail")
+					require.NotNil(t, deletedAddonV2Next, "deleted add-on version must not be empty")
+
+					assert.Truef(t, deletedAddonV2.DeletedAt.Equal(*deletedAddonV2Next.DeletedAt), "deletedAt field must not be updated")
 				})
 			})
 		})
