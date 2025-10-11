@@ -7,13 +7,14 @@ input:
       let max_subjects = ${SEEDER_MAX_SUBJECTS:20}
       let event_type = "tokens"
       let source = "api-gateway"
-      let models = ["gpt-3", "gpt-4"]
-      let types = ["input", "output"]
+      let models = ["gpt-5", "gpt-5-mini", "gpt-5-nano"]
+      let types = ["input", "output", "cache_read"]
       let subject = "customer-%d".format(random_int(seed: timestamp_unix_nano()) % $max_subjects)
       let time = now().ts_format()
+      let provider = "openai"
       let model = $models.index(random_int(seed: timestamp_unix_nano()) % $models.length())
       let type = $types.index(random_int(seed: timestamp_unix_nano()) % $types.length())
-      let tokens = random_int(seed: timestamp_unix_nano(), max: 100)
+      let tokens = random_int(seed: timestamp_unix_nano(), max: 100000)
       root = {
         "id": uuid_v4(),
         "specversion": "1.0",
@@ -22,6 +23,7 @@ input:
         "subject": $subject,
         "time": $time,
         "data": {
+          "provider": $provider,
           "model": $model,
           "type": $type,
           "tokens": $tokens,

@@ -2,7 +2,9 @@ package httpdriver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -158,6 +160,34 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 				costPerUnit = line.Totals.Amount.Div(*line.UsageBased.Quantity)
 			}
 
+			// TODO: This should be a dependency of the handler
+			// Get token cost
+			modelDev := ModelCostProvider{}
+			if err := modelDev.initialize(); err != nil {
+				return GetInvoiceLineCostResponse{}, fmt.Errorf("failed to initialize model dev: %w", err)
+			}
+
+			totalInternalCost := alpacadecimal.NewFromInt(0)
+			internalCostPerUnit := alpacadecimal.NewFromInt(0)
+
+			// TODO: store cost on the feature
+			// If the row has a provider, model, and type, we can calculate the internal cost per unit
+			providerFilter, hasProviderFilter := feature.MeterGroupByFilters["provider"]
+			modelFilter, hasModelFilter := feature.MeterGroupByFilters["model"]
+			modelTypeFilter, hasModelTypeFilter := feature.MeterGroupByFilters["type"]
+
+			if hasProviderFilter && hasModelFilter && hasModelTypeFilter {
+				// TODO filter models properly
+				provider := providerFilter.Eq
+				model := modelFilter.Eq
+				costType := modelTypeFilter.Eq
+
+				internalCostPerUnitFloat64, err := modelDev.getModelUnitCost(*provider, *model, CostType(*costType))
+				if err == nil {
+					internalCostPerUnit = alpacadecimal.NewFromFloat(internalCostPerUnitFloat64)
+				}
+			}
+
 			// Calculate the cost for each window
 			rows := make([]api.InvoiceLineCostRow, 0, len(usageRows))
 
@@ -165,24 +195,41 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 				usage := alpacadecimal.NewFromFloat(row.Value)
 				cost := usage.Mul(costPerUnit)
 
-				rows = append(rows, api.InvoiceLineCostRow{
+				row := api.InvoiceLineCostRow{
 					WindowStart: row.WindowStart,
 					WindowEnd:   row.WindowEnd,
 					Usage:       usage.String(),
 					Cost:        cost.String(),
+					CostPerUnit: costPerUnit.String(),
 					GroupBy:     row.GroupBy,
-				})
+				}
+
+				if !internalCostPerUnit.IsZero() {
+					internalCost := internalCostPerUnit.Mul(usage)
+					row.InternalCostPerUnit = lo.ToPtr(internalCostPerUnit.String())
+					row.InternalCost = lo.ToPtr(internalCost.String())
+					totalInternalCost = totalInternalCost.Add(internalCost)
+				}
+
+				rows = append(rows, row)
 			}
 
-			return api.InvoiceLineCost{
+			response := api.InvoiceLineCost{
 				From:        line.Period.Start,
 				To:          line.Period.End,
 				Currency:    string(line.Currency),
 				CostPerUnit: costPerUnit.String(),
-				TotalUsage:  line.UsageBased.Quantity.String(),
-				TotalCost:   line.Totals.Amount.String(),
+				Usage:       line.UsageBased.Quantity.String(),
+				Cost:        line.Totals.Amount.String(),
 				Rows:        rows,
-			}, nil
+			}
+
+			if !totalInternalCost.IsZero() {
+				response.InternalCost = lo.ToPtr(totalInternalCost.String())
+				response.InternalCostPerUnit = lo.ToPtr(totalInternalCost.Div(*line.UsageBased.Quantity).String())
+			}
+
+			return response, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetInvoiceLineCostResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -192,3 +239,76 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 		)...,
 	)
 }
+
+type ModelCostProvider struct {
+	providers map[string]Provider
+}
+
+func (m *ModelCostProvider) initialize() error {
+	url := "https://models.dev/api.json"
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("error fetching JSON: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error reading response: %w", err)
+	}
+
+	// Use a generic structure since we don’t know the schema
+	var data ModelsDevResponse
+	if err := json.Unmarshal(body, &data); err != nil {
+		return fmt.Errorf("error parsing JSON: %w", err)
+	}
+
+	m.providers = data
+
+	return nil
+}
+
+// getModelUnitCost gets the unit cost of a model for a given cost type
+func (m ModelCostProvider) getModelUnitCost(providerID string, modelID string, costType CostType) (float64, error) {
+	provider, ok := m.providers[providerID]
+	if !ok {
+		return 0, models.NewGenericNotFoundError(fmt.Errorf("provider not found: %s", providerID))
+	}
+
+	model, ok := provider.Models[modelID]
+	if !ok {
+		return 0, models.NewGenericNotFoundError(fmt.Errorf("model not found: %s", modelID))
+	}
+
+	cost, ok := model.Cost[costType]
+	if !ok {
+		return 0, models.NewGenericNotFoundError(fmt.Errorf("cost type not found: %s", costType))
+	}
+
+	// Cost is per million tokens so we need to divide
+	return cost / 1000000, nil
+}
+
+type ModelsDevResponse map[string]Provider
+
+type Provider struct {
+	Models map[string]Model `json:"models"`
+}
+
+type Model struct {
+	ID   string    `json:"id"`
+	Name string    `json:"name"`
+	Cost ModelCost `json:"cost"`
+}
+
+type ModelCost map[CostType]float64
+
+type CostType string
+
+const (
+	CostTypeInputToken  CostType = "input"
+	CostTypeOutputToken CostType = "output"
+	CostTypeCacheRead   CostType = "cache_read"
+	CostTypeCacheWrite  CostType = "cache_write"
+)

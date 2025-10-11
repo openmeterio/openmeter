@@ -19263,8 +19263,8 @@ components:
         - from
         - to
         - costPerUnit
-        - totalUsage
-        - totalCost
+        - usage
+        - cost
         - currency
         - rows
       properties:
@@ -19282,11 +19282,19 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: The cost per unit of the feature for the invoice.
-        totalUsage:
+        internalCostPerUnit:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The internal cost per unit of the feature for the invoice.
+        internalCost:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total internal cost of the feature for the invoice.
+        usage:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: The total usage of the feature for the invoice.
-        totalCost:
+        cost:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: The total cost of the feature for the invoice.
@@ -19307,6 +19315,7 @@ components:
         - windowEnd
         - usage
         - cost
+        - costPerUnit
         - groupBy
       properties:
         windowStart:
@@ -19327,6 +19336,18 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: The cost of the feature for the invoice.
+        costPerUnit:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The cost per unit of the feature for the invoice.
+        internalCost:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The internal cost of the feature for the invoice.
+        internalCostPerUnit:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The internal cost per unit of the feature for the invoice.
         groupBy:
           type: object
           additionalProperties:

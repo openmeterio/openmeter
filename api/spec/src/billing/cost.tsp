@@ -55,14 +55,24 @@ model InvoiceLineCost {
   costPerUnit: Numeric;
 
   /**
+   * The internal cost per unit of the feature for the invoice.
+   */
+  internalCostPerUnit?: Numeric;
+
+  /**
+   * The total internal cost of the feature for the invoice.
+   */
+  internalCost?: Numeric;
+
+  /**
    * The total usage of the feature for the invoice.
    */
-  totalUsage: Numeric;
+  usage: Numeric;
 
   /**
    * The total cost of the feature for the invoice.
    */
-  totalCost: Numeric;
+  cost: Numeric;
 
   /**
    * Currency of the cost.
@@ -99,6 +109,21 @@ model InvoiceLineCostRow {
    * The cost of the feature for the invoice.
    */
   cost: Numeric;
+
+  /**
+   * The cost per unit of the feature for the invoice.
+   */
+  costPerUnit: Numeric;
+
+  /**
+   * The internal cost of the feature for the invoice.
+   */
+  internalCost?: Numeric;
+
+  /**
+   * The internal cost per unit of the feature for the invoice.
+   */
+  internalCostPerUnit?: Numeric;
 
   /**
    * The group by values the value is aggregated over.
