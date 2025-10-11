@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -327,6 +328,10 @@ func (s service) DeleteAddon(ctx context.Context, params addon.DeleteAddonInput)
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get add-on: %w", err)
+		}
+
+		if add.DeletedAt != nil && add.DeletedAt.Before(clock.Now()) {
+			return nil, nil
 		}
 
 		if add.Plans == nil {
