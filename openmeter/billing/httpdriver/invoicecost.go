@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -107,9 +108,9 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 			}
 
 			// Convert the feature's meter group by filters to a map of filter group by
-			meterGroupByFilters := make(map[string][]string)
+			meterGroupByFilters := make(map[string]filter.FilterString)
 			for k, v := range feature.MeterGroupByFilters {
-				meterGroupByFilters[k] = []string{v}
+				meterGroupByFilters[k] = v
 			}
 
 			// Get the customer
@@ -128,7 +129,7 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 			meterQueryParams := streaming.QueryParams{
 				From:           &line.Period.Start,
 				To:             &line.Period.End,
-				FilterGroupBy:  meterGroupByFilters,
+				FilterGroupBy:  feature.MeterGroupByFilters,
 				FilterCustomer: []streaming.Customer{*customer},
 				// We ignore late events because the data is ingested after the invoice is collected
 				IgnoreLateEvents: invoice.CollectionAt,
