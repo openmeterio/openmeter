@@ -379,6 +379,10 @@ func NewRouter(config Config) (*Router, error) {
 		config.Billing,
 		config.App,
 		config.AppStripe,
+		config.StreamingConnector,
+		config.FeatureConnector,
+		config.MeterManageService,
+		config.Customer,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
