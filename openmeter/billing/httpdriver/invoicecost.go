@@ -185,7 +185,7 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 					internalCost := internalCostPerUnit.Mul(usage)
 					totalInternalCost = totalInternalCost.Add(internalCost)
 					margin := cost.Sub(internalCost)
-					marginRate := margin.Div(cost)
+					marginRate := alpacadecimal.NewFromInt(1).Sub(internalCost.Div(cost))
 
 					row.InternalCostPerUnit = lo.ToPtr(internalCostPerUnit.String())
 					row.InternalCost = lo.ToPtr(internalCost.String())
@@ -211,7 +211,7 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 
 			if !totalInternalCost.IsZero() {
 				margin := line.Totals.Amount.Sub(totalInternalCost)
-				marginRate := margin.Div(line.Totals.Amount)
+				marginRate := alpacadecimal.NewFromInt(1).Sub(totalInternalCost.Div(cost))
 				internalCostPerUnit := totalInternalCost.Div(cost)
 
 				response.InternalCost = lo.ToPtr(totalInternalCost.String())
