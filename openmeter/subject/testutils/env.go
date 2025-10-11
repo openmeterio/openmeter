@@ -101,7 +101,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, meterAdapter, "meter adapter must not be nil")
 
 	// Init feature service
-	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
+	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger, &productcatalogadapter.ModelCostProvider{})
 	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
 
 	// Entitlement Adapter

@@ -88,7 +88,7 @@ func setupDependencies(t *testing.T) Dependencies {
 	tracer := noop.NewTracerProvider().Tracer("test")
 
 	// Init product catalog
-	featureRepo := productcatalogrepo.NewPostgresFeatureRepo(dbClient, log)
+	featureRepo := productcatalogrepo.NewPostgresFeatureRepo(dbClient, log, &productcatalogrepo.ModelCostProvider{})
 
 	meters := []meter.Meter{
 		{

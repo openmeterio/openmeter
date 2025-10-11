@@ -50,6 +50,16 @@ model InvoiceLineCost {
   to: DateTime;
 
   /**
+   * The total usage of the feature for the invoice.
+   */
+  usage: Numeric;
+
+  /**
+   * The total cost of the feature for the invoice.
+   */
+  cost: Numeric;
+
+  /**
    * The cost per unit of the feature for the invoice.
    */
   costPerUnit: Numeric;
@@ -65,14 +75,16 @@ model InvoiceLineCost {
   internalCost?: Numeric;
 
   /**
-   * The total usage of the feature for the invoice.
+   * The margin of the feature for the invoice.
+   * Calculated as cost - internalCost.
    */
-  usage: Numeric;
+  margin?: Numeric;
 
   /**
-   * The total cost of the feature for the invoice.
+   * The margin rate of the feature for the invoice.
+   * Calculated as 1 - (internal cost / cost).
    */
-  cost: Numeric;
+  marginRate?: Numeric;
 
   /**
    * Currency of the cost.
@@ -124,6 +136,18 @@ model InvoiceLineCostRow {
    * The internal cost per unit of the feature for the invoice.
    */
   internalCostPerUnit?: Numeric;
+
+  /**
+   * The margin of the feature for the invoice.
+   * Calculated as cost - internalCost.
+   */
+  margin?: Numeric;
+
+  /**
+   * The margin rate of the feature for the invoice.
+   * Calculated as 1 - (internal cost / cost).
+   */
+  marginRate?: Numeric;
 
   /**
    * The group by values the value is aggregated over.

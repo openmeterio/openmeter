@@ -106,7 +106,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	pgDriver := testdb.PGDriver
 	entDriver := testdb.EntDriver
 
-	featureRepo := productcatalog_postgresadapter.NewPostgresFeatureRepo(dbClient, testLogger)
+	featureRepo := productcatalog_postgresadapter.NewPostgresFeatureRepo(dbClient, testLogger, &productcatalog_postgresadapter.ModelCostProvider{})
 	entitlementRepo := entitlement_postgresadapter.NewPostgresEntitlementRepo(dbClient)
 	usageResetRepo := entitlement_postgresadapter.NewPostgresUsageResetRepo(dbClient)
 	grantRepo := credit_postgres_adapter.NewPostgresGrantRepo(dbClient)

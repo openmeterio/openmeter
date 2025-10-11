@@ -17127,6 +17127,10 @@ components:
                 - gpt-4o
             type:
               $eq: input
+        costPerUnit:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The internal cost per unit of the feature, if known.
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -17194,6 +17198,10 @@ components:
                 - gpt-4o
             type:
               $eq: input
+        costPerUnit:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The internal cost per unit of the feature, if known.
       description: |-
         Represents a feature that can be enabled or disabled for a plan.
         Used both for product catalog and entitlements.

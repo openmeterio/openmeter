@@ -17617,6 +17617,10 @@ components:
                 - gpt-4o
             type:
               $eq: input
+        costPerUnit:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The internal cost per unit of the feature, if known.
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -17684,6 +17688,10 @@ components:
                 - gpt-4o
             type:
               $eq: input
+        costPerUnit:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The internal cost per unit of the feature, if known.
       description: |-
         Represents a feature that can be enabled or disabled for a plan.
         Used both for product catalog and entitlements.
@@ -19262,9 +19270,9 @@ components:
       required:
         - from
         - to
-        - costPerUnit
         - usage
         - cost
+        - costPerUnit
         - currency
         - rows
       properties:
@@ -19278,6 +19286,14 @@ components:
           format: date-time
           description: The end of the period the value is aggregated over.
           example: '2023-01-01T01:01:01.001Z'
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total usage of the feature for the invoice.
+        cost:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total cost of the feature for the invoice.
         costPerUnit:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -19290,14 +19306,18 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: The total internal cost of the feature for the invoice.
-        usage:
+        margin:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The total usage of the feature for the invoice.
-        cost:
+          description: |-
+            The margin of the feature for the invoice.
+            Calculated as cost - internalCost.
+        marginRate:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The total cost of the feature for the invoice.
+          description: |-
+            The margin rate of the feature for the invoice.
+            Calculated as 1 - (internal cost / cost).
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
@@ -19348,6 +19368,18 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: The internal cost per unit of the feature for the invoice.
+        margin:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The margin of the feature for the invoice.
+            Calculated as cost - internalCost.
+        marginRate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The margin rate of the feature for the invoice.
+            Calculated as 1 - (internal cost / cost).
         groupBy:
           type: object
           additionalProperties:

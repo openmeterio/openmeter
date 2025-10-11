@@ -32,6 +32,7 @@ var ProductCatalog = wire.NewSet(
 
 var Feature = wire.NewSet(
 	NewFeatureConnector,
+	NewModelCostProvider,
 )
 
 var Plan = wire.NewSet(
@@ -46,13 +47,18 @@ var PlanAddon = wire.NewSet(
 	NewPlanAddonService,
 )
 
+func NewModelCostProvider() (*productcatalogpgadapter.ModelCostProvider, error) {
+	return productcatalogpgadapter.NewModelCostProvider()
+}
+
 func NewFeatureConnector(
 	logger *slog.Logger,
 	db *entdb.Client,
 	meterService meter.Service,
 	publisher eventbus.Publisher,
+	modelCostProvider *productcatalogpgadapter.ModelCostProvider,
 ) feature.FeatureConnector {
-	featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(db, logger)
+	featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(db, logger, modelCostProvider)
 	return feature.NewFeatureConnector(featureRepo, meterService, publisher)
 }
 

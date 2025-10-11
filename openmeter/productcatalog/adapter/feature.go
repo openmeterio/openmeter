@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
@@ -22,18 +23,21 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/samber/lo"
 )
 
 // Adapter implements remote connector interface as driven port.
 type featureDBAdapter struct {
-	logger *slog.Logger
-	db     *db.Client
+	logger            *slog.Logger
+	db                *db.Client
+	modelCostProvider *ModelCostProvider
 }
 
-func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger) feature.FeatureRepo {
+func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger, modelCostProvider *ModelCostProvider) feature.FeatureRepo {
 	return &featureDBAdapter{
-		db:     db,
-		logger: logger,
+		db:                db,
+		logger:            logger,
+		modelCostProvider: modelCostProvider,
 	}
 }
 
@@ -57,7 +61,10 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 		return feature.Feature{}, err
 	}
 
-	return MapFeatureEntity(entity), nil
+	feature := MapFeatureEntity(entity)
+	feature = c.mapCost(feature)
+
+	return feature, nil
 }
 
 func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*feature.Feature, error) {
@@ -82,6 +89,9 @@ func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, i
 	}
 
 	res := MapFeatureEntity(entities[0])
+
+	// Map the cost
+	res = c.mapCost(res)
 
 	return &res, nil
 }
@@ -217,7 +227,9 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 
 		mapped := make([]feature.Feature, 0, len(entities))
 		for _, entity := range entities {
-			mapped = append(mapped, MapFeatureEntity(entity))
+			f := MapFeatureEntity(entity)
+			f = c.mapCost(f)
+			mapped = append(mapped, f)
 		}
 
 		response.Items = mapped
@@ -232,6 +244,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 	list := make([]feature.Feature, 0, len(paged.Items))
 	for _, entity := range paged.Items {
 		f := MapFeatureEntity(entity)
+		f = c.mapCost(f)
 		list = append(list, f)
 	}
 
@@ -261,6 +274,37 @@ func MapFeatureEntity(entity *db.Feature) feature.Feature {
 	} else if len(entity.MeterGroupByFilters) > 0 {
 		f.MeterGroupByFilters = feature.ConvertMapStringToMeterGroupByFilters(entity.MeterGroupByFilters)
 	}
+
+	return f
+}
+
+// TODO: use user provided cost per unit if available
+// mapCost maps the cost of a feature
+func (c *featureDBAdapter) mapCost(f feature.Feature) feature.Feature {
+	if f.MeterGroupByFilters == nil {
+		return f
+	}
+
+	providerFilter, hasProviderFilter := f.MeterGroupByFilters["provider"]
+	modelFilter, hasModelFilter := f.MeterGroupByFilters["model"]
+	costTypeFilter, hasCostTypeFilter := f.MeterGroupByFilters["type"]
+
+	if !hasProviderFilter || !hasModelFilter || !hasCostTypeFilter {
+		return f
+	}
+
+	// FIXME: filter models properly
+	provider := *providerFilter.Eq
+	model := *modelFilter.Eq
+	costType := *costTypeFilter.Eq
+
+	cost, err := c.modelCostProvider.GetModelUnitCost(provider, model, CostType(costType))
+	if err != nil {
+		c.logger.Debug("model cost not found", "provider", provider, "model", model, "type", costType, "error", err)
+		fmt.Println(f.Name, "model cost not found", "provider", provider, "model", model, "type", costType, "error", err)
+		return f
+	}
+	f.CostPerUnit = lo.ToPtr(alpacadecimal.NewFromFloat(cost))
 
 	return f
 }

@@ -58,7 +58,7 @@ func setup(t *testing.T) (deps deps, cleanup func()) {
 	}
 
 	deps.entRepo = adapter.NewPostgresEntitlementRepo(dbClient)
-	deps.featureRepo = featureadapter.NewPostgresFeatureRepo(dbClient, logger)
+	deps.featureRepo = featureadapter.NewPostgresFeatureRepo(dbClient, logger, &featureadapter.ModelCostProvider{})
 
 	// customer adapter for creating customers in tests
 	custAdapter, err := customeradapter.New(customeradapter.Config{Client: dbClient, Logger: logger})
