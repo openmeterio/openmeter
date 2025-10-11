@@ -28,7 +28,7 @@ func MapFeatureToResponse(f feature.Feature) api.Feature {
 	}
 
 	if f.CostPerUnit != nil {
-		feature.CostPerUnit = lo.ToPtr(api.Numeric((*f.CostPerUnit).String()))
+		feature.CostPerUnit = lo.ToPtr((*f.CostPerUnit).String())
 	}
 
 	return feature

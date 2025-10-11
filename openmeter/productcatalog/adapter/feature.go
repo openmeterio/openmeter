@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
@@ -23,7 +24,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/samber/lo"
 )
 
 // Adapter implements remote connector interface as driven port.
