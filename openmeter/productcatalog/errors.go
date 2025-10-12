@@ -2,11 +2,13 @@ package productcatalog
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -19,6 +21,7 @@ var ErrPlanAddonIncompatibleStatus = models.NewValidationIssue(
 	"plan status is incompatible with the addon status",
 	models.WithFieldString("status"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanAddonMaxQuantityMustBeSet models.ErrorCode = "plan_addon_max_quantity_must_be_set"
@@ -28,6 +31,7 @@ var ErrPlanAddonMaxQuantityMustBeSet = models.NewValidationIssue(
 	"maximum quantity must be set to positive number for add-on with multiple instance type",
 	models.WithFieldString("maxQuantity"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanAddonMaxQuantityMustNotBeSet models.ErrorCode = "plan_addon_max_quantity_must_not_be_set"
@@ -37,6 +41,7 @@ var ErrPlanAddonMaxQuantityMustNotBeSet = models.NewValidationIssue(
 	"maximum quantity must not be set for add-on with single instance type",
 	models.WithFieldString("maxQuantity"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanAddonCurrencyMismatch models.ErrorCode = "plan_addon_currency_mismatch"
@@ -46,6 +51,7 @@ var ErrPlanAddonCurrencyMismatch = models.NewValidationIssue(
 	"currency of the plan and addon must match",
 	models.WithFieldString("currency"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanAddonUnknownPlanPhaseKey models.ErrorCode = "plan_addon_unknown_plan_phase_key"
@@ -102,6 +108,7 @@ var ErrRateCardFeatureIDMismatch = models.NewValidationIssue(
 	"feature identifiers id must match",
 	models.WithFieldString("featureId"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeRateCardFeatureKeyMismatch models.ErrorCode = "rate_card_feature_key_mismatch"
@@ -111,6 +118,7 @@ var ErrRateCardFeatureKeyMismatch = models.NewValidationIssue(
 	"feature key must match",
 	models.WithFieldString("featureKey"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeRateCardBillingCadenceMismatch models.ErrorCode = "rate_card_billing_cadence_mismatch"
@@ -120,6 +128,7 @@ var ErrRateCardBillingCadenceMismatch = models.NewValidationIssue(
 	"billing cadence must match",
 	models.WithFieldString("billingCadence"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeRateCardEntitlementTemplateTypeMismatch models.ErrorCode = "rate_card_entitlement_template_type_mismatch"
@@ -129,6 +138,7 @@ var ErrRateCardEntitlementTemplateTypeMismatch = models.NewValidationIssue(
 	"entitlement template type must match",
 	models.WithFieldString("type"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeRateCardStaticEntitlementTemplateNotAllowed models.ErrorCode = "rate_card_static_entitlement_template_not_allowed"
@@ -147,6 +157,7 @@ var ErrRateCardMeteredEntitlementTemplateUsagePeriodMismatch = models.NewValidat
 	"usage period for metered entitlement template must match",
 	models.WithFieldString("usagePeriod"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeRateCardPercentageDiscountNotAllowed models.ErrorCode = "rate_card_percentage_discount_not_allowed"
@@ -174,6 +185,7 @@ var ErrRateCardEntitlementTemplateWithNoFeature = models.NewValidationIssue(
 	"entitlement template requires feature to be associated with",
 	models.WithFieldString("featureKey"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeEffectivePeriodFromAfterTo models.ErrorCode = "effective_period_from_after_to"
@@ -183,6 +195,7 @@ var ErrEffectivePeriodFromAfterTo = models.NewValidationIssue(
 	"effectiveFrom is after effectiveTo",
 	models.WithFieldString("effectiveFrom"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeEffectivePeriodFromNotSet models.ErrorCode = "effective_period_from_not_set"
@@ -192,6 +205,7 @@ var ErrEffectivePeriodFromNotSet = models.NewValidationIssue(
 	"effectiveFrom is must be provided if effectiveTo is set",
 	models.WithFieldString("effectiveFrom"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeCurrencyInvalid models.ErrorCode = "currency_invalid"
@@ -201,6 +215,7 @@ var ErrCurrencyInvalid = models.NewValidationIssue(
 	"currency is invalid",
 	models.WithFieldString("currency"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeEntitlementTemplateInvalidIssueAfterResetWithPriority models.ErrorCode = "entitlement_template_invalid_issue_after_reset_with_priority"
@@ -210,6 +225,7 @@ var ErrEntitlementTemplateInvalidIssueAfterResetWithPriority = models.NewValidat
 	"invalid entitlement template as issue after reset is required if issue after reset priority is set",
 	models.WithFieldString("issueAfterReset"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeEntitlementTemplateNegativeUsagePeriod models.ErrorCode = "entitlement_template_negative_usage_period"
@@ -228,6 +244,7 @@ var ErrEntitlementTemplateUsagePeriodLessThenAnHour = models.NewValidationIssue(
 	"usage period must be at least 1 hour",
 	models.WithFieldString("usagePeriod"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeEntitlementTemplateInvalidJSONConfig models.ErrorCode = "entitlement_template_invalid_json_config"
@@ -237,6 +254,7 @@ var ErrEntitlementTemplateInvalidJSONConfig = models.NewValidationIssue(
 	"invalid JSON in static entitlement config",
 	models.WithFieldString("entitlementTemplate", "config"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeRateCardKeyFeatureKeyMismatch models.ErrorCode = "rate_card_key_feature_key_mismatch"
@@ -246,6 +264,7 @@ var ErrRateCardKeyFeatureKeyMismatch = models.NewValidationIssue(
 	"rate card key must match feature key",
 	models.WithFieldString("key"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePercentageDiscountInvalidValue models.ErrorCode = "percentage_discount_invalid_value"
@@ -255,6 +274,7 @@ var ErrPercentageDiscountInvalidValue = models.NewValidationIssue(
 	"percentage must be between 0 and 100",
 	models.WithFieldString("percentage"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeUsageDiscountNegativeQuantity models.ErrorCode = "usage_discount_negative_quantity"
@@ -264,6 +284,7 @@ var ErrUsageDiscountNegativeQuantity = models.NewValidationIssue(
 	"usage must be greater than 0",
 	models.WithFieldString("quantity"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeUsageDiscountWithFlatPrice models.ErrorCode = "usage_discount_with_flat_price"
@@ -272,6 +293,7 @@ var ErrUsageDiscountWithFlatPrice = models.NewValidationIssue(
 	ErrCodeUsageDiscountWithFlatPrice,
 	"usage discount is not supported for flat price",
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeBillingCadenceInvalidValue models.ErrorCode = "billing_cadence_invalid_value"
@@ -281,6 +303,7 @@ var ErrBillingCadenceInvalidValue = models.NewValidationIssue(
 	"billing cadence must be positive and 1 hour long duration at least",
 	models.WithFieldString("billingCadence"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeRateCardMultipleBillingCadence models.ErrorCode = "rate_card_multiple_billing_cadence"
@@ -290,6 +313,7 @@ var ErrRateCardMultipleBillingCadence = models.NewValidationIssue(
 	"ratecards with prices must have the exact same billing cadence",
 	models.WithFieldString("billingCadence"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeRateCardBillingCadenceUnaligned models.ErrorCode = "rate_card_billing_cadence_unaligned"
@@ -299,6 +323,7 @@ var ErrRateCardBillingCadenceUnaligned = models.NewValidationIssue(
 	"ratecards with prices must have compatible billing cadence",
 	models.WithFieldString("billingCadence"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 // Addon errors
@@ -310,6 +335,7 @@ var ErrAddonKeyEmpty = models.NewValidationIssue(
 	"key must not be empty",
 	models.WithFieldString("key"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeAddonNameEmpty models.ErrorCode = "addon_name_empty"
@@ -319,6 +345,7 @@ var ErrAddonNameEmpty = models.NewValidationIssue(
 	"name must not be empty",
 	models.WithFieldString("name"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeAddonInvalidInstanceType models.ErrorCode = "addon_invalid_instance_type"
@@ -328,6 +355,7 @@ var ErrAddonInvalidInstanceType = models.NewValidationIssue(
 	"invalid instance type",
 	models.WithFieldString("instanceType"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeAddonInvalidStatus models.ErrorCode = "addon_invalid_status"
@@ -337,6 +365,7 @@ var ErrAddonInvalidStatus = models.NewValidationIssue(
 	"invalid status",
 	models.WithFieldString("status"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeAddonInvalidStatusForPublish models.ErrorCode = "addon_invalid_status_for_publish"
@@ -346,6 +375,7 @@ var ErrAddonInvalidStatusForPublish = models.NewValidationIssue(
 	"only draft add-ons can be published",
 	models.WithFieldString("status"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeAddonInvalidPriceForMultiInstance models.ErrorCode = "addon_invalid_ratecard_price_for_multi_instance"
@@ -355,6 +385,7 @@ var ErrAddonInvalidPriceForMultiInstance = models.NewValidationIssue(
 	"only free or flat price ratecards are allowed for add-on with multiple instance type",
 	models.WithFieldString("price"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeAddonHasNoRateCards models.ErrorCode = "addon_has_no_rate_cards"
@@ -364,6 +395,7 @@ var ErrAddonHasNoRateCards = models.NewValidationIssue(
 	"add-on must have at least one rate card",
 	models.WithFieldString("rateCards"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 // Generic errors
@@ -375,6 +407,7 @@ var ErrResourceKeyEmpty = models.NewValidationIssue(
 	"key must not be empty",
 	models.WithFieldString("key"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeResourceNameEmpty models.ErrorCode = "resource_name_empty"
@@ -384,6 +417,7 @@ var ErrResourceNameEmpty = models.NewValidationIssue(
 	"name must not be empty",
 	models.WithFieldString("name"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeNamespaceEmpty models.ErrorCode = "resource_namespace_empty"
@@ -393,6 +427,7 @@ var ErrNamespaceEmpty = models.NewValidationIssue(
 	"namespace must not be empty",
 	models.WithFieldString("namespace"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeIDEmpty models.ErrorCode = "resource_id_empty"
@@ -402,6 +437,7 @@ var ErrIDEmpty = models.NewValidationIssue(
 	"id must not be empty",
 	models.WithFieldString("id"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 // Alignment errors
@@ -412,6 +448,7 @@ var ErrDeprecatedUnalignedSubscription = models.NewValidationIssue(
 	ErrCodeDeprecatedUnalignedSubscription,
 	"unaligned subscriptions are being deprecated",
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 // Plan errors
@@ -434,6 +471,7 @@ var ErrPlanBillingCadenceInvalid = models.NewValidationIssue(
 	fmt.Sprintf("billing cadence must be one of the following: %s", strings.Join(lo.Map(ErrPlanBillingCadenceAllowedValues, func(v datetime.ISODurationString, _ int) string { return v.String() }), ", ")),
 	models.WithFieldString("billingCadence"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanPhaseWithNegativeDuration models.ErrorCode = "plan_phase_with_negative_duration"
@@ -443,6 +481,7 @@ var ErrPlanPhaseWithNegativeDuration = models.NewValidationIssue(
 	"duration must be positive",
 	models.WithFieldString("duration"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanPhaseDurationLessThenAnHour models.ErrorCode = "plan_phase_duration_less_then_an_hour"
@@ -452,6 +491,7 @@ var ErrPlanPhaseDurationLessThenAnHour = models.NewValidationIssue(
 	"duration must be at least 1 hour",
 	models.WithFieldString("duration"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanPhaseDuplicatedKey models.ErrorCode = "plan_phase_duplicated_key"
@@ -461,6 +501,7 @@ var ErrPlanPhaseDuplicatedKey = models.NewValidationIssue(
 	"duplicated key",
 	models.WithFieldString("key"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanInvalidStatus models.ErrorCode = "plan_invalid_status"
@@ -470,6 +511,7 @@ var ErrPlanInvalidStatus = models.NewValidationIssue(
 	"invalid status",
 	models.WithFieldString("status"),
 	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanWithNoPhases models.ErrorCode = "plan_with_no_phases"
@@ -479,6 +521,7 @@ var ErrPlanWithNoPhases = models.NewValidationIssue(
 	"plan must have at least one phase",
 	models.WithFieldString("phases"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanHasNonLastPhaseWithNoDuration models.ErrorCode = "plan_has_non_last_phase_with_no_duration"
@@ -488,6 +531,7 @@ var ErrPlanHasNonLastPhaseWithNoDuration = models.NewValidationIssue(
 	"duration must be set for plan phase if it is not the last one",
 	models.WithFieldString("duration"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanHasLastPhaseWithDuration models.ErrorCode = "plan_has_last_phase_with_duration"
@@ -497,6 +541,7 @@ var ErrPlanHasLastPhaseWithDuration = models.NewValidationIssue(
 	"duration must not be set for the last plan phase",
 	models.WithFieldString("duration"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanPhaseHasNoRateCards models.ErrorCode = "plan_phase_has_no_rate_cards"
@@ -506,6 +551,7 @@ var ErrPlanPhaseHasNoRateCards = models.NewValidationIssue(
 	"plan phase must have at least one rate card",
 	models.WithFieldString("rateCards"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanHasIncompatibleAddon models.ErrorCode = "plan_has_incompatible_addon"
@@ -514,6 +560,7 @@ var ErrPlanHasIncompatibleAddon = models.NewValidationIssue(
 	ErrCodePlanHasIncompatibleAddon,
 	"plan has incompatible add-on assignment",
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodePlanBillingCadenceNotCompatible models.ErrorCode = "plan_billing_cadence_not_compatible"
@@ -523,4 +570,5 @@ var ErrPlanBillingCadenceNotCompatible = models.NewValidationIssue(
 	"plan billing cadence is not compatible with rate card billing cadence",
 	models.WithFieldString("billingCadence"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )

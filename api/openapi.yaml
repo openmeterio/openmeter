@@ -9604,11 +9604,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -9759,11 +9759,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -9836,11 +9836,11 @@ paths:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10220,11 +10220,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10309,11 +10309,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubscriptionChangeResponseBody'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10394,11 +10394,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubscriptionChangeResponseBody'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10574,11 +10574,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -17325,6 +17325,30 @@ components:
           example: '{ key: "value" }'
           readOnly: true
       description: Entitlements are the core of OpenMeter access management. They define access to features for subjects. Entitlements can be metered, boolean, or static.
+    ErrorExtension:
+      type: object
+      required:
+        - field
+        - code
+        - message
+      properties:
+        field:
+          type: string
+          description: The path to the field.
+          example: addons/pro/ratecards/token/featureKey
+          readOnly: true
+        code:
+          type: string
+          description: The machine readable description of the error.
+          example: invalid_feature_key
+          readOnly: true
+        message:
+          type: string
+          description: The human readable description of the error.
+          example: not found feature by key
+          readOnly: true
+      additionalProperties: {}
+      description: Generic ErrorExtension as part of HTTPProblem.Extensions.[StatusCode]
     Event:
       type: object
       required:
@@ -25329,6 +25353,15 @@ components:
           format: uri
           description: A URI reference that identifies the specific occurrence of the problem.
           example: urn:request:local/JMOlctsKV8-000001
+        extensions:
+          type: object
+          additionalProperties: {}
+          description: Additional properties specific to the problem type may be present.
+          example:
+            validationErrors:
+              - code: validation_error
+                message: Validation error
+            otherAttribute: otherValue
       additionalProperties: {}
       description: |-
         A Problem Details object (RFC 7807).

@@ -9603,11 +9603,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -9758,11 +9758,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -9835,11 +9835,11 @@ paths:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10219,11 +10219,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10308,11 +10308,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubscriptionChangeResponseBody'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10393,11 +10393,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubscriptionChangeResponseBody'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10573,11 +10573,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/BadRequestProblemResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -11877,6 +11877,24 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+  /types:
+    get:
+      operationId: Exports_exports
+      summary: Exports tree shaken types we want to export which are then hidden from the API docs. This API doesn't actually exist or return anything, it's just used for exporting tree-shaken types through codegeneration and SDKs
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorExtension:
+                    $ref: '#/components/schemas/ErrorExtension'
+                required:
+                  - errorExtension
+      x-internal: true
 security:
   - CloudTokenAuth: []
   - CloudCookieAuth: []
@@ -16953,6 +16971,30 @@ components:
           example: '{ key: "value" }'
           readOnly: true
       description: Entitlements are the core of OpenMeter access management. They define access to features for subjects. Entitlements can be metered, boolean, or static.
+    ErrorExtension:
+      type: object
+      required:
+        - field
+        - code
+        - message
+      properties:
+        field:
+          type: string
+          description: The path to the field.
+          example: addons/pro/ratecards/token/featureKey
+          readOnly: true
+        code:
+          type: string
+          description: The machine readable description of the error.
+          example: invalid_feature_key
+          readOnly: true
+        message:
+          type: string
+          description: The human readable description of the error.
+          example: not found feature by key
+          readOnly: true
+      additionalProperties: {}
+      description: Generic ErrorExtension as part of HTTPProblem.Extensions.[StatusCode]
     Event:
       type: object
       required:
@@ -24278,6 +24320,15 @@ components:
           format: uri
           description: A URI reference that identifies the specific occurrence of the problem.
           example: urn:request:local/JMOlctsKV8-000001
+        extensions:
+          type: object
+          additionalProperties: {}
+          description: Additional properties specific to the problem type may be present.
+          example:
+            validationErrors:
+              - code: validation_error
+                message: Validation error
+            otherAttribute: otherValue
       additionalProperties: {}
       description: |-
         A Problem Details object (RFC 7807).
@@ -24355,50 +24406,6 @@ components:
           description: Additional attributes.
           readOnly: true
       description: Validation errors providing detailed description of the issue.
-    ValidationErrorProblemResponse:
-      type: object
-      required:
-        - type
-        - title
-        - detail
-        - instance
-      properties:
-        type:
-          type: string
-          format: uri
-          description: Type contains a URI that identifies the problem type.
-          example: about:blank
-          default: about:blank
-        title:
-          type: string
-          description: A a short, human-readable summary of the problem type.
-          example: Bad Request
-        status:
-          type: integer
-          format: int16
-          minimum: 400
-          maximum: 599
-          description: The HTTP status code generated by the origin server for this occurrence of the problem.
-          example: 400
-        detail:
-          type: string
-          description: A human-readable explanation specific to this occurrence of the problem.
-          example: The request body must be a JSON object.
-        instance:
-          type: string
-          format: uri
-          description: A URI reference that identifies the specific occurrence of the problem.
-          example: urn:request:local/JMOlctsKV8-000001
-        extensions:
-          type: object
-          properties:
-            validationErrors:
-              type: array
-              items:
-                $ref: '#/components/schemas/ValidationError'
-          description: Validation issues.
-          readOnly: true
-      description: A BadRequestError with a validationErrors extension.
     ValidationIssue:
       type: object
       required:

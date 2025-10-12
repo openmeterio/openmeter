@@ -165,17 +165,18 @@ func HandleIssueIfHTTPStatusKnown(ctx context.Context, err error, w http.Respons
 			extendProblemFuncs = append(extendProblemFuncs, func() map[string]interface{} {
 				codeStr := strconv.Itoa(code)
 
-				// This is for backwards compatibility with how we used to encode validation issues for productcatalog
-				// TODO[galexi]: remove this once we've migrated to the new format
+				// For backwards compatibility across server responses we expose
+				// validation issues under "validationIssues" for 400 responses.
 				if code == http.StatusBadRequest {
-					codeStr = "validationIssues"
+					codeStr = "validationErrors"
 				}
 
 				return map[string]interface{}{
 					codeStr: lo.Map(issues, func(issue models.ValidationIssue, _ int) map[string]interface{} {
-						// We don't want to expose this attribute to the client
+						// We don't want to expose private attributes to the client
 						attrs := issue.Attributes()
 						delete(attrs, httpStatusCodeErrorAttribute)
+						delete(attrs, issue.Code())
 						issue = issue.SetAttributes(attrs)
 
 						return issue.AsErrorExtension()

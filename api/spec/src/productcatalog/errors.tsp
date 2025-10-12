@@ -7,8 +7,8 @@ namespace OpenMeter.ProductCatalog;
 /**
  * Common errors for the product catalog API.
  */
-alias CommonErrors =
-  | OpenMeter.ValidationErrorResponse
+alias CommonSubscriptionErrors =
+  | OpenMeter.BadRequestError
   | OpenMeter.UnauthorizedError
   | OpenMeter.ForbiddenError
   | OpenMeter.InternalServerErrorError

@@ -551,6 +551,45 @@ func TestPlan(t *testing.T) {
 		require.Equal(t, "P1M", subscription.BillingCadence)
 		require.Equal(t, api.ProRatingModeProratePrices, subscription.ProRatingConfig.Mode)
 		require.True(t, subscription.ProRatingConfig.Enabled)
+
+		t.Run("Should return nice validation error if the customer already has a subscription", func(t *testing.T) {
+			require.NotNil(t, customer1)
+			require.NotNil(t, customer1.Id)
+
+			ct := &api.SubscriptionTiming{}
+			require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+
+			create := api.SubscriptionCreate{}
+			err := create.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
+				Timing:      ct,
+				CustomerId:  &customer1.Id,
+				Name:        lo.ToPtr("Test Subscription"),
+				Description: lo.ToPtr("Test Subscription Description"),
+				Plan: api.PlanReferenceInput{
+					Key:     PlanKey,
+					Version: lo.ToPtr(1),
+				},
+			})
+			require.Nil(t, err)
+
+			apiRes, err := client.CreateSubscriptionWithResponse(ctx, create)
+			require.Nil(t, err)
+
+			require.Equal(t, 409, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+			require.NotNil(t, apiRes.ApplicationproblemJSON409.Extensions["409"], "received the following body: %s", apiRes.Body)
+
+			// We can't simply type assert as it will panic on interface{} so let's convert it manually
+			validationErrors := apiRes.ApplicationproblemJSON409.Extensions["409"].([]any)
+			extesions, err := api.ParseExtensionsFromInterface(validationErrors)
+			require.Nil(t, err)
+			require.NotNil(t, extesions)
+			require.GreaterOrEqual(t, len(extesions), 1)
+
+			valErr := extesions[0]
+			require.NotNil(t, valErr)
+			require.Equal(t, "only_single_subscription_allowed_per_customer_at_a_time", valErr.Code, "received the following body: %s", apiRes.Body)
+			require.NotContains(t, valErr.AdditionalProperties, "models.ErrorCode:only_single_subscription_allowed_per_customer_at_a_time")
+		})
 	})
 
 	t.Run("Should create only ONE subscription per customer, even if we spam the API in a short period of time", func(t *testing.T) {
@@ -724,10 +763,16 @@ func TestPlan(t *testing.T) {
 			require.Nil(t, err)
 
 			require.Equal(t, 400, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
-			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors)
-			require.Len(t, *apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors, 1, "received the following body: %s", apiRes.Body)
+			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions["validationErrors"], "received the following body: %s", apiRes.Body)
 
-			valErr := (*apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors)[0]
+			// We can't simply type assert as it will panic on interface{} so let's convert it manually
+			validationErrors := apiRes.ApplicationproblemJSON400.Extensions["validationErrors"].([]any)
+			extesions, err := api.ParseExtensionsFromInterface(validationErrors)
+			require.Nil(t, err)
+			require.NotNil(t, extesions)
+			require.GreaterOrEqual(t, len(extesions), 1)
+
+			valErr := extesions[0]
 			require.NotNil(t, valErr)
 			require.Equal(t, "rate_card_billing_cadence_unaligned", valErr.Code, "received the following body: %s", apiRes.Body)
 		})
@@ -780,12 +825,22 @@ func TestPlan(t *testing.T) {
 
 			require.Equal(t, 400, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions, "received the following body: %s", apiRes.Body)
-			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors, "received the following body: %s", apiRes.Body)
-			require.Len(t, *apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors, 1, "received the following body: %s", apiRes.Body)
 
-			valErr := (*apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors)[0]
-			require.NotNil(t, valErr)
+			// We can't simply type assert as it will panic on interface{} so let's convert it manually
+			validationErrors := apiRes.ApplicationproblemJSON400.Extensions["validationErrors"].([]any)
+			extesions, err := api.ParseExtensionsFromInterface(validationErrors)
+			require.Nil(t, err)
+			require.NotNil(t, extesions)
+			require.GreaterOrEqual(t, len(extesions), 1)
+
+			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions["validationErrors"], "received the following body: %s", apiRes.Body)
+
+			valErr := extesions[0]
+
 			require.Equal(t, "entitlement_template_invalid_issue_after_reset_with_priority", valErr.Code, "received the following body: %s", apiRes.Body)
+			require.NotContains(t, valErr.AdditionalProperties, "commonhttp.httpAttributeKey:openmeter.http.status_code")
+			// we expect component and severity
+			require.Len(t, valErr.AdditionalProperties, 2, "\nreceived the following body: %s\n\nadditional properties: %v\n", apiRes.Body, valErr.AdditionalProperties)
 			require.Equal(t, "$.phases[?(@.key=='test_plan_phase_3')].items.plan_feature_1.entitlementTemplate.issueAfterReset", valErr.Field, "received the following body: %s", apiRes.Body)
 		})
 
