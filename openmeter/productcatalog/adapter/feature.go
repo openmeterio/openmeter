@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -57,6 +58,14 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 		query = query.
 			SetAdvancedMeterGroupByFilters(feat.MeterGroupByFilters).
 			SetMeterGroupByFilters(feature.ConvertMeterGroupByFiltersToMapString(feat.MeterGroupByFilters))
+	}
+
+	if feat.Cost != nil {
+		query = query.
+			SetCostKind(feat.Cost.Kind).
+			SetCostCurrency(currencyx.Code(feat.Cost.Currency)).
+			SetNillableCostProviderID(feat.Cost.ProviderID).
+			SetNillableCostUnitAmount(feat.Cost.PerUnitAmount)
 	}
 
 	entity, err := query.

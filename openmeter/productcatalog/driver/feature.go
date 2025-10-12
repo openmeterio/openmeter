@@ -106,7 +106,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 				return emptyFeature, err
 			}
 
-			return MapFeatureCreateInputsRequest(ns, parsedBody), nil
+			return MapFeatureCreateInputsRequest(ns, parsedBody)
 		},
 		func(ctx context.Context, feature feature.CreateFeatureInputs) (api.Feature, error) {
 			createdFeature, err := h.connector.CreateFeature(ctx, feature)

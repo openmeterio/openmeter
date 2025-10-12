@@ -21,6 +21,7 @@ type CreateFeatureInputs struct {
 	MeterSlug           *string             `json:"meterSlug"`
 	MeterGroupByFilters MeterGroupByFilters `json:"meterGroupByFilters"`
 	Metadata            map[string]string   `json:"metadata"`
+	Cost                *CostMutateInput    `json:"cost"`
 }
 
 // TODO: refactor to service pattern
