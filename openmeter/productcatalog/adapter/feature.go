@@ -74,8 +74,10 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 		return feature.Feature{}, err
 	}
 
-	feature := MapFeatureEntity(entity)
-	feature = c.enrichCost(feature)
+	feature, err := c.mapFeatureEntity(entity)
+	if err != nil {
+		return feature, err
+	}
 
 	return feature, nil
 }
@@ -101,12 +103,12 @@ func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, i
 		return nil, &feature.FeatureNotFoundError{ID: idOrKey}
 	}
 
-	res := MapFeatureEntity(entities[0])
+	feature, err := c.mapFeatureEntity(entities[0])
+	if err != nil {
+		return &feature, err
+	}
 
-	// Map the cost
-	res = c.enrichCost(res)
-
-	return &res, nil
+	return &feature, nil
 }
 
 func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
@@ -240,8 +242,10 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 
 		mapped := make([]feature.Feature, 0, len(entities))
 		for _, entity := range entities {
-			f := MapFeatureEntity(entity)
-			f = c.enrichCost(f)
+			f, err := c.mapFeatureEntity(entity)
+			if err != nil {
+				return response, err
+			}
 			mapped = append(mapped, f)
 		}
 
@@ -256,8 +260,10 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 
 	list := make([]feature.Feature, 0, len(paged.Items))
 	for _, entity := range paged.Items {
-		f := MapFeatureEntity(entity)
-		f = c.enrichCost(f)
+		f, err := c.mapFeatureEntity(entity)
+		if err != nil {
+			return response, err
+		}
 		list = append(list, f)
 	}
 
@@ -267,7 +273,40 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 	return response, nil
 }
 
-// mapFeatureEntity maps a database feature entity to a feature model.
+// mapFeatureEntity maps the database feature entity to a model
+func (c *featureDBAdapter) mapFeatureEntity(entity *db.Feature) (feature.Feature, error) {
+	f := MapFeatureEntity(entity)
+
+	if f.Cost == nil || f.Cost.Kind == feature.CostKindManual {
+		return f, nil
+	}
+
+	providerID := *f.Cost.ProviderID
+
+	// Model.dev cost provider
+	if strings.HasPrefix(providerID, "modeldev") {
+		tmp := costProviderModelDev.FindStringSubmatch(providerID)
+
+		if tmp == nil || len(tmp) != 4 {
+			return f, fmt.Errorf("cannot parse provider id: %s", providerID)
+		}
+
+		provider := tmp[1]
+		model := tmp[2]
+		costType := tmp[3]
+
+		cost, err := c.modelCostProvider.GetModelUnitCost(provider, model, CostType(costType))
+		if err != nil {
+			return f, fmt.Errorf("cannot find provider by id: %s", providerID)
+		}
+
+		f.Cost.PerUnitAmount = alpacadecimal.NewFromFloat(cost)
+	}
+
+	return f, nil
+}
+
+// MapFeatureEntity maps a database feature entity to a feature model.
 func MapFeatureEntity(entity *db.Feature) feature.Feature {
 	f := feature.Feature{
 		ID:         entity.ID,
@@ -295,40 +334,6 @@ func MapFeatureEntity(entity *db.Feature) feature.Feature {
 			ProviderID:    entity.CostProviderID,
 			PerUnitAmount: alpacadecimal.NewFromInt(0),
 		}
-	}
-
-	return f
-}
-
-// enrichCost enriches the cost of a feature
-func (c *featureDBAdapter) enrichCost(f feature.Feature) feature.Feature {
-	if f.Cost == nil || f.Cost.Kind == feature.CostKindManual {
-		return f
-	}
-
-	providerID := *f.Cost.ProviderID
-
-	// Model.dev cost provider
-	if strings.HasPrefix(providerID, "modeldev") {
-		tmp := costProviderModelDev.FindStringSubmatch(providerID)
-
-		if tmp == nil || len(tmp) != 4 {
-			c.logger.Error("cannot parse provider id", "featureId", f.ID, "providerId", providerID, "tmp", tmp)
-			return f
-		}
-
-		provider := tmp[1]
-		model := tmp[2]
-		costType := tmp[3]
-
-		cost, err := c.modelCostProvider.GetModelUnitCost(provider, model, CostType(costType))
-		if err != nil {
-			c.logger.Warn("model cost not found", "provider", provider, "model", model, "type", costType, "error", err)
-			fmt.Println(f.Name, "model cost not found", "provider", provider, "model", model, "type", costType, "error", err)
-			return f
-		}
-
-		f.Cost.PerUnitAmount = alpacadecimal.NewFromFloat(cost)
 	}
 
 	return f
