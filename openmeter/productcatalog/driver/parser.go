@@ -27,11 +27,20 @@ func MapFeatureToResponse(f feature.Feature) api.Feature {
 		MeterSlug:                   f.MeterSlug,
 	}
 
-	if f.CostPerUnit != nil {
-		feature.CostPerUnit = lo.ToPtr((*f.CostPerUnit).String())
+	if f.Cost != nil {
+		feature.Cost = lo.ToPtr(MapCostToResponse(*f.Cost))
 	}
 
 	return feature
+}
+
+func MapCostToResponse(cost feature.Cost) api.Cost {
+	return api.Cost{
+		Kind:          api.CostKind(cost.Kind),
+		Currency:      cost.Currency.String(),
+		PerUnitAmount: cost.PerUnitAmount.String(),
+		ProviderId:    cost.ProviderID,
+	}
 }
 
 func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs) feature.CreateFeatureInputs {

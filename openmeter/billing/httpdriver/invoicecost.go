@@ -161,8 +161,8 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 			totalInternalCost := alpacadecimal.NewFromInt(0)
 			internalCostPerUnit := alpacadecimal.NewFromInt(0)
 
-			if feature.CostPerUnit != nil {
-				internalCostPerUnit = *feature.CostPerUnit
+			if feature.Cost != nil {
+				internalCostPerUnit = feature.Cost.PerUnitAmount
 			}
 
 			// Calculate the cost for each window

@@ -1540,6 +1540,10 @@ var (
 		{Name: "meter_group_by_filters", Type: field.TypeJSON, Nullable: true},
 		{Name: "advanced_meter_group_by_filters", Type: field.TypeJSON, Nullable: true},
 		{Name: "archived_at", Type: field.TypeTime, Nullable: true},
+		{Name: "cost_kind", Type: field.TypeEnum, Nullable: true, Enums: []string{"manual", "provider"}},
+		{Name: "cost_currency", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "cost_unit_amount", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "cost_provider_id", Type: field.TypeString, Nullable: true},
 	}
 	// FeaturesTable holds the schema information for the "features" table.
 	FeaturesTable = &schema.Table{

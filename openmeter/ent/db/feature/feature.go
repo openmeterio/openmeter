@@ -3,10 +3,12 @@
 package dbfeature
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 const (
@@ -36,6 +38,14 @@ const (
 	FieldAdvancedMeterGroupByFilters = "advanced_meter_group_by_filters"
 	// FieldArchivedAt holds the string denoting the archived_at field in the database.
 	FieldArchivedAt = "archived_at"
+	// FieldCostKind holds the string denoting the cost_kind field in the database.
+	FieldCostKind = "cost_kind"
+	// FieldCostCurrency holds the string denoting the cost_currency field in the database.
+	FieldCostCurrency = "cost_currency"
+	// FieldCostUnitAmount holds the string denoting the cost_unit_amount field in the database.
+	FieldCostUnitAmount = "cost_unit_amount"
+	// FieldCostProviderID holds the string denoting the cost_provider_id field in the database.
+	FieldCostProviderID = "cost_provider_id"
 	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
 	EdgeEntitlement = "entitlement"
 	// EdgeRatecard holds the string denoting the ratecard edge name in mutations.
@@ -81,6 +91,10 @@ var Columns = []string{
 	FieldMeterGroupByFilters,
 	FieldAdvancedMeterGroupByFilters,
 	FieldArchivedAt,
+	FieldCostKind,
+	FieldCostCurrency,
+	FieldCostUnitAmount,
+	FieldCostProviderID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -106,9 +120,21 @@ var (
 	NameValidator func(string) error
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
+	// CostCurrencyValidator is a validator for the "cost_currency" field. It is called by the builders before save.
+	CostCurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
+
+// CostKindValidator is a validator for the "cost_kind" field enum values. It is called by the builders before save.
+func CostKindValidator(ck feature.CostKind) error {
+	switch ck {
+	case "manual", "provider":
+		return nil
+	default:
+		return fmt.Errorf("dbfeature: invalid enum value for cost_kind field: %q", ck)
+	}
+}
 
 // OrderOption defines the ordering options for the Feature queries.
 type OrderOption func(*sql.Selector)
@@ -156,6 +182,26 @@ func ByMeterSlug(opts ...sql.OrderTermOption) OrderOption {
 // ByArchivedAt orders the results by the archived_at field.
 func ByArchivedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldArchivedAt, opts...).ToFunc()
+}
+
+// ByCostKind orders the results by the cost_kind field.
+func ByCostKind(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostKind, opts...).ToFunc()
+}
+
+// ByCostCurrency orders the results by the cost_currency field.
+func ByCostCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostCurrency, opts...).ToFunc()
+}
+
+// ByCostUnitAmount orders the results by the cost_unit_amount field.
+func ByCostUnitAmount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostUnitAmount, opts...).ToFunc()
+}
+
+// ByCostProviderID orders the results by the cost_provider_id field.
+func ByCostProviderID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostProviderID, opts...).ToFunc()
 }
 
 // ByEntitlementCount orders the results by entitlement count.

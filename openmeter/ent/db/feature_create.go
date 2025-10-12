@@ -12,11 +12,13 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // FeatureCreate is the builder for creating a Feature entity.
@@ -129,6 +131,62 @@ func (_c *FeatureCreate) SetArchivedAt(v time.Time) *FeatureCreate {
 func (_c *FeatureCreate) SetNillableArchivedAt(v *time.Time) *FeatureCreate {
 	if v != nil {
 		_c.SetArchivedAt(*v)
+	}
+	return _c
+}
+
+// SetCostKind sets the "cost_kind" field.
+func (_c *FeatureCreate) SetCostKind(v feature.CostKind) *FeatureCreate {
+	_c.mutation.SetCostKind(v)
+	return _c
+}
+
+// SetNillableCostKind sets the "cost_kind" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableCostKind(v *feature.CostKind) *FeatureCreate {
+	if v != nil {
+		_c.SetCostKind(*v)
+	}
+	return _c
+}
+
+// SetCostCurrency sets the "cost_currency" field.
+func (_c *FeatureCreate) SetCostCurrency(v currencyx.Code) *FeatureCreate {
+	_c.mutation.SetCostCurrency(v)
+	return _c
+}
+
+// SetNillableCostCurrency sets the "cost_currency" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableCostCurrency(v *currencyx.Code) *FeatureCreate {
+	if v != nil {
+		_c.SetCostCurrency(*v)
+	}
+	return _c
+}
+
+// SetCostUnitAmount sets the "cost_unit_amount" field.
+func (_c *FeatureCreate) SetCostUnitAmount(v alpacadecimal.Decimal) *FeatureCreate {
+	_c.mutation.SetCostUnitAmount(v)
+	return _c
+}
+
+// SetNillableCostUnitAmount sets the "cost_unit_amount" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableCostUnitAmount(v *alpacadecimal.Decimal) *FeatureCreate {
+	if v != nil {
+		_c.SetCostUnitAmount(*v)
+	}
+	return _c
+}
+
+// SetCostProviderID sets the "cost_provider_id" field.
+func (_c *FeatureCreate) SetCostProviderID(v string) *FeatureCreate {
+	_c.mutation.SetCostProviderID(v)
+	return _c
+}
+
+// SetNillableCostProviderID sets the "cost_provider_id" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableCostProviderID(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetCostProviderID(*v)
 	}
 	return _c
 }
@@ -273,6 +331,16 @@ func (_c *FeatureCreate) check() error {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "Feature.key": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.CostKind(); ok {
+		if err := dbfeature.CostKindValidator(v); err != nil {
+			return &ValidationError{Name: "cost_kind", err: fmt.Errorf(`db: validator failed for field "Feature.cost_kind": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CostCurrency(); ok {
+		if err := dbfeature.CostCurrencyValidator(string(v)); err != nil {
+			return &ValidationError{Name: "cost_currency", err: fmt.Errorf(`db: validator failed for field "Feature.cost_currency": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -352,6 +420,22 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ArchivedAt(); ok {
 		_spec.SetField(dbfeature.FieldArchivedAt, field.TypeTime, value)
 		_node.ArchivedAt = &value
+	}
+	if value, ok := _c.mutation.CostKind(); ok {
+		_spec.SetField(dbfeature.FieldCostKind, field.TypeEnum, value)
+		_node.CostKind = &value
+	}
+	if value, ok := _c.mutation.CostCurrency(); ok {
+		_spec.SetField(dbfeature.FieldCostCurrency, field.TypeString, value)
+		_node.CostCurrency = &value
+	}
+	if value, ok := _c.mutation.CostUnitAmount(); ok {
+		_spec.SetField(dbfeature.FieldCostUnitAmount, field.TypeOther, value)
+		_node.CostUnitAmount = &value
+	}
+	if value, ok := _c.mutation.CostProviderID(); ok {
+		_spec.SetField(dbfeature.FieldCostProviderID, field.TypeString, value)
+		_node.CostProviderID = &value
 	}
 	if nodes := _c.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -567,6 +651,60 @@ func (u *FeatureUpsert) ClearArchivedAt() *FeatureUpsert {
 	return u
 }
 
+// SetCostKind sets the "cost_kind" field.
+func (u *FeatureUpsert) SetCostKind(v feature.CostKind) *FeatureUpsert {
+	u.Set(dbfeature.FieldCostKind, v)
+	return u
+}
+
+// UpdateCostKind sets the "cost_kind" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateCostKind() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldCostKind)
+	return u
+}
+
+// ClearCostKind clears the value of the "cost_kind" field.
+func (u *FeatureUpsert) ClearCostKind() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldCostKind)
+	return u
+}
+
+// SetCostUnitAmount sets the "cost_unit_amount" field.
+func (u *FeatureUpsert) SetCostUnitAmount(v alpacadecimal.Decimal) *FeatureUpsert {
+	u.Set(dbfeature.FieldCostUnitAmount, v)
+	return u
+}
+
+// UpdateCostUnitAmount sets the "cost_unit_amount" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateCostUnitAmount() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldCostUnitAmount)
+	return u
+}
+
+// ClearCostUnitAmount clears the value of the "cost_unit_amount" field.
+func (u *FeatureUpsert) ClearCostUnitAmount() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldCostUnitAmount)
+	return u
+}
+
+// SetCostProviderID sets the "cost_provider_id" field.
+func (u *FeatureUpsert) SetCostProviderID(v string) *FeatureUpsert {
+	u.Set(dbfeature.FieldCostProviderID, v)
+	return u
+}
+
+// UpdateCostProviderID sets the "cost_provider_id" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateCostProviderID() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldCostProviderID)
+	return u
+}
+
+// ClearCostProviderID clears the value of the "cost_provider_id" field.
+func (u *FeatureUpsert) ClearCostProviderID() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldCostProviderID)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -595,6 +733,9 @@ func (u *FeatureUpsertOne) UpdateNewValues() *FeatureUpsertOne {
 		}
 		if _, exists := u.create.mutation.MeterSlug(); exists {
 			s.SetIgnore(dbfeature.FieldMeterSlug)
+		}
+		if _, exists := u.create.mutation.CostCurrency(); exists {
+			s.SetIgnore(dbfeature.FieldCostCurrency)
 		}
 	}))
 	return u
@@ -757,6 +898,69 @@ func (u *FeatureUpsertOne) UpdateArchivedAt() *FeatureUpsertOne {
 func (u *FeatureUpsertOne) ClearArchivedAt() *FeatureUpsertOne {
 	return u.Update(func(s *FeatureUpsert) {
 		s.ClearArchivedAt()
+	})
+}
+
+// SetCostKind sets the "cost_kind" field.
+func (u *FeatureUpsertOne) SetCostKind(v feature.CostKind) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetCostKind(v)
+	})
+}
+
+// UpdateCostKind sets the "cost_kind" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateCostKind() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateCostKind()
+	})
+}
+
+// ClearCostKind clears the value of the "cost_kind" field.
+func (u *FeatureUpsertOne) ClearCostKind() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearCostKind()
+	})
+}
+
+// SetCostUnitAmount sets the "cost_unit_amount" field.
+func (u *FeatureUpsertOne) SetCostUnitAmount(v alpacadecimal.Decimal) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetCostUnitAmount(v)
+	})
+}
+
+// UpdateCostUnitAmount sets the "cost_unit_amount" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateCostUnitAmount() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateCostUnitAmount()
+	})
+}
+
+// ClearCostUnitAmount clears the value of the "cost_unit_amount" field.
+func (u *FeatureUpsertOne) ClearCostUnitAmount() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearCostUnitAmount()
+	})
+}
+
+// SetCostProviderID sets the "cost_provider_id" field.
+func (u *FeatureUpsertOne) SetCostProviderID(v string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetCostProviderID(v)
+	})
+}
+
+// UpdateCostProviderID sets the "cost_provider_id" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateCostProviderID() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateCostProviderID()
+	})
+}
+
+// ClearCostProviderID clears the value of the "cost_provider_id" field.
+func (u *FeatureUpsertOne) ClearCostProviderID() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearCostProviderID()
 	})
 }
 
@@ -955,6 +1159,9 @@ func (u *FeatureUpsertBulk) UpdateNewValues() *FeatureUpsertBulk {
 			if _, exists := b.mutation.MeterSlug(); exists {
 				s.SetIgnore(dbfeature.FieldMeterSlug)
 			}
+			if _, exists := b.mutation.CostCurrency(); exists {
+				s.SetIgnore(dbfeature.FieldCostCurrency)
+			}
 		}
 	}))
 	return u
@@ -1117,6 +1324,69 @@ func (u *FeatureUpsertBulk) UpdateArchivedAt() *FeatureUpsertBulk {
 func (u *FeatureUpsertBulk) ClearArchivedAt() *FeatureUpsertBulk {
 	return u.Update(func(s *FeatureUpsert) {
 		s.ClearArchivedAt()
+	})
+}
+
+// SetCostKind sets the "cost_kind" field.
+func (u *FeatureUpsertBulk) SetCostKind(v feature.CostKind) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetCostKind(v)
+	})
+}
+
+// UpdateCostKind sets the "cost_kind" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateCostKind() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateCostKind()
+	})
+}
+
+// ClearCostKind clears the value of the "cost_kind" field.
+func (u *FeatureUpsertBulk) ClearCostKind() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearCostKind()
+	})
+}
+
+// SetCostUnitAmount sets the "cost_unit_amount" field.
+func (u *FeatureUpsertBulk) SetCostUnitAmount(v alpacadecimal.Decimal) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetCostUnitAmount(v)
+	})
+}
+
+// UpdateCostUnitAmount sets the "cost_unit_amount" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateCostUnitAmount() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateCostUnitAmount()
+	})
+}
+
+// ClearCostUnitAmount clears the value of the "cost_unit_amount" field.
+func (u *FeatureUpsertBulk) ClearCostUnitAmount() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearCostUnitAmount()
+	})
+}
+
+// SetCostProviderID sets the "cost_provider_id" field.
+func (u *FeatureUpsertBulk) SetCostProviderID(v string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetCostProviderID(v)
+	})
+}
+
+// UpdateCostProviderID sets the "cost_provider_id" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateCostProviderID() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateCostProviderID()
+	})
+}
+
+// ClearCostProviderID clears the value of the "cost_provider_id" field.
+func (u *FeatureUpsertBulk) ClearCostProviderID() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearCostProviderID()
 	})
 }
 

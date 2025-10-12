@@ -2198,6 +2198,48 @@ func (u *FeatureUpdateOne) SetOrClearArchivedAt(value *time.Time) *FeatureUpdate
 	return u.SetArchivedAt(*value)
 }
 
+func (u *FeatureUpdate) SetOrClearCostKind(value *feature.CostKind) *FeatureUpdate {
+	if value == nil {
+		return u.ClearCostKind()
+	}
+	return u.SetCostKind(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearCostKind(value *feature.CostKind) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearCostKind()
+	}
+	return u.SetCostKind(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearCostUnitAmount(value *alpacadecimal.Decimal) *FeatureUpdate {
+	if value == nil {
+		return u.ClearCostUnitAmount()
+	}
+	return u.SetCostUnitAmount(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearCostUnitAmount(value *alpacadecimal.Decimal) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearCostUnitAmount()
+	}
+	return u.SetCostUnitAmount(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearCostProviderID(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearCostProviderID()
+	}
+	return u.SetCostProviderID(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearCostProviderID(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearCostProviderID()
+	}
+	return u.SetCostProviderID(*value)
+}
+
 func (u *GrantUpdate) SetOrClearAnnotations(value *models.Annotations) *GrantUpdate {
 	if value == nil {
 		return u.ClearAnnotations()

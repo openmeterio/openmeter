@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
+	"strings"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
+	"github.com/invopop/gobl/currency"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -25,6 +27,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
+
+var costProviderModelDev = regexp.MustCompile("^modeldev_([a-z]+)_([a-z0-9-]+)_(input|output|cache_read)$")
 
 // Adapter implements remote connector interface as driven port.
 type featureDBAdapter struct {
@@ -62,7 +66,7 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 	}
 
 	feature := MapFeatureEntity(entity)
-	feature = c.mapCost(feature)
+	feature = c.enrichCost(feature)
 
 	return feature, nil
 }
@@ -91,7 +95,7 @@ func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, i
 	res := MapFeatureEntity(entities[0])
 
 	// Map the cost
-	res = c.mapCost(res)
+	res = c.enrichCost(res)
 
 	return &res, nil
 }
@@ -228,7 +232,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 		mapped := make([]feature.Feature, 0, len(entities))
 		for _, entity := range entities {
 			f := MapFeatureEntity(entity)
-			f = c.mapCost(f)
+			f = c.enrichCost(f)
 			mapped = append(mapped, f)
 		}
 
@@ -244,7 +248,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 	list := make([]feature.Feature, 0, len(paged.Items))
 	for _, entity := range paged.Items {
 		f := MapFeatureEntity(entity)
-		f = c.mapCost(f)
+		f = c.enrichCost(f)
 		list = append(list, f)
 	}
 
@@ -275,36 +279,48 @@ func MapFeatureEntity(entity *db.Feature) feature.Feature {
 		f.MeterGroupByFilters = feature.ConvertMapStringToMeterGroupByFilters(entity.MeterGroupByFilters)
 	}
 
+	if entity.CostKind != nil {
+		f.Cost = &feature.Cost{
+			Kind:          *entity.CostKind,
+			Currency:      currency.Code(*entity.CostCurrency),
+			ProviderID:    entity.CostProviderID,
+			PerUnitAmount: alpacadecimal.NewFromInt(0),
+		}
+	}
+
 	return f
 }
 
-// TODO: use user provided cost per unit if available
-// mapCost maps the cost of a feature
-func (c *featureDBAdapter) mapCost(f feature.Feature) feature.Feature {
-	if f.MeterGroupByFilters == nil {
+// enrichCost enriches the cost of a feature
+func (c *featureDBAdapter) enrichCost(f feature.Feature) feature.Feature {
+	if f.Cost == nil || f.Cost.Kind == feature.CostKindManual {
 		return f
 	}
 
-	providerFilter, hasProviderFilter := f.MeterGroupByFilters["provider"]
-	modelFilter, hasModelFilter := f.MeterGroupByFilters["model"]
-	costTypeFilter, hasCostTypeFilter := f.MeterGroupByFilters["type"]
+	providerID := *f.Cost.ProviderID
 
-	if !hasProviderFilter || !hasModelFilter || !hasCostTypeFilter {
-		return f
+	// Model.dev cost provider
+	if strings.HasPrefix(providerID, "modeldev") {
+		tmp := costProviderModelDev.FindStringSubmatch(providerID)
+
+		if tmp == nil || len(tmp) != 4 {
+			c.logger.Error("cannot parse provider id", "featureId", f.ID, "providerId", providerID, "tmp", tmp)
+			return f
+		}
+
+		provider := tmp[1]
+		model := tmp[2]
+		costType := tmp[3]
+
+		cost, err := c.modelCostProvider.GetModelUnitCost(provider, model, CostType(costType))
+		if err != nil {
+			c.logger.Warn("model cost not found", "provider", provider, "model", model, "type", costType, "error", err)
+			fmt.Println(f.Name, "model cost not found", "provider", provider, "model", model, "type", costType, "error", err)
+			return f
+		}
+
+		f.Cost.PerUnitAmount = alpacadecimal.NewFromFloat(cost)
 	}
-
-	// FIXME: filter models properly
-	provider := *providerFilter.Eq
-	model := *modelFilter.Eq
-	costType := *costTypeFilter.Eq
-
-	cost, err := c.modelCostProvider.GetModelUnitCost(provider, model, CostType(costType))
-	if err != nil {
-		c.logger.Debug("model cost not found", "provider", provider, "model", model, "type", costType, "error", err)
-		fmt.Println(f.Name, "model cost not found", "provider", provider, "model", model, "type", costType, "error", err)
-		return f
-	}
-	f.CostPerUnit = lo.ToPtr(alpacadecimal.NewFromFloat(cost))
 
 	return f
 }

@@ -965,6 +965,10 @@ func init() {
 	dbfeatureDescKey := dbfeatureFields[2].Descriptor()
 	// dbfeature.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	dbfeature.KeyValidator = dbfeatureDescKey.Validators[0].(func(string) error)
+	// dbfeatureDescCostCurrency is the schema descriptor for cost_currency field.
+	dbfeatureDescCostCurrency := dbfeatureFields[8].Descriptor()
+	// dbfeature.CostCurrencyValidator is a validator for the "cost_currency" field. It is called by the builders before save.
+	dbfeature.CostCurrencyValidator = dbfeatureDescCostCurrency.Validators[0].(func(string) error)
 	// dbfeatureDescID is the schema descriptor for id field.
 	dbfeatureDescID := dbfeatureMixinFields0[0].Descriptor()
 	// dbfeature.DefaultID holds the default value on creation for the id field.

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -125,6 +126,66 @@ func (_u *FeatureUpdate) SetNillableArchivedAt(v *time.Time) *FeatureUpdate {
 // ClearArchivedAt clears the value of the "archived_at" field.
 func (_u *FeatureUpdate) ClearArchivedAt() *FeatureUpdate {
 	_u.mutation.ClearArchivedAt()
+	return _u
+}
+
+// SetCostKind sets the "cost_kind" field.
+func (_u *FeatureUpdate) SetCostKind(v feature.CostKind) *FeatureUpdate {
+	_u.mutation.SetCostKind(v)
+	return _u
+}
+
+// SetNillableCostKind sets the "cost_kind" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableCostKind(v *feature.CostKind) *FeatureUpdate {
+	if v != nil {
+		_u.SetCostKind(*v)
+	}
+	return _u
+}
+
+// ClearCostKind clears the value of the "cost_kind" field.
+func (_u *FeatureUpdate) ClearCostKind() *FeatureUpdate {
+	_u.mutation.ClearCostKind()
+	return _u
+}
+
+// SetCostUnitAmount sets the "cost_unit_amount" field.
+func (_u *FeatureUpdate) SetCostUnitAmount(v alpacadecimal.Decimal) *FeatureUpdate {
+	_u.mutation.SetCostUnitAmount(v)
+	return _u
+}
+
+// SetNillableCostUnitAmount sets the "cost_unit_amount" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableCostUnitAmount(v *alpacadecimal.Decimal) *FeatureUpdate {
+	if v != nil {
+		_u.SetCostUnitAmount(*v)
+	}
+	return _u
+}
+
+// ClearCostUnitAmount clears the value of the "cost_unit_amount" field.
+func (_u *FeatureUpdate) ClearCostUnitAmount() *FeatureUpdate {
+	_u.mutation.ClearCostUnitAmount()
+	return _u
+}
+
+// SetCostProviderID sets the "cost_provider_id" field.
+func (_u *FeatureUpdate) SetCostProviderID(v string) *FeatureUpdate {
+	_u.mutation.SetCostProviderID(v)
+	return _u
+}
+
+// SetNillableCostProviderID sets the "cost_provider_id" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableCostProviderID(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetCostProviderID(*v)
+	}
+	return _u
+}
+
+// ClearCostProviderID clears the value of the "cost_provider_id" field.
+func (_u *FeatureUpdate) ClearCostProviderID() *FeatureUpdate {
+	_u.mutation.ClearCostProviderID()
 	return _u
 }
 
@@ -284,6 +345,11 @@ func (_u *FeatureUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CostKind(); ok {
+		if err := dbfeature.CostKindValidator(v); err != nil {
+			return &ValidationError{Name: "cost_kind", err: fmt.Errorf(`db: validator failed for field "Feature.cost_kind": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -337,6 +403,27 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.ArchivedAtCleared() {
 		_spec.ClearField(dbfeature.FieldArchivedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.CostKind(); ok {
+		_spec.SetField(dbfeature.FieldCostKind, field.TypeEnum, value)
+	}
+	if _u.mutation.CostKindCleared() {
+		_spec.ClearField(dbfeature.FieldCostKind, field.TypeEnum)
+	}
+	if _u.mutation.CostCurrencyCleared() {
+		_spec.ClearField(dbfeature.FieldCostCurrency, field.TypeString)
+	}
+	if value, ok := _u.mutation.CostUnitAmount(); ok {
+		_spec.SetField(dbfeature.FieldCostUnitAmount, field.TypeOther, value)
+	}
+	if _u.mutation.CostUnitAmountCleared() {
+		_spec.ClearField(dbfeature.FieldCostUnitAmount, field.TypeOther)
+	}
+	if value, ok := _u.mutation.CostProviderID(); ok {
+		_spec.SetField(dbfeature.FieldCostProviderID, field.TypeString, value)
+	}
+	if _u.mutation.CostProviderIDCleared() {
+		_spec.ClearField(dbfeature.FieldCostProviderID, field.TypeString)
 	}
 	if _u.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -589,6 +676,66 @@ func (_u *FeatureUpdateOne) ClearArchivedAt() *FeatureUpdateOne {
 	return _u
 }
 
+// SetCostKind sets the "cost_kind" field.
+func (_u *FeatureUpdateOne) SetCostKind(v feature.CostKind) *FeatureUpdateOne {
+	_u.mutation.SetCostKind(v)
+	return _u
+}
+
+// SetNillableCostKind sets the "cost_kind" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableCostKind(v *feature.CostKind) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetCostKind(*v)
+	}
+	return _u
+}
+
+// ClearCostKind clears the value of the "cost_kind" field.
+func (_u *FeatureUpdateOne) ClearCostKind() *FeatureUpdateOne {
+	_u.mutation.ClearCostKind()
+	return _u
+}
+
+// SetCostUnitAmount sets the "cost_unit_amount" field.
+func (_u *FeatureUpdateOne) SetCostUnitAmount(v alpacadecimal.Decimal) *FeatureUpdateOne {
+	_u.mutation.SetCostUnitAmount(v)
+	return _u
+}
+
+// SetNillableCostUnitAmount sets the "cost_unit_amount" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableCostUnitAmount(v *alpacadecimal.Decimal) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetCostUnitAmount(*v)
+	}
+	return _u
+}
+
+// ClearCostUnitAmount clears the value of the "cost_unit_amount" field.
+func (_u *FeatureUpdateOne) ClearCostUnitAmount() *FeatureUpdateOne {
+	_u.mutation.ClearCostUnitAmount()
+	return _u
+}
+
+// SetCostProviderID sets the "cost_provider_id" field.
+func (_u *FeatureUpdateOne) SetCostProviderID(v string) *FeatureUpdateOne {
+	_u.mutation.SetCostProviderID(v)
+	return _u
+}
+
+// SetNillableCostProviderID sets the "cost_provider_id" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableCostProviderID(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetCostProviderID(*v)
+	}
+	return _u
+}
+
+// ClearCostProviderID clears the value of the "cost_provider_id" field.
+func (_u *FeatureUpdateOne) ClearCostProviderID() *FeatureUpdateOne {
+	_u.mutation.ClearCostProviderID()
+	return _u
+}
+
 // AddEntitlementIDs adds the "entitlement" edge to the Entitlement entity by IDs.
 func (_u *FeatureUpdateOne) AddEntitlementIDs(ids ...string) *FeatureUpdateOne {
 	_u.mutation.AddEntitlementIDs(ids...)
@@ -758,6 +905,11 @@ func (_u *FeatureUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CostKind(); ok {
+		if err := dbfeature.CostKindValidator(v); err != nil {
+			return &ValidationError{Name: "cost_kind", err: fmt.Errorf(`db: validator failed for field "Feature.cost_kind": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -828,6 +980,27 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 	}
 	if _u.mutation.ArchivedAtCleared() {
 		_spec.ClearField(dbfeature.FieldArchivedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.CostKind(); ok {
+		_spec.SetField(dbfeature.FieldCostKind, field.TypeEnum, value)
+	}
+	if _u.mutation.CostKindCleared() {
+		_spec.ClearField(dbfeature.FieldCostKind, field.TypeEnum)
+	}
+	if _u.mutation.CostCurrencyCleared() {
+		_spec.ClearField(dbfeature.FieldCostCurrency, field.TypeString)
+	}
+	if value, ok := _u.mutation.CostUnitAmount(); ok {
+		_spec.SetField(dbfeature.FieldCostUnitAmount, field.TypeOther, value)
+	}
+	if _u.mutation.CostUnitAmountCleared() {
+		_spec.ClearField(dbfeature.FieldCostUnitAmount, field.TypeOther)
+	}
+	if value, ok := _u.mutation.CostProviderID(); ok {
+		_spec.SetField(dbfeature.FieldCostProviderID, field.TypeString, value)
+	}
+	if _u.mutation.CostProviderIDCleared() {
+		_spec.ClearField(dbfeature.FieldCostProviderID, field.TypeString)
 	}
 	if _u.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{

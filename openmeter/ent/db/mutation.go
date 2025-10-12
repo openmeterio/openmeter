@@ -34174,6 +34174,10 @@ type FeatureMutation struct {
 	meter_group_by_filters          *map[string]string
 	advanced_meter_group_by_filters *feature.MeterGroupByFilters
 	archived_at                     *time.Time
+	cost_kind                       *feature.CostKind
+	cost_currency                   *currencyx.Code
+	cost_unit_amount                *alpacadecimal.Decimal
+	cost_provider_id                *string
 	clearedFields                   map[string]struct{}
 	entitlement                     map[string]struct{}
 	removedentitlement              map[string]struct{}
@@ -34767,6 +34771,202 @@ func (m *FeatureMutation) ResetArchivedAt() {
 	delete(m.clearedFields, dbfeature.FieldArchivedAt)
 }
 
+// SetCostKind sets the "cost_kind" field.
+func (m *FeatureMutation) SetCostKind(fk feature.CostKind) {
+	m.cost_kind = &fk
+}
+
+// CostKind returns the value of the "cost_kind" field in the mutation.
+func (m *FeatureMutation) CostKind() (r feature.CostKind, exists bool) {
+	v := m.cost_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCostKind returns the old "cost_kind" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldCostKind(ctx context.Context) (v *feature.CostKind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCostKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCostKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCostKind: %w", err)
+	}
+	return oldValue.CostKind, nil
+}
+
+// ClearCostKind clears the value of the "cost_kind" field.
+func (m *FeatureMutation) ClearCostKind() {
+	m.cost_kind = nil
+	m.clearedFields[dbfeature.FieldCostKind] = struct{}{}
+}
+
+// CostKindCleared returns if the "cost_kind" field was cleared in this mutation.
+func (m *FeatureMutation) CostKindCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldCostKind]
+	return ok
+}
+
+// ResetCostKind resets all changes to the "cost_kind" field.
+func (m *FeatureMutation) ResetCostKind() {
+	m.cost_kind = nil
+	delete(m.clearedFields, dbfeature.FieldCostKind)
+}
+
+// SetCostCurrency sets the "cost_currency" field.
+func (m *FeatureMutation) SetCostCurrency(c currencyx.Code) {
+	m.cost_currency = &c
+}
+
+// CostCurrency returns the value of the "cost_currency" field in the mutation.
+func (m *FeatureMutation) CostCurrency() (r currencyx.Code, exists bool) {
+	v := m.cost_currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCostCurrency returns the old "cost_currency" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldCostCurrency(ctx context.Context) (v *currencyx.Code, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCostCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCostCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCostCurrency: %w", err)
+	}
+	return oldValue.CostCurrency, nil
+}
+
+// ClearCostCurrency clears the value of the "cost_currency" field.
+func (m *FeatureMutation) ClearCostCurrency() {
+	m.cost_currency = nil
+	m.clearedFields[dbfeature.FieldCostCurrency] = struct{}{}
+}
+
+// CostCurrencyCleared returns if the "cost_currency" field was cleared in this mutation.
+func (m *FeatureMutation) CostCurrencyCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldCostCurrency]
+	return ok
+}
+
+// ResetCostCurrency resets all changes to the "cost_currency" field.
+func (m *FeatureMutation) ResetCostCurrency() {
+	m.cost_currency = nil
+	delete(m.clearedFields, dbfeature.FieldCostCurrency)
+}
+
+// SetCostUnitAmount sets the "cost_unit_amount" field.
+func (m *FeatureMutation) SetCostUnitAmount(a alpacadecimal.Decimal) {
+	m.cost_unit_amount = &a
+}
+
+// CostUnitAmount returns the value of the "cost_unit_amount" field in the mutation.
+func (m *FeatureMutation) CostUnitAmount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.cost_unit_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCostUnitAmount returns the old "cost_unit_amount" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldCostUnitAmount(ctx context.Context) (v *alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCostUnitAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCostUnitAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCostUnitAmount: %w", err)
+	}
+	return oldValue.CostUnitAmount, nil
+}
+
+// ClearCostUnitAmount clears the value of the "cost_unit_amount" field.
+func (m *FeatureMutation) ClearCostUnitAmount() {
+	m.cost_unit_amount = nil
+	m.clearedFields[dbfeature.FieldCostUnitAmount] = struct{}{}
+}
+
+// CostUnitAmountCleared returns if the "cost_unit_amount" field was cleared in this mutation.
+func (m *FeatureMutation) CostUnitAmountCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldCostUnitAmount]
+	return ok
+}
+
+// ResetCostUnitAmount resets all changes to the "cost_unit_amount" field.
+func (m *FeatureMutation) ResetCostUnitAmount() {
+	m.cost_unit_amount = nil
+	delete(m.clearedFields, dbfeature.FieldCostUnitAmount)
+}
+
+// SetCostProviderID sets the "cost_provider_id" field.
+func (m *FeatureMutation) SetCostProviderID(s string) {
+	m.cost_provider_id = &s
+}
+
+// CostProviderID returns the value of the "cost_provider_id" field in the mutation.
+func (m *FeatureMutation) CostProviderID() (r string, exists bool) {
+	v := m.cost_provider_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCostProviderID returns the old "cost_provider_id" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldCostProviderID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCostProviderID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCostProviderID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCostProviderID: %w", err)
+	}
+	return oldValue.CostProviderID, nil
+}
+
+// ClearCostProviderID clears the value of the "cost_provider_id" field.
+func (m *FeatureMutation) ClearCostProviderID() {
+	m.cost_provider_id = nil
+	m.clearedFields[dbfeature.FieldCostProviderID] = struct{}{}
+}
+
+// CostProviderIDCleared returns if the "cost_provider_id" field was cleared in this mutation.
+func (m *FeatureMutation) CostProviderIDCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldCostProviderID]
+	return ok
+}
+
+// ResetCostProviderID resets all changes to the "cost_provider_id" field.
+func (m *FeatureMutation) ResetCostProviderID() {
+	m.cost_provider_id = nil
+	delete(m.clearedFields, dbfeature.FieldCostProviderID)
+}
+
 // AddEntitlementIDs adds the "entitlement" edge to the Entitlement entity by ids.
 func (m *FeatureMutation) AddEntitlementIDs(ids ...string) {
 	if m.entitlement == nil {
@@ -34963,7 +35163,7 @@ func (m *FeatureMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FeatureMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 15)
 	if m.created_at != nil {
 		fields = append(fields, dbfeature.FieldCreatedAt)
 	}
@@ -34997,6 +35197,18 @@ func (m *FeatureMutation) Fields() []string {
 	if m.archived_at != nil {
 		fields = append(fields, dbfeature.FieldArchivedAt)
 	}
+	if m.cost_kind != nil {
+		fields = append(fields, dbfeature.FieldCostKind)
+	}
+	if m.cost_currency != nil {
+		fields = append(fields, dbfeature.FieldCostCurrency)
+	}
+	if m.cost_unit_amount != nil {
+		fields = append(fields, dbfeature.FieldCostUnitAmount)
+	}
+	if m.cost_provider_id != nil {
+		fields = append(fields, dbfeature.FieldCostProviderID)
+	}
 	return fields
 }
 
@@ -35027,6 +35239,14 @@ func (m *FeatureMutation) Field(name string) (ent.Value, bool) {
 		return m.AdvancedMeterGroupByFilters()
 	case dbfeature.FieldArchivedAt:
 		return m.ArchivedAt()
+	case dbfeature.FieldCostKind:
+		return m.CostKind()
+	case dbfeature.FieldCostCurrency:
+		return m.CostCurrency()
+	case dbfeature.FieldCostUnitAmount:
+		return m.CostUnitAmount()
+	case dbfeature.FieldCostProviderID:
+		return m.CostProviderID()
 	}
 	return nil, false
 }
@@ -35058,6 +35278,14 @@ func (m *FeatureMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldAdvancedMeterGroupByFilters(ctx)
 	case dbfeature.FieldArchivedAt:
 		return m.OldArchivedAt(ctx)
+	case dbfeature.FieldCostKind:
+		return m.OldCostKind(ctx)
+	case dbfeature.FieldCostCurrency:
+		return m.OldCostCurrency(ctx)
+	case dbfeature.FieldCostUnitAmount:
+		return m.OldCostUnitAmount(ctx)
+	case dbfeature.FieldCostProviderID:
+		return m.OldCostProviderID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Feature field %s", name)
 }
@@ -35144,6 +35372,34 @@ func (m *FeatureMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetArchivedAt(v)
 		return nil
+	case dbfeature.FieldCostKind:
+		v, ok := value.(feature.CostKind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCostKind(v)
+		return nil
+	case dbfeature.FieldCostCurrency:
+		v, ok := value.(currencyx.Code)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCostCurrency(v)
+		return nil
+	case dbfeature.FieldCostUnitAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCostUnitAmount(v)
+		return nil
+	case dbfeature.FieldCostProviderID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCostProviderID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Feature field %s", name)
 }
@@ -35192,6 +35448,18 @@ func (m *FeatureMutation) ClearedFields() []string {
 	if m.FieldCleared(dbfeature.FieldArchivedAt) {
 		fields = append(fields, dbfeature.FieldArchivedAt)
 	}
+	if m.FieldCleared(dbfeature.FieldCostKind) {
+		fields = append(fields, dbfeature.FieldCostKind)
+	}
+	if m.FieldCleared(dbfeature.FieldCostCurrency) {
+		fields = append(fields, dbfeature.FieldCostCurrency)
+	}
+	if m.FieldCleared(dbfeature.FieldCostUnitAmount) {
+		fields = append(fields, dbfeature.FieldCostUnitAmount)
+	}
+	if m.FieldCleared(dbfeature.FieldCostProviderID) {
+		fields = append(fields, dbfeature.FieldCostProviderID)
+	}
 	return fields
 }
 
@@ -35223,6 +35491,18 @@ func (m *FeatureMutation) ClearField(name string) error {
 		return nil
 	case dbfeature.FieldArchivedAt:
 		m.ClearArchivedAt()
+		return nil
+	case dbfeature.FieldCostKind:
+		m.ClearCostKind()
+		return nil
+	case dbfeature.FieldCostCurrency:
+		m.ClearCostCurrency()
+		return nil
+	case dbfeature.FieldCostUnitAmount:
+		m.ClearCostUnitAmount()
+		return nil
+	case dbfeature.FieldCostProviderID:
+		m.ClearCostProviderID()
 		return nil
 	}
 	return fmt.Errorf("unknown Feature nullable field %s", name)
@@ -35264,6 +35544,18 @@ func (m *FeatureMutation) ResetField(name string) error {
 		return nil
 	case dbfeature.FieldArchivedAt:
 		m.ResetArchivedAt()
+		return nil
+	case dbfeature.FieldCostKind:
+		m.ResetCostKind()
+		return nil
+	case dbfeature.FieldCostCurrency:
+		m.ResetCostCurrency()
+		return nil
+	case dbfeature.FieldCostUnitAmount:
+		m.ResetCostUnitAmount()
+		return nil
+	case dbfeature.FieldCostProviderID:
+		m.ResetCostProviderID()
 		return nil
 	}
 	return fmt.Errorf("unknown Feature field %s", name)

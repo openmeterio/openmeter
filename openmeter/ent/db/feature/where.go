@@ -7,7 +7,10 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // ID filters vertices based on their ID field.
@@ -103,6 +106,22 @@ func MeterSlug(v string) predicate.Feature {
 // ArchivedAt applies equality check predicate on the "archived_at" field. It's identical to ArchivedAtEQ.
 func ArchivedAt(v time.Time) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldArchivedAt, v))
+}
+
+// CostCurrency applies equality check predicate on the "cost_currency" field. It's identical to CostCurrencyEQ.
+func CostCurrency(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldEQ(FieldCostCurrency, vc))
+}
+
+// CostUnitAmount applies equality check predicate on the "cost_unit_amount" field. It's identical to CostUnitAmountEQ.
+func CostUnitAmount(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldCostUnitAmount, v))
+}
+
+// CostProviderID applies equality check predicate on the "cost_provider_id" field. It's identical to CostProviderIDEQ.
+func CostProviderID(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldCostProviderID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -583,6 +602,265 @@ func ArchivedAtIsNil() predicate.Feature {
 // ArchivedAtNotNil applies the NotNil predicate on the "archived_at" field.
 func ArchivedAtNotNil() predicate.Feature {
 	return predicate.Feature(sql.FieldNotNull(FieldArchivedAt))
+}
+
+// CostKindEQ applies the EQ predicate on the "cost_kind" field.
+func CostKindEQ(v feature.CostKind) predicate.Feature {
+	vc := v
+	return predicate.Feature(sql.FieldEQ(FieldCostKind, vc))
+}
+
+// CostKindNEQ applies the NEQ predicate on the "cost_kind" field.
+func CostKindNEQ(v feature.CostKind) predicate.Feature {
+	vc := v
+	return predicate.Feature(sql.FieldNEQ(FieldCostKind, vc))
+}
+
+// CostKindIn applies the In predicate on the "cost_kind" field.
+func CostKindIn(vs ...feature.CostKind) predicate.Feature {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Feature(sql.FieldIn(FieldCostKind, v...))
+}
+
+// CostKindNotIn applies the NotIn predicate on the "cost_kind" field.
+func CostKindNotIn(vs ...feature.CostKind) predicate.Feature {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Feature(sql.FieldNotIn(FieldCostKind, v...))
+}
+
+// CostKindIsNil applies the IsNil predicate on the "cost_kind" field.
+func CostKindIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldCostKind))
+}
+
+// CostKindNotNil applies the NotNil predicate on the "cost_kind" field.
+func CostKindNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldCostKind))
+}
+
+// CostCurrencyEQ applies the EQ predicate on the "cost_currency" field.
+func CostCurrencyEQ(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldEQ(FieldCostCurrency, vc))
+}
+
+// CostCurrencyNEQ applies the NEQ predicate on the "cost_currency" field.
+func CostCurrencyNEQ(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldNEQ(FieldCostCurrency, vc))
+}
+
+// CostCurrencyIn applies the In predicate on the "cost_currency" field.
+func CostCurrencyIn(vs ...currencyx.Code) predicate.Feature {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.Feature(sql.FieldIn(FieldCostCurrency, v...))
+}
+
+// CostCurrencyNotIn applies the NotIn predicate on the "cost_currency" field.
+func CostCurrencyNotIn(vs ...currencyx.Code) predicate.Feature {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.Feature(sql.FieldNotIn(FieldCostCurrency, v...))
+}
+
+// CostCurrencyGT applies the GT predicate on the "cost_currency" field.
+func CostCurrencyGT(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldGT(FieldCostCurrency, vc))
+}
+
+// CostCurrencyGTE applies the GTE predicate on the "cost_currency" field.
+func CostCurrencyGTE(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldGTE(FieldCostCurrency, vc))
+}
+
+// CostCurrencyLT applies the LT predicate on the "cost_currency" field.
+func CostCurrencyLT(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldLT(FieldCostCurrency, vc))
+}
+
+// CostCurrencyLTE applies the LTE predicate on the "cost_currency" field.
+func CostCurrencyLTE(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldLTE(FieldCostCurrency, vc))
+}
+
+// CostCurrencyContains applies the Contains predicate on the "cost_currency" field.
+func CostCurrencyContains(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldContains(FieldCostCurrency, vc))
+}
+
+// CostCurrencyHasPrefix applies the HasPrefix predicate on the "cost_currency" field.
+func CostCurrencyHasPrefix(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldHasPrefix(FieldCostCurrency, vc))
+}
+
+// CostCurrencyHasSuffix applies the HasSuffix predicate on the "cost_currency" field.
+func CostCurrencyHasSuffix(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldHasSuffix(FieldCostCurrency, vc))
+}
+
+// CostCurrencyIsNil applies the IsNil predicate on the "cost_currency" field.
+func CostCurrencyIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldCostCurrency))
+}
+
+// CostCurrencyNotNil applies the NotNil predicate on the "cost_currency" field.
+func CostCurrencyNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldCostCurrency))
+}
+
+// CostCurrencyEqualFold applies the EqualFold predicate on the "cost_currency" field.
+func CostCurrencyEqualFold(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldEqualFold(FieldCostCurrency, vc))
+}
+
+// CostCurrencyContainsFold applies the ContainsFold predicate on the "cost_currency" field.
+func CostCurrencyContainsFold(v currencyx.Code) predicate.Feature {
+	vc := string(v)
+	return predicate.Feature(sql.FieldContainsFold(FieldCostCurrency, vc))
+}
+
+// CostUnitAmountEQ applies the EQ predicate on the "cost_unit_amount" field.
+func CostUnitAmountEQ(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldCostUnitAmount, v))
+}
+
+// CostUnitAmountNEQ applies the NEQ predicate on the "cost_unit_amount" field.
+func CostUnitAmountNEQ(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldCostUnitAmount, v))
+}
+
+// CostUnitAmountIn applies the In predicate on the "cost_unit_amount" field.
+func CostUnitAmountIn(vs ...alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldCostUnitAmount, vs...))
+}
+
+// CostUnitAmountNotIn applies the NotIn predicate on the "cost_unit_amount" field.
+func CostUnitAmountNotIn(vs ...alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldCostUnitAmount, vs...))
+}
+
+// CostUnitAmountGT applies the GT predicate on the "cost_unit_amount" field.
+func CostUnitAmountGT(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldCostUnitAmount, v))
+}
+
+// CostUnitAmountGTE applies the GTE predicate on the "cost_unit_amount" field.
+func CostUnitAmountGTE(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldCostUnitAmount, v))
+}
+
+// CostUnitAmountLT applies the LT predicate on the "cost_unit_amount" field.
+func CostUnitAmountLT(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldCostUnitAmount, v))
+}
+
+// CostUnitAmountLTE applies the LTE predicate on the "cost_unit_amount" field.
+func CostUnitAmountLTE(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldCostUnitAmount, v))
+}
+
+// CostUnitAmountIsNil applies the IsNil predicate on the "cost_unit_amount" field.
+func CostUnitAmountIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldCostUnitAmount))
+}
+
+// CostUnitAmountNotNil applies the NotNil predicate on the "cost_unit_amount" field.
+func CostUnitAmountNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldCostUnitAmount))
+}
+
+// CostProviderIDEQ applies the EQ predicate on the "cost_provider_id" field.
+func CostProviderIDEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldCostProviderID, v))
+}
+
+// CostProviderIDNEQ applies the NEQ predicate on the "cost_provider_id" field.
+func CostProviderIDNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldCostProviderID, v))
+}
+
+// CostProviderIDIn applies the In predicate on the "cost_provider_id" field.
+func CostProviderIDIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldCostProviderID, vs...))
+}
+
+// CostProviderIDNotIn applies the NotIn predicate on the "cost_provider_id" field.
+func CostProviderIDNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldCostProviderID, vs...))
+}
+
+// CostProviderIDGT applies the GT predicate on the "cost_provider_id" field.
+func CostProviderIDGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldCostProviderID, v))
+}
+
+// CostProviderIDGTE applies the GTE predicate on the "cost_provider_id" field.
+func CostProviderIDGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldCostProviderID, v))
+}
+
+// CostProviderIDLT applies the LT predicate on the "cost_provider_id" field.
+func CostProviderIDLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldCostProviderID, v))
+}
+
+// CostProviderIDLTE applies the LTE predicate on the "cost_provider_id" field.
+func CostProviderIDLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldCostProviderID, v))
+}
+
+// CostProviderIDContains applies the Contains predicate on the "cost_provider_id" field.
+func CostProviderIDContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldCostProviderID, v))
+}
+
+// CostProviderIDHasPrefix applies the HasPrefix predicate on the "cost_provider_id" field.
+func CostProviderIDHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldCostProviderID, v))
+}
+
+// CostProviderIDHasSuffix applies the HasSuffix predicate on the "cost_provider_id" field.
+func CostProviderIDHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldCostProviderID, v))
+}
+
+// CostProviderIDIsNil applies the IsNil predicate on the "cost_provider_id" field.
+func CostProviderIDIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldCostProviderID))
+}
+
+// CostProviderIDNotNil applies the NotNil predicate on the "cost_provider_id" field.
+func CostProviderIDNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldCostProviderID))
+}
+
+// CostProviderIDEqualFold applies the EqualFold predicate on the "cost_provider_id" field.
+func CostProviderIDEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldCostProviderID, v))
+}
+
+// CostProviderIDContainsFold applies the ContainsFold predicate on the "cost_provider_id" field.
+func CostProviderIDContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldCostProviderID, v))
 }
 
 // HasEntitlement applies the HasEdge predicate on the "entitlement" edge.

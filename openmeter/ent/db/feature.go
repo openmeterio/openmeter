@@ -10,8 +10,10 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/alpacahq/alpacadecimal"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // Feature is the model entity for the Feature schema.
@@ -41,6 +43,14 @@ type Feature struct {
 	AdvancedMeterGroupByFilters feature.MeterGroupByFilters `json:"advanced_meter_group_by_filters,omitempty"`
 	// ArchivedAt holds the value of the "archived_at" field.
 	ArchivedAt *time.Time `json:"archived_at,omitempty"`
+	// CostKind holds the value of the "cost_kind" field.
+	CostKind *feature.CostKind `json:"cost_kind,omitempty"`
+	// CostCurrency holds the value of the "cost_currency" field.
+	CostCurrency *currencyx.Code `json:"cost_currency,omitempty"`
+	// CostUnitAmount holds the value of the "cost_unit_amount" field.
+	CostUnitAmount *alpacadecimal.Decimal `json:"cost_unit_amount,omitempty"`
+	// CostProviderID holds the value of the "cost_provider_id" field.
+	CostProviderID *string `json:"cost_provider_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the FeatureQuery when eager-loading is set.
 	Edges        FeatureEdges `json:"edges"`
@@ -92,9 +102,11 @@ func (*Feature) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case dbfeature.FieldCostUnitAmount:
+			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case dbfeature.FieldMetadata, dbfeature.FieldMeterGroupByFilters, dbfeature.FieldAdvancedMeterGroupByFilters:
 			values[i] = new([]byte)
-		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldKey, dbfeature.FieldMeterSlug:
+		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldKey, dbfeature.FieldMeterSlug, dbfeature.FieldCostKind, dbfeature.FieldCostCurrency, dbfeature.FieldCostProviderID:
 			values[i] = new(sql.NullString)
 		case dbfeature.FieldCreatedAt, dbfeature.FieldUpdatedAt, dbfeature.FieldDeletedAt, dbfeature.FieldArchivedAt:
 			values[i] = new(sql.NullTime)
@@ -194,6 +206,34 @@ func (_m *Feature) assignValues(columns []string, values []any) error {
 				_m.ArchivedAt = new(time.Time)
 				*_m.ArchivedAt = value.Time
 			}
+		case dbfeature.FieldCostKind:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field cost_kind", values[i])
+			} else if value.Valid {
+				_m.CostKind = new(feature.CostKind)
+				*_m.CostKind = feature.CostKind(value.String)
+			}
+		case dbfeature.FieldCostCurrency:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field cost_currency", values[i])
+			} else if value.Valid {
+				_m.CostCurrency = new(currencyx.Code)
+				*_m.CostCurrency = currencyx.Code(value.String)
+			}
+		case dbfeature.FieldCostUnitAmount:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field cost_unit_amount", values[i])
+			} else if value.Valid {
+				_m.CostUnitAmount = new(alpacadecimal.Decimal)
+				*_m.CostUnitAmount = *value.S.(*alpacadecimal.Decimal)
+			}
+		case dbfeature.FieldCostProviderID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field cost_provider_id", values[i])
+			} else if value.Valid {
+				_m.CostProviderID = new(string)
+				*_m.CostProviderID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -282,6 +322,26 @@ func (_m *Feature) String() string {
 	if v := _m.ArchivedAt; v != nil {
 		builder.WriteString("archived_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.CostKind; v != nil {
+		builder.WriteString("cost_kind=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CostCurrency; v != nil {
+		builder.WriteString("cost_currency=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CostUnitAmount; v != nil {
+		builder.WriteString("cost_unit_amount=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CostProviderID; v != nil {
+		builder.WriteString("cost_provider_id=")
+		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()

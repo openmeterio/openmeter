@@ -2,6 +2,8 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 
+import "./cost.tsp";
+
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter.ProductCatalog;
@@ -70,9 +72,9 @@ model FeatureCreateInputs {
   advancedMeterGroupByFilters?: Record<FilterString>;
 
   /**
-   * The internal cost per unit of the feature, if known.
+   * The internal cost
    */
-  costPerUnit?: Numeric;
+  cost?: CostCreateInput;
 }
 
 /**
@@ -93,7 +95,7 @@ union ListFeaturesResult {
 model Feature {
   ...ResourceTimestamps;
   ...Archiveable;
-  ...FeatureCreateInputs;
+  ...OmitProperties<FeatureCreateInputs, "cost">;
 
   /**
    * Readonly unique ULID identifier.
@@ -101,4 +103,10 @@ model Feature {
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
   @visibility(Lifecycle.Read)
   id: ULID;
+
+  /**
+   * Internal cost if known
+   */
+  @visibility(Lifecycle.Read)
+  cost?: Cost;
 }

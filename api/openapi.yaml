@@ -14311,6 +14311,69 @@ components:
       allOf:
         - $ref: '#/components/schemas/UnexpectedProblemResponse'
       description: The request could not be completed due to a conflict with the current state of the target resource.
+    Cost:
+      type: object
+      required:
+        - kind
+        - currency
+        - perUnitAmount
+      properties:
+        kind:
+          allOf:
+            - $ref: '#/components/schemas/CostKind'
+          description: The cost type
+        providerId:
+          type: string
+          description: |-
+            Provider ID
+
+            Only if type "provider"
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Currency for cost
+        perUnitAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The per unit amount
+
+            Writeable only if type "manual"
+      description: Cost
+    CostCreateInput:
+      type: object
+      required:
+        - kind
+        - currency
+      properties:
+        kind:
+          allOf:
+            - $ref: '#/components/schemas/CostKind'
+          description: The cost type
+        providerId:
+          type: string
+          description: |-
+            Provider ID
+
+            Only if type "provider"
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Currency for cost
+        perUnitAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The per unit amount
+
+            Writeable only if type "manual"
+      description: Cost create input
+    CostKind:
+      type: string
+      enum:
+        - manual
+        - provider
+      description: The cost kind
     CountryCode:
       type: string
       minLength: 2
@@ -17617,15 +17680,16 @@ components:
                 - gpt-4o
             type:
               $eq: input
-        costPerUnit:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The internal cost per unit of the feature, if known.
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Readonly unique ULID identifier.
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          readOnly: true
+        cost:
+          allOf:
+            - $ref: '#/components/schemas/Cost'
+          description: Internal cost if known
           readOnly: true
       description: |-
         Represents a feature that can be enabled or disabled for a plan.
@@ -17688,10 +17752,10 @@ components:
                 - gpt-4o
             type:
               $eq: input
-        costPerUnit:
+        cost:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The internal cost per unit of the feature, if known.
+            - $ref: '#/components/schemas/CostCreateInput'
+          description: The internal cost
       description: |-
         Represents a feature that can be enabled or disabled for a plan.
         Used both for product catalog and entitlements.
