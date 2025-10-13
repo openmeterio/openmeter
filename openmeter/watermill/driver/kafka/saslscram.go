@@ -32,7 +32,7 @@ func (x *XDGSCRAMClient) Begin(userName, password, authzID string) (err error) {
 
 func (x *XDGSCRAMClient) Step(challenge string) (response string, err error) {
 	response, err = x.ClientConversation.Step(challenge)
-	return
+	return response, err
 }
 
 func (x *XDGSCRAMClient) Done() bool {

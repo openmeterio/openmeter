@@ -38,7 +38,7 @@ func (MeterAggregation) Values() (kinds []string) {
 	} {
 		kinds = append(kinds, string(s))
 	}
-	return
+	return kinds
 }
 
 func (MeterAggregation) IsValid(input string) bool {
@@ -77,7 +77,7 @@ func (WindowSize) Values() (kinds []string) {
 	} {
 		kinds = append(kinds, string(s))
 	}
-	return
+	return kinds
 }
 
 func (w WindowSize) AddTo(t time.Time) (time.Time, error) {
