@@ -1,4 +1,4 @@
-//go:generate go run github.com/jmattheis/goverter/cmd/goverter gen ./
+//go:generate go tool github.com/jmattheis/goverter/cmd/goverter gen ./
 
 package httpdriver
 
