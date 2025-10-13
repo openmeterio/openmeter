@@ -35,16 +35,16 @@ func init() {
 			err error,
 		) {
 			if maxInFlight, err = conf.FieldInt("max_in_flight"); err != nil {
-				return
+				return output, batchPolicy, maxInFlight, err
 			}
 
 			if batchPolicy, err = conf.FieldBatchPolicy("batching"); err != nil {
-				return
+				return output, batchPolicy, maxInFlight, err
 			}
 
 			output, err = newOtelLogOutput(conf)
 
-			return
+			return output, batchPolicy, maxInFlight, err
 		})
 	if err != nil {
 		panic(err)
