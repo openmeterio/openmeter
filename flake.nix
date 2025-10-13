@@ -47,7 +47,7 @@
 
                 python = {
                   enable = true;
-                  package = pkgs.python312;
+                  package = pkgs.python314;
                 };
 
                 javascript = {
