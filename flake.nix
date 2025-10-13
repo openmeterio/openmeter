@@ -86,12 +86,12 @@
                 # Getting sha256 hash for git ref:
                 # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.11.1 | jq -r '.sha256')"
                 (rdkafka.overrideAttrs (_: rec {
-                  version = "2.11.1";
+                  version = "2.12.0";
                   src = fetchFromGitHub {
                     owner = "confluentinc";
                     repo = "librdkafka";
                     rev = "v${version}";
-                    sha256 = "sha256-Hg0l44wFQSk8x14V4CxJN80aGrhaj3CIFOYBfNUbG3E=";
+                    sha256 = "sha256-vL1kSn9I9vcDWLXRgLI5PaEwgpowBtSS/oqQZAU6wJ0=";
                   };
                 }))
 
