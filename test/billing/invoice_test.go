@@ -45,7 +45,7 @@ func TestInvoicing(t *testing.T) {
 
 func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	namespace := "ns-create-invoice-workflow"
-	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+	now := time.Now().Truncate(time.Second).In(time.UTC)
 	periodEnd := now.Add(-time.Hour)
 	periodStart := periodEnd.Add(-time.Hour * 24 * 30)
 	issueAt := now.Add(-time.Minute)
@@ -249,7 +249,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				InvoiceAt: issueAt.In(time.UTC),
 				ManagedBy: billing.ManuallyManagedLine,
 
-				Type: billing.InvoiceLineTypeFee,
+				Type: billing.InvoiceLineTypeUsageBased,
 
 				Currency: currencyx.Code(currency.USD),
 
@@ -263,12 +263,12 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					"float_key":  1.0,
 				},
 			},
-			FlatFee: &billing.FlatFeeLine{
-				ConfigID:      usdInvoiceLine.FlatFee.ConfigID,
-				PerUnitAmount: alpacadecimal.NewFromFloat(100),
-				Quantity:      alpacadecimal.NewFromFloat(1),
-				Category:      billing.FlatFeeCategoryRegular,
-				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			UsageBased: &billing.UsageBasedLine{
+				ConfigID: usdInvoiceLine.UsageBased.ConfigID,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
 			},
 		}
 		// Let's make sure that the workflow config is cloned
@@ -281,7 +281,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				Number:   "GATHER-TECU-USD-1",
 				Currency: currencyx.Code(currency.USD),
 				Status:   billing.InvoiceStatusGathering,
-				Period:   &billing.Period{Start: periodStart.Truncate(time.Microsecond), End: periodEnd.Truncate(time.Microsecond)},
+				Period:   &billing.Period{Start: periodStart.Truncate(time.Second), End: periodEnd.Truncate(time.Second)},
 
 				CreatedAt: usdInvoice.CreatedAt,
 				UpdatedAt: usdInvoice.UpdatedAt,
@@ -321,7 +321,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		s.NoError(invoicecalc.GatheringInvoiceCollectionAt(&expectedInvoice))
 
-		require.Equal(s.T(),
+		ExpectJSONEqual(s.T(),
 			expectedInvoice.RemoveMetaForCompare(),
 			usdInvoice.RemoveMetaForCompare())
 
@@ -360,14 +360,18 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		// Then we have two line items for the invoice
 		require.Len(s.T(), hufInvoiceLines, 2)
 
-		_, found := lo.Find(hufInvoiceLines, func(l *billing.Line) bool {
-			return l.Type == billing.InvoiceLineTypeFee
+		lineItem, found := lo.Find(hufInvoiceLines, func(l *billing.Line) bool {
+			return l.Type == billing.InvoiceLineTypeUsageBased
 		})
 		require.True(s.T(), found, "manual fee item is present")
+		require.Equal(s.T(), lineItem.UsageBased.Price, productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      alpacadecimal.NewFromFloat(200),
+			PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		}))
 
 		// Then we should have the tiered price present
 		tieredLine, found := lo.Find(hufInvoiceLines, func(l *billing.Line) bool {
-			return l.Type == billing.InvoiceLineTypeUsageBased
+			return l.Type == billing.InvoiceLineTypeUsageBased && l.UsageBased.FeatureKey == "test"
 		})
 
 		require.True(s.T(), found, "tiered price item is present")
@@ -3971,7 +3975,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
-			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -4003,7 +4007,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
-			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: newPeriodStart, End: newPeriodEnd},
 				InvoiceAt: newPeriodStart,
 				Name:      "Flat fee",
@@ -4082,7 +4086,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
-			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -4119,7 +4123,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
-			billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: clock.Now(), End: clock.Now().Add(time.Hour * 24)},
 				InvoiceAt: clock.Now(),
 				Name:      "Flat fee",

@@ -56,7 +56,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 		Customer: cust.GetID(),
 		Currency: currencyx.Code(currency.USD),
 		Lines: []*billing.Line{
-			billing.NewUsageBasedFlatFeeLine(
+			billing.NewFlatFeeLine(
 				billing.NewFlatFeeLineInput{
 					Namespace:     namespace,
 					Period:        billing.Period{Start: now, End: now.Add(time.Hour * 24)},
