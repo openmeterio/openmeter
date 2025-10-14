@@ -2,9 +2,6 @@ package svix
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -155,26 +152,4 @@ func NewHandler(config Config) (webhook.Handler, error) {
 	return &svixHandler{
 		client: client,
 	}, nil
-}
-
-type idempotencyKeyTypes interface {
-	svix.ApplicationIn | svix.EndpointIn | svix.EndpointSecretRotateIn | svix.MessageIn
-}
-
-func toIdempotencyKey[T idempotencyKeyTypes](v T, t time.Time) (string, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-
-	if t.IsZero() {
-		t = time.Now().UTC()
-	}
-	t = t.UTC()
-
-	h := sha256.New()
-	h.Write(b)
-	h.Write([]byte(t.String()))
-
-	return hex.EncodeToString(h.Sum(nil)), nil
 }

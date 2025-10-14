@@ -3,11 +3,11 @@ package svix
 import (
 	"context"
 	"fmt"
-	"time"
 
 	svix "github.com/svix/svix-webhooks/go"
 
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix/internal"
+	"github.com/openmeterio/openmeter/pkg/idempotency"
 )
 
 func (h svixHandler) CreateApplication(ctx context.Context, id string) (*svix.ApplicationOut, error) {
@@ -16,7 +16,7 @@ func (h svixHandler) CreateApplication(ctx context.Context, id string) (*svix.Ap
 		Uid:  &id,
 	}
 
-	idempotencyKey, err := toIdempotencyKey(input, time.Now())
+	idempotencyKey, err := idempotency.Key()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate idempotency key: %w", err)
 	}
