@@ -14,7 +14,9 @@ type Entity interface {
 }
 
 type DiffUpdate[T Entity] struct {
-	DBState       T
+	// PersistedState is the persisted state of the entity (e.g. in database or any storage), if empty there is no persisted state
+	PersistedState T
+	// ExpectedState is the expected state of the entity (e.g. after the changes done by the backend)
 	ExpectedState T
 }
 
@@ -88,7 +90,11 @@ func Union[T Entity](diffs ...Diff[T]) Diff[T] {
 func diffByID[T Entity](expectedState, dbState []T) speculativeDiff[T] {
 	diff := speculativeDiff[T]{}
 
-	dbStateByID := lo.SliceToMap(dbState, func(item T) (string, T) {
+	itemsWithID := lo.Filter(dbState, func(item T, _ int) bool {
+		return item.GetID() != ""
+	})
+
+	dbStateByID := lo.SliceToMap(itemsWithID, func(item T) (string, T) {
 		return item.GetID(), item
 	})
 
@@ -129,8 +135,8 @@ func diffByID[T Entity](expectedState, dbState []T) speculativeDiff[T] {
 		}
 
 		diff.UpdateCandidates = append(diff.UpdateCandidates, DiffUpdate[T]{
-			DBState:       dbState,
-			ExpectedState: expected,
+			PersistedState: dbState,
+			ExpectedState:  expected,
 		})
 	}
 
@@ -221,7 +227,7 @@ func DiffByIDEqualer[T EqualerEntity[T]](expectedState, dbState []T) Diff[T] {
 	}
 
 	for _, update := range diff.UpdateCandidates {
-		if !update.DBState.Equal(update.ExpectedState) {
+		if !update.PersistedState.Equal(update.ExpectedState) {
 			out.Update = append(out.Update, update)
 		}
 	}

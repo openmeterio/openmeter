@@ -322,7 +322,7 @@ func mapDiffToIDs[T entitydiff.Entity](in entitydiff.Diff[T], getDescription fun
 			return lo.FromPtrOr(getDescription(item), item.GetID())
 		}),
 		ToUpdate: lo.Map(in.Update, func(item entitydiff.DiffUpdate[T], _ int) string {
-			return lo.FromPtrOr(getDescription(item.DBState), item.DBState.GetID())
+			return lo.FromPtrOr(getDescription(item.PersistedState), item.PersistedState.GetID())
 		}),
 		ToDelete: lo.Map(in.Delete, func(item T, _ int) string {
 			return lo.FromPtrOr(getDescription(item), item.GetID())

@@ -67,11 +67,11 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 				return fmt.Errorf("expected state usage based is nil")
 			}
 
-			if item.DBState.UsageBased == nil {
+			if item.PersistedState.UsageBased == nil {
 				return fmt.Errorf("db state usage based is nil")
 			}
 
-			if !item.ExpectedState.LineBase.Equal(item.DBState.LineBase) || !item.ExpectedState.UsageBased.Equal(item.DBState.UsageBased) {
+			if !item.ExpectedState.LineBase.Equal(item.PersistedState.LineBase) || !item.ExpectedState.UsageBased.Equal(item.PersistedState.UsageBased) {
 				diff.Line.NeedsUpdate(item)
 			}
 
@@ -79,24 +79,24 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 
 			diff.UsageDiscounts = diff.UsageDiscounts.Append(entitydiff.DiffByIDEqualer(
 				entitydiff.NewEqualersWithParent(item.ExpectedState.Discounts.Usage, item.ExpectedState),
-				entitydiff.NewEqualersWithParent(item.DBState.Discounts.Usage, item.DBState),
+				entitydiff.NewEqualersWithParent(item.PersistedState.Discounts.Usage, item.PersistedState),
 			))
 
 			diff.AmountDiscounts = diff.AmountDiscounts.Append(entitydiff.DiffByIDEqualer(
 				entitydiff.NewEqualersWithParent(item.ExpectedState.Discounts.Amount, item.ExpectedState),
-				entitydiff.NewEqualersWithParent(item.DBState.Discounts.Amount, item.DBState),
+				entitydiff.NewEqualersWithParent(item.PersistedState.Discounts.Amount, item.PersistedState),
 			))
 
 			// Detailed line diffs
 			err := entitydiff.DiffByID(entitydiff.DiffByIDInput[*billing.Line]{
-				DBState:       item.DBState.Children,
+				DBState:       item.PersistedState.Children,
 				ExpectedState: item.ExpectedState.Children,
 				HandleDelete: func(detailedLine *billing.Line) error {
-					if !item.DBState.IsDeleted() {
-						diff.AffectedLineIDs.Add(item.DBState.GetID())
+					if !item.PersistedState.IsDeleted() {
+						diff.AffectedLineIDs.Add(item.PersistedState.GetID())
 					}
 
-					return diff.DeleteDetailedLine(detailedLine, item.DBState)
+					return diff.DeleteDetailedLine(detailedLine, item.PersistedState)
 				},
 				HandleCreate: func(detailedLine *billing.Line) error {
 					return diff.CreateDetailedLine(detailedLine, item.ExpectedState)
@@ -106,41 +106,41 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 						return fmt.Errorf("detailed line expected state is nil or flat fee is nil")
 					}
 
-					if detailedLine.DBState == nil || detailedLine.DBState.FlatFee == nil {
+					if detailedLine.PersistedState == nil || detailedLine.PersistedState.FlatFee == nil {
 						return fmt.Errorf("detailed line db state is nil or flat fee is nil")
 					}
 
-					if !detailedLine.ExpectedState.LineBase.Equal(detailedLine.DBState.LineBase) || !detailedLine.ExpectedState.FlatFee.Equal(detailedLine.DBState.FlatFee) {
+					if !detailedLine.ExpectedState.LineBase.Equal(detailedLine.PersistedState.LineBase) || !detailedLine.ExpectedState.FlatFee.Equal(detailedLine.PersistedState.FlatFee) {
 						diff.DetailedLine.NeedsUpdate(entitydiff.DiffUpdate[detailedLineWithParent]{
-							DBState: detailedLineWithParent{
-								Entity: detailedLine.DBState,
-								Parent: item.DBState,
+							PersistedState: detailedLineWithParent{
+								Entity: detailedLine.PersistedState,
+								Parent: item.PersistedState,
 							},
 							ExpectedState: detailedLineWithParent{
 								Entity: detailedLine.ExpectedState,
-								Parent: item.DBState,
+								Parent: item.PersistedState,
 							},
 						})
 
 						if !item.ExpectedState.IsDeleted() {
-							diff.AffectedLineIDs.Add(item.DBState.ID)
+							diff.AffectedLineIDs.Add(item.PersistedState.ID)
 						}
 					}
 
 					discountChanges := entitydiff.DiffByIDEqualer(
 						entitydiff.NewEqualersWithParent(detailedLine.ExpectedState.Discounts.Amount, detailedLine.ExpectedState),
-						entitydiff.NewEqualersWithParent(detailedLine.DBState.Discounts.Amount, detailedLine.DBState),
+						entitydiff.NewEqualersWithParent(detailedLine.PersistedState.Discounts.Amount, detailedLine.PersistedState),
 					)
 
 					diff.DetailedLineAmountDiscounts = diff.DetailedLineAmountDiscounts.Append(discountChanges)
 
 					if !discountChanges.IsEmpty() {
 						if !item.ExpectedState.IsDeleted() {
-							diff.AffectedLineIDs.Add(item.DBState.ID)
+							diff.AffectedLineIDs.Add(item.PersistedState.ID)
 						}
 
 						if !detailedLine.ExpectedState.IsDeleted() {
-							diff.DetailedLineAffectedLineIDs.Add(detailedLine.DBState.ID)
+							diff.DetailedLineAffectedLineIDs.Add(detailedLine.PersistedState.ID)
 						}
 					}
 
@@ -267,8 +267,8 @@ func (d *invoiceLineDiff) GetDetailedLineDiffWithParentID() entitydiff.Diff[*bil
 			item.ExpectedState.Entity.ParentLineID = lo.ToPtr(item.ExpectedState.Parent.GetID())
 
 			return entitydiff.DiffUpdate[*billing.DetailedLine]{
-				DBState:       item.DBState.Entity,
-				ExpectedState: item.ExpectedState.Entity,
+				PersistedState: item.PersistedState.Entity,
+				ExpectedState:  item.ExpectedState.Entity,
 			}
 		}),
 	}
