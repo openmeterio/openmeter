@@ -253,7 +253,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 		{
 			name:      "ubp flat fee only",
 			namespace: "ns-collection-flow-ubp-flat-fee",
-			line: billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+			line: billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",

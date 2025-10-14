@@ -1301,7 +1301,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
-				billing.NewUsageBasedFlatFeeLine(billing.NewFlatFeeLineInput{
+				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 					Period:        billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt:     periodStart,
 					Name:          "Flat fee",

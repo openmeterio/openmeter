@@ -615,43 +615,6 @@ type NewFlatFeeLineInput struct {
 	RateCardDiscounts Discounts
 }
 
-func NewFlatFeeLine(input NewFlatFeeLineInput) *Line {
-	return &Line{
-		LineBase: LineBase{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace:   input.Namespace,
-				ID:          input.ID,
-				CreatedAt:   input.CreatedAt,
-				UpdatedAt:   input.UpdatedAt,
-				Name:        input.Name,
-				Description: input.Description,
-			}),
-
-			Period:    input.Period,
-			InvoiceAt: input.InvoiceAt,
-			InvoiceID: input.InvoiceID,
-
-			Metadata:    input.Metadata,
-			Annotations: input.Annotations,
-
-			Status: InvoiceLineStatusValid,
-
-			Type: InvoiceLineTypeFee,
-
-			ManagedBy: lo.CoalesceOrEmpty(input.ManagedBy, SystemManagedLine),
-
-			Currency:          input.Currency,
-			RateCardDiscounts: input.RateCardDiscounts,
-		},
-		FlatFee: &FlatFeeLine{
-			PerUnitAmount: input.PerUnitAmount,
-			PaymentTerm:   input.PaymentTerm,
-			Category:      FlatFeeCategoryRegular,
-			Quantity:      alpacadecimal.NewFromInt(1),
-		},
-	}
-}
-
 type usageBasedLineOptions struct {
 	featureKey string
 }
@@ -664,11 +627,8 @@ func WithFeatureKey(fk string) usageBasedLineOption {
 	}
 }
 
-// NewUsageBasedFlatFeeLine creates a new usage based flat fee line (which is semantically equivalent to the line returned by
-// NewFlatFeeLine, but based on the usage based line semantic).
-//
-// Note: this is temporary in it's current form until we validate the usage based flat fee schema
-func NewUsageBasedFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) *Line {
+// NewFlatFeeLine creates a new invoice-level flat fee line.
+func NewFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) *Line {
 	ubpOptions := usageBasedLineOptions{}
 
 	for _, opt := range opts {
