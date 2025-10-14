@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix/internal"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/idempotency"
 )
 
 func (h svixHandler) GetOrUpdateEndpointHeaders(ctx context.Context, appID, endpointID string, headers map[string]string) (map[string]string, error) {
@@ -62,7 +63,7 @@ func (h svixHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID, endpo
 			Key: secret,
 		}
 
-		idempotencyKey, err := toIdempotencyKey(input, time.Now())
+		idempotencyKey, err := idempotency.Key()
 		if err != nil {
 			return resp, fmt.Errorf("failed to generate idempotency key: %w", err)
 		}
@@ -152,7 +153,7 @@ func (h svixHandler) CreateWebhook(ctx context.Context, params webhook.CreateWeb
 		}(),
 	}
 
-	idempotencyKey, err := toIdempotencyKey(input, time.Now())
+	idempotencyKey, err := idempotency.Key()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate idempotency key: %w", err)
 	}
