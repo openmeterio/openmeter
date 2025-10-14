@@ -215,7 +215,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker)
+	modelCostProvider, err := common.NewModelCostProvider()
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker, modelCostProvider)
 	customerService, err := common.NewCustomerService(logger, client, entitlement, eventbusPublisher)
 	if err != nil {
 		cleanup6()
@@ -226,7 +236,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
+	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher, modelCostProvider)
 	productCatalogConfiguration := conf.ProductCatalog
 	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, eventbusPublisher)
 	if err != nil {

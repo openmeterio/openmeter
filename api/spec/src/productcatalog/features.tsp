@@ -68,6 +68,11 @@ model FeatureCreateInputs {
     type: #{ $eq: "input" },
   })
   advancedMeterGroupByFilters?: Record<FilterString>;
+
+  /**
+   * The internal cost per unit of the feature, if known.
+   */
+  costPerUnit?: Numeric;
 }
 
 /**

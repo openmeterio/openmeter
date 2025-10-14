@@ -36,11 +36,12 @@ type EntitlementOptions struct {
 	Publisher                 eventbus.Publisher
 	Tracer                    trace.Tracer
 	Locker                    *lockr.Locker
+	ModelCostProvider         *productcatalogpgadapter.ModelCostProvider
 }
 
 func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 	// Initialize database adapters
-	featureDBAdapter := productcatalogpgadapter.NewPostgresFeatureRepo(opts.DatabaseClient, opts.Logger)
+	featureDBAdapter := productcatalogpgadapter.NewPostgresFeatureRepo(opts.DatabaseClient, opts.Logger, opts.ModelCostProvider)
 	entitlementDBAdapter := entitlementpgadapter.NewPostgresEntitlementRepo(opts.DatabaseClient)
 	usageResetDBAdapter := entitlementpgadapter.NewPostgresUsageResetRepo(opts.DatabaseClient)
 	grantDBAdapter := creditpgadapter.NewPostgresGrantRepo(opts.DatabaseClient)

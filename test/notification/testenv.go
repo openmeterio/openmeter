@@ -131,7 +131,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		return nil, fmt.Errorf("failed to create meter service: %w", err)
 	}
 
-	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
+	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"), &productcatalogadapter.ModelCostProvider{})
 	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService, eventbus.NewMock(t))
 
 	adapter, err := notificationadapter.New(notificationadapter.Config{

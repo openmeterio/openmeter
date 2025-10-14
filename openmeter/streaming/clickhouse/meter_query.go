@@ -20,20 +20,21 @@ import (
 )
 
 type queryMeter struct {
-	Database        string
-	EventsTableName string
-	Namespace       string
-	Meter           meterpkg.Meter
-	FilterCustomer  []streaming.Customer
-	FilterSubject   []string
-	FilterGroupBy   map[string]filter.FilterString
-	From            *time.Time
-	To              *time.Time
-	GroupBy         []string
-	WindowSize      *meterpkg.WindowSize
-	WindowTimeZone  *time.Location
-	QuerySettings   map[string]string
-	EnablePrewhere  bool
+	Database         string
+	EventsTableName  string
+	Namespace        string
+	Meter            meterpkg.Meter
+	FilterCustomer   []streaming.Customer
+	FilterSubject    []string
+	FilterGroupBy    map[string]filter.FilterString
+	From             *time.Time
+	To               *time.Time
+	IgnoreLateEvents *time.Time
+	GroupBy          []string
+	WindowSize       *meterpkg.WindowSize
+	WindowTimeZone   *time.Location
+	QuerySettings    map[string]string
+	EnablePrewhere   bool
 }
 
 // from returns the from time for the query.
@@ -351,6 +352,13 @@ func (d *queryMeter) timeWhere(query *sqlbuilder.SelectBuilder) *sqlbuilder.Sele
 
 	if d.To != nil {
 		query = query.Where(query.LessThan(timeColumn, d.To.Unix()))
+	}
+
+	// If ignore late events is set, we filter out data that was ingested after the query period
+	// Note: This filter runs on a non sorthed column
+	if d.IgnoreLateEvents != nil {
+		ingestedAtColumn := getColumn("ingested_at")
+		query = query.Where(query.LessThan(ingestedAtColumn, d.IgnoreLateEvents.Unix()))
 	}
 
 	return query

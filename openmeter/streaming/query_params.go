@@ -20,6 +20,9 @@ type QueryParams struct {
 	GroupBy        []string
 	WindowSize     *meter.WindowSize
 	WindowTimeZone *time.Location
+	// IgnoreLateEvents is used to filter out data that was ingested after the query period.
+	// This is useful for queries that are not real-time, such as billing queries.
+	IgnoreLateEvents *time.Time
 }
 
 // Validate validates query params focusing on `from` and `to` being aligned with query and meter window sizes
@@ -40,6 +43,11 @@ func (p *QueryParams) Validate() error {
 		if p.From.After(*p.To) {
 			errs = append(errs, errors.New("from must be before to"))
 		}
+	}
+
+	// Check that ignore late events is after to
+	if p.IgnoreLateEvents != nil && p.To != nil && p.To.After(*p.IgnoreLateEvents) {
+		errs = append(errs, errors.New("ignore late events must be after to"))
 	}
 
 	// This is required because otherwise the response would be ambiguous

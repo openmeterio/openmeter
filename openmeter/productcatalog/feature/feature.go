@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/filter"
 )
@@ -131,6 +133,9 @@ type Feature struct {
 
 	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
 	MeterGroupByFilters MeterGroupByFilters `json:"meterGroupByFilters,omitempty"`
+
+	// CostPerUnit The internal cost per unit of the feature, if known.
+	CostPerUnit *alpacadecimal.Decimal `json:"costPerUnit,omitempty"`
 
 	// Metadata Additional metadata.
 	Metadata map[string]string `json:"metadata,omitempty"`

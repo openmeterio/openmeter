@@ -26,7 +26,7 @@ func (e *featureDBAdapter) Tx(ctx context.Context) (context.Context, transaction
 
 func (e *featureDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) feature.FeatureRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return NewPostgresFeatureRepo(txClient.Client(), e.logger)
+	return NewPostgresFeatureRepo(txClient.Client(), e.logger, e.modelCostProvider)
 }
 
 func (e *featureDBAdapter) Self() feature.FeatureRepo {

@@ -241,7 +241,7 @@ func TestCreateFeature(t *testing.T) {
 				t.Fatalf("failed to create schema: %v", err)
 			}
 
-			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &adapter.ModelCostProvider{})
 			tc.run(t, dbConnector)
 		})
 	}
@@ -260,7 +260,7 @@ func TestCreateFeature(t *testing.T) {
 			t.Fatalf("failed to create schema: %v", err)
 		}
 
-		dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+		dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &adapter.ModelCostProvider{})
 		ctx := context.Background()
 		featureIn := testFeature
 
@@ -351,7 +351,7 @@ func TestArchiveFeature(t *testing.T) {
 			Save(ctx)
 		assert.NoError(t, err)
 
-		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &adapter.ModelCostProvider{})
 
 		featureIn := testFeature
 
@@ -409,7 +409,7 @@ func TestFetchingArchivedFeature(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &adapter.ModelCostProvider{})
 
 		featureIn := testFeature
 

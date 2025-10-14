@@ -13,7 +13,7 @@ import (
 func MapFeatureToResponse(f feature.Feature) api.Feature {
 	meterGroupByFilters := feature.ConvertMeterGroupByFiltersToMapString(f.MeterGroupByFilters)
 
-	return api.Feature{
+	feature := api.Feature{
 		CreatedAt:                   f.CreatedAt,
 		DeletedAt:                   nil,
 		UpdatedAt:                   f.UpdatedAt,
@@ -26,6 +26,12 @@ func MapFeatureToResponse(f feature.Feature) api.Feature {
 		AdvancedMeterGroupByFilters: convert.MapToPointer(apiconverter.ConvertStringMapToAPIPtr(f.MeterGroupByFilters)),
 		MeterSlug:                   f.MeterSlug,
 	}
+
+	if f.CostPerUnit != nil {
+		feature.CostPerUnit = lo.ToPtr((*f.CostPerUnit).String())
+	}
+
+	return feature
 }
 
 func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs) feature.CreateFeatureInputs {

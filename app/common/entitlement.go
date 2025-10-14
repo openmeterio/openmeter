@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -29,6 +30,7 @@ func NewEntitlementRegistry(
 	meterService meter.Service,
 	eventPublisher eventbus.Publisher,
 	locker *lockr.Locker,
+	modelCostProvider *productcatalogpgadapter.ModelCostProvider,
 ) *registry.Entitlement {
 	return registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:            db,
@@ -39,5 +41,6 @@ func NewEntitlementRegistry(
 		EntitlementsConfiguration: entitlementConfig,
 		Tracer:                    tracer,
 		Locker:                    locker,
+		ModelCostProvider:         modelCostProvider,
 	})
 }
