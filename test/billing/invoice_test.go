@@ -643,30 +643,21 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
 				Lines: []*billing.Line{
-					{
-						LineBase: billing.LineBase{
-							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-								Name:      "Test item1",
-								Namespace: namespace,
-							}),
-							Period: billing.Period{Start: periodStart, End: periodEnd},
+					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+						Name:      "Test item1",
+						Namespace: namespace,
+						Period:    billing.Period{Start: periodStart, End: periodEnd},
 
-							InvoiceAt: line1IssueAt,
+						InvoiceAt: line1IssueAt,
 
-							Type:      billing.InvoiceLineTypeFee,
-							ManagedBy: billing.ManuallyManagedLine,
+						ManagedBy: billing.ManuallyManagedLine,
 
-							Metadata: map[string]string{
-								"key": "value",
-							},
+						Metadata: map[string]string{
+							"key": "value",
 						},
-						FlatFee: &billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(100),
-							Quantity:      alpacadecimal.NewFromFloat(1),
-							Category:      billing.FlatFeeCategoryRegular,
-							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-						},
-					},
+						PerUnitAmount: alpacadecimal.NewFromFloat(100),
+						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+					}),
 				},
 			})
 

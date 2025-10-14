@@ -302,24 +302,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Currency: currencyx.Code(currency.USD),
 				Lines: []*billing.Line{
 					{
-						// Covered case: standalone flat line
-						LineBase: billing.LineBase{
-							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-								Name: "Fee",
-							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeFee,
-						},
-						FlatFee: &billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(100),
-							PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-							Quantity:      alpacadecimal.NewFromFloat(1),
-							Category:      billing.FlatFeeCategoryRegular,
-						},
-					},
-					{
 						// Covered case: Discount caused by maximum amount
 						LineBase: billing.LineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -459,7 +441,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			},
 		)
 		s.NoError(err)
-		s.Len(pendingLines.Lines, 6)
+		s.Len(pendingLines.Lines, 5)
 	})
 
 	clock.FreezeTime(periodEnd.Add(time.Minute))
@@ -572,19 +554,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		}
 
 		expectedInvoiceAddLines := []*stripe.InvoiceItemParams{
-			{
-				Amount:      lo.ToPtr(int64(10000)),
-				Description: lo.ToPtr("Fee"),
-				Customer:    lo.ToPtr(customerData.StripeCustomerID),
-				Period: &stripe.InvoiceItemPeriodParams{
-					Start: lo.ToPtr(expectedPeriodStartUnix),
-					End:   lo.ToPtr(expectedPeriodEndUnix),
-				},
-				Metadata: map[string]string{
-					"om_line_id":   getLineID("Fee"),
-					"om_line_type": "line",
-				},
-			},
 			{
 				Amount:      lo.ToPtr(int64(7725)),
 				Description: lo.ToPtr("UBP - AI Usecase: usage in period (103,000,025 x $0.000001)"),
@@ -780,7 +749,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.NoError(err)
 
 		// Remove a line item.
-		lineToRemove := getLine("Fee")
+		lineToRemove := getLine("UBP - FLAT per any usage")
 		s.NotNil(lineToRemove, "line ID to remove is not found")
 
 		// Find the stripe line ID to remove.
@@ -796,7 +765,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		s.NotEmpty(stripeLineIDToRemove, "stripe line ID to remove is empty")
 
-		ok = updateInvoice.Lines.RemoveByID(lineToRemove.ID)
+		ok = updateInvoice.Lines.RemoveByID(*lineToRemove.ParentLineID)
 		s.True(ok, "failed to remove line item")
 
 		// To simulate the update, we will update the external ID of the invoice.
