@@ -11,11 +11,11 @@ import (
 )
 
 type (
-	usageLineDiscountManagedWithLine  = entitydiff.EqualerWithParent[billing.UsageLineDiscountManaged, *billing.Line]
-	amountLineDiscountManagedWithLine = entitydiff.EqualerWithParent[billing.AmountLineDiscountManaged, *billing.Line]
+	usageLineDiscountManagedWithLine  = entitydiff.EqualerNestedEntity[billing.UsageLineDiscountManaged, *billing.Line]
+	amountLineDiscountManagedWithLine = entitydiff.EqualerNestedEntity[billing.AmountLineDiscountManaged, *billing.Line]
 
-	detailedLineWithParent               = entitydiff.WithParent[*billing.DetailedLine, *billing.Line]
-	detailedLineAmountDiscountWithParent = entitydiff.EqualerWithParent[billing.AmountLineDiscountManaged, *billing.Line]
+	detailedLineWithParent               = entitydiff.NestedEntity[*billing.DetailedLine, *billing.Line]
+	detailedLineAmountDiscountWithParent = entitydiff.EqualerNestedEntity[billing.AmountLineDiscountManaged, *billing.Line]
 	detailedLineDiff                     = entitydiff.Diff[detailedLineWithParent]
 )
 
