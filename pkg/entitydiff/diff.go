@@ -125,8 +125,14 @@ func diffByID[T Entity](expectedState, dbState []T) speculativeDiff[T] {
 
 		if expected.IsDeleted() {
 			if !dbState.IsDeleted() {
-				// If the expected state is deleted, but we have it in the db, we need to delete it
-				diff.Delete = append(diff.Delete, dbState)
+				// If the expected state is deleted, but we have it in the db, we need to delete it, based on the target state
+				// so that if somebody not just set the deleted_at field, but also some other fields that should be persisted
+				// to the database.
+				//
+				// For example if you delete a line that is subscription synced, the edit will cause managedBy to become manual
+				// in the same change as before.
+
+				diff.Delete = append(diff.Delete, expected)
 				continue
 			}
 

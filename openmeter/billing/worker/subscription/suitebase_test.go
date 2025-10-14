@@ -59,7 +59,7 @@ func (s *SuiteBase) SetupSuite() {
 }
 
 func (s *SuiteBase) BeforeTest(ctx context.Context, suiteName, testName string) {
-	s.Namespace = "test-subs-update-" + ulid.Make().String()
+	s.Namespace = fmt.Sprintf("t-%s-%s-%s", suiteName, testName, ulid.Make().String())
 
 	appSandbox := s.InstallSandboxApp(s.T(), s.Namespace)
 
