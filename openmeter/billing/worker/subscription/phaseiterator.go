@@ -190,22 +190,22 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 //
 // This ensures that we always have the upcoming lines stored on the gathering invoice.
 func (it *PhaseIterator) Generate(ctx context.Context, iterationEnd time.Time) ([]subscriptionItemWithPeriods, error) {
-	ctx, span := tracex.Start[[]subscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.Generate", trace.WithAttributes(
+	span := tracex.Start[[]subscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.Generate", trace.WithAttributes(
 		attribute.String("phase_key", it.phase.Spec.PhaseKey),
 	))
 
 	// Given we are truncating to 1s resolution, we need to make sure that iterationEnd contains the last second as a whole.
 	iterationEnd = iterationEnd.Truncate(streaming.MinimumWindowSizeDuration).Add(streaming.MinimumWindowSizeDuration - time.Nanosecond)
 
-	return span.Wrap(ctx, func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
+	return span.Wrap(func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
 		return it.generateAligned(ctx, iterationEnd)
 	})
 }
 
 func (it *PhaseIterator) generateAligned(ctx context.Context, iterationEnd time.Time) ([]subscriptionItemWithPeriods, error) {
-	ctx, span := tracex.Start[[]subscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateAligned")
+	span := tracex.Start[[]subscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateAligned")
 
-	return span.Wrap(ctx, func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
+	return span.Wrap(func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
 		items := []subscriptionItemWithPeriods{}
 
 		for _, itemsByKey := range it.phase.ItemsByKey {
@@ -225,7 +225,7 @@ func (it *PhaseIterator) generateAligned(ctx context.Context, iterationEnd time.
 }
 
 func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item subscription.SubscriptionItemView, version int, iterationEnd time.Time, items *[]subscriptionItemWithPeriods) (bool, error) {
-	ctx, span := tracex.Start[bool](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateForAlignedItemVersion", trace.WithAttributes(
+	span := tracex.Start[bool](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateForAlignedItemVersion", trace.WithAttributes(
 		attribute.String("itemKey", item.Spec.ItemKey),
 		attribute.Int("itemVersion", version),
 		attribute.String("phaseKey", it.phase.Spec.PhaseKey),
@@ -233,7 +233,7 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 		attribute.String("phaseId", it.phase.SubscriptionPhase.ID),
 	))
 
-	return span.Wrap(ctx, func(ctx context.Context) (bool, error) {
+	return span.Wrap(func(ctx context.Context) (bool, error) {
 		logger := it.logger.With(
 			"itemKey", item.Spec.ItemKey,
 			"itemVersion", version,
@@ -331,12 +331,12 @@ type generatedVersionPeriodItem struct {
 }
 
 func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context, logger *slog.Logger, item subscription.SubscriptionItemView, version int, periodIdx int, at time.Time) (subscriptionItemWithPeriods, error) {
-	ctx, span := tracex.Start[subscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateForAlignedItemVersionPeriod", trace.WithAttributes(
+	span := tracex.Start[subscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateForAlignedItemVersionPeriod", trace.WithAttributes(
 		attribute.Int("periodIdx", periodIdx),
 		attribute.String("periodAt", at.Format(time.RFC3339)),
 	))
 
-	return span.Wrap(ctx, func(ctx context.Context) (subscriptionItemWithPeriods, error) {
+	return span.Wrap(func(ctx context.Context) (subscriptionItemWithPeriods, error) {
 		var empty subscriptionItemWithPeriods
 
 		billingPeriod, err := it.sub.Spec.GetAlignedBillingPeriodAt(at)
