@@ -6,6 +6,8 @@ updates:
     open-pull-requests-limit: 10
     schedule:
       interval: daily
+    cooldown:
+      default-days: 4
     labels:
       - area/dependencies
       - dependency/go
@@ -57,6 +59,8 @@ updates:
       interval: weekly
       day: monday
       time: "05:00"
+    cooldown:
+      default-days: 4
     labels:
       - area/dependencies
       - dependency/github_actions
@@ -68,6 +72,8 @@ updates:
       interval: weekly
       day: monday
       time: "05:00"
+    cooldown:
+      default-days: 4
     labels:
       - area/dependencies
       - dependency/docker
@@ -77,6 +83,8 @@ updates:
     directory: "/api/client/javascript"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 4
     labels:
       - area/dependencies
       - dependency/javascript
@@ -94,6 +102,8 @@ updates:
     directory: "/api/client/python"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 4
     labels:
       - area/dependencies
       - dependency/python
