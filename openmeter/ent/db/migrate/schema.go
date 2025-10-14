@@ -677,6 +677,26 @@ var (
 				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[42]},
 			},
 			{
+				Name:    "billinginvoice_namespace_period_start",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[47]},
+			},
+			{
+				Name:    "billinginvoice_namespace_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[3]},
+			},
+			{
+				Name:    "billinginvoice_namespace_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[4]},
+			},
+			{
+				Name:    "billinginvoice_namespace_issued_at",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[36]},
+			},
+			{
 				Name:    "billinginvoice_status_details_cache",
 				Unique:  false,
 				Columns: []*schema.Column{BillingInvoicesColumns[43]},
