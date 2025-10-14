@@ -994,6 +994,10 @@ func (BillingInvoice) Indexes() []ent.Index {
 		index.Fields("namespace", "id"),
 		index.Fields("namespace", "customer_id"),
 		index.Fields("namespace", "status"),
+		index.Fields("namespace", "period_start"),
+		index.Fields("namespace", "created_at"),
+		index.Fields("namespace", "updated_at"),
+		index.Fields("namespace", "issued_at"),
 		index.Fields("status_details_cache").
 			Annotations(
 				entsql.IndexTypes(map[string]string{
