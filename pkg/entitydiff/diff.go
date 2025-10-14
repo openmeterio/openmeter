@@ -130,7 +130,7 @@ func diffByID[T Entity](expectedState, dbState []T) speculativeDiff[T] {
 				// to the database.
 				//
 				// For example if you delete a line that is subscription synced, the edit will cause managedBy to become manual
-				// in the same change as before.
+				// in the same change as the deleted_at change.
 
 				diff.Delete = append(diff.Delete, expected)
 				continue
