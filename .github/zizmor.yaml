@@ -1,0 +1,4 @@
+rules:
+  # Let's disable dependabot cooldown checks as I want to have more control over the cooldown period than what zizmor allows
+  dependabot-cooldown:
+    disable: true
