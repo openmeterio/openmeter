@@ -151,13 +151,13 @@ func NewDLQTelemetryMiddleware(opts NewDLQTelemetryOptions) (func(message.Handle
 				metadataAsString = []byte("failed-to-marshal-metadata")
 			}
 
-			ctx, span := tracex.Start[[]*message.Message](msg.Context(), opts.Tracer, "watermill.router.full_message_processing", trace.WithAttributes(
+			span := tracex.Start[[]*message.Message](msg.Context(), opts.Tracer, "watermill.router.full_message_processing", trace.WithAttributes(
 				meterAttributeCEType,
 				attribute.String("message.metadata", string(metadataAsString)),
 				attribute.String("message.payload", string(msg.Payload)),
 			))
 
-			resMsg, err := span.Wrap(ctx, func(ctx context.Context) ([]*message.Message, error) {
+			resMsg, err := span.Wrap(func(ctx context.Context) ([]*message.Message, error) {
 				// Let's propagate message context to the handler
 				origCtx := msg.Context()
 				msg.SetContext(ctx)

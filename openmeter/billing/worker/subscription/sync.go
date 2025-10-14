@@ -100,11 +100,11 @@ func New(config Config) (*Handler, error) {
 }
 
 func (h *Handler) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
-	ctx, span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.invoicePendingLines", trace.WithAttributes(
+	span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.invoicePendingLines", trace.WithAttributes(
 		attribute.String("customer_id", customer.ID),
 	))
 
-	return span.Wrap(ctx, func(ctx context.Context) error {
+	return span.Wrap(func(ctx context.Context) error {
 		_, err := h.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer:                   customer,
 			ProgressiveBillingOverride: lo.ToPtr(false),
@@ -122,12 +122,12 @@ func (h *Handler) invoicePendingLines(ctx context.Context, customer customer.Cus
 }
 
 func (h *Handler) SyncronizeSubscriptionAndInvoiceCustomer(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
-	ctx, span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.SynchronizeSubscriptionAndInvoiceCustomer", trace.WithAttributes(
+	span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.SynchronizeSubscriptionAndInvoiceCustomer", trace.WithAttributes(
 		attribute.String("subscription_id", subs.Subscription.ID),
 		attribute.String("as_of", asOf.Format(time.RFC3339)),
 	))
 
-	return span.Wrap(ctx, func(ctx context.Context) error {
+	return span.Wrap(func(ctx context.Context) error {
 		if err := h.SyncronizeSubscription(ctx, subs, asOf); err != nil {
 			return fmt.Errorf("synchronize subscription: %w", err)
 		}
@@ -146,12 +146,12 @@ func (h *Handler) SyncronizeSubscriptionAndInvoiceCustomer(ctx context.Context, 
 }
 
 func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
-	ctx, span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
+	span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
 		attribute.String("subscription_id", subs.Subscription.ID),
 		attribute.String("as_of", asOf.Format(time.RFC3339)),
 	))
 
-	return span.Wrap(ctx, func(ctx context.Context) error {
+	return span.Wrap(func(ctx context.Context) error {
 		if !subs.Spec.HasBillables() {
 			h.logger.DebugContext(ctx, "subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
 			return nil
@@ -244,9 +244,9 @@ type subscriptionSyncPlanLineUpsert struct {
 
 // calculateSyncPlan calculates the sync plan for the subscription, it returns the lines to delete, the lines to upsert and the new subscription items.
 func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (*subscriptionSyncPlan, error) {
-	ctx, span := tracex.Start[*subscriptionSyncPlan](ctx, h.tracer, "billing.worker.subscription.sync.compareSubscriptionWithExistingLines")
+	span := tracex.Start[*subscriptionSyncPlan](ctx, h.tracer, "billing.worker.subscription.sync.compareSubscriptionWithExistingLines")
 
-	return span.Wrap(ctx, func(ctx context.Context) (*subscriptionSyncPlan, error) {
+	return span.Wrap(func(ctx context.Context) (*subscriptionSyncPlan, error) {
 		// Let's see what's in scope for the subscription
 		// TODO: afaik this is already sorted, let's doublecheck that
 		slices.SortFunc(subs.Phases, func(i, j subscription.SubscriptionPhaseView) int {
@@ -518,9 +518,9 @@ func (h *Handler) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 // This approach allows us to not to have to poll all the subscriptions periodically, but we can act when an invoice is created or when
 // a subscription is updated.
 func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) ([]subscriptionItemWithPeriods, error) {
-	ctx, span := tracex.Start[[]subscriptionItemWithPeriods](ctx, h.tracer, "billing.worker.subscription.sync.collectUpcomingLines")
+	span := tracex.Start[[]subscriptionItemWithPeriods](ctx, h.tracer, "billing.worker.subscription.sync.collectUpcomingLines")
 
-	return span.Wrap(ctx, func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
+	return span.Wrap(func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
 		inScopeLines := make([]subscriptionItemWithPeriods, 0, 128)
 
 		for _, phase := range subs.Phases {
