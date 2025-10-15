@@ -63,7 +63,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		}
 
 		// Step 2: Let's create the lines, but not their detailed lines
-		lineUpsertConfig := upsertInput[*billing.Line, *db.BillingInvoiceLineCreate]{
+		invoiceLineUpsertConfig := upsertInput[*billing.Line, *db.BillingInvoiceLineCreate]{
 			Create: func(tx *db.Client, line *billing.Line) (*db.BillingInvoiceLineCreate, error) {
 				if line.ID == "" {
 					line.ID = ulid.Make().String()
@@ -115,20 +115,14 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					create = create.SetRatecardDiscounts(lo.ToPtr(line.RateCardDiscounts))
 				}
 
-				switch line.Type {
-				case billing.InvoiceLineTypeFee:
-					create = create.SetQuantity(line.FlatFee.Quantity).
-						SetFlatFeeLineID(line.FlatFee.ConfigID).
-						SetNillableUsageBasedLineID(nil)
-				case billing.InvoiceLineTypeUsageBased:
-					create = create.
-						SetNillableQuantity(line.UsageBased.Quantity).
-						SetUsageBasedLineID(line.UsageBased.ConfigID).
-						SetNillableFlatFeeLineID(nil)
-
-				default:
-					return nil, fmt.Errorf("unsupported type: %s", line.Type)
+				if line.Type != billing.InvoiceLineTypeUsageBased {
+					return nil, fmt.Errorf("invoice level lines must be usage based [line_id=%s]", line.ID)
 				}
+
+				create = create.
+					SetNillableQuantity(line.UsageBased.Quantity).
+					SetUsageBasedLineID(line.UsageBased.ConfigID).
+					SetNillableFlatFeeLineID(nil)
 
 				return create, nil
 			},
@@ -151,23 +145,14 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			},
 		}
 
-		if err := upsertWithOptions(ctx, tx.db, lineDiffs.Line, lineUpsertConfig); err != nil {
+		if err := upsertWithOptions(ctx, tx.db, lineDiffs.Line, invoiceLineUpsertConfig); err != nil {
 			return nil, fmt.Errorf("creating lines: %w", err)
 		}
 
 		// Step 3: Let's create the detailed lines
 		if !lineDiffs.DetailedLine.IsEmpty() {
-			// Let's restore the parent <-> child relationship in terms of the ParentLineID field
-			for _, line := range input.Lines {
-				for _, child := range line.Children {
-					child.ParentLineID = lo.ToPtr(line.ID)
-				}
-			}
-
-			detailedLineDiff := lineDiffs.GetDetailedLineDiffWithParentID()
-
-			if err := upsertWithOptions(ctx, tx.db, detailedLineDiff, lineUpsertConfig); err != nil {
-				return nil, fmt.Errorf("[children] creating lines: %w", err)
+			if err := tx.upsertDetailedLines(ctx, lineDiffs.DetailedLine); err != nil {
+				return nil, fmt.Errorf("upserting detailed lines: %w", err)
 			}
 		}
 
@@ -317,6 +302,92 @@ func (a *adapter) upsertFeeLineConfig(ctx context.Context, in detailedLineDiff) 
 				Exec(ctx)
 		},
 	})
+}
+
+func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) error {
+	detailedLineUpsertConfig := upsertInput[detailedLineWithParent, *db.BillingInvoiceLineCreate]{
+		Create: func(tx *db.Client, lineWithParent detailedLineWithParent) (*db.BillingInvoiceLineCreate, error) {
+			line := lineWithParent.Entity
+
+			if line.ID == "" {
+				line.ID = ulid.Make().String()
+			}
+
+			create := tx.BillingInvoiceLine.Create().
+				SetID(line.ID).
+				SetNamespace(line.Namespace).
+				SetInvoiceID(line.InvoiceID).
+				SetPeriodStart(line.Period.Start.In(time.UTC)).
+				SetPeriodEnd(line.Period.End.In(time.UTC)).
+				SetParentLineID(lineWithParent.Parent.ID).
+				SetNillableSplitLineGroupID(line.SplitLineGroupID).
+				SetNillableDeletedAt(line.DeletedAt).
+				SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
+				SetStatus(line.Status).
+				SetManagedBy(line.ManagedBy).
+				SetType(line.Type).
+				SetName(line.Name).
+				SetNillableDescription(line.Description).
+				SetCurrency(line.Currency).
+				SetMetadata(line.Metadata).
+				SetAnnotations(line.Annotations).
+				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
+				// Totals
+				SetAmount(line.Totals.Amount).
+				SetChargesTotal(line.Totals.ChargesTotal).
+				SetDiscountsTotal(line.Totals.DiscountsTotal).
+				SetTaxesTotal(line.Totals.TaxesTotal).
+				SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
+				SetTaxesExclusiveTotal(line.Totals.TaxesExclusiveTotal).
+				SetTotal(line.Totals.Total).
+				// ExternalIDs
+				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+
+			if line.Subscription != nil {
+				create = create.SetSubscriptionID(line.Subscription.SubscriptionID).
+					SetSubscriptionPhaseID(line.Subscription.PhaseID).
+					SetSubscriptionItemID(line.Subscription.ItemID).
+					SetSubscriptionBillingPeriodFrom(line.Subscription.BillingPeriod.From.In(time.UTC)).
+					SetSubscriptionBillingPeriodTo(line.Subscription.BillingPeriod.To.In(time.UTC))
+			}
+
+			if line.TaxConfig != nil {
+				create = create.SetTaxConfig(*line.TaxConfig)
+			}
+
+			if !line.RateCardDiscounts.IsEmpty() {
+				create = create.SetRatecardDiscounts(lo.ToPtr(line.RateCardDiscounts))
+			}
+
+			if line.Type != billing.InvoiceLineTypeFee {
+				return nil, fmt.Errorf("detailed line must have fee type [%s]", line.ID)
+			}
+
+			create = create.SetQuantity(line.FlatFee.Quantity).
+				SetFlatFeeLineID(line.FlatFee.ConfigID).
+				SetNillableUsageBasedLineID(nil)
+
+			return create, nil
+		},
+		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceLineCreate) error {
+			return tx.BillingInvoiceLine.
+				CreateBulk(items...).
+				OnConflict(sql.ConflictColumns(billinginvoiceline.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.ResolveWith(func(u *sql.UpdateSet) {
+						u.SetIgnore(billinginvoiceline.FieldCreatedAt)
+					})).
+				UpdateQuantity().
+				UpdateChildUniqueReferenceID().
+				Exec(ctx)
+		},
+		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {
+			line.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+			return line, nil
+		},
+	}
+
+	return upsertWithOptions(ctx, a.db, in, detailedLineUpsertConfig)
 }
 
 func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydiff.Diff[*billing.Line]) error {
