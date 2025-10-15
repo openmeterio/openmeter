@@ -10,20 +10,26 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/entitydiff"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type idDiff = diff[string]
+type idDiff struct {
+	ToCreate []string
+	ToUpdate []string
+	ToDelete []string
+}
 
 type lineDiffExpectation struct {
-	LineBase   idDiff
-	FlatFee    idDiff
-	UsageBased idDiff
+	Line idDiff
 
 	AmountDiscounts idDiff
 
-	AffectedLineIDs []string
-	ChildrenDiff    *lineDiffExpectation
+	DetailedLine                idDiff
+	DetailedLineAmountDiscounts idDiff
+
+	AffectedLineIDs             []string
+	DetailedLineAffectedLineIDs []string
 }
 
 func TestInvoiceLineDiffing(t *testing.T) {
@@ -33,9 +39,9 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					ID: "1",
 				}),
-				Type: billing.InvoiceLineTypeFee,
+				Type: billing.InvoiceLineTypeUsageBased,
 			},
-			FlatFee: &billing.FlatFeeLine{},
+			UsageBased: &billing.UsageBasedLine{},
 		},
 		{
 			LineBase: billing.LineBase{
@@ -76,25 +82,14 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		require.NoError(t, err)
 
 		requireDiff(t, lineDiffExpectation{
-			LineBase: idDiff{
+			Line: idDiff{
 				ToCreate: []string{"1", "2"},
 			},
-			FlatFee: idDiff{
-				ToCreate: []string{"1"},
+			DetailedLine: idDiff{
+				ToCreate: []string{"2.1", "2.2"},
 			},
-			UsageBased: idDiff{
-				ToCreate: []string{"2"},
-			},
-			ChildrenDiff: &lineDiffExpectation{
-				LineBase: idDiff{
-					ToCreate: []string{"2.1", "2.2"},
-				},
-				FlatFee: idDiff{
-					ToCreate: []string{"2.1", "2.2"},
-				},
-				AmountDiscounts: idDiff{
-					ToCreate: []string{"D2.1.1"},
-				},
+			DetailedLineAmountDiscounts: idDiff{
+				ToCreate: []string{"D2.1.1"},
 			},
 		}, lineDiff)
 	})
@@ -120,16 +115,11 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 		requireDiff(t, lineDiffExpectation{
 			AffectedLineIDs: []string{"2"},
-			ChildrenDiff: &lineDiffExpectation{
-				LineBase: idDiff{
-					ToDelete: []string{"2.1"},
-				},
-				// Flat fee is not deleted as it does not have soft delete, so it's enough to mark the line as deleted
-				FlatFee: idDiff{},
-				AmountDiscounts: idDiff{
-					// Discounts also get deleted
-					ToDelete: []string{"D2.1.1"},
-				},
+			DetailedLine: idDiff{
+				ToDelete: []string{"2.1"},
+			},
+			DetailedLineAmountDiscounts: idDiff{
+				ToDelete: []string{"D2.1.1"},
 			},
 		}, lineDiff)
 	})
@@ -145,13 +135,8 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 		requireDiff(t, lineDiffExpectation{
 			AffectedLineIDs: []string{"2"},
-			ChildrenDiff: &lineDiffExpectation{
-				LineBase: idDiff{
-					ToUpdate: []string{"2.1"},
-				},
-				FlatFee: idDiff{
-					ToUpdate: []string{"2.1"},
-				},
+			DetailedLine: idDiff{
+				ToUpdate: []string{"2.1"},
 			},
 		}, lineDiff)
 	})
@@ -166,10 +151,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		require.NoError(t, err)
 
 		requireDiff(t, lineDiffExpectation{
-			LineBase: idDiff{
-				ToUpdate: []string{"2"},
-			},
-			UsageBased: idDiff{
+			Line: idDiff{
 				ToUpdate: []string{"2"},
 			},
 		}, lineDiff)
@@ -191,19 +173,14 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 		requireDiff(t, lineDiffExpectation{
 			AffectedLineIDs: []string{"2"},
-			ChildrenDiff: &lineDiffExpectation{
-				LineBase: idDiff{
-					ToDelete: []string{"2.1"},
-					ToCreate: []string{"2.3"},
-				},
-				FlatFee: idDiff{
-					ToCreate: []string{"2.3"},
-				},
-				AmountDiscounts: idDiff{
-					// The discount gets deleted + created
-					ToCreate: []string{"D2.1.3"},
-					ToDelete: []string{"D2.1.1"},
-				},
+			DetailedLine: idDiff{
+				ToDelete: []string{"2.1"},
+				ToCreate: []string{"2.3"},
+			},
+			DetailedLineAmountDiscounts: idDiff{
+				// The discount gets deleted + created
+				ToCreate: []string{"D2.1.3"},
+				ToDelete: []string{"D2.1.1"},
 			},
 		}, lineDiff)
 	})
@@ -219,11 +196,10 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		require.NoError(t, err)
 
 		requireDiff(t, lineDiffExpectation{
-			AffectedLineIDs: []string{"2", "2.1"},
-			ChildrenDiff: &lineDiffExpectation{
-				AmountDiscounts: idDiff{
-					ToDelete: []string{"D2.1.1"},
-				},
+			AffectedLineIDs:             []string{"2"},
+			DetailedLineAffectedLineIDs: []string{"2.1"},
+			DetailedLineAmountDiscounts: idDiff{
+				ToDelete: []string{"D2.1.1"},
 			},
 		}, lineDiff)
 	})
@@ -238,11 +214,10 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		require.NoError(t, err)
 
 		requireDiff(t, lineDiffExpectation{
-			AffectedLineIDs: []string{"2", "2.1"},
-			ChildrenDiff: &lineDiffExpectation{
-				AmountDiscounts: idDiff{
-					ToUpdate: []string{"D2.1.1"},
-				},
+			AffectedLineIDs:             []string{"2"},
+			DetailedLineAffectedLineIDs: []string{"2.1"},
+			DetailedLineAmountDiscounts: idDiff{
+				ToUpdate: []string{"D2.1.1"},
 			},
 		}, lineDiff)
 	})
@@ -260,12 +235,11 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		require.NoError(t, err)
 
 		requireDiff(t, lineDiffExpectation{
-			AffectedLineIDs: []string{"2", "2.1"},
-			ChildrenDiff: &lineDiffExpectation{
-				AmountDiscounts: idDiff{
-					ToCreate: []string{"D2.1.2"},
-					ToDelete: []string{"D2.1.1"},
-				},
+			AffectedLineIDs:             []string{"2"},
+			DetailedLineAffectedLineIDs: []string{"2.1"},
+			DetailedLineAmountDiscounts: idDiff{
+				ToCreate: []string{"D2.1.2"},
+				ToDelete: []string{"D2.1.1"},
 			},
 		}, lineDiff)
 	})
@@ -282,13 +256,11 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 		requireDiff(t, lineDiffExpectation{
 			AffectedLineIDs: []string{"2"},
-			ChildrenDiff: &lineDiffExpectation{
-				LineBase: idDiff{
-					ToDelete: []string{"2.1"},
-				},
-				AmountDiscounts: idDiff{
-					ToDelete: []string{"D2.1.1"},
-				},
+			DetailedLine: idDiff{
+				ToDelete: []string{"2.1"},
+			},
+			DetailedLineAmountDiscounts: idDiff{
+				ToDelete: []string{"D2.1.1"},
 			},
 		}, lineDiff)
 	})
@@ -303,16 +275,14 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		require.NoError(t, err)
 
 		requireDiff(t, lineDiffExpectation{
-			LineBase: idDiff{
+			Line: idDiff{
 				ToDelete: []string{"2"},
 			},
-			ChildrenDiff: &lineDiffExpectation{
-				LineBase: idDiff{
-					ToDelete: []string{"2.1", "2.2"},
-				},
-				AmountDiscounts: idDiff{
-					ToDelete: []string{"D2.1.1"},
-				},
+			DetailedLine: idDiff{
+				ToDelete: []string{"2.1", "2.2"},
+			},
+			DetailedLineAmountDiscounts: idDiff{
+				ToDelete: []string{"D2.1.1"},
 			},
 		}, lineDiff)
 	})
@@ -327,7 +297,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		require.NoError(t, err)
 
 		requireDiff(t, lineDiffExpectation{
-			LineBase: idDiff{
+			Line: idDiff{
 				ToDelete: []string{"1"},
 			},
 		}, lineDiff)
@@ -344,66 +314,19 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 		requireDiff(t, lineDiffExpectation{}, lineDiff)
 	})
-
-	t.Run("deleted, changed lines are not triggering updates", func(t *testing.T) {
-		base := cloneLines(template)
-		base[1].DeletedAt = lo.ToPtr(clock.Now())
-		base[1].Children.GetByID("2.1").DeletedAt = lo.ToPtr(clock.Now())
-
-		snapshotAsDBState(base)
-		base[1].DeletedAt = nil
-		base[1].Children.GetByID("2.1").DeletedAt = nil
-
-		lineDiff, err := diffInvoiceLines(base)
-		require.NoError(t, err)
-
-		requireDiff(t, lineDiffExpectation{
-			LineBase: idDiff{
-				ToUpdate: []string{"2"},
-			},
-			ChildrenDiff: &lineDiffExpectation{
-				LineBase: idDiff{
-					ToUpdate: []string{"2.1"},
-				},
-			},
-		}, lineDiff)
-	})
 }
 
-func mapLinesToIDs(lines []*billing.Line) []string {
-	return lo.Map(lines, func(line *billing.Line, _ int) string {
-		// Use description as ID if it's set, so that we can predict the new line's ID for new
-		// line testcases
-		if line.Description != nil {
-			return *line.Description
-		}
-		return line.ID
-	})
-}
-
-func mapLineDiffToIDs(in diff[*billing.Line]) idDiff {
+func mapDiffToIDs[T entitydiff.Entity](in entitydiff.Diff[T], getDescription func(T) *string) idDiff {
 	return idDiff{
-		ToCreate: mapLinesToIDs(in.ToCreate),
-		ToUpdate: mapLinesToIDs(in.ToUpdate),
-		ToDelete: mapLinesToIDs(in.ToDelete),
-	}
-}
-
-func mapLineDiscountsToIDs(t *testing.T, discounts []withParent[billing.AmountLineDiscountManaged, *billing.Line]) []string {
-	return lo.Map(discounts, func(d withParent[billing.AmountLineDiscountManaged, *billing.Line], _ int) string {
-		if d.Entity.Description != nil {
-			return *d.Entity.Description
-		}
-
-		return d.Entity.GetID()
-	})
-}
-
-func mapLineDiscountDiffToIDs(t *testing.T, in diff[withParent[billing.AmountLineDiscountManaged, *billing.Line]]) idDiff {
-	return idDiff{
-		ToCreate: mapLineDiscountsToIDs(t, in.ToCreate),
-		ToUpdate: mapLineDiscountsToIDs(t, in.ToUpdate),
-		ToDelete: mapLineDiscountsToIDs(t, in.ToDelete),
+		ToCreate: lo.Map(in.Create, func(item T, _ int) string {
+			return lo.FromPtrOr(getDescription(item), item.GetID())
+		}),
+		ToUpdate: lo.Map(in.Update, func(item entitydiff.DiffUpdate[T], _ int) string {
+			return lo.FromPtrOr(getDescription(item.PersistedState), item.PersistedState.GetID())
+		}),
+		ToDelete: lo.Map(in.Delete, func(item T, _ int) string {
+			return lo.FromPtrOr(getDescription(item), item.GetID())
+		}),
 	}
 }
 
@@ -420,35 +343,27 @@ func msgPrefix(prefix string, in ...interface{}) []interface{} {
 	return in
 }
 
-func requireIdDiffMatches(t *testing.T, a, b idDiff, msgAndArgs ...interface{}) {
+func requireIdDiffMatches[T entitydiff.Entity](t *testing.T, a idDiff, b entitydiff.Diff[T], getDescription func(T) *string, msgAndArgs ...interface{}) {
 	t.Helper()
 
-	require.ElementsMatch(t, a.ToCreate, b.ToCreate, msgPrefix("ToCreate", msgAndArgs...))
-	require.ElementsMatch(t, a.ToUpdate, b.ToUpdate, msgPrefix("ToUpdate", msgAndArgs...))
-	require.ElementsMatch(t, a.ToDelete, b.ToDelete, msgPrefix("ToDelete", msgAndArgs...))
+	idDiffB := mapDiffToIDs(b, getDescription)
+
+	require.ElementsMatch(t, a.ToCreate, idDiffB.ToCreate, msgPrefix("ToCreate", msgAndArgs...))
+	require.ElementsMatch(t, a.ToUpdate, idDiffB.ToUpdate, msgPrefix("ToUpdate", msgAndArgs...))
+	require.ElementsMatch(t, a.ToDelete, idDiffB.ToDelete, msgPrefix("ToDelete", msgAndArgs...))
 }
 
-func requireDiffWithoutChildren(t *testing.T, expected lineDiffExpectation, actual *invoiceLineDiff, prefix string) {
+func requireDiff(t *testing.T, expected lineDiffExpectation, actual invoiceLineDiff) {
 	t.Helper()
 
-	requireIdDiffMatches(t, expected.LineBase, mapLineDiffToIDs(actual.LineBase), prefix+": LineBase")
-	requireIdDiffMatches(t, expected.FlatFee, mapLineDiffToIDs(actual.FlatFee), prefix+": FlatFee")
-	requireIdDiffMatches(t, expected.UsageBased, mapLineDiffToIDs(actual.UsageBased), prefix+": UsageBased")
+	requireIdDiffMatches(t, expected.Line, actual.Line, func(line *billing.Line) *string { return line.GetDescription() }, "line diff")
+	requireIdDiffMatches(t, expected.AmountDiscounts, actual.AmountDiscounts, func(discount amountLineDiscountManagedWithLine) *string { return discount.Entity.Description }, "amount discounts")
 
-	requireIdDiffMatches(t, expected.AmountDiscounts, mapLineDiscountDiffToIDs(t, actual.AmountDiscounts), prefix+": AmountDiscounts")
-}
+	requireIdDiffMatches(t, expected.DetailedLine, actual.DetailedLine, func(line detailedLineWithParent) *string { return line.Entity.GetDescription() }, "detailed line diff")
+	requireIdDiffMatches(t, expected.DetailedLineAmountDiscounts, actual.DetailedLineAmountDiscounts, func(discount amountLineDiscountManagedWithLine) *string { return discount.Entity.Description }, "detailed line amount discounts")
 
-func requireDiff(t *testing.T, expected lineDiffExpectation, actual *invoiceLineDiff) {
-	t.Helper()
-	requireDiffWithoutChildren(t, expected, actual, "root diff")
-	require.ElementsMatch(t, expected.AffectedLineIDs, actual.AffectedLineIDs.AsSlice(), "affectedLineIDs")
-
-	childrenExpectation := expected.ChildrenDiff
-	if childrenExpectation == nil {
-		childrenExpectation = &lineDiffExpectation{}
-	}
-
-	requireDiffWithoutChildren(t, *childrenExpectation, actual.ChildrenDiff, "children diff")
+	require.ElementsMatch(t, expected.AffectedLineIDs, actual.AffectedLineIDs.AsSlice(), "affected line IDs")
+	require.ElementsMatch(t, expected.DetailedLineAffectedLineIDs, actual.DetailedLineAffectedLineIDs.AsSlice(), "detailed line affected line IDs")
 }
 
 func cloneLines(lines []*billing.Line) []*billing.Line {

@@ -390,54 +390,36 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 			Customer: in.Customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
 			Lines: []*billing.Line{
-				{
-					LineBase: billing.LineBase{
-						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-							Namespace: namespace,
-							Name:      "Test item1",
-						}),
-						Period: billing.Period{Start: periodStart, End: periodEnd},
-
-						InvoiceAt: invoiceAt,
-
-						Type:      billing.InvoiceLineTypeFee,
-						ManagedBy: billing.ManuallyManagedLine,
-
-						Currency: currencyx.Code(currency.USD),
-
+				billing.NewFlatFeeLine(
+					billing.NewFlatFeeLineInput{
+						Namespace:     namespace,
+						Period:        billing.Period{Start: periodStart, End: periodEnd},
+						InvoiceAt:     invoiceAt,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Name:          "Test item1",
+						PerUnitAmount: alpacadecimal.NewFromFloat(100),
+						Currency:      currencyx.Code(currency.USD),
 						Metadata: map[string]string{
 							"key": "value",
 						},
+						PaymentTerm: productcatalog.InArrearsPaymentTerm,
 					},
-					FlatFee: &billing.FlatFeeLine{
-						PerUnitAmount: alpacadecimal.NewFromFloat(100),
-						Quantity:      alpacadecimal.NewFromFloat(1),
-						Category:      billing.FlatFeeCategoryRegular,
-						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-					},
-				},
-				{
-					LineBase: billing.LineBase{
-						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-							Namespace: namespace,
-							Name:      "Test item2",
-						}),
-						Period: billing.Period{Start: periodStart, End: periodEnd},
-
-						InvoiceAt: invoiceAt,
-
-						Type:      billing.InvoiceLineTypeFee,
-						ManagedBy: billing.ManuallyManagedLine,
-
-						Currency: currencyx.Code(currency.USD),
-					},
-					FlatFee: &billing.FlatFeeLine{
+				),
+				billing.NewFlatFeeLine(
+					billing.NewFlatFeeLineInput{
+						Namespace:     namespace,
+						Period:        billing.Period{Start: periodStart, End: periodEnd},
+						InvoiceAt:     invoiceAt,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Name:          "Test item2",
 						PerUnitAmount: alpacadecimal.NewFromFloat(200),
-						Quantity:      alpacadecimal.NewFromFloat(1),
-						Category:      billing.FlatFeeCategoryRegular,
-						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+						Currency:      currencyx.Code(currency.USD),
+						Metadata: map[string]string{
+							"key": "value",
+						},
+						PaymentTerm: productcatalog.InArrearsPaymentTerm,
 					},
-				},
+				),
 			},
 		})
 
