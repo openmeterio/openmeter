@@ -76,7 +76,7 @@ func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand b
 			billinginvoiceline.StatusIn(requestedStatuses...),
 		)
 
-		a.expandLineItems(q)
+		a.expandLineItemsWithDetailedLines(q)
 	})
 }
 
@@ -570,17 +570,6 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			updatedLines = billing.NewInvoiceLines(lines)
 		}
 
-		// Let's return the updated invoice
-		if !in.ExpandedFields.DeletedLines && updatedLines.IsPresent() {
-			// If we haven't requested deleted lines, let's filter them out, as if there were lines marked deleted
-			// the adapter update would return them as well.
-			updatedLines = billing.NewInvoiceLines(
-				lo.Filter(updatedLines.OrEmpty(), func(line *billing.Line, _ int) bool {
-					return line.DeletedAt == nil
-				}),
-			)
-		}
-
 		// If we had just updated the lines, let's reuse that result, as it's quite an expensive operation
 		// to look up the lines again.
 		if in.ExpandedFields.Lines && updatedLines.IsPresent() {
@@ -748,10 +737,7 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 	}
 
 	if expand.Lines {
-		mappedLines, err := a.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
-			lines:          invoice.Edges.BillingInvoiceLines,
-			includeDeleted: expand.DeletedLines,
-		})
+		mappedLines, err := a.mapInvoiceLineFromDB(invoice.Edges.BillingInvoiceLines)
 		if err != nil {
 			return billing.Invoice{}, err
 		}
