@@ -10,7 +10,7 @@ var _ notification.EventHandler = (*Handler)(nil)
 
 type Handler struct{}
 
-func (h Handler) Dispatch(_ *notification.Event) error {
+func (h Handler) Dispatch(_ context.Context, _ *notification.Event) error {
 	return nil
 }
 

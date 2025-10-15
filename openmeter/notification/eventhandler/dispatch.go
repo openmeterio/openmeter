@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -54,54 +58,74 @@ func eventAsPayload(event *notification.Event) (map[string]interface{}, error) {
 }
 
 func (h *Handler) dispatchWebhook(ctx context.Context, event *notification.Event) error {
-	payload, err := eventAsPayload(event)
-	if err != nil {
-		return err
-	}
-
-	sendIn := webhook.SendMessageInput{
-		Namespace: event.Namespace,
-		EventID:   event.ID,
-		EventType: string(event.Type),
-		Channels:  []string{event.Rule.ID},
-		Payload:   payload,
-	}
-
-	logger := h.logger.With("eventID", event.ID, "eventType", event.Type)
-
-	var stateReason string
-
-	state := notification.EventDeliveryStatusStateSuccess
-
-	_, err = h.webhook.SendMessage(ctx, sendIn)
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to send webhook message: error returned by webhook service", "error", err)
-
-		stateReason = "failed to send webhook message: error returned by webhook service"
-
-		state = notification.EventDeliveryStatusStateFailed
-	}
-
-	for _, channelID := range notification.ChannelIDsByType(event.Rule.Channels, notification.ChannelTypeWebhook) {
-		_, err = h.repo.UpdateEventDeliveryStatus(ctx, notification.UpdateEventDeliveryStatusInput{
-			NamespacedModel: models.NamespacedModel{
-				Namespace: event.Namespace,
-			},
-			State:     state,
-			Reason:    stateReason,
-			EventID:   event.ID,
-			ChannelID: channelID,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to update event delivery: %w", err)
+	fn := func(ctx context.Context) error {
+		if event == nil {
+			return fmt.Errorf("event is nil")
 		}
+
+		payload, err := eventAsPayload(event)
+		if err != nil {
+			return err
+		}
+
+		sendIn := webhook.SendMessageInput{
+			Namespace: event.Namespace,
+			EventID:   event.ID,
+			EventType: event.Type.String(),
+			Channels:  []string{event.Rule.ID},
+			Payload:   payload,
+		}
+
+		logger := h.logger.With("eventID", event.ID, "eventType", event.Type)
+
+		var stateReason string
+
+		state := notification.EventDeliveryStatusStateSuccess
+
+		_, err = h.webhook.SendMessage(ctx, sendIn)
+		if err != nil {
+			logger.ErrorContext(ctx, "failed to send webhook message: error returned by webhook service", "error", err)
+
+			stateReason = "failed to send webhook message: error returned by webhook service"
+
+			state = notification.EventDeliveryStatusStateFailed
+		}
+
+		span := trace.SpanFromContext(ctx)
+
+		spanAttrs := []attribute.KeyValue{
+			attribute.String("svix.app_id", sendIn.Namespace),
+			attribute.String("svix.event_type", sendIn.EventType),
+			attribute.String("svix.event_id", sendIn.EventID),
+		}
+
+		for _, channelID := range notification.ChannelIDsByType(event.Rule.Channels, notification.ChannelTypeWebhook) {
+			spanAttrs = append(spanAttrs, attribute.String("svix.channel_id", channelID))
+
+			span.AddEvent("updating event delivery status", trace.WithAttributes(spanAttrs...))
+
+			_, err = h.repo.UpdateEventDeliveryStatus(ctx, notification.UpdateEventDeliveryStatusInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: event.Namespace,
+				},
+				State:     state,
+				Reason:    stateReason,
+				EventID:   event.ID,
+				ChannelID: channelID,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to update event delivery: %w", err)
+			}
+		}
+
+		return nil
 	}
 
-	return nil
+	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.dispatch_webhook").Wrap(fn)
 }
 
 func (h *Handler) dispatch(ctx context.Context, event *notification.Event) error {
-	var errs error
+	var errs []error
 
 	for _, channelType := range notification.ChannelTypes(event.Rule.Channels) {
 		var err error
@@ -114,14 +138,20 @@ func (h *Handler) dispatch(ctx context.Context, event *notification.Event) error
 		}
 
 		if err != nil {
-			errs = errors.Join(errs, err)
+			errs = append(errs, err)
 		}
 	}
 
-	return errs
+	return errors.Join(errs...)
 }
 
-func (h *Handler) Dispatch(event *notification.Event) error {
+func (h *Handler) Dispatch(ctx context.Context, event *notification.Event) error {
+	spanLink := trace.LinkFromContext(ctx)
+
+	fn := func(ctx context.Context) error {
+		return h.dispatch(ctx, event)
+	}
+
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
@@ -134,8 +164,14 @@ func (h *Handler) Dispatch(event *notification.Event) error {
 		ctx, cancel := context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout)
 		defer cancel()
 
-		if err := h.dispatch(ctx, event); err != nil {
-			h.logger.Warn("failed to dispatch event", "eventID", event.ID, "error", err)
+		tracerOpts := []trace.SpanStartOption{
+			trace.WithNewRoot(),
+			trace.WithLinks(spanLink),
+		}
+
+		err := tracex.StartWithNoValue(ctx, h.tracer, "event_handler.dispatch", tracerOpts...).Wrap(fn)
+		if err != nil {
+			h.logger.WarnContext(ctx, "failed to dispatch event", "eventID", event.ID, "error", err)
 		}
 	}()
 

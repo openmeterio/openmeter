@@ -23,5 +23,5 @@ type EventReconciler interface {
 }
 
 type EventDispatcher interface {
-	Dispatch(*Event) error
+	Dispatch(ctx context.Context, event *Event) error
 }

@@ -23,7 +23,13 @@ func EventTypes() []EventType {
 	return eventTypes
 }
 
+var _ fmt.Stringer = (*EventType)(nil)
+
 type EventType string
+
+func (t EventType) String() string {
+	return string(t)
+}
 
 func (t EventType) Validate() error {
 	if !lo.Contains(eventTypes, t) {
