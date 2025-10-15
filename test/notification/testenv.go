@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
@@ -118,6 +119,8 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	t.Helper()
 	logger := slog.Default().WithGroup("notification")
 
+	tracer := noop.NewTracerProvider().Tracer("test")
+
 	driver := testutils.InitPostgresDB(t)
 
 	entClient := driver.EntDriver.Client()
@@ -161,6 +164,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 			Debug:     false,
 		},
 		Logger: logger,
+		Tracer: tracer,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create webhook handler: %w", err)
@@ -170,6 +174,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		Repository: adapter,
 		Webhook:    webhook,
 		Logger:     logger,
+		Tracer:     tracer,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
@@ -178,12 +183,6 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	if err = eventHandler.Start(); err != nil {
 		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
 	}
-
-	t.Cleanup(func() {
-		if err = eventHandler.Close(); err != nil {
-			logger.Error("failed to close notification event handler", "error", err)
-		}
-	})
 
 	service, err := notificationservice.New(notificationservice.Config{
 		Adapter:          adapter,
@@ -198,6 +197,10 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 
 	closerFunc := func() error {
 		var errs error
+
+		if err = eventHandler.Close(); err != nil {
+			errs = errors.Join(errs, fmt.Errorf("failed to close notification event handler: %w", err))
+		}
 
 		if err = entClient.Close(); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to close ent driver: %w", err))
