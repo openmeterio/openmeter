@@ -16,7 +16,13 @@ const (
 	EventDeliveryStatusStatePending EventDeliveryStatusState = "PENDING"
 )
 
+var _ fmt.Stringer = (*EventDeliveryStatusState)(nil)
+
 type EventDeliveryStatusState string
+
+func (e EventDeliveryStatusState) String() string {
+	return string(e)
+}
 
 func (e EventDeliveryStatusState) Validate() error {
 	switch e {

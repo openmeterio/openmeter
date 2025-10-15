@@ -67,7 +67,7 @@ func (s Service) CreateEvent(ctx context.Context, params notification.CreateEven
 			return nil, fmt.Errorf("failed to create event: %w", err)
 		}
 
-		if err = s.eventHandler.Dispatch(event); err != nil {
+		if err = s.eventHandler.Dispatch(ctx, event); err != nil {
 			return nil, fmt.Errorf("failed to dispatch event: %w", err)
 		}
 

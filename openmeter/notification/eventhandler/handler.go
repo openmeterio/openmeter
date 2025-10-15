@@ -2,33 +2,48 @@ package eventhandler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"runtime/debug"
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Config struct {
 	Repository        notification.Repository
 	Webhook           webhook.Handler
 	Logger            *slog.Logger
+	Tracer            trace.Tracer
 	ReconcileInterval time.Duration
 }
 
 func (c *Config) Validate() error {
+	var errs []error
+
 	if c.Repository == nil {
-		return fmt.Errorf("repository is required")
+		errs = append(errs, fmt.Errorf("repository is required"))
 	}
 
 	if c.Webhook == nil {
-		return fmt.Errorf("webhook is required")
+		errs = append(errs, fmt.Errorf("webhook is required"))
 	}
 
-	return nil
+	if c.Logger == nil {
+		errs = append(errs, fmt.Errorf("logger is required"))
+	}
+
+	if c.Tracer == nil {
+		errs = append(errs, fmt.Errorf("tracer is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ notification.EventHandler = (*Handler)(nil)
@@ -36,7 +51,9 @@ var _ notification.EventHandler = (*Handler)(nil)
 type Handler struct {
 	repo    notification.Repository
 	webhook webhook.Handler
-	logger  *slog.Logger
+
+	logger *slog.Logger
+	tracer trace.Tracer
 
 	reconcileInterval time.Duration
 
@@ -93,10 +110,6 @@ func New(config Config) (*Handler, error) {
 		config.ReconcileInterval = notification.DefaultReconcileInterval
 	}
 
-	if config.Logger == nil {
-		config.Logger = slog.Default()
-	}
-
 	stopCh := make(chan struct{})
 	stopChClose := sync.OnceFunc(func() {
 		close(stopCh)
@@ -107,6 +120,7 @@ func New(config Config) (*Handler, error) {
 		webhook:           config.Webhook,
 		reconcileInterval: config.ReconcileInterval,
 		logger:            config.Logger,
+		tracer:            config.Tracer,
 		stopCh:            stopCh,
 		stopChClose:       stopChClose,
 	}, nil

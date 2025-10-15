@@ -477,7 +477,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	notificationConfiguration := conf.Notification
 	webhookConfiguration := notificationConfiguration.Webhook
 	v5 := conf.Svix
-	handler, err := common.NewNotificationWebhookHandler(logger, webhookConfiguration, v5)
+	handler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, v5)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -488,7 +488,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventHandler, cleanup8, err := common.NewNotificationEventHandler(logger, repository, handler)
+	eventHandler, cleanup8, err := common.NewNotificationEventHandler(logger, tracer, repository, handler)
 	if err != nil {
 		cleanup7()
 		cleanup6()

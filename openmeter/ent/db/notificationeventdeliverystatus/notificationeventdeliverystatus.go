@@ -90,7 +90,7 @@ const DefaultState notification.EventDeliveryStatusState = "PENDING"
 
 // StateValidator is a validator for the "state" field enum values. It is called by the builders before save.
 func StateValidator(s notification.EventDeliveryStatusState) error {
-	switch s {
+	switch s.String() {
 	case "SUCCESS", "FAILED", "SENDING", "PENDING":
 		return nil
 	default:
