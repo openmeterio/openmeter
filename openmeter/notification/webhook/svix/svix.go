@@ -9,6 +9,7 @@ import (
 	"time"
 
 	svix "github.com/svix/svix-webhooks/go"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix/internal"
@@ -61,6 +62,7 @@ type Config struct {
 	SkipRegistrationOnError bool
 
 	Logger *slog.Logger
+	Tracer trace.Tracer
 }
 
 func (c Config) Validate() error {
@@ -74,21 +76,15 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("logger is required"))
 	}
 
+	if c.Tracer == nil {
+		errs = append(errs, errors.New("tracer is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
 func New(config Config) (webhook.Handler, error) {
-	var errs []error
-
-	if config.Logger == nil {
-		errs = append(errs, errors.New("logger is required"))
-	}
-
 	if err := config.SvixConfig.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
 
@@ -128,28 +124,25 @@ var _ webhook.Handler = (*svixHandler)(nil)
 
 type svixHandler struct {
 	client *svix.Svix
+	logger *slog.Logger
+	tracer trace.Tracer
 }
 
 func NewHandler(config Config) (webhook.Handler, error) {
-	opts := svix.SvixOptions{
+	if err := config.SvixConfig.Validate(); err != nil {
+		return nil, err
+	}
+
+	client, err := svix.New(config.APIKey, &svix.SvixOptions{
 		Debug: config.Debug,
-	}
-
-	var err error
-
-	if config.ServerURL != "" {
-		opts.ServerUrl, err = url.Parse(config.ServerURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse server URL: %w", err)
-		}
-	}
-
-	client, err := svix.New(config.APIKey, &opts)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create svix client: %w", err)
 	}
 
 	return &svixHandler{
 		client: client,
+		logger: config.Logger,
+		tracer: config.Tracer,
 	}, nil
 }
