@@ -118,7 +118,7 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 							},
 							ExpectedState: detailedLineWithParent{
 								Entity: detailedLine.ExpectedState,
-								Parent: item.PersistedState,
+								Parent: item.ExpectedState,
 							},
 						})
 
