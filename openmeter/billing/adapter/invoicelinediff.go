@@ -3,8 +3,6 @@ package billingadapter
 import (
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
 	"github.com/openmeterio/openmeter/pkg/set"
@@ -249,27 +247,4 @@ func (d *invoiceLineDiff) CreateDetailedLine(item *billing.Line, parent *billing
 	}
 
 	return nil
-}
-
-func (d *invoiceLineDiff) GetDetailedLineDiffWithParentID() entitydiff.Diff[*billing.DetailedLine] {
-	return entitydiff.Diff[*billing.DetailedLine]{
-		Create: lo.Map(d.DetailedLine.Create, func(item detailedLineWithParent, _ int) *billing.DetailedLine {
-			item.Entity.ParentLineID = lo.ToPtr(item.Parent.GetID())
-
-			return item.Entity
-		}),
-		Delete: lo.Map(d.DetailedLine.Delete, func(item detailedLineWithParent, _ int) *billing.DetailedLine {
-			item.Entity.ParentLineID = lo.ToPtr(item.Parent.GetID())
-
-			return item.Entity
-		}),
-		Update: lo.Map(d.DetailedLine.Update, func(item entitydiff.DiffUpdate[detailedLineWithParent], _ int) entitydiff.DiffUpdate[*billing.DetailedLine] {
-			item.ExpectedState.Entity.ParentLineID = lo.ToPtr(item.ExpectedState.Parent.GetID())
-
-			return entitydiff.DiffUpdate[*billing.DetailedLine]{
-				PersistedState: item.PersistedState.Entity,
-				ExpectedState:  item.ExpectedState.Entity,
-			}
-		}),
-	}
 }
