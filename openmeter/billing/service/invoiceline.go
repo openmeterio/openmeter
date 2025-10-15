@@ -23,7 +23,6 @@ var _ billing.InvoiceLineService = (*Service)(nil)
 func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
-		input.Lines[i].Status = billing.InvoiceLineStatusValid
 		input.Lines[i].Currency = input.Currency
 	}
 
@@ -59,7 +58,6 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	return transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
 		lineServices, err := s.lineService.FromEntities(lo.Map(input.Lines, func(l *billing.Line, _ int) *billing.Line {
 			l.Namespace = input.Customer.Namespace
-			l.Status = billing.InvoiceLineStatusValid
 			l.Currency = input.Currency
 
 			return l

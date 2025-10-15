@@ -24,19 +24,10 @@ func (a *adapter) mapInvoiceLineFromDB(dbLines []*db.BillingInvoiceLine) ([]*bil
 		}
 
 		// Let's map any detailed lines
-		detailedLines := make([]*billing.Line, 0, len(dbLine.Edges.DetailedLines))
-		for _, dbDetailedLine := range dbLine.Edges.DetailedLines {
-			detailedLine, err := a.mapInvoiceDetailedLineWithoutReferences(dbDetailedLine)
-			if err != nil {
-				return nil, fmt.Errorf("mapping detailed line [parentID=%s,id=%s]: %w", dbLine.ID, dbDetailedLine.ID, err)
-			}
-
-			detailedLine.SaveDBSnapshot()
-
-			detailedLines = append(detailedLines, detailedLine)
+		line.DetailedLines, err = slicesx.MapWithErr(dbLine.Edges.DetailedLines, a.mapInvoiceDetailedLineFromDB)
+		if err != nil {
+			return nil, fmt.Errorf("mapping detailed lines [parentID=%s,id=%s]: %w", lo.FromPtr(dbLine.ParentLineID), dbLine.ID, err)
 		}
-
-		line.Children = billing.NewLineChildren(detailedLines)
 
 		line.SaveDBSnapshot()
 
@@ -62,7 +53,6 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			Metadata:    dbLine.Metadata,
 			Annotations: dbLine.Annotations,
 			InvoiceID:   dbLine.InvoiceID,
-			Status:      dbLine.Status,
 			ManagedBy:   dbLine.ManagedBy,
 
 			Period: billing.Period{
@@ -76,7 +66,6 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 
 			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
 
-			Type:     dbLine.Type,
 			Currency: dbLine.Currency,
 
 			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
@@ -147,99 +136,63 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 	return invoiceLine, nil
 }
 
-func (a *adapter) mapInvoiceDetailedLineWithoutReferences(dbLine *db.BillingInvoiceLine) (*billing.DetailedLine, error) {
-	invoiceLine := &billing.DetailedLine{
-		LineBase: billing.LineBase{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace:   dbLine.Namespace,
-				ID:          dbLine.ID,
-				CreatedAt:   dbLine.CreatedAt.In(time.UTC),
-				UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
-				DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
-				Name:        dbLine.Name,
-				Description: dbLine.Description,
-			}),
+func (a *adapter) mapInvoiceDetailedLineFromDB(dbLine *db.BillingInvoiceLine) (billing.DetailedLine, error) {
+	// TODO: Once we move into a separate table we can get rid of these assertions
+	if dbLine.ParentLineID == nil {
+		return billing.DetailedLine{}, fmt.Errorf("detailed line parent line ID is required [detailed_line_id=%s]", dbLine.ID)
+	}
 
-			Metadata:    dbLine.Metadata,
-			Annotations: dbLine.Annotations,
-			InvoiceID:   dbLine.InvoiceID,
-			Status:      dbLine.Status,
-			ManagedBy:   dbLine.ManagedBy,
+	detailedLineBase := billing.DetailedLineBase{
+		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+			Namespace:   dbLine.Namespace,
+			ID:          dbLine.ID,
+			CreatedAt:   dbLine.CreatedAt.In(time.UTC),
+			UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
+			DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
+			Name:        dbLine.Name,
+			Description: dbLine.Description,
+		}),
 
-			Period: billing.Period{
-				Start: dbLine.PeriodStart.In(time.UTC),
-				End:   dbLine.PeriodEnd.In(time.UTC),
-			},
+		InvoiceID:              dbLine.InvoiceID,
+		ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
+		FeeLineConfigID:        dbLine.Edges.FlatFeeLine.ID,
 
-			ParentLineID:           dbLine.ParentLineID,
-			SplitLineGroupID:       dbLine.SplitLineGroupID,
-			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
-
-			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
-
-			Type:     dbLine.Type,
-			Currency: dbLine.Currency,
-
-			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
-			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
-			Totals: billing.Totals{
-				Amount:              dbLine.Amount,
-				ChargesTotal:        dbLine.ChargesTotal,
-				DiscountsTotal:      dbLine.DiscountsTotal,
-				TaxesInclusiveTotal: dbLine.TaxesInclusiveTotal,
-				TaxesExclusiveTotal: dbLine.TaxesExclusiveTotal,
-				TaxesTotal:          dbLine.TaxesTotal,
-				Total:               dbLine.Total,
-			},
-			ExternalIDs: billing.LineExternalIDs{
-				Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
-			},
+		ServicePeriod: billing.Period{
+			Start: dbLine.PeriodStart.In(time.UTC),
+			End:   dbLine.PeriodEnd.In(time.UTC),
 		},
-	}
-
-	if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {
-		invoiceLine.Subscription = &billing.SubscriptionReference{
-			SubscriptionID: *dbLine.SubscriptionID,
-			PhaseID:        *dbLine.SubscriptionPhaseID,
-			ItemID:         *dbLine.SubscriptionItemID,
-			BillingPeriod: timeutil.ClosedPeriod{
-				From: lo.FromPtr(dbLine.SubscriptionBillingPeriodFrom).In(time.UTC),
-				To:   lo.FromPtr(dbLine.SubscriptionBillingPeriodTo).In(time.UTC),
-			},
-		}
-	}
-
-	if dbLine.Type != billing.InvoiceLineTypeFee {
-		return nil, fmt.Errorf("only fee typed lines can be detailed lines [line_id=%s]", dbLine.ID)
-	}
-
-	invoiceLine.FlatFee = &billing.FlatFeeLine{
-		ConfigID:      dbLine.Edges.FlatFeeLine.ID,
 		PerUnitAmount: dbLine.Edges.FlatFeeLine.PerUnitAmount,
 		Quantity:      lo.FromPtr(dbLine.Quantity),
 		Category:      dbLine.Edges.FlatFeeLine.Category,
 		PaymentTerm:   dbLine.Edges.FlatFeeLine.PaymentTerm,
 		Index:         dbLine.Edges.FlatFeeLine.Index,
+
+		Currency: dbLine.Currency,
+
+		TaxConfig: lo.EmptyableToPtr(dbLine.TaxConfig),
+		Totals: billing.Totals{
+			Amount:              dbLine.Amount,
+			ChargesTotal:        dbLine.ChargesTotal,
+			DiscountsTotal:      dbLine.DiscountsTotal,
+			TaxesInclusiveTotal: dbLine.TaxesInclusiveTotal,
+			TaxesExclusiveTotal: dbLine.TaxesExclusiveTotal,
+			TaxesTotal:          dbLine.TaxesTotal,
+			Total:               dbLine.Total,
+		},
+		ExternalIDs: billing.LineExternalIDs{
+			Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
+		},
 	}
 
-	if len(dbLine.Edges.LineUsageDiscounts) > 0 {
-		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineUsageDiscounts, a.mapInvoiceLineUsageDiscountFromDB)
-		if err != nil {
-			return invoiceLine, fmt.Errorf("mapping invoice line usage discounts[%s] failed: %w", dbLine.ID, err)
-		}
-
-		invoiceLine.Discounts.Usage = discounts
+	discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapInvoiceLineAmountDiscountFromDB)
+	if err != nil {
+		return billing.DetailedLine{}, fmt.Errorf("mapping invoice line amount discounts[%s] failed: %w", dbLine.ID, err)
 	}
 
-	if len(dbLine.Edges.LineAmountDiscounts) > 0 {
-		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapInvoiceLineAmountDiscountFromDB)
-		if err != nil {
-			return invoiceLine, fmt.Errorf("mapping invoice line amount discounts[%s] failed: %w", dbLine.ID, err)
-		}
-		invoiceLine.Discounts.Amount = discounts
-	}
-
-	return invoiceLine, nil
+	return billing.DetailedLine{
+		DetailedLineBase: detailedLineBase,
+		AmountDiscounts:  discounts,
+	}, nil
 }
 
 func (a *adapter) mapInvoiceLineUsageDiscountFromDB(dbDiscount *db.BillingInvoiceLineUsageDiscount) (billing.UsageLineDiscountManaged, error) {

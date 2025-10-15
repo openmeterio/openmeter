@@ -6,7 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
 	"github.com/openmeterio/openmeter/pkg/set"
-	"github.com/samber/lo"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type (
@@ -14,8 +14,9 @@ type (
 	amountLineDiscountManagedWithLine = entitydiff.EqualerNestedEntity[billing.AmountLineDiscountManaged, *billing.Line]
 
 	detailedLineWithParent               = entitydiff.NestedEntity[*billing.DetailedLine, *billing.Line]
-	detailedLineAmountDiscountWithParent = entitydiff.EqualerNestedEntity[billing.AmountLineDiscountManaged, *billing.Line]
 	detailedLineDiff                     = entitydiff.Diff[detailedLineWithParent]
+	detailedLineAmountDiscountWithParent = entitydiff.EqualerNestedEntity[billing.AmountLineDiscountManaged, *billing.DetailedLine]
+	detailedLineAmountDiscountDiff       = entitydiff.Diff[detailedLineAmountDiscountWithParent]
 )
 
 type invoiceLineDiff struct {
@@ -35,7 +36,7 @@ type invoiceLineDiff struct {
 	// we can update the children themselves.
 
 	DetailedLine                detailedLineDiff
-	DetailedLineAmountDiscounts entitydiff.Diff[detailedLineAmountDiscountWithParent]
+	DetailedLineAmountDiscounts detailedLineAmountDiscountDiff
 	DetailedLineAffectedLineIDs *set.Set[string]
 }
 
@@ -87,29 +88,29 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 			))
 
 			// Detailed line diffs
-			err := entitydiff.DiffByID(entitydiff.DiffByIDInput[*billing.Line]{
-				DBState:       item.PersistedState.Children,
-				ExpectedState: item.ExpectedState.Children,
-				HandleDelete: func(detailedLine *billing.Line) error {
+			err := entitydiff.DiffByID(entitydiff.DiffByIDInput[*billing.DetailedLine]{
+				DBState:       slicesx.SliceToPtrSlice(item.PersistedState.DetailedLines),
+				ExpectedState: slicesx.SliceToPtrSlice(item.ExpectedState.DetailedLines),
+				HandleDelete: func(detailedLine *billing.DetailedLine) error {
 					if !item.PersistedState.IsDeleted() {
 						diff.AffectedLineIDs.Add(item.PersistedState.GetID())
 					}
 
 					return diff.DeleteDetailedLine(detailedLine, item.PersistedState)
 				},
-				HandleCreate: func(detailedLine *billing.Line) error {
+				HandleCreate: func(detailedLine *billing.DetailedLine) error {
 					return diff.CreateDetailedLine(detailedLine, item.ExpectedState)
 				},
-				HandleUpdate: func(detailedLine entitydiff.DiffUpdate[*billing.Line]) error {
-					if detailedLine.ExpectedState == nil || detailedLine.ExpectedState.FlatFee == nil {
+				HandleUpdate: func(detailedLine entitydiff.DiffUpdate[*billing.DetailedLine]) error {
+					if detailedLine.ExpectedState == nil {
 						return fmt.Errorf("detailed line expected state is nil or flat fee is nil")
 					}
 
-					if detailedLine.PersistedState == nil || detailedLine.PersistedState.FlatFee == nil {
+					if detailedLine.PersistedState == nil {
 						return fmt.Errorf("detailed line db state is nil or flat fee is nil")
 					}
 
-					if !detailedLine.ExpectedState.LineBase.Equal(detailedLine.PersistedState.LineBase) || !detailedLine.ExpectedState.FlatFee.Equal(detailedLine.PersistedState.FlatFee) {
+					if !detailedLine.ExpectedState.DetailedLineBase.Equal(detailedLine.PersistedState.DetailedLineBase) {
 						diff.DetailedLine.NeedsUpdate(entitydiff.DiffUpdate[detailedLineWithParent]{
 							PersistedState: detailedLineWithParent{
 								Entity: detailedLine.PersistedState,
@@ -127,8 +128,8 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 					}
 
 					discountChanges := entitydiff.DiffByIDEqualer(
-						entitydiff.NewEqualersWithParent(detailedLine.ExpectedState.Discounts.Amount, detailedLine.ExpectedState),
-						entitydiff.NewEqualersWithParent(detailedLine.PersistedState.Discounts.Amount, detailedLine.PersistedState),
+						entitydiff.NewEqualersWithParent(detailedLine.ExpectedState.AmountDiscounts, detailedLine.ExpectedState),
+						entitydiff.NewEqualersWithParent(detailedLine.PersistedState.AmountDiscounts, detailedLine.PersistedState),
 					)
 
 					diff.DetailedLineAmountDiscounts = diff.DetailedLineAmountDiscounts.Append(discountChanges)
@@ -176,8 +177,8 @@ func (d *invoiceLineDiff) DeleteLine(item *billing.Line) error {
 		})
 	}
 
-	for _, detailedLine := range item.Children {
-		if err := d.DeleteDetailedLine(detailedLine, item); err != nil {
+	for idx := range item.DetailedLines {
+		if err := d.DeleteDetailedLine(&item.DetailedLines[idx], item); err != nil {
 			return err
 		}
 	}
@@ -201,13 +202,14 @@ func (d *invoiceLineDiff) CreateLine(item *billing.Line) error {
 		})
 	}
 
-	for _, child := range item.Children {
+	for idx := range item.DetailedLines {
+		child := &item.DetailedLines[idx]
 		d.DetailedLine.NeedsCreate(detailedLineWithParent{
 			Entity: child,
 			Parent: item,
 		})
 
-		for _, discount := range child.Discounts.Amount {
+		for _, discount := range child.AmountDiscounts {
 			d.DetailedLineAmountDiscounts.NeedsCreate(detailedLineAmountDiscountWithParent{
 				Entity: discount,
 				Parent: child,
@@ -218,13 +220,13 @@ func (d *invoiceLineDiff) CreateLine(item *billing.Line) error {
 	return nil
 }
 
-func (d *invoiceLineDiff) DeleteDetailedLine(item *billing.Line, parent *billing.Line) error {
+func (d *invoiceLineDiff) DeleteDetailedLine(item *billing.DetailedLine, parent *billing.Line) error {
 	d.DetailedLine.NeedsDelete(detailedLineWithParent{
 		Entity: item,
 		Parent: parent,
 	})
 
-	for _, discount := range item.Discounts.Amount {
+	for _, discount := range item.AmountDiscounts {
 		d.DetailedLineAmountDiscounts.NeedsDelete(detailedLineAmountDiscountWithParent{
 			Entity: discount,
 			Parent: item,
@@ -234,13 +236,13 @@ func (d *invoiceLineDiff) DeleteDetailedLine(item *billing.Line, parent *billing
 	return nil
 }
 
-func (d *invoiceLineDiff) CreateDetailedLine(item *billing.Line, parent *billing.Line) error {
+func (d *invoiceLineDiff) CreateDetailedLine(item *billing.DetailedLine, parent *billing.Line) error {
 	d.DetailedLine.NeedsCreate(detailedLineWithParent{
 		Entity: item,
 		Parent: parent,
 	})
 
-	for _, discount := range item.Discounts.Amount {
+	for _, discount := range item.AmountDiscounts {
 		d.DetailedLineAmountDiscounts.NeedsCreate(detailedLineAmountDiscountWithParent{
 			Entity: discount,
 			Parent: item,
@@ -248,27 +250,4 @@ func (d *invoiceLineDiff) CreateDetailedLine(item *billing.Line, parent *billing
 	}
 
 	return nil
-}
-
-func (d *invoiceLineDiff) GetDetailedLineDiffWithParentID() entitydiff.Diff[*billing.DetailedLine] {
-	return entitydiff.Diff[*billing.DetailedLine]{
-		Create: lo.Map(d.DetailedLine.Create, func(item detailedLineWithParent, _ int) *billing.DetailedLine {
-			item.Entity.ParentLineID = lo.ToPtr(item.Parent.GetID())
-
-			return item.Entity
-		}),
-		Delete: lo.Map(d.DetailedLine.Delete, func(item detailedLineWithParent, _ int) *billing.DetailedLine {
-			item.Entity.ParentLineID = lo.ToPtr(item.Parent.GetID())
-
-			return item.Entity
-		}),
-		Update: lo.Map(d.DetailedLine.Update, func(item entitydiff.DiffUpdate[detailedLineWithParent], _ int) entitydiff.DiffUpdate[*billing.DetailedLine] {
-			item.ExpectedState.Entity.ParentLineID = lo.ToPtr(item.ExpectedState.Parent.GetID())
-
-			return entitydiff.DiffUpdate[*billing.DetailedLine]{
-				PersistedState: item.PersistedState.Entity,
-				ExpectedState:  item.ExpectedState.Entity,
-			}
-		}),
-	}
 }

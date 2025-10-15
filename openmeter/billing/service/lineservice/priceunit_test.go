@@ -185,16 +185,14 @@ func TestUnitPriceCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(5),
 					ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Discounts: billing.LineDiscounts{
-						Amount: []billing.AmountLineDiscountManaged{
-							{
-								AmountLineDiscount: billing.AmountLineDiscount{
-									Amount: alpacadecimal.NewFromFloat(20),
-									LineDiscountBase: billing.LineDiscountBase{
-										Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
-										ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-										Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
-									},
+					AmountDiscounts: []billing.AmountLineDiscountManaged{
+						{
+							AmountLineDiscount: billing.AmountLineDiscount{
+								Amount: alpacadecimal.NewFromFloat(20),
+								LineDiscountBase: billing.LineDiscountBase{
+									Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
+									ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+									Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
 								},
 							},
 						},
@@ -246,25 +244,23 @@ func TestUnitPriceCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(20), // 200
 					ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Discounts: billing.LineDiscounts{
-						Amount: []billing.AmountLineDiscountManaged{
-							{
-								AmountLineDiscount: billing.AmountLineDiscount{
-									Amount: alpacadecimal.NewFromFloat(100),
-									LineDiscountBase: billing.LineDiscountBase{
-										ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/correlationID=discount-50pct"),
-										Reason:                 billing.NewDiscountReasonFrom(discount50pct),
-									},
+					AmountDiscounts: []billing.AmountLineDiscountManaged{
+						{
+							AmountLineDiscount: billing.AmountLineDiscount{
+								Amount: alpacadecimal.NewFromFloat(100),
+								LineDiscountBase: billing.LineDiscountBase{
+									ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/correlationID=discount-50pct"),
+									Reason:                 billing.NewDiscountReasonFrom(discount50pct),
 								},
 							},
-							{
-								AmountLineDiscount: billing.AmountLineDiscount{
-									Amount: alpacadecimal.NewFromFloat(35),
-									LineDiscountBase: billing.LineDiscountBase{
-										Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
-										ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-										Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
-									},
+						},
+						{
+							AmountLineDiscount: billing.AmountLineDiscount{
+								Amount: alpacadecimal.NewFromFloat(35),
+								LineDiscountBase: billing.LineDiscountBase{
+									Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
+									ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+									Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
 								},
 							},
 						},

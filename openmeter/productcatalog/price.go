@@ -37,6 +37,14 @@ func (p PaymentTermType) StringValues() []string {
 	}
 }
 
+func (p PaymentTermType) Validate() error {
+	if !slices.Contains(p.Values(), string(p)) {
+		return fmt.Errorf("invalid payment term type: %s", p)
+	}
+
+	return nil
+}
+
 const (
 	FlatPriceType    PriceType = "flat"
 	UnitPriceType    PriceType = "unit"

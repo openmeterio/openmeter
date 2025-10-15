@@ -394,16 +394,14 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Discounts: billing.LineDiscounts{
-						Amount: []billing.AmountLineDiscountManaged{
-							{
-								AmountLineDiscount: billing.AmountLineDiscount{
-									Amount: alpacadecimal.NewFromFloat(25),
-									LineDiscountBase: billing.LineDiscountBase{
-										Description:            lo.ToPtr("Maximum spend discount for charges over 125"),
-										ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
-										Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
-									},
+					AmountDiscounts: []billing.AmountLineDiscountManaged{
+						{
+							AmountLineDiscount: billing.AmountLineDiscount{
+								Amount: alpacadecimal.NewFromFloat(25),
+								LineDiscountBase: billing.LineDiscountBase{
+									Description:            lo.ToPtr("Maximum spend discount for charges over 125"),
+									ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
+									Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
 								},
 							},
 						},

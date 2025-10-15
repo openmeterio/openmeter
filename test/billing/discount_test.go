@@ -98,7 +98,6 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 
 							InvoiceAt: periodEnd,
 
-							Type:      billing.InvoiceLineTypeUsageBased,
 							ManagedBy: billing.ManuallyManagedLine,
 
 							Currency: currencyx.Code(currency.USD),
@@ -158,12 +157,12 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.Equal(discountCorrelationID, invoiceLine.SplitLineHierarchy.Group.RatecardDiscounts.Percentage.CorrelationID)
 
 		// An amount discount is also created, and it retains the same correlation ID
-		s.Len(invoiceLine.Children, 1)
-		detailedLine := invoiceLine.Children[0]
+		s.Len(invoiceLine.DetailedLines, 1)
+		detailedLine := invoiceLine.DetailedLines[0]
 
-		require.Len(s.T(), detailedLine.Discounts.Amount, 1)
+		require.Len(s.T(), detailedLine.AmountDiscounts, 1)
 
-		amountDiscount := detailedLine.Discounts.Amount[0]
+		amountDiscount := detailedLine.AmountDiscounts[0]
 
 		s.Equal(billing.RatecardPercentageDiscountReason, amountDiscount.Reason.Type())
 		pctDiscount, err := amountDiscount.Reason.AsRatecardPercentage()
@@ -296,7 +295,6 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 
 						InvoiceAt: periodEnd,
 
-						Type:      billing.InvoiceLineTypeUsageBased,
 						ManagedBy: billing.ManuallyManagedLine,
 
 						Currency: currencyx.Code(currency.USD),
@@ -362,7 +360,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		require.Equal(s.T(), discountCorrelationID, reason.CorrelationID)
 
 		// The detailed line does not exists, as we had no usage
-		require.Len(s.T(), invoiceLine.Children, 0)
+		require.Len(s.T(), invoiceLine.DetailedLines, 0)
 	})
 
 	s.Run("[invoice2] Creating a draft invoice with 75 usage", func() {
@@ -404,9 +402,9 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		require.Equal(s.T(), float64(110), reason.Quantity.InexactFloat64())
 
 		// The detailed line exists and has a usage of 15
-		require.Len(s.T(), invoiceLine.Children, 1)
-		detailedLine := invoiceLine.Children[0]
-		require.Equal(s.T(), float64(15), detailedLine.FlatFee.Quantity.InexactFloat64())
+		require.Len(s.T(), invoiceLine.DetailedLines, 1)
+		detailedLine := invoiceLine.DetailedLines[0]
+		require.Equal(s.T(), float64(15), detailedLine.Quantity.InexactFloat64())
 	})
 
 	s.Run("[invoice3] Creating a draft invoice with 30 usage", func() {
@@ -436,8 +434,8 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		s.Len(invoiceLine.Discounts.Usage, 0)
 
 		// The detailed line exists and has a usage of 30
-		require.Len(s.T(), invoiceLine.Children, 1)
-		detailedLine := invoiceLine.Children[0]
-		require.Equal(s.T(), float64(30), detailedLine.FlatFee.Quantity.InexactFloat64())
+		require.Len(s.T(), invoiceLine.DetailedLines, 1)
+		detailedLine := invoiceLine.DetailedLines[0]
+		require.Equal(s.T(), float64(30), detailedLine.Quantity.InexactFloat64())
 	})
 }

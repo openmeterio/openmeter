@@ -39,7 +39,6 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					ID: "1",
 				}),
-				Type: billing.InvoiceLineTypeUsageBased,
 			},
 			UsageBased: &billing.UsageBasedLine{},
 		},
@@ -48,30 +47,25 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					ID: "2",
 				}),
-				Type: billing.InvoiceLineTypeUsageBased,
 			},
 			UsageBased: &billing.UsageBasedLine{},
-			Children: billing.NewLineChildren([]*billing.Line{
+			DetailedLines: billing.DetailedLines{
 				{
-					LineBase: billing.LineBase{
+					DetailedLineBase: billing.DetailedLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							ID: "2.1",
 						}),
-						Type: billing.InvoiceLineTypeFee,
 					},
-					FlatFee:   &billing.FlatFeeLine{},
-					Discounts: newAmountDiscountsWithIDs("D2.1.1"),
+					AmountDiscounts: newDetailedLineAmountDiscountsWithIDs("D2.1.1"),
 				},
 				{
-					LineBase: billing.LineBase{
+					DetailedLineBase: billing.DetailedLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							ID: "2.2",
 						}),
-						Type: billing.InvoiceLineTypeFee,
 					},
-					FlatFee: &billing.FlatFeeLine{},
 				},
-			}),
+			},
 		},
 	}
 
@@ -108,7 +102,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		require.True(t, base[1].Children.RemoveByID("2.1"), "child line 2.1 should be removed")
+		require.True(t, removeDetailedLineByID(base[1], "2.1"), "child line 2.1 should be removed")
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -128,7 +122,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		base[1].Children.GetByID("2.1").FlatFee.Quantity = alpacadecimal.NewFromFloat(10)
+		getDetailedLineByID(base[1], "2.1").Quantity = alpacadecimal.NewFromFloat(10)
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -162,11 +156,11 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		snapshotAsDBState(base)
 
 		// ID change should tirgger a delete/update
-		changedLine := base[1].Children.GetByID("2.1")
+		changedLine := getDetailedLineByID(base[1], "2.1")
 		changedLine.ID = ""
 		changedLine.Description = lo.ToPtr("2.3")
 
-		changedLine.Discounts.Amount[0].ID = "D2.1.3"
+		changedLine.AmountDiscounts[0].ID = "D2.1.3"
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -190,7 +184,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		base[1].Children.GetByID("2.1").Discounts.Amount = nil
+		getDetailedLineByID(base[1], "2.1").AmountDiscounts = nil
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -208,7 +202,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		base[1].Children.GetByID("2.1").Discounts.Amount[0].Amount = alpacadecimal.NewFromFloat(20)
+		getDetailedLineByID(base[1], "2.1").AmountDiscounts[0].Amount = alpacadecimal.NewFromFloat(20)
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -226,7 +220,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		discounts := base[1].Children.GetByID("2.1").Discounts.Amount
+		discounts := getDetailedLineByID(base[1], "2.1").AmountDiscounts
 
 		discounts[0].ID = ""
 		discounts[0].Description = lo.ToPtr("D2.1.2")
@@ -249,7 +243,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		base[1].Children.GetByID("2.1").DeletedAt = lo.ToPtr(clock.Now())
+		getDetailedLineByID(base[1], "2.1").DeletedAt = lo.ToPtr(clock.Now())
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -360,29 +354,16 @@ func requireDiff(t *testing.T, expected lineDiffExpectation, actual invoiceLineD
 	requireIdDiffMatches(t, expected.AmountDiscounts, actual.AmountDiscounts, func(discount amountLineDiscountManagedWithLine) *string { return discount.Entity.Description }, "amount discounts")
 
 	requireIdDiffMatches(t, expected.DetailedLine, actual.DetailedLine, func(line detailedLineWithParent) *string { return line.Entity.GetDescription() }, "detailed line diff")
-	requireIdDiffMatches(t, expected.DetailedLineAmountDiscounts, actual.DetailedLineAmountDiscounts, func(discount amountLineDiscountManagedWithLine) *string { return discount.Entity.Description }, "detailed line amount discounts")
+	requireIdDiffMatches(t, expected.DetailedLineAmountDiscounts, actual.DetailedLineAmountDiscounts, func(discount detailedLineAmountDiscountWithParent) *string { return discount.Entity.Description }, "detailed line amount discounts")
 
 	require.ElementsMatch(t, expected.AffectedLineIDs, actual.AffectedLineIDs.AsSlice(), "affected line IDs")
 	require.ElementsMatch(t, expected.DetailedLineAffectedLineIDs, actual.DetailedLineAffectedLineIDs.AsSlice(), "detailed line affected line IDs")
 }
 
 func cloneLines(lines []*billing.Line) []*billing.Line {
-	return fixParentReferences(
-		lo.Map(lines, func(line *billing.Line, _ int) *billing.Line {
-			return line.Clone()
-		}),
-	)
-}
-
-func fixParentReferences(lines []*billing.Line) []*billing.Line {
-	for _, line := range lines {
-		for _, child := range line.Children {
-			child.ParentLineID = lo.ToPtr(line.ID)
-			child.ParentLine = line
-		}
-	}
-
-	return lines
+	return lo.Map(lines, func(line *billing.Line, _ int) *billing.Line {
+		return line.Clone()
+	})
 }
 
 // snapshotAsDBState saves the current state of the lines as if they were in the database
@@ -392,17 +373,36 @@ func snapshotAsDBState(lines []*billing.Line) {
 	}
 }
 
-func newAmountDiscountsWithIDs(ids ...string) billing.LineDiscounts {
-	return billing.LineDiscounts{
-		Amount: lo.Map(ids, func(id string, _ int) billing.AmountLineDiscountManaged {
-			return billing.AmountLineDiscountManaged{
-				ManagedModelWithID: models.ManagedModelWithID{
-					ID: id,
-				},
-				AmountLineDiscount: billing.AmountLineDiscount{
-					Amount: alpacadecimal.NewFromFloat(10),
-				},
-			}
-		}),
+func newDetailedLineAmountDiscountsWithIDs(ids ...string) billing.AmountLineDiscountsManaged {
+	return lo.Map(ids, func(id string, _ int) billing.AmountLineDiscountManaged {
+		return billing.AmountLineDiscountManaged{
+			ManagedModelWithID: models.ManagedModelWithID{
+				ID: id,
+			},
+			AmountLineDiscount: billing.AmountLineDiscount{
+				Amount: alpacadecimal.NewFromFloat(10),
+			},
+		}
+	})
+}
+
+func getDetailedLineByID(l *billing.Line, id string) *billing.DetailedLine {
+	for idx := range l.DetailedLines {
+		if l.DetailedLines[idx].ID == id {
+			return &l.DetailedLines[idx]
+		}
 	}
+	return nil
+}
+
+func removeDetailedLineByID(l *billing.Line, id string) bool {
+	toBeRemoved := getDetailedLineByID(l, id)
+	if toBeRemoved == nil {
+		return false
+	}
+
+	l.DetailedLines = lo.Filter(l.DetailedLines, func(dl billing.DetailedLine, _ int) bool {
+		return dl.ID != id
+	})
+	return true
 }

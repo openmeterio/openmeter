@@ -47,7 +47,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 	}))
 
 	s.Run("Profile default tax config is inclusive in billing profile", func() {
-		draftInvoice := s.generateDraftInvoice(ctx, namespace, cust)
+		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 		s.Equal(productcatalog.InclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
 		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe)
@@ -92,7 +92,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.Equal(productcatalog.ExclusiveTaxBehavior, *customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Behavior)
 		s.Equal("txcd_20000000", customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe.Code)
 
-		draftInvoice := s.generateDraftInvoice(ctx, namespace, cust)
+		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 		s.Equal(productcatalog.ExclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
 		s.Equal("txcd_20000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
@@ -116,7 +116,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.NoError(err)
 		s.Nil(customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
-		draftInvoice := s.generateDraftInvoice(ctx, namespace, cust)
+		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.Nil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 
 		// let's update the invoice
@@ -215,8 +215,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 						InvoiceAt: now.Add(time.Hour * 24),
 						ManagedBy: billing.ManuallyManagedLine,
 
-						Type: billing.InvoiceLineTypeUsageBased,
-
 						TaxConfig: taxConfig,
 
 						Metadata: map[string]string{
@@ -260,14 +258,14 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.NotNil(ubpSplitLine.SplitLineGroupID, "the line is a split line")
 	s.Equal(ubpSplitLine.TaxConfig, taxConfig, "tax config is retained")
 
-	ubpSplitLineChildren := ubpSplitLine.Children
-	s.Len(ubpSplitLineChildren, 1)
+	ubpSplitLineDetailedLines := ubpSplitLine.DetailedLines
+	s.Len(ubpSplitLineDetailedLines, 1)
 
-	ubpDetailedLine := ubpSplitLineChildren[0]
+	ubpDetailedLine := ubpSplitLineDetailedLines[0]
 	s.Equal(ubpDetailedLine.TaxConfig, taxConfig, "tax config is retained in detailed line")
 }
 
-func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, namespace string, customer *customer.Customer) billing.Invoice {
+func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.Invoice {
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,

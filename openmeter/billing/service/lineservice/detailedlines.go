@@ -23,7 +23,7 @@ type newDetailedLineInput struct {
 	PaymentTerm productcatalog.PaymentTermType `json:"paymentTerm,omitempty"`
 	Category    billing.FlatFeeCategory        `json:"category,omitempty"`
 
-	Discounts billing.LineDiscounts `json:"discounts,omitempty"`
+	AmountDiscounts billing.AmountLineDiscountsManaged `json:"amountDiscounts,omitempty"`
 }
 
 func (i newDetailedLineInput) Validate() error {
@@ -48,24 +48,24 @@ func (i newDetailedLineInput) Validate() error {
 
 func (i newDetailedLineInput) TotalAmount(currency currencyx.Calculator) alpacadecimal.Decimal {
 	return TotalAmount(getTotalAmountInput{
-		Currency:      currency,
-		PerUnitAmount: i.PerUnitAmount,
-		Quantity:      i.Quantity,
-		Discounts:     i.Discounts,
+		Currency:        currency,
+		PerUnitAmount:   i.PerUnitAmount,
+		Quantity:        i.Quantity,
+		AmountDiscounts: i.AmountDiscounts,
 	})
 }
 
 type getTotalAmountInput struct {
-	Currency      currencyx.Calculator
-	PerUnitAmount alpacadecimal.Decimal
-	Quantity      alpacadecimal.Decimal
-	Discounts     billing.LineDiscounts
+	Currency        currencyx.Calculator
+	PerUnitAmount   alpacadecimal.Decimal
+	Quantity        alpacadecimal.Decimal
+	AmountDiscounts billing.AmountLineDiscountsManaged
 }
 
 func TotalAmount(in getTotalAmountInput) alpacadecimal.Decimal {
 	total := in.Currency.RoundToPrecision(in.PerUnitAmount.Mul(in.Quantity))
 
-	total = total.Sub(in.Discounts.Amount.SumAmount(in.Currency))
+	total = total.Sub(in.AmountDiscounts.SumAmount(in.Currency))
 
 	return total
 }
@@ -92,7 +92,7 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 
 	if totalBillableAmount.GreaterThanOrEqual(normalizedMaxSpend) && in.BilledAmountBeforeLine.GreaterThanOrEqual(normalizedMaxSpend) {
 		// 100% discount
-		i.Discounts.Amount = append(i.Discounts.Amount, billing.AmountLineDiscountManaged{
+		i.AmountDiscounts = append(i.AmountDiscounts, billing.AmountLineDiscountManaged{
 			AmountLineDiscount: billing.AmountLineDiscount{
 				Amount: lineTotal,
 				LineDiscountBase: billing.LineDiscountBase{
@@ -106,7 +106,7 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 	}
 
 	discountAmount := totalBillableAmount.Sub(normalizedMaxSpend)
-	i.Discounts.Amount = append(i.Discounts.Amount, billing.AmountLineDiscountManaged{
+	i.AmountDiscounts = append(i.AmountDiscounts, billing.AmountLineDiscountManaged{
 		AmountLineDiscount: billing.AmountLineDiscount{
 			Amount: discountAmount,
 			LineDiscountBase: billing.LineDiscountBase{
@@ -120,10 +120,10 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 	return i
 }
 
-func newDetailedLines(line *billing.Line, inputs ...newDetailedLineInput) ([]*billing.Line, error) {
-	return slicesx.MapWithErr(inputs, func(in newDetailedLineInput) (*billing.Line, error) {
+func newDetailedLines(line *billing.Line, inputs ...newDetailedLineInput) (billing.DetailedLines, error) {
+	return slicesx.MapWithErr(inputs, func(in newDetailedLineInput) (billing.DetailedLine, error) {
 		if err := in.Validate(); err != nil {
-			return nil, err
+			return billing.DetailedLine{}, err
 		}
 
 		period := line.Period
@@ -135,34 +135,29 @@ func newDetailedLines(line *billing.Line, inputs ...newDetailedLineInput) ([]*bi
 			in.Category = billing.FlatFeeCategoryRegular
 		}
 
-		line := &billing.Line{
-			LineBase: billing.LineBase{
+		line := billing.DetailedLine{
+			DetailedLineBase: billing.DetailedLineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					Namespace: line.Namespace,
 					Name:      in.Name,
 				}),
-				Type:                   billing.InvoiceLineTypeFee,
-				Status:                 billing.InvoiceLineStatusDetailed,
-				Period:                 period,
-				ManagedBy:              billing.SystemManagedLine,
-				InvoiceAt:              line.InvoiceAt,
+
+				ServicePeriod:          period,
 				InvoiceID:              line.InvoiceID,
 				Currency:               line.Currency,
 				ChildUniqueReferenceID: &in.ChildUniqueReferenceID,
-				ParentLineID:           lo.ToPtr(line.ID),
 				TaxConfig:              line.TaxConfig,
-			},
-			FlatFee: &billing.FlatFeeLine{
+
 				PaymentTerm:   lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
 				PerUnitAmount: in.PerUnitAmount,
 				Quantity:      in.Quantity,
 				Category:      in.Category,
 			},
-			Discounts: in.Discounts,
+			AmountDiscounts: in.AmountDiscounts,
 		}
 
 		if err := line.Validate(); err != nil {
-			return nil, err
+			return billing.DetailedLine{}, err
 		}
 
 		return line, nil
@@ -181,23 +176,49 @@ func (i newDetailedLinesInput) Sum(currency currencyx.Calculator) alpacadecimal.
 	return sum
 }
 
-func mergeDetailedLines(line *billing.Line, in newDetailedLinesInput) error {
-	detailedLines, err := newDetailedLines(line, in...)
+func mergeDetailedLines(parentLine *billing.Line, in newDetailedLinesInput) error {
+	detailedLines, err := newDetailedLines(parentLine, in...)
 	if err != nil {
 		return fmt.Errorf("detailed lines: %w", err)
 	}
 
 	// The lines are generated in order, so we can just persist the index
 	for idx := range detailedLines {
-		detailedLines[idx].FlatFee.Index = lo.ToPtr(idx)
+		detailedLines[idx].Index = lo.ToPtr(idx)
 	}
 
-	childrenWithIDReuse, err := line.ChildrenWithIDReuse(detailedLines)
-	if err != nil {
-		return fmt.Errorf("failed to reuse child IDs: %w", err)
-	}
-
-	line.Children = childrenWithIDReuse
+	parentLine.DetailedLines = parentLine.DetailedLinesWithIDReuse(detailedLines)
 
 	return nil
+}
+
+func calculateDetailedLineTotals(line billing.DetailedLine) (billing.Totals, error) {
+	// Calculate the line totals
+	calc, err := line.Currency.Calculator()
+	if err != nil {
+		return billing.Totals{}, err
+	}
+
+	// Calculate the line totals
+	totals := billing.Totals{
+		DiscountsTotal: line.AmountDiscounts.SumAmount(calc),
+
+		// TODO[OM-979]: implement taxes
+		TaxesInclusiveTotal: alpacadecimal.Zero,
+		TaxesExclusiveTotal: alpacadecimal.Zero,
+		TaxesTotal:          alpacadecimal.Zero,
+	}
+
+	amount := calc.RoundToPrecision(line.PerUnitAmount.Mul(line.Quantity))
+
+	switch line.Category {
+	case billing.FlatFeeCategoryCommitment:
+		totals.ChargesTotal = amount
+	default:
+		totals.Amount = amount
+	}
+
+	totals.Total = totals.CalculateTotal()
+
+	return totals, nil
 }

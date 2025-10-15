@@ -50,8 +50,7 @@ func (h *Handler) HandleInvoiceCreation(ctx context.Context, event billing.Event
 	affectedSubscriptions := lo.Uniq(
 		lo.Map(
 			lo.Filter(event.Invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
-				return line.Status == billing.InvoiceLineStatusValid &&
-					line.Subscription != nil
+				return line.Subscription != nil
 			}),
 			func(line *billing.Line, _ int) string {
 				return line.Subscription.SubscriptionID
