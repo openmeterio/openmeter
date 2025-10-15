@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -61,6 +62,7 @@ func NewNoopNotificationEventHandler() (notification.EventHandler, func(), error
 
 func NewNotificationEventHandler(
 	logger *slog.Logger,
+	tracer trace.Tracer,
 	adapter notification.Repository,
 	webhook notificationwebhook.Handler,
 ) (notification.EventHandler, func(), error) {
@@ -70,6 +72,7 @@ func NewNotificationEventHandler(
 		Repository: adapter,
 		Webhook:    webhook,
 		Logger:     logger,
+		Tracer:     tracer,
 	})
 	if err != nil {
 		return nil, closeFn, fmt.Errorf("failed to initialize notification event handler: %w", err)
@@ -117,6 +120,7 @@ func NewNoopNotificationWebhookHandler(
 
 func NewNotificationWebhookHandler(
 	logger *slog.Logger,
+	tracer trace.Tracer,
 	webhookConfig config.WebhookConfiguration,
 	svixConfig config.SvixConfig,
 ) (notificationwebhook.Handler, error) {
@@ -130,6 +134,7 @@ func NewNotificationWebhookHandler(
 		RegistrationTimeout:     webhookConfig.EventTypeRegistrationTimeout,
 		SkipRegistrationOnError: webhookConfig.SkipEventTypeRegistrationOnError,
 		Logger:                  logger.WithGroup("notification.webhook"),
+		Tracer:                  tracer,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize notification webhook handler: %w", err)
