@@ -474,7 +474,7 @@ enum InvoiceLineStatus {
    * The line is a detail line which is used to detail the individual
    * charges and discounts of a valid line.
    */
-  detail: "detail",
+  detailed: "detailed",
 
   /**
    * The line has been split into multiple valid lines due to progressive
@@ -762,7 +762,14 @@ model InvoiceDetailedLineRateCard {
  */
 @friendlyName("InvoiceDetailedLine")
 model InvoiceDetailedLine {
-  ...OmitProperties<InvoiceLineBase, "type">;
+  ...OmitProperties<InvoiceLineBase, "type" | "invoiceAt">;
+
+  /**
+   * The time this line item should be invoiced.
+   */
+  #deprecated "Use invoiceAt from the parent line instead, this field will be removed in the future versions of the API"
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  invoiceAt: DateTime;
 
   /**
    * Type of the line.
