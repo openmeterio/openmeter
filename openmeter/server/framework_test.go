@@ -55,7 +55,7 @@ func TestIssueIfHTTPStatusKnownErrorResponses(t *testing.T) {
 		extensions, ok := body["extensions"].(map[string]interface{})
 		require.True(t, ok)
 
-		issues, ok := extensions["validationIssues"].([]interface{})
+		issues, ok := extensions["validationErrors"].([]interface{})
 		require.True(t, ok, "got body: %+v", body)
 		require.Len(t, issues, 1)
 

@@ -20,6 +20,7 @@ const ErrCodeSubscriptionBillingPeriodQueriedBeforeSubscriptionStart models.Erro
 var ErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart = models.NewValidationIssue(
 	ErrCodeSubscriptionBillingPeriodQueriedBeforeSubscriptionStart,
 	"billing period queried before subscription start",
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 func NewErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart(queriedAt, subscriptionStart time.Time) error {
@@ -88,6 +89,7 @@ var ErrSubscriptionBillingAnchorIsRequired = models.NewValidationIssue(
 	ErrCodeSubscriptionBillingAnchorIsRequired,
 	"billing anchor is required",
 	models.WithFieldString("billingAnchor"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 // Phase
@@ -98,6 +100,7 @@ var ErrSubscriptionPhaseStartAfterIsNegative = models.NewValidationIssue(
 	ErrCodeSubscriptionPhaseStartAfterIsNegative,
 	"subscription phase start after cannot be negative",
 	models.WithFieldString("startAfter"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeSubscriptionPhaseHasNoItems models.ErrorCode = "subscription_phase_has_no_items"
@@ -106,6 +109,7 @@ var ErrSubscriptionPhaseHasNoItems = models.NewValidationIssue(
 	ErrCodeSubscriptionPhaseHasNoItems,
 	"subscription phase must have at least one item",
 	models.WithFieldString("items"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeSubscriptionPhaseItemHistoryKeyMismatch models.ErrorCode = "subscription_phase_item_history_key_mismatch"
@@ -114,6 +118,7 @@ var ErrSubscriptionPhaseItemHistoryKeyMismatch = models.NewValidationIssue(
 	ErrCodeSubscriptionPhaseItemHistoryKeyMismatch,
 	"subscription phase item history key mismatch",
 	models.WithFieldString("itemsByKey"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeSubscriptionPhaseItemKeyMismatchWithPhaseKey models.ErrorCode = "subscription_phase_item_key_mismatch_with_phase_key"
@@ -123,6 +128,7 @@ var ErrSubscriptionPhaseItemKeyMismatchWithPhaseKey = models.NewValidationIssue(
 	"subscription phase item key mismatch with phase key",
 	models.WithFieldString("itemKey"),
 	models.WithFieldString("phaseKey"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 // Item
@@ -133,6 +139,7 @@ var ErrSubscriptionItemBillingOverrideIsOnlyAllowedForBillableItems = models.New
 	ErrCodeSubscriptionItemBillingOverrideIsOnlyAllowedForBillableItems,
 	"billing override is only allowed for billable items",
 	models.WithFieldString("billingBehaviorOverride"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeSubscriptionItemActiveFromOverrideRelativeToPhaseStartIsNegative models.ErrorCode = "subscription_item_active_from_override_relative_to_phase_start_is_negative"
@@ -141,6 +148,7 @@ var ErrSubscriptionItemActiveFromOverrideRelativeToPhaseStartIsNegative = models
 	ErrCodeSubscriptionItemActiveFromOverrideRelativeToPhaseStartIsNegative,
 	"active from override relative to phase start cannot be negative",
 	models.WithFieldString("activeFromOverrideRelativeToPhaseStart"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeSubscriptionItemActiveToOverrideRelativeToPhaseStartIsNegative models.ErrorCode = "subscription_item_active_to_override_relative_to_phase_start_is_negative"
@@ -149,6 +157,7 @@ var ErrSubscriptionItemActiveToOverrideRelativeToPhaseStartIsNegative = models.N
 	ErrCodeSubscriptionItemActiveToOverrideRelativeToPhaseStartIsNegative,
 	"active to override relative to phase start cannot be negative",
 	models.WithFieldString("activeToOverrideRelativeToPhaseStart"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeSubscriptionItemHistoryOverlap models.ErrorCode = "subscription_item_history_overlap"
@@ -157,6 +166,7 @@ var ErrSubscriptionItemHistoryOverlap = models.NewValidationIssue(
 	ErrCodeSubscriptionItemHistoryOverlap,
 	"subscription item history overlap",
 	models.WithFieldString("itemsByKey"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 //

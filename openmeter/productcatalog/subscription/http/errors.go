@@ -2,10 +2,7 @@ package httpdriver
 
 import (
 	"context"
-	"errors"
 	"net/http"
-
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -15,44 +12,20 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func errorEncoder() encoder.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
-		issues, err := models.AsValidationIssues(err)
-		if err == nil && len(issues) > 0 {
-			// Let's map the FieldSelectors to the public schema
-			mappedIssues, err := slicesx.MapWithErr(issues, func(issue models.ValidationIssue) (models.ValidationIssue, error) {
-				return subscription.MapSubscriptionSpecValidationIssueField(issue)
-			})
+		issues, issueErr := models.AsValidationIssues(err)
+		if issueErr == nil && len(issues) > 0 {
+			mappedIssues, err := mapValidationIssueForAPI(issues)
 			if err != nil {
 				return false // Server dies if mapping fails
 			}
 
-			// This should be cleaned up by implementing attributes to non-validation issues
-			if errors.Is(err, subscription.ErrOnlySingleSubscriptionAllowed) {
-				problem := models.NewStatusProblem(ctx, errors.New("conflict"), http.StatusConflict)
-				problem.Extensions = map[string]interface{}{
-					"conflicts": lo.Map(mappedIssues, func(issue models.ValidationIssue, _ int) map[string]interface{} {
-						return issue.AsErrorExtension()
-					}),
-				}
-
-				problem.Respond(w)
+			if commonhttp.HandleIssueIfHTTPStatusKnown(ctx, mappedIssues.AsError(), w) {
 				return true
 			}
-
-			// And let's respond with an error
-			problem := models.NewStatusProblem(ctx, errors.New("validation error"), http.StatusBadRequest)
-			problem.Extensions = map[string]interface{}{
-				"validationErrors": lo.Map(mappedIssues, func(issue models.ValidationIssue, _ int) map[string]interface{} {
-					return issue.AsErrorExtension()
-				}),
-			}
-
-			problem.Respond(w)
-			return true
 		}
 
 		// Generic errors
@@ -77,4 +50,19 @@ func errorEncoder() encoder.ErrorEncoder {
 			// dependency: plan
 			commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusBadRequest, err, w)
 	}
+}
+
+func mapValidationIssueForAPI(issues models.ValidationIssues) (models.ValidationIssues, error) {
+	res := make(models.ValidationIssues, 0, len(issues))
+
+	for _, issue := range issues {
+		mapped, err := subscription.MapSubscriptionSpecValidationIssueField(issue)
+		if err != nil {
+			return res, err
+		}
+
+		res = append(res, mapped)
+	}
+
+	return res, nil
 }

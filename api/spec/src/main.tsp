@@ -110,3 +110,19 @@ using TypeSpec.OpenAPI;
   }
 )
 namespace OpenMeter;
+
+/**
+ * This interface can be used to export tree shaken types into OAPI schema.
+ * A Makefile script will delete lines of this interface from the OpenAPI spec.
+ */
+@extension("x-internal", true)
+@route("/prune-this-in-script")
+interface Exports {
+  @summary("Exports tree shaken types we want to export which are then hidden from the API docs. This API doesn't actually exist or return anything, it's just used for exporting tree-shaken types through codegeneration and SDKs")
+  @extension("x-internal", true)
+  exports(): {
+    @body body: {
+      errorExtension: ErrorExtension;
+    };
+  };
+}

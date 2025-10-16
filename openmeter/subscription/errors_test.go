@@ -2,6 +2,7 @@ package subscription_test
 
 import (
 	"encoding/json"
+	"net/http"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -211,6 +213,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 						models.NewFieldSelector("startAfter"),
 					),
 				),
+				commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 			),
 			models.NewValidationIssue(
 				subscription.ErrCodeSubscriptionPhaseHasNoItems,
@@ -223,6 +226,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 					),
 				),
 				subscription.AllowedDuringApplyingToSpecError(),
+				commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 			),
 			models.NewValidationIssue(
 				productcatalog.ErrCodeEntitlementTemplateInvalidIssueAfterResetWithPriority,
@@ -239,6 +243,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 				),
 				models.WithComponent("rateCard"),
 				models.WithWarningSeverity(),
+				commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 			),
 			models.NewValidationIssue(
 				productcatalog.ErrCodeRateCardKeyFeatureKeyMismatch,
@@ -253,6 +258,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 					),
 				),
 				models.WithComponent("rateCard"),
+				commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 			),
 		}, issues)
 
@@ -285,6 +291,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 							models.NewFieldSelector("startAfter"),
 						),
 					),
+					commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 				),
 				models.NewValidationIssue(
 					subscription.ErrCodeSubscriptionPhaseHasNoItems,
@@ -296,6 +303,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 						),
 					),
 					subscription.AllowedDuringApplyingToSpecError(),
+					commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 				),
 				models.NewValidationIssue(
 					productcatalog.ErrCodeEntitlementTemplateInvalidIssueAfterResetWithPriority,
@@ -311,6 +319,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 					),
 					models.WithComponent("rateCard"),
 					models.WithWarningSeverity(),
+					commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 				),
 				models.NewValidationIssue(
 					productcatalog.ErrCodeRateCardKeyFeatureKeyMismatch,
@@ -324,6 +333,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 						),
 					),
 					models.WithComponent("rateCard"),
+					commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 				),
 			}, mapped)
 

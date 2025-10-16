@@ -1,6 +1,7 @@
 package productcatalog
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -354,24 +356,24 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 				},
 			},
 			expectedIssues: models.ValidationIssues{
-				models.NewValidationIssue(ErrPlanAddonIncompatibleStatus.Code(), ErrPlanAddonIncompatibleStatus.Message()).
+				models.NewValidationIssue(ErrPlanAddonIncompatibleStatus.Code(), ErrPlanAddonIncompatibleStatus.Message(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest)).
 					WithField(
 						models.NewFieldSelector("plan"),
 						models.NewFieldSelector("status"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
-				models.NewValidationIssue(ErrPlanAddonIncompatibleStatus.Code(), ErrPlanAddonIncompatibleStatus.Message()).
+				models.NewValidationIssue(ErrPlanAddonIncompatibleStatus.Code(), ErrPlanAddonIncompatibleStatus.Message(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest)).
 					WithField(
 						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("status"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
-				models.NewValidationIssue(ErrPlanAddonMaxQuantityMustNotBeSet.Code(), ErrPlanAddonMaxQuantityMustNotBeSet.Message()).
+				models.NewValidationIssue(ErrPlanAddonMaxQuantityMustNotBeSet.Code(), ErrPlanAddonMaxQuantityMustNotBeSet.Message(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest)).
 					WithField(
 						models.NewFieldSelector("maxQuantity"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
-				models.NewValidationIssue(ErrPlanAddonCurrencyMismatch.Code(), ErrPlanAddonCurrencyMismatch.Message()).
+				models.NewValidationIssue(ErrPlanAddonCurrencyMismatch.Code(), ErrPlanAddonCurrencyMismatch.Message(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest)).
 					WithField(
 						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("currency"),
@@ -559,7 +561,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						models.NewFieldSelector("price"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
-				models.NewValidationIssue(ErrRateCardFeatureKeyMismatch.Code(), ErrRateCardFeatureKeyMismatch.Message()).
+				models.NewValidationIssue(ErrRateCardFeatureKeyMismatch.Code(), ErrRateCardFeatureKeyMismatch.Message(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest)).
 					WithField(
 						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("ratecards").WithExpression(
@@ -568,7 +570,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						models.NewFieldSelector("featureKey"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
-				models.NewValidationIssue(ErrRateCardBillingCadenceMismatch.Code(), ErrRateCardBillingCadenceMismatch.Message()).
+				models.NewValidationIssue(ErrRateCardBillingCadenceMismatch.Code(), ErrRateCardBillingCadenceMismatch.Message(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest)).
 					WithField(
 						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("ratecards").WithExpression(
@@ -577,7 +579,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						models.NewFieldSelector("billingCadence"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
-				models.NewValidationIssue(ErrRateCardEntitlementTemplateTypeMismatch.Code(), ErrRateCardEntitlementTemplateTypeMismatch.Message()).
+				models.NewValidationIssue(ErrRateCardEntitlementTemplateTypeMismatch.Code(), ErrRateCardEntitlementTemplateTypeMismatch.Message(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest)).
 					WithField(
 						models.NewFieldSelector("addon"),
 						models.NewFieldSelector("ratecards").WithExpression(
