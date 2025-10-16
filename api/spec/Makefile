@@ -7,6 +7,7 @@ generate: ## Generate OpenAPI spec
 	pnpm compile
 	cp output/openapi.OpenMeter.yaml ../openapi.yaml
 	cp output/openapi.OpenMeterCloud.yaml ../openapi.cloud.yaml
+	pnpm fix:openapi-default
 
 .PHONY: lint
 lint: ## Lint OpenAPI spec

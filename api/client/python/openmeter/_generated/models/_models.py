@@ -1518,6 +1518,44 @@ class BillingWorkflow(_Model):
         super().__init__(*args, **kwargs)
 
 
+class BillingWorkflowCollectionAlignmentAnchored(_Model):  # pylint: disable=name-too-long
+    """BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending
+    line items
+    into an invoice.
+
+    :ivar type: The type of alignment. Required. Align the collection to the anchor time and
+     cadence.
+    :vartype type: str or ~openmeter._generated.models.ANCHORED
+    :ivar recurring_period: The recurring period for the alignment. Required.
+    :vartype recurring_period: ~openmeter._generated.models.RecurringPeriodV2
+    """
+
+    type: Literal[BillingCollectionAlignment.ANCHORED] = rest_field(visibility=["read", "create", "update"])
+    """The type of alignment. Required. Align the collection to the anchor time and cadence."""
+    recurring_period: "_models.RecurringPeriodV2" = rest_field(
+        name="recurringPeriod", visibility=["read", "create", "update"]
+    )
+    """The recurring period for the alignment. Required."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        type: Literal[BillingCollectionAlignment.ANCHORED],
+        recurring_period: "_models.RecurringPeriodV2",
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
 class BillingWorkflowCollectionAlignmentSubscription(_Model):  # pylint: disable=name-too-long
     """BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the
     pending line items
@@ -1552,9 +1590,11 @@ class BillingWorkflowCollectionAlignmentSubscription(_Model):  # pylint: disable
 class BillingWorkflowCollectionSettings(_Model):
     """Workflow collection specifies how to collect the pending line items for an invoice.
 
-    :ivar alignment: The alignment for collecting the pending line items into an invoice. Is one of
-     the following types: BillingWorkflowCollectionAlignmentSubscription
+    :ivar alignment: The alignment for collecting the pending line items into an invoice. Is either
+     a BillingWorkflowCollectionAlignmentSubscription type or a
+     BillingWorkflowCollectionAlignmentAnchored type.
     :vartype alignment: ~openmeter._generated.models.BillingWorkflowCollectionAlignmentSubscription
+     or ~openmeter._generated.models.BillingWorkflowCollectionAlignmentAnchored
     :ivar interval: This grace period can be used to delay the collection of the pending line items
      specified in
      alignment.
@@ -1566,8 +1606,9 @@ class BillingWorkflowCollectionSettings(_Model):
     alignment: Optional["_types.BillingWorkflowCollectionAlignment"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """The alignment for collecting the pending line items into an invoice. Is one of the following
-     types: BillingWorkflowCollectionAlignmentSubscription"""
+    """The alignment for collecting the pending line items into an invoice. Is either a
+     BillingWorkflowCollectionAlignmentSubscription type or a
+     BillingWorkflowCollectionAlignmentAnchored type."""
     interval: Optional[str] = rest_field(visibility=["read", "create", "update"])
     """This grace period can be used to delay the collection of the pending line items specified in
      alignment.
@@ -12498,29 +12539,29 @@ class RecurringPeriod(_Model):
     :ivar interval: Interval. Required. Is either a str type or a Union[str,
      "_models.RecurringPeriodIntervalEnum"] type.
     :vartype interval: str or str or ~openmeter.models.RecurringPeriodIntervalEnum
-    :ivar interval_iso: The unit of time for the interval in ISO8601 format. Required.
-    :vartype interval_iso: ~datetime.timedelta
     :ivar anchor: Anchor time. Required.
     :vartype anchor: ~datetime.datetime
+    :ivar interval_iso: The unit of time for the interval in ISO8601 format. Required.
+    :vartype interval_iso: ~datetime.timedelta
     """
 
     interval: "_types.RecurringPeriodInterval" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Interval. Required. Is either a str type or a Union[str,
      \"_models.RecurringPeriodIntervalEnum\"] type."""
+    anchor: datetime.datetime = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    """Anchor time. Required."""
     interval_iso: datetime.timedelta = rest_field(
         name="intervalISO", visibility=["read", "create", "update", "delete", "query"]
     )
     """The unit of time for the interval in ISO8601 format. Required."""
-    anchor: datetime.datetime = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
-    """Anchor time. Required."""
 
     @overload
     def __init__(
         self,
         *,
         interval: "_types.RecurringPeriodInterval",
-        interval_iso: datetime.timedelta,
         anchor: datetime.datetime,
+        interval_iso: datetime.timedelta,
     ) -> None: ...
 
     @overload
@@ -12558,6 +12599,41 @@ class RecurringPeriodCreateInput(_Model):
         *,
         interval: "_types.RecurringPeriodInterval",
         anchor: Optional[datetime.datetime] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class RecurringPeriodV2(_Model):
+    """Recurring period with an interval and an anchor.
+
+    :ivar interval: Interval. Required. Is either a str type or a Union[str,
+     "_models.RecurringPeriodIntervalEnum"] type.
+    :vartype interval: str or str or ~openmeter.models.RecurringPeriodIntervalEnum
+    :ivar anchor: Anchor time. Required.
+    :vartype anchor: ~datetime.datetime
+    """
+
+    interval: "_types.RecurringPeriodInterval" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Interval. Required. Is either a str type or a Union[str,
+     \"_models.RecurringPeriodIntervalEnum\"] type."""
+    anchor: datetime.datetime = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    """Anchor time. Required."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        interval: "_types.RecurringPeriodInterval",
+        anchor: datetime.datetime,
     ) -> None: ...
 
     @overload

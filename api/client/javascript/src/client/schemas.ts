@@ -3204,12 +3204,25 @@ export interface components {
      *
      *     Defaults to subscription, which means that we are to create a new invoice every time the
      *     a subscription period starts (for in advance items) or ends (for in arrears items). */
-    BillingWorkflowCollectionAlignment: components['schemas']['BillingWorkflowCollectionAlignmentSubscription']
+    BillingWorkflowCollectionAlignment:
+      | components['schemas']['BillingWorkflowCollectionAlignmentSubscription']
+      | components['schemas']['BillingWorkflowCollectionAlignmentAnchored']
+    /** @description BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items
+     *     into an invoice. */
+    BillingWorkflowCollectionAlignmentAnchored: {
+      /**
+       * @description The type of alignment. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'anchored'
+      /** @description The recurring period for the alignment. */
+      recurringPeriod: components['schemas']['RecurringPeriodV2']
+    }
     /** @description BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
      *     into an invoice. */
     BillingWorkflowCollectionAlignmentSubscription: {
       /**
-       * @description The type of alignment.
+       * @description The type of alignment. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'subscription'
@@ -9615,6 +9628,7 @@ export interface components {
       | components['schemas']['DynamicPriceWithCommitments']
       | components['schemas']['PackagePriceWithCommitments']
     /**
+     * @deprecated
      * @description Recurring period with an interval and an anchor.
      * @example {
      *       "interval": "DAY",
@@ -9629,17 +9643,17 @@ export interface components {
        */
       interval: components['schemas']['RecurringPeriodInterval']
       /**
-       * Format: duration
-       * @description The unit of time for the interval in ISO8601 format.
-       */
-      intervalISO: string
-      /**
        * Anchor time
        * Format: date-time
        * @description A date-time anchor to base the recurring period on.
        * @example 2023-01-01T01:01:01.001Z
        */
       anchor: Date
+      /**
+       * Format: duration
+       * @description The unit of time for the interval in ISO8601 format.
+       */
+      intervalISO: string
     }
     /**
      * @description Recurring period with an interval and an anchor.
@@ -9672,6 +9686,21 @@ export interface components {
      * @enum {string}
      */
     RecurringPeriodIntervalEnum: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
+    /** @description Recurring period with an interval and an anchor. */
+    RecurringPeriodV2: {
+      /**
+       * Interval
+       * @description The unit of time for the interval. Heuristically maps ISO duraitons to enum values or returns the ISO duration.
+       */
+      interval: components['schemas']['RecurringPeriodInterval']
+      /**
+       * Anchor time
+       * Format: date-time
+       * @description A date-time anchor to base the recurring period on.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      anchor: Date
+    }
     /**
      * @description The direction of the phase shift when a phase is removed.
      * @enum {string}
@@ -11654,6 +11683,8 @@ export type BillingTaxIdentificationCode =
 export type BillingWorkflow = components['schemas']['BillingWorkflow']
 export type BillingWorkflowCollectionAlignment =
   components['schemas']['BillingWorkflowCollectionAlignment']
+export type BillingWorkflowCollectionAlignmentAnchored =
+  components['schemas']['BillingWorkflowCollectionAlignmentAnchored']
 export type BillingWorkflowCollectionAlignmentSubscription =
   components['schemas']['BillingWorkflowCollectionAlignmentSubscription']
 export type BillingWorkflowCollectionSettings =
@@ -12078,6 +12109,7 @@ export type RecurringPeriodInterval =
   components['schemas']['RecurringPeriodInterval']
 export type RecurringPeriodIntervalEnum =
   components['schemas']['RecurringPeriodIntervalEnum']
+export type RecurringPeriodV2 = components['schemas']['RecurringPeriodV2']
 export type RemovePhaseShifting = components['schemas']['RemovePhaseShifting']
 export type ResetEntitlementUsageInput =
   components['schemas']['ResetEntitlementUsageInput']

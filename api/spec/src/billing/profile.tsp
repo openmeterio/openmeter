@@ -321,9 +321,7 @@ model BillingWorkflowCollectionSettings {
   /**
    * The alignment for collecting the pending line items into an invoice.
    */
-  alignment?: BillingWorkflowCollectionAlignment = #{
-    type: BillingCollectionAlignment.subscription,
-  };
+  alignment?: BillingWorkflowCollectionAlignment = DefaultBillingWorkflowCollectionAlignment;
 
   /**
    * This grace period can be used to delay the collection of the pending line items specified in
@@ -343,12 +341,21 @@ model BillingWorkflowCollectionSettings {
  */
 @friendlyName("BillingCollectionAlignment")
 @summary("Collection alignment")
-enum BillingCollectionAlignment {
+enum BillingCollectionAlignmentType {
   /**
    * Align the collection to the start of the subscription period.
    */
   subscription: "subscription",
+
+  /**
+   * Align the collection to the anchor time and cadence.
+   */
+  anchored: "anchored",
 }
+
+const DefaultBillingWorkflowCollectionAlignment: BillingWorkflowCollectionAlignmentSubscription = #{
+  type: BillingCollectionAlignmentType.subscription,
+};
 
 /**
  * The alignment for collecting the pending line items into an invoice.
@@ -357,8 +364,29 @@ enum BillingCollectionAlignment {
  * a subscription period starts (for in advance items) or ends (for in arrears items).
  */
 @friendlyName("BillingWorkflowCollectionAlignment")
+@discriminated(#{ discriminatorPropertyName: "type", envelope: "none" })
 union BillingWorkflowCollectionAlignment {
-  BillingWorkflowCollectionAlignmentSubscription,
+  subscription: BillingWorkflowCollectionAlignmentSubscription,
+  anchored: BillingWorkflowCollectionAlignmentAnchored,
+}
+
+/**
+ * BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items
+ * into an invoice.
+ */
+@friendlyName("BillingWorkflowCollectionAlignmentAnchored")
+model BillingWorkflowCollectionAlignmentAnchored {
+  /**
+   * The type of alignment.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  type: BillingCollectionAlignmentType.anchored;
+
+  /**
+   * The recurring period for the alignment.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  recurringPeriod: RecurringPeriodV2;
 }
 
 /**
@@ -371,7 +399,7 @@ model BillingWorkflowCollectionAlignmentSubscription {
    * The type of alignment.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  type: BillingCollectionAlignment.subscription;
+  type: BillingCollectionAlignmentType.subscription;
 }
 
 /**

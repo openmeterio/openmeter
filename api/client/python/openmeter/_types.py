@@ -35,7 +35,9 @@ SubscriptionEditOperation = Union[
 ]
 EntitlementV2 = Union["_models.EntitlementMeteredV2", "_models.EntitlementStaticV2", "_models.EntitlementBooleanV2"]
 MeasureUsageFrom = Union[str, "_models.MeasureUsageFromPreset", datetime.datetime]
-BillingWorkflowCollectionAlignment = "_models.BillingWorkflowCollectionAlignmentSubscription"
+BillingWorkflowCollectionAlignment = Union[
+    "_models.BillingWorkflowCollectionAlignmentSubscription", "_models.BillingWorkflowCollectionAlignmentAnchored"
+]
 BillingProfileAppsOrReference = Union["_models.BillingProfileApps", "_models.BillingProfileAppReferences"]
 InvoiceDocumentRef = "_models.CreditNoteOriginalInvoiceRef"
 BillingDiscountReason = Union[

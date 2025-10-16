@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -67,13 +68,25 @@ func (c CustomerOverride) Validate() error {
 }
 
 type CollectionOverrideConfig struct {
-	Alignment *AlignmentKind        `json:"alignment,omitempty"`
-	Interval  *datetime.ISODuration `json:"interval,omitempty"`
+	Alignment               *AlignmentKind                       `json:"alignment,omitempty"`
+	AnchoredAlignmentDetail *mo.Option[*AnchoredAlignmentDetail] `json:"anchoredAlignmentDetail,omitempty"`
+	Interval                *datetime.ISODuration                `json:"interval,omitempty"`
 }
 
 func (c *CollectionOverrideConfig) Validate() error {
-	if c.Alignment != nil && *c.Alignment != AlignmentKindSubscription {
-		return fmt.Errorf("invalid alignment: %s", *c.Alignment)
+	if c.Alignment != nil {
+		if err := c.Alignment.Validate(); err != nil {
+			return fmt.Errorf("invalid alignment: %w", err)
+		}
+	}
+
+	if c.AnchoredAlignmentDetail != nil {
+		if c.AnchoredAlignmentDetail.IsPresent() {
+			val, _ := c.AnchoredAlignmentDetail.Get()
+			if err := val.Validate(); err != nil {
+				return fmt.Errorf("invalid anchored alignment detail: %w", err)
+			}
+		}
 	}
 
 	if c.Interval != nil && c.Interval.IsNegative() {

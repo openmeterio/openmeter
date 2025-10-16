@@ -791,11 +791,11 @@ func init() {
 	// billingworkflowconfig.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billingworkflowconfig.UpdateDefaultUpdatedAt = billingworkflowconfigDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// billingworkflowconfigDescTaxEnabled is the schema descriptor for tax_enabled field.
-	billingworkflowconfigDescTaxEnabled := billingworkflowconfigFields[8].Descriptor()
+	billingworkflowconfigDescTaxEnabled := billingworkflowconfigFields[9].Descriptor()
 	// billingworkflowconfig.DefaultTaxEnabled holds the default value on creation for the tax_enabled field.
 	billingworkflowconfig.DefaultTaxEnabled = billingworkflowconfigDescTaxEnabled.Default.(bool)
 	// billingworkflowconfigDescTaxEnforced is the schema descriptor for tax_enforced field.
-	billingworkflowconfigDescTaxEnforced := billingworkflowconfigFields[9].Descriptor()
+	billingworkflowconfigDescTaxEnforced := billingworkflowconfigFields[10].Descriptor()
 	// billingworkflowconfig.DefaultTaxEnforced holds the default value on creation for the tax_enforced field.
 	billingworkflowconfig.DefaultTaxEnforced = billingworkflowconfigDescTaxEnforced.Default.(bool)
 	// billingworkflowconfigDescID is the schema descriptor for id field.
