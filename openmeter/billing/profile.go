@@ -3,6 +3,7 @@ package billing
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/samber/lo"
@@ -25,12 +26,58 @@ const (
 	// AlignmentKindSubscription specifies that the invoice is issued based on the subscription period (
 	// e.g. whenever a due line item is added, it will trigger an invoice generation after the collection period)
 	AlignmentKindSubscription AlignmentKind = "subscription"
+
+	// AlignmentKindAnchored specifies that the invoice is issued based on the cadence detail.
+	// Using this mode results in separate invoices for each invoicable batch of lines.
+	AlignmentKindAnchored AlignmentKind = "anchored"
+
+	// THIS IS NOT YET SUPPORTED (this will enable single-invoice mode in effect)
+	// AlignmentKindAnchoredBatch specifies that the invoice is issued based on the cadence detail.
+	// Using this mode results in all lines added to the gathering invoice in the period
+	// until the next recurrence will be invoiced in a single batch at the next recurrence of the anchor.
+	AlignmentKindAnchoredBatch AlignmentKind = "anchored_batch"
 )
+
+func (k AlignmentKind) Validate() error {
+	if !slices.Contains(k.Values(), string(k)) {
+		return fmt.Errorf("invalid alignment kind: %s", k)
+	}
+
+	return nil
+}
 
 func (k AlignmentKind) Values() []string {
 	return []string{
 		string(AlignmentKindSubscription),
+		string(AlignmentKindAnchored),
 	}
+}
+
+// ent codegen dies on type parameters like mo.Option[*billing.AnchoredAlignmentDetail]
+type AnchoredAlignmentDetailOption struct {
+	Value    *AnchoredAlignmentDetail
+	HasValue bool
+}
+
+type AnchoredAlignmentDetail struct {
+	Interval datetime.ISODuration `json:"interval"`
+	Anchor   time.Time            `json:"anchor"`
+}
+
+func (a *AnchoredAlignmentDetail) Validate() error {
+	if a == nil {
+		return nil
+	}
+
+	if !a.Interval.IsPositive() {
+		return fmt.Errorf("interval must be greater or equal to 0")
+	}
+
+	if a.Anchor.IsZero() {
+		return fmt.Errorf("anchor must be set")
+	}
+
+	return nil
 }
 
 // InvoiceConfig groups fields related to invoice settings.
@@ -218,7 +265,18 @@ func (p Profile) Validate() error {
 func (p Profile) Merge(o *CustomerOverride) Profile {
 	p.WorkflowConfig.Collection = CollectionConfig{
 		Alignment: lo.FromPtrOr(o.Collection.Alignment, p.WorkflowConfig.Collection.Alignment),
-		Interval:  lo.FromPtrOr(o.Collection.Interval, p.WorkflowConfig.Collection.Interval),
+		AnchoredAlignmentDetail: func() *AnchoredAlignmentDetail {
+			if o.Collection.AnchoredAlignmentDetail == nil {
+				return p.WorkflowConfig.Collection.AnchoredAlignmentDetail
+			}
+
+			if val, ok := o.Collection.AnchoredAlignmentDetail.Get(); ok {
+				return val
+			}
+
+			return p.WorkflowConfig.Collection.AnchoredAlignmentDetail
+		}(),
+		Interval: lo.FromPtrOr(o.Collection.Interval, p.WorkflowConfig.Collection.Interval),
 	}
 
 	p.WorkflowConfig.Invoicing = InvoicingConfig{

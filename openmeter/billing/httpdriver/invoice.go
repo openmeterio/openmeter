@@ -566,10 +566,15 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 		ExternalIds: mapInvoiceAppExternalIdsToAPI(invoice.ExternalIDs),
 	}
 
+	workflowConfig, err := mapWorkflowConfigSettingsToAPI(invoice.Workflow.Config)
+	if err != nil {
+		return api.Invoice{}, fmt.Errorf("failed to map workflow config to API: %w", err)
+	}
+
 	out.Workflow = api.InvoiceWorkflowSettings{
 		Apps:                   apps,
 		SourceBillingProfileId: invoice.Workflow.SourceBillingProfileID,
-		Workflow:               mapWorkflowConfigSettingsToAPI(invoice.Workflow.Config),
+		Workflow:               workflowConfig,
 	}
 
 	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.Line) (api.InvoiceLine, error) {

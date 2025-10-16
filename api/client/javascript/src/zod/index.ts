@@ -5895,6 +5895,8 @@ export const createBillingProfileBodySupplierAddressesItemCountryMaxOne =
 export const createBillingProfileBodySupplierAddressesItemCountryRegExpOne =
   /^[A-Z]{2}$/
 export const createBillingProfileBodySupplierAddressesMax = 1 as const
+export const createBillingProfileBodyWorkflowCollectionAlignmentRecurringPeriodIntervalRegExpTwo =
+  /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
 export const createBillingProfileBodyWorkflowCollectionAlignmentDefault = {
   type: 'subscription',
 } as const
@@ -6062,14 +6064,51 @@ export const createBillingProfileBody = zod
         collection: zod
           .object({
             alignment: zod
-              .object({
-                type: zod
-                  .enum(['subscription'])
-                  .describe('The type of alignment.'),
-              })
-              .describe(
-                'BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items\ninto an invoice.',
-              )
+              .union([
+                zod
+                  .object({
+                    type: zod.enum(['subscription']),
+                  })
+                  .describe(
+                    'BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items\ninto an invoice.',
+                  ),
+                zod
+                  .object({
+                    recurringPeriod: zod
+                      .object({
+                        anchor: zod.coerce
+                          .date()
+                          .describe(
+                            'A date-time anchor to base the recurring period on.',
+                          ),
+                        interval: zod
+                          .union([
+                            zod.coerce
+                              .string()
+                              .regex(
+                                createBillingProfileBodyWorkflowCollectionAlignmentRecurringPeriodIntervalRegExpTwo,
+                              ),
+                            zod
+                              .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+                              .describe(
+                                'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.',
+                              ),
+                          ])
+                          .describe('Period duration for the recurrence')
+                          .describe(
+                            'The unit of time for the interval. Heuristically maps ISO duraitons to enum values or returns the ISO duration.',
+                          ),
+                      })
+                      .describe(
+                        'Recurring period with an interval and an anchor.',
+                      )
+                      .describe('The recurring period for the alignment.'),
+                    type: zod.enum(['anchored']),
+                  })
+                  .describe(
+                    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items\ninto an invoice.',
+                  ),
+              ])
               .describe(
                 'The alignment for collecting the pending line items into an invoice.\n\nDefaults to subscription, which means that we are to create a new invoice every time the\na subscription period starts (for in advance items) or ends (for in arrears items).',
               )
@@ -6282,6 +6321,8 @@ export const updateBillingProfileBodySupplierAddressesItemCountryMaxOne =
 export const updateBillingProfileBodySupplierAddressesItemCountryRegExpOne =
   /^[A-Z]{2}$/
 export const updateBillingProfileBodySupplierAddressesMax = 1 as const
+export const updateBillingProfileBodyWorkflowCollectionAlignmentRecurringPeriodIntervalRegExpTwo =
+  /^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$/
 export const updateBillingProfileBodyWorkflowCollectionAlignmentDefault = {
   type: 'subscription',
 } as const
@@ -6424,14 +6465,51 @@ export const updateBillingProfileBody = zod
         collection: zod
           .object({
             alignment: zod
-              .object({
-                type: zod
-                  .enum(['subscription'])
-                  .describe('The type of alignment.'),
-              })
-              .describe(
-                'BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items\ninto an invoice.',
-              )
+              .union([
+                zod
+                  .object({
+                    type: zod.enum(['subscription']),
+                  })
+                  .describe(
+                    'BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items\ninto an invoice.',
+                  ),
+                zod
+                  .object({
+                    recurringPeriod: zod
+                      .object({
+                        anchor: zod.coerce
+                          .date()
+                          .describe(
+                            'A date-time anchor to base the recurring period on.',
+                          ),
+                        interval: zod
+                          .union([
+                            zod.coerce
+                              .string()
+                              .regex(
+                                updateBillingProfileBodyWorkflowCollectionAlignmentRecurringPeriodIntervalRegExpTwo,
+                              ),
+                            zod
+                              .enum(['DAY', 'WEEK', 'MONTH', 'YEAR'])
+                              .describe(
+                                'The unit of time for the interval.\nOne of: `day`, `week`, `month`, or `year`.',
+                              ),
+                          ])
+                          .describe('Period duration for the recurrence')
+                          .describe(
+                            'The unit of time for the interval. Heuristically maps ISO duraitons to enum values or returns the ISO duration.',
+                          ),
+                      })
+                      .describe(
+                        'Recurring period with an interval and an anchor.',
+                      )
+                      .describe('The recurring period for the alignment.'),
+                    type: zod.enum(['anchored']),
+                  })
+                  .describe(
+                    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items\ninto an invoice.',
+                  ),
+              ])
               .describe(
                 'The alignment for collecting the pending line items into an invoice.\n\nDefaults to subscription, which means that we are to create a new invoice every time the\na subscription period starts (for in advance items) or ends (for in arrears items).',
               )

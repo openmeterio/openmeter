@@ -14,6 +14,8 @@ func CalculateDraftUntil(i *billing.Invoice) error {
 	}
 
 	collectionAt := lo.FromPtrOr(i.CollectionAt, i.CreatedAt)
+	collectionAt = lo.Latest(collectionAt, i.CreatedAt)
+
 	draftUntil, _ := i.Workflow.Config.Invoicing.DraftPeriod.AddTo(collectionAt)
 	i.DraftUntil = &draftUntil
 

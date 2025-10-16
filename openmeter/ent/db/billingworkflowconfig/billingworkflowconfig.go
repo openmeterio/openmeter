@@ -26,6 +26,8 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldCollectionAlignment holds the string denoting the collection_alignment field in the database.
 	FieldCollectionAlignment = "collection_alignment"
+	// FieldAnchoredAlignmentDetail holds the string denoting the anchored_alignment_detail field in the database.
+	FieldAnchoredAlignmentDetail = "anchored_alignment_detail"
 	// FieldLineCollectionPeriod holds the string denoting the line_collection_period field in the database.
 	FieldLineCollectionPeriod = "line_collection_period"
 	// FieldInvoiceAutoAdvance holds the string denoting the invoice_auto_advance field in the database.
@@ -74,6 +76,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldCollectionAlignment,
+	FieldAnchoredAlignmentDetail,
 	FieldLineCollectionPeriod,
 	FieldInvoiceAutoAdvance,
 	FieldInvoiceDraftPeriod,
@@ -115,7 +118,7 @@ var (
 // CollectionAlignmentValidator is a validator for the "collection_alignment" field enum values. It is called by the builders before save.
 func CollectionAlignmentValidator(ca billing.AlignmentKind) error {
 	switch ca {
-	case "subscription":
+	case "subscription", "anchored":
 		return nil
 	default:
 		return fmt.Errorf("billingworkflowconfig: invalid enum value for collection_alignment field: %q", ca)
