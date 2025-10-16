@@ -81,7 +81,7 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 }
 
 func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input billing.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
-	return a.db.BillingWorkflowConfig.Create().
+	cmd := a.db.BillingWorkflowConfig.Create().
 		SetNamespace(ns).
 		SetCollectionAlignment(input.Collection.Alignment).
 		SetLineCollectionPeriod(input.Collection.Interval.ISOString()).
@@ -92,8 +92,13 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 		SetNillableInvoiceDefaultTaxSettings(input.Invoicing.DefaultTaxConfig).
 		SetTaxEnabled(input.Tax.Enabled).
-		SetTaxEnforced(input.Tax.Enforced).
-		Save(ctx)
+		SetTaxEnforced(input.Tax.Enforced)
+
+	if input.Collection.AnchoredAlignmentDetail != nil {
+		cmd = cmd.SetAnchoredAlignmentDetail(input.Collection.AnchoredAlignmentDetail)
+	}
+
+	return cmd.Save(ctx)
 }
 
 func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.AdapterGetProfileResponse, error) {
@@ -364,6 +369,7 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 	return a.db.BillingWorkflowConfig.UpdateOneID(id).
 		Where(billingworkflowconfig.Namespace(ns)).
 		SetCollectionAlignment(input.Collection.Alignment).
+		SetAnchoredAlignmentDetail(input.Collection.AnchoredAlignmentDetail).
 		SetLineCollectionPeriod(input.Collection.Interval.ISOString()).
 		SetInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
 		SetInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOString()).
@@ -430,6 +436,7 @@ func mapWorkflowConfigToDB(wc billing.WorkflowConfig, id string) *db.BillingWork
 		ID: id,
 
 		CollectionAlignment:     wc.Collection.Alignment,
+		AnchoredAlignmentDetail: wc.Collection.AnchoredAlignmentDetail,
 		LineCollectionPeriod:    wc.Collection.Interval.ISOString(),
 		InvoiceAutoAdvance:      wc.Invoicing.AutoAdvance,
 		InvoiceDraftPeriod:      wc.Invoicing.DraftPeriod.ISOString(),
@@ -458,8 +465,9 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowCo
 
 	return billing.WorkflowConfig{
 		Collection: billing.CollectionConfig{
-			Alignment: dbWC.CollectionAlignment,
-			Interval:  collectionInterval,
+			Alignment:               dbWC.CollectionAlignment,
+			AnchoredAlignmentDetail: dbWC.AnchoredAlignmentDetail,
+			Interval:                collectionInterval,
 		},
 
 		Invoicing: billing.InvoicingConfig{

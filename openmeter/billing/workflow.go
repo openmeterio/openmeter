@@ -35,13 +35,30 @@ func (c WorkflowConfig) Validate() error {
 
 // CollectionConfig groups fields related to item collection.
 type CollectionConfig struct {
-	Alignment AlignmentKind        `json:"alignment"`
-	Interval  datetime.ISODuration `json:"period,omitempty"`
+	Alignment               AlignmentKind            `json:"alignment"`
+	AnchoredAlignmentDetail *AnchoredAlignmentDetail `json:"anchoredAlignmentDetail,omitempty"`
+	Interval                datetime.ISODuration     `json:"period,omitempty"`
 }
 
 func (c *CollectionConfig) Validate() error {
-	if c.Alignment != AlignmentKindSubscription {
+	if err := c.Alignment.Validate(); err != nil {
 		return fmt.Errorf("invalid alignment: %s", c.Alignment)
+	}
+
+	if c.Alignment == AlignmentKindAnchored {
+		if c.AnchoredAlignmentDetail == nil {
+			return fmt.Errorf("anchored alignment detail must be set")
+		}
+	}
+
+	if c.AnchoredAlignmentDetail != nil {
+		if c.Alignment != AlignmentKindAnchored {
+			return fmt.Errorf("anchored alignment detail must be set when alignment is anchored")
+		}
+
+		if err := c.AnchoredAlignmentDetail.Validate(); err != nil {
+			return fmt.Errorf("invalid anchored alignment detail: %w", err)
+		}
 	}
 
 	if !c.Interval.IsPositive() {

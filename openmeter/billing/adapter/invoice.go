@@ -333,12 +333,8 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetNillableSupplierAddressLine2(supplier.Address.Line2).
 			SetNillableSupplierAddressPhoneNumber(supplier.Address.PhoneNumber).
 			SetSupplierName(supplier.Name).
-			SetNillableSupplierTaxCode(supplier.TaxCode)
-
-		// Set collection_at only for new gathering invoices
-		if input.Status == billing.InvoiceStatusGathering {
-			createMut = createMut.SetCollectionAt(clock.Now())
-		}
+			SetNillableSupplierTaxCode(supplier.TaxCode).
+			SetNillableCollectionAt(input.CollectionAt)
 
 		if customer.BillingAddress != nil {
 			createMut = createMut.

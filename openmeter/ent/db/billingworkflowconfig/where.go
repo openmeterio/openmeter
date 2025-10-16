@@ -350,6 +350,16 @@ func CollectionAlignmentNotIn(vs ...billing.AlignmentKind) predicate.BillingWork
 	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldCollectionAlignment, v...))
 }
 
+// AnchoredAlignmentDetailIsNil applies the IsNil predicate on the "anchored_alignment_detail" field.
+func AnchoredAlignmentDetailIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldAnchoredAlignmentDetail))
+}
+
+// AnchoredAlignmentDetailNotNil applies the NotNil predicate on the "anchored_alignment_detail" field.
+func AnchoredAlignmentDetailNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldAnchoredAlignmentDetail))
+}
+
 // LineCollectionPeriodEQ applies the EQ predicate on the "line_collection_period" field.
 func LineCollectionPeriodEQ(v datetime.ISODurationString) predicate.BillingWorkflowConfig {
 	vc := string(v)

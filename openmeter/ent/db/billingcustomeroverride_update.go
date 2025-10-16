@@ -98,6 +98,18 @@ func (_u *BillingCustomerOverrideUpdate) ClearCollectionAlignment() *BillingCust
 	return _u
 }
 
+// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
+func (_u *BillingCustomerOverrideUpdate) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetailOption) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetAnchoredAlignmentDetail(v)
+	return _u
+}
+
+// ClearAnchoredAlignmentDetail clears the value of the "anchored_alignment_detail" field.
+func (_u *BillingCustomerOverrideUpdate) ClearAnchoredAlignmentDetail() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearAnchoredAlignmentDetail()
+	return _u
+}
+
 // SetLineCollectionPeriod sets the "line_collection_period" field.
 func (_u *BillingCustomerOverrideUpdate) SetLineCollectionPeriod(v datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	_u.mutation.SetLineCollectionPeriod(v)
@@ -340,6 +352,12 @@ func (_u *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (_node int
 	if _u.mutation.CollectionAlignmentCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum)
 	}
+	if value, ok := _u.mutation.AnchoredAlignmentDetail(); ok {
+		_spec.SetField(billingcustomeroverride.FieldAnchoredAlignmentDetail, field.TypeJSON, value)
+	}
+	if _u.mutation.AnchoredAlignmentDetailCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldAnchoredAlignmentDetail, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.LineCollectionPeriod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString, value)
 	}
@@ -494,6 +512,18 @@ func (_u *BillingCustomerOverrideUpdateOne) SetNillableCollectionAlignment(v *bi
 // ClearCollectionAlignment clears the value of the "collection_alignment" field.
 func (_u *BillingCustomerOverrideUpdateOne) ClearCollectionAlignment() *BillingCustomerOverrideUpdateOne {
 	_u.mutation.ClearCollectionAlignment()
+	return _u
+}
+
+// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
+func (_u *BillingCustomerOverrideUpdateOne) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetailOption) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetAnchoredAlignmentDetail(v)
+	return _u
+}
+
+// ClearAnchoredAlignmentDetail clears the value of the "anchored_alignment_detail" field.
+func (_u *BillingCustomerOverrideUpdateOne) ClearAnchoredAlignmentDetail() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearAnchoredAlignmentDetail()
 	return _u
 }
 
@@ -768,6 +798,12 @@ func (_u *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if _u.mutation.CollectionAlignmentCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.AnchoredAlignmentDetail(); ok {
+		_spec.SetField(billingcustomeroverride.FieldAnchoredAlignmentDetail, field.TypeJSON, value)
+	}
+	if _u.mutation.AnchoredAlignmentDetailCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldAnchoredAlignmentDetail, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.LineCollectionPeriod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldLineCollectionPeriod, field.TypeString, value)

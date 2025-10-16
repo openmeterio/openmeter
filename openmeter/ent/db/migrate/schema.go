@@ -495,7 +495,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "collection_alignment", Type: field.TypeEnum, Nullable: true, Enums: []string{"subscription"}},
+		{Name: "collection_alignment", Type: field.TypeEnum, Nullable: true, Enums: []string{"subscription", "anchored"}},
+		{Name: "anchored_alignment_detail", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "line_collection_period", Type: field.TypeString, Nullable: true},
 		{Name: "invoice_auto_advance", Type: field.TypeBool, Nullable: true},
 		{Name: "invoice_draft_period", Type: field.TypeString, Nullable: true},
@@ -514,13 +515,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_customer_overrides_billing_profiles_billing_customer_override",
-				Columns:    []*schema.Column{BillingCustomerOverridesColumns[13]},
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[14]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_customer_overrides_customers_billing_customer_override",
-				Columns:    []*schema.Column{BillingCustomerOverridesColumns[14]},
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[15]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -544,7 +545,7 @@ var (
 			{
 				Name:    "billingcustomeroverride_namespace_customer_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[14]},
+				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[15]},
 			},
 		},
 	}
@@ -1260,7 +1261,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "collection_alignment", Type: field.TypeEnum, Enums: []string{"subscription"}},
+		{Name: "collection_alignment", Type: field.TypeEnum, Enums: []string{"subscription", "anchored"}},
+		{Name: "anchored_alignment_detail", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "line_collection_period", Type: field.TypeString},
 		{Name: "invoice_auto_advance", Type: field.TypeBool},
 		{Name: "invoice_draft_period", Type: field.TypeString},

@@ -319,3 +319,135 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 		}
 	})
 }
+
+func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.T) {
+	// Namespace used by the test framework
+	namespace := "test-namespace"
+
+	startOfSub := testutils.GetRFC3339Time(t, "2025-06-15T12:00:00Z")
+	currentTime := startOfSub
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tDeps := setup(t, setupConfig{})
+	defer tDeps.cleanup(t)
+
+	clock.SetTime(currentTime)
+
+	// Create minimal plan with one in-arrears monthly item so it produces an end-of-month line
+	feats := tDeps.FeatureConnector.CreateExampleFeatures(t)
+	require.NotEmpty(t, feats)
+
+	p, err := tDeps.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: namespace},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:            "Anchored Plan",
+				Key:             "anchored_plan",
+				Currency:        "USD",
+				BillingCadence:  datetime.MustParseDuration(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{Enabled: true, Mode: productcatalog.ProRatingModeProratePrices},
+			},
+			Phases: []productcatalog.Phase{{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+				RateCards: productcatalog.RateCards{
+					&productcatalog.UsageBasedRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:        feats[0].Key,
+							Name:       "FLAT_PRICE",
+							FeatureKey: lo.ToPtr(feats[0].Key),
+							FeatureID:  lo.ToPtr(feats[0].ID),
+							Price:      productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromInt(1), PaymentTerm: productcatalog.InArrearsPaymentTerm}),
+						},
+						BillingCadence: datetime.MustParseDuration(t, "P1M"),
+					},
+				},
+			}},
+		},
+	})
+	require.NoError(t, err)
+	p, err = tDeps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{NamespacedID: p.NamespacedID, EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: lo.ToPtr(currentTime)}})
+	require.NoError(t, err)
+
+	// Create billing profile with anchored alignment: first day of month
+	profInput := minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID())
+	profInput.Namespace = namespace
+	profInput.WorkflowConfig.Collection.Alignment = billing.AlignmentKindAnchored
+	anchor := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.UTC)
+	profInput.WorkflowConfig.Collection.AnchoredAlignmentDetail = lo.ToPtr(billing.AnchoredAlignmentDetail{
+		Interval: datetime.MustParseDuration(t, "P1M"),
+		Anchor:   anchor,
+	})
+	_, err = tDeps.billingService.CreateProfile(ctx, profInput)
+	require.NoError(t, err)
+
+	// Create customer
+	c, err := tDeps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Name:             "Test Customer",
+			UsageAttribution: customer.CustomerUsageAttribution{SubjectKeys: []string{"subject_1"}},
+		},
+	})
+	require.NoError(t, err)
+
+	// Create subscription with billing anchor = first of month
+	pi := &pcsubscription.PlanInput{}
+	pi.FromRef(&pcsubscription.PlanRefInput{Key: p.Key, Version: &p.Version})
+	firstOfNextMonth := testutils.GetRFC3339Time(t, "2025-07-01T00:00:00Z")
+	beforeFirstOfMonth := testutils.GetRFC3339Time(t, "2025-06-28T00:00:00Z")
+	s, err := tDeps.pcSubscriptionService.Create(ctx, pcsubscription.CreateSubscriptionRequest{
+		WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			Namespace:  namespace,
+			CustomerID: c.ID,
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{Custom: &startOfSub},
+				Name:   "Anchored Sub",
+			},
+			BillingAnchor: &beforeFirstOfMonth,
+		},
+		PlanInput: *pi,
+	})
+	require.NoError(t, err)
+
+	view, err := tDeps.SubscriptionService.GetView(ctx, s.NamespacedID)
+	require.NoError(t, err)
+
+	// Cancel effective before end of month (e.g., on 20th)
+	cancelAt := beforeFirstOfMonth
+	_, err = tDeps.subscriptionService.Cancel(ctx, s.NamespacedID, subscription.Timing{Custom: &cancelAt})
+	require.NoError(t, err)
+
+	// Let's advance time until after
+	clock.SetTime(cancelAt.Add(time.Hour * 1))
+
+	// Sync up to the next anchor (July 1st). Lines should remain on gathering invoice until then.
+	require.NoError(t, tDeps.workerHandler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, view, firstOfNextMonth))
+
+	invoices, err := tDeps.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Namespaces: []string{namespace},
+		Customers:  []string{c.ID},
+		Page:       pagination.Page{PageSize: 10, PageNumber: 1},
+		Expand:     billing.InvoiceExpandAll,
+		Statuses:   []string{},
+	})
+	require.NoError(t, err)
+
+	// Gathering and Standard, let's get the standard
+	require.Len(t, invoices.Items, 2)
+	invoice, ok := lo.Find(invoices.Items, func(i billing.Invoice) bool {
+		return i.Status != billing.InvoiceStatusGathering
+	})
+	require.True(t, ok)
+
+	// We should have a gathering invoice with lines invoiceAt at end of June and collectionAt at July 1st (due to anchored alignment)
+	require.Equal(t, billing.InvoiceStatusDraftWaitingForCollection, invoice.Status)
+	require.NotNil(t, invoice.CollectionAt)
+	require.Equal(t, firstOfNextMonth, *invoice.CollectionAt)
+
+	lns, ok := invoice.Lines.Get()
+	require.True(t, ok)
+	for _, l := range lns {
+		require.True(t, l.InvoiceAt.Before(*invoice.CollectionAt))
+	}
+}
