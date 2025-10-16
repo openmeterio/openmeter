@@ -1,7 +1,6 @@
 package billingadapter
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -9,120 +8,46 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type mapInvoiceLineFromDBInput struct {
-	lines          []*db.BillingInvoiceLine
-	includeDeleted bool
-}
+func (a *adapter) mapInvoiceLineFromDB(dbLines []*db.BillingInvoiceLine) ([]*billing.Line, error) {
+	lines := make([]*billing.Line, 0, len(dbLines))
 
-func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, in mapInvoiceLineFromDBInput) ([]*billing.Line, error) {
-	pendingParentIDs := make([]string, 0, len(in.lines))
-	resolvedChildrenOfIDs := make(map[string]struct{}, len(in.lines))
-
-	for _, line := range in.lines {
-		if line.ParentLineID != nil {
-			pendingParentIDs = append(pendingParentIDs, *line.ParentLineID)
-		}
-
-		if line.Status != billing.InvoiceLineStatusDetailed {
-			resolvedChildrenOfIDs[line.ID] = struct{}{}
-		}
-	}
-
-	// NOTE: Given that the invoice lines can be in parent-child relationship we might fetch
-	// duplicate lines, so we need to deduplicate them.
-	//
-	// We cannot get around this limitation, as a parent line might have more children than the ones we have
-	// saved.
-	references, err := a.fetchInvoiceLineNewReferences(ctx, pendingParentIDs, lo.Keys(resolvedChildrenOfIDs), in.includeDeleted)
-	if err != nil {
-		return nil, err
-	}
-
-	references = append(references, in.lines...)
-
-	mappedEntities := make(map[string]*billing.Line, len(references))
-
-	for _, dbLine := range references {
-		if _, ok := mappedEntities[dbLine.ID]; ok {
-			continue
-		}
-
-		entity, err := a.mapInvoiceLineWithoutReferences(dbLine)
+	for _, dbLine := range dbLines {
+		line, err := a.mapInvoiceLineWithoutReferences(dbLine)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("mapping line [id=%s]: %w", dbLine.ID, err)
 		}
 
-		mappedEntities[dbLine.ID] = &entity
-	}
-
-	for _, entity := range mappedEntities {
-		if entity.ParentLineID != nil {
-			parent, ok := mappedEntities[*entity.ParentLineID]
-			if !ok {
-				// We don't care about the parent if it's not loaded as it might be too deep
-				continue
+		// Let's map any detailed lines
+		detailedLines := make([]*billing.Line, 0, len(dbLine.Edges.DetailedLines))
+		for _, dbDetailedLine := range dbLine.Edges.DetailedLines {
+			detailedLine, err := a.mapInvoiceDetailedLineWithoutReferences(dbDetailedLine)
+			if err != nil {
+				return nil, fmt.Errorf("mapping detailed line [parentID=%s,id=%s]: %w", dbLine.ID, dbDetailedLine.ID, err)
 			}
 
-			entity.ParentLine = parent
-			// We only add children references if we know that those has been properly resolved
-			if _, ok := resolvedChildrenOfIDs[parent.ID]; ok {
-				parent.Children = append(parent.Children, entity)
-			}
-		}
-	}
+			detailedLine.SaveDBSnapshot()
 
-	result := make([]*billing.Line, 0, len(mappedEntities))
-	for _, dbEntity := range in.lines {
-		entity, ok := mappedEntities[dbEntity.ID]
-		if !ok {
-			return nil, fmt.Errorf("missing entity[%s]", dbEntity.ID)
+			detailedLines = append(detailedLines, detailedLine)
 		}
 
-		entity.SaveDBSnapshot()
+		line.Children = billing.NewLineChildren(detailedLines)
 
-		result = append(result, entity)
+		line.SaveDBSnapshot()
+
+		lines = append(lines, line)
 	}
 
-	return result, nil
+	return lines, nil
 }
 
-func (a *adapter) fetchInvoiceLineNewReferences(ctx context.Context, parentIDs []string, childrenOf []string, includeDeletedLines bool) ([]*db.BillingInvoiceLine, error) {
-	if len(parentIDs) == 0 && len(childrenOf) == 0 {
-		return nil, nil
-	}
-
-	query := a.db.BillingInvoiceLine.Query()
-
-	query = a.expandLineItems(query)
-
-	predicates := make([]predicate.BillingInvoiceLine, 0, 2)
-	if len(parentIDs) > 0 {
-		predicates = append(predicates, billinginvoiceline.IDIn(lo.Uniq(parentIDs)...))
-	}
-
-	if len(childrenOf) > 0 {
-		predicates = append(predicates, billinginvoiceline.ParentLineIDIn(lo.Uniq(childrenOf)...))
-	}
-
-	query = query.Where(billinginvoiceline.Or(predicates...))
-
-	if !includeDeletedLines {
-		query = query.Where(billinginvoiceline.DeletedAtIsNil())
-	}
-
-	return query.All(ctx)
-}
-
-func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine) (billing.Line, error) {
-	invoiceLine := billing.Line{
+func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine) (*billing.Line, error) {
+	invoiceLine := &billing.Line{
 		LineBase: billing.LineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   dbLine.Namespace,
@@ -183,32 +108,118 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 		}
 	}
 
-	switch dbLine.Type {
-	case billing.InvoiceLineTypeFee:
-		invoiceLine.FlatFee = &billing.FlatFeeLine{
-			ConfigID:      dbLine.Edges.FlatFeeLine.ID,
-			PerUnitAmount: dbLine.Edges.FlatFeeLine.PerUnitAmount,
-			Quantity:      lo.FromPtr(dbLine.Quantity),
-			Category:      dbLine.Edges.FlatFeeLine.Category,
-			PaymentTerm:   dbLine.Edges.FlatFeeLine.PaymentTerm,
-			Index:         dbLine.Edges.FlatFeeLine.Index,
+	if dbLine.Type != billing.InvoiceLineTypeUsageBased {
+		return invoiceLine, fmt.Errorf("only usage based lines can be top level lines [line_id=%s]", dbLine.ID)
+	}
+
+	ubpLine := dbLine.Edges.UsageBasedLine
+	if ubpLine == nil {
+		return nil, fmt.Errorf("manual usage based line is missing")
+	}
+
+	invoiceLine.UsageBased = &billing.UsageBasedLine{
+		ConfigID:                     ubpLine.ID,
+		FeatureKey:                   lo.FromPtr(ubpLine.FeatureKey),
+		Price:                        ubpLine.Price,
+		Quantity:                     dbLine.Quantity,
+		MeteredQuantity:              ubpLine.MeteredQuantity,
+		PreLinePeriodQuantity:        ubpLine.PreLinePeriodQuantity,
+		MeteredPreLinePeriodQuantity: ubpLine.MeteredPreLinePeriodQuantity,
+	}
+
+	if len(dbLine.Edges.LineUsageDiscounts) > 0 {
+		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineUsageDiscounts, a.mapInvoiceLineUsageDiscountFromDB)
+		if err != nil {
+			return nil, fmt.Errorf("mapping invoice line usage discounts[%s] failed: %w", dbLine.ID, err)
 		}
-	case billing.InvoiceLineTypeUsageBased:
-		ubpLine := dbLine.Edges.UsageBasedLine
-		if ubpLine == nil {
-			return invoiceLine, fmt.Errorf("manual usage based line is missing")
+
+		invoiceLine.Discounts.Usage = discounts
+	}
+
+	if len(dbLine.Edges.LineAmountDiscounts) > 0 {
+		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapInvoiceLineAmountDiscountFromDB)
+		if err != nil {
+			return nil, fmt.Errorf("mapping invoice line amount discounts[%s] failed: %w", dbLine.ID, err)
 		}
-		invoiceLine.UsageBased = &billing.UsageBasedLine{
-			ConfigID:                     ubpLine.ID,
-			FeatureKey:                   lo.FromPtr(ubpLine.FeatureKey),
-			Price:                        ubpLine.Price,
-			Quantity:                     dbLine.Quantity,
-			MeteredQuantity:              ubpLine.MeteredQuantity,
-			PreLinePeriodQuantity:        ubpLine.PreLinePeriodQuantity,
-			MeteredPreLinePeriodQuantity: ubpLine.MeteredPreLinePeriodQuantity,
+		invoiceLine.Discounts.Amount = discounts
+	}
+
+	return invoiceLine, nil
+}
+
+func (a *adapter) mapInvoiceDetailedLineWithoutReferences(dbLine *db.BillingInvoiceLine) (*billing.DetailedLine, error) {
+	invoiceLine := &billing.DetailedLine{
+		LineBase: billing.LineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   dbLine.Namespace,
+				ID:          dbLine.ID,
+				CreatedAt:   dbLine.CreatedAt.In(time.UTC),
+				UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
+				DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
+				Name:        dbLine.Name,
+				Description: dbLine.Description,
+			}),
+
+			Metadata:    dbLine.Metadata,
+			Annotations: dbLine.Annotations,
+			InvoiceID:   dbLine.InvoiceID,
+			Status:      dbLine.Status,
+			ManagedBy:   dbLine.ManagedBy,
+
+			Period: billing.Period{
+				Start: dbLine.PeriodStart.In(time.UTC),
+				End:   dbLine.PeriodEnd.In(time.UTC),
+			},
+
+			ParentLineID:           dbLine.ParentLineID,
+			SplitLineGroupID:       dbLine.SplitLineGroupID,
+			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
+
+			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
+
+			Type:     dbLine.Type,
+			Currency: dbLine.Currency,
+
+			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
+			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
+			Totals: billing.Totals{
+				Amount:              dbLine.Amount,
+				ChargesTotal:        dbLine.ChargesTotal,
+				DiscountsTotal:      dbLine.DiscountsTotal,
+				TaxesInclusiveTotal: dbLine.TaxesInclusiveTotal,
+				TaxesExclusiveTotal: dbLine.TaxesExclusiveTotal,
+				TaxesTotal:          dbLine.TaxesTotal,
+				Total:               dbLine.Total,
+			},
+			ExternalIDs: billing.LineExternalIDs{
+				Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
+			},
+		},
+	}
+
+	if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {
+		invoiceLine.Subscription = &billing.SubscriptionReference{
+			SubscriptionID: *dbLine.SubscriptionID,
+			PhaseID:        *dbLine.SubscriptionPhaseID,
+			ItemID:         *dbLine.SubscriptionItemID,
+			BillingPeriod: timeutil.ClosedPeriod{
+				From: lo.FromPtr(dbLine.SubscriptionBillingPeriodFrom).In(time.UTC),
+				To:   lo.FromPtr(dbLine.SubscriptionBillingPeriodTo).In(time.UTC),
+			},
 		}
-	default:
-		return invoiceLine, fmt.Errorf("unsupported line type[%s]: %s", dbLine.ID, dbLine.Type)
+	}
+
+	if dbLine.Type != billing.InvoiceLineTypeFee {
+		return nil, fmt.Errorf("only fee typed lines can be detailed lines [line_id=%s]", dbLine.ID)
+	}
+
+	invoiceLine.FlatFee = &billing.FlatFeeLine{
+		ConfigID:      dbLine.Edges.FlatFeeLine.ID,
+		PerUnitAmount: dbLine.Edges.FlatFeeLine.PerUnitAmount,
+		Quantity:      lo.FromPtr(dbLine.Quantity),
+		Category:      dbLine.Edges.FlatFeeLine.Category,
+		PaymentTerm:   dbLine.Edges.FlatFeeLine.PaymentTerm,
+		Index:         dbLine.Edges.FlatFeeLine.Index,
 	}
 
 	if len(dbLine.Edges.LineUsageDiscounts) > 0 {

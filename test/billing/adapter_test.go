@@ -76,16 +76,6 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 	return &invoice
 }
 
-func mergeDBFields(in *billing.Line, dbInput *billing.Line) *billing.Line {
-	in.ID = dbInput.ID
-	in.CreatedAt = dbInput.CreatedAt
-	in.UpdatedAt = dbInput.UpdatedAt
-	in.DeletedAt = dbInput.DeletedAt
-
-	in.UsageBased.ConfigID = dbInput.UsageBased.ConfigID
-	return in
-}
-
 type usageBasedLineInput struct {
 	Namespace              string
 	Period                 billing.Period
@@ -374,22 +364,19 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		// When we query the line's children, we get the 4 lines, one is deleted
 		lines, err = s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
 			Namespace:      ns,
-			ParentLineIDs:  []string{lines[0].ID},
+			LineIDs:        []string{lines[0].ID},
 			IncludeDeleted: true,
 		})
 
-		// Then we get the 4 lines
 		require.NoError(s.T(), err)
-		require.Len(s.T(), lines, 4)
-		require.ElementsMatch(s.T(),
-			[]string{"ref1", "ref2", "ref3", "ref4"},
-			getUniqReferenceNames(lines))
+		require.Len(s.T(), lines, 1)
+		childLines := lines[0].Children
 
-		deleted, found := lo.Find(lines, func(l *billing.Line) bool {
-			return l.DeletedAt != nil
-		})
-		require.True(s.T(), found)
-		require.Equal(s.T(), "ref1", *deleted.ChildUniqueReferenceID)
+		// Then we get the 4 lines
+		require.Len(s.T(), childLines, 3)
+		require.ElementsMatch(s.T(),
+			[]string{"ref2", "ref3", "ref4"},
+			getUniqReferenceNames(childLines))
 	})
 }
 

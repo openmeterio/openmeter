@@ -214,7 +214,7 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 		}
 
 		return billing.LineWithInvoiceHeader{
-			Line:    &line,
+			Line:    line,
 			Invoice: a.mapInvoiceBaseFromDB(ctx, dbLine.Edges.BillingInvoice),
 		}, nil
 	})

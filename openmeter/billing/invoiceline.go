@@ -734,6 +734,11 @@ func (c Line) ChildrenWithIDReuse(l []*Line) (LineChildren, error) {
 			continue
 		}
 
+		// Let's only reuse lines that were not deleted before
+		if child.DeletedAt != nil {
+			continue
+		}
+
 		childrenRefToLine[*child.ChildUniqueReferenceID] = child
 	}
 
@@ -747,6 +752,17 @@ func (c Line) ChildrenWithIDReuse(l []*Line) (LineChildren, error) {
 		if existing, ok := childrenRefToLine[*newChild.ChildUniqueReferenceID]; ok {
 			// Let's retain the database ID to achieve an update instead of a delete/create
 			newChild.ID = existing.ID
+
+			// Let's retain the config ID to achieve an update instead of a delete/create
+			if newChild.FlatFee == nil {
+				return LineChildren{}, fmt.Errorf("detailed line[%s]: new line must be a flat fee line", *newChild.ChildUniqueReferenceID)
+			}
+
+			if existing.FlatFee == nil {
+				return LineChildren{}, fmt.Errorf("detailed line[%s]: existing line must be a flat fee line", *newChild.ChildUniqueReferenceID)
+			}
+
+			newChild.FlatFee.ConfigID = existing.FlatFee.ConfigID
 
 			// Let's make sure we retain the created and updated at timestamps so that we
 			// don't trigger an update in vain
@@ -914,14 +930,11 @@ func (c UpsertInvoiceLinesAdapterInput) Validate() error {
 type ListInvoiceLinesAdapterInput struct {
 	Namespace string
 
-	CustomerID                 string
-	InvoiceIDs                 []string
-	InvoiceStatuses            []InvoiceStatus
-	InvoiceAtBefore            *time.Time
-	IncludeDeleted             bool
-	ParentLineIDs              []string
-	ParentLineIDsIncludeParent bool
-	Statuses                   []InvoiceLineStatus
+	CustomerID      string
+	InvoiceIDs      []string
+	InvoiceStatuses []InvoiceStatus
+	IncludeDeleted  bool
+	Statuses        []InvoiceLineStatus
 
 	LineIDs []string
 }
