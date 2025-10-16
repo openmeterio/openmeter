@@ -6398,16 +6398,17 @@ export interface components {
        *
        *     Billing always treats periods as start being inclusive and end being exclusive. */
       period: components['schemas']['Period']
-      /**
-       * Format: date-time
-       * @description The time this line item should be invoiced.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      invoiceAt: Date
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
       /** @description Subscription are the references to the subscritpions that this line is related to. */
       readonly subscription?: components['schemas']['InvoiceLineSubscriptionReference']
+      /**
+       * Format: date-time
+       * @deprecated
+       * @description The time this line item should be invoiced.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      invoiceAt: Date
       /**
        * @deprecated
        * @description Type of the line.
@@ -6739,7 +6740,7 @@ export interface components {
      * @description Line status specifies the status of the line.
      * @enum {string}
      */
-    InvoiceLineStatus: 'valid' | 'detail' | 'split'
+    InvoiceLineStatus: 'valid' | 'detailed' | 'split'
     /** @description InvoiceLineSubscriptionReference contains the references to the subscription that this line is related to. */
     InvoiceLineSubscriptionReference: {
       /** @description The subscription. */

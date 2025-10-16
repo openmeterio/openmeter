@@ -18552,11 +18552,6 @@ components:
             Period of the line item applies to for revenue recognition pruposes.
 
             Billing always treats periods as start being inclusive and end being exclusive.
-        invoiceAt:
-          type: string
-          format: date-time
-          description: The time this line item should be invoiced.
-          example: '2023-01-01T01:01:01.001Z'
         externalIds:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
@@ -18567,6 +18562,12 @@ components:
             - $ref: '#/components/schemas/InvoiceLineSubscriptionReference'
           description: Subscription are the references to the subscritpions that this line is related to.
           readOnly: true
+        invoiceAt:
+          type: string
+          format: date-time
+          description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
+          deprecated: true
         type:
           type: string
           enum:
@@ -19240,7 +19241,7 @@ components:
       type: string
       enum:
         - valid
-        - detail
+        - detailed
         - split
       description: Line status specifies the status of the line.
     InvoiceLineSubscriptionReference:
