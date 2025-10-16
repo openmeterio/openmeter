@@ -133,15 +133,20 @@ func NewHandler(config Config) (webhook.Handler, error) {
 		return nil, err
 	}
 
-	serverURL, err := url.Parse(config.ServerURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse svix server URL: %w", err)
+	opts := &svix.SvixOptions{
+		Debug: config.Debug,
 	}
 
-	client, err := svix.New(config.APIKey, &svix.SvixOptions{
-		ServerUrl: serverURL,
-		Debug:     config.Debug,
-	})
+	if config.ServerURL != "" {
+		serverURL, err := url.Parse(config.ServerURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse svix server URL: %w", err)
+		}
+
+		opts.ServerUrl = serverURL
+	}
+
+	client, err := svix.New(config.APIKey, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create svix client: %w", err)
 	}
