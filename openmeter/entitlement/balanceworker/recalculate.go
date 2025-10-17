@@ -40,16 +40,8 @@ const (
 
 	metricNameRecalculationTime               = "balance_worker.entitlement_recalculation_time_ms"
 	metricNameRecalculationJobCalculationTime = "balance_worker.entitlement_recalculation_job_calculation_time_ms"
-	metricNameHighWatermarkCacheStats         = "balance_worker.high_watermark_cache_stats"
 
 	metricAttributeKeyEntitltementType = "entitlement_type"
-)
-
-var (
-	metricAttributeHighWatermarkCacheHit        = attribute.String("op", "hit")
-	metricAttributeHighWatermarkCacheHitDeleted = attribute.String("op", "hit_deleted")
-	metricAttributeHighWatermarkCacheMiss       = attribute.String("op", "miss")
-	metricAttributeHighWatermarkCacheStale      = attribute.String("op", "stale")
 )
 
 type RecalculatorOptions struct {
@@ -179,16 +171,25 @@ func (r *Recalculator) GetEntitlementFilters() *EntitlementFilters {
 }
 
 func (r *Recalculator) Recalculate(ctx context.Context, ns string, recalculationStartedAt time.Time) error {
+	affectedEntitlements, err := r.ListInScopeEntitlements(ctx, ns)
+	if err != nil {
+		return fmt.Errorf("failed to list in scope entitlements: %w", err)
+	}
+
+	return r.ProcessEntitlements(ctx, affectedEntitlements, recalculationStartedAt)
+}
+
+func (r *Recalculator) ListInScopeEntitlements(ctx context.Context, ns string) ([]entitlement.Entitlement, error) {
 	if ns == "" {
-		return errors.New("namespace is required")
+		return nil, errors.New("namespace is required")
 	}
 
 	inScope, err := r.entitlementFilters.IsNamespaceInScope(ctx, ns)
 	if err != nil {
-		return fmt.Errorf("failed to check if namespace is in scope: %w", err)
+		return nil, fmt.Errorf("failed to check if namespace is in scope: %w", err)
 	}
 	if !inScope {
-		return nil
+		return nil, nil
 	}
 
 	// Note: this is to support namesapces with more than 64k entitlements, as the subqueries
@@ -211,7 +212,7 @@ func (r *Recalculator) Recalculate(ctx context.Context, ns string, recalculation
 				},
 			})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if len(affectedEntitlementsPage.Items) == 0 {
@@ -227,10 +228,10 @@ func (r *Recalculator) Recalculate(ctx context.Context, ns string, recalculation
 		page++
 	}
 
-	return r.processEntitlements(ctx, affectedEntitlements, recalculationStartedAt)
+	return affectedEntitlements, nil
 }
 
-func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []entitlement.Entitlement, recalculationStartedAt time.Time) error {
+func (r *Recalculator) ProcessEntitlements(ctx context.Context, entitlements []entitlement.Entitlement, recalculationStartedAt time.Time) error {
 	var errs error
 	for _, ent := range entitlements {
 		start := time.Now()

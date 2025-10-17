@@ -312,6 +312,22 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 			return w.handleBatchedIngestEvent(ctx, *event)
 		}),
+
+		// Balance worker triggered recalculation event
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *RecalculateEvent) error {
+			if event == nil {
+				return errors.New("nil batched ingest event")
+			}
+
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementEvent(
+					ctx,
+					pkgmodels.NamespacedID{Namespace: event.Entitlement.Namespace, ID: event.Entitlement.ID},
+					WithSource(metadata.ComposeResourcePath(event.Entitlement.Namespace, metadata.EntityEntitlement, event.Entitlement.ID)),
+					WithEventAt(event.AsOf),
+				))
+		}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create publishing handler: %w", err)
