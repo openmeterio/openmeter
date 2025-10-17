@@ -3,7 +3,6 @@ package billing
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -115,7 +114,7 @@ func (l DetailedLineBase) Clone() DetailedLineBase {
 }
 
 func (l DetailedLineBase) Equal(other DetailedLineBase) bool {
-	return reflect.DeepEqual(l, other)
+	return deriveEqualDetailedLineBase(&l, &other)
 }
 
 type DetailedLine struct {
