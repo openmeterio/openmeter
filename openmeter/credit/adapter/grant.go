@@ -63,6 +63,14 @@ func (g *grantDBADapter) CreateGrant(ctx context.Context, grant grant.RepoCreate
 	return &mapped, nil
 }
 
+func (g *grantDBADapter) DeleteOwnerGrants(ctx context.Context, ownerID models.NamespacedID) error {
+	command := g.db.Grant.Update().
+		SetDeletedAt(clock.Now()).
+		Where(db_grant.OwnerID(ownerID.ID), db_grant.Namespace(ownerID.Namespace))
+
+	return command.Exec(ctx)
+}
+
 // translates to a delete
 func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error {
 	// TODO: transaction and locking

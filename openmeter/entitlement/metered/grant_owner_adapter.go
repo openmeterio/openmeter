@@ -58,10 +58,7 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 	ent, err := e.entitlementRepo.GetEntitlement(ctx, id)
 	if err != nil {
 		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
-			return def, &grant.OwnerNotFoundError{
-				Owner:          id,
-				AttemptedOwner: "entitlement",
-			}
+			return def, grant.NewOwnerNotFoundError(id, "entitlement")
 		}
 
 		return def, err
@@ -125,10 +122,7 @@ func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner
 	owningEntitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner)
 	if err != nil {
 		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
-			return time.Time{}, &grant.OwnerNotFoundError{
-				Owner:          owner,
-				AttemptedOwner: "entitlement",
-			}
+			return time.Time{}, grant.NewOwnerNotFoundError(owner, "entitlement")
 		}
 
 		return time.Time{}, fmt.Errorf("failed to get entitlement: %w", err)

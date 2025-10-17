@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
+	credithook "github.com/openmeterio/openmeter/openmeter/credit/hook"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	entitlementpgadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
@@ -111,6 +112,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 
 	entitlementConnector.RegisterHooks(
 		entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{}),
+		credithook.NewEntitlementHook(grantDBAdapter),
 	)
 
 	return &registry.Entitlement{

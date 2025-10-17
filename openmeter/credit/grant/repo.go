@@ -78,6 +78,9 @@ type Repo interface {
 	ListActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]Grant, error)
 	GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error)
 
+	// Sets deleted_at timestamp
+	DeleteOwnerGrants(ctx context.Context, ownerID models.NamespacedID) error
+
 	entutils.TxCreator
 	entutils.TxUser[Repo]
 }

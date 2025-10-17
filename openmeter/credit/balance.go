@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
+	"github.com/samber/lo"
 )
 
 type ResetUsageForOwnerParams struct {
@@ -226,7 +227,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 	// check if reset is possible (not before current period)
 	periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())
 	if err != nil {
-		if _, ok := err.(*grant.OwnerNotFoundError); ok {
+		if _, ok := lo.ErrorsAs[*grant.OwnerNotFoundError](err); ok {
 			return nil, err
 		}
 		return nil, fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", ownerID.ID, at, err)

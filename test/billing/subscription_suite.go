@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
+	credithook "github.com/openmeterio/openmeter/openmeter/credit/hook"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -294,6 +295,7 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 
 	service.RegisterHooks(
 		entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{}),
+		credithook.NewEntitlementHook(grantRepo),
 	)
 
 	return service
