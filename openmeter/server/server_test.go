@@ -1335,6 +1335,10 @@ func (n NoopGrantRepo) VoidGrant(ctx context.Context, grantID models.NamespacedI
 	return nil
 }
 
+func (n NoopGrantRepo) DeleteOwnerGrants(ctx context.Context, ownerID models.NamespacedID) error {
+	return nil
+}
+
 func (n NoopGrantRepo) ListGrants(ctx context.Context, params grant.ListParams) (pagination.Result[grant.Grant], error) {
 	return pagination.Result[grant.Grant]{}, nil
 }

@@ -56,3 +56,10 @@ type OwnerNotFoundError struct {
 func (e OwnerNotFoundError) Error() string {
 	return fmt.Sprintf("Owner %s not found in namespace %s, attempted to find as %s", e.Owner.ID, e.Owner.Namespace, e.AttemptedOwner)
 }
+
+func NewOwnerNotFoundError(owner models.NamespacedID, attemptedOwner string) error {
+	return models.NewGenericNotFoundError(OwnerNotFoundError{
+		Owner:          owner,
+		AttemptedOwner: attemptedOwner,
+	})
+}

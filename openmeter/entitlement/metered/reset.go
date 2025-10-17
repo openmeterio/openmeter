@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -46,7 +48,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			PreserveOverage: defaultx.WithDefault(params.PreserveOverage, mEnt.PreserveOverageAtReset),
 		})
 		if err != nil {
-			if _, ok := err.(*grant.OwnerNotFoundError); ok {
+			if _, ok := lo.ErrorsAs[*grant.OwnerNotFoundError](err); ok {
 				return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
 			}
 			return nil, err
