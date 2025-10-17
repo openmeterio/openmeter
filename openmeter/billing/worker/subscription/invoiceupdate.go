@@ -192,7 +192,7 @@ func (u *InvoiceUpdater) updateMutableInvoice(ctx context.Context, invoice billi
 				}
 
 				// update
-				if invoice.Status != billing.InvoiceStatusGathering && targetState.Type == billing.InvoiceLineTypeUsageBased {
+				if invoice.Status != billing.InvoiceStatusGathering {
 					// We need to update the quantities of the usage based lines, to compensate for any changes in the period
 					// of the line
 
@@ -270,13 +270,6 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 			return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetState.ID)
 		}
 
-		if targetState.Type != existingLine.Type {
-			validationIssues = append(validationIssues,
-				newValidationIssueOnLine(existingLine, "line type cannot be changed (new type: %s)", targetState.Type),
-			)
-			continue
-		}
-
 		if isFlatFee(targetState) {
 			existingPerUnitAmount, err := getFlatFeePerUnitAmount(existingLine)
 			if err != nil {
@@ -296,10 +289,6 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 			}
 
 			continue
-		}
-
-		if targetState.Type != billing.InvoiceLineTypeUsageBased {
-			return fmt.Errorf("line[%s] is not a usage based line, cannot update", targetState.ID)
 		}
 
 		if !targetState.Period.Truncate(streaming.MinimumWindowSizeDuration).Equal(existingLine.Period.Truncate(streaming.MinimumWindowSizeDuration)) {

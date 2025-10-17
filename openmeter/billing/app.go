@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -222,37 +224,48 @@ func (r UpsertInvoiceResult) MergeIntoInvoice(invoice *Invoice) error {
 		invoice.ExternalIDs.Invoicing = externalID
 	}
 
+	if !invoice.Lines.IsPresent() {
+		return errors.New("invoice has no expanded lines")
+	}
+
 	var outErr error
 
 	// Let's merge the line IDs
-	if len(r.GetLineExternalIDs()) > 0 {
-		flattenedLines := invoice.FlattenLinesByID()
+	lineIDToExternalID := r.GetLineExternalIDs()
+	dicountIDToExternalID := r.GetLineDiscountExternalIDs()
 
-		// Merge the line IDs
-		for lineID, externalID := range r.GetLineExternalIDs() {
-			if line, ok := flattenedLines[lineID]; ok {
-				line.ExternalIDs.Invoicing = externalID
-			} else {
-				outErr = errors.Join(outErr, fmt.Errorf("line not found in invoice: %s", lineID))
-			}
+	lines := invoice.Lines.OrEmpty()
+
+	for _, line := range lines {
+		if externalID, ok := lineIDToExternalID[line.ID]; ok {
+			line.ExternalIDs.Invoicing = externalID
+			delete(lineIDToExternalID, line.ID)
 		}
 
-		// Let's merge the line discount IDs
-		dicountIDToExternalID := r.GetLineDiscountExternalIDs()
+		foundIDs := line.SetDiscountExternalIDs(dicountIDToExternalID)
+		for _, id := range foundIDs {
+			delete(dicountIDToExternalID, id)
+		}
 
-		for _, line := range flattenedLines {
-			for idx, discount := range line.Discounts.Amount {
-				if externalID, ok := dicountIDToExternalID[discount.ID]; ok {
-					line.Discounts.Amount[idx].ExternalIDs.Invoicing = externalID
-				}
+		for idx, detailedLine := range line.DetailedLines {
+			if externalID, ok := lineIDToExternalID[detailedLine.ID]; ok {
+				line.DetailedLines[idx].ExternalIDs.Invoicing = externalID
+				delete(lineIDToExternalID, detailedLine.ID)
 			}
 
-			for idx, discount := range line.Discounts.Usage {
-				if externalID, ok := dicountIDToExternalID[discount.ID]; ok {
-					line.Discounts.Usage[idx].ExternalIDs.Invoicing = externalID
-				}
+			foundIDs := line.DetailedLines[idx].SetDiscountExternalIDs(dicountIDToExternalID)
+			for _, id := range foundIDs {
+				delete(dicountIDToExternalID, id)
 			}
 		}
+	}
+
+	if len(lineIDToExternalID) > 0 {
+		outErr = errors.Join(outErr, fmt.Errorf("some lines were not found in the invoice: ids=[%s]", strings.Join(lo.Keys(lineIDToExternalID), ", ")))
+	}
+
+	if len(dicountIDToExternalID) > 0 {
+		outErr = errors.Join(outErr, fmt.Errorf("some line discounts were not found in the invoice: ids=[%s]", strings.Join(lo.Keys(dicountIDToExternalID), ", ")))
 	}
 
 	return outErr

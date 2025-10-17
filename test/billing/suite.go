@@ -325,31 +325,18 @@ func (s *BaseSuite) DebugDumpInvoice(h string, i billing.Invoice) {
 			deleted = " (deleted)"
 		}
 
-		switch line.Type {
-		case billing.InvoiceLineTypeFee:
-			s.T().Logf("fee  [%s..%s] childUniqueReferenceID: %s, invoiceAt: %s, qty: %s, unit price: %s (total=%s) %s\n",
-				line.Period.Start.Format(time.RFC3339),
-				line.Period.End.Format(time.RFC3339),
-				lo.FromPtrOr(line.ChildUniqueReferenceID, "null"),
-				line.InvoiceAt.Format(time.RFC3339),
-				line.FlatFee.Quantity.String(),
-				line.FlatFee.PerUnitAmount.String(),
-				line.Totals.Total.String(),
-				deleted)
-		case billing.InvoiceLineTypeUsageBased:
-			priceJson, err := json.Marshal(line.UsageBased.Price)
-			s.NoError(err)
+		priceJson, err := json.Marshal(line.UsageBased.Price)
+		s.NoError(err)
 
-			s.T().Logf("usage[%s..%s] childUniqueReferenceID: %s, invoiceAt: %s, qty: %s, price: %s (total=%s) %s\n",
-				line.Period.Start.Format(time.RFC3339),
-				line.Period.End.Format(time.RFC3339),
-				lo.FromPtrOr(line.ChildUniqueReferenceID, "null"),
-				line.InvoiceAt.Format(time.RFC3339),
-				line.UsageBased.Quantity,
-				string(priceJson),
-				line.Totals.Total.String(),
-				deleted)
-		}
+		s.T().Logf("usage[%s..%s] childUniqueReferenceID: %s, invoiceAt: %s, qty: %s, price: %s (total=%s) %s\n",
+			line.Period.Start.Format(time.RFC3339),
+			line.Period.End.Format(time.RFC3339),
+			lo.FromPtrOr(line.ChildUniqueReferenceID, "null"),
+			line.InvoiceAt.Format(time.RFC3339),
+			line.UsageBased.Quantity,
+			string(priceJson),
+			line.Totals.Total.String(),
+			deleted)
 	}
 }
 

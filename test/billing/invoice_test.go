@@ -185,8 +185,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 							InvoiceAt: issueAt,
 							ManagedBy: billing.ManuallyManagedLine,
-
-							Type: billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
@@ -249,11 +247,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				InvoiceAt: issueAt.In(time.UTC),
 				ManagedBy: billing.ManuallyManagedLine,
 
-				Type: billing.InvoiceLineTypeUsageBased,
-
 				Currency: currencyx.Code(currency.USD),
-
-				Status: billing.InvoiceLineStatusValid,
 
 				Metadata: map[string]string{
 					"key": "value",
@@ -361,7 +355,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.Len(s.T(), hufInvoiceLines, 2)
 
 		lineItem, found := lo.Find(hufInvoiceLines, func(l *billing.Line) bool {
-			return l.Type == billing.InvoiceLineTypeUsageBased
+			return l.UsageBased.Price.Type() == productcatalog.FlatPriceType
 		})
 		require.True(s.T(), found, "manual fee item is present")
 		require.Equal(s.T(), lineItem.UsageBased.Price, productcatalog.NewPriceFrom(productcatalog.FlatPrice{
@@ -371,7 +365,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		// Then we should have the tiered price present
 		tieredLine, found := lo.Find(hufInvoiceLines, func(l *billing.Line) bool {
-			return l.Type == billing.InvoiceLineTypeUsageBased && l.UsageBased.FeatureKey == "test"
+			return l.UsageBased.FeatureKey == "test"
 		})
 
 		require.True(s.T(), found, "tiered price item is present")
@@ -1416,7 +1410,6 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.flatPerUnit.Key,
@@ -1436,7 +1429,6 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
@@ -1454,7 +1446,6 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
@@ -1490,7 +1481,6 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredVolume.Key,
@@ -1656,7 +1646,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		requireTotals(s.T(), expectedTotals{
 			Amount: 1000,
 			Total:  1000,
-		}, flatPerUnit.Children[0].Totals)
+		}, flatPerUnit.DetailedLines[0].Totals)
 
 		requireTotals(s.T(), expectedTotals{
 			Amount: 1000,
@@ -1862,18 +1852,19 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		mockApp.OnValidateInvoice(nil)
 		mockApp.OnUpsertInvoice(func(i billing.Invoice) (*billing.UpsertInvoiceResult, error) {
-			lines := i.FlattenLinesByID()
-
 			out := billing.NewUpsertInvoiceResult()
 
-			for _, line := range lines {
+			for _, line := range i.Lines.OrEmpty() {
 				if line.ID == "" {
 					return nil, fmt.Errorf("line id is empty")
 				}
 
-				if line.Type == billing.InvoiceLineTypeFee {
-					// We set the external id the same as the line id to make it easier to test the output.
-					out.AddLineExternalID(line.ID, line.ID)
+				for _, detailedLine := range line.DetailedLines {
+					if detailedLine.ID == "" {
+						return nil, fmt.Errorf("detailed line id is empty")
+					}
+
+					out.AddLineExternalID(detailedLine.ID, detailedLine.ID)
 				}
 			}
 
@@ -1991,14 +1982,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		require.Equal(s.T(), "INV-123", out[0].Number)
 
-		for _, line := range out[0].FlattenLinesByID() {
-			switch line.Type {
-			case billing.InvoiceLineTypeFee:
-				require.Equal(s.T(), line.ID, line.ExternalIDs.Invoicing)
-			case billing.InvoiceLineTypeUsageBased:
-				require.Empty(s.T(), line.ExternalIDs.Invoicing)
-			default:
-				s.T().Errorf("unexpected line type: %s", line.Type)
+		for _, line := range out[0].Lines.OrEmpty() {
+			s.Empty(line.ExternalIDs.Invoicing, "line external id should be empty")
+
+			for _, detailedLine := range line.DetailedLines {
+				s.Equal(detailedLine.ID, detailedLine.ExternalIDs.Invoicing, "detailed line external id should be the same as the line id")
 			}
 		}
 
@@ -2006,21 +1994,15 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		s.Run("validate invoice finalization", func() {
 			mockApp.OnUpsertInvoice(func(i billing.Invoice) (*billing.UpsertInvoiceResult, error) {
-				lines := i.FlattenLinesByID()
-
 				out := billing.NewUpsertInvoiceResult()
 
-				for _, line := range lines {
-					if line.Type == billing.InvoiceLineTypeFee {
-						out.AddLineExternalID(line.ID, "final_upsert_"+line.ID)
-					}
+				for _, line := range i.Lines.OrEmpty() {
+					for _, detailedLine := range line.DetailedLines {
+						out.AddLineExternalID(detailedLine.ID, "final_upsert_"+detailedLine.ID)
 
-					for _, discount := range line.Discounts.Amount {
-						out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
-					}
-
-					for _, discount := range line.Discounts.Usage {
-						out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
+						for _, discount := range detailedLine.AmountDiscounts {
+							out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
+						}
 					}
 				}
 
@@ -2038,23 +2020,15 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 			require.Equal(s.T(), "payment_external_id", finalizedInvoice.ExternalIDs.Payment)
 			// Invoice app testing
-			for _, line := range finalizedInvoice.FlattenLinesByID() {
-				switch line.Type {
-				case billing.InvoiceLineTypeFee:
-					require.Equal(s.T(), "final_upsert_"+line.ID, line.ExternalIDs.Invoicing)
-				case billing.InvoiceLineTypeUsageBased:
-					require.Empty(s.T(), line.ExternalIDs.Invoicing)
-				default:
-					s.T().Errorf("unexpected line type: %s", line.Type)
-				}
+			for _, line := range finalizedInvoice.Lines.OrEmpty() {
+				s.Empty(line.ExternalIDs.Invoicing, "line external id should be empty")
+				for _, detailedLine := range line.DetailedLines {
+					require.Equal(s.T(), "final_upsert_"+detailedLine.ID, detailedLine.ExternalIDs.Invoicing)
 
-				// Test discounts
-				for _, discount := range line.Discounts.Amount {
-					require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
-				}
-
-				for _, discount := range line.Discounts.Usage {
-					require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
+					// Test discounts
+					for _, discount := range detailedLine.AmountDiscounts {
+						require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
+					}
 				}
 			}
 
@@ -2068,23 +2042,15 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		mockApp.OnValidateInvoice(nil)
 		mockApp.OnUpsertInvoice(func(i billing.Invoice) (*billing.UpsertInvoiceResult, error) {
-			lines := i.FlattenLinesByID()
-
 			out := billing.NewUpsertInvoiceResult()
 
-			for _, line := range lines {
-				if line.Type == billing.InvoiceLineTypeFee {
-					// We set the external id the same as the line id to make it easier to test the output.
-					out.AddLineExternalID(line.ID, line.ID)
-				}
+			for _, line := range i.Lines.OrEmpty() {
+				for _, detailedLine := range line.DetailedLines {
+					out.AddLineExternalID(detailedLine.ID, "final_upsert_"+detailedLine.ID)
 
-				// We set the external id the same as the discount id to make it easier to test the output.
-				for _, discount := range line.Discounts.Amount {
-					out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
-				}
-
-				for _, discount := range line.Discounts.Usage {
-					out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
+					for _, discount := range detailedLine.AmountDiscounts {
+						out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
+					}
 				}
 			}
 
@@ -2173,23 +2139,14 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		require.Equal(s.T(), "INV-124", out[0].Number)
 
-		for _, line := range out[0].FlattenLinesByID() {
-			switch line.Type {
-			case billing.InvoiceLineTypeFee:
-				require.Equal(s.T(), line.ID, line.ExternalIDs.Invoicing)
-			case billing.InvoiceLineTypeUsageBased:
-				require.Empty(s.T(), line.ExternalIDs.Invoicing)
-			default:
-				s.T().Errorf("unexpected line type: %s", line.Type)
-			}
+		for _, line := range out[0].Lines.OrEmpty() {
+			s.Empty(line.ExternalIDs.Invoicing, "line external id should be empty")
+			for _, detailedLine := range line.DetailedLines {
+				require.Equal(s.T(), "final_upsert_"+detailedLine.ID, detailedLine.ExternalIDs.Invoicing)
 
-			// Test discounts
-			for _, discount := range line.Discounts.Amount {
-				require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
-			}
-
-			for _, discount := range line.Discounts.Usage {
-				require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
+				for _, discount := range detailedLine.AmountDiscounts {
+					require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
+				}
 			}
 		}
 
@@ -2345,7 +2302,6 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
@@ -2416,8 +2372,8 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 		// Let's validate the output of the split itself
 		// Other line is a zero usage line
-		s.Len(tieredGraduated.Children, 2)
-		flatFeeLine := tieredGraduated.Children.GetByChildUniqueReferenceID("graduated-tiered-1-flat-price")
+		s.Len(tieredGraduated.DetailedLines, 2)
+		flatFeeLine := tieredGraduated.DetailedLines.GetByChildUniqueReferenceID("graduated-tiered-1-flat-price")
 		require.NotNil(s.T(), flatFeeLine)
 
 		requireTotals(s.T(), expectedTotals{
@@ -2452,8 +2408,8 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		}, tieredGraduated.Totals)
 
 		// Let's validate the output of the split itself
-		s.Len(tieredGraduated.Children, 1)
-		usageBasedEmptyLine := tieredGraduated.Children.GetByChildUniqueReferenceID("graduated-tiered-1-price-usage")
+		s.Len(tieredGraduated.DetailedLines, 1)
+		usageBasedEmptyLine := tieredGraduated.DetailedLines.GetByChildUniqueReferenceID("graduated-tiered-1-price-usage")
 		require.NotNil(s.T(), usageBasedEmptyLine)
 
 		requireTotals(s.T(), expectedTotals{
@@ -2660,7 +2616,6 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.flatPerUnit.Key,
@@ -2680,7 +2635,6 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
@@ -2698,7 +2652,6 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
@@ -2734,7 +2687,6 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredVolume.Key,
@@ -3016,17 +2968,16 @@ type feeLineExpect struct {
 	Quantity        float64
 	PerUnitAmount   float64
 	AmountDiscounts map[string]float64
-	UsageDiscounts  map[string]float64
 }
 
 func requireDetailedLines(t *testing.T, line *billing.Line, expectations lineExpectations) {
 	t.Helper()
 	require.NotNil(t, line)
-	children := line.Children
+	detailedLines := line.DetailedLines
 
-	require.Len(t, children, len(expectations.Details))
+	require.Len(t, detailedLines, len(expectations.Details))
 
-	detailsById := lo.GroupBy(children, func(l *billing.Line) string {
+	detailsById := lo.GroupBy(detailedLines, func(l billing.DetailedLine) string {
 		return *l.ChildUniqueReferenceID
 	})
 
@@ -3034,30 +2985,19 @@ func requireDetailedLines(t *testing.T, line *billing.Line, expectations lineExp
 		require.Contains(t, detailsById, key, "detail %s should be present", key)
 		detail := detailsById[key][0]
 
-		require.Equal(t, detail.Type, billing.InvoiceLineTypeFee, "line type should be fee")
-		require.Equal(t, expect.Quantity, detail.FlatFee.Quantity.InexactFloat64(), "quantity should match")
-		require.Equal(t, expect.PerUnitAmount, detail.FlatFee.PerUnitAmount.InexactFloat64(), "per unit amount should match")
+		require.Equal(t, expect.Quantity, detail.Quantity.InexactFloat64(), "quantity should match")
+		require.Equal(t, expect.PerUnitAmount, detail.PerUnitAmount.InexactFloat64(), "per unit amount should match")
 
-		discounts := detail.Discounts
-		require.Len(t, discounts.Amount, len(expect.AmountDiscounts), "amount discounts should match")
-		require.Len(t, discounts.Usage, len(expect.UsageDiscounts), "usage discounts should match")
+		discounts := detail.AmountDiscounts
+		require.Len(t, discounts, len(expect.AmountDiscounts), "amount discounts should match")
 
-		amountDiscountsById := lo.GroupBy(discounts.Amount, func(d billing.AmountLineDiscountManaged) string {
-			return lo.FromPtr(d.ChildUniqueReferenceID)
-		})
-
-		usageDiscountsById := lo.GroupBy(discounts.Usage, func(d billing.UsageLineDiscountManaged) string {
+		amountDiscountsById := lo.GroupBy(discounts, func(d billing.AmountLineDiscountManaged) string {
 			return lo.FromPtr(d.ChildUniqueReferenceID)
 		})
 
 		for discountType, discountExpect := range expect.AmountDiscounts {
 			require.Contains(t, amountDiscountsById, discountType, "discount %s should be present", discountType)
 			require.Equal(t, discountExpect, amountDiscountsById[discountType][0].Amount.InexactFloat64(), "discount amount should match")
-		}
-
-		for discountType, discountExpect := range expect.UsageDiscounts {
-			require.Contains(t, usageDiscountsById, discountType, "discount %s should be present", discountType)
-			require.Equal(t, discountExpect, usageDiscountsById[discountType][0].Quantity.InexactFloat64(), "discount amount should match")
 		}
 	}
 }
@@ -3187,7 +3127,6 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: flatPerUnitFeature.Key,
@@ -3355,7 +3294,6 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
 						InvoiceAt: periodEnd,
 						ManagedBy: billing.ManuallyManagedLine,
-						Type:      billing.InvoiceLineTypeUsageBased,
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: flatPerUnitFeature.Key,
@@ -3476,7 +3414,6 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
 						InvoiceAt: periodEnd,
 						ManagedBy: billing.ManuallyManagedLine,
-						Type:      billing.InvoiceLineTypeUsageBased,
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: flatPerUnitFeature.Key,
@@ -3510,10 +3447,10 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	s.Equal(float64(10), line.UsageBased.Quantity.InexactFloat64())
 
 	// And there should be a detailed line with 0 total
-	s.Len(line.Children, 1)
-	detailedLine := line.Children[0]
+	s.Len(line.DetailedLines, 1)
+	detailedLine := line.DetailedLines[0]
 	s.Equal(float64(0), detailedLine.Totals.Total.InexactFloat64())
-	s.Equal(float64(10), detailedLine.FlatFee.Quantity.InexactFloat64())
+	s.Equal(float64(10), detailedLine.Quantity.InexactFloat64())
 
 	s.Len(invoice.ValidationIssues, 0)
 }
@@ -3633,7 +3570,6 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt: periodEnd,
 					ManagedBy: billing.ManuallyManagedLine,
-					Type:      billing.InvoiceLineTypeUsageBased,
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -3729,7 +3665,6 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt: periodEnd,
 					ManagedBy: billing.ManuallyManagedLine,
-					Type:      billing.InvoiceLineTypeUsageBased,
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -3762,7 +3697,6 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 					Period:    billing.Period{Start: periodStart, End: periodStart.Add(24 * time.Hour)},
 					InvoiceAt: periodStart.Add(24 * time.Hour),
 					ManagedBy: billing.ManuallyManagedLine,
-					Type:      billing.InvoiceLineTypeUsageBased,
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -3843,7 +3777,6 @@ func (s *InvoicingTestSuite) TestSortLines() {
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt: periodEnd,
 					ManagedBy: billing.ManuallyManagedLine,
-					Type:      billing.InvoiceLineTypeUsageBased,
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -3908,13 +3841,13 @@ func (s *InvoicingTestSuite) TestSortLines() {
 		// Let's shuffle the lines (ULIDs usually provide a consistent order that's why we are shuffling it a few times)
 		lines := invoice.Lines.OrEmpty()
 
-		detailedLines := lines[0].Children
+		detailedLines := lines[0].DetailedLines
 
 		rand.Shuffle(len(detailedLines), func(i, j int) {
 			detailedLines[i], detailedLines[j] = detailedLines[j], detailedLines[i]
 		})
 
-		lines[0].Children = billing.NewLineChildren(detailedLines)
+		lines[0].DetailedLines = detailedLines
 
 		invoice.Lines = billing.NewInvoiceLines(lines)
 
@@ -3929,17 +3862,16 @@ func (s *InvoicingTestSuite) TestSortLines() {
 		s.Equal(line.Name, "UBP - volume")
 		s.True(line.Period.Equal(billing.Period{Start: periodStart, End: periodEnd}), "periods should equal")
 
-		children := line.Children
-		s.Len(children, 4)
+		s.Len(line.DetailedLines, 4)
 
 		// There should be 4 children properly indexed
-		for idx, child := range children {
-			s.NotNil(child.FlatFee.Index)
-			s.Equal(idx, *child.FlatFee.Index)
+		for idx, child := range line.DetailedLines {
+			s.NotNil(child.Index)
+			s.Equal(idx, *child.Index)
 		}
 
 		// Let's mandate that the last child is the commitment
-		s.Equal(billing.FlatFeeCategoryCommitment, children[3].FlatFee.Category)
+		s.Equal(billing.FlatFeeCategoryCommitment, line.DetailedLines[3].Category)
 	}
 }
 

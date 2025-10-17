@@ -248,7 +248,6 @@ func (s *SuiteBase) expectLines(invoice billing.Invoice, subscriptionID string, 
 			}
 
 			if expectedLine.Price.IsPresent() {
-				s.Equal(billing.InvoiceLineTypeUsageBased, line.Type, "%s: line type", childID)
 				s.Equal(*expectedLine.Price.OrEmpty(), *line.UsageBased.Price, "%s: price", childID)
 			}
 

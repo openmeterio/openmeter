@@ -73,25 +73,15 @@ func (s *Service) FromEntity(line *billing.Line) (Line, error) {
 		currency: currencyCalc,
 	}
 
-	switch line.Type {
-	case billing.InvoiceLineTypeFee:
-		// Warning: These are actually the detailed lines, but the billing refactor is not yet complete
-		return &feeLine{
+	if line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
+		return &ubpFlatFeeLine{
 			lineBase: base,
 		}, nil
-	case billing.InvoiceLineTypeUsageBased:
-		if line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
-			return &ubpFlatFeeLine{
-				lineBase: base,
-			}, nil
-		}
-
-		return &usageBasedLine{
-			lineBase: base,
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported line type: %s", line.Type)
 	}
+
+	return &usageBasedLine{
+		lineBase: base,
+	}, nil
 }
 
 func (s *Service) FromEntities(line []*billing.Line) (Lines, error) {
@@ -155,19 +145,17 @@ func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billing.
 // UpdateTotalsFromDetailedLines is a helper method to update the totals of a line from its detailed lines.
 func (s *Service) UpdateTotalsFromDetailedLines(line *billing.Line) error {
 	// Calculate the line totals
-	for _, line := range line.Children {
-		if line.DeletedAt != nil {
+	for idx, detailedLine := range line.DetailedLines {
+		if detailedLine.DeletedAt != nil {
 			continue
 		}
 
-		lineSvc, err := s.FromEntity(line)
+		totals, err := calculateDetailedLineTotals(detailedLine)
 		if err != nil {
-			return fmt.Errorf("creating line service: %w", err)
-		}
-
-		if err := lineSvc.UpdateTotals(); err != nil {
 			return fmt.Errorf("updating totals for line[%s]: %w", line.ID, err)
 		}
+
+		line.DetailedLines[idx].Totals = totals
 	}
 
 	// WARNING: Even if tempting to add discounts etc. here to the totals, we should always keep the logic as is.
@@ -179,7 +167,7 @@ func (s *Service) UpdateTotalsFromDetailedLines(line *billing.Line) error {
 	// UBP line's value is the sum of all the children
 	res := billing.Totals{}
 
-	res = res.Add(lo.Map(line.Children, func(l *billing.Line, _ int) billing.Totals {
+	res = res.Add(lo.Map(line.DetailedLines, func(l billing.DetailedLine, _ int) billing.Totals {
 		// Deleted lines are not contributing to the totals
 		if l.DeletedAt != nil {
 			return billing.Totals{}

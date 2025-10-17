@@ -9,16 +9,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
-// This file contains temporary helpers to handle the flat fee -> ubp flat fee transition
-// should be removed once we have fully migrated to the new flat fee line structure
-
 func isFlatFee(line *billing.Line) bool {
 	if line == nil {
 		return false
 	}
 
-	if line.Type == billing.InvoiceLineTypeUsageBased &&
-		line.UsageBased != nil &&
+	if line.UsageBased != nil &&
 		line.UsageBased.Price != nil &&
 		line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
 		return true
@@ -30,10 +26,6 @@ func isFlatFee(line *billing.Line) bool {
 func getFlatFeePerUnitAmount(line *billing.Line) (alpacadecimal.Decimal, error) {
 	if line == nil {
 		return alpacadecimal.Zero, fmt.Errorf("line is nil")
-	}
-
-	if line.Type != billing.InvoiceLineTypeUsageBased {
-		return alpacadecimal.Zero, fmt.Errorf("line is not a usage based line")
 	}
 
 	if line.UsageBased == nil || line.UsageBased.Price == nil {
@@ -51,10 +43,6 @@ func getFlatFeePerUnitAmount(line *billing.Line) (alpacadecimal.Decimal, error) 
 func setFlatFeePerUnitAmount(line *billing.Line, perUnitAmount alpacadecimal.Decimal) error {
 	if line == nil {
 		return fmt.Errorf("line is nil")
-	}
-
-	if line.Type != billing.InvoiceLineTypeUsageBased {
-		return fmt.Errorf("line is not a usage based line")
 	}
 
 	if line.UsageBased == nil || line.UsageBased.Price == nil {

@@ -451,7 +451,6 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 					Period:    lineServicePeriod,
 					InvoiceAt: lineServicePeriod.End,
 					ManagedBy: billing.ManuallyManagedLine,
-					Type:      billing.InvoiceLineTypeUsageBased,
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -3490,8 +3489,8 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 			}
 		}
 
-		line.Children = lo.Map(line.Children, func(child *billing.Line, _ int) *billing.Line {
-			child.FlatFee.ConfigID = ""
+		line.DetailedLines = lo.Map(line.DetailedLines, func(child billing.DetailedLine, _ int) billing.DetailedLine {
+			child.FeeLineConfigID = ""
 			return child
 		})
 
@@ -3499,8 +3498,8 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	})
 
 	draftInvoiceAfterSync.Lines = draftInvoiceAfterSync.Lines.Map(func(line *billing.Line) *billing.Line {
-		line.Children = lo.Map(line.Children, func(child *billing.Line, _ int) *billing.Line {
-			child.FlatFee.ConfigID = ""
+		line.DetailedLines = lo.Map(line.DetailedLines, func(child billing.DetailedLine, _ int) billing.DetailedLine {
+			child.FeeLineConfigID = ""
 			return child
 		})
 		return line
@@ -4132,10 +4131,10 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 
 	// The advance fee should have 100% discount
 	line := instantInvoice.Lines.OrEmpty()[0]
-	s.Len(line.Children, 1)
-	child := line.Children[0]
+	s.Len(line.DetailedLines, 1)
+	child := line.DetailedLines[0]
 
-	s.Equal(float64(6), child.Discounts.Amount[0].Amount.InexactFloat64())
+	s.Equal(float64(6), child.AmountDiscounts[0].Amount.InexactFloat64())
 }
 
 func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior() {

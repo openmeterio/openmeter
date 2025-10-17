@@ -7,7 +7,7 @@ func CalculateInvoicePeriod(invoice *billing.Invoice, deps CalculatorDependencie
 	var period *billing.Period
 
 	for _, line := range invoice.Lines.OrEmpty() {
-		if line.DeletedAt != nil || line.Status != billing.InvoiceLineStatusValid {
+		if line.DeletedAt != nil {
 			continue
 		}
 

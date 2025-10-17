@@ -187,8 +187,6 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 
 							InvoiceAt: issueAt,
 							ManagedBy: billing.ManuallyManagedLine,
-
-							Type: billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{

@@ -80,9 +80,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetNillableSplitLineGroupID(line.SplitLineGroupID).
 					SetNillableDeletedAt(line.DeletedAt).
 					SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
-					SetStatus(line.Status).
+					SetStatus(billing.InvoiceLineStatusValid).
 					SetManagedBy(line.ManagedBy).
-					SetType(line.Type).
+					SetType(billing.InvoiceLineTypeUsageBased).
 					SetName(line.Name).
 					SetNillableDescription(line.Description).
 					SetCurrency(line.Currency).
@@ -114,10 +114,6 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 
 				if !line.RateCardDiscounts.IsEmpty() {
 					create = create.SetRatecardDiscounts(lo.ToPtr(line.RateCardDiscounts))
-				}
-
-				if line.Type != billing.InvoiceLineTypeUsageBased {
-					return nil, fmt.Errorf("invoice level lines must be usage based [line_id=%s]", line.ID)
 				}
 
 				create = create.
@@ -205,11 +201,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			return nil, fmt.Errorf("upserting usage discounts: %w", err)
 		}
 
-		allAmountDiscountDiffs := entitydiff.Union(
-			lineDiffs.AmountDiscounts,
-			lineDiffs.DetailedLineAmountDiscounts,
-		)
-		err = upsertWithOptions(ctx, tx.db, allAmountDiscountDiffs, upsertInput[amountLineDiscountManagedWithLine, *db.BillingInvoiceLineDiscountCreate]{
+		err = upsertWithOptions(ctx, tx.db, lineDiffs.AmountDiscounts, upsertInput[amountLineDiscountManagedWithLine, *db.BillingInvoiceLineDiscountCreate]{
 			Create: func(tx *db.Client, d amountLineDiscountManagedWithLine) (*db.BillingInvoiceLineDiscountCreate, error) {
 				discount := d.Entity
 
@@ -254,6 +246,12 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			return nil, fmt.Errorf("upserting amount discounts: %w", err)
 		}
 
+		// detailed line amount discounts
+		err = tx.upsertDetailedLineAmountDiscounts(ctx, lineDiffs.DetailedLineAmountDiscounts)
+		if err != nil {
+			return nil, fmt.Errorf("upserting detailed line amount discounts: %w", err)
+		}
+
 		// Step 4b: Taxes (TODO[later]: implement)
 
 		// Step 5: Update updated_at for all the affected lines
@@ -285,17 +283,17 @@ func (a *adapter) upsertFeeLineConfig(ctx context.Context, in detailedLineDiff) 
 		Create: func(tx *db.Client, lineWithParent detailedLineWithParent) (*db.BillingInvoiceFlatFeeLineConfigCreate, error) {
 			line := lineWithParent.Entity
 
-			if line.FlatFee.ConfigID == "" {
-				line.FlatFee.ConfigID = ulid.Make().String()
+			if line.FeeLineConfigID == "" {
+				line.FeeLineConfigID = ulid.Make().String()
 			}
 
 			create := tx.BillingInvoiceFlatFeeLineConfig.Create().
 				SetNamespace(line.Namespace).
-				SetPerUnitAmount(line.FlatFee.PerUnitAmount).
-				SetCategory(line.FlatFee.Category).
-				SetPaymentTerm(line.FlatFee.PaymentTerm).
-				SetID(line.FlatFee.ConfigID).
-				SetNillableIndex(line.FlatFee.Index)
+				SetPerUnitAmount(line.PerUnitAmount).
+				SetCategory(line.Category).
+				SetPaymentTerm(line.PaymentTerm).
+				SetID(line.FeeLineConfigID).
+				SetNillableIndex(line.Index)
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceFlatFeeLineConfigCreate) error {
@@ -324,20 +322,17 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				SetID(line.ID).
 				SetNamespace(line.Namespace).
 				SetInvoiceID(line.InvoiceID).
-				SetPeriodStart(line.Period.Start.In(time.UTC)).
-				SetPeriodEnd(line.Period.End.In(time.UTC)).
+				SetPeriodStart(line.ServicePeriod.Start.In(time.UTC)).
+				SetPeriodEnd(line.ServicePeriod.End.In(time.UTC)).
 				SetParentLineID(lineWithParent.Parent.ID).
-				SetNillableSplitLineGroupID(line.SplitLineGroupID).
+				SetInvoiceAt(lineWithParent.Parent.InvoiceAt.In(time.UTC)).
 				SetNillableDeletedAt(line.DeletedAt).
-				SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
-				SetStatus(line.Status).
-				SetManagedBy(line.ManagedBy).
-				SetType(line.Type).
+				SetStatus(billing.InvoiceLineStatusDetailed).
+				SetManagedBy(billing.SystemManagedLine).
+				SetType(billing.InvoiceLineTypeFee).
 				SetName(line.Name).
 				SetNillableDescription(line.Description).
 				SetCurrency(line.Currency).
-				SetMetadata(line.Metadata).
-				SetAnnotations(line.Annotations).
 				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
 				// Totals
 				SetAmount(line.Totals.Amount).
@@ -350,28 +345,12 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				// ExternalIDs
 				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
 
-			if line.Subscription != nil {
-				create = create.SetSubscriptionID(line.Subscription.SubscriptionID).
-					SetSubscriptionPhaseID(line.Subscription.PhaseID).
-					SetSubscriptionItemID(line.Subscription.ItemID).
-					SetSubscriptionBillingPeriodFrom(line.Subscription.BillingPeriod.From.In(time.UTC)).
-					SetSubscriptionBillingPeriodTo(line.Subscription.BillingPeriod.To.In(time.UTC))
-			}
-
 			if line.TaxConfig != nil {
 				create = create.SetTaxConfig(*line.TaxConfig)
 			}
 
-			if !line.RateCardDiscounts.IsEmpty() {
-				create = create.SetRatecardDiscounts(lo.ToPtr(line.RateCardDiscounts))
-			}
-
-			if line.Type != billing.InvoiceLineTypeFee {
-				return nil, fmt.Errorf("detailed line must have fee type [%s]", line.ID)
-			}
-
-			create = create.SetQuantity(line.FlatFee.Quantity).
-				SetFlatFeeLineID(line.FlatFee.ConfigID).
+			create = create.SetQuantity(line.Quantity).
+				SetFlatFeeLineID(line.FeeLineConfigID).
 				SetNillableUsageBasedLineID(nil)
 
 			return create, nil
@@ -395,6 +374,50 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 	}
 
 	return upsertWithOptions(ctx, a.db, in, detailedLineUpsertConfig)
+}
+
+func (a *adapter) upsertDetailedLineAmountDiscounts(ctx context.Context, in detailedLineAmountDiscountDiff) error {
+	return upsertWithOptions(ctx, a.db, in, upsertInput[detailedLineAmountDiscountWithParent, *db.BillingInvoiceLineDiscountCreate]{
+		Create: func(tx *db.Client, d detailedLineAmountDiscountWithParent) (*db.BillingInvoiceLineDiscountCreate, error) {
+			discount := d.Entity
+
+			if discount.ID == "" {
+				discount.ID = ulid.Make().String()
+			}
+
+			create := tx.BillingInvoiceLineDiscount.Create().
+				SetID(discount.ID).
+				SetNamespace(d.Parent.GetNamespace()).
+				SetLineID(d.Parent.GetID()).
+				SetReason(discount.Reason.Type()).
+				SetSourceDiscount(lo.ToPtr(discount.Reason)).
+				SetAmount(discount.Amount).
+				SetNillableRoundingAmount(lo.EmptyableToPtr(discount.RoundingAmount)).
+				SetNillableDeletedAt(discount.DeletedAt).
+				SetNillableChildUniqueReferenceID(discount.ChildUniqueReferenceID).
+				SetNillableDescription(discount.Description).
+				// ExternalIDs
+				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(discount.ExternalIDs.Invoicing))
+
+			return create, nil
+		},
+		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceLineDiscountCreate) error {
+			return tx.BillingInvoiceLineDiscount.
+				CreateBulk(items...).
+				OnConflict(
+					sql.ConflictColumns(billinginvoicelinediscount.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.ResolveWith(func(u *sql.UpdateSet) {
+						u.SetIgnore(billinginvoicelinediscount.FieldCreatedAt)
+					}),
+				).Exec(ctx)
+		},
+		MarkDeleted: func(ctx context.Context, d detailedLineAmountDiscountWithParent) (detailedLineAmountDiscountWithParent, error) {
+			d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+
+			return d, nil
+		},
+	})
 }
 
 func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydiff.Diff[*billing.Line]) error {

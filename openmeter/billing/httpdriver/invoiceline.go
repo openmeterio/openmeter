@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -72,14 +73,6 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				}
 			}
 
-			for _, line := range lineEntities {
-				if line.Type == billing.InvoiceLineTypeFee {
-					return CreatePendingLineRequest{}, billing.ValidationError{
-						Err: fmt.Errorf("creating flat fee lines is not supported, please use usage based lines instead"),
-					}
-				}
-			}
-
 			return CreatePendingLineRequest{
 				Customer: customer.CustomerID{
 					Namespace: ns,
@@ -104,14 +97,7 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to map invoice: %w", err)
 			}
 
-			out.Lines, err = slicesx.MapWithErr(res.Lines, func(line *billing.Line) (api.InvoiceLine, error) {
-				if line.Type == billing.InvoiceLineTypeFee {
-					return api.InvoiceLine{}, billing.ValidationError{
-						Err: fmt.Errorf("flat fee lines are not supported"),
-					}
-				}
-				return mapInvoiceLineToAPI(line)
-			})
+			out.Lines, err = slicesx.MapWithErr(res.Lines, mapInvoiceLineToAPI)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to map lines: %w", err)
 			}
@@ -147,10 +133,8 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 			}),
 
 			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
-			Type:      billing.InvoiceLineTypeUsageBased,
 			ManagedBy: billing.ManuallyManagedLine,
 
-			Status: billing.InvoiceLineStatusValid, // This is not settable from outside
 			Period: billing.Period{
 				Start: line.Period.From,
 				End:   line.Period.To,
@@ -183,28 +167,28 @@ func mapTaxConfigToAPI(to *productcatalog.TaxConfig) *api.TaxConfig {
 	return lo.ToPtr(productcataloghttp.FromTaxConfig(*to))
 }
 
-func mapDetailedLinesToAPI(children billing.LineChildren) (*[]api.InvoiceDetailedLine, error) {
-	out := make([]api.InvoiceDetailedLine, 0, len(children))
-
-	for _, child := range children {
-		if child.Type == billing.InvoiceLineTypeUsageBased {
-			return nil, fmt.Errorf("usage based lines are not supported as children of usage based lines")
-		}
-
-		mappedLine, err := mapDetailedLineToAPI(child)
-		if err != nil {
-			return nil, fmt.Errorf("failed to map child line: %w", err)
-		}
-		out = append(out, mappedLine)
+func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time) (*[]api.InvoiceDetailedLine, error) {
+	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (api.InvoiceDetailedLine, error) {
+		return mapDetailedLineToAPI(line, invoiceAt)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to map detailed lines: %w", err)
 	}
 
-	return &out, nil
+	return lo.ToPtr(mappedLines), nil
 }
 
-func mapDetailedLineToAPI(line *billing.Line) (api.InvoiceDetailedLine, error) {
-	discountsAPI, err := mapDiscountsToAPI(line.Discounts)
+func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.InvoiceDetailedLine, error) {
+	amountDiscountsAPI, err := mapInvoiceLineAmountDiscountsToAPI(line.AmountDiscounts)
 	if err != nil {
-		return api.InvoiceDetailedLine{}, fmt.Errorf("failed to map discounts: %w", err)
+		return api.InvoiceDetailedLine{}, fmt.Errorf("failed to map amount discounts: %w", err)
+	}
+
+	var discountsAPI *api.InvoiceLineDiscounts
+	if amountDiscountsAPI != nil {
+		discountsAPI = &api.InvoiceLineDiscounts{
+			Amount: amountDiscountsAPI,
+		}
 	}
 
 	return api.InvoiceDetailedLine{
@@ -214,46 +198,44 @@ func mapDetailedLineToAPI(line *billing.Line) (api.InvoiceDetailedLine, error) {
 		CreatedAt: line.CreatedAt,
 		DeletedAt: line.DeletedAt,
 		UpdatedAt: line.UpdatedAt,
-		InvoiceAt: line.InvoiceAt,
+		InvoiceAt: invoiceAt,
 
 		Currency: string(line.Currency),
-		Status:   api.InvoiceLineStatus(line.Status),
+		Status:   api.InvoiceLineStatusDetailed,
 
 		Description: line.Description,
 		Name:        line.Name,
-		ManagedBy:   api.InvoiceLineManagedBy(line.ManagedBy),
+		ManagedBy:   api.InvoiceLineManagedBySystem,
 
 		Invoice: &api.InvoiceReference{
 			Id: line.InvoiceID,
 		},
 
-		Metadata: convert.MapToPointer(line.Metadata),
 		Period: api.Period{
-			From: line.Period.Start,
-			To:   line.Period.End,
+			From: line.ServicePeriod.Start,
+			To:   line.ServicePeriod.End,
 		},
 
-		PerUnitAmount: lo.ToPtr(line.FlatFee.PerUnitAmount.String()),
-		Quantity:      lo.ToPtr(line.FlatFee.Quantity.String()),
-		Category:      lo.ToPtr(api.InvoiceDetailedLineCostCategory(line.FlatFee.Category)),
+		PerUnitAmount: lo.ToPtr(line.PerUnitAmount.String()),
+		Quantity:      lo.ToPtr(line.Quantity.String()),
+		Category:      lo.ToPtr(api.InvoiceDetailedLineCostCategory(line.Category)),
 		TaxConfig:     mapTaxConfigToAPI(line.TaxConfig),
-		PaymentTerm:   lo.ToPtr(api.PricePaymentTerm(line.FlatFee.PaymentTerm)),
+		PaymentTerm:   lo.ToPtr(api.PricePaymentTerm(line.PaymentTerm)),
 
 		RateCard: &api.InvoiceDetailedLineRateCard{
 			TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
 			Price: &api.FlatPriceWithPaymentTerm{
 				Type:        api.FlatPriceWithPaymentTermTypeFlat,
-				PaymentTerm: lo.ToPtr(api.PricePaymentTerm(line.FlatFee.PaymentTerm)),
-				Amount:      line.FlatFee.PerUnitAmount.String(),
+				PaymentTerm: lo.ToPtr(api.PricePaymentTerm(line.PaymentTerm)),
+				Amount:      line.PerUnitAmount.String(),
 			},
-			Quantity: lo.ToPtr(line.FlatFee.Quantity.String()),
+			Quantity: lo.ToPtr(line.Quantity.String()),
 		},
 
 		Discounts: discountsAPI,
 		Totals:    mapTotalsToAPI(line.Totals),
 
-		ExternalIds:  mapLineAppExternalIdsToAPI(line.ExternalIDs),
-		Subscription: mapSubscriptionReferencesToAPI(line.Subscription),
+		ExternalIds: mapLineAppExternalIdsToAPI(line.ExternalIDs),
 	}, nil
 }
 
@@ -268,10 +250,6 @@ func mapLineAppExternalIdsToAPI(externalIds billing.LineExternalIDs) *api.Invoic
 }
 
 func mapInvoiceLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
-	if line.Type != billing.InvoiceLineTypeUsageBased {
-		return api.InvoiceLine{}, fmt.Errorf("line type is not usage based [line=%s]", line.ID)
-	}
-
 	if line.UsageBased == nil {
 		return api.InvoiceLine{}, fmt.Errorf("usage based line details are nil [line=%s]", line.ID)
 	}
@@ -285,7 +263,7 @@ func mapInvoiceLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}
 
-	children, err := mapDetailedLinesToAPI(line.Children)
+	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.InvoiceAt)
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
 	}
@@ -306,7 +284,7 @@ func mapInvoiceLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 
 		// TODO: deprecation
 		Currency: string(line.Currency),
-		Status:   api.InvoiceLineStatus(line.Status),
+		Status:   api.InvoiceLineStatusValid,
 
 		Description: line.Description,
 		Name:        line.Name,
@@ -379,60 +357,80 @@ func mapDiscountsToAPI(discounts billing.LineDiscounts) (*api.InvoiceLineDiscoun
 	if discounts.IsEmpty() {
 		return nil, nil
 	}
-	out := api.InvoiceLineDiscounts{}
 
-	if len(discounts.Amount) > 0 {
-		mapped, err := slicesx.MapWithErr(discounts.Amount, func(discount billing.AmountLineDiscountManaged) (api.InvoiceLineAmountDiscount, error) {
-			reason, err := mapDiscountReasonToAPI(discount.Reason)
-			if err != nil {
-				return api.InvoiceLineAmountDiscount{}, fmt.Errorf("failed to map discount reason: %w", err)
-			}
-
-			return api.InvoiceLineAmountDiscount{
-				Id:          discount.ID,
-				Amount:      discount.Amount.String(),
-				CreatedAt:   discount.CreatedAt,
-				DeletedAt:   discount.DeletedAt,
-				UpdatedAt:   discount.UpdatedAt,
-				Description: discount.Description,
-				ExternalIds: mapLineAppExternalIdsToAPI(discount.ExternalIDs),
-				Reason:      reason,
-			}, nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to map amount discounts: %w", err)
-		}
-
-		out.Amount = lo.ToPtr(mapped)
+	mappedAmountDiscounts, err := mapInvoiceLineAmountDiscountsToAPI(discounts.Amount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map amount discounts: %w", err)
 	}
 
-	if len(discounts.Usage) > 0 {
-		mapped, err := slicesx.MapWithErr(discounts.Usage, func(discount billing.UsageLineDiscountManaged) (api.InvoiceLineUsageDiscount, error) {
-			reason, err := mapDiscountReasonToAPI(discount.Reason)
-			if err != nil {
-				return api.InvoiceLineUsageDiscount{}, fmt.Errorf("failed to map discount reason: %w", err)
-			}
-
-			return api.InvoiceLineUsageDiscount{
-				Id:                    discount.ID,
-				Quantity:              discount.Quantity.String(),
-				PreLinePeriodQuantity: decimalPtrToStringPtrIgnoringZeroValue(discount.PreLinePeriodQuantity),
-				CreatedAt:             discount.CreatedAt,
-				DeletedAt:             discount.DeletedAt,
-				UpdatedAt:             discount.UpdatedAt,
-				Description:           discount.Description,
-				ExternalIds:           mapLineAppExternalIdsToAPI(discount.ExternalIDs),
-				Reason:                reason,
-			}, nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to map amount discounts: %w", err)
-		}
-
-		out.Usage = lo.ToPtr(mapped)
+	mappedUsageDiscounts, err := mapInvoiceLineUsageDiscountsToAPI(discounts.Usage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map usage discounts: %w", err)
 	}
 
-	return &out, nil
+	return &api.InvoiceLineDiscounts{
+		Amount: mappedAmountDiscounts,
+		Usage:  mappedUsageDiscounts,
+	}, nil
+}
+
+func mapInvoiceLineAmountDiscountsToAPI(amountDiscounts billing.AmountLineDiscountsManaged) (*[]api.InvoiceLineAmountDiscount, error) {
+	if len(amountDiscounts) == 0 {
+		return nil, nil
+	}
+
+	mapped, err := slicesx.MapWithErr(amountDiscounts, func(discount billing.AmountLineDiscountManaged) (api.InvoiceLineAmountDiscount, error) {
+		reason, err := mapDiscountReasonToAPI(discount.Reason)
+		if err != nil {
+			return api.InvoiceLineAmountDiscount{}, fmt.Errorf("failed to map discount reason: %w", err)
+		}
+
+		return api.InvoiceLineAmountDiscount{
+			Id:          discount.ID,
+			Amount:      discount.Amount.String(),
+			CreatedAt:   discount.CreatedAt,
+			DeletedAt:   discount.DeletedAt,
+			UpdatedAt:   discount.UpdatedAt,
+			Description: discount.Description,
+			ExternalIds: mapLineAppExternalIdsToAPI(discount.ExternalIDs),
+			Reason:      reason,
+		}, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to map amount discounts: %w", err)
+	}
+
+	return lo.ToPtr(mapped), nil
+}
+
+func mapInvoiceLineUsageDiscountsToAPI(usageDiscounts billing.UsageLineDiscountsManaged) (*[]api.InvoiceLineUsageDiscount, error) {
+	if len(usageDiscounts) == 0 {
+		return nil, nil
+	}
+
+	mapped, err := slicesx.MapWithErr(usageDiscounts, func(discount billing.UsageLineDiscountManaged) (api.InvoiceLineUsageDiscount, error) {
+		reason, err := mapDiscountReasonToAPI(discount.Reason)
+		if err != nil {
+			return api.InvoiceLineUsageDiscount{}, fmt.Errorf("failed to map discount reason: %w", err)
+		}
+
+		return api.InvoiceLineUsageDiscount{
+			Id:                    discount.ID,
+			Quantity:              discount.Quantity.String(),
+			PreLinePeriodQuantity: decimalPtrToStringPtrIgnoringZeroValue(discount.PreLinePeriodQuantity),
+			CreatedAt:             discount.CreatedAt,
+			DeletedAt:             discount.DeletedAt,
+			UpdatedAt:             discount.UpdatedAt,
+			Description:           discount.Description,
+			ExternalIds:           mapLineAppExternalIdsToAPI(discount.ExternalIDs),
+			Reason:                reason,
+		}, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to map usage discounts: %w", err)
+	}
+
+	return lo.ToPtr(mapped), nil
 }
 
 func mapDiscountReasonToAPI(reason billing.DiscountReason) (api.BillingDiscountReason, error) {
@@ -557,10 +555,8 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Line, e
 				Description: line.Description,
 			}),
 			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
-			Type:      billing.InvoiceLineTypeUsageBased,
 			ManagedBy: billing.ManuallyManagedLine,
 
-			Status: billing.InvoiceLineStatusValid,
 			Period: billing.Period{
 				Start: line.Period.From.Truncate(streaming.MinimumWindowSizeDuration),
 				End:   line.Period.To.Truncate(streaming.MinimumWindowSizeDuration),
@@ -602,9 +598,6 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 
 			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
 			ManagedBy: billing.ManuallyManagedLine,
-			Status:    billing.InvoiceLineStatusValid,
-
-			Type: billing.InvoiceLineTypeUsageBased,
 
 			InvoiceID: invoice.ID,
 			Currency:  invoice.Currency,
@@ -628,12 +621,6 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 }
 
 func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.InvoiceLineReplaceUpdate) (*billing.Line, bool, error) {
-	if existing.Type != billing.InvoiceLineTypeUsageBased {
-		return nil, false, billing.ValidationError{
-			Err: fmt.Errorf("line type change is not supported for line %s", existing.ID),
-		}
-	}
-
 	oldBase := existing.LineBase.Clone()
 	oldUBP := existing.UsageBased.Clone()
 
@@ -720,12 +707,6 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 				return billing.InvoiceLines{}, fmt.Errorf("failed to create new line: %w", err)
 			}
 
-			if newLine.Type == billing.InvoiceLineTypeFee {
-				return billing.InvoiceLines{}, billing.ValidationError{
-					Err: fmt.Errorf("creating flat fee lines is not supported, please use usage based lines instead"),
-				}
-			}
-
 			if invoice.Status != billing.InvoiceStatusGathering {
 				newLine, err = h.service.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
 					Invoice: invoice,
@@ -744,12 +725,6 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 		mergedLine, changed, err := mergeLineFromInvoiceLineReplaceUpdate(existingLine, line)
 		if err != nil {
 			return billing.InvoiceLines{}, fmt.Errorf("failed to merge line: %w", err)
-		}
-
-		if changed && mergedLine.Type == billing.InvoiceLineTypeFee {
-			return billing.InvoiceLines{}, billing.ValidationError{
-				Err: fmt.Errorf("updating flat fee lines is not supported, please use usage based lines instead"),
-			}
 		}
 
 		if changed && invoice.Status != billing.InvoiceStatusGathering {

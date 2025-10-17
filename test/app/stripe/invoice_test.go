@@ -310,7 +310,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.flatPerUnit.Key,
@@ -331,7 +330,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.aiFlatPerUnit.Key,
@@ -349,7 +347,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.flatPerUsage.Key,
@@ -369,7 +366,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
@@ -406,7 +402,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							ManagedBy: billing.ManuallyManagedLine,
-							Type:      billing.InvoiceLineTypeUsageBased,
 						},
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: features.tieredVolume.Key,
@@ -511,7 +506,21 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		expectedPeriodStartUnix := periodStart.Truncate(streaming.MinimumWindowSizeDuration).Unix()
 		expectedPeriodEndUnix := periodEnd.Truncate(streaming.MinimumWindowSizeDuration).Unix()
 
-		getLine := func(description string) *billing.Line {
+		getParentOfDetailedLine := func(detailedLine billing.DetailedLine) *billing.Line {
+			for _, line := range invoice.Lines.OrEmpty() {
+				_, found := lo.Find(line.DetailedLines, func(dl billing.DetailedLine) bool {
+					return dl.ID == detailedLine.ID
+				})
+
+				if found {
+					return line
+				}
+			}
+
+			return nil
+		}
+
+		getLine := func(description string) *billing.DetailedLine {
 			for _, line := range invoice.GetLeafLinesWithConsolidatedTaxBehavior() {
 				name := line.Name
 				if line.Description != nil {
@@ -519,7 +528,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				}
 
 				if name == description {
-					return line
+					return &line
 				}
 			}
 
@@ -544,7 +553,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				return id
 			}
 
-			for _, discount := range line.Discounts.Amount {
+			for _, discount := range line.AmountDiscounts {
 				if lo.FromPtr(discount.Description) != "" && group[0][2] == lo.FromPtr(discount.Description) {
 					return discount.GetID()
 				}
@@ -765,7 +774,10 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		s.NotEmpty(stripeLineIDToRemove, "stripe line ID to remove is empty")
 
-		ok = updateInvoice.Lines.RemoveByID(*lineToRemove.ParentLineID)
+		parentLine := getParentOfDetailedLine(*lineToRemove)
+		s.NotNil(parentLine, "parent line is not found")
+
+		ok = updateInvoice.Lines.RemoveByID(parentLine.ID)
 		s.True(ok, "failed to remove line item")
 
 		// To simulate the update, we will update the external ID of the invoice.
@@ -1098,7 +1110,6 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
 						InvoiceAt: periodEnd,
 						ManagedBy: billing.ManuallyManagedLine,
-						Type:      billing.InvoiceLineTypeUsageBased,
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: flatPerUnitFeature.Key,

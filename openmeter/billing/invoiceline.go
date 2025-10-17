@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -24,38 +26,6 @@ type LineID models.NamespacedID
 
 func (i LineID) Validate() error {
 	return models.NamespacedID(i).Validate()
-}
-
-type InvoiceLineType string
-
-const (
-	// InvoiceLineTypeFee is an item that represents a single charge without meter backing.
-	InvoiceLineTypeFee InvoiceLineType = "flat_fee"
-	// InvoiceLineTypeUsageBased is an item that is added to the invoice and is usage based.
-	InvoiceLineTypeUsageBased InvoiceLineType = "usage_based"
-)
-
-func (InvoiceLineType) Values() []string {
-	return []string{
-		string(InvoiceLineTypeFee),
-		string(InvoiceLineTypeUsageBased),
-	}
-}
-
-type InvoiceLineStatus string
-
-const (
-	// InvoiceLineStatusValid is a valid invoice line.
-	InvoiceLineStatusValid InvoiceLineStatus = "valid"
-	// InvoiceLineStatusDetailed is a detailed invoice line.
-	InvoiceLineStatusDetailed InvoiceLineStatus = "detailed"
-)
-
-func (InvoiceLineStatus) Values() []string {
-	return []string{
-		string(InvoiceLineStatusValid),
-		string(InvoiceLineStatusDetailed),
-	}
 }
 
 type InvoiceLineManagedBy string
@@ -130,7 +100,6 @@ type LineBase struct {
 
 	Metadata    map[string]string    `json:"metadata,omitempty"`
 	Annotations models.Annotations   `json:"annotations,omitempty"`
-	Type        InvoiceLineType      `json:"type"`
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
 
 	InvoiceID string         `json:"invoiceID,omitempty"`
@@ -144,8 +113,7 @@ type LineBase struct {
 	ParentLineID     *string `json:"parentLine,omitempty"`
 	SplitLineGroupID *string `json:"splitLineGroupId,omitempty"`
 
-	Status                 InvoiceLineStatus `json:"status"`
-	ChildUniqueReferenceID *string           `json:"childUniqueReferenceID,omitempty"`
+	ChildUniqueReferenceID *string `json:"childUniqueReferenceID,omitempty"`
 
 	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
 	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
@@ -186,20 +154,12 @@ func (i LineBase) Validate() error {
 		errs = append(errs, errors.New("name is required"))
 	}
 
-	if i.Type == "" {
-		errs = append(errs, errors.New("type is required"))
-	}
-
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
 	if !slices.Contains(InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
 		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
-	}
-
-	if i.Status == InvoiceLineStatusDetailed && i.ManagedBy != SystemManagedLine {
-		errs = append(errs, errors.New("detailed lines must be system managed"))
 	}
 
 	return errors.Join(errs...)
@@ -270,63 +230,18 @@ func (i LineExternalIDs) Equal(other LineExternalIDs) bool {
 	return i.Invoicing == other.Invoicing
 }
 
-type FlatFeeCategory string
-
-const (
-	// FlatFeeCategoryRegular is a regular flat fee, that is based on the usage or a subscription.
-	FlatFeeCategoryRegular FlatFeeCategory = "regular"
-	// FlatFeeCategoryCommitment is a flat fee that is based on a commitment such as min spend.
-	FlatFeeCategoryCommitment FlatFeeCategory = "commitment"
-)
-
-func (FlatFeeCategory) Values() []string {
-	return []string{
-		string(FlatFeeCategoryRegular),
-		string(FlatFeeCategoryCommitment),
-	}
-}
-
-type FlatFeeLine struct {
-	ConfigID      string                         `json:"configId"`
-	PerUnitAmount alpacadecimal.Decimal          `json:"perUnitAmount"`
-	PaymentTerm   productcatalog.PaymentTermType `json:"paymentTerm"`
-	Category      FlatFeeCategory                `json:"category"`
-
-	Quantity alpacadecimal.Decimal `json:"quantity"`
-	// Index is the index of the line in the invoice. Only valid for detailed lines. Used for sorting the lines in the invoice.
-	Index *int `json:"index,omitempty"`
-}
-
-func (i FlatFeeLine) Clone() *FlatFeeLine {
-	return &i
-}
-
-func (i FlatFeeLine) Equal(other *FlatFeeLine) bool {
-	if other == nil {
-		return false
-	}
-	return reflect.DeepEqual(i, *other)
-}
-
 type Line struct {
 	LineBase `json:",inline"`
 
-	// TODO[OM-1060]: Make it a proper union type instead of having both fields as public
-	FlatFee    *FlatFeeLine    `json:"flatFee,omitempty"`
 	UsageBased *UsageBasedLine `json:"usageBased,omitempty"`
 
-	Children           LineChildren        `json:"children,omitempty"`
-	ParentLine         *Line               `json:"parent,omitempty"`
+	DetailedLines      DetailedLines       `json:"detailedLines,omitempty"`
 	SplitLineHierarchy *SplitLineHierarchy `json:"progressiveLineHierarchy,omitempty"`
 
 	Discounts LineDiscounts `json:"discounts,omitempty"`
 
 	DBState *Line `json:"-"`
 }
-
-// Temporary type alias until we move the detailed line to its own entity, for now it just enhances
-// readability.
-type DetailedLine = Line
 
 func (i Line) LineID() LineID {
 	return LineID{
@@ -346,13 +261,8 @@ func (i Line) CloneWithoutDependencies() *Line {
 
 	clone.ID = ""
 	clone.ParentLineID = nil
-	clone.ParentLine = nil
 	clone.SplitLineHierarchy = nil
 	clone.SplitLineGroupID = nil
-
-	if clone.FlatFee != nil {
-		clone.FlatFee.ConfigID = ""
-	}
 
 	if clone.UsageBased != nil {
 		clone.UsageBased.ConfigID = ""
@@ -374,12 +284,7 @@ func (i Line) WithoutSplitLineHierarchy() *Line {
 func (i Line) RemoveCircularReferences() *Line {
 	clone := i.Clone()
 
-	clone.ParentLine = nil
 	clone.DBState = nil
-
-	clone.Children = lo.Map(clone.Children, func(l *Line, _ int) *Line {
-		return l.RemoveCircularReferences()
-	})
 
 	return clone
 }
@@ -392,19 +297,7 @@ func (i Line) RemoveCircularReferences() *Line {
 func (i Line) RemoveMetaForCompare() *Line {
 	out := i.Clone()
 
-	if len(out.Children) == 0 {
-		out.Children = NewLineChildren(nil)
-	}
-
-	for _, child := range out.Children {
-		child.ParentLine = out
-
-		if len(child.Children) == 0 {
-			child.Children = NewLineChildren(nil)
-		}
-	}
-
-	out.ParentLine = nil
+	out.DetailedLines = nil
 	out.DBState = nil
 	return out
 }
@@ -426,21 +319,11 @@ func (i Line) clone(opts cloneOptions) *Line {
 		res.DBState = i.DBState
 	}
 
-	switch i.Type {
-	case InvoiceLineTypeFee:
-		res.FlatFee = i.FlatFee.Clone()
-	case InvoiceLineTypeUsageBased:
-		res.UsageBased = i.UsageBased.Clone()
-	}
-
+	res.UsageBased = i.UsageBased.Clone()
 	res.LineBase = i.LineBase.Clone()
 
 	if !opts.skipChildren {
-		res.Children = lo.Map(i.Children, func(line *Line, _ int) *Line {
-			cloned := line.Clone()
-			cloned.ParentLine = line
-			return cloned
-		})
+		res.DetailedLines = i.DetailedLines.Clone()
 	}
 
 	if !opts.skipDiscounts {
@@ -474,82 +357,16 @@ func (i Line) Validate() error {
 		errs = append(errs, fmt.Errorf("discounts: %w", err))
 	}
 
-	if len(i.Children) > 0 {
-		if i.Status == InvoiceLineStatusDetailed {
-			errs = append(errs, errors.New("detailed lines are not allowed for detailed lines (e.g. no nesting is allowed)"))
-		} else {
-			for j, detailedLine := range i.Children {
-				if err := detailedLine.Validate(); err != nil {
-					errs = append(errs, fmt.Errorf("detailedLines[%d]: %w", j, err))
-				}
-
-				switch i.Status {
-				case InvoiceLineStatusValid:
-					if detailedLine.Status != InvoiceLineStatusDetailed {
-						errs = append(errs, fmt.Errorf("detailedLines[%d]: valid line's detailed lines must have detailed status", j))
-						continue
-					}
-
-					if detailedLine.Type != InvoiceLineTypeFee {
-						errs = append(errs, fmt.Errorf("detailedLines[%d]: valid line's detailed lines must be fee typed", j))
-						continue
-					}
-				}
-			}
-		}
+	if err := i.DetailedLines.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("detailed lines: %w", err))
 	}
 
-	switch i.Type {
-	case InvoiceLineTypeFee:
-		if err := i.ValidateFee(); err != nil {
-			errs = append(errs, err)
-		}
-
-		price := productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-			Amount:      i.FlatFee.PerUnitAmount,
-			PaymentTerm: i.FlatFee.PaymentTerm,
-		})
-
-		if err := i.RateCardDiscounts.ValidateForPrice(price); err != nil {
-			errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
-		}
-	case InvoiceLineTypeUsageBased:
-		if err := i.ValidateUsageBased(); err != nil {
-			errs = append(errs, err)
-		}
-
-		if err := i.RateCardDiscounts.ValidateForPrice(i.UsageBased.Price); err != nil {
-			errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
-		}
-
-	default:
-		errs = append(errs, fmt.Errorf("unsupported type: %s", i.Type))
+	if err := i.ValidateUsageBased(); err != nil {
+		errs = append(errs, err)
 	}
 
-	return errors.Join(errs...)
-}
-
-func (i Line) ValidateFee() error {
-	var errs []error
-
-	if i.FlatFee == nil {
-		return errors.New("flat fee is required")
-	}
-
-	if i.FlatFee.PerUnitAmount.IsNegative() {
-		errs = append(errs, errors.New("price should be positive or zero"))
-	}
-
-	if i.FlatFee.Quantity.IsNegative() {
-		errs = append(errs, errors.New("quantity should be positive or zero"))
-	}
-
-	if !slices.Contains(FlatFeeCategory("").Values(), string(i.FlatFee.Category)) {
-		errs = append(errs, fmt.Errorf("invalid category %s", i.FlatFee.Category))
-	}
-
-	if !slices.Contains(productcatalog.PaymentTermType("").Values(), string(i.FlatFee.PaymentTerm)) {
-		errs = append(errs, fmt.Errorf("invalid payment term %s", i.FlatFee.PaymentTerm))
+	if err := i.RateCardDiscounts.ValidateForPrice(i.UsageBased.Price); err != nil {
+		errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -574,22 +391,43 @@ func (i Line) ValidateUsageBased() error {
 //
 // The childrens receive DBState objects, so that they can be safely persisted/managed without the parent.
 func (i *Line) DisassociateChildren() {
-	i.Children = LineChildren{}
+	i.DetailedLines = nil
 	if i.DBState != nil {
-		i.DBState.Children = LineChildren{}
+		i.DBState.DetailedLines = nil
 	}
 }
 
 func (i Line) DependsOnMeteredQuantity() bool {
-	if i.Type != InvoiceLineTypeUsageBased {
-		return false
-	}
+	return i.UsageBased.Price.Type() != productcatalog.FlatPriceType
+}
 
-	if i.UsageBased.Price.Type() == productcatalog.FlatPriceType {
-		return false
-	}
+func (i *Line) SortDetailedLines() {
+	sort.Slice(i.DetailedLines, func(a, b int) bool {
+		lineA := i.DetailedLines[a]
+		lineB := i.DetailedLines[b]
 
-	return true
+		if lineA.Index != nil && lineB.Index != nil {
+			return *lineA.Index < *lineB.Index
+		}
+
+		if lineA.Index != nil {
+			return true
+		}
+
+		if lineB.Index != nil {
+			return false
+		}
+
+		if nameOrder := strings.Compare(lineA.Name, lineB.Name); nameOrder != 0 {
+			return nameOrder < 0
+		}
+
+		if !lineA.ServicePeriod.Start.Equal(lineB.ServicePeriod.Start) {
+			return lineA.ServicePeriod.Start.Before(lineB.ServicePeriod.Start)
+		}
+
+		return strings.Compare(lineA.ID, lineB.ID) < 0
+	})
 }
 
 // helper functions for generating new lines
@@ -656,10 +494,6 @@ func NewFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) *Li
 			Metadata:    input.Metadata,
 			Annotations: input.Annotations,
 
-			Status: InvoiceLineStatusValid,
-
-			Type: InvoiceLineTypeUsageBased,
-
 			ManagedBy: lo.CoalesceOrEmpty(input.ManagedBy, SystemManagedLine),
 
 			Currency:          input.Currency,
@@ -676,58 +510,13 @@ func NewFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) *Li
 	}
 }
 
-// TODO[OM-1016]: For events we need a json marshaler
-type LineChildren []*Line
-
-func NewLineChildren(children []*Line) LineChildren {
-	// Note: this helps with test equality checks
-	if len(children) == 0 {
-		children = nil
-	}
-
-	return LineChildren(children)
-}
-
-func (c LineChildren) Validate() error {
-	return errors.Join(lo.Map(c, func(line *Line, idx int) error {
-		return ValidationWithFieldPrefix(fmt.Sprintf("%d", idx), line.Validate())
-	})...)
-}
-
-func (c LineChildren) GetByID(id string) *Line {
-	return lo.FindOrElse(c, nil, func(line *Line) bool {
-		return line.ID == id
-	})
-}
-
-func (c *LineChildren) RemoveByID(id string) bool {
-	toBeRemoved := c.GetByID(id)
-	if toBeRemoved == nil {
-		return false
-	}
-
-	*c = lo.Filter(*c, func(l *Line, _ int) bool {
-		return l.ID != id
-	})
-
-	return true
-}
-
-func (c LineChildren) GetByChildUniqueReferenceID(id string) *Line {
-	return lo.FindOrElse(c, nil, func(line *Line) bool {
-		return lo.FromPtr(line.ChildUniqueReferenceID) == id
-	})
-}
-
-// ChildrenWithIDReuse returns a new LineChildren instance with the given lines. If the line has a child
+// DetailedLinesWithIDReuse returns a new DetailedLines instance with the given lines. If the line has a child
 // with a unique reference ID, it will try to retain the database ID of the existing child to avoid a delete/create.
-func (c Line) ChildrenWithIDReuse(l []*Line) (LineChildren, error) {
-	clonedNewLines := lo.Map(l, func(line *Line, _ int) *Line {
-		return line.Clone()
-	})
+func (c Line) DetailedLinesWithIDReuse(l DetailedLines) DetailedLines {
+	clonedNewLines := l.Clone()
 
-	existingItems := c.Children
-	childrenRefToLine := make(map[string]*Line, len(existingItems))
+	existingItems := c.DetailedLines
+	childrenRefToLine := make(map[string]DetailedLine, len(existingItems))
 
 	for _, child := range existingItems {
 		if child.ChildUniqueReferenceID == nil {
@@ -742,8 +531,8 @@ func (c Line) ChildrenWithIDReuse(l []*Line) (LineChildren, error) {
 		childrenRefToLine[*child.ChildUniqueReferenceID] = child
 	}
 
-	for _, newChild := range clonedNewLines {
-		newChild.ParentLineID = lo.ToPtr(c.ID)
+	for idx := range clonedNewLines {
+		newChild := &clonedNewLines[idx]
 
 		if newChild.ChildUniqueReferenceID == nil {
 			continue
@@ -752,33 +541,94 @@ func (c Line) ChildrenWithIDReuse(l []*Line) (LineChildren, error) {
 		if existing, ok := childrenRefToLine[*newChild.ChildUniqueReferenceID]; ok {
 			// Let's retain the database ID to achieve an update instead of a delete/create
 			newChild.ID = existing.ID
-
-			// Let's retain the config ID to achieve an update instead of a delete/create
-			if newChild.FlatFee == nil {
-				return LineChildren{}, fmt.Errorf("detailed line[%s]: new line must be a flat fee line", *newChild.ChildUniqueReferenceID)
-			}
-
-			if existing.FlatFee == nil {
-				return LineChildren{}, fmt.Errorf("detailed line[%s]: existing line must be a flat fee line", *newChild.ChildUniqueReferenceID)
-			}
-
-			newChild.FlatFee.ConfigID = existing.FlatFee.ConfigID
+			newChild.FeeLineConfigID = existing.FeeLineConfigID
 
 			// Let's make sure we retain the created and updated at timestamps so that we
 			// don't trigger an update in vain
 			newChild.CreatedAt = existing.CreatedAt
 			newChild.UpdatedAt = existing.UpdatedAt
 
-			discountsWithIDReuse, err := newChild.Discounts.ReuseIDsFrom(existing.Discounts)
-			if err != nil {
-				return LineChildren{}, fmt.Errorf("failed to reuse discount ids: %w", err)
-			}
-
-			newChild.Discounts = discountsWithIDReuse
+			discountsWithIDReuse := newChild.AmountDiscounts.ReuseIDsFrom(existing.AmountDiscounts)
+			newChild.AmountDiscounts = discountsWithIDReuse
 		}
 	}
 
-	return NewLineChildren(clonedNewLines), nil
+	return clonedNewLines
+}
+
+type Lines []*Line
+
+func NewLines(children []*Line) Lines {
+	// Note: this helps with test equality checks
+	if len(children) == 0 {
+		children = nil
+	}
+
+	return Lines(children)
+}
+
+func (c Lines) Validate() error {
+	return errors.Join(lo.Map(c, func(line *Line, idx int) error {
+		return ValidationWithFieldPrefix(fmt.Sprintf("%d", idx), line.Validate())
+	})...)
+}
+
+func (c Lines) GetByChildUniqueReferenceID(id string) *Line {
+	return lo.FindOrElse(c, nil, func(line *Line) bool {
+		return lo.FromPtr(line.ChildUniqueReferenceID) == id
+	})
+}
+
+func (c Lines) Map(fn func(*Line) *Line) Lines {
+	return Lines(
+		lo.Map(c, func(l *Line, _ int) *Line {
+			return fn(l)
+		}),
+	)
+}
+
+func (c *Lines) Sort() {
+	sort.Slice(*c, func(a, b int) bool {
+		lineA := (*c)[a]
+		lineB := (*c)[b]
+
+		if nameOrder := strings.Compare(lineA.Name, lineB.Name); nameOrder != 0 {
+			return nameOrder < 0
+		}
+
+		if !lineA.Period.Start.Equal(lineB.Period.Start) {
+			return lineA.Period.Start.Before(lineB.Period.Start)
+		}
+
+		return strings.Compare(lineA.ID, lineB.ID) < 0
+	})
+
+	for idx := range *c {
+		(*c)[idx].SortDetailedLines()
+	}
+}
+
+func (i Line) SetDiscountExternalIDs(externalIDs map[string]string) []string {
+	foundIDs := []string{}
+
+	for idx := range i.Discounts.Amount {
+		discount := &i.Discounts.Amount[idx]
+		if externalID, ok := externalIDs[discount.ID]; ok {
+			discount.ExternalIDs.Invoicing = externalID
+			foundIDs = append(foundIDs, discount.ID)
+		}
+	}
+
+	for idx := range i.Discounts.Usage {
+		discount := &i.Discounts.Usage[idx]
+
+		if externalID, ok := externalIDs[discount.ID]; ok {
+			discount.ExternalIDs.Invoicing = externalID
+			foundIDs = append(foundIDs, discount.ID)
+		}
+	}
+
+	return foundIDs
 }
 
 type UsageBasedLine struct {
@@ -878,8 +728,8 @@ func (c CreatePendingInvoiceLinesInput) Validate() error {
 			errs = append(errs, fmt.Errorf("line.%d: invoice ID is not allowed for pending lines", id))
 		}
 
-		if len(line.Children) > 0 {
-			errs = append(errs, fmt.Errorf("line.%d: children are not allowed for pending lines", id))
+		if len(line.DetailedLines) > 0 {
+			errs = append(errs, fmt.Errorf("line.%d: detailed lines are not allowed for pending lines", id))
 		}
 
 		if line.ParentLineID != nil {
@@ -970,11 +820,9 @@ type UpdateInvoiceLineAdapterInput Line
 type UpdateInvoiceLineInput struct {
 	// Mandatory fields for update
 	Line LineID
-	Type InvoiceLineType
 
 	LineBase   UpdateInvoiceLineBaseInput
 	UsageBased UpdateInvoiceLineUsageBasedInput
-	FlatFee    UpdateInvoiceLineFlatFeeInput
 }
 
 func (u UpdateInvoiceLineInput) Validate() error {
@@ -987,53 +835,22 @@ func (u UpdateInvoiceLineInput) Validate() error {
 		outErr = errors.Join(outErr, fmt.Errorf("validating LineID: %w", err))
 	}
 
-	if !slices.Contains(u.Type.Values(), string(u.Type)) {
-		outErr = errors.Join(outErr, ValidationWithFieldPrefix(
-			"type", fmt.Errorf("line base: invalid type %s", u.Type),
-		))
-		return outErr
-	}
-
-	switch u.Type {
-	case InvoiceLineTypeUsageBased:
-		if err := u.UsageBased.Validate(); err != nil {
-			outErr = errors.Join(outErr, err)
-		}
-	case InvoiceLineTypeFee:
-		if err := u.FlatFee.Validate(); err != nil {
-			outErr = errors.Join(outErr, err)
-		}
+	if err := u.UsageBased.Validate(); err != nil {
+		outErr = errors.Join(outErr, err)
 	}
 
 	return outErr
 }
 
 func (u UpdateInvoiceLineInput) Apply(l *Line) (*Line, error) {
-	oldParentLine := l.ParentLine
-
 	l = l.Clone()
-
-	// Clone doesn't carry over parent line, so that the cloned hierarchy and the new one are disjunct,
-	// however in this specific case we don't care about that, so we just copy it over
-	l.ParentLine = oldParentLine
-
-	if u.Type != l.Type {
-		return l, fmt.Errorf("line type cannot be changed")
-	}
 
 	if err := u.LineBase.Apply(l); err != nil {
 		return l, err
 	}
 
-	switch l.Type {
-	case InvoiceLineTypeUsageBased:
-		if err := u.UsageBased.Apply(l.UsageBased); err != nil {
-			return l, err
-		}
-	case InvoiceLineTypeFee:
-		if err := u.FlatFee.Apply(l.FlatFee); err != nil {
-			return l, err
-		}
+	if err := u.UsageBased.Apply(l.UsageBased); err != nil {
+		return l, err
 	}
 
 	return l, nil
@@ -1151,46 +968,6 @@ func (u UpdateInvoiceLineUsageBasedInput) Validate() error {
 func (u UpdateInvoiceLineUsageBasedInput) Apply(l *UsageBasedLine) error {
 	if u.Price != nil {
 		l.Price = u.Price
-	}
-
-	return nil
-}
-
-type UpdateInvoiceLineFlatFeeInput struct {
-	PerUnitAmount mo.Option[alpacadecimal.Decimal]
-	Quantity      mo.Option[alpacadecimal.Decimal]
-	PaymentTerm   mo.Option[productcatalog.PaymentTermType]
-}
-
-func (u UpdateInvoiceLineFlatFeeInput) Validate() error {
-	var outErr error
-
-	if u.PerUnitAmount.IsPresent() && !u.PerUnitAmount.OrEmpty().IsPositive() {
-		outErr = errors.Join(outErr, ValidationWithFieldPrefix("per_unit_amount", ErrFieldMustBePositive))
-	}
-
-	if u.Quantity.IsPresent() && u.Quantity.OrEmpty().IsNegative() {
-		outErr = errors.Join(outErr, ValidationWithFieldPrefix("quantity", ErrFieldMustBePositiveOrZero))
-	}
-
-	if u.PaymentTerm.IsPresent() && !slices.Contains(productcatalog.PaymentTermType("").Values(), string(u.PaymentTerm.OrEmpty())) {
-		outErr = errors.Join(outErr, ValidationWithFieldPrefix("payment_term", fmt.Errorf("invalid payment term %s", u.PaymentTerm.OrEmpty())))
-	}
-
-	return outErr
-}
-
-func (u UpdateInvoiceLineFlatFeeInput) Apply(l *FlatFeeLine) error {
-	if u.PerUnitAmount.IsPresent() {
-		l.PerUnitAmount = u.PerUnitAmount.OrEmpty()
-	}
-
-	if u.Quantity.IsPresent() {
-		l.Quantity = u.Quantity.OrEmpty()
-	}
-
-	if u.PaymentTerm.IsPresent() {
-		l.PaymentTerm = u.PaymentTerm.OrEmpty()
 	}
 
 	return nil

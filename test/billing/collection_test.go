@@ -88,7 +88,6 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
 						InvoiceAt: periodEnd,
 						ManagedBy: billing.ManuallyManagedLine,
-						Type:      billing.InvoiceLineTypeUsageBased,
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -103,7 +102,6 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 						Period:    billing.Period{Start: periodStart, End: period2End},
 						InvoiceAt: period2End,
 						ManagedBy: billing.ManuallyManagedLine,
-						Type:      billing.InvoiceLineTypeUsageBased,
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -348,7 +346,6 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt: periodEnd,
 					ManagedBy: billing.ManuallyManagedLine,
-					Type:      billing.InvoiceLineTypeUsageBased,
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -451,7 +448,6 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt: periodEnd,
 					ManagedBy: billing.ManuallyManagedLine,
-					Type:      billing.InvoiceLineTypeUsageBased,
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: apiRequestsTotalFeature.Feature.Key,
@@ -495,11 +491,9 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 						}),
 						Currency:  currencyx.Code(currency.USD),
 						InvoiceID: invoice.ID,
-						Status:    billing.InvoiceLineStatusValid,
 						Period:    newLinePeriod,
 						InvoiceAt: newLinePeriod.End,
 						ManagedBy: billing.ManuallyManagedLine,
-						Type:      billing.InvoiceLineTypeUsageBased,
 					},
 					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: apiRequestsTotalFeature.Feature.Key,

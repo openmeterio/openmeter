@@ -14,7 +14,7 @@ import (
 // manually.
 func FillGatheringDetailedLineMeta(invoice *billing.Invoice, deps CalculatorDependencies) error {
 	invoice.Lines = invoice.Lines.Map(func(line *billing.Line) *billing.Line {
-		line.Children = lo.Map(line.Children, func(child *billing.Line, _ int) *billing.Line {
+		line.DetailedLines = lo.Map(line.DetailedLines, func(child billing.DetailedLine, _ int) billing.DetailedLine {
 			if child.ID == "" {
 				child.ID = ulid.Make().String()
 			}
