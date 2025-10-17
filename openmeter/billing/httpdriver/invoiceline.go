@@ -427,7 +427,7 @@ func mapInvoiceLineUsageDiscountsToAPI(usageDiscounts billing.UsageLineDiscounts
 		}, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to map amount discounts: %w", err)
+		return nil, fmt.Errorf("failed to map usage discounts: %w", err)
 	}
 
 	return lo.ToPtr(mapped), nil

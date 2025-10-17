@@ -146,7 +146,7 @@ func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billing.
 func (s *Service) UpdateTotalsFromDetailedLines(line *billing.Line) error {
 	// Calculate the line totals
 	for idx, detailedLine := range line.DetailedLines {
-		if line.DeletedAt != nil {
+		if detailedLine.DeletedAt != nil {
 			continue
 		}
 
