@@ -6,9 +6,11 @@ import (
 	"slices"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -163,25 +165,27 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 // ArchiveFeature archives a feature
 func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
 	// Get the feature
-	_, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID, false)
+	feat, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID, false)
 	if err != nil {
 		return err
 	}
+
+	archivedAt := lo.ToPtr(clock.Now())
 
 	// Archive the feature
-	err = c.featureRepo.ArchiveFeature(ctx, featureID)
+	err = c.featureRepo.ArchiveFeature(ctx, ArchiveFeatureInput{
+		Namespace: feat.Namespace,
+		ID:        feat.ID,
+		At:        archivedAt,
+	})
 	if err != nil {
 		return err
 	}
 
-	// Get the archived feature
-	archivedFeature, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID, true)
-	if err != nil {
-		return err
-	}
+	feat.ArchivedAt = archivedAt
 
 	// Publish the feature archived event
-	featureArchivedEvent := NewFeatureArchiveEvent(ctx, archivedFeature)
+	featureArchivedEvent := NewFeatureArchiveEvent(ctx, feat)
 	if err := c.publisher.Publish(ctx, featureArchivedEvent); err != nil {
 		return fmt.Errorf("failed to publish feature archived event: %w", err)
 	}

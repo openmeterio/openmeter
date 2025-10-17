@@ -20,7 +20,6 @@ import (
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -86,10 +85,19 @@ func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, i
 	return &res, nil
 }
 
-func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
-	f, err := c.GetByIdOrKey(ctx, featureID.Namespace, featureID.ID, true)
+func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, params feature.ArchiveFeatureInput) error {
+	f, err := c.GetByIdOrKey(ctx, params.Namespace, params.ID, true)
 	if err != nil {
 		return err
+	}
+
+	archivedAt := clock.Now()
+	if params.At != nil {
+		if params.At.Before(f.UpdatedAt) {
+			return &feature.ForbiddenError{Msg: "cannot archive feature at a time before it was last updated", ID: f.ID}
+		}
+
+		archivedAt = *params.At
 	}
 
 	// FIXME: (OM-1055) we should marry productcatalog/plan with feature so we can do this check outside the db layer
@@ -98,7 +106,7 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.
 			qp.WithRatecards()
 		}).
 		Where(
-			dbplan.Namespace(featureID.Namespace),
+			dbplan.Namespace(params.Namespace),
 			dbplan.EffectiveFromNotNil(),
 			dbplan.Or(dbplan.EffectiveToGT(clock.Now()), dbplan.EffectiveToIsNil()),
 			dbplan.HasPhasesWith(dbplanphase.HasRatecardsWith(
@@ -118,7 +126,7 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.
 			subscriptionrepo.SubscriptionActiveAfter(clock.Now())...,
 		).
 		Where(
-			dbsub.Namespace(featureID.Namespace),
+			dbsub.Namespace(params.Namespace),
 			dbsub.HasPhasesWith(dbsubphase.HasItemsWith(dbsubitem.FeatureKey(f.Key))),
 		).
 		Exist(ctx)
@@ -137,9 +145,9 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.
 	}
 
 	err = c.db.Feature.Update().
-		SetArchivedAt(clock.Now()).
-		Where(db_feature.ID(featureID.ID)).
-		Where(db_feature.Namespace(featureID.Namespace)).
+		SetArchivedAt(archivedAt).
+		Where(db_feature.ID(params.ID)).
+		Where(db_feature.Namespace(params.Namespace)).
 		Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to archive feature: %w", err)
