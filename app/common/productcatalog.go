@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/wire"
 
@@ -47,8 +48,17 @@ var PlanAddon = wire.NewSet(
 	NewPlanAddonService,
 )
 
-func NewModelCostProvider() (*productcatalogpgadapter.ModelCostProvider, error) {
-	return productcatalogpgadapter.NewModelCostProvider()
+func NewModelCostProvider(
+	logger *slog.Logger,
+) (*productcatalogpgadapter.ModelCostProvider, error) {
+	logger = logger.With("cost-provider")
+
+	return productcatalogpgadapter.NewModelCostProvider(
+		productcatalogpgadapter.CostProviderConfig{
+			Logger:  logger,
+			Timeout: 3 * time.Second,
+		},
+	)
 }
 
 func NewFeatureConnector(

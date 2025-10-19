@@ -203,7 +203,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	modelCostProvider, err := common.NewModelCostProvider()
+	modelCostProvider, err := common.NewModelCostProvider(logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()

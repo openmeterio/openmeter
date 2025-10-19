@@ -124,7 +124,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	service := common.NewMeterService(adapter)
-	modelCostProvider, err := common.NewModelCostProvider()
+	modelCostProvider, err := common.NewModelCostProvider(logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
