@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
@@ -101,7 +102,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, meterAdapter, "meter adapter must not be nil")
 
 	// Init feature service
-	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger, &productcatalogadapter.ModelCostProvider{})
+	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger, &modelcost.ModelCostProvider{})
 	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
 
 	// Entitlement Adapter

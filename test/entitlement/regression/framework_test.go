@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
@@ -88,7 +89,7 @@ func setupDependencies(t *testing.T) Dependencies {
 	tracer := noop.NewTracerProvider().Tracer("test")
 
 	// Init product catalog
-	featureRepo := productcatalogrepo.NewPostgresFeatureRepo(dbClient, log, &productcatalogrepo.ModelCostProvider{})
+	featureRepo := productcatalogrepo.NewPostgresFeatureRepo(dbClient, log, &modelcost.ModelCostProvider{})
 
 	meters := []meter.Meter{
 		{

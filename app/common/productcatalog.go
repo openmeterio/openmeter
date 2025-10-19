@@ -3,11 +3,11 @@ package common
 import (
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
@@ -48,25 +48,12 @@ var PlanAddon = wire.NewSet(
 	NewPlanAddonService,
 )
 
-func NewModelCostProvider(
-	logger *slog.Logger,
-) (*productcatalogpgadapter.ModelCostProvider, error) {
-	logger = logger.With("cost-provider")
-
-	return productcatalogpgadapter.NewModelCostProvider(
-		productcatalogpgadapter.CostProviderConfig{
-			Logger:  logger,
-			Timeout: 3 * time.Second,
-		},
-	)
-}
-
 func NewFeatureConnector(
 	logger *slog.Logger,
 	db *entdb.Client,
 	meterService meter.Service,
 	publisher eventbus.Publisher,
-	modelCostProvider *productcatalogpgadapter.ModelCostProvider,
+	modelCostProvider *modelcost.ModelCostProvider,
 ) feature.FeatureConnector {
 	featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(db, logger, modelCostProvider)
 	return feature.NewFeatureConnector(featureRepo, meterService, publisher)

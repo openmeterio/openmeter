@@ -157,6 +157,7 @@ func main() {
 			AppCustomInvoicing:          app.AppRegistry.CustomInvoicing,
 			Billing:                     app.Billing,
 			BillingFeatureSwitches:      conf.Billing.FeatureSwitches,
+			Cost:                        app.Cost,
 			Customer:                    app.Customer,
 			DebugConnector:              debugConnector,
 			ErrorHandler:                errorsx.NewSlogHandler(logger),

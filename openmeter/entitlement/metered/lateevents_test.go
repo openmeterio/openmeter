@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
@@ -131,7 +132,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		pgDriver := testdb.PGDriver
 		entDriver := testdb.EntDriver
 
-		featureRepo := productcatalog_postgresadapter.NewPostgresFeatureRepo(dbClient, testLogger, &productcatalog_postgresadapter.ModelCostProvider{})
+		featureRepo := productcatalog_postgresadapter.NewPostgresFeatureRepo(dbClient, testLogger, &modelcost.ModelCostProvider{})
 		entitlementRepo := entitlement_postgresadapter.NewPostgresEntitlementRepo(dbClient)
 		usageResetRepo := entitlement_postgresadapter.NewPostgresUsageResetRepo(dbClient)
 		grantRepo := credit_postgres_adapter.NewPostgresGrantRepo(dbClient)

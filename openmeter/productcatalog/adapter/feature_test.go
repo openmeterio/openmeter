@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -241,7 +242,7 @@ func TestCreateFeature(t *testing.T) {
 				t.Fatalf("failed to create schema: %v", err)
 			}
 
-			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &adapter.ModelCostProvider{})
+			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &modelcost.ModelCostProvider{})
 			tc.run(t, dbConnector)
 		})
 	}
@@ -260,7 +261,7 @@ func TestCreateFeature(t *testing.T) {
 			t.Fatalf("failed to create schema: %v", err)
 		}
 
-		dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &adapter.ModelCostProvider{})
+		dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &modelcost.ModelCostProvider{})
 		ctx := context.Background()
 		featureIn := testFeature
 
@@ -351,7 +352,7 @@ func TestArchiveFeature(t *testing.T) {
 			Save(ctx)
 		assert.NoError(t, err)
 
-		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &adapter.ModelCostProvider{})
+		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &modelcost.ModelCostProvider{})
 
 		featureIn := testFeature
 
@@ -409,7 +410,7 @@ func TestFetchingArchivedFeature(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &adapter.ModelCostProvider{})
+		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t), &modelcost.ModelCostProvider{})
 
 		featureIn := testFeature
 

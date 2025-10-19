@@ -7,9 +7,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -30,7 +30,7 @@ func NewEntitlementRegistry(
 	meterService meter.Service,
 	eventPublisher eventbus.Publisher,
 	locker *lockr.Locker,
-	modelCostProvider *productcatalogpgadapter.ModelCostProvider,
+	modelCostProvider *modelcost.ModelCostProvider,
 ) *registry.Entitlement {
 	return registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:            db,

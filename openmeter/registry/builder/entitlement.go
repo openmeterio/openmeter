@@ -7,6 +7,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
@@ -36,7 +37,7 @@ type EntitlementOptions struct {
 	Publisher                 eventbus.Publisher
 	Tracer                    trace.Tracer
 	Locker                    *lockr.Locker
-	ModelCostProvider         *productcatalogpgadapter.ModelCostProvider
+	ModelCostProvider         *modelcost.ModelCostProvider
 }
 
 func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {

@@ -8,8 +8,8 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -63,6 +63,7 @@ type CustomerOverrideHandler interface {
 type handler struct {
 	service          billing.Service
 	appService       app.Service
+	costService      cost.Service
 	streamingService streaming.Connector
 	meterService     meter.Service
 	featureService   feature.FeatureConnector
@@ -87,7 +88,7 @@ func New(
 	featureSwitches config.BillingFeatureSwitchesConfiguration,
 	service billing.Service,
 	appService app.Service,
-	stripeAppService appstripe.Service,
+	costService cost.Service,
 	streamingService streaming.Connector,
 	featureService feature.FeatureConnector,
 	meterService meter.Service,
@@ -97,6 +98,7 @@ func New(
 	return &handler{
 		service:          service,
 		appService:       appService,
+		costService:      costService,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		featureSwitches:  featureSwitches,

@@ -12,6 +12,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
@@ -35,10 +36,10 @@ var costProviderModelDev = regexp.MustCompile("^modeldev_([a-z]+)_([a-z0-9-]+)_(
 type featureDBAdapter struct {
 	logger            *slog.Logger
 	db                *db.Client
-	modelCostProvider *ModelCostProvider
+	modelCostProvider *modelcost.ModelCostProvider
 }
 
-func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger, modelCostProvider *ModelCostProvider) feature.FeatureRepo {
+func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger, modelCostProvider *modelcost.ModelCostProvider) feature.FeatureRepo {
 	return &featureDBAdapter{
 		db:                db,
 		logger:            logger,
@@ -295,7 +296,7 @@ func (c *featureDBAdapter) mapFeatureEntity(entity *db.Feature) (feature.Feature
 		model := tmp[2]
 		costType := tmp[3]
 
-		cost, err := c.modelCostProvider.GetModelUnitCost(provider, model, CostType(costType))
+		cost, err := c.modelCostProvider.GetModelUnitCost(provider, model, modelcost.CostType(costType))
 		if err != nil {
 			return f, fmt.Errorf("cannot find provider by id: %s", providerID)
 		}

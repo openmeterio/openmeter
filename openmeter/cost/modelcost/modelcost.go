@@ -1,4 +1,4 @@
-package adapter
+package modelcost
 
 import (
 	"encoding/json"
@@ -38,7 +38,7 @@ func NewModelCostProvider(config CostProviderConfig) (*ModelCostProvider, error)
 
 func (m *ModelCostProvider) initialize() error {
 	url := "https://models.dev/api.json"
-	logger := m.config.Logger.With("initialize")
+	logger := m.config.Logger.WithGroup("initialize")
 
 	// Create HTTP client with 3-second timeout
 	client := &http.Client{
@@ -78,7 +78,7 @@ func (m *ModelCostProvider) loadFromLocalFile() error {
 	m.config.Logger.Info("loading from local file")
 
 	// Get the directory of the current file
-	filePath := "openmeter/productcatalog/adapter/api.json"
+	filePath := "openmeter/cost/modelcost/api.json"
 
 	// Try to read the local file
 	body, err := os.ReadFile(filePath)

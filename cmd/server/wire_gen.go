@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -395,6 +396,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	costService, err := common.NewCostService(logger, billingService, customerService, featureConnector, service, connector)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	dedupeConfiguration := conf.Dedupe
 	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger, commonMetadata)
 	if err != nil {
@@ -603,6 +614,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		CustomerSubjectValidatorHook:     customerSubjectValidatorHook,
 		CustomerEntitlementValidatorHook: customerEntitlementValidatorHook,
 		Billing:                          billingService,
+		Cost:                             costService,
 		EntClient:                        client,
 		EventPublisher:                   eventbusPublisher,
 		EntitlementRegistry:              entitlement,
@@ -663,6 +675,7 @@ type Application struct {
 	CustomerSubjectValidatorHook     common.CustomerSubjectValidatorHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
 	Billing                          billing.Service
+	Cost                             cost.Service
 	EntClient                        *db.Client
 	EventPublisher                   eventbus.Publisher
 	EntitlementRegistry              *registry.Entitlement

@@ -12,6 +12,7 @@ import (
 
 	"github.com/oklog/ulid/v2"
 
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -131,7 +132,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 		return nil, fmt.Errorf("failed to create meter service: %w", err)
 	}
 
-	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"), &productcatalogadapter.ModelCostProvider{})
+	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"), &modelcost.ModelCostProvider{})
 	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService, eventbus.NewMock(t))
 
 	adapter, err := notificationadapter.New(notificationadapter.Config{

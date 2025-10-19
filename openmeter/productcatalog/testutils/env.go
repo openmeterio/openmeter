@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
@@ -92,7 +93,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, meterAdapter, "meter adapter must not be nil")
 
 	// Init feature service
-	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger, &productcatalogadapter.ModelCostProvider{})
+	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger, &modelcost.ModelCostProvider{})
 	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
 
 	// Init plan service

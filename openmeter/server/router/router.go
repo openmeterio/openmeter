@@ -21,6 +21,7 @@ import (
 	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditdriver "github.com/openmeterio/openmeter/openmeter/credit/driver"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -91,6 +92,7 @@ type Config struct {
 	AppCustomInvoicing          appcustominvoicing.SyncService
 	Billing                     billing.Service
 	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
+	Cost                        cost.Service
 	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
 	EntitlementConnector        entitlement.Service
@@ -146,6 +148,10 @@ func (c Config) Validate() error {
 
 	if c.AppCustomInvoicing == nil {
 		return errors.New("app custom invoicing service is required")
+	}
+
+	if c.Cost == nil {
+		return errors.New("cost service is required")
 	}
 
 	if c.Customer == nil {
@@ -378,7 +384,7 @@ func NewRouter(config Config) (*Router, error) {
 		config.BillingFeatureSwitches,
 		config.Billing,
 		config.App,
-		config.AppStripe,
+		config.Cost,
 		config.StreamingConnector,
 		config.FeatureConnector,
 		config.MeterManageService,

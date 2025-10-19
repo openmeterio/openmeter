@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/cost/modelcost"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -58,7 +59,7 @@ func setup(t *testing.T) (deps deps, cleanup func()) {
 	}
 
 	deps.entRepo = adapter.NewPostgresEntitlementRepo(dbClient)
-	deps.featureRepo = featureadapter.NewPostgresFeatureRepo(dbClient, logger, &featureadapter.ModelCostProvider{})
+	deps.featureRepo = featureadapter.NewPostgresFeatureRepo(dbClient, logger, &modelcost.ModelCostProvider{})
 
 	// customer adapter for creating customers in tests
 	custAdapter, err := customeradapter.New(customeradapter.Config{Client: dbClient, Logger: logger})

@@ -6,14 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -53,87 +51,14 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetInvoiceLineCostRequest) (GetInvoiceLineCostResponse, error) {
-			// Get the invoice
-			invoice, err := h.service.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: request.InvoiceID,
-				Expand: billing.InvoiceExpand{
-					Lines:                       true,
-					RecalculateGatheringInvoice: true,
-				},
-			})
-			if err != nil {
-				return GetInvoiceLineCostResponse{}, err
-			}
-
-			// Find the line with the feature key
-			line, ok := lo.Find(invoice.Lines.OrEmpty(), func(line *billing.Line) bool {
-				if line.UsageBased == nil {
-					return false
-				}
-
-				return line.ID == request.LineID
-			})
-			if !ok {
-				return GetInvoiceLineCostResponse{}, models.NewGenericNotFoundError(
-					fmt.Errorf("line not found in invoice: %s", request.LineID),
-				)
-			}
-
-			if line.UsageBased == nil {
-				return GetInvoiceLineCostResponse{}, models.NewGenericConflictError(
-					fmt.Errorf("not a usage based line: %s", request.LineID),
-				)
-			}
-
-			// Get the feature
-			feature, err := h.featureService.GetFeature(ctx, request.InvoiceID.Namespace, line.UsageBased.FeatureKey, false)
-			if err != nil {
-				return GetInvoiceLineCostResponse{}, err
-			}
-
-			if feature.MeterSlug == nil {
-				return GetInvoiceLineCostResponse{}, models.NewGenericConflictError(
-					fmt.Errorf("no meter for feature: %s", line.UsageBased.FeatureKey),
-				)
-			}
-
-			// Get the meter
-			met, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-				Namespace: request.InvoiceID.Namespace,
-				IDOrSlug:  *feature.MeterSlug,
-			})
-			if err != nil {
-				return GetInvoiceLineCostResponse{}, err
-			}
-
-			// Get the customer
-			customer, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-				CustomerID: lo.ToPtr(invoice.CustomerID()),
-			})
-			if err != nil {
-				return GetInvoiceLineCostResponse{}, err
-			}
-
-			if customer == nil {
-				return GetInvoiceLineCostResponse{}, fmt.Errorf("customer cannot be nil")
-			}
-
-			// Query the meter
-			meterQueryParams := streaming.QueryParams{
-				From:           &line.Period.Start,
-				To:             &line.Period.End,
-				FilterGroupBy:  feature.MeterGroupByFilters,
-				FilterCustomer: []streaming.Customer{*customer},
-				// We ignore late events because the data is ingested after the invoice is collected
-				IgnoreLateEvents: invoice.CollectionAt,
-			}
-
-			if request.Params.GroupBy != nil {
-				meterQueryParams.GroupBy = *request.Params.GroupBy
+			params := cost.GetInvoiceLineCostParams{
+				InvoiceID:     request.InvoiceID,
+				InvoiceLineID: request.LineID,
+				GroupBy:       request.Params.GroupBy,
 			}
 
 			if request.Params.WindowSize != nil {
-				meterQueryParams.WindowSize = lo.ToPtr(meter.WindowSize(*request.Params.WindowSize))
+				params.WindowSize = lo.ToPtr(meter.WindowSize(*request.Params.WindowSize))
 			}
 
 			if request.Params.WindowTimeZone != nil {
@@ -142,85 +67,15 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 					err := fmt.Errorf("invalid time zone: %w", err)
 					return GetInvoiceLineCostResponse{}, models.NewGenericValidationError(err)
 				}
-				meterQueryParams.WindowTimeZone = tz
+				params.WindowTimeZone = tz
 			}
 
-			// Get usage for the line
-			usageRows, err := h.streamingService.QueryMeter(ctx, request.InvoiceID.Namespace, met, meterQueryParams)
+			invoiceLineCost, err := h.costService.GetInvoiceLineCost(ctx, params)
 			if err != nil {
 				return GetInvoiceLineCostResponse{}, err
 			}
 
-			// Get the cost per unit
-			costPerUnit := alpacadecimal.NewFromInt(0)
-
-			if !line.UsageBased.Quantity.IsZero() {
-				costPerUnit = line.Totals.Amount.Div(*line.UsageBased.Quantity)
-			}
-
-			totalInternalCost := alpacadecimal.NewFromInt(0)
-			internalCostPerUnit := alpacadecimal.NewFromInt(0)
-
-			if feature.Cost != nil {
-				internalCostPerUnit = feature.Cost.PerUnitAmount
-			}
-
-			// Calculate the cost for each window
-			rows := make([]api.InvoiceLineCostRow, 0, len(usageRows))
-
-			for _, row := range usageRows {
-				usage := alpacadecimal.NewFromFloat(row.Value)
-				cost := usage.Mul(costPerUnit)
-
-				row := api.InvoiceLineCostRow{
-					WindowStart: row.WindowStart,
-					WindowEnd:   row.WindowEnd,
-					Usage:       usage.String(),
-					Cost:        cost.String(),
-					CostPerUnit: costPerUnit.String(),
-					GroupBy:     row.GroupBy,
-				}
-
-				if !internalCostPerUnit.IsZero() {
-					internalCost := internalCostPerUnit.Mul(usage)
-					totalInternalCost = totalInternalCost.Add(internalCost)
-					margin := cost.Sub(internalCost)
-					marginRate := alpacadecimal.NewFromInt(1).Sub(internalCost.Div(cost))
-
-					row.InternalCostPerUnit = lo.ToPtr(internalCostPerUnit.String())
-					row.InternalCost = lo.ToPtr(internalCost.String())
-					row.Margin = lo.ToPtr(margin.String())
-					row.MarginRate = lo.ToPtr(marginRate.String())
-				}
-
-				rows = append(rows, row)
-			}
-
-			cost := line.Totals.Amount
-			usage := line.UsageBased.Quantity
-
-			response := api.InvoiceLineCost{
-				From:        line.Period.Start,
-				To:          line.Period.End,
-				Currency:    string(line.Currency),
-				CostPerUnit: costPerUnit.String(),
-				Usage:       usage.String(),
-				Cost:        cost.String(),
-				Rows:        rows,
-			}
-
-			if !totalInternalCost.IsZero() {
-				margin := line.Totals.Amount.Sub(totalInternalCost)
-				marginRate := alpacadecimal.NewFromInt(1).Sub(totalInternalCost.Div(cost))
-				internalCostPerUnit := totalInternalCost.Div(cost)
-
-				response.InternalCost = lo.ToPtr(totalInternalCost.String())
-				response.InternalCostPerUnit = lo.ToPtr(internalCostPerUnit.String())
-				response.Margin = lo.ToPtr(margin.String())
-				response.MarginRate = lo.ToPtr(marginRate.String())
-			}
-
-			return response, nil
+			return mapInvliceLineCostToAPI(invoiceLineCost), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetInvoiceLineCostResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -229,4 +84,52 @@ func (h *handler) GetInvoiceLineCost() GetInvoiceLineCostHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+func mapInvliceLineCostToAPI(invoiceLineCost cost.InvoiceLineCost) api.InvoiceLineCost {
+	// Each rows
+	rows := make([]api.InvoiceLineCostRow, 0, len(invoiceLineCost.Rows))
+
+	for _, row := range invoiceLineCost.Rows {
+		rows = append(rows, mapInvliceLineCostRowToAPI(row))
+	}
+
+	response := api.InvoiceLineCost{
+		From:        invoiceLineCost.From,
+		To:          invoiceLineCost.To,
+		Currency:    string(invoiceLineCost.Currency),
+		CostPerUnit: invoiceLineCost.CostPerUnit.String(),
+		Usage:       invoiceLineCost.Usage.String(),
+		Cost:        invoiceLineCost.Cost.String(),
+		Rows:        rows,
+	}
+
+	if invoiceLineCost.InternalCost != nil {
+		response.InternalCost = lo.ToPtr(invoiceLineCost.InternalCost.String())
+	}
+
+	if invoiceLineCost.InternalCostPerUnit != nil {
+		response.InternalCostPerUnit = lo.ToPtr(invoiceLineCost.InternalCostPerUnit.String())
+	}
+
+	if invoiceLineCost.Margin != nil {
+		response.Margin = lo.ToPtr(invoiceLineCost.Margin.String())
+	}
+
+	if invoiceLineCost.MarginRate != nil {
+		response.MarginRate = lo.ToPtr(invoiceLineCost.MarginRate.String())
+	}
+
+	return response
+}
+
+func mapInvliceLineCostRowToAPI(row cost.InvoiceLineCostRow) api.InvoiceLineCostRow {
+	return api.InvoiceLineCostRow{
+		WindowStart: row.WindowStart,
+		WindowEnd:   row.WindowEnd,
+		Usage:       row.Usage.String(),
+		Cost:        row.Cost.String(),
+		CostPerUnit: row.CostPerUnit.String(),
+		GroupBy:     row.GroupBy,
+	}
 }
