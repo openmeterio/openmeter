@@ -2,6 +2,7 @@ package customer
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -97,6 +98,11 @@ func (c CustomerMutate) Validate() error {
 			return models.NewGenericValidationError(err)
 		}
 	}
+
+	if err := c.UsageAttribution.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -151,9 +157,27 @@ func (i CustomerIDOrKey) Validate() error {
 	return nil
 }
 
+var _ models.Validator = (*CustomerUsageAttribution)(nil)
+
 // CustomerUsageAttribution represents the usage attribution for a customer
 type CustomerUsageAttribution struct {
 	SubjectKeys []string `json:"subjectKeys"`
+}
+
+const MinSubjectKeyLength = 1
+
+func (c CustomerUsageAttribution) Validate() error {
+	var errs []error
+
+	for _, subjectKey := range c.SubjectKeys {
+		if len(subjectKey) < MinSubjectKeyLength {
+			errs = append(errs, models.NewGenericValidationError(
+				fmt.Errorf("subject key must be at least %d character: %q", MinSubjectKeyLength, subjectKey),
+			))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // UsageAttribution

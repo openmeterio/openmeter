@@ -832,6 +832,11 @@ func (_c *BillingInvoiceCreate) check() error {
 	if _, ok := _c.mutation.CustomerUsageAttribution(); !ok {
 		return &ValidationError{Name: "customer_usage_attribution", err: errors.New(`db: missing required field "BillingInvoice.customer_usage_attribution"`)}
 	}
+	if v, ok := _c.mutation.CustomerUsageAttribution(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "customer_usage_attribution", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_usage_attribution": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Number(); !ok {
 		return &ValidationError{Name: "number", err: errors.New(`db: missing required field "BillingInvoice.number"`)}
 	}
