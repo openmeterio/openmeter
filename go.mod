@@ -16,7 +16,7 @@ require (
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.1.2
 	github.com/XSAM/otelsql v0.40.0
 	github.com/alpacahq/alpacadecimal v0.0.8
-	github.com/avast/retry-go/v4 v4.6.1
+	github.com/avast/retry-go/v4 v4.7.0
 	github.com/bhmj/jsonslice v1.1.3
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cloudevents/sdk-go/v2 v2.16.2
