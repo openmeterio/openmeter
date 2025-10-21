@@ -15413,6 +15413,8 @@ components:
           type: array
           items:
             type: string
+            minLength: 1
+            description: SubjectKey is a key that is used to identify a subject.
           minItems: 1
           maxItems: 1
           description: The subjects that are attributed to the customer.

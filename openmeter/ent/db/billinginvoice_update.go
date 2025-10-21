@@ -1012,6 +1012,11 @@ func (_u *BillingInvoiceUpdate) check() error {
 			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CustomerUsageAttribution(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "customer_usage_attribution", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_usage_attribution": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.GetType(); ok {
 		if err := billinginvoice.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.type": %w`, err)}
@@ -2417,6 +2422,11 @@ func (_u *BillingInvoiceUpdateOne) check() error {
 	if v, ok := _u.mutation.CustomerName(); ok {
 		if err := billinginvoice.CustomerNameValidator(v); err != nil {
 			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CustomerUsageAttribution(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "customer_usage_attribution", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_usage_attribution": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.GetType(); ok {

@@ -6679,7 +6679,14 @@ export const createCustomerBody = zod
     usageAttribution: zod
       .object({
         subjectKeys: zod
-          .array(zod.coerce.string())
+          .array(
+            zod.coerce
+              .string()
+              .min(1)
+              .describe(
+                'SubjectKey is a key that is used to identify a subject.',
+              ),
+          )
           .min(1)
           .max(createCustomerBodyUsageAttributionSubjectKeysMax)
           .describe('The subjects that are attributed to the customer.'),
@@ -6915,7 +6922,14 @@ export const updateCustomerBody = zod
     usageAttribution: zod
       .object({
         subjectKeys: zod
-          .array(zod.coerce.string())
+          .array(
+            zod.coerce
+              .string()
+              .min(1)
+              .describe(
+                'SubjectKey is a key that is used to identify a subject.',
+              ),
+          )
           .min(1)
           .max(updateCustomerBodyUsageAttributionSubjectKeysMax)
           .describe('The subjects that are attributed to the customer.'),
@@ -12136,7 +12150,14 @@ export const createStripeCheckoutSessionBody = zod
             usageAttribution: zod
               .object({
                 subjectKeys: zod
-                  .array(zod.coerce.string())
+                  .array(
+                    zod.coerce
+                      .string()
+                      .min(1)
+                      .describe(
+                        'SubjectKey is a key that is used to identify a subject.',
+                      ),
+                  )
                   .min(1)
                   .max(
                     createStripeCheckoutSessionBodyCustomerUsageAttributionSubjectKeysMax,
