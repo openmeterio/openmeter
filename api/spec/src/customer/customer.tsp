@@ -278,5 +278,11 @@ model CustomerUsageAttribution {
   @summary("SubjectKeys")
   @minItems(1)
   @maxItems(1)
-  subjectKeys: string[];
+  subjectKeys: SubjectKey[];
 }
+
+/**
+ * SubjectKey is a key that is used to identify a subject.
+ */
+@minLength(1)
+scalar SubjectKey extends string;
