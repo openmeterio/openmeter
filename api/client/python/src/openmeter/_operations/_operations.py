@@ -1496,7 +1496,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         Example:
             .. code-block:: python
 
-                # response body for status code(s): 200
+                # response body for status code(s): 201
                 response == {
                     "id": {},  # A unique identifier for the customer. Required.
                     "name": "str",  # Human-readable name for the resource. Between 1 and 256
@@ -1607,7 +1607,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "updatedAt": {}  # Optional. Timestamp of when the resource was last updated.
                 }
 
-                # response body for status code(s): 200
+                # response body for status code(s): 201
                 response == {
                     "id": {},  # A unique identifier for the customer. Required.
                     "name": "str",  # Human-readable name for the resource. Between 1 and 256
@@ -1694,7 +1694,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         response = pipeline_response.http_response
 
-        if response.status_code not in [200]:
+        if response.status_code not in [201]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
             map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
