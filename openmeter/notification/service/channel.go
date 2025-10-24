@@ -180,6 +180,17 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 			}
 		}
 
+		err = params.ValidateWith(func(i notification.UpdateChannelInput) error {
+			if i.Type != channel.Type {
+				return fmt.Errorf("cannot update channel type: %s to %s", channel.Type, i.Type)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("invalid params: %w", err)
+		}
+
 		// Fetch rules assigned to channel as we need to make sure that we do not remove rule assignments
 		// from channel during update.
 		rules, err := s.adapter.ListRules(ctx, notification.ListRulesInput{

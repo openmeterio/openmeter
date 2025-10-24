@@ -123,13 +123,6 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 			"namespace", params.Namespace,
 		)
 
-		err := params.Config.ValidateWith(notification.ValidateRuleConfigWithFeatures(ctx, s, params.Namespace))
-		if err != nil {
-			return nil, fmt.Errorf("invalid config: %w", err)
-		}
-
-		logger.Debug("updating rule")
-
 		rule, err := s.adapter.GetRule(ctx, notification.GetRuleInput{
 			ID:        params.ID,
 			Namespace: params.Namespace,
@@ -143,6 +136,24 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 				Err: errors.New("not allowed to update deleted rule"),
 			}
 		}
+
+		err = params.Config.ValidateWith(notification.ValidateRuleConfigWithFeatures(ctx, s, params.Namespace))
+		if err != nil {
+			return nil, fmt.Errorf("invalid config: %w", err)
+		}
+
+		err = params.ValidateWith(func(i notification.UpdateRuleInput) error {
+			if i.Type != rule.Type {
+				return fmt.Errorf("cannot change rule type: %s to %s", rule.Type, i.Type)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("invalid params: %w", err)
+		}
+
+		logger.Debug("updating rule")
 
 		// Get list of channel IDs currently assigned to rule
 		oldChannelIDs := lo.Map(rule.Channels, func(channel notification.Channel, _ int) string {
