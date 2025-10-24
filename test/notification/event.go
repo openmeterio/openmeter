@@ -245,10 +245,8 @@ func (s *EventTestSuite) TestGetEvent(ctx context.Context, t *testing.T) {
 	require.NotNil(t, event, "Rule must not be nil")
 
 	event2, err := service.GetEvent(ctx, notification.GetEventInput{
-		NamespacedID: models.NamespacedID{
-			Namespace: event.Namespace,
-			ID:        event.ID,
-		},
+		Namespace: event.Namespace,
+		ID:        event.ID,
 	})
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, event2, "Rule must not be nil")

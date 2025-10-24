@@ -1,7 +1,7 @@
 package notification
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -23,7 +23,10 @@ func EventTypes() []EventType {
 	return eventTypes
 }
 
-var _ fmt.Stringer = (*EventType)(nil)
+var (
+	_ fmt.Stringer     = (*EventType)(nil)
+	_ models.Validator = (*EventType)(nil)
+)
 
 type EventType string
 
@@ -33,9 +36,7 @@ func (t EventType) String() string {
 
 func (t EventType) Validate() error {
 	if !lo.Contains(eventTypes, t) {
-		return ValidationError{
-			Err: fmt.Errorf("invalid notification event type: %q", t),
-		}
+		return models.NewGenericValidationError(fmt.Errorf("invalid notification event type: %q", t))
 	}
 
 	return nil
@@ -68,7 +69,10 @@ type Event struct {
 	HandlerDeduplicationHash string `json:"-"`
 }
 
-var _ validator = (*ListEventsInput)(nil)
+var (
+	_ models.Validator                        = (*ListEventsInput)(nil)
+	_ models.CustomValidator[ListEventsInput] = (*ListEventsInput)(nil)
+)
 
 type ListEventsInput struct {
 	pagination.Page
@@ -93,51 +97,57 @@ type ListEventsInput struct {
 	Order   sortx.Order
 }
 
-func (i *ListEventsInput) Validate(_ context.Context, _ Service) error {
+func (i ListEventsInput) ValidateWith(validators ...models.ValidatorFunc[ListEventsInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i ListEventsInput) Validate() error {
+	var errs []error
+
 	if i.From.After(i.To) {
-		return ValidationError{
-			Err: fmt.Errorf("invalid time period: period start (%s) is after the period end (%s)", i.From, i.To),
-		}
+		errs = append(errs, fmt.Errorf("invalid time period: period start (%s) is after the period end (%s)", i.From, i.To))
 	}
 
 	switch i.OrderBy {
-	case OrderByID, OrderByCreatedAt:
-	case "":
-		i.OrderBy = OrderByID
+	case OrderByID, OrderByCreatedAt, "":
 	default:
-		return ValidationError{
-			Err: fmt.Errorf("invalid event order_by: %s", i.OrderBy),
-		}
+		errs = append(errs, fmt.Errorf("invalid event order_by: %s", i.OrderBy))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ListEventsResult = pagination.Result[Event]
 
-var _ validator = (*GetEventInput)(nil)
+var (
+	_ models.Validator                      = (*GetEventInput)(nil)
+	_ models.CustomValidator[GetEventInput] = (*GetEventInput)(nil)
+)
 
-type GetEventInput struct {
-	models.NamespacedID
+type GetEventInput models.NamespacedID
+
+func (i GetEventInput) ValidateWith(validators ...models.ValidatorFunc[GetEventInput]) error {
+	return models.Validate(i, validators...)
 }
 
-func (i GetEventInput) Validate(_ context.Context, _ Service) error {
+func (i GetEventInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: fmt.Errorf("namespace must be provided"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.ID == "" {
-		return ValidationError{
-			Err: fmt.Errorf("event id must be provided"),
-		}
+		errs = append(errs, errors.New("id is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*CreateEventInput)(nil)
+var (
+	_ models.Validator                         = (*CreateEventInput)(nil)
+	_ models.CustomValidator[CreateEventInput] = (*CreateEventInput)(nil)
+)
 
 type CreateEventInput struct {
 	models.NamespacedModel
@@ -153,10 +163,16 @@ type CreateEventInput struct {
 	HandlerDeduplicationHash string `json:"handlerDeduplicationHash"`
 }
 
-func (i CreateEventInput) Validate(ctx context.Context, service Service) error {
+func (i CreateEventInput) ValidateWith(validators ...models.ValidatorFunc[CreateEventInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i CreateEventInput) Validate() error {
+	var errs []error
+
 	if err := i.Type.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

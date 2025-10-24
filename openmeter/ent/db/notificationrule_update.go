@@ -225,6 +225,11 @@ func (_u *NotificationRuleUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationRule.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Config(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "config", err: fmt.Errorf(`db: validator failed for field "NotificationRule.config": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -580,6 +585,11 @@ func (_u *NotificationRuleUpdateOne) check() error {
 	if v, ok := _u.mutation.Name(); ok {
 		if err := notificationrule.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationRule.name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Config(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "config", err: fmt.Errorf(`db: validator failed for field "NotificationRule.config": %w`, err)}
 		}
 	}
 	return nil

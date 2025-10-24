@@ -1,13 +1,17 @@
 package notification
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+)
+
+var (
+	_ models.Validator             = (*Rule)(nil)
+	_ models.CustomValidator[Rule] = (*Rule)(nil)
 )
 
 type Rule struct {
@@ -28,34 +32,34 @@ type Rule struct {
 	Channels []Channel `json:"channels"`
 }
 
-func (r Rule) Validate(ctx context.Context, service Service) error {
+func (r Rule) ValidateWith(validators ...models.ValidatorFunc[Rule]) error {
+	return models.Validate(r, validators...)
+}
+
+func (r Rule) Validate() error {
+	var errs []error
+
 	if r.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if r.ID == "" {
-		return ValidationError{
-			Err: errors.New("id is required"),
-		}
+		errs = append(errs, errors.New("id is required"))
 	}
 
 	if r.Name == "" {
-		return ValidationError{
-			Err: errors.New("name is required"),
-		}
+		errs = append(errs, errors.New("name is required"))
 	}
 
 	if err := r.Type.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
-	if err := r.Config.Validate(ctx, service, r.Namespace); err != nil {
-		return err
+	if err := r.Config.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (r Rule) HasEnabledChannels() bool {
@@ -68,13 +72,27 @@ func (r Rule) HasEnabledChannels() bool {
 	return false
 }
 
+var (
+	_ models.Validator                       = (*RuleConfigMeta)(nil)
+	_ models.CustomValidator[RuleConfigMeta] = (*RuleConfigMeta)(nil)
+)
+
 type RuleConfigMeta struct {
 	Type EventType `json:"type"`
+}
+
+func (m RuleConfigMeta) ValidateWith(validators ...models.ValidatorFunc[RuleConfigMeta]) error {
+	return models.Validate(m, validators...)
 }
 
 func (m RuleConfigMeta) Validate() error {
 	return m.Type.Validate()
 }
+
+var (
+	_ models.Validator                   = (*RuleConfig)(nil)
+	_ models.CustomValidator[RuleConfig] = (*RuleConfig)(nil)
+)
 
 // RuleConfig is a union type capturing configuration parameters for all type of rules.
 type RuleConfig struct {
@@ -88,40 +106,40 @@ type RuleConfig struct {
 	Invoice *InvoiceRuleConfig `json:"invoice,omitempty"`
 }
 
+func (c RuleConfig) ValidateWith(validators ...models.ValidatorFunc[RuleConfig]) error {
+	return models.Validate(c, validators...)
+}
+
 // Validate invokes channel type specific validator and returns an error if channel configuration is invalid.
-func (c RuleConfig) Validate(ctx context.Context, service Service, namespace string) error {
+func (c RuleConfig) Validate() error {
 	switch c.Type {
 	case EventTypeBalanceThreshold:
 		if c.BalanceThreshold == nil {
-			return ValidationError{
-				Err: errors.New("missing balance threshold rule config"),
-			}
+			return models.NewGenericValidationError(errors.New("missing balance threshold rule config"))
 		}
 
-		return c.BalanceThreshold.Validate(ctx, service, namespace)
+		return c.BalanceThreshold.Validate()
 	case EventTypeEntitlementReset:
 		if c.EntitlementReset == nil {
-			return ValidationError{
-				Err: errors.New("missing entitlement reset rule config"),
-			}
+			return models.NewGenericValidationError(errors.New("missing entitlement reset rule config"))
 		}
 
-		return c.EntitlementReset.Validate(ctx, service, namespace)
+		return c.EntitlementReset.Validate()
 	case EventTypeInvoiceCreated, EventTypeInvoiceUpdated:
 		if c.Invoice == nil {
-			return ValidationError{
-				Err: errors.New("missing invoice rule config"),
-			}
+			return models.NewGenericValidationError(errors.New("missing invoice rule config"))
 		}
 
-		return c.Invoice.Validate(ctx, service, namespace)
-
+		return c.Invoice.Validate()
 	default:
-		return fmt.Errorf("unknown rule type: %s", c.Type)
+		return models.NewGenericValidationError(fmt.Errorf("unknown rule type: %s", c.Type))
 	}
 }
 
-var _ validator = (*ListRulesInput)(nil)
+var (
+	_ models.Validator                       = (*ListRulesInput)(nil)
+	_ models.CustomValidator[ListRulesInput] = (*ListRulesInput)(nil)
+)
 
 type ListRulesInput struct {
 	pagination.Page
@@ -136,13 +154,20 @@ type ListRulesInput struct {
 	Order   sortx.Order
 }
 
-func (i ListRulesInput) Validate(_ context.Context, _ Service) error {
+func (i ListRulesInput) ValidateWith(validators ...models.ValidatorFunc[ListRulesInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i ListRulesInput) Validate() error {
 	return nil
 }
 
 type ListRulesResult = pagination.Result[Rule]
 
-var _ validator = (*CreateRuleInput)(nil)
+var (
+	_ models.Validator                        = (*CreateRuleInput)(nil)
+	_ models.CustomValidator[CreateRuleInput] = (*CreateRuleInput)(nil)
+)
 
 type CreateRuleInput struct {
 	models.NamespacedModel
@@ -159,42 +184,45 @@ type CreateRuleInput struct {
 	Channels []string
 }
 
+func (i CreateRuleInput) ValidateWith(validators ...models.ValidatorFunc[CreateRuleInput]) error {
+	return models.Validate(i, validators...)
+}
+
 const MaxChannelsPerRule = 5
 
-func (i CreateRuleInput) Validate(ctx context.Context, service Service) error {
+func (i CreateRuleInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if err := i.Type.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if i.Name == "" {
-		return ValidationError{
-			Err: errors.New("channel name is required"),
-		}
+		errs = append(errs, errors.New("rule name is required"))
 	}
 
-	if err := i.Config.Validate(ctx, service, i.Namespace); err != nil {
-		return err
+	if err := i.Config.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if len(i.Channels) > MaxChannelsPerRule {
-		return ValidationError{
-			Err: fmt.Errorf("too many channels: %d > %d", len(i.Channels), MaxChannelsPerRule),
-		}
+		errs = append(errs, fmt.Errorf("too many channels: %d > %d", len(i.Channels), MaxChannelsPerRule))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*UpdateRuleInput)(nil)
+var (
+	_ models.Validator                        = (*UpdateRuleInput)(nil)
+	_ models.CustomValidator[UpdateRuleInput] = (*UpdateRuleInput)(nil)
+)
 
 type UpdateRuleInput struct {
-	models.NamespacedModel
+	models.NamespacedID
 
 	// Type defines the Rule type (e.g. entitlements.balance.threshold)
 	Type EventType
@@ -206,83 +234,70 @@ type UpdateRuleInput struct {
 	Config RuleConfig
 	// Channels defines the list of Channels the Rule needs to send Events.
 	Channels []string
-
-	// ID is the unique identifier for Rule.
-	ID string
 }
 
-func (i UpdateRuleInput) Validate(ctx context.Context, service Service) error {
+func (i UpdateRuleInput) ValidateWith(validators ...models.ValidatorFunc[UpdateRuleInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i UpdateRuleInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID == "" {
+		errs = append(errs, errors.New("id is required"))
 	}
 
 	if err := i.Type.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if i.Name == "" {
-		return ValidationError{
-			Err: errors.New("rule name is required"),
-		}
+		errs = append(errs, errors.New("rule name is required"))
 	}
 
-	if err := i.Config.Validate(ctx, service, i.Namespace); err != nil {
-		return err
-	}
-
-	if i.ID == "" {
-		return ValidationError{
-			Err: errors.New("rule id is required"),
-		}
+	if err := i.Config.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if len(i.Channels) > MaxChannelsPerRule {
-		return ValidationError{
-			Err: fmt.Errorf("too many channels: %d > %d", len(i.Channels), MaxChannelsPerRule),
-		}
+		errs = append(errs, fmt.Errorf("too many channels: %d > %d", len(i.Channels), MaxChannelsPerRule))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*GetRuleInput)(nil)
+var (
+	_ models.Validator                     = (*GetRuleInput)(nil)
+	_ models.CustomValidator[GetRuleInput] = (*GetRuleInput)(nil)
+)
 
 type GetRuleInput models.NamespacedID
 
-func (i GetRuleInput) Validate(_ context.Context, _ Service) error {
+func (i GetRuleInput) ValidateWith(validators ...models.ValidatorFunc[GetRuleInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i GetRuleInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.ID == "" {
-		return ValidationError{
-			Err: errors.New("rule id is required"),
-		}
+		errs = append(errs, errors.New("id is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*DeleteRuleInput)(nil)
+var (
+	_ models.Validator                        = (*DeleteRuleInput)(nil)
+	_ models.CustomValidator[DeleteRuleInput] = (*DeleteRuleInput)(nil)
+)
 
-type DeleteRuleInput models.NamespacedID
-
-func (i DeleteRuleInput) Validate(_ context.Context, _ Service) error {
-	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
-	}
-
-	if i.ID == "" {
-		return ValidationError{
-			Err: errors.New("rule id is required"),
-		}
-	}
-
-	return nil
-}
+type DeleteRuleInput = GetRuleInput

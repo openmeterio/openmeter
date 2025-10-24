@@ -10,10 +10,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (s Service) ListChannels(ctx context.Context, params notification.ListChannelsInput) (notification.ListChannelsResult, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return notification.ListChannelsResult{}, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -21,7 +22,7 @@ func (s Service) ListChannels(ctx context.Context, params notification.ListChann
 }
 
 func (s Service) CreateChannel(ctx context.Context, params notification.CreateChannelInput) (*notification.Channel, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -64,12 +65,14 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 			logger.Debug("webhook is created")
 
 			updateIn := notification.UpdateChannelInput{
-				NamespacedModel: channel.NamespacedModel,
-				Type:            channel.Type,
-				Name:            channel.Name,
-				Disabled:        channel.Disabled,
-				Config:          channel.Config,
-				ID:              channel.ID,
+				NamespacedID: models.NamespacedID{
+					Namespace: params.Namespace,
+					ID:        channel.ID,
+				},
+				Type:     channel.Type,
+				Name:     channel.Name,
+				Disabled: channel.Disabled,
+				Config:   channel.Config,
 			}
 			updateIn.Config.WebHook.SigningSecret = wb.Secret
 
@@ -89,7 +92,7 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 }
 
 func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteChannelInput) error {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return fmt.Errorf("invalid delete channel params: %w", err)
 	}
 
@@ -120,10 +123,10 @@ func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteCh
 				ruleIDs = append(ruleIDs, rule.ID)
 			}
 
-			return notification.ValidationError{
-				Err: fmt.Errorf("failed to delete channel as it is assigned to one or more rules [namespace=%s channel.id=%s]: %v",
+			return models.NewGenericValidationError(
+				fmt.Errorf("failed to delete channel as it is assigned to one or more rules [namespace=%s channel.id=%s]: %v",
 					params.Namespace, params.ID, ruleIDs),
-			}
+			)
 		}
 
 		if err = s.webhook.DeleteWebhook(ctx, webhook.DeleteWebhookInput{
@@ -142,7 +145,7 @@ func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteCh
 }
 
 func (s Service) GetChannel(ctx context.Context, params notification.GetChannelInput) (*notification.Channel, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -150,7 +153,7 @@ func (s Service) GetChannel(ctx context.Context, params notification.GetChannelI
 }
 
 func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateChannelInput) (*notification.Channel, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 

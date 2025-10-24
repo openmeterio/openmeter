@@ -14,7 +14,7 @@ import (
 )
 
 func (s Service) ListRules(ctx context.Context, params notification.ListRulesInput) (notification.ListRulesResult, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return notification.ListRulesResult{}, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -22,7 +22,7 @@ func (s Service) ListRules(ctx context.Context, params notification.ListRulesInp
 }
 
 func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleInput) (*notification.Rule, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -31,6 +31,11 @@ func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleI
 			"operation", "create",
 			"namespace", params.Namespace,
 		)
+
+		err := params.Config.ValidateWith(notification.ValidateRuleConfigWithFeatures(ctx, s, params.Namespace))
+		if err != nil {
+			return nil, fmt.Errorf("invalid config: %w", err)
+		}
 
 		logger.Debug("creating rule", "type", params.Type)
 
@@ -64,12 +69,12 @@ func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleI
 }
 
 func (s Service) DeleteRule(ctx context.Context, params notification.DeleteRuleInput) error {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return fmt.Errorf("invalid params: %w", err)
 	}
 
 	fn := func(ctx context.Context) error {
-		rule, err := s.adapter.GetRule(ctx, notification.GetRuleInput(params))
+		rule, err := s.adapter.GetRule(ctx, params)
 		if err != nil {
 			return fmt.Errorf("failed to get rule: %w", err)
 		}
@@ -99,7 +104,7 @@ func (s Service) DeleteRule(ctx context.Context, params notification.DeleteRuleI
 }
 
 func (s Service) GetRule(ctx context.Context, params notification.GetRuleInput) (*notification.Rule, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -107,7 +112,7 @@ func (s Service) GetRule(ctx context.Context, params notification.GetRuleInput) 
 }
 
 func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleInput) (*notification.Rule, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -117,6 +122,11 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 			"id", params.ID,
 			"namespace", params.Namespace,
 		)
+
+		err := params.Config.ValidateWith(notification.ValidateRuleConfigWithFeatures(ctx, s, params.Namespace))
+		if err != nil {
+			return nil, fmt.Errorf("invalid config: %w", err)
+		}
 
 		logger.Debug("updating rule")
 

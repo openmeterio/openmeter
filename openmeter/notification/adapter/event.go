@@ -86,12 +86,12 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 		}
 
 		switch params.OrderBy {
-		case notification.OrderByID:
-			query = query.Order(eventdb.ByID(order...))
 		case notification.OrderByCreatedAt:
+			query = query.Order(eventdb.ByCreatedAt(order...))
+		case notification.OrderByID:
 			fallthrough
 		default:
-			query = query.Order(eventdb.ByCreatedAt(order...))
+			query = query.Order(eventdb.ByID(order...))
 		}
 
 		response := pagination.Result[notification.Event]{

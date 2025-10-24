@@ -207,10 +207,13 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	require.NotNil(t, rule, "Rule must not be nil")
 
 	updateIn := notification.UpdateRuleInput{
-		NamespacedModel: rule.NamespacedModel,
-		Type:            rule.Type,
-		Name:            "NotificationUpdateRule2",
-		Disabled:        true,
+		NamespacedID: models.NamespacedID{
+			Namespace: rule.Namespace,
+			ID:        rule.ID,
+		},
+		Type:     rule.Type,
+		Name:     "NotificationUpdateRule2",
+		Disabled: true,
 		Config: notification.RuleConfig{
 			RuleConfigMeta: notification.RuleConfigMeta{
 				Type: rule.Config.Type,
@@ -223,7 +226,6 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 				}),
 			},
 		},
-		ID: rule.ID,
 	}
 
 	rule2, err := service.UpdateRule(ctx, updateIn)

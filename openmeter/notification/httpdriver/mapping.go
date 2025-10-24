@@ -19,9 +19,7 @@ func FromChannel(c notification.Channel) (api.NotificationChannel, error) {
 	case notification.ChannelTypeWebhook:
 		channel = FromChannelWebhook(c)
 	default:
-		return channel, notification.ValidationError{
-			Err: fmt.Errorf("invalid channel type: %s", c.Type),
-		}
+		return channel, models.NewGenericValidationError(fmt.Errorf("invalid channel type: %s", c.Type))
 	}
 
 	return channel, nil
@@ -69,12 +67,12 @@ func AsChannelWebhookCreateRequest(r api.NotificationChannelWebhookCreateRequest
 	}
 }
 
-func AsChannelWebhookUpdateRequest(r api.NotificationChannelWebhookCreateRequest, namespace, channelId string) notification.UpdateChannelInput {
+func AsChannelWebhookUpdateRequest(r api.NotificationChannelWebhookCreateRequest, namespace, channelID string) notification.UpdateChannelInput {
 	return notification.UpdateChannelInput{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
+			ID:        channelID,
 		},
-		ID:       channelId,
 		Name:     r.Name,
 		Type:     notification.ChannelType(r.Type),
 		Disabled: lo.FromPtrOr(r.Disabled, notification.DefaultDisabled),
@@ -114,8 +112,9 @@ func AsRuleBalanceThresholdCreateRequest(r api.NotificationRuleBalanceThresholdC
 
 func AsRuleBalanceThresholdUpdateRequest(r api.NotificationRuleBalanceThresholdCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
 	return notification.UpdateRuleInput{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
+			ID:        ruleID,
 		},
 		Name:     r.Name,
 		Type:     notification.EventType(r.Type),
@@ -130,7 +129,6 @@ func AsRuleBalanceThresholdUpdateRequest(r api.NotificationRuleBalanceThresholdC
 			},
 		},
 		Channels: r.Channels,
-		ID:       ruleID,
 	}
 }
 
@@ -156,8 +154,9 @@ func AsRuleEntitlementResetCreateRequest(r api.NotificationRuleEntitlementResetC
 
 func AsRuleEntitlementResetUpdateRequest(r api.NotificationRuleEntitlementResetCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
 	return notification.UpdateRuleInput{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
+			ID:        ruleID,
 		},
 		Name:     r.Name,
 		Type:     notification.EventType(r.Type),
@@ -171,7 +170,6 @@ func AsRuleEntitlementResetUpdateRequest(r api.NotificationRuleEntitlementResetC
 			},
 		},
 		Channels: r.Channels,
-		ID:       ruleID,
 	}
 }
 
@@ -193,10 +191,11 @@ func AsRuleInvoiceCreatedCreateRequest(r api.NotificationRuleInvoiceCreatedCreat
 	}
 }
 
-func AsRuleInvoiceCreatedUpdateRequest(r api.NotificationRuleInvoiceCreatedCreateRequest, namespace, id string) notification.UpdateRuleInput {
+func AsRuleInvoiceCreatedUpdateRequest(r api.NotificationRuleInvoiceCreatedCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
 	return notification.UpdateRuleInput{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
+			ID:        ruleID,
 		},
 		Type:     notification.EventType(r.Type),
 		Name:     r.Name,
@@ -208,7 +207,6 @@ func AsRuleInvoiceCreatedUpdateRequest(r api.NotificationRuleInvoiceCreatedCreat
 			Invoice: &notification.InvoiceRuleConfig{},
 		},
 		Channels: r.Channels,
-		ID:       id,
 	}
 }
 
@@ -230,10 +228,11 @@ func AsRuleInvoiceUpdatedCreateRequest(r api.NotificationRuleInvoiceUpdatedCreat
 	}
 }
 
-func AsRuleInvoiceUpdatedUpdateRequest(r api.NotificationRuleInvoiceUpdatedCreateRequest, namespace, id string) notification.UpdateRuleInput {
+func AsRuleInvoiceUpdatedUpdateRequest(r api.NotificationRuleInvoiceUpdatedCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
 	return notification.UpdateRuleInput{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
+			ID:        ruleID,
 		},
 		Type:     notification.EventType(r.Type),
 		Name:     r.Name,
@@ -245,7 +244,6 @@ func AsRuleInvoiceUpdatedUpdateRequest(r api.NotificationRuleInvoiceUpdatedCreat
 			Invoice: &notification.InvoiceRuleConfig{},
 		},
 		Channels: r.Channels,
-		ID:       id,
 	}
 }
 
@@ -277,9 +275,7 @@ func FromRule(r notification.Rule) (api.NotificationRule, error) {
 			return rule, fmt.Errorf("failed to cast notification rule with type: %s: %w", r.Type, err)
 		}
 	default:
-		return rule, notification.ValidationError{
-			Err: fmt.Errorf("invalid rule type: %s", r.Type),
-		}
+		return rule, models.NewGenericValidationError(fmt.Errorf("invalid rule type: %s", r.Type))
 	}
 
 	return rule, nil
@@ -498,9 +494,7 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 			return event, fmt.Errorf("failed to cast notification event payload: %w", err)
 		}
 	default:
-		return event, notification.ValidationError{
-			Err: fmt.Errorf("invalid event payload type: %s", e.Type),
-		}
+		return event, models.NewGenericValidationError(fmt.Errorf("invalid event payload type: %s", e.Type))
 	}
 
 	return event, nil

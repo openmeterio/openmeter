@@ -1,7 +1,6 @@
 package notification
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -14,6 +13,8 @@ import (
 const (
 	ChannelTypeWebhook ChannelType = "WEBHOOK"
 )
+
+var _ models.Validator = (*ChannelType)(nil)
 
 type ChannelType string
 
@@ -28,9 +29,7 @@ func (t ChannelType) Validate() error {
 	case ChannelTypeWebhook:
 		return nil
 	default:
-		return ValidationError{
-			Err: fmt.Errorf("invalid channel type: %s", t),
-		}
+		return models.NewGenericValidationError(fmt.Errorf("invalid channel type: %s", t))
 	}
 }
 
@@ -51,6 +50,8 @@ type Channel struct {
 	Config ChannelConfig `json:"config"`
 }
 
+var _ models.Validator = (*ChannelConfigMeta)(nil)
+
 type ChannelConfigMeta struct {
 	Type ChannelType `json:"type"`
 }
@@ -58,6 +59,8 @@ type ChannelConfigMeta struct {
 func (m ChannelConfigMeta) Validate() error {
 	return m.Type.Validate()
 }
+
+var _ models.Validator = (*ChannelConfig)(nil)
 
 // ChannelConfig is a union type capturing configuration parameters for all type of channels.
 type ChannelConfig struct {
@@ -73,13 +76,13 @@ func (c ChannelConfig) Validate() error {
 	case ChannelTypeWebhook:
 		return c.WebHook.Validate()
 	default:
-		return ValidationError{
-			Err: fmt.Errorf("invalid channel type: %s", c.Type),
-		}
+		return models.NewGenericValidationError(fmt.Errorf("invalid channel type: %s", c.Type))
 	}
 }
 
-// WebHookChannelConfig defines the configuration specific to channel with webhook type.
+var _ models.Validator = (*WebHookChannelConfig)(nil)
+
+// WebHookChannelConfig defines the configuration specific to a channel with a webhook type.
 type WebHookChannelConfig struct {
 	// CustomHeaders stores a set of HTTP headers which are applied to the outgoing webhook message.
 	CustomHeaders map[string]string `json:"customHeaders,omitempty"`
@@ -92,24 +95,25 @@ type WebHookChannelConfig struct {
 
 // Validate returns an error if webhook channel configuration is invalid.
 func (w WebHookChannelConfig) Validate() error {
+	var errs []error
+
 	if w.URL == "" {
-		return ValidationError{
-			Err: errors.New("missing URL"),
-		}
+		errs = append(errs, errors.New("missing URL"))
 	}
 
 	if w.SigningSecret != "" {
 		if err := webhook.ValidateSigningSecret(w.SigningSecret); err != nil {
-			return ValidationError{
-				Err: fmt.Errorf("invalid signing secret: %w", err),
-			}
+			errs = append(errs, fmt.Errorf("invalid signing secret: %w", err))
 		}
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*ListChannelsInput)(nil)
+var (
+	_ models.Validator                          = (*ListChannelsInput)(nil)
+	_ models.CustomValidator[ListChannelsInput] = (*ListChannelsInput)(nil)
+)
 
 type ListChannelsInput struct {
 	pagination.Page
@@ -122,13 +126,20 @@ type ListChannelsInput struct {
 	Order   sortx.Order
 }
 
-func (i ListChannelsInput) Validate(_ context.Context, _ Service) error {
+func (i ListChannelsInput) ValidateWith(validators ...models.ValidatorFunc[ListChannelsInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i ListChannelsInput) Validate() error {
 	return nil
 }
 
 type ListChannelsResult = pagination.Result[Channel]
 
-var _ validator = (*CreateChannelInput)(nil)
+var (
+	_ models.Validator                           = (*CreateChannelInput)(nil)
+	_ models.CustomValidator[CreateChannelInput] = (*CreateChannelInput)(nil)
+)
 
 type CreateChannelInput struct {
 	models.NamespacedModel
@@ -143,34 +154,39 @@ type CreateChannelInput struct {
 	Config ChannelConfig
 }
 
-func (i CreateChannelInput) Validate(_ context.Context, _ Service) error {
+func (i CreateChannelInput) ValidateWith(validators ...models.ValidatorFunc[CreateChannelInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i CreateChannelInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if err := i.Type.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if i.Name == "" {
-		return ValidationError{
-			Err: errors.New("channel name is required"),
-		}
+		errs = append(errs, errors.New("channel name is required"))
 	}
 
 	if err := i.Config.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*UpdateChannelInput)(nil)
+var (
+	_ models.Validator                           = (*UpdateChannelInput)(nil)
+	_ models.CustomValidator[UpdateChannelInput] = (*UpdateChannelInput)(nil)
+)
 
 type UpdateChannelInput struct {
-	models.NamespacedModel
+	models.NamespacedID
 
 	// Type defines the Channel type (e.g. webhook)
 	Type ChannelType
@@ -180,77 +196,66 @@ type UpdateChannelInput struct {
 	Disabled bool
 	// Config stores the Channel Type specific configuration.
 	Config ChannelConfig
-
-	// ID is the unique identifier for Channel.
-	ID string
 }
 
-func (i UpdateChannelInput) Validate(_ context.Context, _ Service) error {
+func (i UpdateChannelInput) ValidateWith(validators ...models.ValidatorFunc[UpdateChannelInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i UpdateChannelInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID == "" {
+		errs = append(errs, errors.New("id is required"))
 	}
 
 	if err := i.Type.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if i.Name == "" {
-		return ValidationError{
-			Err: errors.New("channel name is required"),
-		}
+		errs = append(errs, errors.New("channel name is required"))
 	}
 
 	if err := i.Config.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
-	if i.ID == "" {
-		return ValidationError{
-			Err: errors.New("channel id is required"),
-		}
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*GetChannelInput)(nil)
+var (
+	_ models.Validator                        = (*GetChannelInput)(nil)
+	_ models.CustomValidator[GetChannelInput] = (*GetChannelInput)(nil)
+)
 
 type GetChannelInput models.NamespacedID
 
-func (i GetChannelInput) Validate(_ context.Context, _ Service) error {
+func (i GetChannelInput) ValidateWith(validators ...models.ValidatorFunc[GetChannelInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i GetChannelInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.ID == "" {
-		return ValidationError{
-			Err: errors.New("channel id is required"),
-		}
+		errs = append(errs, errors.New("id is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*DeleteChannelInput)(nil)
+var (
+	_ models.Validator                        = (*DeleteChannelInput)(nil)
+	_ models.CustomValidator[GetChannelInput] = (*DeleteChannelInput)(nil)
+)
 
-type DeleteChannelInput models.NamespacedID
-
-func (i DeleteChannelInput) Validate(_ context.Context, _ Service) error {
-	if i.Namespace == "" {
-		return ValidationError{
-			Err: errors.New("namespace is required"),
-		}
-	}
-
-	if i.ID == "" {
-		return ValidationError{
-			Err: errors.New("channel id is required"),
-		}
-	}
-
-	return nil
-}
+type DeleteChannelInput = GetChannelInput
