@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -100,10 +99,8 @@ func (h *handler) GetEvent() GetEventHandler {
 			}
 
 			req := GetEventRequest{
-				NamespacedID: models.NamespacedID{
-					Namespace: ns,
-					ID:        eventID,
-				},
+				Namespace: ns,
+				ID:        eventID,
 			}
 
 			return req, nil

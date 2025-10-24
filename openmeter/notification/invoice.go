@@ -1,9 +1,8 @@
 package notification
 
 import (
-	"context"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -13,8 +12,17 @@ const (
 
 type InvoicePayload = billing.EventInvoice
 
+var (
+	_ models.Validator                          = (*InvoiceRuleConfig)(nil)
+	_ models.CustomValidator[InvoiceRuleConfig] = (*InvoiceRuleConfig)(nil)
+)
+
 type InvoiceRuleConfig struct{}
 
-func (c InvoiceRuleConfig) Validate(ctx context.Context, service Service, namespace string) error {
+func (c InvoiceRuleConfig) ValidateWith(validators ...models.ValidatorFunc[InvoiceRuleConfig]) error {
+	return models.Validate(c, validators...)
+}
+
+func (c InvoiceRuleConfig) Validate() error {
 	return nil
 }

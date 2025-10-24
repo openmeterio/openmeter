@@ -102,10 +102,13 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Generating new signing secret must not return an error")
 
 	updateIn := notification.UpdateChannelInput{
-		NamespacedModel: channel.NamespacedModel,
-		Type:            channel.Type,
-		Name:            "NotificationUpdateChannel2",
-		Disabled:        true,
+		NamespacedID: models.NamespacedID{
+			Namespace: channel.Namespace,
+			ID:        channel.ID,
+		},
+		Type:     channel.Type,
+		Name:     "NotificationUpdateChannel2",
+		Disabled: true,
 		Config: notification.ChannelConfig{
 			ChannelConfigMeta: channel.Config.ChannelConfigMeta,
 			WebHook: notification.WebHookChannelConfig{
@@ -116,7 +119,6 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 				SigningSecret: secret,
 			},
 		},
-		ID: channel.ID,
 	}
 
 	channel2, err := service.UpdateChannel(ctx, updateIn)

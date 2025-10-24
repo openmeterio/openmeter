@@ -11,7 +11,7 @@ import (
 )
 
 func (s Service) ListEvents(ctx context.Context, params notification.ListEventsInput) (notification.ListEventsResult, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return notification.ListEventsResult{}, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -19,7 +19,7 @@ func (s Service) ListEvents(ctx context.Context, params notification.ListEventsI
 }
 
 func (s Service) GetEvent(ctx context.Context, params notification.GetEventInput) (*notification.Event, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -27,7 +27,7 @@ func (s Service) GetEvent(ctx context.Context, params notification.GetEventInput
 }
 
 func (s Service) CreateEvent(ctx context.Context, params notification.CreateEventInput) (*notification.Event, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -57,9 +57,7 @@ func (s Service) CreateEvent(ctx context.Context, params notification.CreateEven
 		}
 
 		if rule.Disabled {
-			return nil, notification.ValidationError{
-				Err: errors.New("failed to send event: rule is disabled"),
-			}
+			return nil, models.NewGenericValidationError(errors.New("failed to send event: rule is disabled"))
 		}
 
 		event, err := s.adapter.CreateEvent(ctx, params)

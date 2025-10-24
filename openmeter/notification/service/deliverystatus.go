@@ -9,7 +9,7 @@ import (
 )
 
 func (s Service) UpdateEventDeliveryStatus(ctx context.Context, params notification.UpdateEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -21,7 +21,7 @@ func (s Service) UpdateEventDeliveryStatus(ctx context.Context, params notificat
 }
 
 func (s Service) ListEventsDeliveryStatus(ctx context.Context, params notification.ListEventsDeliveryStatusInput) (notification.ListEventsDeliveryStatusResult, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return notification.ListEventsDeliveryStatusResult{}, fmt.Errorf("invalid params: %w", err)
 	}
 
@@ -29,7 +29,7 @@ func (s Service) ListEventsDeliveryStatus(ctx context.Context, params notificati
 }
 
 func (s Service) GetEventDeliveryStatus(ctx context.Context, params notification.GetEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
-	if err := params.Validate(ctx, s); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 

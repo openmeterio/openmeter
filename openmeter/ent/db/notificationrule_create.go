@@ -238,6 +238,11 @@ func (_c *NotificationRuleCreate) check() error {
 	if _, ok := _c.mutation.Config(); !ok {
 		return &ValidationError{Name: "config", err: errors.New(`db: missing required field "NotificationRule.config"`)}
 	}
+	if v, ok := _c.mutation.Config(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "config", err: fmt.Errorf(`db: validator failed for field "NotificationRule.config": %w`, err)}
+		}
+	}
 	return nil
 }
 

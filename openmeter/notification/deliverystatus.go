@@ -1,7 +1,7 @@
 package notification
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,7 +16,10 @@ const (
 	EventDeliveryStatusStatePending EventDeliveryStatusState = "PENDING"
 )
 
-var _ fmt.Stringer = (*EventDeliveryStatusState)(nil)
+var (
+	_ fmt.Stringer     = (*EventDeliveryStatusState)(nil)
+	_ models.Validator = (*EventDeliveryStatusState)(nil)
+)
 
 type EventDeliveryStatusState string
 
@@ -29,9 +32,7 @@ func (e EventDeliveryStatusState) Validate() error {
 	case EventDeliveryStatusStateSuccess, EventDeliveryStatusStateFailed, EventDeliveryStatusStateSending, EventDeliveryStatusStatePending:
 		return nil
 	default:
-		return ValidationError{
-			Err: fmt.Errorf("invalid event delivery status state: %s", e),
-		}
+		return models.NewGenericValidationError(fmt.Errorf("invalid event delivery status state: %s", e))
 	}
 }
 
@@ -59,7 +60,10 @@ type EventDeliveryStatus struct {
 	UpdatedAt time.Time                `json:"updatedAt,omitempty"`
 }
 
-var _ validator = (*ListEventsDeliveryStatusInput)(nil)
+var (
+	_ models.Validator                                      = (*ListEventsDeliveryStatusInput)(nil)
+	_ models.CustomValidator[ListEventsDeliveryStatusInput] = (*ListEventsDeliveryStatusInput)(nil)
+)
 
 type ListEventsDeliveryStatusInput struct {
 	pagination.Page
@@ -82,54 +86,64 @@ type ListEventsDeliveryStatusInput struct {
 	States []EventDeliveryStatusState
 }
 
-func (i ListEventsDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
+func (i ListEventsDeliveryStatusInput) ValidateWith(validators ...models.ValidatorFunc[ListEventsDeliveryStatusInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i ListEventsDeliveryStatusInput) Validate() error {
+	var errs []error
+
 	if i.From.After(i.To) {
-		return ValidationError{
-			Err: fmt.Errorf("invalid time range: parameter From (%s) is after To (%s)", i.From, i.To),
-		}
+		errs = append(errs, fmt.Errorf("invalid time range: parameter From (%s) is after To (%s)", i.From, i.To))
 	}
 
 	for _, s := range i.States {
 		if err := s.Validate(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ListEventsDeliveryStatusResult = pagination.Result[EventDeliveryStatus]
 
-var _ validator = (*GetEventDeliveryStatusInput)(nil)
+var (
+	_ models.Validator                                    = (*GetEventDeliveryStatusInput)(nil)
+	_ models.CustomValidator[GetEventDeliveryStatusInput] = (*GetEventDeliveryStatusInput)(nil)
+)
 
 type GetEventDeliveryStatusInput struct {
-	models.NamespacedModel
+	models.NamespacedID
 
-	// ID the unique identifier of the EventDeliveryStatus.
-	ID string
 	// EventID defines the Event identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
 	EventID string
 	// ChannelID defines the Channel identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
 	ChannelID string
 }
 
-func (i GetEventDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
+func (i GetEventDeliveryStatusInput) ValidateWith(validators ...models.ValidatorFunc[GetEventDeliveryStatusInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i GetEventDeliveryStatusInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return ValidationError{
-			Err: fmt.Errorf("namespace must be provided"),
-		}
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.ID == "" && (i.EventID == "" || i.ChannelID == "") {
-		return ValidationError{
-			Err: fmt.Errorf("delivery status ID or both channel ID and event ID must be provided"),
-		}
+		errs = append(errs, fmt.Errorf("delivery status ID or both channel ID and event ID must be provided"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*UpdateEventDeliveryStatusInput)(nil)
+var (
+	_ models.Validator                                       = (*UpdateEventDeliveryStatusInput)(nil)
+	_ models.CustomValidator[UpdateEventDeliveryStatusInput] = (*UpdateEventDeliveryStatusInput)(nil)
+)
 
 type UpdateEventDeliveryStatusInput struct {
 	models.NamespacedModel
@@ -146,22 +160,24 @@ type UpdateEventDeliveryStatusInput struct {
 	ChannelID string
 }
 
-func (i UpdateEventDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
-	if i.Namespace == "" {
-		return ValidationError{
-			Err: fmt.Errorf("namespace must be provided"),
-		}
-	}
+func (i UpdateEventDeliveryStatusInput) ValidateWith(validators ...models.ValidatorFunc[UpdateEventDeliveryStatusInput]) error {
+	return models.Validate(i, validators...)
+}
 
-	if err := i.State.Validate(); err != nil {
-		return err
+func (i UpdateEventDeliveryStatusInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.ID == "" && (i.EventID == "" || i.ChannelID == "") {
-		return ValidationError{
-			Err: fmt.Errorf("delivery status ID or both channel ID and event ID must be provided"),
-		}
+		errs = append(errs, fmt.Errorf("delivery status ID or both channel ID and event ID must be provided"))
 	}
 
-	return nil
+	if err := i.State.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
