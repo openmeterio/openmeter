@@ -389,6 +389,8 @@ type numericThreshold struct {
 	Active bool
 }
 
+const absoluteZero = 1e-9
+
 func getNumericThreshold(threshold notification.BalanceThreshold, value api.EntitlementValue) (*numericThreshold, error) {
 	var (
 		balance = lo.FromPtr(value.Balance)
@@ -397,7 +399,7 @@ func getNumericThreshold(threshold notification.BalanceThreshold, value api.Enti
 	)
 
 	// Invalid entitlement value as there cannot be overage if the balance is not zero.
-	if balance > 0 && overage > 0 {
+	if balance > absoluteZero && overage > absoluteZero {
 		return nil, errors.New("balance and overage cannot be positive number at the same time")
 	}
 
@@ -415,12 +417,7 @@ func getNumericThreshold(threshold notification.BalanceThreshold, value api.Enti
 	case api.NotificationRuleBalanceThresholdValueTypePercent:
 		fallthrough
 	case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage:
-		// Cannot calculate total grants if both the balance and the overage have zero value even if the usage is non-zero.
-		if balance == 0 && usage == 0 && overage == 0 {
-			return nil, ErrNoBalanceAvailable
-		}
-
-		// Cannot calculate total grants if both the balance and the overage have zero value even if the usage is non-zero.
+		// Cannot calculate total grants if both balance and overage are zero (usage alone is insufficient).
 		if balance == 0 && overage == 0 {
 			return nil, ErrNoBalanceAvailable
 		}
