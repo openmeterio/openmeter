@@ -18,7 +18,7 @@ const (
 
 var (
 	_ fmt.Stringer     = (*EventDeliveryStatusState)(nil)
-	_ models.Validator = (*ListEventsDeliveryStatusInput)(nil)
+	_ models.Validator = (*EventDeliveryStatusState)(nil)
 )
 
 type EventDeliveryStatusState string
