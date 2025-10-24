@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/apiconverter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -79,14 +80,15 @@ func ToAPIMeterQueryRowList(rows []meter.MeterQueryRow) []api.MeterQueryRow {
 func ToRequestFromQueryParamsPOSTBody(apiParams api.QueryMeterParams) api.QueryMeterPostJSONRequestBody {
 	// Map the POST request body to a GET request params
 	request := api.QueryMeterPostJSONRequestBody{
-		ClientId:         apiParams.ClientId,
-		From:             apiParams.From,
-		To:               apiParams.To,
-		Subject:          apiParams.Subject,
-		GroupBy:          apiParams.GroupBy,
-		FilterCustomerId: apiParams.FilterCustomerId,
-		WindowSize:       apiParams.WindowSize,
-		WindowTimeZone:   apiParams.WindowTimeZone,
+		ClientId:                    apiParams.ClientId,
+		From:                        apiParams.From,
+		To:                          apiParams.To,
+		Subject:                     apiParams.Subject,
+		GroupBy:                     apiParams.GroupBy,
+		FilterCustomerId:            apiParams.FilterCustomerId,
+		WindowSize:                  apiParams.WindowSize,
+		WindowTimeZone:              apiParams.WindowTimeZone,
+		AdvancedMeterGroupByFilters: (*map[string]api.FilterString)(apiParams.AdvancedMeterGroupByFilters),
 	}
 
 	if apiParams.FilterGroupBy != nil {
@@ -161,7 +163,15 @@ func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, r
 		params.WindowTimeZone = tz
 	}
 
+	if request.AdvancedMeterGroupByFilters != nil {
+		params.FilterGroupBy = apiconverter.ConvertStringMap(*request.AdvancedMeterGroupByFilters)
+	}
+
 	if request.FilterGroupBy != nil {
+		if request.AdvancedMeterGroupByFilters != nil {
+			return params, models.NewGenericValidationError(errors.New("advanced meter group by filters and filter group by cannot be used together"))
+		}
+
 		params.FilterGroupBy = map[string]filter.FilterString{}
 		for k, v := range *request.FilterGroupBy {
 			// GroupBy filters

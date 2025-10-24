@@ -7612,6 +7612,24 @@ export interface components {
         [key: string]: string[]
       }
       /**
+       * @description Optional advanced meter group by filters.
+       *     You can use this to filter for values of the meter groupBy fields.
+       * @example {
+       *       "model": {
+       *         "$in": [
+       *           "gpt-4",
+       *           "gpt-4o"
+       *         ]
+       *       },
+       *       "type": {
+       *         "$eq": "input"
+       *       }
+       *     }
+       */
+      advancedMeterGroupByFilters?: {
+        [key: string]: components['schemas']['FilterString']
+      }
+      /**
        * @description If not specified a single aggregate will be returned for each subject and time window.
        *     `subject` is a reserved group by value.
        * @example [
@@ -11283,6 +11301,9 @@ export interface components {
     'MeterOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'MeterOrderByOrdering.orderBy': components['schemas']['MeterOrderBy']
+    /** @description Optional advanced meter group by filters.
+     *     You can use this to filter for values of the meter groupBy fields. */
+    'MeterQuery.advancedMeterGroupByFilters': string
     /** @description Client ID
      *     Useful to track progress of a query. */
     'MeterQuery.clientId': string
@@ -12091,6 +12112,8 @@ export type ParameterMeterOrderByOrderingOrder =
   components['parameters']['MeterOrderByOrdering.order']
 export type ParameterMeterOrderByOrderingOrderBy =
   components['parameters']['MeterOrderByOrdering.orderBy']
+export type ParameterMeterQueryAdvancedMeterGroupByFilters =
+  components['parameters']['MeterQuery.advancedMeterGroupByFilters']
 export type ParameterMeterQueryClientId =
   components['parameters']['MeterQuery.clientId']
 export type ParameterMeterQueryFilterCustomerId =
@@ -19578,6 +19601,9 @@ export interface operations {
          *
          *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
+        /** @description Optional advanced meter group by filters.
+         *     You can use this to filter for values of the meter groupBy fields. */
+        advancedMeterGroupByFilters?: components['parameters']['MeterQuery.advancedMeterGroupByFilters']
         /** @description If not specified a single aggregate will be returned for each subject and time window.
          *     `subject` is a reserved group by value.
          *
@@ -22459,6 +22485,9 @@ export interface operations {
          *
          *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
+        /** @description Optional advanced meter group by filters.
+         *     You can use this to filter for values of the meter groupBy fields. */
+        advancedMeterGroupByFilters?: components['parameters']['MeterQuery.advancedMeterGroupByFilters']
         /** @description If not specified a single aggregate will be returned for each subject and time window.
          *     `subject` is a reserved group by value.
          *
