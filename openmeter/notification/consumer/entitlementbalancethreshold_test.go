@@ -69,8 +69,8 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 				newNumberThreshold(30),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: lo.ToPtr(10.0),
-				Usage:   lo.ToPtr(20.0),
+				Balance: lo.ToPtr(5.0),
+				Usage:   lo.ToPtr(25.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   lo.ToPtr(newNumberThreshold(20)),
@@ -85,8 +85,8 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 				newUsageValueThreshold(30),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: lo.ToPtr(10.0),
-				Usage:   lo.ToPtr(20.0),
+				Balance: lo.ToPtr(5.0),
+				Usage:   lo.ToPtr(25.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   lo.ToPtr(newUsageValueThreshold(20)),
@@ -102,7 +102,7 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 			},
 			EntitlementValue: snapshot.EntitlementValue{
 				Balance: lo.ToPtr(0.0),
-				Usage:   lo.ToPtr(30.0),
+				Usage:   lo.ToPtr(35.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   lo.ToPtr(newNumberThreshold(30)),
@@ -118,7 +118,7 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 			},
 			EntitlementValue: snapshot.EntitlementValue{
 				Balance: lo.ToPtr(0.0),
-				Usage:   lo.ToPtr(30.0),
+				Usage:   lo.ToPtr(35.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   lo.ToPtr(newUsageValueThreshold(30)),
@@ -134,7 +134,7 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 			},
 			EntitlementValue: snapshot.EntitlementValue{
 				Balance: lo.ToPtr(0.0),
-				Usage:   lo.ToPtr(30.0),
+				Usage:   lo.ToPtr(35.0),
 				Overage: lo.ToPtr(10.0),
 			},
 			Expected: &activeThresholds{
@@ -151,7 +151,7 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 			},
 			EntitlementValue: snapshot.EntitlementValue{
 				Balance: lo.ToPtr(0.0),
-				Usage:   lo.ToPtr(30.0),
+				Usage:   lo.ToPtr(35.0),
 				Overage: lo.ToPtr(10.0),
 			},
 			Expected: &activeThresholds{
@@ -170,7 +170,7 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 			EntitlementValue: snapshot.EntitlementValue{
 				Balance: lo.ToPtr(0.0),
 				Usage:   lo.ToPtr(110.0),
-				Overage: lo.ToPtr(10.0),
+				Overage: lo.ToPtr(15.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   lo.ToPtr(newPercentThreshold(110)),
@@ -188,10 +188,44 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 			EntitlementValue: snapshot.EntitlementValue{
 				Balance: lo.ToPtr(0.0),
 				Usage:   lo.ToPtr(110.0),
-				Overage: lo.ToPtr(10.0),
+				Overage: lo.ToPtr(15.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   lo.ToPtr(newUsagePercentageThreshold(110)),
+				Balance: nil,
+			},
+		},
+		{
+			Name: "Usage percentage with no balance and usage",
+			BalanceThresholds: []notification.BalanceThreshold{
+				newUsagePercentageThreshold(50),
+				newUsagePercentageThreshold(100),
+				newUsagePercentageThreshold(110),
+				newUsagePercentageThreshold(120),
+			},
+			EntitlementValue: snapshot.EntitlementValue{
+				Balance: lo.ToPtr(0.0),
+				Usage:   lo.ToPtr(0.0),
+			},
+			Expected: &activeThresholds{
+				Usage:   nil,
+				Balance: nil,
+			},
+		},
+		{
+			Name: "Usage percentage with no grants",
+			BalanceThresholds: []notification.BalanceThreshold{
+				newUsagePercentageThreshold(50),
+				newUsagePercentageThreshold(100),
+				newUsagePercentageThreshold(110),
+				newUsagePercentageThreshold(120),
+			},
+			EntitlementValue: snapshot.EntitlementValue{
+				Balance: lo.ToPtr(0.0),
+				Usage:   lo.ToPtr(100.0),
+			},
+			Expected: &activeThresholds{
+				Usage:   nil,
 				Balance: nil,
 			},
 		},
@@ -329,7 +363,7 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 				Usage:   lo.ToPtr(15.0),
 			},
 			Expected: &activeThresholds{
-				Usage:   lo.ToPtr(newPercentThreshold(50)),
+				Usage:   nil,
 				Balance: nil,
 			},
 		},
@@ -341,8 +375,8 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 				newUsagePercentageThreshold(50),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: lo.ToPtr(15.0),
-				Usage:   lo.ToPtr(15.0),
+				Balance: lo.ToPtr(14.0),
+				Usage:   lo.ToPtr(16.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   lo.ToPtr(newUsagePercentageThreshold(50)),
@@ -351,15 +385,15 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 		},
 		// Balance value
 		{
-			Name: "Balance values only",
+			Name: "Exact balance threshold",
 			BalanceThresholds: []notification.BalanceThreshold{
 				newBalanceValueThreshold(20),
 				newBalanceValueThreshold(10),
 				newBalanceValueThreshold(30),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: lo.ToPtr(20.0),
-				Usage:   lo.ToPtr(10.0),
+				Balance: lo.ToPtr(15.0),
+				Usage:   lo.ToPtr(15.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   nil,
@@ -367,19 +401,35 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 			},
 		},
 		{
-			Name: "Balance values only - 100%",
+			Name: "Non-zero balance thresholds value",
 			BalanceThresholds: []notification.BalanceThreshold{
 				newBalanceValueThreshold(20),
 				newBalanceValueThreshold(10),
 				newBalanceValueThreshold(30),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: lo.ToPtr(30.0),
+				Balance: lo.ToPtr(25.0),
 				Usage:   lo.ToPtr(0.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   nil,
 				Balance: lo.ToPtr(newBalanceValueThreshold(30)),
+			},
+		},
+		{
+			Name: "Zero balance threshold value",
+			BalanceThresholds: []notification.BalanceThreshold{
+				newBalanceValueThreshold(20),
+				newBalanceValueThreshold(10),
+				newBalanceValueThreshold(0),
+			},
+			EntitlementValue: snapshot.EntitlementValue{
+				Balance: lo.ToPtr(0.0),
+				Usage:   lo.ToPtr(30.0),
+			},
+			Expected: &activeThresholds{
+				Usage:   nil,
+				Balance: lo.ToPtr(newBalanceValueThreshold(0)),
 			},
 		},
 		{
@@ -389,8 +439,8 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 				newUsageValueThreshold(20),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: lo.ToPtr(10.0),
-				Usage:   lo.ToPtr(20.0),
+				Balance: lo.ToPtr(5.0),
+				Usage:   lo.ToPtr(25.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   lo.ToPtr(newUsageValueThreshold(20)),
@@ -404,12 +454,28 @@ func Test_GetActiveThresholdsWithHighestPriority(t *testing.T) {
 				newUsagePercentageThreshold(90),
 			},
 			EntitlementValue: snapshot.EntitlementValue{
-				Balance: lo.ToPtr(10.0),
-				Usage:   lo.ToPtr(90.0),
+				Balance: lo.ToPtr(5.0),
+				Usage:   lo.ToPtr(95.0),
 			},
 			Expected: &activeThresholds{
 				Usage:   lo.ToPtr(newUsagePercentageThreshold(90)),
 				Balance: lo.ToPtr(newBalanceValueThreshold(10)),
+			},
+		},
+		{
+			Name: "No balance available",
+			BalanceThresholds: []notification.BalanceThreshold{
+				newBalanceValueThreshold(10),
+				newUsagePercentageThreshold(90),
+			},
+			EntitlementValue: snapshot.EntitlementValue{
+				Balance: lo.ToPtr(0.0),
+				Usage:   lo.ToPtr(0.0),
+				Overage: lo.ToPtr(0.0),
+			},
+			Expected: &activeThresholds{
+				Usage:   nil,
+				Balance: nil,
 			},
 		},
 	}
