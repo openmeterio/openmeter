@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -89,6 +91,10 @@ func (b BalanceThresholdRuleConfig) ValidateWith(validators ...models.ValidatorF
 func (b BalanceThresholdRuleConfig) Validate() error {
 	var errs []error
 
+	if len(b.Features) != len(lo.Uniq(b.Features)) {
+		errs = append(errs, errors.New("duplicated features"))
+	}
+
 	if len(b.Thresholds) == 0 {
 		errs = append(errs, errors.New("must provide at least one threshold"))
 	}
@@ -136,30 +142,32 @@ func ValidateRuleConfigWithFeatures(ctx context.Context, service FeatureService,
 			return nil
 		}
 
+		featuresIDOrKeys = lo.Uniq(featuresIDOrKeys)
+
 		if len(featuresIDOrKeys) > 0 {
 			features, err := service.ListFeature(ctx, namespace, featuresIDOrKeys...)
 			if err != nil {
 				return fmt.Errorf("failed to list features: %w", err)
 			}
 
-			if len(featuresIDOrKeys) != len(features) {
-				// Collect all feature IDs and keys returned by the API.
-				featureIDAndKeys := make(map[string]struct{}, len(features))
+			// Collect all feature IDs and keys returned by the API.
+			featureIDAndKeys := make(map[string]struct{}, len(features))
 
-				for _, feature := range features {
-					featureIDAndKeys[feature.ID] = struct{}{}
-					featureIDAndKeys[feature.Key] = struct{}{}
+			for _, feature := range features {
+				featureIDAndKeys[feature.ID] = struct{}{}
+				featureIDAndKeys[feature.Key] = struct{}{}
+			}
+
+			// Collect all feature IDs and keys that are available in the rule config but are missing from the API response.
+			missingFeatures := make([]string, 0)
+
+			for _, featureIdOrKey := range featuresIDOrKeys {
+				if _, ok := featureIDAndKeys[featureIdOrKey]; !ok {
+					missingFeatures = append(missingFeatures, featureIdOrKey)
 				}
+			}
 
-				// Collect all feature IDs and keys that are available in the rule config but are missing from the API response.
-				missingFeatures := make([]string, 0)
-
-				for _, featureIdOrKey := range featuresIDOrKeys {
-					if _, ok := featureIDAndKeys[featureIdOrKey]; !ok {
-						missingFeatures = append(missingFeatures, featureIdOrKey)
-					}
-				}
-
+			if len(missingFeatures) > 0 {
 				return models.NewGenericValidationError(fmt.Errorf("non-existing features: %v", missingFeatures))
 			}
 		}
@@ -199,5 +207,11 @@ func (e EntitlementResetRuleConfig) ValidateWith(validators ...models.ValidatorF
 }
 
 func (e EntitlementResetRuleConfig) Validate() error {
-	return nil
+	var errs []error
+
+	if len(e.Features) != len(lo.Uniq(e.Features)) {
+		errs = append(errs, errors.New("duplicated features"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
