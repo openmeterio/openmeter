@@ -9,7 +9,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -62,35 +64,53 @@ func (h *Handler) reconcileEvent(ctx context.Context, event *notification.Event)
 	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.reconcile_event").Wrap(fn)
 }
 
+const reconcileLockKey = "notification.event_handler.reconcile_lock"
+
 func (h *Handler) Reconcile(ctx context.Context) error {
 	fn := func(ctx context.Context) error {
-		span := trace.SpanFromContext(ctx)
+		return transaction.RunWithNoValue(ctx, h.repo, func(ctx context.Context) error {
+			span := trace.SpanFromContext(ctx)
 
-		span.AddEvent("fetching events to reconcile")
+			span.AddEvent("acquiring lock")
 
-		events, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
-			Page: pagination.Page{},
-			DeliveryStatusStates: []notification.EventDeliveryStatusState{
-				notification.EventDeliveryStatusStatePending,
-				notification.EventDeliveryStatusStateSending,
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
-		}
+			if err := h.lockr.LockForTXWithScopes(ctx, reconcileLockKey); err != nil {
+				if errors.Is(err, lockr.ErrLockTimeout) {
+					h.logger.WarnContext(ctx, "reconciliation lock is not available, skipping reconciliation")
 
-		var errs []error
+					return nil
+				}
 
-		for _, event := range events.Items {
-			if err = h.reconcileEvent(ctx, &event); err != nil {
-				errs = append(errs,
-					fmt.Errorf("failed to reconcile notification event [namespace=%s event.id=%s]: %w",
-						event.Namespace, event.ID, err),
-				)
+				return fmt.Errorf("failed to acquire reconciliation lock: %w", err)
 			}
-		}
 
-		return errors.Join(errs...)
+			span.AddEvent("lock acquired")
+
+			events, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
+				Page: pagination.Page{},
+				DeliveryStatusStates: []notification.EventDeliveryStatusState{
+					notification.EventDeliveryStatusStatePending,
+					notification.EventDeliveryStatusStateSending,
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
+			}
+
+			span.AddEvent("reconciling events")
+
+			var errs []error
+
+			for _, event := range events.Items {
+				if err = h.reconcileEvent(ctx, &event); err != nil {
+					errs = append(errs,
+						fmt.Errorf("failed to reconcile notification event [namespace=%s event.id=%s]: %w",
+							event.Namespace, event.ID, err),
+					)
+				}
+			}
+
+			return errors.Join(errs...)
+		})
 	}
 
 	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.reconcile").Wrap(fn)

@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -59,6 +60,8 @@ type Handler struct {
 
 	stopCh      chan struct{}
 	stopChClose func()
+
+	lockr *lockr.Locker
 }
 
 func (h *Handler) Start() error {
@@ -110,6 +113,11 @@ func New(config Config) (*Handler, error) {
 		config.ReconcileInterval = notification.DefaultReconcileInterval
 	}
 
+	reconcileLockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: config.Logger})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize lockr: %w", err)
+	}
+
 	stopCh := make(chan struct{})
 	stopChClose := sync.OnceFunc(func() {
 		close(stopCh)
@@ -123,5 +131,6 @@ func New(config Config) (*Handler, error) {
 		tracer:            config.Tracer,
 		stopCh:            stopCh,
 		stopChClose:       stopChClose,
+		lockr:             reconcileLockr,
 	}, nil
 }
