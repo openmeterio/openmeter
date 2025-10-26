@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -22,6 +23,8 @@ type NotificationEvent struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// The event type the rule associated with
@@ -30,8 +33,6 @@ type NotificationEvent struct {
 	RuleID string `json:"rule_id,omitempty"`
 	// Payload holds the value of the "payload" field.
 	Payload string `json:"payload,omitempty"`
-	// Annotations holds the value of the "annotations" field.
-	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationEventQuery when eager-loading is set.
 	Edges        NotificationEventEdges `json:"edges"`
@@ -74,12 +75,12 @@ func (*NotificationEvent) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case notificationevent.FieldAnnotations:
+			values[i] = new([]byte)
 		case notificationevent.FieldID, notificationevent.FieldNamespace, notificationevent.FieldType, notificationevent.FieldRuleID, notificationevent.FieldPayload:
 			values[i] = new(sql.NullString)
 		case notificationevent.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
-		case notificationevent.FieldAnnotations:
-			values[i] = notificationevent.ValueScanner.Annotations.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -107,6 +108,14 @@ func (_m *NotificationEvent) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
+		case notificationevent.FieldAnnotations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
+				}
+			}
 		case notificationevent.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -130,12 +139,6 @@ func (_m *NotificationEvent) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field payload", values[i])
 			} else if value.Valid {
 				_m.Payload = value.String
-			}
-		case notificationevent.FieldAnnotations:
-			if value, err := notificationevent.ValueScanner.Annotations.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				_m.Annotations = value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -186,6 +189,9 @@ func (_m *NotificationEvent) String() string {
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
+	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
@@ -197,9 +203,6 @@ func (_m *NotificationEvent) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("payload=")
 	builder.WriteString(_m.Payload)
-	builder.WriteString(", ")
-	builder.WriteString("annotations=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteByte(')')
 	return builder.String()
 }

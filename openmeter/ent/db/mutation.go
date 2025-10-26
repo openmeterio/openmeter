@@ -38065,6 +38065,8 @@ type NotificationChannelMutation struct {
 	created_at    *time.Time
 	updated_at    *time.Time
 	deleted_at    *time.Time
+	annotations   *models.Annotations
+	metadata      *map[string]string
 	_type         *notification.ChannelType
 	name          *string
 	disabled      *bool
@@ -38339,6 +38341,104 @@ func (m *NotificationChannelMutation) ResetDeletedAt() {
 	delete(m.clearedFields, notificationchannel.FieldDeletedAt)
 }
 
+// SetAnnotations sets the "annotations" field.
+func (m *NotificationChannelMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *NotificationChannelMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the NotificationChannel entity.
+// If the NotificationChannel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationChannelMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *NotificationChannelMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[notificationchannel.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *NotificationChannelMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[notificationchannel.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *NotificationChannelMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, notificationchannel.FieldAnnotations)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *NotificationChannelMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *NotificationChannelMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the NotificationChannel entity.
+// If the NotificationChannel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationChannelMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *NotificationChannelMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[notificationchannel.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *NotificationChannelMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[notificationchannel.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *NotificationChannelMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, notificationchannel.FieldMetadata)
+}
+
 // SetType sets the "type" field.
 func (m *NotificationChannelMutation) SetType(nt notification.ChannelType) {
 	m._type = &nt
@@ -38584,7 +38684,7 @@ func (m *NotificationChannelMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NotificationChannelMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 10)
 	if m.namespace != nil {
 		fields = append(fields, notificationchannel.FieldNamespace)
 	}
@@ -38596,6 +38696,12 @@ func (m *NotificationChannelMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, notificationchannel.FieldDeletedAt)
+	}
+	if m.annotations != nil {
+		fields = append(fields, notificationchannel.FieldAnnotations)
+	}
+	if m.metadata != nil {
+		fields = append(fields, notificationchannel.FieldMetadata)
 	}
 	if m._type != nil {
 		fields = append(fields, notificationchannel.FieldType)
@@ -38625,6 +38731,10 @@ func (m *NotificationChannelMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case notificationchannel.FieldDeletedAt:
 		return m.DeletedAt()
+	case notificationchannel.FieldAnnotations:
+		return m.Annotations()
+	case notificationchannel.FieldMetadata:
+		return m.Metadata()
 	case notificationchannel.FieldType:
 		return m.GetType()
 	case notificationchannel.FieldName:
@@ -38650,6 +38760,10 @@ func (m *NotificationChannelMutation) OldField(ctx context.Context, name string)
 		return m.OldUpdatedAt(ctx)
 	case notificationchannel.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case notificationchannel.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case notificationchannel.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case notificationchannel.FieldType:
 		return m.OldType(ctx)
 	case notificationchannel.FieldName:
@@ -38694,6 +38808,20 @@ func (m *NotificationChannelMutation) SetField(name string, value ent.Value) err
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case notificationchannel.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
+	case notificationchannel.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
 		return nil
 	case notificationchannel.FieldType:
 		v, ok := value.(notification.ChannelType)
@@ -38756,6 +38884,12 @@ func (m *NotificationChannelMutation) ClearedFields() []string {
 	if m.FieldCleared(notificationchannel.FieldDeletedAt) {
 		fields = append(fields, notificationchannel.FieldDeletedAt)
 	}
+	if m.FieldCleared(notificationchannel.FieldAnnotations) {
+		fields = append(fields, notificationchannel.FieldAnnotations)
+	}
+	if m.FieldCleared(notificationchannel.FieldMetadata) {
+		fields = append(fields, notificationchannel.FieldMetadata)
+	}
 	if m.FieldCleared(notificationchannel.FieldDisabled) {
 		fields = append(fields, notificationchannel.FieldDisabled)
 	}
@@ -38775,6 +38909,12 @@ func (m *NotificationChannelMutation) ClearField(name string) error {
 	switch name {
 	case notificationchannel.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case notificationchannel.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	case notificationchannel.FieldMetadata:
+		m.ClearMetadata()
 		return nil
 	case notificationchannel.FieldDisabled:
 		m.ClearDisabled()
@@ -38798,6 +38938,12 @@ func (m *NotificationChannelMutation) ResetField(name string) error {
 		return nil
 	case notificationchannel.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case notificationchannel.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
+	case notificationchannel.FieldMetadata:
+		m.ResetMetadata()
 		return nil
 	case notificationchannel.FieldType:
 		m.ResetType()
@@ -38906,10 +39052,10 @@ type NotificationEventMutation struct {
 	typ                      string
 	id                       *string
 	namespace                *string
+	annotations              *models.Annotations
 	created_at               *time.Time
 	_type                    *notification.EventType
 	payload                  *string
-	annotations              *models.Annotations
 	clearedFields            map[string]struct{}
 	delivery_statuses        map[string]struct{}
 	removeddelivery_statuses map[string]struct{}
@@ -39061,6 +39207,55 @@ func (m *NotificationEventMutation) ResetNamespace() {
 	m.namespace = nil
 }
 
+// SetAnnotations sets the "annotations" field.
+func (m *NotificationEventMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *NotificationEventMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the NotificationEvent entity.
+// If the NotificationEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationEventMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *NotificationEventMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[notificationevent.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *NotificationEventMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[notificationevent.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *NotificationEventMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, notificationevent.FieldAnnotations)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *NotificationEventMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -39205,55 +39400,6 @@ func (m *NotificationEventMutation) ResetPayload() {
 	m.payload = nil
 }
 
-// SetAnnotations sets the "annotations" field.
-func (m *NotificationEventMutation) SetAnnotations(value models.Annotations) {
-	m.annotations = &value
-}
-
-// Annotations returns the value of the "annotations" field in the mutation.
-func (m *NotificationEventMutation) Annotations() (r models.Annotations, exists bool) {
-	v := m.annotations
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAnnotations returns the old "annotations" field's value of the NotificationEvent entity.
-// If the NotificationEvent object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NotificationEventMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAnnotations requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
-	}
-	return oldValue.Annotations, nil
-}
-
-// ClearAnnotations clears the value of the "annotations" field.
-func (m *NotificationEventMutation) ClearAnnotations() {
-	m.annotations = nil
-	m.clearedFields[notificationevent.FieldAnnotations] = struct{}{}
-}
-
-// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
-func (m *NotificationEventMutation) AnnotationsCleared() bool {
-	_, ok := m.clearedFields[notificationevent.FieldAnnotations]
-	return ok
-}
-
-// ResetAnnotations resets all changes to the "annotations" field.
-func (m *NotificationEventMutation) ResetAnnotations() {
-	m.annotations = nil
-	delete(m.clearedFields, notificationevent.FieldAnnotations)
-}
-
 // AddDeliveryStatusIDs adds the "delivery_statuses" edge to the NotificationEventDeliveryStatus entity by ids.
 func (m *NotificationEventMutation) AddDeliveryStatusIDs(ids ...string) {
 	if m.delivery_statuses == nil {
@@ -39386,6 +39532,9 @@ func (m *NotificationEventMutation) Fields() []string {
 	if m.namespace != nil {
 		fields = append(fields, notificationevent.FieldNamespace)
 	}
+	if m.annotations != nil {
+		fields = append(fields, notificationevent.FieldAnnotations)
+	}
 	if m.created_at != nil {
 		fields = append(fields, notificationevent.FieldCreatedAt)
 	}
@@ -39398,9 +39547,6 @@ func (m *NotificationEventMutation) Fields() []string {
 	if m.payload != nil {
 		fields = append(fields, notificationevent.FieldPayload)
 	}
-	if m.annotations != nil {
-		fields = append(fields, notificationevent.FieldAnnotations)
-	}
 	return fields
 }
 
@@ -39411,6 +39557,8 @@ func (m *NotificationEventMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case notificationevent.FieldNamespace:
 		return m.Namespace()
+	case notificationevent.FieldAnnotations:
+		return m.Annotations()
 	case notificationevent.FieldCreatedAt:
 		return m.CreatedAt()
 	case notificationevent.FieldType:
@@ -39419,8 +39567,6 @@ func (m *NotificationEventMutation) Field(name string) (ent.Value, bool) {
 		return m.RuleID()
 	case notificationevent.FieldPayload:
 		return m.Payload()
-	case notificationevent.FieldAnnotations:
-		return m.Annotations()
 	}
 	return nil, false
 }
@@ -39432,6 +39578,8 @@ func (m *NotificationEventMutation) OldField(ctx context.Context, name string) (
 	switch name {
 	case notificationevent.FieldNamespace:
 		return m.OldNamespace(ctx)
+	case notificationevent.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case notificationevent.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case notificationevent.FieldType:
@@ -39440,8 +39588,6 @@ func (m *NotificationEventMutation) OldField(ctx context.Context, name string) (
 		return m.OldRuleID(ctx)
 	case notificationevent.FieldPayload:
 		return m.OldPayload(ctx)
-	case notificationevent.FieldAnnotations:
-		return m.OldAnnotations(ctx)
 	}
 	return nil, fmt.Errorf("unknown NotificationEvent field %s", name)
 }
@@ -39457,6 +39603,13 @@ func (m *NotificationEventMutation) SetField(name string, value ent.Value) error
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
+		return nil
+	case notificationevent.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
 		return nil
 	case notificationevent.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -39485,13 +39638,6 @@ func (m *NotificationEventMutation) SetField(name string, value ent.Value) error
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPayload(v)
-		return nil
-	case notificationevent.FieldAnnotations:
-		v, ok := value.(models.Annotations)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAnnotations(v)
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationEvent field %s", name)
@@ -39554,6 +39700,9 @@ func (m *NotificationEventMutation) ResetField(name string) error {
 	case notificationevent.FieldNamespace:
 		m.ResetNamespace()
 		return nil
+	case notificationevent.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
 	case notificationevent.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
@@ -39565,9 +39714,6 @@ func (m *NotificationEventMutation) ResetField(name string) error {
 		return nil
 	case notificationevent.FieldPayload:
 		m.ResetPayload()
-		return nil
-	case notificationevent.FieldAnnotations:
-		m.ResetAnnotations()
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationEvent field %s", name)
@@ -39682,6 +39828,7 @@ type NotificationEventDeliveryStatusMutation struct {
 	typ           string
 	id            *string
 	namespace     *string
+	annotations   *models.Annotations
 	created_at    *time.Time
 	updated_at    *time.Time
 	event_id      *string
@@ -39835,6 +39982,55 @@ func (m *NotificationEventDeliveryStatusMutation) OldNamespace(ctx context.Conte
 // ResetNamespace resets all changes to the "namespace" field.
 func (m *NotificationEventDeliveryStatusMutation) ResetNamespace() {
 	m.namespace = nil
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *NotificationEventDeliveryStatusMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *NotificationEventDeliveryStatusMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the NotificationEventDeliveryStatus entity.
+// If the NotificationEventDeliveryStatus object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationEventDeliveryStatusMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *NotificationEventDeliveryStatusMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[notificationeventdeliverystatus.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *NotificationEventDeliveryStatusMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[notificationeventdeliverystatus.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *NotificationEventDeliveryStatusMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, notificationeventdeliverystatus.FieldAnnotations)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -40154,9 +40350,12 @@ func (m *NotificationEventDeliveryStatusMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NotificationEventDeliveryStatusMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, notificationeventdeliverystatus.FieldNamespace)
+	}
+	if m.annotations != nil {
+		fields = append(fields, notificationeventdeliverystatus.FieldAnnotations)
 	}
 	if m.created_at != nil {
 		fields = append(fields, notificationeventdeliverystatus.FieldCreatedAt)
@@ -40186,6 +40385,8 @@ func (m *NotificationEventDeliveryStatusMutation) Field(name string) (ent.Value,
 	switch name {
 	case notificationeventdeliverystatus.FieldNamespace:
 		return m.Namespace()
+	case notificationeventdeliverystatus.FieldAnnotations:
+		return m.Annotations()
 	case notificationeventdeliverystatus.FieldCreatedAt:
 		return m.CreatedAt()
 	case notificationeventdeliverystatus.FieldUpdatedAt:
@@ -40209,6 +40410,8 @@ func (m *NotificationEventDeliveryStatusMutation) OldField(ctx context.Context, 
 	switch name {
 	case notificationeventdeliverystatus.FieldNamespace:
 		return m.OldNamespace(ctx)
+	case notificationeventdeliverystatus.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case notificationeventdeliverystatus.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case notificationeventdeliverystatus.FieldUpdatedAt:
@@ -40236,6 +40439,13 @@ func (m *NotificationEventDeliveryStatusMutation) SetField(name string, value en
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
+		return nil
+	case notificationeventdeliverystatus.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
 		return nil
 	case notificationeventdeliverystatus.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -40309,6 +40519,9 @@ func (m *NotificationEventDeliveryStatusMutation) AddField(name string, value en
 // mutation.
 func (m *NotificationEventDeliveryStatusMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(notificationeventdeliverystatus.FieldAnnotations) {
+		fields = append(fields, notificationeventdeliverystatus.FieldAnnotations)
+	}
 	if m.FieldCleared(notificationeventdeliverystatus.FieldReason) {
 		fields = append(fields, notificationeventdeliverystatus.FieldReason)
 	}
@@ -40326,6 +40539,9 @@ func (m *NotificationEventDeliveryStatusMutation) FieldCleared(name string) bool
 // error if the field is not defined in the schema.
 func (m *NotificationEventDeliveryStatusMutation) ClearField(name string) error {
 	switch name {
+	case notificationeventdeliverystatus.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
 	case notificationeventdeliverystatus.FieldReason:
 		m.ClearReason()
 		return nil
@@ -40339,6 +40555,9 @@ func (m *NotificationEventDeliveryStatusMutation) ResetField(name string) error 
 	switch name {
 	case notificationeventdeliverystatus.FieldNamespace:
 		m.ResetNamespace()
+		return nil
+	case notificationeventdeliverystatus.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	case notificationeventdeliverystatus.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -40456,6 +40675,8 @@ type NotificationRuleMutation struct {
 	created_at      *time.Time
 	updated_at      *time.Time
 	deleted_at      *time.Time
+	annotations     *models.Annotations
+	metadata        *map[string]string
 	_type           *notification.EventType
 	name            *string
 	disabled        *bool
@@ -40731,6 +40952,104 @@ func (m *NotificationRuleMutation) DeletedAtCleared() bool {
 func (m *NotificationRuleMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, notificationrule.FieldDeletedAt)
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *NotificationRuleMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *NotificationRuleMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the NotificationRule entity.
+// If the NotificationRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationRuleMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *NotificationRuleMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[notificationrule.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *NotificationRuleMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[notificationrule.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *NotificationRuleMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, notificationrule.FieldAnnotations)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *NotificationRuleMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *NotificationRuleMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the NotificationRule entity.
+// If the NotificationRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationRuleMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *NotificationRuleMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[notificationrule.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *NotificationRuleMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[notificationrule.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *NotificationRuleMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, notificationrule.FieldMetadata)
 }
 
 // SetType sets the "type" field.
@@ -41032,7 +41351,7 @@ func (m *NotificationRuleMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NotificationRuleMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 10)
 	if m.namespace != nil {
 		fields = append(fields, notificationrule.FieldNamespace)
 	}
@@ -41044,6 +41363,12 @@ func (m *NotificationRuleMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, notificationrule.FieldDeletedAt)
+	}
+	if m.annotations != nil {
+		fields = append(fields, notificationrule.FieldAnnotations)
+	}
+	if m.metadata != nil {
+		fields = append(fields, notificationrule.FieldMetadata)
 	}
 	if m._type != nil {
 		fields = append(fields, notificationrule.FieldType)
@@ -41073,6 +41398,10 @@ func (m *NotificationRuleMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case notificationrule.FieldDeletedAt:
 		return m.DeletedAt()
+	case notificationrule.FieldAnnotations:
+		return m.Annotations()
+	case notificationrule.FieldMetadata:
+		return m.Metadata()
 	case notificationrule.FieldType:
 		return m.GetType()
 	case notificationrule.FieldName:
@@ -41098,6 +41427,10 @@ func (m *NotificationRuleMutation) OldField(ctx context.Context, name string) (e
 		return m.OldUpdatedAt(ctx)
 	case notificationrule.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case notificationrule.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case notificationrule.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case notificationrule.FieldType:
 		return m.OldType(ctx)
 	case notificationrule.FieldName:
@@ -41142,6 +41475,20 @@ func (m *NotificationRuleMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case notificationrule.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
+	case notificationrule.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
 		return nil
 	case notificationrule.FieldType:
 		v, ok := value.(notification.EventType)
@@ -41204,6 +41551,12 @@ func (m *NotificationRuleMutation) ClearedFields() []string {
 	if m.FieldCleared(notificationrule.FieldDeletedAt) {
 		fields = append(fields, notificationrule.FieldDeletedAt)
 	}
+	if m.FieldCleared(notificationrule.FieldAnnotations) {
+		fields = append(fields, notificationrule.FieldAnnotations)
+	}
+	if m.FieldCleared(notificationrule.FieldMetadata) {
+		fields = append(fields, notificationrule.FieldMetadata)
+	}
 	if m.FieldCleared(notificationrule.FieldDisabled) {
 		fields = append(fields, notificationrule.FieldDisabled)
 	}
@@ -41223,6 +41576,12 @@ func (m *NotificationRuleMutation) ClearField(name string) error {
 	switch name {
 	case notificationrule.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case notificationrule.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	case notificationrule.FieldMetadata:
+		m.ClearMetadata()
 		return nil
 	case notificationrule.FieldDisabled:
 		m.ClearDisabled()
@@ -41246,6 +41605,12 @@ func (m *NotificationRuleMutation) ResetField(name string) error {
 		return nil
 	case notificationrule.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case notificationrule.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
+	case notificationrule.FieldMetadata:
+		m.ResetMetadata()
 		return nil
 	case notificationrule.FieldType:
 		m.ResetType()

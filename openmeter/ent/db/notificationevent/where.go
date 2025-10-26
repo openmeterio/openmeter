@@ -151,6 +151,16 @@ func NamespaceContainsFold(v string) predicate.NotificationEvent {
 	return predicate.NotificationEvent(sql.FieldContainsFold(FieldNamespace, v))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldNotNull(FieldAnnotations))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.NotificationEvent {
 	return predicate.NotificationEvent(sql.FieldEQ(FieldCreatedAt, v))
@@ -349,16 +359,6 @@ func PayloadEqualFold(v string) predicate.NotificationEvent {
 // PayloadContainsFold applies the ContainsFold predicate on the "payload" field.
 func PayloadContainsFold(v string) predicate.NotificationEvent {
 	return predicate.NotificationEvent(sql.FieldContainsFold(FieldPayload, v))
-}
-
-// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
-func AnnotationsIsNil() predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldIsNull(FieldAnnotations))
-}
-
-// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
-func AnnotationsNotNil() predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldNotNull(FieldAnnotations))
 }
 
 // HasDeliveryStatuses applies the HasEdge predicate on the "delivery_statuses" edge.

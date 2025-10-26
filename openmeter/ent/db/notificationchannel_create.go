@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NotificationChannelCreate is the builder for creating a NotificationChannel entity.
@@ -70,6 +71,18 @@ func (_c *NotificationChannelCreate) SetNillableDeletedAt(v *time.Time) *Notific
 	if v != nil {
 		_c.SetDeletedAt(*v)
 	}
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *NotificationChannelCreate) SetAnnotations(v models.Annotations) *NotificationChannelCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
+// SetMetadata sets the "metadata" field.
+func (_c *NotificationChannelCreate) SetMetadata(v map[string]string) *NotificationChannelCreate {
+	_c.mutation.SetMetadata(v)
 	return _c
 }
 
@@ -282,6 +295,14 @@ func (_c *NotificationChannelCreate) createSpec() (*NotificationChannel, *sqlgra
 		_spec.SetField(notificationchannel.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(notificationchannel.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
+	if value, ok := _c.mutation.Metadata(); ok {
+		_spec.SetField(notificationchannel.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(notificationchannel.FieldType, field.TypeEnum, value)
 		_node.Type = value
@@ -397,6 +418,42 @@ func (u *NotificationChannelUpsert) UpdateDeletedAt() *NotificationChannelUpsert
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *NotificationChannelUpsert) ClearDeletedAt() *NotificationChannelUpsert {
 	u.SetNull(notificationchannel.FieldDeletedAt)
+	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationChannelUpsert) SetAnnotations(v models.Annotations) *NotificationChannelUpsert {
+	u.Set(notificationchannel.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationChannelUpsert) UpdateAnnotations() *NotificationChannelUpsert {
+	u.SetExcluded(notificationchannel.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationChannelUpsert) ClearAnnotations() *NotificationChannelUpsert {
+	u.SetNull(notificationchannel.FieldAnnotations)
+	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *NotificationChannelUpsert) SetMetadata(v map[string]string) *NotificationChannelUpsert {
+	u.Set(notificationchannel.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *NotificationChannelUpsert) UpdateMetadata() *NotificationChannelUpsert {
+	u.SetExcluded(notificationchannel.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *NotificationChannelUpsert) ClearMetadata() *NotificationChannelUpsert {
+	u.SetNull(notificationchannel.FieldMetadata)
 	return u
 }
 
@@ -531,6 +588,48 @@ func (u *NotificationChannelUpsertOne) UpdateDeletedAt() *NotificationChannelUps
 func (u *NotificationChannelUpsertOne) ClearDeletedAt() *NotificationChannelUpsertOne {
 	return u.Update(func(s *NotificationChannelUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationChannelUpsertOne) SetAnnotations(v models.Annotations) *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationChannelUpsertOne) UpdateAnnotations() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationChannelUpsertOne) ClearAnnotations() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *NotificationChannelUpsertOne) SetMetadata(v map[string]string) *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *NotificationChannelUpsertOne) UpdateMetadata() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *NotificationChannelUpsertOne) ClearMetadata() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.ClearMetadata()
 	})
 }
 
@@ -842,6 +941,48 @@ func (u *NotificationChannelUpsertBulk) UpdateDeletedAt() *NotificationChannelUp
 func (u *NotificationChannelUpsertBulk) ClearDeletedAt() *NotificationChannelUpsertBulk {
 	return u.Update(func(s *NotificationChannelUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationChannelUpsertBulk) SetAnnotations(v models.Annotations) *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationChannelUpsertBulk) UpdateAnnotations() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationChannelUpsertBulk) ClearAnnotations() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *NotificationChannelUpsertBulk) SetMetadata(v map[string]string) *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *NotificationChannelUpsertBulk) UpdateMetadata() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *NotificationChannelUpsertBulk) ClearMetadata() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.ClearMetadata()
 	})
 }
 

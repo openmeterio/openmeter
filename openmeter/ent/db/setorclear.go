@@ -2352,6 +2352,34 @@ func (u *NotificationChannelUpdateOne) SetOrClearDeletedAt(value *time.Time) *No
 	return u.SetDeletedAt(*value)
 }
 
+func (u *NotificationChannelUpdate) SetOrClearAnnotations(value *models.Annotations) *NotificationChannelUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *NotificationChannelUpdateOne) SetOrClearAnnotations(value *models.Annotations) *NotificationChannelUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *NotificationChannelUpdate) SetOrClearMetadata(value *map[string]string) *NotificationChannelUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *NotificationChannelUpdateOne) SetOrClearMetadata(value *map[string]string) *NotificationChannelUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
 func (u *NotificationChannelUpdate) SetOrClearDisabled(value *bool) *NotificationChannelUpdate {
 	if value == nil {
 		return u.ClearDisabled()
@@ -2374,6 +2402,20 @@ func (u *NotificationEventUpdate) SetOrClearAnnotations(value *models.Annotation
 }
 
 func (u *NotificationEventUpdateOne) SetOrClearAnnotations(value *models.Annotations) *NotificationEventUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *NotificationEventDeliveryStatusUpdate) SetOrClearAnnotations(value *models.Annotations) *NotificationEventDeliveryStatusUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *NotificationEventDeliveryStatusUpdateOne) SetOrClearAnnotations(value *models.Annotations) *NotificationEventDeliveryStatusUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
@@ -2406,6 +2448,34 @@ func (u *NotificationRuleUpdateOne) SetOrClearDeletedAt(value *time.Time) *Notif
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *NotificationRuleUpdate) SetOrClearAnnotations(value *models.Annotations) *NotificationRuleUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *NotificationRuleUpdateOne) SetOrClearAnnotations(value *models.Annotations) *NotificationRuleUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *NotificationRuleUpdate) SetOrClearMetadata(value *map[string]string) *NotificationRuleUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *NotificationRuleUpdateOne) SetOrClearMetadata(value *map[string]string) *NotificationRuleUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
 }
 
 func (u *NotificationRuleUpdate) SetOrClearDisabled(value *bool) *NotificationRuleUpdate {

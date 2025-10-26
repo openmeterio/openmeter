@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NotificationRuleCreate is the builder for creating a NotificationRule entity.
@@ -71,6 +72,18 @@ func (_c *NotificationRuleCreate) SetNillableDeletedAt(v *time.Time) *Notificati
 	if v != nil {
 		_c.SetDeletedAt(*v)
 	}
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *NotificationRuleCreate) SetAnnotations(v models.Annotations) *NotificationRuleCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
+// SetMetadata sets the "metadata" field.
+func (_c *NotificationRuleCreate) SetMetadata(v map[string]string) *NotificationRuleCreate {
+	_c.mutation.SetMetadata(v)
 	return _c
 }
 
@@ -298,6 +311,14 @@ func (_c *NotificationRuleCreate) createSpec() (*NotificationRule, *sqlgraph.Cre
 		_spec.SetField(notificationrule.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(notificationrule.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
+	if value, ok := _c.mutation.Metadata(); ok {
+		_spec.SetField(notificationrule.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(notificationrule.FieldType, field.TypeEnum, value)
 		_node.Type = value
@@ -432,6 +453,42 @@ func (u *NotificationRuleUpsert) ClearDeletedAt() *NotificationRuleUpsert {
 	return u
 }
 
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationRuleUpsert) SetAnnotations(v models.Annotations) *NotificationRuleUpsert {
+	u.Set(notificationrule.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationRuleUpsert) UpdateAnnotations() *NotificationRuleUpsert {
+	u.SetExcluded(notificationrule.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationRuleUpsert) ClearAnnotations() *NotificationRuleUpsert {
+	u.SetNull(notificationrule.FieldAnnotations)
+	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *NotificationRuleUpsert) SetMetadata(v map[string]string) *NotificationRuleUpsert {
+	u.Set(notificationrule.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *NotificationRuleUpsert) UpdateMetadata() *NotificationRuleUpsert {
+	u.SetExcluded(notificationrule.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *NotificationRuleUpsert) ClearMetadata() *NotificationRuleUpsert {
+	u.SetNull(notificationrule.FieldMetadata)
+	return u
+}
+
 // SetName sets the "name" field.
 func (u *NotificationRuleUpsert) SetName(v string) *NotificationRuleUpsert {
 	u.Set(notificationrule.FieldName, v)
@@ -563,6 +620,48 @@ func (u *NotificationRuleUpsertOne) UpdateDeletedAt() *NotificationRuleUpsertOne
 func (u *NotificationRuleUpsertOne) ClearDeletedAt() *NotificationRuleUpsertOne {
 	return u.Update(func(s *NotificationRuleUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationRuleUpsertOne) SetAnnotations(v models.Annotations) *NotificationRuleUpsertOne {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationRuleUpsertOne) UpdateAnnotations() *NotificationRuleUpsertOne {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationRuleUpsertOne) ClearAnnotations() *NotificationRuleUpsertOne {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *NotificationRuleUpsertOne) SetMetadata(v map[string]string) *NotificationRuleUpsertOne {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *NotificationRuleUpsertOne) UpdateMetadata() *NotificationRuleUpsertOne {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *NotificationRuleUpsertOne) ClearMetadata() *NotificationRuleUpsertOne {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.ClearMetadata()
 	})
 }
 
@@ -874,6 +973,48 @@ func (u *NotificationRuleUpsertBulk) UpdateDeletedAt() *NotificationRuleUpsertBu
 func (u *NotificationRuleUpsertBulk) ClearDeletedAt() *NotificationRuleUpsertBulk {
 	return u.Update(func(s *NotificationRuleUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationRuleUpsertBulk) SetAnnotations(v models.Annotations) *NotificationRuleUpsertBulk {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationRuleUpsertBulk) UpdateAnnotations() *NotificationRuleUpsertBulk {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationRuleUpsertBulk) ClearAnnotations() *NotificationRuleUpsertBulk {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *NotificationRuleUpsertBulk) SetMetadata(v map[string]string) *NotificationRuleUpsertBulk {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *NotificationRuleUpsertBulk) UpdateMetadata() *NotificationRuleUpsertBulk {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *NotificationRuleUpsertBulk) ClearMetadata() *NotificationRuleUpsertBulk {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.ClearMetadata()
 	})
 }
 

@@ -291,6 +291,26 @@ func DeletedAtNotNil() predicate.NotificationRule {
 	return predicate.NotificationRule(sql.FieldNotNull(FieldDeletedAt))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldNotNull(FieldAnnotations))
+}
+
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldIsNull(FieldMetadata))
+}
+
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldNotNull(FieldMetadata))
+}
+
 // TypeEQ applies the EQ predicate on the "type" field.
 func TypeEQ(v notification.EventType) predicate.NotificationRule {
 	vc := v

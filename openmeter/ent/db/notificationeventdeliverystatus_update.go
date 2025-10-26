@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NotificationEventDeliveryStatusUpdate is the builder for updating NotificationEventDeliveryStatus entities.
@@ -27,6 +28,18 @@ type NotificationEventDeliveryStatusUpdate struct {
 // Where appends a list predicates to the NotificationEventDeliveryStatusUpdate builder.
 func (_u *NotificationEventDeliveryStatusUpdate) Where(ps ...predicate.NotificationEventDeliveryStatus) *NotificationEventDeliveryStatusUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *NotificationEventDeliveryStatusUpdate) SetAnnotations(v models.Annotations) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *NotificationEventDeliveryStatusUpdate) ClearAnnotations() *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -169,6 +182,12 @@ func (_u *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context) (_
 			}
 		}
 	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldAnnotations, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -244,6 +263,18 @@ type NotificationEventDeliveryStatusUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *NotificationEventDeliveryStatusMutation
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetAnnotations(v models.Annotations) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) ClearAnnotations() *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -414,6 +445,12 @@ func (_u *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Context)
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldUpdatedAt, field.TypeTime, value)

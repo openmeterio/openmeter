@@ -1714,6 +1714,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"WEBHOOK"}},
 		{Name: "name", Type: field.TypeString},
 		{Name: "disabled", Type: field.TypeBool, Nullable: true, Default: false},
@@ -1736,6 +1738,16 @@ var (
 				Columns: []*schema.Column{NotificationChannelsColumns[1]},
 			},
 			{
+				Name:    "notificationchannel_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationChannelsColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
 				Name:    "notificationchannel_namespace_id",
 				Unique:  false,
 				Columns: []*schema.Column{NotificationChannelsColumns[1], NotificationChannelsColumns[0]},
@@ -1743,7 +1755,7 @@ var (
 			{
 				Name:    "notificationchannel_namespace_type",
 				Unique:  false,
-				Columns: []*schema.Column{NotificationChannelsColumns[1], NotificationChannelsColumns[5]},
+				Columns: []*schema.Column{NotificationChannelsColumns[1], NotificationChannelsColumns[7]},
 			},
 		},
 	}
@@ -1751,10 +1763,10 @@ var (
 	NotificationEventsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"entitlements.balance.threshold", "entitlements.reset", "invoice.created", "invoice.updated"}},
 		{Name: "payload", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "annotations", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "rule_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// NotificationEventsTable holds the schema information for the "notification_events" table.
@@ -1782,6 +1794,16 @@ var (
 				Columns: []*schema.Column{NotificationEventsColumns[1]},
 			},
 			{
+				Name:    "notificationevent_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationEventsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
 				Name:    "notificationevent_namespace_id",
 				Unique:  false,
 				Columns: []*schema.Column{NotificationEventsColumns[1], NotificationEventsColumns[0]},
@@ -1789,17 +1811,7 @@ var (
 			{
 				Name:    "notificationevent_namespace_type",
 				Unique:  false,
-				Columns: []*schema.Column{NotificationEventsColumns[1], NotificationEventsColumns[3]},
-			},
-			{
-				Name:    "notificationevent_annotations",
-				Unique:  false,
-				Columns: []*schema.Column{NotificationEventsColumns[5]},
-				Annotation: &entsql.IndexAnnotation{
-					Types: map[string]string{
-						"postgres": "GIN",
-					},
-				},
+				Columns: []*schema.Column{NotificationEventsColumns[1], NotificationEventsColumns[4]},
 			},
 		},
 	}
@@ -1807,6 +1819,7 @@ var (
 	NotificationEventDeliveryStatusColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "event_id", Type: field.TypeString},
@@ -1831,6 +1844,16 @@ var (
 				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1]},
 			},
 			{
+				Name:    "notificationeventdeliverystatus_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
 				Name:    "notificationeventdeliverystatus_namespace_id",
 				Unique:  false,
 				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1], NotificationEventDeliveryStatusColumns[0]},
@@ -1838,12 +1861,12 @@ var (
 			{
 				Name:    "notificationeventdeliverystatus_namespace_event_id_channel_id",
 				Unique:  false,
-				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1], NotificationEventDeliveryStatusColumns[4], NotificationEventDeliveryStatusColumns[5]},
+				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1], NotificationEventDeliveryStatusColumns[5], NotificationEventDeliveryStatusColumns[6]},
 			},
 			{
 				Name:    "notificationeventdeliverystatus_namespace_state",
 				Unique:  false,
-				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1], NotificationEventDeliveryStatusColumns[6]},
+				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1], NotificationEventDeliveryStatusColumns[7]},
 			},
 		},
 	}
@@ -1854,6 +1877,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"entitlements.balance.threshold", "entitlements.reset", "invoice.created", "invoice.updated"}},
 		{Name: "name", Type: field.TypeString},
 		{Name: "disabled", Type: field.TypeBool, Nullable: true, Default: false},
@@ -1876,6 +1901,16 @@ var (
 				Columns: []*schema.Column{NotificationRulesColumns[1]},
 			},
 			{
+				Name:    "notificationrule_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationRulesColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
 				Name:    "notificationrule_namespace_id",
 				Unique:  false,
 				Columns: []*schema.Column{NotificationRulesColumns[1], NotificationRulesColumns[0]},
@@ -1883,7 +1918,7 @@ var (
 			{
 				Name:    "notificationrule_namespace_type",
 				Unique:  false,
-				Columns: []*schema.Column{NotificationRulesColumns[1], NotificationRulesColumns[5]},
+				Columns: []*schema.Column{NotificationRulesColumns[1], NotificationRulesColumns[7]},
 			},
 		},
 	}

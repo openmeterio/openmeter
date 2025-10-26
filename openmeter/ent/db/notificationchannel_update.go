@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NotificationChannelUpdate is the builder for updating NotificationChannel entities.
@@ -53,6 +54,30 @@ func (_u *NotificationChannelUpdate) SetNillableDeletedAt(v *time.Time) *Notific
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *NotificationChannelUpdate) ClearDeletedAt() *NotificationChannelUpdate {
 	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *NotificationChannelUpdate) SetAnnotations(v models.Annotations) *NotificationChannelUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *NotificationChannelUpdate) ClearAnnotations() *NotificationChannelUpdate {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
+// SetMetadata sets the "metadata" field.
+func (_u *NotificationChannelUpdate) SetMetadata(v map[string]string) *NotificationChannelUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *NotificationChannelUpdate) ClearMetadata() *NotificationChannelUpdate {
+	_u.mutation.ClearMetadata()
 	return _u
 }
 
@@ -217,6 +242,18 @@ func (_u *NotificationChannelUpdate) sqlSave(ctx context.Context) (_node int, er
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(notificationchannel.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(notificationchannel.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(notificationchannel.FieldAnnotations, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(notificationchannel.FieldMetadata, field.TypeJSON, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(notificationchannel.FieldMetadata, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(notificationchannel.FieldName, field.TypeString, value)
 	}
@@ -321,6 +358,30 @@ func (_u *NotificationChannelUpdateOne) SetNillableDeletedAt(v *time.Time) *Noti
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *NotificationChannelUpdateOne) ClearDeletedAt() *NotificationChannelUpdateOne {
 	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *NotificationChannelUpdateOne) SetAnnotations(v models.Annotations) *NotificationChannelUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *NotificationChannelUpdateOne) ClearAnnotations() *NotificationChannelUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
+// SetMetadata sets the "metadata" field.
+func (_u *NotificationChannelUpdateOne) SetMetadata(v map[string]string) *NotificationChannelUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *NotificationChannelUpdateOne) ClearMetadata() *NotificationChannelUpdateOne {
+	_u.mutation.ClearMetadata()
 	return _u
 }
 
@@ -514,6 +575,18 @@ func (_u *NotificationChannelUpdateOne) sqlSave(ctx context.Context) (_node *Not
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(notificationchannel.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(notificationchannel.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(notificationchannel.FieldAnnotations, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(notificationchannel.FieldMetadata, field.TypeJSON, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(notificationchannel.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(notificationchannel.FieldName, field.TypeString, value)

@@ -7,7 +7,6 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -28,6 +27,8 @@ func (NotificationChannel) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
+		entutils.AnnotationsMixin{},
+		entutils.MetadataMixin{},
 	}
 }
 
@@ -72,6 +73,8 @@ func (NotificationRule) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
+		entutils.AnnotationsMixin{},
+		entutils.MetadataMixin{},
 	}
 }
 
@@ -120,6 +123,7 @@ func (NotificationEvent) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
+		entutils.AnnotationsMixin{},
 	}
 }
 
@@ -140,13 +144,6 @@ func (NotificationEvent) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
-		field.String("annotations").
-			GoType(models.Annotations{}).
-			ValueScanner(AnnotationsValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional(),
 	}
 }
 
@@ -167,13 +164,6 @@ func (NotificationEvent) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
 		index.Fields("namespace", "type"),
-		// GIN indexes can only be set on specific types such as jsonb
-		index.Fields("annotations").
-			Annotations(
-				entsql.IndexTypes(map[string]string{
-					dialect.Postgres: "GIN",
-				}),
-			),
 	}
 }
 
@@ -185,6 +175,7 @@ func (NotificationEventDeliveryStatus) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
+		entutils.AnnotationsMixin{},
 	}
 }
 

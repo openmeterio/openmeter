@@ -29,6 +29,18 @@ func (_u *NotificationEventUpdate) Where(ps ...predicate.NotificationEvent) *Not
 	return _u
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_u *NotificationEventUpdate) SetAnnotations(v models.Annotations) *NotificationEventUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *NotificationEventUpdate) ClearAnnotations() *NotificationEventUpdate {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
 // SetPayload sets the "payload" field.
 func (_u *NotificationEventUpdate) SetPayload(v string) *NotificationEventUpdate {
 	_u.mutation.SetPayload(v)
@@ -40,18 +52,6 @@ func (_u *NotificationEventUpdate) SetNillablePayload(v *string) *NotificationEv
 	if v != nil {
 		_u.SetPayload(*v)
 	}
-	return _u
-}
-
-// SetAnnotations sets the "annotations" field.
-func (_u *NotificationEventUpdate) SetAnnotations(v models.Annotations) *NotificationEventUpdate {
-	_u.mutation.SetAnnotations(v)
-	return _u
-}
-
-// ClearAnnotations clears the value of the "annotations" field.
-func (_u *NotificationEventUpdate) ClearAnnotations() *NotificationEventUpdate {
-	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -143,18 +143,14 @@ func (_u *NotificationEventUpdate) sqlSave(ctx context.Context) (_node int, err 
 			}
 		}
 	}
-	if value, ok := _u.mutation.Payload(); ok {
-		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.Annotations(); ok {
-		vv, err := notificationevent.ValueScanner.Annotations.Value(value)
-		if err != nil {
-			return 0, err
-		}
-		_spec.SetField(notificationevent.FieldAnnotations, field.TypeString, vv)
+		_spec.SetField(notificationevent.FieldAnnotations, field.TypeJSON, value)
 	}
 	if _u.mutation.AnnotationsCleared() {
-		_spec.ClearField(notificationevent.FieldAnnotations, field.TypeString)
+		_spec.ClearField(notificationevent.FieldAnnotations, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Payload(); ok {
+		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
 	}
 	if _u.mutation.DeliveryStatusesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -221,6 +217,18 @@ type NotificationEventUpdateOne struct {
 	mutation *NotificationEventMutation
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_u *NotificationEventUpdateOne) SetAnnotations(v models.Annotations) *NotificationEventUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *NotificationEventUpdateOne) ClearAnnotations() *NotificationEventUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
 // SetPayload sets the "payload" field.
 func (_u *NotificationEventUpdateOne) SetPayload(v string) *NotificationEventUpdateOne {
 	_u.mutation.SetPayload(v)
@@ -232,18 +240,6 @@ func (_u *NotificationEventUpdateOne) SetNillablePayload(v *string) *Notificatio
 	if v != nil {
 		_u.SetPayload(*v)
 	}
-	return _u
-}
-
-// SetAnnotations sets the "annotations" field.
-func (_u *NotificationEventUpdateOne) SetAnnotations(v models.Annotations) *NotificationEventUpdateOne {
-	_u.mutation.SetAnnotations(v)
-	return _u
-}
-
-// ClearAnnotations clears the value of the "annotations" field.
-func (_u *NotificationEventUpdateOne) ClearAnnotations() *NotificationEventUpdateOne {
-	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -365,18 +361,14 @@ func (_u *NotificationEventUpdateOne) sqlSave(ctx context.Context) (_node *Notif
 			}
 		}
 	}
-	if value, ok := _u.mutation.Payload(); ok {
-		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.Annotations(); ok {
-		vv, err := notificationevent.ValueScanner.Annotations.Value(value)
-		if err != nil {
-			return nil, err
-		}
-		_spec.SetField(notificationevent.FieldAnnotations, field.TypeString, vv)
+		_spec.SetField(notificationevent.FieldAnnotations, field.TypeJSON, value)
 	}
 	if _u.mutation.AnnotationsCleared() {
-		_spec.ClearField(notificationevent.FieldAnnotations, field.TypeString)
+		_spec.ClearField(notificationevent.FieldAnnotations, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Payload(); ok {
+		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
 	}
 	if _u.mutation.DeliveryStatusesCleared() {
 		edge := &sqlgraph.EdgeSpec{
