@@ -59,6 +59,8 @@ model NotificationChannelCommon<T extends NotificationChannelType> {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Channel Name")
   @example("customer-webhook")
+  @minLength(1)
+  @maxLength(256)
   name: string;
 
   /**
@@ -68,6 +70,20 @@ model NotificationChannelCommon<T extends NotificationChannelType> {
   @summary("Channel Disabled")
   @example(true)
   disabled?: boolean = false;
+
+  /**
+   * Set of key-value pairs managed by the system. Cannot be modified by user.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Annotations")
+  annotations?: Annotations;
+
+  /**
+   * Additional metadata for the resource.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Metadata")
+  metadata?: Metadata | null;
 }
 
 /**

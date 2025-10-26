@@ -20786,6 +20786,8 @@ components:
           title: Channel Type
         name:
           type: string
+          minLength: 1
+          maxLength: 256
           description: User friendly name of the channel.
           title: Channel Name
           example: customer-webhook
@@ -20795,6 +20797,19 @@ components:
           title: Channel Disabled
           example: true
           default: false
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
         url:
           type: string
           description: Webhook URL where the notification is sent.
@@ -20831,6 +20846,8 @@ components:
           title: Channel Type
         name:
           type: string
+          minLength: 1
+          maxLength: 256
           description: User friendly name of the channel.
           title: Channel Name
           example: customer-webhook
@@ -20840,6 +20857,13 @@ components:
           title: Channel Disabled
           example: true
           default: false
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
         url:
           type: string
           description: Webhook URL where the notification is sent.
@@ -21021,8 +21045,14 @@ components:
         channel:
           allOf:
             - $ref: '#/components/schemas/NotificationChannelMeta'
-          description: Notification channel the delivery sattus associated with.
+          description: Notification channel the delivery status associated with.
           title: Notification Channel
+          readOnly: true
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
           readOnly: true
       description: The delivery status of the notification event.
     NotificationEventDeliveryStatusState:
@@ -21298,6 +21328,8 @@ components:
           title: Rule Type
         name:
           type: string
+          minLength: 1
+          maxLength: 256
           description: The user friendly name of the notification rule.
           title: Rule Name
           example: Balance threshold reached
@@ -21313,6 +21345,19 @@ components:
             $ref: '#/components/schemas/NotificationChannelMeta'
           description: List of notification channels the rule applies to.
           title: Channels assigned to Rule
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
         thresholds:
           type: array
           items:
@@ -21345,6 +21390,8 @@ components:
           title: Rule Type
         name:
           type: string
+          minLength: 1
+          maxLength: 256
           description: The user friendly name of the notification rule.
           title: Rule Name
           example: Balance threshold reached
@@ -21354,6 +21401,13 @@ components:
           title: Rule Disabled
           example: true
           default: false
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
         thresholds:
           type: array
           items:
@@ -21489,6 +21543,8 @@ components:
           title: Rule Type
         name:
           type: string
+          minLength: 1
+          maxLength: 256
           description: The user friendly name of the notification rule.
           title: Rule Name
           example: Balance threshold reached
@@ -21504,6 +21560,19 @@ components:
             $ref: '#/components/schemas/NotificationChannelMeta'
           description: List of notification channels the rule applies to.
           title: Channels assigned to Rule
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
         features:
           type: array
           items:
@@ -21527,6 +21596,8 @@ components:
           title: Rule Type
         name:
           type: string
+          minLength: 1
+          maxLength: 256
           description: The user friendly name of the notification rule.
           title: Rule Name
           example: Balance threshold reached
@@ -21536,6 +21607,13 @@ components:
           title: Rule Disabled
           example: true
           default: false
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
         channels:
           type: array
           items:
@@ -21608,6 +21686,8 @@ components:
           title: Rule Type
         name:
           type: string
+          minLength: 1
+          maxLength: 256
           description: The user friendly name of the notification rule.
           title: Rule Name
           example: Balance threshold reached
@@ -21623,6 +21703,19 @@ components:
             $ref: '#/components/schemas/NotificationChannelMeta'
           description: List of notification channels the rule applies to.
           title: Channels assigned to Rule
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
       description: Notification rule with invoice.created type.
     NotificationRuleInvoiceCreatedCreateRequest:
       type: object
@@ -21639,6 +21732,8 @@ components:
           title: Rule Type
         name:
           type: string
+          minLength: 1
+          maxLength: 256
           description: The user friendly name of the notification rule.
           title: Rule Name
           example: Balance threshold reached
@@ -21648,6 +21743,13 @@ components:
           title: Rule Disabled
           example: true
           default: false
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
         channels:
           type: array
           items:
@@ -21705,6 +21807,8 @@ components:
           title: Rule Type
         name:
           type: string
+          minLength: 1
+          maxLength: 256
           description: The user friendly name of the notification rule.
           title: Rule Name
           example: Balance threshold reached
@@ -21720,6 +21824,19 @@ components:
             $ref: '#/components/schemas/NotificationChannelMeta'
           description: List of notification channels the rule applies to.
           title: Channels assigned to Rule
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
       description: Notification rule with invoice.updated type.
     NotificationRuleInvoiceUpdatedCreateRequest:
       type: object
@@ -21736,6 +21853,8 @@ components:
           title: Rule Type
         name:
           type: string
+          minLength: 1
+          maxLength: 256
           description: The user friendly name of the notification rule.
           title: Rule Name
           example: Balance threshold reached
@@ -21745,6 +21864,13 @@ components:
           title: Rule Disabled
           example: true
           default: false
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
         channels:
           type: array
           items:

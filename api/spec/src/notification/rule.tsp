@@ -48,6 +48,8 @@ model NotificationRuleCommon<T extends NotificationEventType> {
    */
   @summary("Rule Name")
   @example("Balance threshold reached")
+  @minLength(1)
+  @maxLength(256)
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   name: string;
 
@@ -65,6 +67,20 @@ model NotificationRuleCommon<T extends NotificationEventType> {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Channels assigned to Rule")
   channels: Array<NotificationChannelMeta>;
+
+  /**
+   * Set of key-value pairs managed by the system. Cannot be modified by user.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Annotations")
+  annotations?: Annotations;
+
+  /**
+   * Additional metadata for the resource.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Metadata")
+  metadata?: Metadata | null;
 }
 
 /**
