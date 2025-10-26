@@ -85,28 +85,41 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 
 			span.AddEvent("lock acquired")
 
-			events, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
-				Page: pagination.Page{},
-				DeliveryStatusStates: []notification.EventDeliveryStatusState{
-					notification.EventDeliveryStatusStatePending,
-					notification.EventDeliveryStatusStateSending,
-				},
-			})
-			if err != nil {
-				return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
-			}
-
-			span.AddEvent("reconciling events")
-
 			var errs []error
 
-			for _, event := range events.Items {
-				if err = h.reconcileEvent(ctx, &event); err != nil {
-					errs = append(errs,
-						fmt.Errorf("failed to reconcile notification event [namespace=%s event.id=%s]: %w",
-							event.Namespace, event.ID, err),
-					)
+			page := pagination.Page{
+				PageSize:   50,
+				PageNumber: 1,
+			}
+
+			for {
+				out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
+					Page: page,
+					DeliveryStatusStates: []notification.EventDeliveryStatusState{
+						notification.EventDeliveryStatusStatePending,
+						notification.EventDeliveryStatusStateSending,
+					},
+				})
+				if err != nil {
+					return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
 				}
+
+				span.AddEvent("reconciling events")
+
+				for _, event := range out.Items {
+					if err = h.reconcileEvent(ctx, &event); err != nil {
+						errs = append(errs,
+							fmt.Errorf("failed to reconcile notification event [namespace=%s event.id=%s]: %w",
+								event.Namespace, event.ID, err),
+						)
+					}
+				}
+
+				if out.TotalCount <= page.PageSize*page.PageNumber || len(out.Items) == 0 {
+					break
+				}
+
+				page.PageNumber++
 			}
 
 			return errors.Join(errs...)
