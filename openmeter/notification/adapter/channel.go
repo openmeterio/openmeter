@@ -87,7 +87,9 @@ func (a *adapter) CreateChannel(ctx context.Context, params notification.CreateC
 			SetName(params.Name).
 			SetNamespace(params.Namespace).
 			SetDisabled(params.Disabled).
-			SetConfig(params.Config)
+			SetConfig(params.Config).
+			SetAnnotations(params.Annotations).
+			SetMetadata(params.Metadata)
 
 		channel, err := query.Save(ctx)
 		if err != nil {
@@ -167,7 +169,9 @@ func (a *adapter) UpdateChannel(ctx context.Context, params notification.UpdateC
 			Where(channeldb.Namespace(params.Namespace)).
 			SetDisabled(params.Disabled).
 			SetConfig(params.Config).
-			SetName(params.Name)
+			SetName(params.Name).
+			SetMetadata(params.Metadata).
+			SetAnnotations(params.Annotations)
 
 		queryRow, err := query.Save(ctx)
 		if err != nil {

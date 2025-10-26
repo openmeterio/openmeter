@@ -7866,6 +7866,16 @@ export interface components {
        */
       disabled?: boolean
       /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
        * Webhook URL
        * @description Webhook URL where the notification is sent.
        * @example https://example.com/webhook
@@ -7908,6 +7918,11 @@ export interface components {
        * @example true
        */
       disabled?: boolean
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Webhook URL
        * @description Webhook URL where the notification is sent.
@@ -8028,9 +8043,14 @@ export interface components {
       readonly updatedAt: Date
       /**
        * Notification Channel
-       * @description Notification channel the delivery sattus associated with.
+       * @description Notification channel the delivery status associated with.
        */
       readonly channel: components['schemas']['NotificationChannelMeta']
+      /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations']
     }
     /**
      * Delivery State
@@ -8232,6 +8252,16 @@ export interface components {
        */
       channels: components['schemas']['NotificationChannelMeta'][]
       /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
        * Entitlement Balance Thresholds
        * @description List of thresholds the rule suppose to be triggered.
        */
@@ -8262,6 +8292,11 @@ export interface components {
        * @example true
        */
       disabled?: boolean
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Entitlement Balance Thresholds
        * @description List of thresholds the rule suppose to be triggered.
@@ -8368,6 +8403,16 @@ export interface components {
        */
       channels: components['schemas']['NotificationChannelMeta'][]
       /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
        * Features
        * @description Optional field containing list of features the rule applies to.
        */
@@ -8393,6 +8438,11 @@ export interface components {
        * @example true
        */
       disabled?: boolean
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Channels
        * @description List of notification channels the rule is applied to.
@@ -8456,6 +8506,16 @@ export interface components {
        * @description List of notification channels the rule applies to.
        */
       channels: components['schemas']['NotificationChannelMeta'][]
+      /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
     }
     /** @description Request with input parameters for creating new notification rule with invoice.created type. */
     NotificationRuleInvoiceCreatedCreateRequest: {
@@ -8477,6 +8537,11 @@ export interface components {
        * @example true
        */
       disabled?: boolean
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Channels
        * @description List of notification channels the rule is applied to.
@@ -8535,6 +8600,16 @@ export interface components {
        * @description List of notification channels the rule applies to.
        */
       channels: components['schemas']['NotificationChannelMeta'][]
+      /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
     }
     /** @description Request with input parameters for creating new notification rule with invoice.updated  type. */
     NotificationRuleInvoiceUpdatedCreateRequest: {
@@ -8556,6 +8631,11 @@ export interface components {
        * @example true
        */
       disabled?: boolean
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
       /**
        * Channels
        * @description List of notification channels the rule is applied to.

@@ -17,6 +17,8 @@ var (
 type Rule struct {
 	models.NamespacedModel
 	models.ManagedModel
+	models.Annotations
+	models.Metadata
 
 	// ID is the unique identifier for Rule.
 	ID string `json:"id"`
@@ -182,6 +184,10 @@ type CreateRuleInput struct {
 	Config RuleConfig
 	// Channels defines the list of Channels the Rule needs to send Events.
 	Channels []string
+	// Metadata
+	Metadata models.Metadata
+	// Annotations
+	Annotations models.Annotations
 }
 
 func (i CreateRuleInput) ValidateWith(validators ...models.ValidatorFunc[CreateRuleInput]) error {
@@ -234,6 +240,10 @@ type UpdateRuleInput struct {
 	Config RuleConfig
 	// Channels defines the list of Channels the Rule needs to send Events.
 	Channels []string
+	// Metadata
+	Metadata models.Metadata
+	// Annotations
+	Annotations models.Annotations
 }
 
 func (i UpdateRuleInput) ValidateWith(validators ...models.ValidatorFunc[UpdateRuleInput]) error {

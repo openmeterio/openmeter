@@ -51,11 +51,18 @@ model NotificationEventDeliveryStatus {
   updatedAt: DateTime;
 
   /**
-   * Notification channel the delivery sattus associated with.
+   * Notification channel the delivery status associated with.
    */
   @visibility(Lifecycle.Read)
   @summary("Notification Channel")
   channel: NotificationChannelMeta;
+
+  /**
+   * Set of key-value pairs managed by the system. Cannot be modified by user.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Annotations")
+  annotations?: Annotations;
 }
 
 /**

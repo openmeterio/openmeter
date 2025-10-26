@@ -33,6 +33,9 @@ func ChannelFromDBEntity(e db.NotificationChannel) *notification.Channel {
 		Name:     e.Name,
 		Disabled: e.Disabled,
 		Config:   e.Config,
+
+		Annotations: e.Annotations,
+		Metadata:    e.Metadata,
 	}
 }
 
@@ -71,6 +74,9 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 		Disabled: e.Disabled,
 		Config:   e.Config,
 		Channels: channels,
+
+		Annotations: e.Annotations,
+		Metadata:    e.Metadata,
 	}
 }
 
@@ -124,5 +130,7 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *noti
 		Reason:    e.Reason,
 		CreatedAt: e.CreatedAt.UTC(),
 		UpdatedAt: e.UpdatedAt.UTC(),
+
+		Annotations: e.Annotations,
 	}
 }

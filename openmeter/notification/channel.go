@@ -37,6 +37,8 @@ func (t ChannelType) Validate() error {
 type Channel struct {
 	models.NamespacedModel
 	models.ManagedModel
+	models.Annotations
+	models.Metadata
 
 	// ID is the unique identifier for Channel.
 	ID string `json:"id"`
@@ -152,6 +154,10 @@ type CreateChannelInput struct {
 	Disabled bool
 	// Config stores the Channel Type specific configuration.
 	Config ChannelConfig
+	// Metadata
+	Metadata models.Metadata
+	// Annotations
+	Annotations models.Annotations
 }
 
 func (i CreateChannelInput) ValidateWith(validators ...models.ValidatorFunc[CreateChannelInput]) error {
@@ -190,12 +196,16 @@ type UpdateChannelInput struct {
 
 	// Type defines the Channel type (e.g. webhook)
 	Type ChannelType
-	// Name stores the user defined name of the Channel.
+	// Name stores the user-defined name of the Channel.
 	Name string
 	// Disabled defines whether the Channel is disabled or not. Deleted Channels are always disabled.
 	Disabled bool
 	// Config stores the Channel Type specific configuration.
 	Config ChannelConfig
+	// Metadata
+	Metadata models.Metadata
+	// Annotations
+	Annotations models.Annotations
 }
 
 func (i UpdateChannelInput) ValidateWith(validators ...models.ValidatorFunc[UpdateChannelInput]) error {

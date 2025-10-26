@@ -161,6 +161,16 @@ func NamespaceContainsFold(v string) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldContainsFold(FieldNamespace, v))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotNull(FieldAnnotations))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldCreatedAt, v))

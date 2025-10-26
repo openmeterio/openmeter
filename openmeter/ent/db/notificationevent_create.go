@@ -33,6 +33,12 @@ func (_c *NotificationEventCreate) SetNamespace(v string) *NotificationEventCrea
 	return _c
 }
 
+// SetAnnotations sets the "annotations" field.
+func (_c *NotificationEventCreate) SetAnnotations(v models.Annotations) *NotificationEventCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *NotificationEventCreate) SetCreatedAt(v time.Time) *NotificationEventCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -62,12 +68,6 @@ func (_c *NotificationEventCreate) SetRuleID(v string) *NotificationEventCreate 
 // SetPayload sets the "payload" field.
 func (_c *NotificationEventCreate) SetPayload(v string) *NotificationEventCreate {
 	_c.mutation.SetPayload(v)
-	return _c
-}
-
-// SetAnnotations sets the "annotations" field.
-func (_c *NotificationEventCreate) SetAnnotations(v models.Annotations) *NotificationEventCreate {
-	_c.mutation.SetAnnotations(v)
 	return _c
 }
 
@@ -193,10 +193,7 @@ func (_c *NotificationEventCreate) sqlSave(ctx context.Context) (*NotificationEv
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := _c.createSpec()
-	if err != nil {
-		return nil, err
-	}
+	_node, _spec := _c.createSpec()
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -215,7 +212,7 @@ func (_c *NotificationEventCreate) sqlSave(ctx context.Context) (*NotificationEv
 	return _node, nil
 }
 
-func (_c *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.CreateSpec, error) {
+func (_c *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.CreateSpec) {
 	var (
 		_node = &NotificationEvent{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(notificationevent.Table, sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString))
@@ -229,6 +226,10 @@ func (_c *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.C
 		_spec.SetField(notificationevent.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(notificationevent.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(notificationevent.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -240,14 +241,6 @@ func (_c *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.C
 	if value, ok := _c.mutation.Payload(); ok {
 		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
 		_node.Payload = value
-	}
-	if value, ok := _c.mutation.Annotations(); ok {
-		vv, err := notificationevent.ValueScanner.Annotations.Value(value)
-		if err != nil {
-			return nil, nil, err
-		}
-		_spec.SetField(notificationevent.FieldAnnotations, field.TypeString, vv)
-		_node.Annotations = value
 	}
 	if nodes := _c.mutation.DeliveryStatusesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -282,7 +275,7 @@ func (_c *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.C
 		_node.RuleID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec, nil
+	return _node, _spec
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -334,18 +327,6 @@ type (
 	}
 )
 
-// SetPayload sets the "payload" field.
-func (u *NotificationEventUpsert) SetPayload(v string) *NotificationEventUpsert {
-	u.Set(notificationevent.FieldPayload, v)
-	return u
-}
-
-// UpdatePayload sets the "payload" field to the value that was provided on create.
-func (u *NotificationEventUpsert) UpdatePayload() *NotificationEventUpsert {
-	u.SetExcluded(notificationevent.FieldPayload)
-	return u
-}
-
 // SetAnnotations sets the "annotations" field.
 func (u *NotificationEventUpsert) SetAnnotations(v models.Annotations) *NotificationEventUpsert {
 	u.Set(notificationevent.FieldAnnotations, v)
@@ -361,6 +342,18 @@ func (u *NotificationEventUpsert) UpdateAnnotations() *NotificationEventUpsert {
 // ClearAnnotations clears the value of the "annotations" field.
 func (u *NotificationEventUpsert) ClearAnnotations() *NotificationEventUpsert {
 	u.SetNull(notificationevent.FieldAnnotations)
+	return u
+}
+
+// SetPayload sets the "payload" field.
+func (u *NotificationEventUpsert) SetPayload(v string) *NotificationEventUpsert {
+	u.Set(notificationevent.FieldPayload, v)
+	return u
+}
+
+// UpdatePayload sets the "payload" field to the value that was provided on create.
+func (u *NotificationEventUpsert) UpdatePayload() *NotificationEventUpsert {
+	u.SetExcluded(notificationevent.FieldPayload)
 	return u
 }
 
@@ -424,20 +417,6 @@ func (u *NotificationEventUpsertOne) Update(set func(*NotificationEventUpsert)) 
 	return u
 }
 
-// SetPayload sets the "payload" field.
-func (u *NotificationEventUpsertOne) SetPayload(v string) *NotificationEventUpsertOne {
-	return u.Update(func(s *NotificationEventUpsert) {
-		s.SetPayload(v)
-	})
-}
-
-// UpdatePayload sets the "payload" field to the value that was provided on create.
-func (u *NotificationEventUpsertOne) UpdatePayload() *NotificationEventUpsertOne {
-	return u.Update(func(s *NotificationEventUpsert) {
-		s.UpdatePayload()
-	})
-}
-
 // SetAnnotations sets the "annotations" field.
 func (u *NotificationEventUpsertOne) SetAnnotations(v models.Annotations) *NotificationEventUpsertOne {
 	return u.Update(func(s *NotificationEventUpsert) {
@@ -456,6 +435,20 @@ func (u *NotificationEventUpsertOne) UpdateAnnotations() *NotificationEventUpser
 func (u *NotificationEventUpsertOne) ClearAnnotations() *NotificationEventUpsertOne {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.ClearAnnotations()
+	})
+}
+
+// SetPayload sets the "payload" field.
+func (u *NotificationEventUpsertOne) SetPayload(v string) *NotificationEventUpsertOne {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.SetPayload(v)
+	})
+}
+
+// UpdatePayload sets the "payload" field to the value that was provided on create.
+func (u *NotificationEventUpsertOne) UpdatePayload() *NotificationEventUpsertOne {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.UpdatePayload()
 	})
 }
 
@@ -527,10 +520,7 @@ func (_c *NotificationEventCreateBulk) Save(ctx context.Context) ([]*Notificatio
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i], err = builder.createSpec()
-				if err != nil {
-					return nil, err
-				}
+				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -689,20 +679,6 @@ func (u *NotificationEventUpsertBulk) Update(set func(*NotificationEventUpsert))
 	return u
 }
 
-// SetPayload sets the "payload" field.
-func (u *NotificationEventUpsertBulk) SetPayload(v string) *NotificationEventUpsertBulk {
-	return u.Update(func(s *NotificationEventUpsert) {
-		s.SetPayload(v)
-	})
-}
-
-// UpdatePayload sets the "payload" field to the value that was provided on create.
-func (u *NotificationEventUpsertBulk) UpdatePayload() *NotificationEventUpsertBulk {
-	return u.Update(func(s *NotificationEventUpsert) {
-		s.UpdatePayload()
-	})
-}
-
 // SetAnnotations sets the "annotations" field.
 func (u *NotificationEventUpsertBulk) SetAnnotations(v models.Annotations) *NotificationEventUpsertBulk {
 	return u.Update(func(s *NotificationEventUpsert) {
@@ -721,6 +697,20 @@ func (u *NotificationEventUpsertBulk) UpdateAnnotations() *NotificationEventUpse
 func (u *NotificationEventUpsertBulk) ClearAnnotations() *NotificationEventUpsertBulk {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.ClearAnnotations()
+	})
+}
+
+// SetPayload sets the "payload" field.
+func (u *NotificationEventUpsertBulk) SetPayload(v string) *NotificationEventUpsertBulk {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.SetPayload(v)
+	})
+}
+
+// UpdatePayload sets the "payload" field to the value that was provided on create.
+func (u *NotificationEventUpsertBulk) UpdatePayload() *NotificationEventUpsertBulk {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.UpdatePayload()
 	})
 }
 

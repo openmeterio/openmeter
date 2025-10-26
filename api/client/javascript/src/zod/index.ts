@@ -8856,6 +8856,7 @@ export const listNotificationChannelsQueryParams = zod.object({
  * Create a new notification channel.
  * @summary Create a notification channel
  */
+export const createNotificationChannelBodyNameMax = 256 as const
 export const createNotificationChannelBodyDisabledDefault = false as const
 export const createNotificationChannelBodySigningSecretRegExp =
   /^(whsec_)?[a-zA-Z0-9+/=]{32,100}$/
@@ -8870,7 +8871,18 @@ export const createNotificationChannelBody = zod
       .boolean()
       .optional()
       .describe('Whether the channel is disabled or not.'),
-    name: zod.coerce.string().describe('User friendly name of the channel.'),
+    metadata: zod
+      .record(zod.string(), zod.coerce.string())
+      .describe(
+        'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.',
+      )
+      .nullish()
+      .describe('Additional metadata for the resource.'),
+    name: zod.coerce
+      .string()
+      .min(1)
+      .max(createNotificationChannelBodyNameMax)
+      .describe('User friendly name of the channel.'),
     signingSecret: zod.coerce
       .string()
       .regex(createNotificationChannelBodySigningSecretRegExp)
@@ -8903,6 +8915,7 @@ export const updateNotificationChannelParams = zod.object({
     .regex(updateNotificationChannelPathChannelIdRegExp),
 })
 
+export const updateNotificationChannelBodyNameMax = 256 as const
 export const updateNotificationChannelBodyDisabledDefault = false as const
 export const updateNotificationChannelBodySigningSecretRegExp =
   /^(whsec_)?[a-zA-Z0-9+/=]{32,100}$/
@@ -8917,7 +8930,18 @@ export const updateNotificationChannelBody = zod
       .boolean()
       .optional()
       .describe('Whether the channel is disabled or not.'),
-    name: zod.coerce.string().describe('User friendly name of the channel.'),
+    metadata: zod
+      .record(zod.string(), zod.coerce.string())
+      .describe(
+        'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.',
+      )
+      .nullish()
+      .describe('Additional metadata for the resource.'),
+    name: zod.coerce
+      .string()
+      .min(1)
+      .max(updateNotificationChannelBodyNameMax)
+      .describe('User friendly name of the channel.'),
     signingSecret: zod.coerce
       .string()
       .regex(updateNotificationChannelBodySigningSecretRegExp)
@@ -9120,6 +9144,7 @@ export const listNotificationRulesQueryParams = zod.object({
  * Create a new notification rule.
  * @summary Create a notification rule
  */
+export const createNotificationRuleBodyNameMax = 256 as const
 export const createNotificationRuleBodyDisabledDefault = false as const
 export const createNotificationRuleBodyThresholdsMax = 10 as const
 export const createNotificationRuleBodyChannelsItemRegExp =
@@ -9128,6 +9153,7 @@ export const createNotificationRuleBodyFeaturesItemMax = 64 as const
 
 export const createNotificationRuleBodyFeaturesItemRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
+export const createNotificationRuleBodyNameMaxOne = 256 as const
 export const createNotificationRuleBodyDisabledDefaultOne = false as const
 export const createNotificationRuleBodyChannelsItemRegExpOne =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -9135,9 +9161,11 @@ export const createNotificationRuleBodyFeaturesItemMaxOne = 64 as const
 
 export const createNotificationRuleBodyFeaturesItemRegExpOne =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
+export const createNotificationRuleBodyNameMaxTwo = 256 as const
 export const createNotificationRuleBodyDisabledDefaultTwo = false as const
 export const createNotificationRuleBodyChannelsItemRegExpTwo =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
+export const createNotificationRuleBodyNameMaxThree = 256 as const
 export const createNotificationRuleBodyDisabledDefaultThree = false as const
 export const createNotificationRuleBodyChannelsItemRegExpThree =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -9177,8 +9205,17 @@ export const createNotificationRuleBody = zod
           .describe(
             'Optional field for defining the scope of notification by feature. It may contain features by id or key.',
           ),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.',
+          )
+          .nullish()
+          .describe('Additional metadata for the resource.'),
         name: zod.coerce
           .string()
+          .min(1)
+          .max(createNotificationRuleBodyNameMax)
           .describe('The user friendly name of the notification rule.'),
         thresholds: zod
           .array(
@@ -9241,8 +9278,17 @@ export const createNotificationRuleBody = zod
           .describe(
             'Optional field for defining the scope of notification by feature. It may contain features by id or key.',
           ),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.',
+          )
+          .nullish()
+          .describe('Additional metadata for the resource.'),
         name: zod.coerce
           .string()
+          .min(1)
+          .max(createNotificationRuleBodyNameMaxOne)
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['entitlements.reset']),
       })
@@ -9266,8 +9312,17 @@ export const createNotificationRuleBody = zod
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.',
+          )
+          .nullish()
+          .describe('Additional metadata for the resource.'),
         name: zod.coerce
           .string()
+          .min(1)
+          .max(createNotificationRuleBodyNameMaxTwo)
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['invoice.created']),
       })
@@ -9291,8 +9346,17 @@ export const createNotificationRuleBody = zod
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.',
+          )
+          .nullish()
+          .describe('Additional metadata for the resource.'),
         name: zod.coerce
           .string()
+          .min(1)
+          .max(createNotificationRuleBodyNameMaxThree)
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['invoice.updated']),
       })
@@ -9315,6 +9379,7 @@ export const updateNotificationRuleParams = zod.object({
   ruleId: zod.coerce.string().regex(updateNotificationRulePathRuleIdRegExp),
 })
 
+export const updateNotificationRuleBodyNameMax = 256 as const
 export const updateNotificationRuleBodyDisabledDefault = false as const
 export const updateNotificationRuleBodyThresholdsMax = 10 as const
 export const updateNotificationRuleBodyChannelsItemRegExp =
@@ -9323,6 +9388,7 @@ export const updateNotificationRuleBodyFeaturesItemMax = 64 as const
 
 export const updateNotificationRuleBodyFeaturesItemRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
+export const updateNotificationRuleBodyNameMaxOne = 256 as const
 export const updateNotificationRuleBodyDisabledDefaultOne = false as const
 export const updateNotificationRuleBodyChannelsItemRegExpOne =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -9330,9 +9396,11 @@ export const updateNotificationRuleBodyFeaturesItemMaxOne = 64 as const
 
 export const updateNotificationRuleBodyFeaturesItemRegExpOne =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
+export const updateNotificationRuleBodyNameMaxTwo = 256 as const
 export const updateNotificationRuleBodyDisabledDefaultTwo = false as const
 export const updateNotificationRuleBodyChannelsItemRegExpTwo =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
+export const updateNotificationRuleBodyNameMaxThree = 256 as const
 export const updateNotificationRuleBodyDisabledDefaultThree = false as const
 export const updateNotificationRuleBodyChannelsItemRegExpThree =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -9372,8 +9440,17 @@ export const updateNotificationRuleBody = zod
           .describe(
             'Optional field for defining the scope of notification by feature. It may contain features by id or key.',
           ),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.',
+          )
+          .nullish()
+          .describe('Additional metadata for the resource.'),
         name: zod.coerce
           .string()
+          .min(1)
+          .max(updateNotificationRuleBodyNameMax)
           .describe('The user friendly name of the notification rule.'),
         thresholds: zod
           .array(
@@ -9436,8 +9513,17 @@ export const updateNotificationRuleBody = zod
           .describe(
             'Optional field for defining the scope of notification by feature. It may contain features by id or key.',
           ),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.',
+          )
+          .nullish()
+          .describe('Additional metadata for the resource.'),
         name: zod.coerce
           .string()
+          .min(1)
+          .max(updateNotificationRuleBodyNameMaxOne)
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['entitlements.reset']),
       })
@@ -9461,8 +9547,17 @@ export const updateNotificationRuleBody = zod
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.',
+          )
+          .nullish()
+          .describe('Additional metadata for the resource.'),
         name: zod.coerce
           .string()
+          .min(1)
+          .max(updateNotificationRuleBodyNameMaxTwo)
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['invoice.created']),
       })
@@ -9486,8 +9581,17 @@ export const updateNotificationRuleBody = zod
           .boolean()
           .optional()
           .describe('Whether the rule is disabled or not.'),
+        metadata: zod
+          .record(zod.string(), zod.coerce.string())
+          .describe(
+            'Set of key-value pairs.\nMetadata can be used to store additional information about a resource.',
+          )
+          .nullish()
+          .describe('Additional metadata for the resource.'),
         name: zod.coerce
           .string()
+          .min(1)
+          .max(updateNotificationRuleBodyNameMaxThree)
           .describe('The user friendly name of the notification rule.'),
         type: zod.enum(['invoice.updated']),
       })

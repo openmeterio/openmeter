@@ -8,9 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -20,6 +18,8 @@ const (
 	FieldID = "id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldType holds the string denoting the type field in the database.
@@ -28,8 +28,6 @@ const (
 	FieldRuleID = "rule_id"
 	// FieldPayload holds the string denoting the payload field in the database.
 	FieldPayload = "payload"
-	// FieldAnnotations holds the string denoting the annotations field in the database.
-	FieldAnnotations = "annotations"
 	// EdgeDeliveryStatuses holds the string denoting the delivery_statuses edge name in mutations.
 	EdgeDeliveryStatuses = "delivery_statuses"
 	// EdgeRules holds the string denoting the rules edge name in mutations.
@@ -54,11 +52,11 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldNamespace,
+	FieldAnnotations,
 	FieldCreatedAt,
 	FieldType,
 	FieldRuleID,
 	FieldPayload,
-	FieldAnnotations,
 }
 
 var (
@@ -84,10 +82,6 @@ var (
 	DefaultCreatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
-	// ValueScanner of all NotificationEvent fields.
-	ValueScanner struct {
-		Annotations field.TypeValueScanner[models.Annotations]
-	}
 )
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
@@ -131,11 +125,6 @@ func ByRuleID(opts ...sql.OrderTermOption) OrderOption {
 // ByPayload orders the results by the payload field.
 func ByPayload(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPayload, opts...).ToFunc()
-}
-
-// ByAnnotations orders the results by the annotations field.
-func ByAnnotations(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAnnotations, opts...).ToFunc()
 }
 
 // ByDeliveryStatusesCount orders the results by delivery_statuses count.

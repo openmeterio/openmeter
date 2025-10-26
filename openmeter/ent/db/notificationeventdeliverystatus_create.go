@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NotificationEventDeliveryStatusCreate is the builder for creating a NotificationEventDeliveryStatus entity.
@@ -28,6 +29,12 @@ type NotificationEventDeliveryStatusCreate struct {
 // SetNamespace sets the "namespace" field.
 func (_c *NotificationEventDeliveryStatusCreate) SetNamespace(v string) *NotificationEventDeliveryStatusCreate {
 	_c.mutation.SetNamespace(v)
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *NotificationEventDeliveryStatusCreate) SetAnnotations(v models.Annotations) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetAnnotations(v)
 	return _c
 }
 
@@ -261,6 +268,10 @@ func (_c *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationEven
 		_spec.SetField(notificationeventdeliverystatus.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -352,6 +363,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationEventDeliveryStatusUpsert) SetAnnotations(v models.Annotations) *NotificationEventDeliveryStatusUpsert {
+	u.Set(notificationeventdeliverystatus.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsert) UpdateAnnotations() *NotificationEventDeliveryStatusUpsert {
+	u.SetExcluded(notificationeventdeliverystatus.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationEventDeliveryStatusUpsert) ClearAnnotations() *NotificationEventDeliveryStatusUpsert {
+	u.SetNull(notificationeventdeliverystatus.FieldAnnotations)
+	return u
+}
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *NotificationEventDeliveryStatusUpsert) SetUpdatedAt(v time.Time) *NotificationEventDeliveryStatusUpsert {
@@ -453,6 +482,27 @@ func (u *NotificationEventDeliveryStatusUpsertOne) Update(set func(*Notification
 		set(&NotificationEventDeliveryStatusUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationEventDeliveryStatusUpsertOne) SetAnnotations(v models.Annotations) *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsertOne) UpdateAnnotations() *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationEventDeliveryStatusUpsertOne) ClearAnnotations() *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.ClearAnnotations()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -729,6 +779,27 @@ func (u *NotificationEventDeliveryStatusUpsertBulk) Update(set func(*Notificatio
 		set(&NotificationEventDeliveryStatusUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationEventDeliveryStatusUpsertBulk) SetAnnotations(v models.Annotations) *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateAnnotations() *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationEventDeliveryStatusUpsertBulk) ClearAnnotations() *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.ClearAnnotations()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.

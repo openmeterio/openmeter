@@ -97,6 +97,8 @@ func (a *adapter) CreateRule(ctx context.Context, params notification.CreateRule
 			SetNamespace(params.Namespace).
 			SetDisabled(params.Disabled).
 			SetConfig(params.Config).
+			SetAnnotations(params.Annotations).
+			SetMetadata(params.Metadata).
 			AddChannelIDs(params.Channels...)
 
 		queryRow, err := query.Save(ctx)
@@ -190,6 +192,8 @@ func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRule
 			SetDisabled(params.Disabled).
 			SetConfig(params.Config).
 			SetName(params.Name).
+			SetAnnotations(params.Annotations).
+			SetMetadata(params.Metadata).
 			ClearChannels().
 			AddChannelIDs(params.Channels...)
 

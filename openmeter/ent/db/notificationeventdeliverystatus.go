@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NotificationEventDeliveryStatus is the model entity for the NotificationEventDeliveryStatus schema.
@@ -20,6 +22,8 @@ type NotificationEventDeliveryStatus struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -61,6 +65,8 @@ func (*NotificationEventDeliveryStatus) scanValues(columns []string) ([]any, err
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case notificationeventdeliverystatus.FieldAnnotations:
+			values[i] = new([]byte)
 		case notificationeventdeliverystatus.FieldID, notificationeventdeliverystatus.FieldNamespace, notificationeventdeliverystatus.FieldEventID, notificationeventdeliverystatus.FieldChannelID, notificationeventdeliverystatus.FieldState, notificationeventdeliverystatus.FieldReason:
 			values[i] = new(sql.NullString)
 		case notificationeventdeliverystatus.FieldCreatedAt, notificationeventdeliverystatus.FieldUpdatedAt:
@@ -91,6 +97,14 @@ func (_m *NotificationEventDeliveryStatus) assignValues(columns []string, values
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
+			}
+		case notificationeventdeliverystatus.FieldAnnotations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
+				}
 			}
 		case notificationeventdeliverystatus.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -171,6 +185,9 @@ func (_m *NotificationEventDeliveryStatus) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
