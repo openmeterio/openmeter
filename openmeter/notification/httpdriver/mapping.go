@@ -43,8 +43,8 @@ func FromChannelWebhook(c notification.Channel) api.NotificationChannelWebhook {
 		UpdatedAt:     c.UpdatedAt,
 		Url:           c.Config.WebHook.URL,
 		DeletedAt:     c.DeletedAt,
-		Annotations:   lo.ToPtr(FromAnnotations(c.Annotations)),
-		Metadata:      lo.ToPtr(FromMetadata(c.Metadata)),
+		Annotations:   lo.EmptyableToPtr(FromAnnotations(c.Annotations)),
+		Metadata:      lo.EmptyableToPtr(FromMetadata(c.Metadata)),
 	}
 }
 
@@ -486,7 +486,7 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 		DeliveryStatus: deliveryStatuses,
 		Id:             e.ID,
 		Rule:           rule,
-		Annotations:    lo.ToPtr(api.Annotations(e.Annotations)),
+		Annotations:    lo.EmptyableToPtr(api.Annotations(e.Annotations)),
 	}
 
 	event.Type, err = FromEventType(e.Type)
