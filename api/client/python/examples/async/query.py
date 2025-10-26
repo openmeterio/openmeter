@@ -1,37 +1,48 @@
 from os import environ
+from typing import Optional
 import asyncio
 
 from openmeter.aio import Client
-from azure.core.exceptions import HttpResponseError
+from openmeter.models import MeterQueryResult
+from corehttp.exceptions import HttpResponseError
 
-ENDPOINT = environ.get("OPENMETER_ENDPOINT") or "http://localhost:8888"
-token = environ.get("OPENMETER_TOKEN")
-
-headers = {"Accept": "application/json"}
-if token and token != "":
-    headers["Authorization"] = f"Bearer {token}"
-
-client = Client(
-    endpoint=ENDPOINT,
-    headers=headers,
-)
+ENDPOINT: str = environ.get("OPENMETER_ENDPOINT") or "https://openmeter.cloud"
+token: Optional[str] = environ.get("OPENMETER_TOKEN")
 
 
-async def main():
-    async with client as c:
+async def main() -> None:
+    async with Client(
+        endpoint=ENDPOINT,
+        token=token,
+    ) as client:
         try:
-            r = await c.query_meter(meter_id_or_slug="api_requests_total")
-            print("Query total values:\n\n", r)
-            r = await c.query_meter(
-                meter_id_or_slug="api_requests_total",
-                group_by=["method"],
+            # Query total values
+            r: MeterQueryResult = await client.meters.query_json(
+                meter_id_or_slug="tokens_total"
             )
-            print("\n\n---\n\nQuery total values grouped by method:\n\n", r)
-            r = await c.query_meter(
-                meter_id_or_slug="api_requests_total",
-                filter_group_by={"method": "GET"},
+            if r.data and len(r.data) > 0:
+                print("Query total values:", r.data[0].value)
+            else:
+                print("Query total values: No data returned")
+
+            # Query total values grouped by language
+            r = await client.meters.query_json(
+                meter_id_or_slug="tokens_total",
+                group_by=["model"],
             )
-            print("\n\n---\n\nQuery total values for GET method:\n\n", r)
+            print("Query total values grouped by model:")
+            for row in r.data:
+                print("\t", row.group_by["model"], ":", row.value)
+
+            # Query total values for model=gpt-4o
+            r = await client.meters.query_json(
+                meter_id_or_slug="tokens_total",
+                advanced_meter_group_by_filters={"model": {"$eq": "gpt-4o"}},
+            )
+            if r.data and len(r.data) > 0:
+                print("Query total values for model=gpt-4o:", r.data[0].value)
+            else:
+                print("Query total values for model=gpt-4o: No data returned")
         except HttpResponseError as e:
             print(e)
 

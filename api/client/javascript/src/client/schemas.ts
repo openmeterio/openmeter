@@ -10770,7 +10770,11 @@ export interface components {
        * Price
        * @description The price of the rate card.
        *     When null, the feature or service is free.
-       * @example {}
+       * @example {
+       *       "type": "flat",
+       *       "amount": "100",
+       *       "paymentTerm": "in_arrears"
+       *     }
        */
       price: components['schemas']['RateCardUsageBasedPrice'] | null
       /**

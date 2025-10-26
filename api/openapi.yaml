@@ -24859,7 +24859,10 @@ components:
             The price of the rate card.
             When null, the feature or service is free.
           title: Price
-          example: {}
+          example:
+            type: flat
+            amount: '100'
+            paymentTerm: in_arrears
         discounts:
           allOf:
             - $ref: '#/components/schemas/Discounts'

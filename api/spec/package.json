@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "compile": "tsp compile ./src/cloud",
-    "watch": "tsp compile --watch ./src/cloud",
+    "compile": "pnpm compile:openapi && pnpm compile:client",
+    "compile:openapi": "tsp compile --config tspconfig.yaml ./src/cloud",
+    "compile:client": "tsp compile --config tspconfig.client.yaml ./src",
+    "watch:openapi": "tsp compile --watch --config tspconfig.yaml ./src/cloud",
+    "watch:client": "tsp compile --watch --config tspconfig.client.yaml ./src",
     "format": "prettier --list-different --find-config-path --write .",
     "lint": "prettier --check ."
   },
@@ -16,22 +19,29 @@
     "./openapi.yaml": "./output/openapi.OpenMeterCloud.yaml"
   },
   "devDependencies": {
-    "@typespec/compiler": "1.2.1",
-    "@typespec/http": "1.2.1",
-    "@typespec/openapi": "1.2.1",
-    "@typespec/openapi3": "1.2.1",
-    "@typespec/prettier-plugin-typespec": "1.2.1",
-    "@typespec/rest": "0.72.1",
-    "@typespec/versioning": "0.72.1",
+    "@typespec/compiler": "1.5.0",
+    "@typespec/http": "1.5.0",
+    "@typespec/http-client-python": "0.19.1",
+    "@typespec/openapi": "1.5.0",
+    "@typespec/openapi3": "1.5.0",
+    "@typespec/prettier-plugin-typespec": "1.5.0",
+    "@typespec/rest": "0.75.0",
+    "@typespec/versioning": "0.75.0",
     "prettier": "3.6.2"
   },
   "private": true,
   "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4300c59242336377e01cfad",
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@typespec/http-client-python",
+      "esbuild"
+    ],
     "patchedDependencies": {
       "@typespec/http": "patches/@typespec__http.patch",
+      "@typespec/openapi": "patches/@typespec__openapi.patch",
       "@typespec/openapi3": "patches/@typespec__openapi3.patch",
-      "@typespec/openapi": "patches/@typespec__openapi.patch"
+      "@typespec/http-client-python": "patches/@typespec__http-client-python.patch",
+      "@typespec/compiler": "patches/@typespec__compiler.patch"
     }
   }
 }
