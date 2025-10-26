@@ -163,12 +163,12 @@ func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, r
 		params.WindowTimeZone = tz
 	}
 
-	if request.AdvancedMeterGroupByFilters != nil {
+	if request.AdvancedMeterGroupByFilters != nil && len(*request.AdvancedMeterGroupByFilters) > 0 {
 		params.FilterGroupBy = apiconverter.ConvertStringMap(*request.AdvancedMeterGroupByFilters)
 	}
 
-	if request.FilterGroupBy != nil {
-		if request.AdvancedMeterGroupByFilters != nil {
+	if request.FilterGroupBy != nil && len(*request.FilterGroupBy) > 0 {
+		if len(params.FilterGroupBy) > 0 {
 			return params, models.NewGenericValidationError(errors.New("advanced meter group by filters and filter group by cannot be used together"))
 		}
 
