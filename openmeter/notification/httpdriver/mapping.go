@@ -43,7 +43,25 @@ func FromChannelWebhook(c notification.Channel) api.NotificationChannelWebhook {
 		UpdatedAt:     c.UpdatedAt,
 		Url:           c.Config.WebHook.URL,
 		DeletedAt:     c.DeletedAt,
+		Annotations:   lo.ToPtr(FromAnnotations(c.Annotations)),
+		Metadata:      lo.ToPtr(FromMetadata(c.Metadata)),
 	}
+}
+
+func FromAnnotations(a models.Annotations) api.Annotations {
+	if a == nil {
+		return nil
+	}
+
+	return api.Annotations(a)
+}
+
+func FromMetadata(m models.Metadata) api.Metadata {
+	if m == nil {
+		return nil
+	}
+
+	return api.Metadata(m)
 }
 
 func AsChannelWebhookCreateRequest(r api.NotificationChannelWebhookCreateRequest, namespace string) notification.CreateChannelInput {
@@ -64,7 +82,16 @@ func AsChannelWebhookCreateRequest(r api.NotificationChannelWebhookCreateRequest
 				SigningSecret: lo.FromPtr(r.SigningSecret),
 			},
 		},
+		Metadata: lo.FromPtr(r.Metadata),
 	}
+}
+
+func AsMetadata(m *api.Metadata) models.Metadata {
+	if m == nil {
+		return nil
+	}
+
+	return *m
 }
 
 func AsChannelWebhookUpdateRequest(r api.NotificationChannelWebhookCreateRequest, namespace, channelID string) notification.UpdateChannelInput {
@@ -86,6 +113,7 @@ func AsChannelWebhookUpdateRequest(r api.NotificationChannelWebhookCreateRequest
 				SigningSecret: lo.FromPtr(r.SigningSecret),
 			},
 		},
+		Metadata: AsMetadata(r.Metadata),
 	}
 }
 
@@ -107,6 +135,7 @@ func AsRuleBalanceThresholdCreateRequest(r api.NotificationRuleBalanceThresholdC
 			},
 		},
 		Channels: r.Channels,
+		Metadata: AsMetadata(r.Metadata),
 	}
 }
 
@@ -129,6 +158,7 @@ func AsRuleBalanceThresholdUpdateRequest(r api.NotificationRuleBalanceThresholdC
 			},
 		},
 		Channels: r.Channels,
+		Metadata: AsMetadata(r.Metadata),
 	}
 }
 
@@ -149,6 +179,7 @@ func AsRuleEntitlementResetCreateRequest(r api.NotificationRuleEntitlementResetC
 			},
 		},
 		Channels: r.Channels,
+		Metadata: AsMetadata(r.Metadata),
 	}
 }
 
@@ -170,6 +201,7 @@ func AsRuleEntitlementResetUpdateRequest(r api.NotificationRuleEntitlementResetC
 			},
 		},
 		Channels: r.Channels,
+		Metadata: AsMetadata(r.Metadata),
 	}
 }
 
@@ -188,6 +220,7 @@ func AsRuleInvoiceCreatedCreateRequest(r api.NotificationRuleInvoiceCreatedCreat
 			Invoice: &notification.InvoiceRuleConfig{},
 		},
 		Channels: r.Channels,
+		Metadata: AsMetadata(r.Metadata),
 	}
 }
 
@@ -207,6 +240,7 @@ func AsRuleInvoiceCreatedUpdateRequest(r api.NotificationRuleInvoiceCreatedCreat
 			Invoice: &notification.InvoiceRuleConfig{},
 		},
 		Channels: r.Channels,
+		Metadata: AsMetadata(r.Metadata),
 	}
 }
 
@@ -225,6 +259,7 @@ func AsRuleInvoiceUpdatedCreateRequest(r api.NotificationRuleInvoiceUpdatedCreat
 			Invoice: &notification.InvoiceRuleConfig{},
 		},
 		Channels: r.Channels,
+		Metadata: AsMetadata(r.Metadata),
 	}
 }
 
@@ -244,6 +279,7 @@ func AsRuleInvoiceUpdatedUpdateRequest(r api.NotificationRuleInvoiceUpdatedCreat
 			Invoice: &notification.InvoiceRuleConfig{},
 		},
 		Channels: r.Channels,
+		Metadata: AsMetadata(r.Metadata),
 	}
 }
 
@@ -314,6 +350,9 @@ func FromRuleBalanceThreshold(r notification.Rule) api.NotificationRuleBalanceTh
 		Type:       api.NotificationRuleBalanceThresholdTypeEntitlementsBalanceThreshold,
 		UpdatedAt:  r.UpdatedAt,
 		DeletedAt:  r.DeletedAt,
+
+		Annotations: lo.EmptyableToPtr(api.Annotations(r.Annotations)),
+		Metadata:    lo.EmptyableToPtr(api.Metadata(r.Metadata)),
 	}
 }
 
@@ -349,6 +388,9 @@ func FromRuleEntitlementReset(r notification.Rule) api.NotificationRuleEntitleme
 		Type:      api.NotificationRuleEntitlementResetTypeEntitlementsReset,
 		UpdatedAt: r.UpdatedAt,
 		DeletedAt: r.DeletedAt,
+
+		Annotations: lo.EmptyableToPtr(api.Annotations(r.Annotations)),
+		Metadata:    lo.EmptyableToPtr(api.Metadata(r.Metadata)),
 	}
 }
 
@@ -370,6 +412,9 @@ func FromRuleInvoiceCreated(r notification.Rule) api.NotificationRuleInvoiceCrea
 		Type:      api.NotificationRuleInvoiceCreatedTypeInvoiceCreated,
 		UpdatedAt: r.UpdatedAt,
 		DeletedAt: r.DeletedAt,
+
+		Annotations: lo.EmptyableToPtr(api.Annotations(r.Annotations)),
+		Metadata:    lo.EmptyableToPtr(api.Metadata(r.Metadata)),
 	}
 }
 
@@ -391,6 +436,9 @@ func FromRuleInvoiceUpdated(r notification.Rule) api.NotificationRuleInvoiceUpda
 		Type:      api.NotificationRuleInvoiceUpdatedTypeInvoiceUpdated,
 		UpdatedAt: r.UpdatedAt,
 		DeletedAt: r.DeletedAt,
+
+		Annotations: lo.EmptyableToPtr(api.Annotations(r.Annotations)),
+		Metadata:    lo.EmptyableToPtr(api.Metadata(r.Metadata)),
 	}
 }
 
@@ -420,6 +468,8 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 			},
 			State:     api.NotificationEventDeliveryStatusState(deliveryStatus.State),
 			UpdatedAt: deliveryStatus.UpdatedAt,
+
+			Annotations: lo.EmptyableToPtr(api.Annotations(deliveryStatus.Annotations)),
 		}
 		if channel, ok := channelsByID[deliveryStatus.ChannelID]; ok {
 			status.Channel = api.NotificationChannelMeta{
@@ -431,20 +481,12 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 		deliveryStatuses = append(deliveryStatuses, status)
 	}
 
-	var annotations api.Annotations
-	if len(e.Annotations) > 0 {
-		annotations = make(api.Annotations)
-		for k, v := range e.Annotations {
-			annotations[k] = v
-		}
-	}
-
 	event := api.NotificationEvent{
 		CreatedAt:      e.CreatedAt,
 		DeliveryStatus: deliveryStatuses,
 		Id:             e.ID,
 		Rule:           rule,
-		Annotations:    lo.EmptyableToPtr(annotations),
+		Annotations:    lo.ToPtr(api.Annotations(e.Annotations)),
 	}
 
 	event.Type, err = FromEventType(e.Type)

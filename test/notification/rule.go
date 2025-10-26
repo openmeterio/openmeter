@@ -45,6 +45,14 @@ func NewCreateRuleInput(namespace string, name string, channels ...string) notif
 			},
 		},
 		Channels: channels,
+		Metadata: models.Metadata{
+			"namespace": namespace,
+			"name":      name,
+		},
+		Annotations: models.Annotations{
+			"namespace": namespace,
+			"name":      name,
+		},
 	}
 }
 
@@ -151,6 +159,8 @@ func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 			assert.Equal(t, test.CreateIn.Disabled, rule.Disabled, "Rule must not be disabled")
 			assert.Equal(t, test.CreateIn.Type, rule.Type, "Rule type must be the same")
 			assert.EqualValues(t, test.CreateIn.Config, rule.Config, "Rule config must be the same")
+			assert.Equalf(t, test.CreateIn.Annotations, rule.Annotations, "Annotations must be the same")
+			assert.Equalf(t, test.CreateIn.Metadata, rule.Metadata, "Metadata must be the same")
 		})
 	}
 }
@@ -226,6 +236,14 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 				}),
 			},
 		},
+		Metadata: models.Metadata{
+			"namespace": rule.Namespace,
+			"name":      "NotificationUpdateRule2",
+		},
+		Annotations: models.Annotations{
+			"namespace": rule.Namespace,
+			"name":      "NotificationUpdateRule2",
+		},
 	}
 
 	rule2, err := service.UpdateRule(ctx, updateIn)
@@ -235,6 +253,8 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	assert.Equal(t, updateIn.Disabled, rule2.Disabled, "Rule must not be disabled")
 	assert.Equal(t, updateIn.Type, rule2.Type, "Rule type must be the same")
 	assert.EqualValues(t, updateIn.Config, rule2.Config, "Rule config must be the same")
+	assert.Equalf(t, updateIn.Annotations, rule2.Annotations, "Annotations must be the same")
+	assert.Equalf(t, updateIn.Metadata, rule2.Metadata, "Metadata must be the same")
 }
 
 func (s *RuleTestSuite) TestDelete(ctx context.Context, t *testing.T) {
@@ -275,7 +295,9 @@ func (s *RuleTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	assert.Equal(t, rule.Namespace, rule2.Namespace, "Rule namespace must be equal")
 	assert.Equal(t, rule.ID, rule2.ID, "Rule ID must be equal")
 	assert.Equal(t, rule.Disabled, rule2.Disabled, "Rule must not be disabled")
-	assert.Equal(t, rule.Type, rule.Type, "Rule type must be the same")
-	assert.Equal(t, rule.Channels, rule.Channels, "Rule channels must be the same")
-	assert.EqualValues(t, rule.Config, rule.Config, "Rule config must be the same")
+	assert.Equal(t, rule.Type, rule2.Type, "Rule type must be the same")
+	assert.Equal(t, rule.Channels, rule2.Channels, "Rule channels must be the same")
+	assert.EqualValues(t, rule.Config, rule2.Config, "Rule config must be the same")
+	assert.Equalf(t, rule.Annotations, rule2.Annotations, "Annotations must be the same")
+	assert.Equalf(t, rule.Metadata, rule2.Metadata, "Metadata must be the same")
 }

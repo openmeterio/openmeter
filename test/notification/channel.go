@@ -32,6 +32,14 @@ func NewCreateChannelInput(namespace, name string) notification.CreateChannelInp
 				SigningSecret: TestSigningSecret,
 			},
 		},
+		Metadata: models.Metadata{
+			"namespace": namespace,
+			"name":      name,
+		},
+		Annotations: models.Annotations{
+			"namespace": namespace,
+			"name":      name,
+		},
 	}
 }
 
@@ -51,6 +59,8 @@ func (s *ChannelTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	assert.Equal(t, createIn.Disabled, channel.Disabled, "Channel must not be disabled")
 	assert.Equal(t, createIn.Type, channel.Type, "Channel type must be the same")
 	assert.EqualValues(t, createIn.Config, channel.Config, "Channel config must be the same")
+	assert.Equalf(t, createIn.Annotations, channel.Annotations, "Annotations must be the same")
+	assert.Equalf(t, createIn.Metadata, channel.Metadata, "Metadata must be the same")
 }
 
 func (s *ChannelTestSuite) TestList(ctx context.Context, t *testing.T) {
@@ -119,6 +129,14 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 				SigningSecret: secret,
 			},
 		},
+		Metadata: models.Metadata{
+			"namespace": channel.Namespace,
+			"name":      "NotificationUpdateChannel2",
+		},
+		Annotations: models.Annotations{
+			"namespace": channel.Namespace,
+			"name":      "NotificationUpdateChannel2",
+		},
 	}
 
 	channel2, err := service.UpdateChannel(ctx, updateIn)
@@ -128,6 +146,8 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	assert.Equal(t, updateIn.Disabled, channel2.Disabled, "Channel must not be disabled")
 	assert.Equal(t, updateIn.Type, channel2.Type, "Channel type must be the same")
 	assert.EqualValues(t, updateIn.Config, channel2.Config, "Channel config must be the same")
+	assert.Equalf(t, updateIn.Annotations, channel2.Annotations, "Annotations must be the same")
+	assert.Equalf(t, updateIn.Metadata, channel2.Metadata, "Metadata must be the same")
 }
 
 func (s *ChannelTestSuite) TestDelete(ctx context.Context, t *testing.T) {
@@ -164,7 +184,9 @@ func (s *ChannelTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	assert.NotEmpty(t, channel2.ID, "Channel ID must not be empty")
 	assert.Equal(t, channel.Namespace, channel2.Namespace, "Channel namespace must be equal")
 	assert.Equal(t, channel.ID, channel2.ID, "Channel ID must be equal")
-	assert.Equal(t, channel.Disabled, channel2.Disabled, "Channel disabled must not be equal")
+	assert.Equal(t, channel.Disabled, channel2.Disabled, "Channel disabled must be equal")
 	assert.Equal(t, channel.Type, channel2.Type, "Channel type must be the same")
 	assert.EqualValues(t, channel.Config, channel2.Config, "Channel config must be the same")
+	assert.Equalf(t, channel.Annotations, channel2.Annotations, "Annotations must be the same")
+	assert.Equalf(t, channel.Metadata, channel2.Metadata, "Metadata must be the same")
 }

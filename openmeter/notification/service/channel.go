@@ -69,10 +69,12 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 					Namespace: params.Namespace,
 					ID:        channel.ID,
 				},
-				Type:     channel.Type,
-				Name:     channel.Name,
-				Disabled: channel.Disabled,
-				Config:   channel.Config,
+				Type:        channel.Type,
+				Name:        channel.Name,
+				Disabled:    channel.Disabled,
+				Config:      channel.Config,
+				Annotations: channel.Annotations,
+				Metadata:    channel.Metadata,
 			}
 			updateIn.Config.WebHook.SigningSecret = wb.Secret
 

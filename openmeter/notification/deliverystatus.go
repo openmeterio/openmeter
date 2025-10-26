@@ -58,6 +58,8 @@ type EventDeliveryStatus struct {
 	Reason    string                   `json:"reason,omitempty"`
 	CreatedAt time.Time                `json:"createdAt"`
 	UpdatedAt time.Time                `json:"updatedAt,omitempty"`
+
+	Annotations models.Annotations `json:"annotations,omitempty"`
 }
 
 var (
@@ -158,6 +160,8 @@ type UpdateEventDeliveryStatusInput struct {
 	EventID string
 	// ChannelID defines the Channel identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
 	ChannelID string
+	// Annotations
+	Annotations models.Annotations
 }
 
 func (i UpdateEventDeliveryStatusInput) ValidateWith(validators ...models.ValidatorFunc[UpdateEventDeliveryStatusInput]) error {

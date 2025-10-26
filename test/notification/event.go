@@ -346,6 +346,9 @@ func (s *EventTestSuite) TestUpdateDeliveryStatus(ctx context.Context, t *testin
 				},
 				ID:    event.DeliveryStatus[0].ID,
 				State: notification.EventDeliveryStatusStateFailed,
+				Annotations: models.Annotations{
+					"state": string(notification.EventDeliveryStatusStateFailed),
+				},
 			},
 		},
 		{
@@ -357,6 +360,9 @@ func (s *EventTestSuite) TestUpdateDeliveryStatus(ctx context.Context, t *testin
 				EventID:   event.ID,
 				ChannelID: event.Rule.Channels[0].ID,
 				State:     notification.EventDeliveryStatusStateSuccess,
+				Annotations: models.Annotations{
+					"state": string(notification.EventDeliveryStatusStateSuccess),
+				},
 			},
 		},
 	}
@@ -366,6 +372,9 @@ func (s *EventTestSuite) TestUpdateDeliveryStatus(ctx context.Context, t *testin
 			status, err := service.UpdateEventDeliveryStatus(ctx, test.Input)
 			require.NoError(t, err, "Updating notification event delivery status must not return error")
 			require.NotNil(t, status, "Notification event must not be nil")
+
+			assert.Equalf(t, test.Input.State, status.State, "Unexpected state returned by updating notification event delivery status")
+			assert.Equalf(t, test.Input.Annotations, status.Annotations, "Unexpected annotations returned by updating notification event delivery status")
 		})
 	}
 }

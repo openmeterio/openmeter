@@ -129,7 +129,8 @@ func (a *adapter) UpdateEventDeliveryStatus(ctx context.Context, params notifica
 
 		updateQuery = updateQuery.
 			SetState(params.State).
-			SetReason(params.Reason)
+			SetReason(params.Reason).
+			SetAnnotations(params.Annotations)
 
 		updateRow, err := updateQuery.Save(ctx)
 		if err != nil {
