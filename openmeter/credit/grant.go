@@ -34,9 +34,23 @@ type CreateGrantInput struct {
 	Recurrence       *timeutil.Recurrence
 }
 
+func (i CreateGrantInput) Validate() error {
+	if i.Amount <= 0 {
+		return ErrGrantAmountMustBePositive.WithAttr("amount", i.Amount)
+	}
+	if i.EffectiveAt.IsZero() {
+		return ErrGrantEffectiveAtMustBeSet.WithAttr("effective_at", i.EffectiveAt)
+	}
+	return nil
+}
+
 func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID, input CreateGrantInput) (*grant.Grant, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.CreateGrant", cTrace.WithOwner(ownerID))
 	defer span.End()
+
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
 
 	return transaction.Run(ctx, m.GrantRepo, func(ctx context.Context) (*grant.Grant, error) {
 		tx, err := entutils.GetDriverFromContext(ctx)
