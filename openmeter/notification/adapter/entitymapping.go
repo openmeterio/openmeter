@@ -12,8 +12,9 @@ import (
 
 func ChannelFromDBEntity(e db.NotificationChannel) *notification.Channel {
 	return &notification.Channel{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedID: models.NamespacedID{
 			Namespace: e.Namespace,
+			ID:        e.ID,
 		},
 		ManagedModel: models.ManagedModel{
 			CreatedAt: e.CreatedAt.UTC(),
@@ -28,7 +29,6 @@ func ChannelFromDBEntity(e db.NotificationChannel) *notification.Channel {
 				return &deletedAt
 			}(),
 		},
-		ID:       e.ID,
 		Type:     e.Type,
 		Name:     e.Name,
 		Disabled: e.Disabled,
@@ -52,8 +52,9 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 	}
 
 	return &notification.Rule{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedID: models.NamespacedID{
 			Namespace: e.Namespace,
+			ID:        e.ID,
 		},
 		ManagedModel: models.ManagedModel{
 			CreatedAt: e.CreatedAt.UTC(),
@@ -68,7 +69,6 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 				return &deletedAt
 			}(),
 		},
-		ID:       e.ID,
 		Type:     e.Type,
 		Name:     e.Name,
 		Disabled: e.Disabled,
@@ -105,10 +105,10 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 	rule := RuleFromDBEntity(*ruleRow)
 
 	return &notification.Event{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedID: models.NamespacedID{
 			Namespace: e.Namespace,
+			ID:        e.ID,
 		},
-		ID:             e.ID,
 		Type:           e.Type,
 		CreatedAt:      e.CreatedAt.UTC(),
 		Payload:        payload,
@@ -120,10 +120,10 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 
 func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *notification.EventDeliveryStatus {
 	return &notification.EventDeliveryStatus{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedID: models.NamespacedID{
 			Namespace: e.Namespace,
+			ID:        e.ID,
 		},
-		ID:        e.ID,
 		ChannelID: e.ChannelID,
 		EventID:   e.EventID,
 		State:     e.State,

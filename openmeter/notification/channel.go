@@ -35,13 +35,11 @@ func (t ChannelType) Validate() error {
 
 // Channel represents a notification channel with specific type and configuration.
 type Channel struct {
-	models.NamespacedModel
+	models.NamespacedID
 	models.ManagedModel
 	models.Annotations
 	models.Metadata
 
-	// ID is the unique identifier for Channel.
-	ID string `json:"id"`
 	// Type of the notification channel (e.g. webhook)
 	Type ChannelType `json:"type"`
 	// Name of is the user provided name of the Channel.
