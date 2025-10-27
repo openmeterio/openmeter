@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -62,7 +63,6 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 			res, err := withAllUsageResets(repo.db.Entitlement.Query(), []string{entitlementID.Namespace}).
 				WithCustomer(func(q *db.CustomerQuery) {
 					customeradapter.WithSubjects(q, clock.Now())
-					customeradapter.WithActiveSubscriptions(q, clock.Now())
 				}).
 				WithSubject().
 				Where(
@@ -91,7 +91,6 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfCustomerAt(ctx context.Cont
 			res, err := withAllUsageResets(repo.db.Entitlement.Query(), []string{namespace}).
 				WithCustomer(func(q *db.CustomerQuery) {
 					customeradapter.WithSubjects(q, at)
-					customeradapter.WithActiveSubscriptions(q, at)
 				}).
 				WithSubject().
 				Where(EntitlementActiveAt(at)...).
@@ -137,7 +136,6 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 			)
 
 			query = customeradapter.WithSubjects(query, now)
-			query = customeradapter.WithActiveSubscriptions(query, now)
 
 			cus, err := query.Only(ctx)
 			if err != nil {
@@ -150,7 +148,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				return nil, fmt.Errorf("failed to resolve customer: %w", err)
 			}
 
-			entitlementCustomer, err := customeradapter.CustomerFromDBEntity(*cus)
+			entitlementCustomer, err := customeradapter.CustomerFromDBEntity(*cus, customer.Expands{})
 			if err != nil {
 				return nil, fmt.Errorf("failed to map customer: %w", err)
 			}
@@ -230,7 +228,6 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 			entWithEdges, err := repo.db.Entitlement.Query().
 				WithCustomer(func(q *db.CustomerQuery) {
 					customeradapter.WithSubjects(q, now)
-					customeradapter.WithActiveSubscriptions(q, now)
 				}).
 				WithSubject().
 				Where(db_entitlement.ID(res.ID)).
@@ -322,7 +319,6 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 					WithCustomer(
 						func(q *db.CustomerQuery) {
 							customeradapter.WithSubjects(q, clock.Now())
-							customeradapter.WithActiveSubscriptions(q, clock.Now())
 						},
 					).
 					All(ctx)
@@ -358,7 +354,6 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 			query := repo.db.Entitlement.Query().WithSubject().WithCustomer(func(q *db.CustomerQuery) {
 				customeradapter.WithSubjects(q, now)
-				customeradapter.WithActiveSubscriptions(q, now)
 			})
 
 			if len(params.Namespaces) > 0 {
@@ -552,7 +547,7 @@ func (a *entitlementDBAdapter) mapEntitlementEntity(e *db.Entitlement) (*entitle
 		StripeCustomerId: e.Edges.Subject.StripeCustomerID,
 	}
 
-	if mapped, mapErr := customeradapter.CustomerFromDBEntity(*e.Edges.Customer); mapErr == nil {
+	if mapped, mapErr := customeradapter.CustomerFromDBEntity(*e.Edges.Customer, customer.Expands{}); mapErr == nil {
 		ent.Customer = mapped
 	}
 
@@ -674,7 +669,6 @@ func (a *entitlementDBAdapter) UpsertEntitlementCurrentPeriods(ctx context.Conte
 				WithCustomer(
 					func(q *db.CustomerQuery) {
 						customeradapter.WithSubjects(q, now)
-						customeradapter.WithActiveSubscriptions(q, now)
 					},
 				).
 				All(ctx)
@@ -754,7 +748,6 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 			query := withAllUsageResets(repo.db.Entitlement.Query(), params.Namespaces).
 				WithCustomer(func(q *db.CustomerQuery) {
 					customeradapter.WithSubjects(q, now)
-					customeradapter.WithActiveSubscriptions(q, now)
 				}).
 				WithSubject().
 				Where(EntitlementActiveAt(params.Highwatermark)...).
@@ -890,7 +883,6 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 
 			query := repo.db.Entitlement.Query().WithSubject().WithCustomer(func(q *db.CustomerQuery) {
 				customeradapter.WithSubjects(q, now)
-				customeradapter.WithActiveSubscriptions(q, now)
 			})
 			query = withAllUsageResets(query, []string{namespace})
 			res, err := query.

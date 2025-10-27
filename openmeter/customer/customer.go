@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/mo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -12,6 +14,25 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
+
+type (
+	Expand  string
+	Expands []Expand
+)
+
+const (
+	ExpandSubscriptions Expand = "subscriptions"
+)
+
+func (e Expands) Validate() error {
+	for _, expand := range e {
+		if expand != ExpandSubscriptions {
+			return models.NewGenericValidationError(fmt.Errorf("invalid expand: %s", expand))
+		}
+	}
+
+	return nil
+}
 
 var _ streaming.Customer = &Customer{}
 
@@ -27,7 +48,7 @@ type Customer struct {
 	Metadata         *models.Metadata         `json:"metadata,omitempty"`
 	Annotation       *models.Annotations      `json:"annotations,omitempty"`
 
-	ActiveSubscriptionIDs []string
+	ActiveSubscriptionIDs mo.Option[[]string]
 }
 
 // GetUsageAttribution returns the customer usage attribution
@@ -193,6 +214,9 @@ func (c CustomerUsageAttribution) GetSubjectKey() (string, error) {
 type GetCustomerByUsageAttributionInput struct {
 	Namespace  string
 	SubjectKey string
+
+	// Expand
+	Expands Expands
 }
 
 func (i GetCustomerByUsageAttributionInput) Validate() error {
@@ -202,6 +226,10 @@ func (i GetCustomerByUsageAttributionInput) Validate() error {
 
 	if i.SubjectKey == "" {
 		return models.NewGenericValidationError(errors.New("subject key is required"))
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		return models.NewGenericValidationError(err)
 	}
 
 	return nil
@@ -225,11 +253,18 @@ type ListCustomersInput struct {
 	Subject      *string
 	PlanKey      *string
 	CustomerIDs  []string
+
+	// Expand
+	Expands Expands
 }
 
 func (i ListCustomersInput) Validate() error {
 	if i.Namespace == "" {
 		return models.NewGenericValidationError(errors.New("namespace is required"))
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		return models.NewGenericValidationError(err)
 	}
 
 	return nil
@@ -300,7 +335,7 @@ type GetCustomerInput struct {
 	CustomerIDOrKey *CustomerIDOrKey
 
 	// Expand
-	Expand []api.CustomerExpand
+	Expands Expands
 }
 
 func (i GetCustomerInput) Validate() error {
@@ -335,6 +370,10 @@ func (i GetCustomerInput) Validate() error {
 
 	if i.CustomerIDOrKey != nil {
 		errs = append(errs, i.CustomerIDOrKey.Validate())
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		return models.NewGenericValidationError(err)
 	}
 
 	return errors.Join(errs...)
