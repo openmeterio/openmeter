@@ -99,10 +99,13 @@ func (h *Handler) dispatchWebhook(ctx context.Context, event *notification.Event
 			attribute.String("svix.event_id", sendIn.EventID),
 		}
 
-		for _, channelID := range notification.ChannelIDsByType(event.Rule.Channels, notification.ChannelTypeWebhook) {
-			spanAttrs = append(spanAttrs, attribute.String("svix.channel_id", channelID))
+		span.SetAttributes(spanAttrs...)
 
-			span.AddEvent("updating event delivery status", trace.WithAttributes(spanAttrs...))
+		for _, channelID := range notification.ChannelIDsByType(event.Rule.Channels, notification.ChannelTypeWebhook) {
+			span.AddEvent("updating event delivery status", trace.WithAttributes(spanAttrs...),
+				trace.WithAttributes(attribute.String("notification.event.id", event.ID)),
+				trace.WithAttributes(attribute.String("notification.channel.id", channelID)),
+			)
 
 			_, err = h.repo.UpdateEventDeliveryStatus(ctx, notification.UpdateEventDeliveryStatusInput{
 				NamespacedModel: models.NamespacedModel{

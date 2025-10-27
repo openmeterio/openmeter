@@ -35,14 +35,22 @@ func (h *Handler) reconcileEvent(ctx context.Context, event *notification.Event)
 
 		span := trace.SpanFromContext(ctx)
 
-		for _, state := range notification.DeliveryStatusStates(event.DeliveryStatus) {
-			span.AddEvent("reconciling event", trace.WithAttributes(
-				attribute.Stringer("notification.event.state", state),
-				attribute.String("notification.event.id", event.ID),
-				attribute.String("notification.event.namespace", event.Namespace),
-			))
+		spanAttrs := []attribute.KeyValue{
+			attribute.String("notification.event.id", event.ID),
+			attribute.String("notification.event.namespace", event.Namespace),
+		}
 
-			switch state {
+		span.SetAttributes(spanAttrs...)
+
+		for _, status := range event.DeliveryStatus {
+			span.AddEvent("reconciling event", trace.WithAttributes(spanAttrs...),
+				trace.WithAttributes(
+					attribute.Stringer("notification.event.delivery_status.state", status.State),
+					attribute.String("notification.event.channel.id", status.ChannelID),
+				),
+			)
+
+			switch status.State {
 			case notification.EventDeliveryStatusStatePending:
 				if err := h.reconcilePending(ctx, event); err != nil {
 					errs = append(errs, err)
@@ -104,7 +112,9 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 					return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
 				}
 
-				span.AddEvent("reconciling events")
+				span.AddEvent("reconciling events", trace.WithAttributes(
+					attribute.Int("event_handler.reconcile.count", len(out.Items)),
+				))
 
 				for _, event := range out.Items {
 					if err = h.reconcileEvent(ctx, &event); err != nil {
