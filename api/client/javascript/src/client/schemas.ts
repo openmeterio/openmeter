@@ -5742,6 +5742,7 @@ export interface components {
       meterSlug?: string
       /**
        * Meter group by filters
+       * @deprecated
        * @description Optional meter group by filters.
        *     Useful if the meter scope is broader than what feature tracks.
        *     Example scenario would be a meter tracking all token use with groupBy fields for the model,
@@ -5804,6 +5805,7 @@ export interface components {
       meterSlug?: string
       /**
        * Meter group by filters
+       * @deprecated
        * @description Optional meter group by filters.
        *     Useful if the meter scope is broader than what feature tracks.
        *     Example scenario would be a meter tracking all token use with groupBy fields for the model,
@@ -11391,9 +11393,12 @@ export interface components {
      *
      *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2 */
     'MeterQuery.filterCustomerId': string[]
-    /** @description Simple filter for group bys with exact match.
+    /**
+     * @deprecated
+     * @description Simple filter for group bys with exact match.
      *
-     *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
+     *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
+     */
     'MeterQuery.filterGroupBy': {
       [key: string]: string
     }
@@ -17762,7 +17767,7 @@ export interface operations {
       query?: {
         /** @description Filter by meterSlug */
         meterSlug?: string[]
-        /** @description Filter by meterGroupByFilters */
+        /** @description Include archived features in response. */
         includeArchived?: boolean
         /** @description Page index.
          *
@@ -19677,9 +19682,12 @@ export interface operations {
          *
          *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2 */
         filterCustomerId?: components['parameters']['MeterQuery.filterCustomerId']
-        /** @description Simple filter for group bys with exact match.
+        /**
+         * @deprecated
+         * @description Simple filter for group bys with exact match.
          *
-         *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
+         *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
+         */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
         /** @description Optional advanced meter group by filters.
          *     You can use this to filter for values of the meter groupBy fields. */
@@ -22561,9 +22569,12 @@ export interface operations {
          *
          *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2 */
         filterCustomerId?: components['parameters']['MeterQuery.filterCustomerId']
-        /** @description Simple filter for group bys with exact match.
+        /**
+         * @deprecated
+         * @description Simple filter for group bys with exact match.
          *
-         *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
+         *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
+         */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
         /** @description Optional advanced meter group by filters.
          *     You can use this to filter for values of the meter groupBy fields. */

@@ -7903,7 +7903,7 @@ export const listFeaturesQueryParams = zod.object({
   includeArchived: zod.coerce
     .boolean()
     .optional()
-    .describe('Filter by meterGroupByFilters'),
+    .describe('Include archived features in response.'),
   limit: zod.coerce
     .number()
     .min(1)

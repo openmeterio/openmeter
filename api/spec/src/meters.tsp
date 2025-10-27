@@ -450,6 +450,7 @@ model MeterQuery {
    *
    * For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
    */
+  #deprecated "Use advancedMeterGroupByFilters instead"
   @query(#{ explode: true, style: "deepObject" })
   filterGroupBy?: Record<string>;
 
