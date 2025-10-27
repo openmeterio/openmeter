@@ -17,7 +17,6 @@ from .operations import (
     EntitlementsOperations,
     EventsOperations,
     EventsV2Operations,
-    ExportsOperations,
     InfoOperations,
     MetersOperations,
     NotificationOperations,
@@ -47,8 +46,6 @@ class OpenMeterClient:  # pylint: disable=client-accepts-api-version-keyword,too
     :vartype notification: openmeter.operations.NotificationOperations
     :ivar info: InfoOperations operations
     :vartype info: openmeter.operations.InfoOperations
-    :ivar exports: ExportsOperations operations
-    :vartype exports: openmeter.operations.ExportsOperations
     :ivar events: EventsOperations operations
     :vartype events: openmeter.operations.EventsOperations
     :ivar events_v2: EventsV2Operations operations
@@ -93,7 +90,6 @@ class OpenMeterClient:  # pylint: disable=client-accepts-api-version-keyword,too
         self.portal = PortalOperations(self._client, self._config, self._serialize, self._deserialize)
         self.notification = NotificationOperations(self._client, self._config, self._serialize, self._deserialize)
         self.info = InfoOperations(self._client, self._config, self._serialize, self._deserialize)
-        self.exports = ExportsOperations(self._client, self._config, self._serialize, self._deserialize)
         self.events = EventsOperations(self._client, self._config, self._serialize, self._deserialize)
         self.events_v2 = EventsV2Operations(self._client, self._config, self._serialize, self._deserialize)
         self.meters = MetersOperations(self._client, self._config, self._serialize, self._deserialize)

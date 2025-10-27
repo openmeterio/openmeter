@@ -14,7 +14,6 @@ from ._operations import BillingOperations  # type: ignore
 from ._operations import PortalOperations  # type: ignore
 from ._operations import NotificationOperations  # type: ignore
 from ._operations import InfoOperations  # type: ignore
-from ._operations import ExportsOperations  # type: ignore
 from ._operations import EventsOperations  # type: ignore
 from ._operations import EventsV2Operations  # type: ignore
 from ._operations import MetersOperations  # type: ignore
@@ -34,7 +33,6 @@ __all__ = [
     "PortalOperations",
     "NotificationOperations",
     "InfoOperations",
-    "ExportsOperations",
     "EventsOperations",
     "EventsV2Operations",
     "MetersOperations",

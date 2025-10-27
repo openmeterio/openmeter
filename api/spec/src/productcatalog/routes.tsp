@@ -486,7 +486,7 @@ interface Subscriptions {
   create(@body body: SubscriptionCreate): {
     @statusCode _: 201;
     @body body: Subscription;
-  } | OpenMeter.ConflictError | CommonSubscriptionErrors;
+  } | CommonSubscriptionErrors;
 
   /**
    * Batch processing commands for manipulating running subscriptions.
@@ -502,11 +502,7 @@ interface Subscriptions {
 
     @body
     body: SubscriptionEdit,
-  ):
-    | Subscription
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | CommonSubscriptionErrors;
+  ): Subscription | OpenMeter.NotFoundError | CommonSubscriptionErrors;
 
   /**
    * Closes a running subscription and starts a new one according to the specification.
@@ -521,11 +517,7 @@ interface Subscriptions {
 
     @body
     body: SubscriptionChange,
-  ):
-    | SubscriptionChangeResponseBody
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | CommonSubscriptionErrors;
+  ): SubscriptionChangeResponseBody | OpenMeter.NotFoundError | CommonSubscriptionErrors;
 
   /**
    * Migrates the subscripiton to the provided version of the current plan.
@@ -564,11 +556,7 @@ interface Subscriptions {
        */
       billingAnchor?: DateTime;
     },
-  ):
-    | SubscriptionChangeResponseBody
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | CommonSubscriptionErrors;
+  ): SubscriptionChangeResponseBody | OpenMeter.NotFoundError | CommonSubscriptionErrors;
 
   /**
    * Restores a canceled subscription.
@@ -599,11 +587,7 @@ interface Subscriptions {
        */
       timing?: SubscriptionTiming;
     },
-  ):
-    | Subscription
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | CommonSubscriptionErrors;
+  ): Subscription | OpenMeter.NotFoundError | CommonSubscriptionErrors;
 
   /**
    * Cancels the scheduled cancelation.
@@ -612,11 +596,9 @@ interface Subscriptions {
   @operationId("unscheduleCancelation")
   @summary("Unschedule cancelation")
   @route("/{subscriptionId}/unschedule-cancelation")
-  unscheduleCancelation(@path subscriptionId: ULID):
-    | Subscription
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | CommonSubscriptionErrors;
+  unscheduleCancelation(
+    @path subscriptionId: ULID,
+  ): Subscription | OpenMeter.NotFoundError | CommonSubscriptionErrors;
 
   /**
    * Deletes a subscription. Only scheduled subscriptions can be deleted.

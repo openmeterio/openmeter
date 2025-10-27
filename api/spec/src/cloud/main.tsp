@@ -115,10 +115,6 @@ interface EventsV2 extends OpenMeter.EventsV2 {}
 @tag("Meters")
 interface Meters extends OpenMeter.Meters {}
 
-@route("/types")
-@extension("x-internal", true)
-interface Exports extends OpenMeter.Exports {}
-
 namespace OpenMeterCloud.Portal {
   @route("/api/v1/portal/tokens")
   @tag("Portal")

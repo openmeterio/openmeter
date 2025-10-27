@@ -1,9 +1,5 @@
 package openmeter
 
-import (
-	"encoding/json"
-)
-
 // ErrResponse renderer type for handling all sorts of errors.
 // In the best case scenario, the excellent github.com/pkg/errors package
 // helps reveal information on the error, setting it on Err, and in the Render()
@@ -15,16 +11,4 @@ type ErrResponse struct {
 	StatusText string `json:"status"`            // user-level status message
 	AppCode    int64  `json:"code,omitempty"`    // application-specific error code
 	Message    string `json:"message,omitempty"` // application-level error message, for debugging
-}
-
-func ParseExtensionsFromInterface(in interface{}) ([]ErrorExtension, error) {
-	// Let's ser/de
-	str, err := json.Marshal(in)
-	if err != nil {
-		return nil, err
-	}
-
-	var out []ErrorExtension
-	err = json.Unmarshal(str, &out)
-	return out, err
 }
