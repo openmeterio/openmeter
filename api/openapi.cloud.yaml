@@ -4402,7 +4402,7 @@ paths:
         - name: includeArchived
           in: query
           required: false
-          description: Filter by meterGroupByFilters
+          description: Include archived features in response.
           schema:
             type: boolean
             default: false
@@ -12406,6 +12406,7 @@ components:
         additionalProperties:
           type: string
       style: deepObject
+      deprecated: true
     MeterQuery.from:
       name: from
       in: query
@@ -17127,6 +17128,7 @@ components:
             Example scenario would be a meter tracking all token use with groupBy fields for the model,
             then the feature could filter for model=gpt-4.
           title: Meter group by filters
+          deprecated: true
           example:
             model: gpt-4
             type: input
@@ -17194,6 +17196,7 @@ components:
             Example scenario would be a meter tracking all token use with groupBy fields for the model,
             then the feature could filter for model=gpt-4.
           title: Meter group by filters
+          deprecated: true
           example:
             model: gpt-4
             type: input

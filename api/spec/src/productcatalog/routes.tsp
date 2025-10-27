@@ -23,7 +23,7 @@ interface Features {
     meterSlug?: string[],
 
     /**
-     * Filter by meterGroupByFilters
+     * Include archived features in response.
      */
     @query
     includeArchived?: boolean = false,
