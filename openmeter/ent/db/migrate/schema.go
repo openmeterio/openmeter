@@ -2228,12 +2228,17 @@ var (
 				},
 			},
 			{
-				Name:    "subject_namespace_key_deleted_at",
+				Name:    "subject_namespace_key_deleted_at_unique",
 				Unique:  true,
 				Columns: []*schema.Column{SubjectsColumns[1], SubjectsColumns[5], SubjectsColumns[4]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
+			},
+			{
+				Name:    "subject_namespace_key_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{SubjectsColumns[1], SubjectsColumns[5], SubjectsColumns[4]},
 			},
 			{
 				Name:    "subject_namespace_id",
