@@ -159,7 +159,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	postgresConfig := conf.Postgres
-	driver, cleanup6, err := common.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, logger)
+	metrics, err := common.NewMetrics(meter)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	cogsConfiguration := conf.COGS
+	networkTimeObserver := common.NewNetworkTimeObserver(metrics, logger, cogsConfiguration)
+	driver, cleanup6, err := common.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, metrics, networkTimeObserver, logger)
 	if err != nil {
 		cleanup5()
 		cleanup4()

@@ -75,7 +75,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	postgresConfig := conf.Postgres
 	meter := common.NewMeter(meterProvider, commonMetadata)
-	driver, cleanup4, err := common.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, logger)
+	metrics, err := common.NewMetrics(meter)
+	if err != nil {
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	cogsConfiguration := conf.COGS
+	networkTimeObserver := common.NewNetworkTimeObserver(metrics, logger, cogsConfiguration)
+	driver, cleanup4, err := common.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, metrics, networkTimeObserver, logger)
 	if err != nil {
 		cleanup3()
 		cleanup2()
@@ -437,7 +446,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	metrics, err := common.NewKafkaMetrics(meter)
+	metricsMetrics, err := common.NewKafkaMetrics(meter)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -601,7 +610,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		IngestCollector:                  ingestCollector,
 		IngestService:                    ingestService,
 		KafkaProducer:                    producer,
-		KafkaMetrics:                     metrics,
+		KafkaMetrics:                     metricsMetrics,
 		KafkaIngestNamespaceHandler:      namespaceHandler,
 		Logger:                           logger,
 		MetricMeter:                      meter,

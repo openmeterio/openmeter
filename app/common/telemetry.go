@@ -279,9 +279,9 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 		m.Use(func(h http.Handler) http.Handler {
 			return otelhttp.NewHandler(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					h.ServeHTTP(w, r)
-
 					routePattern := chi.RouteContext(r.Context()).RoutePattern()
+
+					h.ServeHTTP(w, r)
 
 					span := trace.SpanFromContext(r.Context())
 					span.SetName(routePattern)

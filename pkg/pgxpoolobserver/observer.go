@@ -6,12 +6,26 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+
+	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 )
 
 // ObservePoolMetrics registers a callback that observes the metrics of the provided pgxpool.Pool.
 // the implementation is based on https://github.com/cmackenzie1/pgxpool-prometheus
-func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttributes ...attribute.KeyValue) error {
+func NewPGXPoolObserver(meter metric.Meter, additionalAttributes ...attribute.KeyValue) pgdriver.Observer {
+	return &pgxpoolObserver{meter: meter, additionalAttributes: additionalAttributes}
+}
+
+type pgxpoolObserver struct {
+	meter                metric.Meter
+	additionalAttributes []attribute.KeyValue
+}
+
+func (o *pgxpoolObserver) ObservePool(pool *pgxpool.Pool) error {
 	allMetrics := []metric.Observable{}
+
+	meter := o.meter
+	additionalAttributes := o.additionalAttributes
 
 	acquireCountMetric, err := meter.Int64ObservableCounter(
 		"pgxpool.acquire_count",

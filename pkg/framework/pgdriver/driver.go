@@ -7,13 +7,12 @@ import (
 	"time"
 
 	"github.com/XSAM/otelsql"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	pgxstdlib "github.com/jackc/pgx/v5/stdlib"
 	"go.opentelemetry.io/otel/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/openmeterio/openmeter/pkg/pgxpoolobserver"
 )
 
 type Option interface {
@@ -38,12 +37,6 @@ func WithMeterProvider(p metric.MeterProvider) Option {
 	})
 }
 
-func WithMetricMeter(m metric.Meter) Option {
-	return optionFunc(func(o *options) {
-		o.metricMeter = m
-	})
-}
-
 func WithSpanOptions(opt otelsql.SpanOptions) Option {
 	return optionFunc(func(o *options) {
 		o.otelOptions = append(o.otelOptions, otelsql.WithSpanOptions(opt))
@@ -56,10 +49,24 @@ func WithLockTimeout(timeout time.Duration) Option {
 	})
 }
 
+func WithInterceptor(i Interceptor) Option {
+	return optionFunc(func(o *options) {
+		o.interceptors = append(o.interceptors, i)
+	})
+}
+
+func WithObserver(ob Observer) Option {
+	return optionFunc(func(o *options) {
+		o.observers = append(o.observers, ob)
+	})
+}
+
 type options struct {
-	connConfig  *pgxpool.Config
-	otelOptions []otelsql.Option
-	metricMeter metric.Meter
+	connConfig   *pgxpool.Config
+	otelOptions  []otelsql.Option
+	metricMeter  metric.Meter
+	interceptors []Interceptor
+	observers    []Observer
 }
 
 type Driver struct {
@@ -96,14 +103,20 @@ func NewPostgresDriver(ctx context.Context, url string, opts ...Option) (*Driver
 		opt.apply(o)
 	}
 
+	tracers := make([]pgx.QueryTracer, len(o.interceptors))
+	for i, interceptor := range o.interceptors {
+		tracers[i] = interceptorAsTracer(interceptor)
+	}
+	o.connConfig.ConnConfig.Tracer = &multiTracer{tracers: tracers}
+
 	pool, err := pgxpool.NewWithConfig(ctx, o.connConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create postgres pool: %w", err)
 	}
 
-	if o.metricMeter != nil {
-		if err := pgxpoolobserver.ObservePoolMetrics(o.metricMeter, pool); err != nil {
-			return nil, err
+	for _, observer := range o.observers {
+		if err := observer.ObservePool(pool); err != nil {
+			return nil, fmt.Errorf("failed to observe pool: %w", err)
 		}
 	}
 
