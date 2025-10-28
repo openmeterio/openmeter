@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -36,7 +37,9 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 
 		query := repo.db.Customer.Query().Where(customerdb.Namespace(input.Namespace))
 		query = WithSubjects(query, now)
-		query = WithActiveSubscriptions(query, now)
+		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
+			query = WithActiveSubscriptions(query, now)
+		}
 
 		// Do not return deleted customers by default
 		if !input.IncludeDeleted {
@@ -110,7 +113,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 				a.logger.WarnContext(ctx, "invalid query result: nil customer received")
 				continue
 			}
-			cust, err := CustomerFromDBEntity(*item)
+			cust, err := CustomerFromDBEntity(*item, input.Expands)
 			if err != nil {
 				return response, fmt.Errorf("failed to convert customer: %w", err)
 			}
@@ -388,7 +391,9 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 
 		query := repo.db.Customer.Query()
 		query = WithSubjects(query, now)
-		query = WithActiveSubscriptions(query, now)
+		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
+			query = WithActiveSubscriptions(query, now)
+		}
 
 		if input.CustomerID != nil {
 			query = query.Where(customerdb.Namespace(input.CustomerID.Namespace))
@@ -438,7 +443,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 			return nil, fmt.Errorf("invalid query result: nil customer received")
 		}
 
-		return CustomerFromDBEntity(*entity)
+		return CustomerFromDBEntity(*entity, input.Expands)
 	})
 }
 
@@ -464,7 +469,9 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 			)).
 			Where(customerdb.DeletedAtIsNil())
 		query = WithSubjects(query, now)
-		query = WithActiveSubscriptions(query, now)
+		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
+			query = WithActiveSubscriptions(query, now)
+		}
 
 		customerEntity, err := query.First(ctx)
 		if err != nil {
@@ -481,7 +488,7 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 			return nil, fmt.Errorf("invalid query result: nil customer received")
 		}
 
-		return CustomerFromDBEntity(*customerEntity)
+		return CustomerFromDBEntity(*customerEntity, input.Expands)
 	})
 }
 

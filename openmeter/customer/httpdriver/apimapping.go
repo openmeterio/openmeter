@@ -110,7 +110,7 @@ func FromAnnotations(annotations models.Annotations) *api.Annotations {
 }
 
 // CustomerToAPI converts a Customer to an API Customer
-func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscription, expand []api.CustomerExpand) (api.Customer, error) {
+func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscription, expand customer.Expands) (api.Customer, error) {
 	// Map the customer to the API Customer
 	apiCustomer := api.Customer{
 		Id:               c.ManagedResource.ID,
@@ -154,7 +154,7 @@ func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscriptio
 		apiCustomer.CurrentSubscriptionId = lo.ToPtr(subscriptions[0].ID)
 
 		// Map the subscriptions to the API Subscriptions if the expand is set
-		if lo.Contains(expand, api.CustomerExpandSubscriptions) {
+		if lo.Contains(expand, customer.ExpandSubscriptions) {
 			apiCustomer.Subscriptions = lo.ToPtr(lo.Map(subscriptions, func(s subscription.Subscription, _ int) api.Subscription {
 				return subscriptionhttp.MapSubscriptionToAPI(s)
 			}))

@@ -61,6 +61,7 @@ func (s *Service) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		cus, err := s.adapter.GetCustomer(ctx, customer.GetCustomerInput{
 			CustomerID: &input,
+			Expands:    customer.Expands{customer.ExpandSubscriptions},
 		})
 		if err != nil {
 			if models.IsGenericNotFoundError(err) {
@@ -71,14 +72,20 @@ func (s *Service) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 				input.Namespace, input.ID, err)
 		}
 
-		if cus != nil && cus.IsDeleted() {
-			return nil
-		}
+		if cus != nil {
+			if cus.IsDeleted() {
+				return nil
+			}
 
-		if len(cus.ActiveSubscriptionIDs) > 0 {
-			return models.NewGenericPreConditionFailedError(
-				customer.NewErrDeletingCustomerWithActiveSubscriptions(cus.ActiveSubscriptionIDs),
-			)
+			if cus.ActiveSubscriptionIDs.IsAbsent() {
+				return fmt.Errorf("customer subscriptions are not expanded")
+			}
+
+			if len(cus.ActiveSubscriptionIDs.OrEmpty()) > 0 {
+				return models.NewGenericPreConditionFailedError(
+					customer.NewErrDeletingCustomerWithActiveSubscriptions(cus.ActiveSubscriptionIDs.OrEmpty()),
+				)
+			}
 		}
 
 		// Run pre delete hooks

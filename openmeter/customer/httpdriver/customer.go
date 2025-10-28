@@ -25,13 +25,9 @@ import (
 type (
 	ListCustomersResponse = pagination.Result[api.Customer]
 	ListCustomersParams   = api.ListCustomersParams
+	ListCustomersRequest  = customer.ListCustomersInput
 	ListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]
 )
-
-type ListCustomersRequest struct {
-	customer.ListCustomersInput
-	Expand []api.CustomerExpand
-}
 
 // ListCustomers returns a handler for listing customers.
 func (h *handler) ListCustomers() ListCustomersHandler {
@@ -43,32 +39,33 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			}
 
 			req := ListCustomersRequest{
-				ListCustomersInput: customer.ListCustomersInput{
-					Namespace: ns,
+				Namespace: ns,
 
-					// Pagination
-					Page: pagination.Page{
-						PageSize:   lo.FromPtrOr(params.PageSize, customer.DefaultPageSize),
-						PageNumber: lo.FromPtrOr(params.Page, customer.DefaultPageNumber),
-					},
-
-					// Order
-					OrderBy: defaultx.WithDefault(params.OrderBy, api.CustomerOrderByName),
-					Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
-
-					// Filters
-					Key:          params.Key,
-					Name:         params.Name,
-					PrimaryEmail: params.PrimaryEmail,
-					Subject:      params.Subject,
-					PlanKey:      params.PlanKey,
-
-					// Modifiers
-					IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, customer.IncludeDeleted),
+				// Pagination
+				Page: pagination.Page{
+					PageSize:   lo.FromPtrOr(params.PageSize, customer.DefaultPageSize),
+					PageNumber: lo.FromPtrOr(params.Page, customer.DefaultPageNumber),
 				},
 
+				// Order
+				OrderBy: defaultx.WithDefault(params.OrderBy, api.CustomerOrderByName),
+				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
+
+				// Filters
+				Key:          params.Key,
+				Name:         params.Name,
+				PrimaryEmail: params.PrimaryEmail,
+				Subject:      params.Subject,
+				PlanKey:      params.PlanKey,
+
+				// Modifiers
+				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, customer.IncludeDeleted),
+
 				// Expand
-				Expand: lo.FromPtrOr(params.Expand, []api.CustomerExpand{}),
+				// TODO[v2]: disable expand of subscriptions by default, for now this is a breaking change
+				Expands: lo.Map(lo.FromPtrOr(params.Expand, api.QueryCustomerListExpand{api.CustomerExpandSubscriptions}), func(item api.CustomerExpand, _ int) customer.Expand {
+					return customer.Expand(item)
+				}),
 			}
 
 			if err := req.Page.Validate(); err != nil {
@@ -78,7 +75,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListCustomersRequest) (ListCustomersResponse, error) {
-			resp, err := h.service.ListCustomers(ctx, request.ListCustomersInput)
+			resp, err := h.service.ListCustomers(ctx, request)
 			if err != nil {
 				return ListCustomersResponse{}, fmt.Errorf("failed to list customers: %w", err)
 			}
@@ -114,7 +111,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 					subs = []subscription.Subscription{}
 				}
 
-				item, err = CustomerToAPI(customer, subs, request.Expand)
+				item, err = CustomerToAPI(customer, subs, request.Expands)
 				if err != nil {
 					return item, fmt.Errorf("failed to cast customer customer: %w", err)
 				}
@@ -320,9 +317,9 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 					Namespace: ns,
 					IDOrKey:   params.CustomerIDOrKey,
 				},
-
-				// Expand
-				Expand: lo.FromPtrOr(params.Expand, []api.CustomerExpand{}),
+				Expands: lo.Map(lo.FromPtrOr(params.Expand, api.QueryCustomerListExpand{api.CustomerExpandSubscriptions}), func(item api.CustomerExpand, _ int) customer.Expand {
+					return customer.Expand(item)
+				}),
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerRequest) (GetCustomerResponse, error) {
@@ -336,7 +333,7 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 				return GetCustomerResponse{}, fmt.Errorf("failed to get customer")
 			}
 
-			return h.mapCustomerWithSubscriptionsToAPI(ctx, *cus, request.Expand)
+			return h.mapCustomerWithSubscriptionsToAPI(ctx, *cus, request.Expands)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -472,11 +469,15 @@ func (h *handler) GetCustomerAccess() GetCustomerAccessHandler {
 }
 
 // mapCustomerWithSubscriptionsToAPI maps a customer to the API with its subscriptions.
-func (h *handler) mapCustomerWithSubscriptionsToAPI(ctx context.Context, customer customer.Customer, expand []api.CustomerExpand) (api.Customer, error) {
+func (h *handler) mapCustomerWithSubscriptionsToAPI(ctx context.Context, cust customer.Customer, expand []customer.Expand) (api.Customer, error) {
+	if !lo.Contains(expand, customer.ExpandSubscriptions) {
+		return CustomerToAPI(cust, []subscription.Subscription{}, expand)
+	}
+
 	// Get the customer's subscriptions
 	subscriptions, err := h.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces:  []string{customer.Namespace},
-		CustomerIDs: []string{customer.ID},
+		Namespaces:  []string{cust.Namespace},
+		CustomerIDs: []string{cust.ID},
 		ActiveAt:    lo.ToPtr(time.Now()),
 	})
 	if err != nil {
@@ -484,5 +485,5 @@ func (h *handler) mapCustomerWithSubscriptionsToAPI(ctx context.Context, custome
 	}
 
 	// Map the customer to the API
-	return CustomerToAPI(customer, subscriptions.Items, expand)
+	return CustomerToAPI(cust, subscriptions.Items, expand)
 }
