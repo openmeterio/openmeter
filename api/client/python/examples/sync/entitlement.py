@@ -7,7 +7,7 @@ from corehttp.exceptions import HttpResponseError
 ENDPOINT: str = environ.get("OPENMETER_ENDPOINT") or "https://openmeter.cloud"
 token: Optional[str] = environ.get("OPENMETER_TOKEN")
 customer_key: str = environ.get("OPENMETER_CUSTOMER_KEY") or "acme-corp-1"
-feature_key: str = environ.get("OPENMETER_FEATURE_KEY") or "api-access"
+feature_key: str = environ.get("OPENMETER_FEATURE_KEY") or "api_access"
 
 client = Client(
     endpoint=ENDPOINT,
@@ -20,9 +20,7 @@ def main() -> None:
         # Check customer access to a specific feature
         print(f"Checking access for customer '{customer_key}' to feature '{feature_key}'...")
 
-        entitlement_value = client.entitlements.customer_entitlement.get_customer_entitlement_value(
-            customer_key, feature_key
-        )
+        entitlement_value = client.customer_entitlement.get_customer_entitlement_value(customer_key, feature_key)
 
         print(f"\nEntitlement Value:")
         print(f"Has Access: {entitlement_value.has_access}")
@@ -41,7 +39,7 @@ def main() -> None:
 
         # Get overall customer access to all features
         print(f"\nGetting overall access for customer '{customer_key}'...")
-        customer_access = client.entitlements.customer.get_customer_access(customer_key)
+        customer_access = client.customer.get_customer_access(customer_key)
 
         print(f"\nCustomer Access Summary:")
         print(f"Total entitlements: {len(customer_access.entitlements)}")

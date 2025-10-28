@@ -8,7 +8,8 @@ namespace OpenMeter;
 
 @route("/api/v1/debug")
 @tag("Debug")
-interface Debug {
+@friendlyName("Debug")
+interface DebugEndpoints {
   /**
    * Returns debug metrics (in OpenMetrics format) like the number of ingested events since mindnight UTC.
    *

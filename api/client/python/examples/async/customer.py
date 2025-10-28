@@ -35,13 +35,13 @@ async def main() -> None:
                 },
             )
 
-            created_customer = await client.customer.customers.create(customer_create)
+            created_customer = await client.customers.create(customer_create)
             print(f"Customer created successfully with ID: {created_customer.id}")
             print(f"Customer name: {created_customer.name}")
             print(f"Customer key: {created_customer.key}")
 
             # Get the customer by ID or key
-            customer = await client.customer.customers.get(created_customer.id)
+            customer = await client.customers.get(created_customer.id)
             print(f"\nRetrieved customer: {customer.name}")
             print(f"Primary email: {customer.primary_email}")
             print(f"Currency: {customer.currency}")
@@ -59,7 +59,7 @@ async def main() -> None:
                 },
             )
 
-            updated_customer = await client.customer.customers.update(created_customer.id, customer_update)
+            updated_customer = await client.customers.update(created_customer.id, customer_update)
             print(f"\nCustomer updated successfully")
             print(f"Updated name: {updated_customer.name}")
             print(f"Updated email: {updated_customer.primary_email}")

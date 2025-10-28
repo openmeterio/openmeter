@@ -9,13 +9,15 @@ import "../types.tsp";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Customer;
+namespace OpenMeter;
 /**
  * Customer Stripe API.
  */
 @route("/api/v1/customers/{customerIdOrKey}/stripe")
-@tag("CustomersStripe")
-interface CustomersStripe {
+@tag("Customers")
+@tag("Apps")
+@friendlyName("CustomerStripe")
+interface CustomerStripeEndpoints {
   /**
    * Get stripe app data for a customer.
    * Only returns data if the customer billing profile is linked to a stripe app.
@@ -25,7 +27,7 @@ interface CustomersStripe {
   @summary("Get customer stripe app data")
   get(
     @path customerIdOrKey: ULIDOrExternalKey,
-  ): App.StripeCustomerAppData | NotFoundError | CommonErrors;
+  ): StripeCustomerAppData | NotFoundError | CommonErrors;
 
   /**
    * Upsert stripe app data for a customer.
@@ -36,8 +38,8 @@ interface CustomersStripe {
   @summary("Upsert customer stripe app data")
   upsert(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @body appData: App.StripeCustomerAppDataBase,
-  ): App.StripeCustomerAppData | NotFoundError | CommonErrors;
+    @body appData: StripeCustomerAppDataBase,
+  ): StripeCustomerAppData | NotFoundError | CommonErrors;
 
   /**
    * Create Stripe customer portal session.

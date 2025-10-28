@@ -1,4 +1,4 @@
-namespace OpenMeter.ProductCatalog;
+namespace OpenMeter;
 
 /**
  * The type of the price.

@@ -27,6 +27,7 @@ export const docDecoratorRule = createRule({
         if (
           target.name &&
           name &&
+          name !== '_' &&
           !property.decorators.find(
             (d) => d.decorator?.name === 'docFromCommentDecorator',
           )

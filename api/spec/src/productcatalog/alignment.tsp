@@ -2,7 +2,7 @@ import "@typespec/http";
 import "../types.tsp";
 import "./ratecards.tsp";
 
-namespace OpenMeter.ProductCatalog;
+namespace OpenMeter;
 
 /**
  * Alignment configuration for a plan or subscription.

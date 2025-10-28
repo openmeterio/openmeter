@@ -20,7 +20,7 @@ model ListMetersParams {
    * Order meters by.
    * @TODO: set default value to MeterOrderBy.key
    */
-  ...OpenMeter.QueryOrdering<MeterOrderBy>;
+  ...QueryOrdering<MeterOrderBy>;
 
   /**
    * Include deleted meters.
@@ -45,7 +45,8 @@ enum MeterOrderBy {
 
 @route("/api/v1/meters")
 @tag("Meters")
-interface Meters {
+@friendlyName("Meters")
+interface MetersEndpoints {
   /**
    * List meters.
    */
@@ -76,8 +77,8 @@ interface Meters {
     meter: MeterCreate,
   ): {
     @statusCode _: 201;
-    @body body: OpenMeter.Meter;
-  } | OpenMeter.CommonErrors;
+    @body body: Meter;
+  } | CommonErrors;
 
   /**
    * Update a meter.
@@ -92,8 +93,8 @@ interface Meters {
     @body
     meter: MeterUpdate,
   ): {
-    @body body: OpenMeter.Meter;
-  } | OpenMeter.CommonErrors;
+    @body body: Meter;
+  } | CommonErrors;
 
   /**
    * Delete a meter.
@@ -102,9 +103,7 @@ interface Meters {
   @route("/{meterIdOrSlug}")
   @operationId("deleteMeter")
   @summary("Delete meter")
-  delete(
-    @path meterIdOrSlug: OpenMeter.MeterIdentifier,
-  ): void | OpenMeter.CommonErrors;
+  delete(@path meterIdOrSlug: MeterIdentifier): void | CommonErrors;
 
   /**
    * Query meter for usage.
@@ -230,13 +229,12 @@ interface Meters {
   slug: "tokens_total",
   name: "Tokens Total",
   description: "AI Token Usage",
-  aggregation: OpenMeter.MeterAggregation.SUM,
+  aggregation: MeterAggregation.SUM,
   eventType: "prompt",
   valueProperty: "$.tokens",
   groupBy: #{ `model`: "$.model", type: "$.type" },
 })
-model MeterCreate
-  is TypeSpec.Rest.Resource.ResourceCreateModel<OpenMeter.Meter>;
+model MeterCreate is TypeSpec.Rest.Resource.ResourceCreateModel<Meter>;
 
 /**
  * A meter update model.
@@ -250,8 +248,7 @@ model MeterCreate
   description: "AI Token Usage",
   groupBy: #{ `model`: "$.model", type: "$.type" },
 })
-model MeterUpdate
-  is TypeSpec.Rest.Resource.ResourceReplaceModel<OpenMeter.Meter>;
+model MeterUpdate is TypeSpec.Rest.Resource.ResourceReplaceModel<Meter>;
 
 /**
  * A meter is a configuration that defines how to match and aggregate events.

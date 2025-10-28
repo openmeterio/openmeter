@@ -12,13 +12,14 @@ import "../types.tsp";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.App;
+namespace OpenMeter;
 
 /**
  * Stripe specific APIs.
  */
 @tag("App: Stripe")
-interface AppStripe {
+@friendlyName("AppStripe")
+interface AppStripeEndpoints {
   /**
    * Handle stripe webhooks for apps.
    */
@@ -43,7 +44,7 @@ interface AppStripe {
   updateStripeAPIKey(
     @path id: ULID,
     @body request: StripeAPIKeyInput,
-  ): void | OpenMeter.CommonErrors;
+  ): void | CommonErrors;
 
   /**
    * Create checkout session.
@@ -73,7 +74,7 @@ model StripeWebhookResponse {
  * Create Stripe checkout session with customer ID.
  */
 @friendlyName("CustomerId")
-model CustomerId {
+model StripeCustomerId {
   id: ULID;
 }
 
@@ -81,7 +82,7 @@ model CustomerId {
  * Create Stripe checkout session with customer key.
  */
 @friendlyName("CustomerKey")
-model CustomerKey {
+model StripeCustomerKey {
   key: string;
 }
 
@@ -170,7 +171,7 @@ model CreateStripeCheckoutSessionRequest {
    * Provide a customer ID or key to use an existing OpenMeter customer.
    * or provide a customer object to create a new customer.
    */
-  customer: CustomerId | CustomerKey | TypeSpec.Rest.Resource.ResourceCreateModel<Customer.Customer>;
+  customer: StripeCustomerId | StripeCustomerKey | TypeSpec.Rest.Resource.ResourceCreateModel<Customer>;
 
   /**
    * Stripe customer ID.
@@ -657,34 +658,34 @@ model CheckoutSessionCustomTextParams {
 @friendlyName("StripeApp")
 @example(#{
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
-  type: Type.Stripe,
+  type: AppType.Stripe,
   name: "Stripe",
   status: AppStatus.Ready,
   listing: #{
-    type: Type.Stripe,
+    type: AppType.Stripe,
     name: "Stripe",
     description: "Stripe interation allows you to collect payments with Stripe.",
     capabilities: #[
       #{
-        type: CapabilityType.CalculateTax,
+        type: AppCapabilityType.CalculateTax,
         key: "stripe_calculate_tax",
         name: "Calculate Tax",
         description: "Stripe Tax calculates tax portion of the invoices.",
       },
       #{
-        type: CapabilityType.InvoiceCustomers,
+        type: AppCapabilityType.InvoiceCustomers,
         key: "stripe_invoice_customers",
         name: "Invoice Customers",
         description: "Stripe invoices customers with due amount.",
       },
       #{
-        type: CapabilityType.CollectPayments,
+        type: AppCapabilityType.CollectPayments,
         key: "stripe_collect_payments",
         name: "Collect Payments",
         description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
       }
     ],
-    installMethods: #[InstallMethod.WithOAuth2, InstallMethod.WithAPIKey],
+    installMethods: #[AppInstallMethod.WithOAuth2, AppInstallMethod.WithAPIKey],
   },
   createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
   updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
@@ -701,7 +702,7 @@ model StripeApp {
   /**
    * The app's type is Stripe.
    */
-  type: Type.Stripe;
+  type: AppType.Stripe;
 
   /**
    * The Stripe account ID.

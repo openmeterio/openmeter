@@ -5,7 +5,7 @@ import "@typespec/openapi3";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Notification;
+namespace OpenMeter;
 
 /**
  * Payload for notification event with `entitlements.balance.threshold` type.
@@ -50,23 +50,23 @@ model NotificationEventBalanceThresholdPayload {
 model NotificationEventEntitlementValuePayloadBase {
   @visibility(Lifecycle.Read)
   @summary("Entitlement")
-  entitlement: OpenMeter.Entitlements.EntitlementMetered;
+  entitlement: EntitlementMetered;
 
   @visibility(Lifecycle.Read)
   @summary("Feature")
-  feature: OpenMeter.ProductCatalog.Feature;
+  feature: Feature;
 
   @visibility(Lifecycle.Read)
   @summary("Subject")
-  subject: OpenMeter.Subject;
+  subject: Subject;
 
   @visibility(Lifecycle.Read)
   @summary("Entitlement Value")
-  value: OpenMeter.Entitlements.EntitlementValue;
+  value: EntitlementValue;
 
   @visibility(Lifecycle.Read)
   @summary("Customer")
-  customer?: OpenMeter.Customer.Customer;
+  customer?: Customer;
 }
 
 /**

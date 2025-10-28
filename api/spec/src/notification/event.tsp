@@ -5,7 +5,7 @@ import "@typespec/openapi3";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Notification;
+namespace OpenMeter;
 
 /**
  * Type of the notification event.
@@ -158,7 +158,8 @@ enum NotificationEventOrderBy {
 
 @route("/api/v1/notification/events")
 @tag("Notifications")
-interface Events {
+@friendlyName("NotificationEvents")
+interface NotificationEventsEndpoints {
   /**
    * List all notification events.
    */
@@ -221,9 +222,9 @@ interface Events {
     @query(#{ explode: true })
     channel?: Array<ULID>,
 
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryOrdering<NotificationEventOrderBy>,
-  ): OpenMeter.PaginatedResponse<NotificationEvent> | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryOrdering<NotificationEventOrderBy>,
+  ): PaginatedResponse<NotificationEvent> | CommonErrors;
 
   /**
    * Get a notification event by id.
@@ -231,7 +232,5 @@ interface Events {
   @get
   @operationId("getNotificationEvent")
   @summary("Get notification event")
-  get(
-    @path eventId: string,
-  ): NotificationEvent | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(@path eventId: string): NotificationEvent | NotFoundError | CommonErrors;
 }

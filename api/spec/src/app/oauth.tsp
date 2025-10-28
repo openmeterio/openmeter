@@ -1,5 +1,7 @@
 import "@typespec/http";
 
+using TypeSpec.Http;
+
 namespace OAuth2;
 
 /**
@@ -85,14 +87,14 @@ model AuthorizationCodeGrantSuccessParams {
    * Unique, randomly generated, opaque, and non-guessable string that is sent
    * when starting an authentication request and validated when processing the response.
    */
-  @Http.query
+  @query
   state?: string;
 
   /**
    * Authorization code which the client will later exchange for an access token.
    * Required with the success response.
    */
-  @Http.query
+  @query
   code?: string;
 }
 
@@ -111,14 +113,15 @@ model AuthorizationCodeGrantErrorParams {
    * Error code.
    * Required with the error response.
    */
-  @Http.query
+  @query
   error?: AuthorizationCodeGrantErrorType;
 
   /**
    * Optional human-readable text providing additional information,
    * used to assist the client developer in understanding the error that occurred.
    */
-  @Http.query
+  #suppress "@openmeter/api-spec/casing" "Use existing values"
+  @query
   error_description?: string;
 
   /**
@@ -126,6 +129,7 @@ model AuthorizationCodeGrantErrorParams {
    * information about the error, used to provide the client
    * developer with additional information about the error
    */
-  @Http.query
+  #suppress "@openmeter/api-spec/casing" "Use existing values"
+  @query
   error_uri?: string;
 }

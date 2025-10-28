@@ -11,14 +11,16 @@ import "../query.tsp";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Customer;
+namespace OpenMeter;
 
 /**
  * Customer App Data API.
  */
 @route("/api/v1/customers/{customerIdOrKey}/apps")
-@tag("CustomersApps")
-interface CustomersApps {
+@tag("Customers")
+@tag("Apps")
+@friendlyName("CustomerApps")
+interface CustomerAppsEndpoints {
   /**
    * List customers app data.
    */
@@ -28,7 +30,7 @@ interface CustomersApps {
   listAppData(
     @path customerIdOrKey: ULIDOrExternalKey,
     ...ListCustomerAppDataParams,
-  ): PaginatedResponse<App.CustomerAppData> | NotFoundError | CommonErrors;
+  ): PaginatedResponse<CustomerAppData> | NotFoundError | CommonErrors;
 
   /**
    * Upsert customer app data.
@@ -38,8 +40,8 @@ interface CustomersApps {
   @summary("Upsert customer app data")
   upsertAppData(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @body appData: App.CustomerAppData[],
-  ): App.CustomerAppData[] | NotFoundError | CommonErrors;
+    @body appData: CustomerAppData[],
+  ): CustomerAppData[] | NotFoundError | CommonErrors;
 
   /**
    * Delete customer app data.
@@ -64,6 +66,6 @@ model ListCustomerAppDataParams {
    * Filter customer data by app type.
    */
   @query
-  @example(App.Type.Stripe)
-  type?: App.Type;
+  @example(AppType.Stripe)
+  type?: AppType;
 }

@@ -21,7 +21,7 @@ export const casingRule = createRule({
     },
     modelProperty: (property) => {
       if (
-        !isCamelCaseNoAcronyms(property.name) ||
+        (property.name !== '_' && !isCamelCaseNoAcronyms(property.name)) ||
         isPascalCaseNoAcronyms(property.name)
       ) {
         context.reportDiagnostic({

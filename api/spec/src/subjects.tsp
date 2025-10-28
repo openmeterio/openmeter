@@ -9,14 +9,15 @@ namespace OpenMeter;
 
 @route("/api/v1/subjects")
 @tag("Subjects")
-interface Subjects {
+@friendlyName("Subjects")
+interface SubjectsEndpoints {
   /**
    * List subjects.
    */
   @get
   @operationId("listSubjects")
   @summary("List subjects")
-  list(): OpenMeter.Subject[] | OpenMeter.CommonErrors;
+  list(): Subject[] | CommonErrors;
 
   /**
    * Get subject by ID or key.
@@ -24,9 +25,7 @@ interface Subjects {
   @get
   @operationId("getSubject")
   @summary("Get subject")
-  get(
-    @path subjectIdOrKey: string,
-  ): OpenMeter.Subject | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(@path subjectIdOrKey: string): Subject | NotFoundError | CommonErrors;
 
   /**
    * Upserts a subject. Creates or updates subject.
@@ -37,9 +36,7 @@ interface Subjects {
   @post
   @operationId("upsertSubject")
   @summary("Upsert subject")
-  upsert(
-    @body subject: SubjectUpsert[],
-  ): OpenMeter.Subject[] | OpenMeter.CommonErrors;
+  upsert(@body subject: SubjectUpsert[]): Subject[] | CommonErrors;
 
   /**
    * Delete subject by ID or key.
@@ -47,7 +44,7 @@ interface Subjects {
   @delete
   @operationId("deleteSubject")
   @summary("Delete subject")
-  delete(@path subjectIdOrKey: string): void | OpenMeter.CommonErrors;
+  delete(@path subjectIdOrKey: string): void | CommonErrors;
 }
 
 /**

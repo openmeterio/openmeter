@@ -105,182 +105,227 @@ namespace OpenMeterCloud;
 
 @route("/api/v1/events")
 @tag("Events")
-interface Events extends OpenMeter.Events {}
+@friendlyName("Events")
+interface EventsEndpoints extends OpenMeter.EventsEndpoints {}
 
 @route("/api/v2/events")
 @tag("Events")
-interface EventsV2 extends OpenMeter.EventsV2 {}
+@friendlyName("EventsV2")
+interface EventsV2Endpoints extends OpenMeter.EventsV2Endpoints {}
 
 @route("/api/v1/meters")
 @tag("Meters")
-interface Meters extends OpenMeter.Meters {}
+@friendlyName("Meters")
+interface MetersEndpoints extends OpenMeter.MetersEndpoints {}
 
 namespace OpenMeterCloud.Portal {
   @route("/api/v1/portal/tokens")
   @tag("Portal")
-  interface Tokens extends OpenMeter.Portal.Tokens {}
+  @friendlyName("PortalTokens")
+  interface TokensEndpoints extends OpenMeter.Portal.TokensEndpoints {}
 
   @route("/api/v1/portal/meters")
   @tag("Portal")
   @useAuth(CloudPortalTokenAuth)
-  interface Meters extends OpenMeter.Portal.Meters {}
+  @friendlyName("PortalMeters")
+  interface MetersEndpoints extends OpenMeter.Portal.MetersEndpoints {}
 }
 
 @route("/api/v1/debug")
 @tag("Debug")
-interface Debug extends OpenMeter.Debug {}
+@friendlyName("Debug")
+interface DebugEndpoints extends OpenMeter.DebugEndpoints {}
 
-namespace OpenMeterCloud.App {
+namespace OpenMeterCloud {
   @route("/api/v1/marketplace")
   @tag("Apps")
-  interface Marketplace extends OpenMeter.App.Marketplace {}
+  @friendlyName("Marketplace")
+  interface MarketplaceEndpoints extends OpenMeter.MarketplaceEndpoints {}
 
   @route("/api/v1/apps")
   @tag("Apps")
-  interface Apps extends OpenMeter.App.Apps {}
+  @friendlyName("Apps")
+  interface AppsEndpoints extends OpenMeter.AppsEndpoints {}
 
   @tag("App: Stripe")
-  interface AppStripe extends OpenMeter.App.AppStripe {}
+  @friendlyName("AppStripe")
+  interface AppStripeEndpoints extends OpenMeter.AppStripeEndpoints {}
 
   @tag("App: Custom Invoicing")
-  interface AppCustomInvoicing extends OpenMeter.App.AppCustomInvoicing {}
+  @friendlyName("AppCustomInvoicing")
+  interface AppCustomInvoicingEndpoints
+    extends OpenMeter.AppCustomInvoicingEndpoints {}
 }
 
-namespace OpenMeterCloud.Notification {
+namespace OpenMeterCloud {
   @route("/api/v1/notification/channels")
   @tag("Notifications")
-  interface Channels extends OpenMeter.Notification.Channels {}
+  @friendlyName("NotificationChannels")
+  interface ChannelsEndpoints extends OpenMeter.NotificationChannelsEndpoints {}
 
   @route("/api/v1/notification/rules")
   @tag("Notifications")
-  interface Rules extends OpenMeter.Notification.Rules {}
+  @friendlyName("NotificationRules")
+  interface RulesEndpoints extends OpenMeter.NotificationRulesEndpoints {}
 
   @route("/api/v1/notification/events")
   @tag("Notifications")
-  interface Events extends OpenMeter.Notification.Events {}
+  @friendlyName("NotificationEvents")
+  interface EventsEndpoints extends OpenMeter.NotificationEventsEndpoints {}
 }
 
-namespace OpenMeterCloud.Entitlements {
+namespace OpenMeterCloud {
   @route("/api/v1/entitlements")
   @tag("Entitlements")
-  interface Entitlements extends OpenMeter.Entitlements.Entitlements {}
+  @friendlyName("Entitlements")
+  interface EntitlementsEndpoints extends OpenMeter.EntitlementsEndpoints {}
 
   @route("/api/v1/grants")
   @tag("Entitlements")
-  interface Grants extends OpenMeter.Entitlements.Grants {}
+  @friendlyName("Grants")
+  interface GrantsEndpoints extends OpenMeter.GrantsEndpoints {}
 
   @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
   @tag("Entitlements")
-  interface Subjects extends OpenMeter.Entitlements.Subjects {}
+  @friendlyName("Subjects")
+  interface SubjectEntitlementsEndpoints
+    extends OpenMeter.SubjectEntitlementsEndpoints {}
 
   @route("/api/v1/customers/{customerIdOrKey}")
   @tag("Entitlements")
   @tag("Customers")
-  interface Customer extends OpenMeter.Entitlements.Customer {}
+  @friendlyName("Customer")
+  interface CustomerEndpoints extends OpenMeter.CustomerEndpoints {}
 
   @route("/api/v1/customers/{customerIdOrKey}/apps")
   @tag("Customers")
-  interface CustomersApps extends OpenMeter.Customer.CustomersApps {}
+  @tag("Apps")
+  @friendlyName("CustomerApps")
+  interface CustomerAppsEndpoints extends OpenMeter.CustomerAppsEndpoints {}
 
   @route("/api/v1/customers/{customerIdOrKey}/stripe")
   @tag("Customers")
-  interface CustomersStripe extends OpenMeter.Customer.CustomersStripe {}
+  @friendlyName("CustomerStripe")
+  interface CustomerStripeEndpoints extends OpenMeter.CustomerStripeEndpoints {}
 
   @route("/api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}")
   @tag("Entitlements")
   @tag("Customers")
-  interface CustomerEntitlement
-    extends OpenMeter.Entitlements.CustomerEntitlement {}
+  @friendlyName("CustomerEntitlement")
+  interface CustomerEntitlementEndpoints
+    extends OpenMeter.CustomerEntitlementEndpoints {}
 
   namespace V2 {
     @route("/api/v2/customers/{customerIdOrKey}/entitlements")
     @tag("Entitlements")
     @tag("Customers")
-    interface CustomerEntitlements
-      extends OpenMeter.Entitlements.V2.CustomerEntitlements {}
+    @friendlyName("CustomerEntitlementsV2")
+    interface CustomerEntitlementsV2Endpoints
+      extends OpenMeter.CustomerEntitlementsV2Endpoints {}
 
     @route("/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}")
     @tag("Entitlements")
     @tag("Customers")
-    interface CustomerEntitlement
-      extends OpenMeter.Entitlements.V2.CustomerEntitlement {}
+    @friendlyName("CustomerEntitlementV2")
+    interface CustomerEntitlementEndpoints
+      extends OpenMeter.CustomerEntitlementV2Endpoints {}
 
     @route("/api/v2/grants")
     @tag("Entitlements")
-    interface Grants extends OpenMeter.Entitlements.V2.Grants {}
+    @friendlyName("GrantsV2")
+    interface GrantsV2Endpoints extends OpenMeter.GrantsV2Endpoints {}
 
     @route("/api/v2/entitlements")
     @tag("Entitlements")
-    interface Entitlements extends OpenMeter.Entitlements.V2.Entitlements {}
+    @friendlyName("EntitlementsV2")
+    interface EntitlementsV2Endpoints
+      extends OpenMeter.EntitlementsV2Endpoints {}
   }
 }
 
-namespace OpenMeterCloud.Billing {
+namespace OpenMeterCloud {
   @route("/api/v1/customers")
   @tag("Customers")
-  interface Customers extends OpenMeter.Customer.Customers {}
+  @friendlyName("Customers")
+  interface CustomersEndpoints extends OpenMeter.CustomersEndpoints {}
 
   @route("/api/v1/billing/customers")
   @tag("Billing")
-  interface CustomerOverrides extends OpenMeter.Billing.CustomerOverrides {}
+  @friendlyName("CustomerOverrides")
+  interface CustomerOverridesEndpoints
+    extends OpenMeter.CustomerOverridesEndpoints {}
 
   @route("/api/v1/billing/profiles")
   @tag("Billing")
-  interface BillingProfiles extends OpenMeter.Billing.Profiles {}
+  @friendlyName("BillingProfiles")
+  interface BillingProfilesEndpoints
+    extends OpenMeter.BillingProfilesEndpoints {}
 
   @route("/api/v1/billing/invoices")
   @tag("Billing")
-  interface InvoicesEndpoints extends OpenMeter.Billing.InvoicesEndpoints {}
+  @friendlyName("Invoices")
+  interface InvoicesEndpoints extends OpenMeter.InvoicesEndpoints {}
 
   @route("/api/v1/billing/invoices/{invoiceId}")
   @tag("Billing")
-  interface InvoiceEndpoints extends OpenMeter.Billing.InvoiceEndpoints {}
+  @friendlyName("Invoice")
+  interface InvoiceEndpoints extends OpenMeter.InvoiceEndpoints {}
 
   @route("/api/v1/billing/customers/{customerId}/invoices")
   @tag("Billing")
+  @friendlyName("CustomerInvoice")
   interface CustomerInvoiceEndpoints
-    extends OpenMeter.Billing.CustomerInvoiceEndpoints {}
+    extends OpenMeter.CustomerInvoiceEndpoints {}
 }
 
-namespace OpenMeterCloud.ProductCatalog {
+namespace OpenMeterCloud {
   @route("/api/v1/features")
   @tag("Product Catalog")
-  interface Features extends OpenMeter.ProductCatalog.Features {}
+  @friendlyName("Features")
+  interface FeaturesEndpoints extends OpenMeter.FeaturesEndpoints {}
 
   @route("/api/v1/plans")
   @tag("Product Catalog")
-  interface PlansById extends OpenMeter.ProductCatalog.Plans {}
+  @friendlyName("Plans")
+  interface PlansEndpoints extends OpenMeter.PlansEndpoints {}
 
   @route("/api/v1/addons")
   @tag("Product Catalog")
-  interface Addons extends OpenMeter.ProductCatalog.Addons {}
+  @friendlyName("Addons")
+  interface AddonsEndpoints extends OpenMeter.AddonsEndpoints {}
 
   @route("/api/v1/plans/{planId}/addons")
   @tag("Product Catalog")
-  interface PlanAddons extends OpenMeter.ProductCatalog.PlanAddons {}
+  @friendlyName("PlanAddons")
+  interface PlanAddonsEndpoints extends OpenMeter.PlanAddonsEndpoints {}
 
   @route("/api/v1/subscriptions")
   @tag("Subscriptions")
-  interface Subscriptions extends OpenMeter.ProductCatalog.Subscriptions {}
+  @friendlyName("Subscriptions")
+  interface SubscriptionsEndpoints extends OpenMeter.SubscriptionsEndpoints {}
 
   @route("/api/v1/subscriptions/{subscriptionId}/addons")
   @tag("Subscriptions")
-  interface SubscriptionAddons
-    extends OpenMeter.ProductCatalog.SubscriptionAddons {}
+  @friendlyName("SubscriptionAddons")
+  interface SubscriptionAddonsEndpoints
+    extends OpenMeter.SubscriptionAddonsEndpoints {}
 }
 
-namespace OpenMeterCloud.Subjects {
+namespace OpenMeterCloud {
   @route("/api/v1/subjects")
   @tag("Subjects")
-  interface Subjects extends OpenMeter.Subjects {}
+  @friendlyName("Subjects")
+  interface SubjectsEndpoints extends OpenMeter.SubjectsEndpoints {}
 }
 
-namespace OpenMeterCloud.Info {
+namespace OpenMeterCloud {
   @route("/api/v1/info/currencies")
   @tag("Lookup Information")
-  interface Currencies extends OpenMeter.Info.Currencies {}
+  @friendlyName("Currencies")
+  interface CurrenciesEndpoints extends OpenMeter.CurrenciesEndpoints {}
 
   @route("/api/v1/info/progress")
   @tag("Lookup Information")
-  interface Progress extends OpenMeter.Info.Progresses {}
+  @friendlyName("Progress")
+  interface ProgressEndpoints extends OpenMeter.ProgressEndpoints {}
 }

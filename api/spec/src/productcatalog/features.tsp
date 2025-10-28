@@ -4,7 +4,7 @@ import "@typespec/openapi3";
 
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.ProductCatalog;
+namespace OpenMeter;
 
 /**
  * Order by options for features.
@@ -78,7 +78,7 @@ model FeatureCreateInputs {
 @friendlyName("ListFeaturesResult")
 union ListFeaturesResult {
   Feature[],
-  OpenMeter.PaginatedResponse<Feature>,
+  PaginatedResponse<Feature>,
 }
 
 /**

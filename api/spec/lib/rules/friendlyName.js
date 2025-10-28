@@ -8,6 +8,21 @@ export const friendlyNameRule = createRule({
     default: paramMessage`The ${'type'} ${'name'} must have a friendlyName decorator.`,
   },
   create: (context) => ({
+    interface: (node) => {
+      if (
+        node.name &&
+        !node.decorators.some((d) => d.decorator.name === '$friendlyName')
+      ) {
+        context.reportDiagnostic({
+          format: {
+            type: node.kind,
+            name: node.name,
+          },
+          target: node,
+          messageId: 'default',
+        })
+      }
+    },
     model: (node) => {
       if (
         node.name &&

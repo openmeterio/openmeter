@@ -3,14 +3,14 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Portal;
 
 @route("/api/v1/portal/tokens")
 @tag("Portal")
-interface Tokens {
+@friendlyName("PortalTokens")
+interface TokensEndpoints {
   /**
    * Create a consumer portal token.
    */
@@ -102,7 +102,8 @@ model Token {
 @route("/api/v1/portal/meters")
 @tag("Portal")
 @useAuth(PortalTokenAuth)
-interface Meters {
+@friendlyName("PortalMeters")
+interface MetersEndpoints {
   /**
    * Query meter for consumer portal. This endpoint is publicly exposable to consumers.
    */
@@ -111,10 +112,7 @@ interface Meters {
   @operationId("queryPortalMeter")
   @summary("Query meter")
   @sharedRoute
-  queryJson(
-    @path meterSlug: Key,
-    ...OmitProperties<OpenMeter.MeterQuery, "subject">,
-  ): {
+  queryJson(@path meterSlug: Key, ...OmitProperties<MeterQuery, "subject">): {
     @header contentType: "application/json";
     @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
@@ -127,10 +125,7 @@ interface Meters {
   @operationId("queryPortalMeter")
   @summary("Query meter")
   @sharedRoute
-  queryCsv(
-    @path meterSlug: Key,
-    ...OmitProperties<OpenMeter.MeterQuery, "subject">,
-  ): {
+  queryCsv(@path meterSlug: Key, ...OmitProperties<MeterQuery, "subject">): {
     @header contentType: "text/csv";
 
     @body

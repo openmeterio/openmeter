@@ -11,14 +11,15 @@ import "../query.tsp";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Customer;
+namespace OpenMeter;
 
 /**
  * Customer API.
  */
 @route("/api/v1/customers")
 @tag("Customers")
-interface Customers {
+@friendlyName("Customers")
+interface CustomersEndpoints {
   /**
    * Create a new customer.
    */
@@ -84,10 +85,10 @@ interface Customers {
   @summary("List customer subscriptions")
   listCustomerSubscriptions(
     @path customerIdOrKey: ULIDOrExternalKey,
-    @query(#{ explode: true }) status?: ProductCatalog.SubscriptionStatus[],
-    ...OpenMeter.QueryOrdering<CustomerSubscriptionOrderBy>,
+    @query(#{ explode: true }) status?: SubscriptionStatus[],
+    ...QueryOrdering<CustomerSubscriptionOrderBy>,
     ...QueryPagination,
-  ): PaginatedResponse<ProductCatalog.Subscription> | NotFoundError | CommonErrors;
+  ): PaginatedResponse<Subscription> | NotFoundError | CommonErrors;
 }
 
 /**
@@ -122,7 +123,7 @@ model ListCustomersParams {
    * Order customers by.
    * @TODO: set default value to CustomerOrderBy.name
    */
-  ...OpenMeter.QueryOrdering<CustomerOrderBy>;
+  ...QueryOrdering<CustomerOrderBy>;
 
   /**
    * Include deleted customers.
@@ -254,7 +255,7 @@ model Customer {
    */
   @summary("Subscriptions")
   @visibility(Lifecycle.Read)
-  subscriptions?: ProductCatalog.Subscription[];
+  subscriptions?: Subscription[];
 
   /**
    * Set of key-value pairs managed by the system. Cannot be modified by user.
