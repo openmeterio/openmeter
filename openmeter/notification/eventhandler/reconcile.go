@@ -116,11 +116,11 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 					attribute.Int("event_handler.reconcile.count", len(out.Items)),
 				))
 
-				for _, event := range out.Items {
-					if err = h.reconcileEvent(ctx, &event); err != nil {
+				for _, deliveryStatus := range out.Items {
+					if err = h.reconcileEvent(ctx, &deliveryStatus); err != nil {
 						errs = append(errs,
 							fmt.Errorf("failed to reconcile notification event [namespace=%s event.id=%s]: %w",
-								event.Namespace, event.ID, err),
+								deliveryStatus.Namespace, deliveryStatus.ID, err),
 						)
 					}
 				}

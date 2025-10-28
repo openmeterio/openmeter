@@ -46,10 +46,8 @@ func (e EventDeliveryStatusState) Values() []string {
 }
 
 type EventDeliveryStatus struct {
-	models.NamespacedModel
+	models.NamespacedID
 
-	// ID is the unique identifier for Event.
-	ID string `json:"id"`
 	// EventID defines the Event identifier the EventDeliveryStatus belongs to.
 	EventID string `json:"eventId"`
 
@@ -148,18 +146,12 @@ var (
 )
 
 type UpdateEventDeliveryStatusInput struct {
-	models.NamespacedModel
+	models.NamespacedID
 
-	// ID the unique identifier of the EventDeliveryStatus.
-	ID string
 	// State is the delivery state of the Event.
 	State EventDeliveryStatusState
 	// Reason describes the reason for the latest State transition.
 	Reason string
-	// EventID defines the Event identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
-	EventID string
-	// ChannelID defines the Channel identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
-	ChannelID string
 	// Annotations
 	Annotations models.Annotations
 }
@@ -171,12 +163,8 @@ func (i UpdateEventDeliveryStatusInput) ValidateWith(validators ...models.Valida
 func (i UpdateEventDeliveryStatusInput) Validate() error {
 	var errs []error
 
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace is required"))
-	}
-
-	if i.ID == "" && (i.EventID == "" || i.ChannelID == "") {
-		errs = append(errs, fmt.Errorf("delivery status ID or both channel ID and event ID must be provided"))
+	if err := i.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if err := i.State.Validate(); err != nil {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func eventAsPayload(event *notification.Event) (map[string]interface{}, error) {
@@ -101,20 +101,30 @@ func (h *Handler) dispatchWebhook(ctx context.Context, event *notification.Event
 
 		span.SetAttributes(spanAttrs...)
 
-		for _, channelID := range notification.ChannelIDsByType(event.Rule.Channels, notification.ChannelTypeWebhook) {
+		webhookChannelIDMap := lo.FilterSliceToMap(event.Rule.Channels, func(item notification.Channel) (string, struct{}, bool) {
+			if item.Type == notification.ChannelTypeWebhook {
+				return item.ID, struct{}{}, true
+			}
+
+			return "", struct{}{}, false
+		})
+
+		for _, deliveryStatus := range event.DeliveryStatus {
+			if _, ok := webhookChannelIDMap[deliveryStatus.ChannelID]; !ok {
+				continue
+			}
+
 			span.AddEvent("updating event delivery status", trace.WithAttributes(spanAttrs...),
-				trace.WithAttributes(attribute.String("notification.event.id", event.ID)),
-				trace.WithAttributes(attribute.String("notification.channel.id", channelID)),
+				trace.WithAttributes(attribute.String("notification.delivery_status.id", deliveryStatus.ID)),
+				trace.WithAttributes(attribute.String("notification.event.id", deliveryStatus.EventID)),
+				trace.WithAttributes(attribute.String("notification.channel.id", deliveryStatus.ChannelID)),
 			)
 
 			_, err = h.repo.UpdateEventDeliveryStatus(ctx, notification.UpdateEventDeliveryStatusInput{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: event.Namespace,
-				},
-				State:     state,
-				Reason:    stateReason,
-				EventID:   event.ID,
-				ChannelID: channelID,
+				NamespacedID: deliveryStatus.NamespacedID,
+				State:        state,
+				Reason:       stateReason,
+				Annotations:  deliveryStatus.Annotations,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to update event delivery: %w", err)

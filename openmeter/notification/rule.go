@@ -15,13 +15,11 @@ var (
 )
 
 type Rule struct {
-	models.NamespacedModel
+	models.NamespacedID
 	models.ManagedModel
 	models.Annotations
 	models.Metadata
 
-	// ID is the unique identifier for Rule.
-	ID string `json:"id"`
 	// Type of the notification Rule (e.g. entitlements.balance.threshold)
 	Type EventType `json:"type"`
 	// Name of is the user provided name of the Rule.
@@ -41,12 +39,8 @@ func (r Rule) ValidateWith(validators ...models.ValidatorFunc[Rule]) error {
 func (r Rule) Validate() error {
 	var errs []error
 
-	if r.Namespace == "" {
-		errs = append(errs, errors.New("namespace is required"))
-	}
-
-	if r.ID == "" {
-		errs = append(errs, errors.New("id is required"))
+	if err := r.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if r.Name == "" {

@@ -341,27 +341,13 @@ func (s *EventTestSuite) TestUpdateDeliveryStatus(ctx context.Context, t *testin
 		{
 			Name: "WithID",
 			Input: notification.UpdateEventDeliveryStatusInput{
-				NamespacedModel: models.NamespacedModel{
+				NamespacedID: models.NamespacedID{
 					Namespace: event.Namespace,
+					ID:        event.DeliveryStatus[0].ID,
 				},
-				ID:    event.DeliveryStatus[0].ID,
 				State: notification.EventDeliveryStatusStateFailed,
 				Annotations: models.Annotations{
 					"state": string(notification.EventDeliveryStatusStateFailed),
-				},
-			},
-		},
-		{
-			Name: "WithEventIDAndChannelID",
-			Input: notification.UpdateEventDeliveryStatusInput{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: event.Namespace,
-				},
-				EventID:   event.ID,
-				ChannelID: event.Rule.Channels[0].ID,
-				State:     notification.EventDeliveryStatusStateSuccess,
-				Annotations: models.Annotations{
-					"state": string(notification.EventDeliveryStatusStateSuccess),
 				},
 			},
 		},
