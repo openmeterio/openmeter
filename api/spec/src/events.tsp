@@ -9,7 +9,8 @@ namespace OpenMeter;
 
 @route("/api/v1/events")
 @tag("Events")
-interface Events {
+@friendlyName("Events")
+interface EventsEndpoints {
   /**
    * List ingested events within a time range.
    *
@@ -105,7 +106,7 @@ interface Events {
    */
   @post
   @operationId("ingestEvents")
-  @summary("Ingest") // summary will be combined with the next operation summary (Ingest events)
+  @summary("Ingest events")
   @sharedRoute
   ingestEvent(
     @header contentType: "application/cloudevents+json",
@@ -116,7 +117,7 @@ interface Events {
 
   @post
   @operationId("ingestEvents")
-  @summary("events")
+  @summary("")
   @sharedRoute
   ingestEvents(
     @header contentType: "application/cloudevents-batch+json",
@@ -139,7 +140,8 @@ interface Events {
 
 @route("/api/v2/events")
 @tag("Events")
-interface EventsV2 {
+@friendlyName("EventsV2")
+interface EventsV2Endpoints {
   /**
    * List ingested events with advanced filtering and cursor pagination.
    */
@@ -177,15 +179,15 @@ interface EventsV2 {
     @query
     @encode("application/json")
     filter?: {
-      id?: OpenMeter.FilterString;
-      source?: OpenMeter.FilterString;
-      subject?: OpenMeter.FilterString;
-      customerId?: OpenMeter.FilterIDExact;
-      type?: OpenMeter.FilterString;
-      time?: OpenMeter.FilterTime;
-      ingestedAt?: OpenMeter.FilterTime;
+      id?: FilterString;
+      source?: FilterString;
+      subject?: FilterString;
+      customerId?: FilterIDExact;
+      type?: FilterString;
+      time?: FilterTime;
+      ingestedAt?: FilterTime;
     },
-  ): CursorPaginatedResponse<IngestedEvent> | OpenMeter.CommonErrors;
+  ): CursorPaginatedResponse<IngestedEvent> | CommonErrors;
 }
 
 /**

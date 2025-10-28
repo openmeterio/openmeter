@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Union
 if TYPE_CHECKING:
     from . import models as _models
 App = Union["_models.StripeApp", "_models.SandboxApp", "_models.CustomInvoicingApp"]
-App = Union["_models.StripeApp", "_models.SandboxApp", "_models.CustomInvoicingApp"]
 CustomerAppData = Union[
     "_models.StripeCustomerAppData", "_models.SandboxCustomerAppData", "_models.CustomInvoicingCustomerAppData"
 ]
@@ -32,18 +31,8 @@ SubscriptionEditOperation = Union[
     "_models.EditSubscriptionStretchPhase",
     "_models.EditSubscriptionUnscheduleEdit",
 ]
-EntitlementV2 = Union["_models.EntitlementMeteredV2", "_models.EntitlementStaticV2", "_models.EntitlementBooleanV2"]
 MeasureUsageFrom = Union[str, "_models.MeasureUsageFromPreset", datetime.datetime]
-BillingWorkflowCollectionAlignment = "_models.BillingWorkflowCollectionAlignmentSubscription"
-BillingProfileAppsOrReference = Union["_models.BillingProfileApps", "_models.BillingProfileAppReferences"]
-InvoiceDocumentRef = "_models.CreditNoteOriginalInvoiceRef"
-BillingDiscountReason = Union[
-    "_models.DiscountReasonMaximumSpend",
-    "_models.DiscountReasonRatecardPercentage",
-    "_models.DiscountReasonRatecardUsage",
-]
-PaymentTerms = Union["_models.PaymentTermInstant", "_models.PaymentTermDueDate"]
-VoidInvoiceLineAction = Union["_models.VoidInvoiceLineDiscardAction", "_models.VoidInvoiceLinePendingAction"]
+App = Union["_models.StripeApp", "_models.SandboxApp", "_models.CustomInvoicingApp"]
 NotificationChannel = "_models.NotificationChannelWebhook"
 NotificationRule = Union[
     "_models.NotificationRuleBalanceThreshold",
@@ -51,12 +40,23 @@ NotificationRule = Union[
     "_models.NotificationRuleInvoiceCreated",
     "_models.NotificationRuleInvoiceUpdated",
 ]
+InvoiceDocumentRef = "_models.CreditNoteOriginalInvoiceRef"
+BillingProfileAppsOrReference = Union["_models.BillingProfileApps", "_models.BillingProfileAppReferences"]
+BillingWorkflowCollectionAlignment = "_models.BillingWorkflowCollectionAlignmentSubscription"
+BillingDiscountReason = Union[
+    "_models.DiscountReasonMaximumSpend",
+    "_models.DiscountReasonRatecardPercentage",
+    "_models.DiscountReasonRatecardUsage",
+]
+PaymentTerms = Union["_models.PaymentTermInstant", "_models.PaymentTermDueDate"]
 NotificationEventPayload = Union[
     "_models.NotificationEventResetPayload",
     "_models.NotificationEventBalanceThresholdPayload",
     "_models.NotificationEventInvoiceCreatedPayload",
     "_models.NotificationEventInvoiceUpdatedPayload",
 ]
+EntitlementV2 = Union["_models.EntitlementMeteredV2", "_models.EntitlementStaticV2", "_models.EntitlementBooleanV2"]
+VoidInvoiceLineAction = Union["_models.VoidInvoiceLineDiscardAction", "_models.VoidInvoiceLinePendingAction"]
 AppReplaceUpdate = Union[
     "_models.StripeAppReplaceUpdate", "_models.SandboxAppReplaceUpdate", "_models.CustomInvoicingAppReplaceUpdate"
 ]
@@ -64,17 +64,13 @@ ULIDOrExternalKey = str
 ListFeaturesResult = Union[list["_models.Feature"], "_models.FeaturePaginatedResponse"]
 SubscriptionCreate = Union["_models.PlanSubscriptionCreate", "_models.CustomSubscriptionCreate"]
 SubscriptionChange = Union["_models.PlanSubscriptionChange", "_models.CustomSubscriptionChange"]
-EntitlementV2CreateInputs = Union[
-    "_models.EntitlementMeteredV2CreateInputs",
-    "_models.EntitlementStaticCreateInputs",
-    "_models.EntitlementBooleanCreateInputs",
-]
 ListEntitlementsResult = Union[list["_types.Entitlement"], "_models.EntitlementPaginatedResponse"]
 EntitlementCreateInputs = Union[
     "_models.EntitlementMeteredCreateInputs",
     "_models.EntitlementStaticCreateInputs",
     "_models.EntitlementBooleanCreateInputs",
 ]
+IngestEventsBody = Union["_models.Event", list["_models.Event"]]
 NotificationChannelCreateRequest = "_models.NotificationChannelWebhookCreateRequest"
 NotificationRuleCreateRequest = Union[
     "_models.NotificationRuleBalanceThresholdCreateRequest",
@@ -82,4 +78,8 @@ NotificationRuleCreateRequest = Union[
     "_models.NotificationRuleInvoiceCreatedCreateRequest",
     "_models.NotificationRuleInvoiceUpdatedCreateRequest",
 ]
-IngestEventsBody = Union["_models.Event", list["_models.Event"]]
+EntitlementV2CreateInputs = Union[
+    "_models.EntitlementMeteredV2CreateInputs",
+    "_models.EntitlementStaticCreateInputs",
+    "_models.EntitlementBooleanCreateInputs",
+]

@@ -1,4 +1,4 @@
-namespace OpenMeter.ProductCatalog;
+namespace OpenMeter;
 
 /**
  * Percentage discount.

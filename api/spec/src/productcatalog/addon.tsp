@@ -2,10 +2,7 @@ import "@typespec/http";
 import "../types.tsp";
 import "./ratecards.tsp";
 
-namespace OpenMeter.ProductCatalog;
-
-using TypeSpec.Http;
-using TypeSpec.OpenAPI;
+namespace OpenMeter;
 
 /**
  * The status of the add-on defined by the effectiveFrom and effectiveTo properties.

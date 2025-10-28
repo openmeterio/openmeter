@@ -8,7 +8,7 @@ using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Billing.Invoice;
+namespace OpenMeter;
 
 /*
  * Omitted fields
@@ -78,7 +78,7 @@ model BillingInvoiceCustomerExtendedDetails {
    * Mapping to attribute metered usage to the customer
    */
   @summary("Usage Attribution")
-  usageAttribution: Customer.CustomerUsageAttribution;
+  usageAttribution: CustomerUsageAttribution;
 }
 
 /**

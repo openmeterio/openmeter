@@ -3377,6 +3377,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
+        - Apps
     put:
       operationId: upsertCustomerAppData
       summary: Upsert customer app data
@@ -3446,6 +3447,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
+        - Apps
       requestBody:
         required: true
         content:
@@ -3525,6 +3527,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
+        - Apps
   /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/value:
     get:
       operationId: getCustomerEntitlementValue
@@ -4322,7 +4325,7 @@ paths:
       operationId: ingestEvents
       parameters: []
       description: Ingests an event or batch of events following the CloudEvents specification.
-      summary: 'Ingest events '
+      summary: 'Ingest events  '
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '

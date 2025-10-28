@@ -13,14 +13,15 @@ import "../query.tsp";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.App;
+namespace OpenMeter;
 
 /**
  * Installed Apps API.
  */
 @route("/api/v1/apps")
 @tag("Apps")
-interface Apps {
+@friendlyName("Apps")
+interface AppsEndpoints {
   /**
    * List apps.
    */
@@ -74,7 +75,7 @@ model ListAppsRequest {
  * Type of the app.
  */
 @friendlyName("AppType")
-enum Type {
+enum AppType {
   Stripe: "stripe",
   Sandbox: "sandbox",
   CustomInvoicing: "custom_invoicing",

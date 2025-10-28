@@ -1,4 +1,4 @@
-namespace OpenMeter.ProductCatalog;
+namespace OpenMeter;
 
 /**
  * Pro-rating mode options for handling billing period changes.

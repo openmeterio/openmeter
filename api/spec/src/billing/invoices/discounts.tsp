@@ -2,7 +2,7 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 
-namespace OpenMeter.Billing.Invoice;
+namespace OpenMeter;
 
 /**
  * InvoiceDiscountBase represents a charge or discount that can be applied to a line or the entire invoice.
@@ -119,7 +119,7 @@ model BillingDiscountMetadata {
  */
 @friendlyName("BillingDiscountPercentage")
 model BillingDiscountPercentage {
-  ...OpenMeter.ProductCatalog.DiscountPercentage;
+  ...DiscountPercentage;
   ...BillingDiscountMetadata;
 }
 
@@ -128,7 +128,7 @@ model BillingDiscountPercentage {
  */
 @friendlyName("BillingDiscountUsage")
 model BillingDiscountUsage {
-  ...OpenMeter.ProductCatalog.DiscountUsage;
+  ...DiscountUsage;
   ...BillingDiscountMetadata;
 }
 
