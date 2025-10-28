@@ -50,7 +50,7 @@ func NewBalanceWorkerEntitlementRepo(db *db.Client) BalanceWorkerEntitlementRepo
 	return entitlementadapter.NewPostgresEntitlementRepo(db)
 }
 
-func BalanceWorkerProvisionTopics(conf config.BalanceWorkerConfiguration) []pkgkafka.TopicConfig {
+func BalanceWorkerProvisionTopics(conf config.BalanceWorkerConfiguration, eventsConfig config.EventsConfiguration) []pkgkafka.TopicConfig {
 	var provisionTopics []pkgkafka.TopicConfig
 
 	if conf.DLQ.AutoProvision.Enabled {
@@ -58,6 +58,13 @@ func BalanceWorkerProvisionTopics(conf config.BalanceWorkerConfiguration) []pkgk
 			Name:          conf.DLQ.Topic,
 			Partitions:    conf.DLQ.AutoProvision.Partitions,
 			RetentionTime: pkgkafka.TimeDurationMilliSeconds(conf.DLQ.AutoProvision.Retention),
+		})
+	}
+
+	if eventsConfig.BalanceWorkerEvents.AutoProvision.Enabled {
+		provisionTopics = append(provisionTopics, pkgkafka.TopicConfig{
+			Name:       eventsConfig.BalanceWorkerEvents.Topic,
+			Partitions: eventsConfig.BalanceWorkerEvents.AutoProvision.Partitions,
 		})
 	}
 
@@ -90,18 +97,19 @@ func NewBalanceWorkerOptions(
 	filterStateStorage balanceworker.FilterStateStorage,
 ) balanceworker.WorkerOptions {
 	return balanceworker.WorkerOptions{
-		SystemEventsTopic:   eventConfig.SystemEvents.Topic,
-		IngestEventsTopic:   eventConfig.IngestEvents.Topic,
-		Router:              routerOptions,
-		EventBus:            eventBus,
-		Entitlement:         entitlements,
-		Repo:                repo,
-		Subject:             subjectService,
-		Customer:            customerService,
-		Logger:              logger,
-		MetricMeter:         routerOptions.MetricMeter,
-		NotificationService: notificationService,
-		FilterStateStorage:  filterStateStorage,
+		SystemEventsTopic:        eventConfig.SystemEvents.Topic,
+		IngestEventsTopic:        eventConfig.IngestEvents.Topic,
+		BalanceWorkerEventsTopic: eventConfig.BalanceWorkerEvents.Topic,
+		Router:                   routerOptions,
+		EventBus:                 eventBus,
+		Entitlement:              entitlements,
+		Repo:                     repo,
+		Subject:                  subjectService,
+		Customer:                 customerService,
+		Logger:                   logger,
+		MetricMeter:              routerOptions.MetricMeter,
+		NotificationService:      notificationService,
+		FilterStateStorage:       filterStateStorage,
 	}
 }
 

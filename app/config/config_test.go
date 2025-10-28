@@ -300,19 +300,24 @@ func TestComplete(t *testing.T) {
 		},
 		Events: EventsConfiguration{
 			SystemEvents: EventSubsystemConfiguration{
-				Enabled: true,
-				Topic:   "om_sys.api_events",
+				Topic: "om_sys.api_events",
 				AutoProvision: AutoProvisionConfiguration{
 					Enabled:    true,
 					Partitions: 4,
 				},
 			},
 			IngestEvents: EventSubsystemConfiguration{
-				Enabled: true,
-				Topic:   "om_sys.ingest_events",
+				Topic: "om_sys.ingest_events",
 				AutoProvision: AutoProvisionConfiguration{
 					Enabled:    true,
 					Partitions: 8,
+				},
+			},
+			BalanceWorkerEvents: EventSubsystemConfiguration{
+				Topic: "om_sys.balance_worker_events",
+				AutoProvision: AutoProvisionConfiguration{
+					Enabled:    true,
+					Partitions: 4,
 				},
 			},
 		},
