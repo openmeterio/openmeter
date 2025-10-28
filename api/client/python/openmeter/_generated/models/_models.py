@@ -1,4 +1,4 @@
-# pylint: disable=line-too-long,useless-suppression,too-many-lines
+# pylint: disable=too-many-lines
 # coding=utf-8
 # pylint: disable=useless-super-delegation
 
@@ -6,7 +6,21 @@ import datetime
 from typing import Any, Literal, Mapping, Optional, TYPE_CHECKING, Union, overload
 
 from .._utils.model_base import Model as _Model, rest_field
-from ._enums import AppType, BillingCollectionAlignment, DiscountReasonType, EditOp, EntitlementType, InvoiceDocumentRefType, InvoiceLineTypes, NotificationChannelType, NotificationEventType, PaymentTermType, PriceType, RateCardType, VoidInvoiceLineActionType
+from ._enums import (
+    AppType,
+    BillingCollectionAlignment,
+    DiscountReasonType,
+    EditOp,
+    EntitlementType,
+    InvoiceDocumentRefType,
+    InvoiceLineTypes,
+    NotificationChannelType,
+    NotificationEventType,
+    PaymentTermType,
+    PriceType,
+    RateCardType,
+    VoidInvoiceLineActionType,
+)
 
 if TYPE_CHECKING:
     from .. import _types, models as _models
@@ -72,11 +86,15 @@ class Addon(_Model):
     """Annotations."""
     version: int = rest_field(visibility=["read"])
     """Version. Required."""
-    instance_type: Union[str, "_models.AddonInstanceType"] = rest_field(name="instanceType", visibility=["read", "create", "update"])
+    instance_type: Union[str, "_models.AddonInstanceType"] = rest_field(
+        name="instanceType", visibility=["read", "create", "update"]
+    )
     """InstanceType. Required. Known values are: \"single\" and \"multiple\"."""
     currency: str = rest_field(visibility=["read", "create"])
     """Currency. Required."""
-    effective_from: Optional[datetime.datetime] = rest_field(name="effectiveFrom", visibility=["read"], format="rfc3339")
+    effective_from: Optional[datetime.datetime] = rest_field(
+        name="effectiveFrom", visibility=["read"], format="rfc3339"
+    )
     """Effective start date."""
     effective_to: Optional[datetime.datetime] = rest_field(name="effectiveTo", visibility=["read"], format="rfc3339")
     """Effective end date."""
@@ -86,9 +104,6 @@ class Addon(_Model):
     """Rate cards. Required."""
     validation_errors: list["_models.ValidationError"] = rest_field(name="validationErrors", visibility=["read"])
     """Validation errors. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -101,8 +116,7 @@ class Addon(_Model):
         rate_cards: list["_types.RateCard"],
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -143,15 +157,16 @@ class AddonCreate(_Model):
     """Metadata."""
     key: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Key. Required."""
-    instance_type: Union[str, "_models.AddonInstanceType"] = rest_field(name="instanceType", visibility=["read", "create", "update", "delete", "query"])
+    instance_type: Union[str, "_models.AddonInstanceType"] = rest_field(
+        name="instanceType", visibility=["read", "create", "update", "delete", "query"]
+    )
     """InstanceType. Required. Known values are: \"single\" and \"multiple\"."""
     currency: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Currency. Required."""
-    rate_cards: list["_types.RateCard"] = rest_field(name="rateCards", visibility=["read", "create", "update", "delete", "query"])
+    rate_cards: list["_types.RateCard"] = rest_field(
+        name="rateCards", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Rate cards. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -164,8 +179,7 @@ class AddonCreate(_Model):
         rate_cards: list["_types.RateCard"],
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -200,13 +214,12 @@ class AddonReplaceUpdate(_Model):
     """Description."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Metadata."""
-    instance_type: Union[str, "_models.AddonInstanceType"] = rest_field(name="instanceType", visibility=["read", "create", "update"])
+    instance_type: Union[str, "_models.AddonInstanceType"] = rest_field(
+        name="instanceType", visibility=["read", "create", "update"]
+    )
     """InstanceType. Required. Known values are: \"single\" and \"multiple\"."""
     rate_cards: list["_types.RateCard"] = rest_field(name="rateCards", visibility=["read", "create", "update"])
     """Rate cards. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -217,8 +230,7 @@ class AddonReplaceUpdate(_Model):
         rate_cards: list["_types.RateCard"],
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -253,7 +265,9 @@ class Address(_Model):
 
     country: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Country code in `ISO 3166-1 <https://www.iso.org/iso-3166-country-codes.html>`_ alpha-2 format."""
-    postal_code: Optional[str] = rest_field(name="postalCode", visibility=["read", "create", "update", "delete", "query"])
+    postal_code: Optional[str] = rest_field(
+        name="postalCode", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Postal code."""
     state: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """State or province."""
@@ -263,11 +277,10 @@ class Address(_Model):
     """First line of the address."""
     line2: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Second line of the address."""
-    phone_number: Optional[str] = rest_field(name="phoneNumber", visibility=["read", "create", "update", "delete", "query"])
+    phone_number: Optional[str] = rest_field(
+        name="phoneNumber", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Phone number."""
-
-
-
 
     @overload
     def __init__(
@@ -280,8 +293,7 @@ class Address(_Model):
         line1: Optional[str] = None,
         line2: Optional[str] = None,
         phone_number: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -302,20 +314,18 @@ class Alignment(_Model):
     :vartype billables_must_align: bool
     """
 
-    billables_must_align: Optional[bool] = rest_field(name="billablesMustAlign", visibility=["read", "create", "update"])
+    billables_must_align: Optional[bool] = rest_field(
+        name="billablesMustAlign", visibility=["read", "create", "update"]
+    )
     """Whether all Billable items and RateCards must align.
      Alignment means the Price's BillingCadence must align for both duration and anchor time."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         billables_must_align: Optional[bool] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -329,19 +339,12 @@ class Alignment(_Model):
 
 
 class Annotations(_Model):
-    """Set of key-value pairs managed by the system. Cannot be modified by user.
-
-    """
-
-
-
-
-
+    """Set of key-value pairs managed by the system. Cannot be modified by user."""
 
 
 class AppCapability(_Model):
     """App capability.
-    
+
     Capabilities only exist in config so they don't extend the Resource model.
 
     :ivar type: The capability type. Required. Known values are: "reportUsage", "reportEvents",
@@ -355,7 +358,9 @@ class AppCapability(_Model):
     :vartype description: str
     """
 
-    type: Union[str, "_models.AppCapabilityType"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Union[str, "_models.AppCapabilityType"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The capability type. Required. Known values are: \"reportUsage\", \"reportEvents\",
      \"calculateTax\", \"invoiceCustomers\", and \"collectPayments\"."""
     key: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -365,9 +370,6 @@ class AppCapability(_Model):
     description: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The capability description. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -376,8 +378,7 @@ class AppCapability(_Model):
         key: str,
         name: str,
         description: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -410,11 +411,10 @@ class AppPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.App"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_types.App"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -424,8 +424,7 @@ class AppPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_types.App"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -440,7 +439,7 @@ class AppPaginatedResponse(_Model):
 
 class AppReference(_Model):
     """App reference
-    
+
     Can be used as a short reference to an app if the full app object is not needed.
 
     :ivar id: The ID of the app. Required.
@@ -450,16 +449,12 @@ class AppReference(_Model):
     id: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The ID of the app. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         id: str,  # pylint: disable=redefined-builtin
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -502,9 +497,6 @@ class UnexpectedProblemResponse(_Model):
     instance: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """A URI reference that identifies the specific occurrence of the problem. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -514,8 +506,7 @@ class UnexpectedProblemResponse(_Model):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -548,10 +539,6 @@ class BadRequestProblemResponse(UnexpectedProblemResponse):
     :vartype instance: str
     """
 
-
-
-
-
     @overload
     def __init__(
         self,
@@ -561,8 +548,7 @@ class BadRequestProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -593,16 +579,12 @@ class BalanceHistoryWindow(_Model):
     balance_at_start: float = rest_field(name="balanceAtStart", visibility=["read"])
     """The entitlement balance at the start of the period. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         period: "_models.Period",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -617,10 +599,10 @@ class BalanceHistoryWindow(_Model):
 
 class BillingCustomerProfile(_Model):
     """Customer specific merged profile.
-    
+
     This profile is calculated from the customer override and the billing profile it references or
     the default.
-    
+
     Thus this does not have any kind of resource fields, only the calculated values.
 
     :ivar supplier: The name and contact information for the supplier this billing profile
@@ -629,7 +611,7 @@ class BillingCustomerProfile(_Model):
     :ivar workflow: The billing workflow settings for this profile. Required.
     :vartype workflow: ~openmeter._generated.models.BillingWorkflow
     :ivar apps: The applications used by this billing profile.
-     
+
      Expand settings govern if this includes the whole app object or just the ID references.
      Required. Is either a BillingProfileApps type or a BillingProfileAppReferences type.
     :vartype apps: ~openmeter._generated.models.BillingProfileApps or
@@ -647,19 +629,15 @@ class BillingCustomerProfile(_Model):
      Required. Is either a BillingProfileApps type or a BillingProfileAppReferences type."""
 
 
-
-
-
-
 class BillingDiscountPercentage(_Model):
     """A percentage discount.
 
     :ivar percentage: Percentage. Required.
     :vartype percentage: float
     :ivar correlation_id: Correlation ID for the discount.
-     
+
      This is used to link discounts across different invoices (progressive billing use case).
-     
+
      If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
      please make sure to keep the same correlation ID of the discount or in progressive billing
      setups the discount amounts might be incorrect.
@@ -668,7 +646,9 @@ class BillingDiscountPercentage(_Model):
 
     percentage: float = rest_field(visibility=["read", "create", "update"])
     """Percentage. Required."""
-    correlation_id: Optional[str] = rest_field(name="correlationId", visibility=["read", "create", "update", "delete", "query"])
+    correlation_id: Optional[str] = rest_field(
+        name="correlationId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Correlation ID for the discount.
      
      This is used to link discounts across different invoices (progressive billing use case).
@@ -677,17 +657,13 @@ class BillingDiscountPercentage(_Model):
      please make sure to keep the same correlation ID of the discount or in progressive billing
      setups the discount amounts might be incorrect."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         percentage: float,
         correlation_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -709,13 +685,14 @@ class BillingDiscounts(_Model):
     :vartype usage: ~openmeter._generated.models.BillingDiscountUsage
     """
 
-    percentage: Optional["_models.BillingDiscountPercentage"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    percentage: Optional["_models.BillingDiscountPercentage"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The percentage discount."""
-    usage: Optional["_models.BillingDiscountUsage"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    usage: Optional["_models.BillingDiscountUsage"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The usage discount."""
-
-
-
 
     @overload
     def __init__(
@@ -723,8 +700,7 @@ class BillingDiscounts(_Model):
         *,
         percentage: Optional["_models.BillingDiscountPercentage"] = None,
         usage: Optional["_models.BillingDiscountUsage"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -743,9 +719,9 @@ class BillingDiscountUsage(_Model):
     :ivar quantity: Usage. Required.
     :vartype quantity: str
     :ivar correlation_id: Correlation ID for the discount.
-     
+
      This is used to link discounts across different invoices (progressive billing use case).
-     
+
      If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
      please make sure to keep the same correlation ID of the discount or in progressive billing
      setups the discount amounts might be incorrect.
@@ -754,7 +730,9 @@ class BillingDiscountUsage(_Model):
 
     quantity: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Usage. Required."""
-    correlation_id: Optional[str] = rest_field(name="correlationId", visibility=["read", "create", "update", "delete", "query"])
+    correlation_id: Optional[str] = rest_field(
+        name="correlationId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Correlation ID for the discount.
      
      This is used to link discounts across different invoices (progressive billing use case).
@@ -763,17 +741,13 @@ class BillingDiscountUsage(_Model):
      please make sure to keep the same correlation ID of the discount or in progressive billing
      setups the discount amounts might be incorrect."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         quantity: str,
         correlation_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -789,7 +763,7 @@ class BillingDiscountUsage(_Model):
 class BillingInvoiceCustomerExtendedDetails(_Model):
     """BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to extend the
     billing party details for invoices.
-    
+
     These fields contain the OpenMeter specific details for the customer, that are not strictly
     required for the invoice itself.
 
@@ -814,16 +788,17 @@ class BillingInvoiceCustomerExtendedDetails(_Model):
     """Key."""
     name: Optional[str] = rest_field(visibility=["read", "create", "update"])
     """Legal name or representation of the organization."""
-    tax_id: Optional["_models.BillingPartyTaxIdentity"] = rest_field(name="taxId", visibility=["read", "create", "update"])
+    tax_id: Optional["_models.BillingPartyTaxIdentity"] = rest_field(
+        name="taxId", visibility=["read", "create", "update"]
+    )
     """The entity's legal ID code used for tax purposes. They may have
      other numbers, but we're only interested in those valid for tax purposes."""
     addresses: Optional[list["_models.Address"]] = rest_field(visibility=["read", "create", "update"])
     """Regular post addresses for where information should be sent if needed."""
-    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(name="usageAttribution", visibility=["read", "create", "update", "delete", "query"])
+    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(
+        name="usageAttribution", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Usage Attribution. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -834,8 +809,7 @@ class BillingInvoiceCustomerExtendedDetails(_Model):
         name: Optional[str] = None,
         tax_id: Optional["_models.BillingPartyTaxIdentity"] = None,
         addresses: Optional[list["_models.Address"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -870,14 +844,13 @@ class BillingParty(_Model):
     """Key."""
     name: Optional[str] = rest_field(visibility=["read", "create", "update"])
     """Legal name or representation of the organization."""
-    tax_id: Optional["_models.BillingPartyTaxIdentity"] = rest_field(name="taxId", visibility=["read", "create", "update"])
+    tax_id: Optional["_models.BillingPartyTaxIdentity"] = rest_field(
+        name="taxId", visibility=["read", "create", "update"]
+    )
     """The entity's legal ID code used for tax purposes. They may have
      other numbers, but we're only interested in those valid for tax purposes."""
     addresses: Optional[list["_models.Address"]] = rest_field(visibility=["read", "create", "update"])
     """Regular post addresses for where information should be sent if needed."""
-
-
-
 
     @overload
     def __init__(
@@ -887,8 +860,7 @@ class BillingParty(_Model):
         name: Optional[str] = None,
         tax_id: Optional["_models.BillingPartyTaxIdentity"] = None,
         addresses: Optional[list["_models.Address"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -919,14 +891,13 @@ class BillingPartyReplaceUpdate(_Model):
     """Key."""
     name: Optional[str] = rest_field(visibility=["read", "create", "update"])
     """Legal name or representation of the organization."""
-    tax_id: Optional["_models.BillingPartyTaxIdentity"] = rest_field(name="taxId", visibility=["read", "create", "update"])
+    tax_id: Optional["_models.BillingPartyTaxIdentity"] = rest_field(
+        name="taxId", visibility=["read", "create", "update"]
+    )
     """The entity's legal ID code used for tax purposes. They may have
      other numbers, but we're only interested in those valid for tax purposes."""
     addresses: Optional[list["_models.Address"]] = rest_field(visibility=["read", "create", "update"])
     """Regular post addresses for where information should be sent if needed."""
-
-
-
 
     @overload
     def __init__(
@@ -936,8 +907,7 @@ class BillingPartyReplaceUpdate(_Model):
         name: Optional[str] = None,
         tax_id: Optional["_models.BillingPartyTaxIdentity"] = None,
         addresses: Optional[list["_models.Address"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -961,16 +931,12 @@ class BillingPartyTaxIdentity(_Model):
     code: Optional[str] = rest_field(visibility=["read", "create", "update"])
     """Normalized tax code shown on the original identity document."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         code: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1006,7 +972,7 @@ class BillingProfile(_Model):
     :ivar workflow: The billing workflow settings for this profile. Required.
     :vartype workflow: ~openmeter._generated.models.BillingWorkflow
     :ivar apps: The applications used by this billing profile.
-     
+
      Expand settings govern if this includes the whole app object or just the ID references.
      Required. Is either a BillingProfileApps type or a BillingProfileAppReferences type.
     :vartype apps: ~openmeter._generated.models.BillingProfileApps or
@@ -1041,9 +1007,6 @@ class BillingProfile(_Model):
     default: bool = rest_field(visibility=["read", "create", "update"])
     """Is this the default profile?. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -1053,8 +1016,7 @@ class BillingProfile(_Model):
         default: bool,
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1087,10 +1049,6 @@ class BillingProfileAppReferences(_Model):
     """The payment app used for this workflow. Required."""
 
 
-
-
-
-
 class BillingProfileApps(_Model):
     """BillingProfileApps represents the applications used by a billing profile.
 
@@ -1119,10 +1077,6 @@ class BillingProfileApps(_Model):
      SandboxApp, CustomInvoicingApp"""
 
 
-
-
-
-
 class BillingProfileAppsCreate(_Model):
     """BillingProfileAppsCreate represents the input for creating a billing profile's apps.
 
@@ -1141,9 +1095,6 @@ class BillingProfileAppsCreate(_Model):
     payment: str = rest_field(visibility=["create"])
     """The payment app used for this workflow. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -1151,8 +1102,7 @@ class BillingProfileAppsCreate(_Model):
         tax: str,
         invoicing: str,
         payment: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1200,9 +1150,6 @@ class BillingProfileCreate(_Model):
     apps: "_models.BillingProfileAppsCreate" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The apps used by this billing profile. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -1214,8 +1161,7 @@ class BillingProfileCreate(_Model):
         apps: "_models.BillingProfileAppsCreate",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1236,7 +1182,7 @@ class BillingProfileCustomerOverride(_Model):
     :ivar updated_at: Last Update Time. Required.
     :vartype updated_at: ~datetime.datetime
     :ivar billing_profile_id: The billing profile this override is associated with.
-     
+
      If empty the default profile is looked up dynamically.
     :vartype billing_profile_id: str
     :ivar customer_id: The customer id this override is associated with. Required.
@@ -1247,15 +1193,14 @@ class BillingProfileCustomerOverride(_Model):
     """Creation Time. Required."""
     updated_at: datetime.datetime = rest_field(name="updatedAt", visibility=["read"], format="rfc3339")
     """Last Update Time. Required."""
-    billing_profile_id: Optional[str] = rest_field(name="billingProfileId", visibility=["read", "create", "update", "delete", "query"])
+    billing_profile_id: Optional[str] = rest_field(
+        name="billingProfileId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The billing profile this override is associated with.
      
      If empty the default profile is looked up dynamically."""
     customer_id: str = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
     """The customer id this override is associated with. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -1263,8 +1208,7 @@ class BillingProfileCustomerOverride(_Model):
         *,
         customer_id: str,
         billing_profile_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1281,26 +1225,24 @@ class BillingProfileCustomerOverrideCreate(_Model):
     """Payload for creating a new or updating an existing customer override.
 
     :ivar billing_profile_id: The billing profile this override is associated with.
-     
+
      If not provided, the default billing profile is chosen if available.
     :vartype billing_profile_id: str
     """
 
-    billing_profile_id: Optional[str] = rest_field(name="billingProfileId", visibility=["read", "create", "update", "delete", "query"])
+    billing_profile_id: Optional[str] = rest_field(
+        name="billingProfileId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The billing profile this override is associated with.
      
      If not provided, the default billing profile is chosen if available."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         billing_profile_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1317,12 +1259,12 @@ class BillingProfileCustomerOverrideWithDetails(_Model):  # pylint: disable=name
     """Customer specific workflow overrides.
 
     :ivar customer_override: The customer override values.
-     
+
      If empty the merged values are calculated based on the default profile.
     :vartype customer_override: ~openmeter._generated.models.BillingProfileCustomerOverride
     :ivar base_billing_profile_id: The billing profile the customerProfile is associated with at
      the time of query.
-     
+
      customerOverride contains the explicit mapping set in the customer override object. If that is
      empty, then the baseBillingProfileId is the default profile. Required.
     :vartype base_billing_profile_id: str
@@ -1332,22 +1274,25 @@ class BillingProfileCustomerOverrideWithDetails(_Model):  # pylint: disable=name
     :vartype customer: ~openmeter._generated.models.Customer
     """
 
-    customer_override: Optional["_models.BillingProfileCustomerOverride"] = rest_field(name="customerOverride", visibility=["read", "create", "update", "delete", "query"])
+    customer_override: Optional["_models.BillingProfileCustomerOverride"] = rest_field(
+        name="customerOverride", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The customer override values.
      
      If empty the merged values are calculated based on the default profile."""
-    base_billing_profile_id: str = rest_field(name="baseBillingProfileId", visibility=["read", "create", "update", "delete", "query"])
+    base_billing_profile_id: str = rest_field(
+        name="baseBillingProfileId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The billing profile the customerProfile is associated with at the time of query.
      
      customerOverride contains the explicit mapping set in the customer override object. If that is
      empty, then the baseBillingProfileId is the default profile. Required."""
-    customer_profile: Optional["_models.BillingCustomerProfile"] = rest_field(name="customerProfile", visibility=["read", "create", "update", "delete", "query"])
+    customer_profile: Optional["_models.BillingCustomerProfile"] = rest_field(
+        name="customerProfile", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Merged billing profile with the customer specific overrides."""
     customer: Optional["_models.Customer"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The customer this override belongs to."""
-
-
-
 
     @overload
     def __init__(
@@ -1357,8 +1302,7 @@ class BillingProfileCustomerOverrideWithDetails(_Model):  # pylint: disable=name
         customer_override: Optional["_models.BillingProfileCustomerOverride"] = None,
         customer_profile: Optional["_models.BillingCustomerProfile"] = None,
         customer: Optional["_models.Customer"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1391,11 +1335,10 @@ class BillingProfileCustomerOverrideWithDetailsPaginatedResponse(_Model):  # pyl
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.BillingProfileCustomerOverrideWithDetails"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.BillingProfileCustomerOverrideWithDetails"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -1405,8 +1348,7 @@ class BillingProfileCustomerOverrideWithDetailsPaginatedResponse(_Model):  # pyl
         page: int,
         page_size: int,
         items_property: list["_models.BillingProfileCustomerOverrideWithDetails"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1438,11 +1380,10 @@ class BillingProfilePaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.BillingProfile"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.BillingProfile"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -1452,8 +1393,7 @@ class BillingProfilePaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.BillingProfile"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1468,7 +1408,7 @@ class BillingProfilePaginatedResponse(_Model):
 
 class BillingProfileReplaceUpdateWithWorkflow(_Model):
     """BillingProfileReplaceUpdate represents the input for updating a billing profile
-    
+
     The apps field cannot be updated directly, if an app change is desired a new
     profile should be created.
 
@@ -1500,9 +1440,6 @@ class BillingProfileReplaceUpdateWithWorkflow(_Model):
     workflow: "_models.BillingWorkflow" = rest_field(visibility=["update"])
     """The billing workflow settings for this profile. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -1513,8 +1450,7 @@ class BillingProfileReplaceUpdateWithWorkflow(_Model):
         workflow: "_models.BillingWorkflow",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1540,17 +1476,18 @@ class BillingWorkflow(_Model):
     :vartype tax: ~openmeter._generated.models.BillingWorkflowTaxSettings
     """
 
-    collection: Optional["_models.BillingWorkflowCollectionSettings"] = rest_field(visibility=["read", "create", "update"])
+    collection: Optional["_models.BillingWorkflowCollectionSettings"] = rest_field(
+        visibility=["read", "create", "update"]
+    )
     """The collection settings for this workflow."""
-    invoicing: Optional["_models.BillingWorkflowInvoicingSettings"] = rest_field(visibility=["read", "create", "update"])
+    invoicing: Optional["_models.BillingWorkflowInvoicingSettings"] = rest_field(
+        visibility=["read", "create", "update"]
+    )
     """The invoicing settings for this workflow."""
     payment: Optional["_models.BillingWorkflowPaymentSettings"] = rest_field(visibility=["read", "create", "update"])
     """The payment settings for this workflow."""
     tax: Optional["_models.BillingWorkflowTaxSettings"] = rest_field(visibility=["read", "create", "update"])
     """The tax settings for this workflow."""
-
-
-
 
     @overload
     def __init__(
@@ -1560,8 +1497,7 @@ class BillingWorkflow(_Model):
         invoicing: Optional["_models.BillingWorkflowInvoicingSettings"] = None,
         payment: Optional["_models.BillingWorkflowPaymentSettings"] = None,
         tax: Optional["_models.BillingWorkflowTaxSettings"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1587,16 +1523,12 @@ class BillingWorkflowCollectionAlignmentSubscription(_Model):  # pylint: disable
     type: Literal[BillingCollectionAlignment.SUBSCRIPTION] = rest_field(visibility=["read", "create", "update"])
     """The type of alignment. Required. Align the collection to the start of the subscription period."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         type: Literal[BillingCollectionAlignment.SUBSCRIPTION],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1618,12 +1550,14 @@ class BillingWorkflowCollectionSettings(_Model):
     :ivar interval: This grace period can be used to delay the collection of the pending line items
      specified in
      alignment.
-     
+
      This is useful, in case of multiple subscriptions having slightly different billing periods.
     :vartype interval: str
     """
 
-    alignment: Optional["_types.BillingWorkflowCollectionAlignment"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    alignment: Optional["_types.BillingWorkflowCollectionAlignment"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The alignment for collecting the pending line items into an invoice. Is one of the following
      types: BillingWorkflowCollectionAlignmentSubscription"""
     interval: Optional[str] = rest_field(visibility=["read", "create", "update"])
@@ -1632,17 +1566,13 @@ class BillingWorkflowCollectionSettings(_Model):
      
      This is useful, in case of multiple subscriptions having slightly different billing periods."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         alignment: Optional["_types.BillingWorkflowCollectionAlignment"] = None,
         interval: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1668,17 +1598,22 @@ class BillingWorkflowCreate(_Model):
     :vartype tax: ~openmeter._generated.models.BillingWorkflowTaxSettings
     """
 
-    collection: Optional["_models.BillingWorkflowCollectionSettings"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    collection: Optional["_models.BillingWorkflowCollectionSettings"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The collection settings for this workflow."""
-    invoicing: Optional["_models.BillingWorkflowInvoicingSettings"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    invoicing: Optional["_models.BillingWorkflowInvoicingSettings"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The invoicing settings for this workflow."""
-    payment: Optional["_models.BillingWorkflowPaymentSettings"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    payment: Optional["_models.BillingWorkflowPaymentSettings"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The payment settings for this workflow."""
-    tax: Optional["_models.BillingWorkflowTaxSettings"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    tax: Optional["_models.BillingWorkflowTaxSettings"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The tax settings for this workflow."""
-
-
-
 
     @overload
     def __init__(
@@ -1688,8 +1623,7 @@ class BillingWorkflowCreate(_Model):
         invoicing: Optional["_models.BillingWorkflowInvoicingSettings"] = None,
         payment: Optional["_models.BillingWorkflowPaymentSettings"] = None,
         tax: Optional["_models.BillingWorkflowTaxSettings"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1728,11 +1662,10 @@ class BillingWorkflowInvoicingSettings(_Model):
      With some payment solutions it's only applicable for manual collection method."""
     progressive_billing: Optional[bool] = rest_field(name="progressiveBilling", visibility=["read", "create", "update"])
     """Should progressive billing be allowed for this workflow?."""
-    default_tax_config: Optional["_models.TaxConfig"] = rest_field(name="defaultTaxConfig", visibility=["read", "create", "update"])
+    default_tax_config: Optional["_models.TaxConfig"] = rest_field(
+        name="defaultTaxConfig", visibility=["read", "create", "update"]
+    )
     """Default tax configuration to apply to the invoices."""
-
-
-
 
     @overload
     def __init__(
@@ -1743,8 +1676,7 @@ class BillingWorkflowInvoicingSettings(_Model):
         due_after: Optional[str] = None,
         progressive_billing: Optional[bool] = None,
         default_tax_config: Optional["_models.TaxConfig"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1765,20 +1697,18 @@ class BillingWorkflowPaymentSettings(_Model):
     :vartype collection_method: str or ~openmeter.models.CollectionMethod
     """
 
-    collection_method: Optional[Union[str, "_models.CollectionMethod"]] = rest_field(name="collectionMethod", visibility=["read", "create", "update"])
+    collection_method: Optional[Union[str, "_models.CollectionMethod"]] = rest_field(
+        name="collectionMethod", visibility=["read", "create", "update"]
+    )
     """The payment method for the invoice. Known values are: \"charge_automatically\" and
      \"send_invoice\"."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         collection_method: Optional[Union[str, "_models.CollectionMethod"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1813,17 +1743,13 @@ class BillingWorkflowTaxSettings(_Model):
      Enforcement is different per apps, for example, Stripe app requires customer
      to have a tax location when starting a paid subscription."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         enabled: Optional[bool] = None,
         enforced: Optional[bool] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1844,20 +1770,18 @@ class CancelRequest(_Model):
     :vartype timing: str or ~openmeter.models.SubscriptionTimingEnum or ~datetime.datetime
     """
 
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    timing: Optional["_types.SubscriptionTiming"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """If not provided the subscription is canceled immediately. Is either a Union[str,
      \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime type."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         timing: Optional["_types.SubscriptionTiming"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1887,17 +1811,22 @@ class CheckoutSessionCustomTextAfterSubmitParams(_Model):  # pylint: disable=nam
      ~openmeter._generated.models.CheckoutSessionCustomTextParamsTermsOfServiceAcceptance
     """
 
-    after_submit: Optional["_models.CheckoutSessionCustomTextParamsAfterSubmit"] = rest_field(name="afterSubmit", visibility=["read", "create", "update", "delete", "query"])
+    after_submit: Optional["_models.CheckoutSessionCustomTextParamsAfterSubmit"] = rest_field(
+        name="afterSubmit", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Custom text that should be displayed after the payment confirmation button."""
-    shipping_address: Optional["_models.CheckoutSessionCustomTextParamsShippingAddress"] = rest_field(name="shippingAddress", visibility=["read", "create", "update", "delete", "query"])
+    shipping_address: Optional["_models.CheckoutSessionCustomTextParamsShippingAddress"] = rest_field(
+        name="shippingAddress", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Custom text that should be displayed alongside shipping address collection."""
-    submit: Optional["_models.CheckoutSessionCustomTextParamsSubmit"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    submit: Optional["_models.CheckoutSessionCustomTextParamsSubmit"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Custom text that should be displayed alongside the payment confirmation button."""
-    terms_of_service_acceptance: Optional["_models.CheckoutSessionCustomTextParamsTermsOfServiceAcceptance"] = rest_field(name="termsOfServiceAcceptance", visibility=["read", "create", "update", "delete", "query"])
+    terms_of_service_acceptance: Optional["_models.CheckoutSessionCustomTextParamsTermsOfServiceAcceptance"] = (
+        rest_field(name="termsOfServiceAcceptance", visibility=["read", "create", "update", "delete", "query"])
+    )
     """Custom text that should be displayed in place of the default terms of service agreement text."""
-
-
-
 
     @overload
     def __init__(
@@ -1907,8 +1836,7 @@ class CheckoutSessionCustomTextAfterSubmitParams(_Model):  # pylint: disable=nam
         shipping_address: Optional["_models.CheckoutSessionCustomTextParamsShippingAddress"] = None,
         submit: Optional["_models.CheckoutSessionCustomTextParamsSubmit"] = None,
         terms_of_service_acceptance: Optional["_models.CheckoutSessionCustomTextParamsTermsOfServiceAcceptance"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1930,16 +1858,12 @@ class CheckoutSessionCustomTextParamsAfterSubmit(_Model):  # pylint: disable=nam
 
     message: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         message: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1961,16 +1885,12 @@ class CheckoutSessionCustomTextParamsShippingAddress(_Model):  # pylint: disable
 
     message: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         message: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -1992,16 +1912,12 @@ class CheckoutSessionCustomTextParamsSubmit(_Model):
 
     message: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         message: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2023,16 +1939,12 @@ class CheckoutSessionCustomTextParamsTermsOfServiceAcceptance(_Model):  # pylint
 
     message: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         message: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2055,16 +1967,12 @@ class ClientAppStartResponse(_Model):
     url: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The URL to start the OAuth2 authorization code grant flow. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         url: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2096,10 +2004,6 @@ class ConflictProblemResponse(UnexpectedProblemResponse):
     :vartype instance: str
     """
 
-
-
-
-
     @overload
     def __init__(
         self,
@@ -2109,8 +2013,7 @@ class ConflictProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2135,12 +2038,11 @@ class CreateCheckoutSessionTaxIdCollection(_Model):
 
     enabled: bool = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Enable tax ID collection during checkout. Defaults to false. Required."""
-    required: Optional[Union[str, "_models.CreateCheckoutSessionTaxIdCollectionRequired"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    required: Optional[Union[str, "_models.CreateCheckoutSessionTaxIdCollectionRequired"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Describes whether a tax ID is required during checkout. Defaults to never. Known values are:
      \"if_supported\" and \"never\"."""
-
-
-
 
     @overload
     def __init__(
@@ -2148,8 +2050,7 @@ class CreateCheckoutSessionTaxIdCollection(_Model):
         *,
         enabled: bool,
         required: Optional[Union[str, "_models.CreateCheckoutSessionTaxIdCollectionRequired"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2169,18 +2070,16 @@ class CreateResponseExtensions(_Model):
     :vartype validation_errors: list[~openmeter._generated.models.ValidationError]
     """
 
-    validation_errors: Optional[list["_models.ValidationError"]] = rest_field(name="validationErrors", visibility=["read", "create", "update", "delete", "query"])
-
-
-
+    validation_errors: Optional[list["_models.ValidationError"]] = rest_field(
+        name="validationErrors", visibility=["read", "create", "update", "delete", "query"]
+    )
 
     @overload
     def __init__(
         self,
         *,
         validation_errors: Optional[list["_models.ValidationError"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2218,34 +2117,40 @@ class CreateStripeCheckoutSessionConsentCollection(_Model):  # pylint: disable=n
      ~openmeter.models.CreateStripeCheckoutSessionConsentCollectionTermsOfService
     """
 
-    payment_method_reuse_agreement: Optional["_models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement"] = rest_field(name="paymentMethodReuseAgreement", visibility=["read", "create", "update", "delete", "query"])
+    payment_method_reuse_agreement: Optional[
+        "_models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement"
+    ] = rest_field(name="paymentMethodReuseAgreement", visibility=["read", "create", "update", "delete", "query"])
     """Determines the position and visibility of the payment method reuse agreement in the UI.
      When set to auto, Stripe’s defaults will be used. When set to hidden, the payment method reuse
      agreement text will always be hidden in the UI."""
-    promotions: Optional[Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionPromotions"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    promotions: Optional[Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionPromotions"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """If set to auto, enables the collection of customer consent for promotional communications.
      The Checkout Session will determine whether to display an option to opt into promotional
      communication from the merchant depending on the customer’s locale. Only available to US
      merchants. Known values are: \"auto\" and \"none\"."""
-    terms_of_service: Optional[Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionTermsOfService"]] = rest_field(name="termsOfService", visibility=["read", "create", "update", "delete", "query"])
+    terms_of_service: Optional[Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionTermsOfService"]] = (
+        rest_field(name="termsOfService", visibility=["read", "create", "update", "delete", "query"])
+    )
     """If set to required, it requires customers to check a terms of service checkbox before being
      able to pay.
      There must be a valid terms of service URL set in your Stripe Dashboard settings.
      `https://dashboard.stripe.com/settings/public <https://dashboard.stripe.com/settings/public>`_.
      Known values are: \"none\" and \"required\"."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
-        payment_method_reuse_agreement: Optional["_models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement"] = None,
+        payment_method_reuse_agreement: Optional[
+            "_models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement"
+        ] = None,
         promotions: Optional[Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionPromotions"]] = None,
-        terms_of_service: Optional[Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionTermsOfService"]] = None,
-    ) -> None:
-        ...
+        terms_of_service: Optional[
+            Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionTermsOfService"]
+        ] = None,
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2266,19 +2171,19 @@ class CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement(_M
      ~openmeter.models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition
     """
 
-    position: Optional[Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    position: Optional[
+        Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition"]
+    ] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Known values are: \"auto\" and \"hidden\"."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
-        position: Optional[Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition"]] = None,
-    ) -> None:
-        ...
+        position: Optional[
+            Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition"]
+        ] = None,
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2307,20 +2212,23 @@ class CreateStripeCheckoutSessionCustomerUpdate(_Model):  # pylint: disable=name
     :vartype shipping: str or ~openmeter.models.CreateStripeCheckoutSessionCustomerUpdateBehavior
     """
 
-    address: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    address: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Describes whether Checkout saves the billing address onto customer.address.
      To always collect a full billing address, use billing_address_collection.
      Defaults to never. Known values are: \"auto\" and \"never\"."""
-    name: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    name: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Describes whether Checkout saves the name onto customer.name.
      Defaults to never. Known values are: \"auto\" and \"never\"."""
-    shipping: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    shipping: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Describes whether Checkout saves shipping information onto customer.shipping.
      To collect shipping information, use shipping_address_collection.
      Defaults to never. Known values are: \"auto\" and \"never\"."""
-
-
-
 
     @overload
     def __init__(
@@ -2329,8 +2237,7 @@ class CreateStripeCheckoutSessionCustomerUpdate(_Model):  # pylint: disable=name
         address: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = None,
         name: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = None,
         shipping: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2363,19 +2270,22 @@ class CreateStripeCheckoutSessionRequest(_Model):
 
     app_id: Optional[str] = rest_field(name="appId", visibility=["read", "create", "update", "delete", "query"])
     """If not provided, the default Stripe app is used if any."""
-    customer: Union["_models.CustomerId", "_models.CustomerKey", "_models.CustomerCreate"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    customer: Union["_models.CustomerId", "_models.CustomerKey", "_models.CustomerCreate"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Provide a customer ID or key to use an existing OpenMeter customer.
      or provide a customer object to create a new customer. Required. Is one of the following types:
      CustomerId, CustomerKey, CustomerCreate"""
-    stripe_customer_id: Optional[str] = rest_field(name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"])
+    stripe_customer_id: Optional[str] = rest_field(
+        name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Stripe customer ID.
      If not provided OpenMeter creates a new Stripe customer or
      uses the OpenMeter customer's default Stripe customer ID."""
-    options: "_models.CreateStripeCheckoutSessionRequestOptions" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    options: "_models.CreateStripeCheckoutSessionRequestOptions" = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Options passed to Stripe when creating the checkout session. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -2385,8 +2295,7 @@ class CreateStripeCheckoutSessionRequest(_Model):
         options: "_models.CreateStripeCheckoutSessionRequestOptions",
         app_id: Optional[str] = None,
         stripe_customer_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2468,23 +2377,33 @@ class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name
     :vartype tax_id_collection: ~openmeter._generated.models.CreateCheckoutSessionTaxIdCollection
     """
 
-    billing_address_collection: Optional[Union[str, "_models.CreateStripeCheckoutSessionBillingAddressCollection"]] = rest_field(name="billingAddressCollection", visibility=["read", "create", "update", "delete", "query"])
+    billing_address_collection: Optional[Union[str, "_models.CreateStripeCheckoutSessionBillingAddressCollection"]] = (
+        rest_field(name="billingAddressCollection", visibility=["read", "create", "update", "delete", "query"])
+    )
     """Specify whether Checkout should collect the customer’s billing address. Defaults to auto. Known
      values are: \"auto\" and \"required\"."""
     cancel_url: Optional[str] = rest_field(name="cancelURL", visibility=["read", "create", "update", "delete", "query"])
     """If set, Checkout displays a back button and customers will be directed to this URL if they
      decide to cancel payment and return to your website.
      This parameter is not allowed if ui_mode is embedded."""
-    client_reference_id: Optional[str] = rest_field(name="clientReferenceID", visibility=["read", "create", "update", "delete", "query"])
+    client_reference_id: Optional[str] = rest_field(
+        name="clientReferenceID", visibility=["read", "create", "update", "delete", "query"]
+    )
     """A unique string to reference the Checkout Session. This can be a customer ID, a cart ID, or
      similar, and can be used to reconcile the session with your internal systems."""
-    customer_update: Optional["_models.CreateStripeCheckoutSessionCustomerUpdate"] = rest_field(name="customerUpdate", visibility=["read", "create", "update", "delete", "query"])
+    customer_update: Optional["_models.CreateStripeCheckoutSessionCustomerUpdate"] = rest_field(
+        name="customerUpdate", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Controls what fields on Customer can be updated by the Checkout Session."""
-    consent_collection: Optional["_models.CreateStripeCheckoutSessionConsentCollection"] = rest_field(name="consentCollection", visibility=["read", "create", "update", "delete", "query"])
+    consent_collection: Optional["_models.CreateStripeCheckoutSessionConsentCollection"] = rest_field(
+        name="consentCollection", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Configure fields for the Checkout Session to gather active consent from customers."""
     currency: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Three-letter ISO currency code, in lowercase."""
-    custom_text: Optional["_models.CheckoutSessionCustomTextAfterSubmitParams"] = rest_field(name="customText", visibility=["read", "create", "update", "delete", "query"])
+    custom_text: Optional["_models.CheckoutSessionCustomTextAfterSubmitParams"] = rest_field(
+        name="customText", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Display additional text for your customers using custom text."""
     expires_at: Optional[int] = rest_field(name="expiresAt", visibility=["read", "create", "update", "delete", "query"])
     """The Epoch time in seconds at which the Checkout Session will expire.
@@ -2501,34 +2420,43 @@ class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name
      the payment method’s app or site.
      This parameter is required if ui_mode is embedded and redirect-based payment methods are
      enabled on the session."""
-    success_url: Optional[str] = rest_field(name="successURL", visibility=["read", "create", "update", "delete", "query"])
+    success_url: Optional[str] = rest_field(
+        name="successURL", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The URL to which Stripe should send customers when payment or setup is complete.
      This parameter is not allowed if ui_mode is embedded.
      If you’d like to use information from the successful Checkout Session on your page, read the
      guide on customizing your success page:
      `https://docs.stripe.com/payments/checkout/custom-success-page
      <https://docs.stripe.com/payments/checkout/custom-success-page>`_."""
-    ui_mode: Optional[Union[str, "_models.CheckoutSessionUIMode"]] = rest_field(name="uiMode", visibility=["read", "create", "update", "delete", "query"])
+    ui_mode: Optional[Union[str, "_models.CheckoutSessionUIMode"]] = rest_field(
+        name="uiMode", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The UI mode of the Session. Defaults to hosted. Known values are: \"embedded\" and \"hosted\"."""
-    payment_method_types: Optional[list[str]] = rest_field(name="paymentMethodTypes", visibility=["read", "create", "update", "delete", "query"])
+    payment_method_types: Optional[list[str]] = rest_field(
+        name="paymentMethodTypes", visibility=["read", "create", "update", "delete", "query"]
+    )
     """A list of the types of payment methods (e.g., card) this Checkout Session can accept."""
-    redirect_on_completion: Optional[Union[str, "_models.CreateStripeCheckoutSessionRedirectOnCompletion"]] = rest_field(name="redirectOnCompletion", visibility=["read", "create", "update", "delete", "query"])
+    redirect_on_completion: Optional[Union[str, "_models.CreateStripeCheckoutSessionRedirectOnCompletion"]] = (
+        rest_field(name="redirectOnCompletion", visibility=["read", "create", "update", "delete", "query"])
+    )
     """This parameter applies to ui_mode: embedded. Defaults to always.
      Learn more about the redirect behavior of embedded sessions at
      `https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
      <https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form>`_.
      Known values are: \"always\", \"if_required\", and \"never\"."""
-    tax_id_collection: Optional["_models.CreateCheckoutSessionTaxIdCollection"] = rest_field(name="taxIdCollection", visibility=["read", "create", "update", "delete", "query"])
+    tax_id_collection: Optional["_models.CreateCheckoutSessionTaxIdCollection"] = rest_field(
+        name="taxIdCollection", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Controls tax ID collection during checkout."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
-        billing_address_collection: Optional[Union[str, "_models.CreateStripeCheckoutSessionBillingAddressCollection"]] = None,
+        billing_address_collection: Optional[
+            Union[str, "_models.CreateStripeCheckoutSessionBillingAddressCollection"]
+        ] = None,
         cancel_url: Optional[str] = None,
         client_reference_id: Optional[str] = None,
         customer_update: Optional["_models.CreateStripeCheckoutSessionCustomerUpdate"] = None,
@@ -2544,8 +2472,7 @@ class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name
         payment_method_types: Optional[list[str]] = None,
         redirect_on_completion: Optional[Union[str, "_models.CreateStripeCheckoutSessionRedirectOnCompletion"]] = None,
         tax_id_collection: Optional["_models.CreateCheckoutSessionTaxIdCollection"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2603,26 +2530,38 @@ class CreateStripeCheckoutSessionResult(_Model):
 
     customer_id: str = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
     """The OpenMeter customer ID. Required."""
-    stripe_customer_id: str = rest_field(name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"])
+    stripe_customer_id: str = rest_field(
+        name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The Stripe customer ID. Required."""
     session_id: str = rest_field(name="sessionId", visibility=["read", "create", "update", "delete", "query"])
     """The checkout session ID. Required."""
     setup_intent_id: str = rest_field(name="setupIntentId", visibility=["read", "create", "update", "delete", "query"])
     """The checkout session setup intent ID. Required."""
-    client_secret: Optional[str] = rest_field(name="clientSecret", visibility=["read", "create", "update", "delete", "query"])
+    client_secret: Optional[str] = rest_field(
+        name="clientSecret", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The client secret of the checkout session.
      This can be used to initialize Stripe.js for your client-side implementation."""
-    client_reference_id: Optional[str] = rest_field(name="clientReferenceId", visibility=["read", "create", "update", "delete", "query"])
+    client_reference_id: Optional[str] = rest_field(
+        name="clientReferenceId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """A unique string to reference the Checkout Session.
      This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with
      your internal systems."""
-    customer_email: Optional[str] = rest_field(name="customerEmail", visibility=["read", "create", "update", "delete", "query"])
+    customer_email: Optional[str] = rest_field(
+        name="customerEmail", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Customer's email address provided to Stripe."""
     currency: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Three-letter ISO currency code, in lowercase."""
-    created_at: datetime.datetime = rest_field(name="createdAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    created_at: datetime.datetime = rest_field(
+        name="createdAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Timestamp at which the checkout session was created. Required."""
-    expires_at: Optional[datetime.datetime] = rest_field(name="expiresAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    expires_at: Optional[datetime.datetime] = rest_field(
+        name="expiresAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Timestamp at which the checkout session will expire."""
     metadata: Optional[dict[str, str]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Set of key-value pairs attached to the checkout session."""
@@ -2630,18 +2569,19 @@ class CreateStripeCheckoutSessionResult(_Model):
     """The status of the checkout session."""
     url: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """URL to show the checkout session."""
-    mode: Union[str, "_models.StripeCheckoutSessionMode"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    mode: Union[str, "_models.StripeCheckoutSessionMode"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Mode
      Always ``setup`` for now. Required. \"setup\""""
     cancel_url: Optional[str] = rest_field(name="cancelURL", visibility=["read", "create", "update", "delete", "query"])
     """Cancel URL."""
-    success_url: Optional[str] = rest_field(name="successURL", visibility=["read", "create", "update", "delete", "query"])
+    success_url: Optional[str] = rest_field(
+        name="successURL", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Success URL."""
     return_url: Optional[str] = rest_field(name="returnURL", visibility=["read", "create", "update", "delete", "query"])
     """Return URL."""
-
-
-
 
     @overload
     def __init__(
@@ -2664,8 +2604,7 @@ class CreateStripeCheckoutSessionResult(_Model):
         cancel_url: Optional[str] = None,
         success_url: Optional[str] = None,
         return_url: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2689,15 +2628,14 @@ class CreateStripeCustomerPortalSessionParams(_Model):
     :vartype return_url: str
     """
 
-    configuration_id: Optional[str] = rest_field(name="configurationId", visibility=["read", "create", "update", "delete", "query"])
+    configuration_id: Optional[str] = rest_field(
+        name="configurationId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Configuration."""
     locale: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Locale."""
     return_url: Optional[str] = rest_field(name="returnUrl", visibility=["read", "create", "update", "delete", "query"])
     """ReturnUrl."""
-
-
-
 
     @overload
     def __init__(
@@ -2706,8 +2644,7 @@ class CreateStripeCustomerPortalSessionParams(_Model):
         configuration_id: Optional[str] = None,
         locale: Optional[str] = None,
         return_url: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2740,10 +2677,6 @@ class InvoiceGenericDocumentRef(_Model):
     """Additional details about the document."""
 
 
-
-
-
-
 class CreditNoteOriginalInvoiceRef(InvoiceGenericDocumentRef):
     """CreditNoteOriginalInvoiceRef is used to reference the original invoice that a credit note is
     based on.
@@ -2762,7 +2695,9 @@ class CreditNoteOriginalInvoiceRef(InvoiceGenericDocumentRef):
     :vartype url: str
     """
 
-    type: Literal[InvoiceDocumentRefType.CREDIT_NOTE_ORIGINAL_INVOICE] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[InvoiceDocumentRefType.CREDIT_NOTE_ORIGINAL_INVOICE] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Type of the invoice. Required."""
     issued_at: Optional[datetime.datetime] = rest_field(name="issuedAt", visibility=["read"], format="rfc3339")
     """IssueAt reflects the time the document was issued."""
@@ -2771,16 +2706,12 @@ class CreditNoteOriginalInvoiceRef(InvoiceGenericDocumentRef):
     url: str = rest_field(visibility=["read"])
     """Link to the source document. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         type: Literal[InvoiceDocumentRefType.CREDIT_NOTE_ORIGINAL_INVOICE],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2815,9 +2746,6 @@ class Currency(_Model):
     subunits: int = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Subunit of the currency. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -2826,8 +2754,7 @@ class Currency(_Model):
         name: str,
         symbol: str,
         subunits: int,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2891,13 +2818,19 @@ class Customer(_Model):
     """Deletion Time."""
     key: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Key."""
-    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(name="usageAttribution", visibility=["read", "create", "update", "delete", "query"])
+    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(
+        name="usageAttribution", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Usage Attribution. Required."""
-    primary_email: Optional[str] = rest_field(name="primaryEmail", visibility=["read", "create", "update", "delete", "query"])
+    primary_email: Optional[str] = rest_field(
+        name="primaryEmail", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Primary Email."""
     currency: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Currency."""
-    billing_address: Optional["_models.Address"] = rest_field(name="billingAddress", visibility=["read", "create", "update", "delete", "query"])
+    billing_address: Optional["_models.Address"] = rest_field(
+        name="billingAddress", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Billing Address."""
     current_subscription_id: Optional[str] = rest_field(name="currentSubscriptionId", visibility=["read"])
     """Current Subscription ID."""
@@ -2905,9 +2838,6 @@ class Customer(_Model):
     """Subscriptions."""
     annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
     """Annotations."""
-
-
-
 
     @overload
     def __init__(
@@ -2921,8 +2851,7 @@ class Customer(_Model):
         primary_email: Optional[str] = None,
         currency: Optional[str] = None,
         billing_address: Optional["_models.Address"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -2948,10 +2877,6 @@ class CustomerAccess(_Model):
      The key is the feature key, the value is the entitlement value + the entitlement ID. Required."""
 
 
-
-
-
-
 class CustomerAppDataPaginatedResponse(_Model):
     """Paginated response.
 
@@ -2973,11 +2898,10 @@ class CustomerAppDataPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.CustomerAppData"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_types.CustomerAppData"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -2987,8 +2911,7 @@ class CustomerAppDataPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_types.CustomerAppData"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3030,17 +2953,20 @@ class CustomerCreate(_Model):
     """Metadata."""
     key: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Key."""
-    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(name="usageAttribution", visibility=["read", "create", "update", "delete", "query"])
+    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(
+        name="usageAttribution", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Usage Attribution. Required."""
-    primary_email: Optional[str] = rest_field(name="primaryEmail", visibility=["read", "create", "update", "delete", "query"])
+    primary_email: Optional[str] = rest_field(
+        name="primaryEmail", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Primary Email."""
     currency: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Currency."""
-    billing_address: Optional["_models.Address"] = rest_field(name="billingAddress", visibility=["read", "create", "update", "delete", "query"])
+    billing_address: Optional["_models.Address"] = rest_field(
+        name="billingAddress", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Billing Address."""
-
-
-
 
     @overload
     def __init__(
@@ -3054,8 +2980,7 @@ class CustomerCreate(_Model):
         primary_email: Optional[str] = None,
         currency: Optional[str] = None,
         billing_address: Optional["_models.Address"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3078,16 +3003,12 @@ class CustomerId(_Model):
     id: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         id: str,  # pylint: disable=redefined-builtin
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3110,16 +3031,12 @@ class CustomerKey(_Model):
     key: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         key: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3151,11 +3068,10 @@ class CustomerPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.Customer"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.Customer"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -3165,8 +3081,7 @@ class CustomerPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.Customer"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3208,17 +3123,20 @@ class CustomerReplaceUpdate(_Model):
     """Metadata."""
     key: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Key."""
-    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(name="usageAttribution", visibility=["read", "create", "update", "delete", "query"])
+    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(
+        name="usageAttribution", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Usage Attribution. Required."""
-    primary_email: Optional[str] = rest_field(name="primaryEmail", visibility=["read", "create", "update", "delete", "query"])
+    primary_email: Optional[str] = rest_field(
+        name="primaryEmail", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Primary Email."""
     currency: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Currency."""
-    billing_address: Optional["_models.Address"] = rest_field(name="billingAddress", visibility=["read", "create", "update", "delete", "query"])
+    billing_address: Optional["_models.Address"] = rest_field(
+        name="billingAddress", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Billing Address."""
-
-
-
 
     @overload
     def __init__(
@@ -3232,8 +3150,7 @@ class CustomerReplaceUpdate(_Model):
         primary_email: Optional[str] = None,
         currency: Optional[str] = None,
         billing_address: Optional["_models.Address"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3258,16 +3175,12 @@ class CustomerUsageAttribution(_Model):
     subject_keys: list[str] = rest_field(name="subjectKeys", visibility=["read", "create", "update", "delete", "query"])
     """SubjectKeys. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         subject_keys: list[str],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3282,7 +3195,7 @@ class CustomerUsageAttribution(_Model):
 
 class CustomInvoicingApp(_Model):
     """Custom Invoicing app can be used for interface with any invoicing or payment system.
-    
+
     This app provides ways to manipulate invoices and payments, however the integration
     must rely on Notifications API to get notified about invoice changes.
 
@@ -3308,12 +3221,12 @@ class CustomInvoicingApp(_Model):
     :ivar type: The app's type is CustomInvoicing. Required.
     :vartype type: str or ~openmeter._generated.models.CUSTOM_INVOICING
     :ivar enable_draft_sync_hook: Enable draft.sync hook.
-     
+
      If the hook is not enabled, the invoice will be progressed to the next state automatically.
      Required.
     :vartype enable_draft_sync_hook: bool
     :ivar enable_issuing_sync_hook: Enable issuing.sync hook.
-     
+
      If the hook is not enabled, the invoice will be progressed to the next state automatically.
      Required.
     :vartype enable_issuing_sync_hook: bool
@@ -3339,19 +3252,20 @@ class CustomInvoicingApp(_Model):
     """Status of the app connection. Required. Known values are: \"ready\" and \"unauthorized\"."""
     type: Literal[AppType.CUSTOM_INVOICING] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The app's type is CustomInvoicing. Required."""
-    enable_draft_sync_hook: bool = rest_field(name="enableDraftSyncHook", visibility=["read", "create", "update", "delete", "query"])
+    enable_draft_sync_hook: bool = rest_field(
+        name="enableDraftSyncHook", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Enable draft.sync hook.
      
      If the hook is not enabled, the invoice will be progressed to the next state automatically.
      Required."""
-    enable_issuing_sync_hook: bool = rest_field(name="enableIssuingSyncHook", visibility=["read", "create", "update", "delete", "query"])
+    enable_issuing_sync_hook: bool = rest_field(
+        name="enableIssuingSyncHook", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Enable issuing.sync hook.
      
      If the hook is not enabled, the invoice will be progressed to the next state automatically.
      Required."""
-
-
-
 
     @overload
     def __init__(
@@ -3363,8 +3277,7 @@ class CustomInvoicingApp(_Model):
         enable_issuing_sync_hook: bool,
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3389,12 +3302,12 @@ class CustomInvoicingAppReplaceUpdate(_Model):
     :ivar type: The app's type is CustomInvoicing. Required.
     :vartype type: str or ~openmeter._generated.models.CUSTOM_INVOICING
     :ivar enable_draft_sync_hook: Enable draft.sync hook.
-     
+
      If the hook is not enabled, the invoice will be progressed to the next state automatically.
      Required.
     :vartype enable_draft_sync_hook: bool
     :ivar enable_issuing_sync_hook: Enable issuing.sync hook.
-     
+
      If the hook is not enabled, the invoice will be progressed to the next state automatically.
      Required.
     :vartype enable_issuing_sync_hook: bool
@@ -3408,19 +3321,20 @@ class CustomInvoicingAppReplaceUpdate(_Model):
     """Metadata."""
     type: Literal[AppType.CUSTOM_INVOICING] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The app's type is CustomInvoicing. Required."""
-    enable_draft_sync_hook: bool = rest_field(name="enableDraftSyncHook", visibility=["read", "create", "update", "delete", "query"])
+    enable_draft_sync_hook: bool = rest_field(
+        name="enableDraftSyncHook", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Enable draft.sync hook.
      
      If the hook is not enabled, the invoice will be progressed to the next state automatically.
      Required."""
-    enable_issuing_sync_hook: bool = rest_field(name="enableIssuingSyncHook", visibility=["read", "create", "update", "delete", "query"])
+    enable_issuing_sync_hook: bool = rest_field(
+        name="enableIssuingSyncHook", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Enable issuing.sync hook.
      
      If the hook is not enabled, the invoice will be progressed to the next state automatically.
      Required."""
-
-
-
 
     @overload
     def __init__(
@@ -3432,8 +3346,7 @@ class CustomInvoicingAppReplaceUpdate(_Model):
         enable_issuing_sync_hook: bool,
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3468,9 +3381,6 @@ class CustomInvoicingCustomerAppData(_Model):
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Metadata to be used by the custom invoicing provider."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -3478,8 +3388,7 @@ class CustomInvoicingCustomerAppData(_Model):
         type: Literal[AppType.CUSTOM_INVOICING],
         id: Optional[str] = None,  # pylint: disable=redefined-builtin
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3499,19 +3408,17 @@ class CustomInvoicingDraftSynchronizedRequest(_Model):
     :vartype invoicing: ~openmeter._generated.models.CustomInvoicingSyncResult
     """
 
-    invoicing: Optional["_models.CustomInvoicingSyncResult"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    invoicing: Optional["_models.CustomInvoicingSyncResult"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The result of the synchronization."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         invoicing: Optional["_models.CustomInvoicingSyncResult"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3533,13 +3440,14 @@ class CustomInvoicingFinalizedInvoicingRequest(_Model):
     :vartype sent_to_customer_at: ~datetime.datetime
     """
 
-    invoice_number: Optional[str] = rest_field(name="invoiceNumber", visibility=["read", "create", "update", "delete", "query"])
+    invoice_number: Optional[str] = rest_field(
+        name="invoiceNumber", visibility=["read", "create", "update", "delete", "query"]
+    )
     """If set the invoice's number will be set to this value."""
-    sent_to_customer_at: Optional[datetime.datetime] = rest_field(name="sentToCustomerAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    sent_to_customer_at: Optional[datetime.datetime] = rest_field(
+        name="sentToCustomerAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """If set the invoice's sent to customer at will be set to this value."""
-
-
-
 
     @overload
     def __init__(
@@ -3547,8 +3455,7 @@ class CustomInvoicingFinalizedInvoicingRequest(_Model):
         *,
         invoice_number: Optional[str] = None,
         sent_to_customer_at: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3568,19 +3475,17 @@ class CustomInvoicingFinalizedPaymentRequest(_Model):
     :vartype external_id: str
     """
 
-    external_id: Optional[str] = rest_field(name="externalId", visibility=["read", "create", "update", "delete", "query"])
+    external_id: Optional[str] = rest_field(
+        name="externalId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """If set the invoice's payment external ID will be set to this value."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         external_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3595,7 +3500,7 @@ class CustomInvoicingFinalizedPaymentRequest(_Model):
 
 class CustomInvoicingFinalizedRequest(_Model):
     """Information to finalize the invoice.
-    
+
     If invoicing.invoiceNumber is not set, then a new invoice number will be generated (INV-
     prefix).
 
@@ -3605,13 +3510,14 @@ class CustomInvoicingFinalizedRequest(_Model):
     :vartype payment: ~openmeter._generated.models.CustomInvoicingFinalizedPaymentRequest
     """
 
-    invoicing: Optional["_models.CustomInvoicingFinalizedInvoicingRequest"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    invoicing: Optional["_models.CustomInvoicingFinalizedInvoicingRequest"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The result of the synchronization."""
-    payment: Optional["_models.CustomInvoicingFinalizedPaymentRequest"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    payment: Optional["_models.CustomInvoicingFinalizedPaymentRequest"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The result of the payment synchronization."""
-
-
-
 
     @overload
     def __init__(
@@ -3619,8 +3525,7 @@ class CustomInvoicingFinalizedRequest(_Model):
         *,
         invoicing: Optional["_models.CustomInvoicingFinalizedInvoicingRequest"] = None,
         payment: Optional["_models.CustomInvoicingFinalizedPaymentRequest"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3642,13 +3547,12 @@ class CustomInvoicingLineDiscountExternalIdMapping(_Model):  # pylint: disable=n
     :vartype external_id: str
     """
 
-    line_discount_id: str = rest_field(name="lineDiscountId", visibility=["read", "create", "update", "delete", "query"])
+    line_discount_id: str = rest_field(
+        name="lineDiscountId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The line discount ID. Required."""
     external_id: str = rest_field(name="externalId", visibility=["read", "create", "update", "delete", "query"])
     """The external ID (e.g. custom invoicing system's ID). Required."""
-
-
-
 
     @overload
     def __init__(
@@ -3656,8 +3560,7 @@ class CustomInvoicingLineDiscountExternalIdMapping(_Model):  # pylint: disable=n
         *,
         line_discount_id: str,
         external_id: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3684,17 +3587,13 @@ class CustomInvoicingLineExternalIdMapping(_Model):
     external_id: str = rest_field(name="externalId", visibility=["read", "create", "update", "delete", "query"])
     """The external ID (e.g. custom invoicing system's ID). Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         line_id: str,
         external_id: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3709,7 +3608,7 @@ class CustomInvoicingLineExternalIdMapping(_Model):
 
 class CustomInvoicingSyncResult(_Model):
     """Information to synchronize the invoice.
-    
+
     Can be used to store external app's IDs on the invoice or lines.
 
     :ivar invoice_number: If set the invoice's number will be set to this value.
@@ -3717,37 +3616,42 @@ class CustomInvoicingSyncResult(_Model):
     :ivar external_id: If set the invoice's invoicing external ID will be set to this value.
     :vartype external_id: str
     :ivar line_external_ids: If set the invoice's line external IDs will be set to this value.
-     
+
      This can be used to reference the external system's entities in the
      invoice.
     :vartype line_external_ids:
      list[~openmeter._generated.models.CustomInvoicingLineExternalIdMapping]
     :ivar line_discount_external_ids: If set the invoice's line discount external IDs will be set
      to this value.
-     
+
      This can be used to reference the external system's entities in the
      invoice.
     :vartype line_discount_external_ids:
      list[~openmeter._generated.models.CustomInvoicingLineDiscountExternalIdMapping]
     """
 
-    invoice_number: Optional[str] = rest_field(name="invoiceNumber", visibility=["read", "create", "update", "delete", "query"])
+    invoice_number: Optional[str] = rest_field(
+        name="invoiceNumber", visibility=["read", "create", "update", "delete", "query"]
+    )
     """If set the invoice's number will be set to this value."""
-    external_id: Optional[str] = rest_field(name="externalId", visibility=["read", "create", "update", "delete", "query"])
+    external_id: Optional[str] = rest_field(
+        name="externalId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """If set the invoice's invoicing external ID will be set to this value."""
-    line_external_ids: Optional[list["_models.CustomInvoicingLineExternalIdMapping"]] = rest_field(name="lineExternalIds", visibility=["read", "create", "update", "delete", "query"])
+    line_external_ids: Optional[list["_models.CustomInvoicingLineExternalIdMapping"]] = rest_field(
+        name="lineExternalIds", visibility=["read", "create", "update", "delete", "query"]
+    )
     """If set the invoice's line external IDs will be set to this value.
      
      This can be used to reference the external system's entities in the
      invoice."""
-    line_discount_external_ids: Optional[list["_models.CustomInvoicingLineDiscountExternalIdMapping"]] = rest_field(name="lineDiscountExternalIds", visibility=["read", "create", "update", "delete", "query"])
+    line_discount_external_ids: Optional[list["_models.CustomInvoicingLineDiscountExternalIdMapping"]] = rest_field(
+        name="lineDiscountExternalIds", visibility=["read", "create", "update", "delete", "query"]
+    )
     """If set the invoice's line discount external IDs will be set to this value.
      
      This can be used to reference the external system's entities in the
      invoice."""
-
-
-
 
     @overload
     def __init__(
@@ -3757,8 +3661,7 @@ class CustomInvoicingSyncResult(_Model):
         external_id: Optional[str] = None,
         line_external_ids: Optional[list["_models.CustomInvoicingLineExternalIdMapping"]] = None,
         line_discount_external_ids: Optional[list["_models.CustomInvoicingLineDiscountExternalIdMapping"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3781,16 +3684,12 @@ class CustomInvoicingTaxConfig(_Model):
     code: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Tax code. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         code: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3805,7 +3704,7 @@ class CustomInvoicingTaxConfig(_Model):
 
 class CustomInvoicingUpdatePaymentStatusRequest(_Model):  # pylint: disable=name-too-long
     """Update payment status request.
-    
+
     Can be used to manipulate invoice's payment status (when custominvoicing app is being used).
 
     :ivar trigger: The trigger to be executed on the invoice. Required. Known values are: "paid",
@@ -3813,21 +3712,19 @@ class CustomInvoicingUpdatePaymentStatusRequest(_Model):  # pylint: disable=name
     :vartype trigger: str or ~openmeter.models.CustomInvoicingPaymentTrigger
     """
 
-    trigger: Union[str, "_models.CustomInvoicingPaymentTrigger"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    trigger: Union[str, "_models.CustomInvoicingPaymentTrigger"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The trigger to be executed on the invoice. Required. Known values are: \"paid\",
      \"payment_failed\", \"payment_uncollectible\", \"payment_overdue\", \"action_required\", and
      \"void\"."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         trigger: Union[str, "_models.CustomInvoicingPaymentTrigger"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3873,13 +3770,12 @@ class OmitPropertiesResourceCreateModel(_Model):
     """Currency. Required."""
     billing_cadence: datetime.timedelta = rest_field(name="billingCadence", visibility=["read", "create", "update"])
     """Billing cadence. Required."""
-    pro_rating_config: Optional["_models.ProRatingConfig"] = rest_field(name="proRatingConfig", visibility=["read", "create", "update"])
+    pro_rating_config: Optional["_models.ProRatingConfig"] = rest_field(
+        name="proRatingConfig", visibility=["read", "create", "update"]
+    )
     """Pro-rating configuration."""
     phases: list["_models.PlanPhase"] = rest_field(visibility=["read", "create", "update"])
     """Plan phases. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -3893,8 +3789,7 @@ class OmitPropertiesResourceCreateModel(_Model):
         metadata: Optional["_models.Metadata"] = None,
         alignment: Optional["_models.Alignment"] = None,
         pro_rating_config: Optional["_models.ProRatingConfig"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3928,10 +3823,6 @@ class CustomPlanInput(OmitPropertiesResourceCreateModel):
     :vartype phases: list[~openmeter._generated.models.PlanPhase]
     """
 
-
-
-
-
     @overload
     def __init__(
         self,
@@ -3944,8 +3835,7 @@ class CustomPlanInput(OmitPropertiesResourceCreateModel):
         metadata: Optional["_models.Metadata"] = None,
         alignment: Optional["_models.Alignment"] = None,
         pro_rating_config: Optional["_models.ProRatingConfig"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -3979,15 +3869,16 @@ class CustomSubscriptionChange(_Model):
      For changing a subscription, the accepted values depend on the subscription configuration.
      Required. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
      datetime.datetime type."""
-    billing_anchor: Optional[datetime.datetime] = rest_field(name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    billing_anchor: Optional[datetime.datetime] = rest_field(
+        name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the previous
      subscription billing anchor will be used."""
-    custom_plan: "_models.CustomPlanInput" = rest_field(name="customPlan", visibility=["read", "create", "update", "delete", "query"])
+    custom_plan: "_models.CustomPlanInput" = rest_field(
+        name="customPlan", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The custom plan description which defines the Subscription. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -3996,8 +3887,7 @@ class CustomSubscriptionChange(_Model):
         timing: "_types.SubscriptionTiming",
         custom_plan: "_models.CustomPlanInput",
         billing_anchor: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4030,23 +3920,30 @@ class CustomSubscriptionCreate(_Model):
     :vartype billing_anchor: ~datetime.datetime
     """
 
-    custom_plan: "_models.CustomPlanInput" = rest_field(name="customPlan", visibility=["read", "create", "update", "delete", "query"])
+    custom_plan: "_models.CustomPlanInput" = rest_field(
+        name="customPlan", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The custom plan description which defines the Subscription. Required."""
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    timing: Optional["_types.SubscriptionTiming"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Timing configuration for the change, when the change should take effect.
      The default is immediate. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
      datetime.datetime type."""
-    customer_id: Optional[str] = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
+    customer_id: Optional[str] = rest_field(
+        name="customerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The ID of the customer. Provide either the key or ID. Has presedence over the key."""
-    customer_key: Optional[str] = rest_field(name="customerKey", visibility=["read", "create", "update", "delete", "query"])
+    customer_key: Optional[str] = rest_field(
+        name="customerKey", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The key of the customer. Provide either the key or ID."""
-    billing_anchor: Optional[datetime.datetime] = rest_field(name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    billing_anchor: Optional[datetime.datetime] = rest_field(
+        name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the subscription
      start time will be used."""
-
-
-
 
     @overload
     def __init__(
@@ -4057,8 +3954,7 @@ class CustomSubscriptionCreate(_Model):
         customer_id: Optional[str] = None,
         customer_key: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4081,16 +3977,12 @@ class DiscountPercentage(_Model):
     percentage: float = rest_field(visibility=["read", "create", "update"])
     """Percentage. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         percentage: float,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4110,19 +4002,17 @@ class DiscountReasonMaximumSpend(_Model):
     :vartype type: str or ~openmeter._generated.models.MAXIMUM_SPEND
     """
 
-    type: Literal[DiscountReasonType.MAXIMUM_SPEND] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[DiscountReasonType.MAXIMUM_SPEND] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Required."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         type: Literal[DiscountReasonType.MAXIMUM_SPEND],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4143,20 +4033,24 @@ class DiscountReasonRatecardPercentage(_Model):
     :ivar percentage: Percentage. Required.
     :vartype percentage: float
     :ivar correlation_id: Correlation ID for the discount.
-     
+
      This is used to link discounts across different invoices (progressive billing use case).
-     
+
      If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
      please make sure to keep the same correlation ID of the discount or in progressive billing
      setups the discount amounts might be incorrect.
     :vartype correlation_id: str
     """
 
-    type: Literal[DiscountReasonType.RATECARD_PERCENTAGE] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[DiscountReasonType.RATECARD_PERCENTAGE] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Required."""
     percentage: float = rest_field(visibility=["read", "create", "update"])
     """Percentage. Required."""
-    correlation_id: Optional[str] = rest_field(name="correlationId", visibility=["read", "create", "update", "delete", "query"])
+    correlation_id: Optional[str] = rest_field(
+        name="correlationId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Correlation ID for the discount.
      
      This is used to link discounts across different invoices (progressive billing use case).
@@ -4165,9 +4059,6 @@ class DiscountReasonRatecardPercentage(_Model):
      please make sure to keep the same correlation ID of the discount or in progressive billing
      setups the discount amounts might be incorrect."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -4175,8 +4066,7 @@ class DiscountReasonRatecardPercentage(_Model):
         type: Literal[DiscountReasonType.RATECARD_PERCENTAGE],
         percentage: float,
         correlation_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4197,20 +4087,24 @@ class DiscountReasonRatecardUsage(_Model):
     :ivar quantity: Usage. Required.
     :vartype quantity: str
     :ivar correlation_id: Correlation ID for the discount.
-     
+
      This is used to link discounts across different invoices (progressive billing use case).
-     
+
      If not provided, the invoicing engine will auto-generate one. When editing an invoice line,
      please make sure to keep the same correlation ID of the discount or in progressive billing
      setups the discount amounts might be incorrect.
     :vartype correlation_id: str
     """
 
-    type: Literal[DiscountReasonType.RATECARD_USAGE] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[DiscountReasonType.RATECARD_USAGE] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Required."""
     quantity: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Usage. Required."""
-    correlation_id: Optional[str] = rest_field(name="correlationId", visibility=["read", "create", "update", "delete", "query"])
+    correlation_id: Optional[str] = rest_field(
+        name="correlationId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Correlation ID for the discount.
      
      This is used to link discounts across different invoices (progressive billing use case).
@@ -4219,9 +4113,6 @@ class DiscountReasonRatecardUsage(_Model):
      please make sure to keep the same correlation ID of the discount or in progressive billing
      setups the discount amounts might be incorrect."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -4229,8 +4120,7 @@ class DiscountReasonRatecardUsage(_Model):
         type: Literal[DiscountReasonType.RATECARD_USAGE],
         quantity: str,
         correlation_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4252,13 +4142,12 @@ class Discounts(_Model):
     :vartype usage: ~openmeter._generated.models.DiscountUsage
     """
 
-    percentage: Optional["_models.DiscountPercentage"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    percentage: Optional["_models.DiscountPercentage"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The percentage discount."""
     usage: Optional["_models.DiscountUsage"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The usage discount."""
-
-
-
 
     @overload
     def __init__(
@@ -4266,8 +4155,7 @@ class Discounts(_Model):
         *,
         percentage: Optional["_models.DiscountPercentage"] = None,
         usage: Optional["_models.DiscountUsage"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4282,7 +4170,7 @@ class Discounts(_Model):
 
 class DiscountUsage(_Model):
     """Usage discount.
-    
+
     Usage discount means that the first N items are free. From billing perspective
     this means that any usage on a specific feature is considered 0 until this discount
     is exhausted.
@@ -4294,16 +4182,12 @@ class DiscountUsage(_Model):
     quantity: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Usage. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         quantity: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4338,9 +4222,6 @@ class DynamicPriceWithCommitments(_Model):
     maximum_amount: Optional[str] = rest_field(name="maximumAmount", visibility=["read", "create", "update"])
     """Maximum amount."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -4349,8 +4230,7 @@ class DynamicPriceWithCommitments(_Model):
         multiplier: Optional[str] = None,
         minimum_amount: Optional[str] = None,
         maximum_amount: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4379,11 +4259,10 @@ class EditSubscriptionAddItem(_Model):
     """Required."""
     phase_key: str = rest_field(name="phaseKey", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-    rate_card: "_types.RateCard" = rest_field(name="rateCard", visibility=["read", "create", "update", "delete", "query"])
+    rate_card: "_types.RateCard" = rest_field(
+        name="rateCard", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Required. Is either a RateCardFlatFee type or a RateCardUsageBased type."""
-
-
-
 
     @overload
     def __init__(
@@ -4392,8 +4271,7 @@ class EditSubscriptionAddItem(_Model):
         op: Literal[EditOp.ADD_ITEM],
         phase_key: str,
         rate_card: "_types.RateCard",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4420,17 +4298,13 @@ class EditSubscriptionAddPhase(_Model):
     phase: "_models.SubscriptionPhaseCreate" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         op: Literal[EditOp.ADD_PHASE],
         phase: "_models.SubscriptionPhaseCreate",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4461,9 +4335,6 @@ class EditSubscriptionRemoveItem(_Model):
     item_key: str = rest_field(name="itemKey", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -4471,8 +4342,7 @@ class EditSubscriptionRemoveItem(_Model):
         op: Literal[EditOp.REMOVE_ITEM],
         phase_key: str,
         item_key: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4500,11 +4370,10 @@ class EditSubscriptionRemovePhase(_Model):
     """Required."""
     phase_key: str = rest_field(name="phaseKey", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-    shift: Union[str, "_models.RemovePhaseShifting"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    shift: Union[str, "_models.RemovePhaseShifting"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Required. Known values are: \"next\" and \"prev\"."""
-
-
-
 
     @overload
     def __init__(
@@ -4513,8 +4382,7 @@ class EditSubscriptionRemovePhase(_Model):
         op: Literal[EditOp.REMOVE_PHASE],
         phase_key: str,
         shift: Union[str, "_models.RemovePhaseShifting"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4542,11 +4410,10 @@ class EditSubscriptionStretchPhase(_Model):
     """Required."""
     phase_key: str = rest_field(name="phaseKey", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-    extend_by: datetime.timedelta = rest_field(name="extendBy", visibility=["read", "create", "update", "delete", "query"])
+    extend_by: datetime.timedelta = rest_field(
+        name="extendBy", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Required."""
-
-
-
 
     @overload
     def __init__(
@@ -4555,8 +4422,7 @@ class EditSubscriptionStretchPhase(_Model):
         op: Literal[EditOp.STRETCH_PHASE],
         phase_key: str,
         extend_by: datetime.timedelta,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4579,16 +4445,12 @@ class EditSubscriptionUnscheduleEdit(_Model):
     op: Literal[EditOp.UNSCHEDULE_EDIT] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         op: Literal[EditOp.UNSCHEDULE_EDIT],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4645,9 +4507,13 @@ class EntitlementBoolean(_Model):
     """Deletion Time."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence start of the resource. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence end of the resource."""
     annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
     """The annotations of the entitlement."""
@@ -4660,13 +4526,14 @@ class EntitlementBoolean(_Model):
     """The feature the subject is entitled to use. Required."""
     feature_id: str = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
     """The feature the subject is entitled to use. Required."""
-    current_usage_period: Optional["_models.Period"] = rest_field(name="currentUsagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    current_usage_period: Optional["_models.Period"] = rest_field(
+        name="currentUsagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The current usage period."""
-    usage_period: Optional["_models.RecurringPeriod"] = rest_field(name="usagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    usage_period: Optional["_models.RecurringPeriod"] = rest_field(
+        name="usagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The defined usage period of the entitlement."""
-
-
-
 
     @overload
     def __init__(
@@ -4681,8 +4548,7 @@ class EntitlementBoolean(_Model):
         active_to: Optional[datetime.datetime] = None,
         current_usage_period: Optional["_models.Period"] = None,
         usage_period: Optional["_models.RecurringPeriod"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4712,7 +4578,9 @@ class EntitlementBooleanCreateInputs(_Model):
     :vartype type: str or ~openmeter._generated.models.BOOLEAN
     """
 
-    feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update", "delete", "query"])
+    feature_key: Optional[str] = rest_field(
+        name="featureKey", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The feature the subject is entitled to use.
      Either featureKey or featureId is required."""
     feature_id: Optional[str] = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
@@ -4720,13 +4588,12 @@ class EntitlementBooleanCreateInputs(_Model):
      Either featureKey or featureId is required."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
-    usage_period: Optional["_models.RecurringPeriodCreateInput"] = rest_field(name="usagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    usage_period: Optional["_models.RecurringPeriodCreateInput"] = rest_field(
+        name="usagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The usage period associated with the entitlement."""
     type: Literal[EntitlementType.BOOLEAN] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-
-
-
 
     @overload
     def __init__(
@@ -4737,8 +4604,7 @@ class EntitlementBooleanCreateInputs(_Model):
         feature_id: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         usage_period: Optional["_models.RecurringPeriodCreateInput"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4796,9 +4662,13 @@ class EntitlementBooleanV2(_Model):
     """Deletion Time."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence start of the resource. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence end of the resource."""
     annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
     """The annotations of the entitlement."""
@@ -4808,17 +4678,20 @@ class EntitlementBooleanV2(_Model):
     """The feature the subject is entitled to use. Required."""
     feature_id: str = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
     """The feature the subject is entitled to use. Required."""
-    current_usage_period: Optional["_models.Period"] = rest_field(name="currentUsagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    current_usage_period: Optional["_models.Period"] = rest_field(
+        name="currentUsagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The current usage period."""
-    usage_period: Optional["_models.RecurringPeriod"] = rest_field(name="usagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    usage_period: Optional["_models.RecurringPeriod"] = rest_field(
+        name="usagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The defined usage period of the entitlement."""
-    customer_key: Optional[str] = rest_field(name="customerKey", visibility=["read", "create", "update", "delete", "query"])
+    customer_key: Optional[str] = rest_field(
+        name="customerKey", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The identifier key unique to the customer."""
     customer_id: str = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
     """The identifier unique to the customer. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -4834,8 +4707,7 @@ class EntitlementBooleanV2(_Model):
         current_usage_period: Optional["_models.Period"] = None,
         usage_period: Optional["_models.RecurringPeriod"] = None,
         customer_key: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -4920,17 +4792,23 @@ class EntitlementGrant(_Model):
      be used first.
      In the case of two grants have identical priorities and expiration dates, the system will use
      the grant that was created first."""
-    effective_at: datetime.datetime = rest_field(name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    effective_at: datetime.datetime = rest_field(
+        name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Effective date for grants and anchor for recurring grants. Provided value will be ceiled to
      metering windowSize (minute). Required."""
     expiration: "_models.ExpirationPeriod" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The grant expiration definition. Required."""
-    max_rollover_amount: Optional[float] = rest_field(name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"])
+    max_rollover_amount: Optional[float] = rest_field(
+        name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
      they had before the reset.
      Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
      MAX(Balance_Before_Reset, MinRolloverAmount))."""
-    min_rollover_amount: Optional[float] = rest_field(name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"])
+    min_rollover_amount: Optional[float] = rest_field(
+        name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
      they had before the reset.
      Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
@@ -4941,19 +4819,24 @@ class EntitlementGrant(_Model):
     """Readonly unique ULID identifier. Required."""
     entitlement_id: str = rest_field(name="entitlementId", visibility=["read"])
     """The unique entitlement ULID that the grant is associated with. Required."""
-    next_recurrence: Optional[datetime.datetime] = rest_field(name="nextRecurrence", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    next_recurrence: Optional[datetime.datetime] = rest_field(
+        name="nextRecurrence", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The next time the grant will recurr."""
     expires_at: Optional[datetime.datetime] = rest_field(name="expiresAt", visibility=["read"], format="rfc3339")
     """The time the grant expires."""
-    voided_at: Optional[datetime.datetime] = rest_field(name="voidedAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    voided_at: Optional[datetime.datetime] = rest_field(
+        name="voidedAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The time the grant was voided."""
-    recurrence: Optional["_models.RecurringPeriod"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    recurrence: Optional["_models.RecurringPeriod"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The recurrence period of the grant."""
-    annotations: Optional["_models.Annotations"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    annotations: Optional["_models.Annotations"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grant annotations."""
-
-
-
 
     @overload
     def __init__(
@@ -4970,8 +4853,7 @@ class EntitlementGrant(_Model):
         voided_at: Optional[datetime.datetime] = None,
         recurrence: Optional["_models.RecurringPeriod"] = None,
         annotations: Optional["_models.Annotations"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -5032,28 +4914,33 @@ class EntitlementGrantCreateInput(_Model):
      be used first.
      In the case of two grants have identical priorities and expiration dates, the system will use
      the grant that was created first."""
-    effective_at: datetime.datetime = rest_field(name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    effective_at: datetime.datetime = rest_field(
+        name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Effective date for grants and anchor for recurring grants. Provided value will be ceiled to
      metering windowSize (minute). Required."""
     expiration: "_models.ExpirationPeriod" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The grant expiration definition. Required."""
-    max_rollover_amount: Optional[float] = rest_field(name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"])
+    max_rollover_amount: Optional[float] = rest_field(
+        name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
      they had before the reset.
      Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
      MAX(Balance_Before_Reset, MinRolloverAmount))."""
-    min_rollover_amount: Optional[float] = rest_field(name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"])
+    min_rollover_amount: Optional[float] = rest_field(
+        name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
      they had before the reset.
      Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
      MAX(Balance_Before_Reset, MinRolloverAmount))."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The grant metadata."""
-    recurrence: Optional["_models.RecurringPeriodCreateInput"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    recurrence: Optional["_models.RecurringPeriodCreateInput"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The subject of the grant."""
-
-
-
 
     @overload
     def __init__(
@@ -5067,8 +4954,7 @@ class EntitlementGrantCreateInput(_Model):
         min_rollover_amount: Optional[float] = None,
         metadata: Optional["_models.Metadata"] = None,
         recurrence: Optional["_models.RecurringPeriodCreateInput"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -5133,31 +5019,40 @@ class EntitlementGrantCreateInputV2(_Model):
      be used first.
      In the case of two grants have identical priorities and expiration dates, the system will use
      the grant that was created first."""
-    effective_at: datetime.datetime = rest_field(name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    effective_at: datetime.datetime = rest_field(
+        name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Effective date for grants and anchor for recurring grants. Provided value will be ceiled to
      metering windowSize (minute). Required."""
-    min_rollover_amount: Optional[float] = rest_field(name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"])
+    min_rollover_amount: Optional[float] = rest_field(
+        name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
      they had before the reset.
      Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
      MAX(Balance_Before_Reset, MinRolloverAmount))."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The grant metadata."""
-    recurrence: Optional["_models.RecurringPeriodCreateInput"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    recurrence: Optional["_models.RecurringPeriodCreateInput"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The subject of the grant."""
-    max_rollover_amount: Optional[float] = rest_field(name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"])
+    max_rollover_amount: Optional[float] = rest_field(
+        name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
      they had before the reset. The default value equals grant amount.
      Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
      MAX(Balance_Before_Reset, MinRolloverAmount))."""
-    expiration: Optional["_models.ExpirationPeriod"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    expiration: Optional["_models.ExpirationPeriod"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The grant expiration definition. If no expiration is provided, the grant can be active
      indefinitely."""
-    annotations: Optional["_models.Annotations"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    annotations: Optional["_models.Annotations"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grant annotations."""
-
-
-
 
     @overload
     def __init__(
@@ -5172,8 +5067,7 @@ class EntitlementGrantCreateInputV2(_Model):
         max_rollover_amount: Optional[float] = None,
         expiration: Optional["_models.ExpirationPeriod"] = None,
         annotations: Optional["_models.Annotations"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -5260,41 +5154,54 @@ class EntitlementGrantV2(_Model):
      be used first.
      In the case of two grants have identical priorities and expiration dates, the system will use
      the grant that was created first."""
-    effective_at: datetime.datetime = rest_field(name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    effective_at: datetime.datetime = rest_field(
+        name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Effective date for grants and anchor for recurring grants. Provided value will be ceiled to
      metering windowSize (minute). Required."""
-    min_rollover_amount: Optional[float] = rest_field(name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"])
+    min_rollover_amount: Optional[float] = rest_field(
+        name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
      they had before the reset.
      Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
      MAX(Balance_Before_Reset, MinRolloverAmount))."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The grant metadata."""
-    max_rollover_amount: Optional[float] = rest_field(name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"])
+    max_rollover_amount: Optional[float] = rest_field(
+        name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
      they had before the reset. The default value equals grant amount.
      Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
      MAX(Balance_Before_Reset, MinRolloverAmount))."""
-    expiration: Optional["_models.ExpirationPeriod"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    expiration: Optional["_models.ExpirationPeriod"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The grant expiration definition. If no expiration is provided, the grant can be active
      indefinitely."""
-    annotations: Optional["_models.Annotations"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    annotations: Optional["_models.Annotations"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grant annotations."""
     id: str = rest_field(visibility=["read"])
     """Readonly unique ULID identifier. Required."""
     entitlement_id: str = rest_field(name="entitlementId", visibility=["read"])
     """The unique entitlement ULID that the grant is associated with. Required."""
-    next_recurrence: Optional[datetime.datetime] = rest_field(name="nextRecurrence", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    next_recurrence: Optional[datetime.datetime] = rest_field(
+        name="nextRecurrence", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The next time the grant will recurr."""
     expires_at: Optional[datetime.datetime] = rest_field(name="expiresAt", visibility=["read"], format="rfc3339")
     """The time the grant expires."""
-    voided_at: Optional[datetime.datetime] = rest_field(name="voidedAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    voided_at: Optional[datetime.datetime] = rest_field(
+        name="voidedAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The time the grant was voided."""
-    recurrence: Optional["_models.RecurringPeriod"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    recurrence: Optional["_models.RecurringPeriod"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The recurrence period of the grant."""
-
-
-
 
     @overload
     def __init__(
@@ -5311,8 +5218,7 @@ class EntitlementGrantV2(_Model):
         next_recurrence: Optional[datetime.datetime] = None,
         voided_at: Optional[datetime.datetime] = None,
         recurrence: Optional["_models.RecurringPeriod"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -5380,16 +5286,26 @@ class EntitlementMetered(_Model):
 
     type: Literal[EntitlementType.METERED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-    is_soft_limit: Optional[bool] = rest_field(name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"])
+    is_soft_limit: Optional[bool] = rest_field(
+        name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Soft limit."""
-    is_unlimited: Optional[bool] = rest_field(name="isUnlimited", visibility=["read", "create", "update", "delete", "query"])
+    is_unlimited: Optional[bool] = rest_field(
+        name="isUnlimited", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed
      in the future."""
-    issue_after_reset: Optional[float] = rest_field(name="issueAfterReset", visibility=["read", "create", "update", "delete", "query"])
+    issue_after_reset: Optional[float] = rest_field(
+        name="issueAfterReset", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Initial grant amount."""
-    issue_after_reset_priority: Optional[int] = rest_field(name="issueAfterResetPriority", visibility=["read", "create", "update", "delete", "query"])
+    issue_after_reset_priority: Optional[int] = rest_field(
+        name="issueAfterResetPriority", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Issue grant after reset priority."""
-    preserve_overage_at_reset: Optional[bool] = rest_field(name="preserveOverageAtReset", visibility=["read", "create", "update", "delete", "query"])
+    preserve_overage_at_reset: Optional[bool] = rest_field(
+        name="preserveOverageAtReset", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Preserve overage at reset."""
     created_at: datetime.datetime = rest_field(name="createdAt", visibility=["read"], format="rfc3339")
     """Creation Time. Required."""
@@ -5399,9 +5315,13 @@ class EntitlementMetered(_Model):
     """Deletion Time."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence start of the resource. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence end of the resource."""
     annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
     """The annotations of the entitlement."""
@@ -5424,9 +5344,6 @@ class EntitlementMetered(_Model):
     usage_period: "_models.RecurringPeriod" = rest_field(name="usagePeriod", visibility=["read"])
     """THe usage period of the entitlement. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -5443,8 +5360,7 @@ class EntitlementMetered(_Model):
         preserve_overage_at_reset: Optional[bool] = None,
         metadata: Optional["_models.Metadata"] = None,
         active_to: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -5490,7 +5406,9 @@ class EntitlementMeteredCreateInputs(_Model):
     :vartype preserve_overage_at_reset: bool
     """
 
-    feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update", "delete", "query"])
+    feature_key: Optional[str] = rest_field(
+        name="featureKey", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The feature the subject is entitled to use.
      Either featureKey or featureId is required."""
     feature_id: Optional[str] = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
@@ -5500,26 +5418,37 @@ class EntitlementMeteredCreateInputs(_Model):
     """Additional metadata for the feature."""
     type: Literal[EntitlementType.METERED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-    is_soft_limit: Optional[bool] = rest_field(name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"])
+    is_soft_limit: Optional[bool] = rest_field(
+        name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Soft limit."""
-    is_unlimited: Optional[bool] = rest_field(name="isUnlimited", visibility=["read", "create", "update", "delete", "query"])
+    is_unlimited: Optional[bool] = rest_field(
+        name="isUnlimited", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed
      in the future."""
-    usage_period: "_models.RecurringPeriodCreateInput" = rest_field(name="usagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    usage_period: "_models.RecurringPeriodCreateInput" = rest_field(
+        name="usagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The usage period associated with the entitlement. Required."""
-    measure_usage_from: Optional["_types.MeasureUsageFrom"] = rest_field(name="measureUsageFrom", visibility=["read", "create", "update", "delete", "query"])
+    measure_usage_from: Optional["_types.MeasureUsageFrom"] = rest_field(
+        name="measureUsageFrom", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Defines the time from which usage is measured. If not specified on creation, defaults to
      entitlement creation time. Is either a Union[str, \"_models.MeasureUsageFromPreset\"] type or a
      datetime.datetime type."""
-    issue_after_reset: Optional[float] = rest_field(name="issueAfterReset", visibility=["read", "create", "update", "delete", "query"])
+    issue_after_reset: Optional[float] = rest_field(
+        name="issueAfterReset", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Initial grant amount."""
-    issue_after_reset_priority: Optional[int] = rest_field(name="issueAfterResetPriority", visibility=["read", "create", "update", "delete", "query"])
+    issue_after_reset_priority: Optional[int] = rest_field(
+        name="issueAfterResetPriority", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Issue grant after reset priority."""
-    preserve_overage_at_reset: Optional[bool] = rest_field(name="preserveOverageAtReset", visibility=["read", "create", "update", "delete", "query"])
+    preserve_overage_at_reset: Optional[bool] = rest_field(
+        name="preserveOverageAtReset", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Preserve overage at reset."""
-
-
-
 
     @overload
     def __init__(
@@ -5536,8 +5465,7 @@ class EntitlementMeteredCreateInputs(_Model):
         issue_after_reset: Optional[float] = None,
         issue_after_reset_priority: Optional[int] = None,
         preserve_overage_at_reset: Optional[bool] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -5605,13 +5533,21 @@ class EntitlementMeteredV2(_Model):
 
     type: Literal[EntitlementType.METERED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-    is_soft_limit: Optional[bool] = rest_field(name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"])
+    is_soft_limit: Optional[bool] = rest_field(
+        name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Soft limit."""
-    preserve_overage_at_reset: Optional[bool] = rest_field(name="preserveOverageAtReset", visibility=["read", "create", "update", "delete", "query"])
+    preserve_overage_at_reset: Optional[bool] = rest_field(
+        name="preserveOverageAtReset", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Preserve overage at reset."""
-    issue_after_reset: Optional[float] = rest_field(name="issueAfterReset", visibility=["read", "create", "update", "delete", "query"])
+    issue_after_reset: Optional[float] = rest_field(
+        name="issueAfterReset", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Initial grant amount."""
-    issue_after_reset_priority: Optional[int] = rest_field(name="issueAfterResetPriority", visibility=["read", "create", "update", "delete", "query"])
+    issue_after_reset_priority: Optional[int] = rest_field(
+        name="issueAfterResetPriority", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Issue grant after reset priority."""
     issue: Optional["_models.IssueAfterReset"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Issue after reset."""
@@ -5623,9 +5559,13 @@ class EntitlementMeteredV2(_Model):
     """Deletion Time."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence start of the resource. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence end of the resource."""
     annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
     """The annotations of the entitlement."""
@@ -5644,13 +5584,12 @@ class EntitlementMeteredV2(_Model):
      creation time. Required."""
     usage_period: "_models.RecurringPeriod" = rest_field(name="usagePeriod", visibility=["read"])
     """THe usage period of the entitlement. Required."""
-    customer_key: Optional[str] = rest_field(name="customerKey", visibility=["read", "create", "update", "delete", "query"])
+    customer_key: Optional[str] = rest_field(
+        name="customerKey", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The identifier key unique to the customer."""
     customer_id: str = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
     """The identifier unique to the customer. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -5669,8 +5608,7 @@ class EntitlementMeteredV2(_Model):
         metadata: Optional["_models.Metadata"] = None,
         active_to: Optional[datetime.datetime] = None,
         customer_key: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -5717,7 +5655,9 @@ class EntitlementMeteredV2CreateInputs(_Model):
     :vartype grants: list[~openmeter._generated.models.EntitlementGrantCreateInputV2]
     """
 
-    feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update", "delete", "query"])
+    feature_key: Optional[str] = rest_field(
+        name="featureKey", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The feature the subject is entitled to use.
      Either featureKey or featureId is required."""
     feature_id: Optional[str] = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
@@ -5727,27 +5667,38 @@ class EntitlementMeteredV2CreateInputs(_Model):
     """Additional metadata for the feature."""
     type: Literal[EntitlementType.METERED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-    is_soft_limit: Optional[bool] = rest_field(name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"])
+    is_soft_limit: Optional[bool] = rest_field(
+        name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Soft limit."""
-    usage_period: "_models.RecurringPeriodCreateInput" = rest_field(name="usagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    usage_period: "_models.RecurringPeriodCreateInput" = rest_field(
+        name="usagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The usage period associated with the entitlement. Required."""
-    measure_usage_from: Optional["_types.MeasureUsageFrom"] = rest_field(name="measureUsageFrom", visibility=["read", "create", "update", "delete", "query"])
+    measure_usage_from: Optional["_types.MeasureUsageFrom"] = rest_field(
+        name="measureUsageFrom", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Defines the time from which usage is measured. If not specified on creation, defaults to
      entitlement creation time. Is either a Union[str, \"_models.MeasureUsageFromPreset\"] type or a
      datetime.datetime type."""
-    preserve_overage_at_reset: Optional[bool] = rest_field(name="preserveOverageAtReset", visibility=["read", "create", "update", "delete", "query"])
+    preserve_overage_at_reset: Optional[bool] = rest_field(
+        name="preserveOverageAtReset", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Preserve overage at reset."""
-    issue_after_reset: Optional[float] = rest_field(name="issueAfterReset", visibility=["read", "create", "update", "delete", "query"])
+    issue_after_reset: Optional[float] = rest_field(
+        name="issueAfterReset", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Initial grant amount."""
-    issue_after_reset_priority: Optional[int] = rest_field(name="issueAfterResetPriority", visibility=["read", "create", "update", "delete", "query"])
+    issue_after_reset_priority: Optional[int] = rest_field(
+        name="issueAfterResetPriority", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Issue grant after reset priority."""
     issue: Optional["_models.IssueAfterReset"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Issue after reset."""
-    grants: Optional[list["_models.EntitlementGrantCreateInputV2"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    grants: Optional[list["_models.EntitlementGrantCreateInputV2"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grants."""
-
-
-
 
     @overload
     def __init__(
@@ -5765,8 +5716,7 @@ class EntitlementMeteredV2CreateInputs(_Model):
         issue_after_reset_priority: Optional[int] = None,
         issue: Optional["_models.IssueAfterReset"] = None,
         grants: Optional[list["_models.EntitlementGrantCreateInputV2"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -5800,11 +5750,10 @@ class EntitlementPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.Entitlement"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_types.Entitlement"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -5814,8 +5763,7 @@ class EntitlementPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_types.Entitlement"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -5880,9 +5828,13 @@ class EntitlementStatic(_Model):
     """Deletion Time."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence start of the resource. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence end of the resource."""
     annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
     """The annotations of the entitlement."""
@@ -5895,13 +5847,14 @@ class EntitlementStatic(_Model):
     """The feature the subject is entitled to use. Required."""
     feature_id: str = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
     """The feature the subject is entitled to use. Required."""
-    current_usage_period: Optional["_models.Period"] = rest_field(name="currentUsagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    current_usage_period: Optional["_models.Period"] = rest_field(
+        name="currentUsagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The current usage period."""
-    usage_period: Optional["_models.RecurringPeriod"] = rest_field(name="usagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    usage_period: Optional["_models.RecurringPeriod"] = rest_field(
+        name="usagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The defined usage period of the entitlement."""
-
-
-
 
     @overload
     def __init__(
@@ -5917,8 +5870,7 @@ class EntitlementStatic(_Model):
         active_to: Optional[datetime.datetime] = None,
         current_usage_period: Optional["_models.Period"] = None,
         usage_period: Optional["_models.RecurringPeriod"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -5952,7 +5904,9 @@ class EntitlementStaticCreateInputs(_Model):
     :vartype config: str
     """
 
-    feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update", "delete", "query"])
+    feature_key: Optional[str] = rest_field(
+        name="featureKey", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The feature the subject is entitled to use.
      Either featureKey or featureId is required."""
     feature_id: Optional[str] = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
@@ -5960,7 +5914,9 @@ class EntitlementStaticCreateInputs(_Model):
      Either featureKey or featureId is required."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
-    usage_period: Optional["_models.RecurringPeriodCreateInput"] = rest_field(name="usagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    usage_period: Optional["_models.RecurringPeriodCreateInput"] = rest_field(
+        name="usagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The usage period associated with the entitlement."""
     type: Literal[EntitlementType.STATIC] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
@@ -5968,9 +5924,6 @@ class EntitlementStaticCreateInputs(_Model):
     """The JSON parsable config of the entitlement. This value is also returned when checking
      entitlement access and it is useful for configuring fine-grained access settings to the
      feature, implemented in your own system. Has to be an object. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -5982,8 +5935,7 @@ class EntitlementStaticCreateInputs(_Model):
         feature_id: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         usage_period: Optional["_models.RecurringPeriodCreateInput"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6049,9 +6001,13 @@ class EntitlementStaticV2(_Model):
     """Deletion Time."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence start of the resource. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence end of the resource."""
     annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
     """The annotations of the entitlement."""
@@ -6061,17 +6017,20 @@ class EntitlementStaticV2(_Model):
     """The feature the subject is entitled to use. Required."""
     feature_id: str = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
     """The feature the subject is entitled to use. Required."""
-    current_usage_period: Optional["_models.Period"] = rest_field(name="currentUsagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    current_usage_period: Optional["_models.Period"] = rest_field(
+        name="currentUsagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The current usage period."""
-    usage_period: Optional["_models.RecurringPeriod"] = rest_field(name="usagePeriod", visibility=["read", "create", "update", "delete", "query"])
+    usage_period: Optional["_models.RecurringPeriod"] = rest_field(
+        name="usagePeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The defined usage period of the entitlement."""
-    customer_key: Optional[str] = rest_field(name="customerKey", visibility=["read", "create", "update", "delete", "query"])
+    customer_key: Optional[str] = rest_field(
+        name="customerKey", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The identifier key unique to the customer."""
     customer_id: str = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
     """The identifier unique to the customer. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -6088,8 +6047,7 @@ class EntitlementStaticV2(_Model):
         current_usage_period: Optional["_models.Period"] = None,
         usage_period: Optional["_models.RecurringPeriod"] = None,
         customer_key: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6123,11 +6081,10 @@ class EntitlementV2PaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.EntitlementV2"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_types.EntitlementV2"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -6137,8 +6094,7 @@ class EntitlementV2PaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_types.EntitlementV2"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6190,13 +6146,9 @@ class EntitlementValue(_Model):
     """Only available for static entitlements. The JSON parsable config of the entitlement."""
 
 
-
-
-
-
 class Event(_Model):
     """CloudEvents Specification JSON Schema
-    
+
     Optional properties are nullable according to the CloudEvents specification:
     OPTIONAL not omitted attributes MAY be represented as a null JSON value.
 
@@ -6232,7 +6184,9 @@ class Event(_Model):
     """The version of the CloudEvents specification which the event uses. Required."""
     type: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Contains a value describing the type of event related to the originating occurrence. Required."""
-    datacontenttype: Optional[Literal["application/json"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    datacontenttype: Optional[Literal["application/json"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Content type of the CloudEvents data value. Only the value \"application/json\" is allowed over
      HTTP. Default value is \"application/json\"."""
     dataschema: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -6240,14 +6194,13 @@ class Event(_Model):
     subject: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Describes the subject of the event in the context of the event producer (identified by source).
      Required."""
-    time: Optional[datetime.datetime] = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    time: Optional[datetime.datetime] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Timestamp of when the occurrence happened. Must adhere to RFC 3339."""
     data: Optional[dict[str, Any]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The event payload.
      Optional, if present it must be a JSON object."""
-
-
-
 
     @overload
     def __init__(
@@ -6262,8 +6215,7 @@ class Event(_Model):
         dataschema: Optional[str] = None,
         time: Optional[datetime.datetime] = None,
         data: Optional[dict[str, Any]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6286,14 +6238,13 @@ class ExpirationPeriod(_Model):
     :vartype count: int
     """
 
-    duration: Union[str, "_models.ExpirationDuration"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    duration: Union[str, "_models.ExpirationDuration"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The unit of time for the expiration period. Required. Known values are: \"HOUR\", \"DAY\",
      \"WEEK\", \"MONTH\", and \"YEAR\"."""
     count: int = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The number of time units in the expiration period. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -6301,8 +6252,7 @@ class ExpirationPeriod(_Model):
         *,
         duration: Union[str, "_models.ExpirationDuration"],
         count: int,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6359,15 +6309,16 @@ class Feature(_Model):
     """Optional metadata."""
     meter_slug: Optional[str] = rest_field(name="meterSlug", visibility=["read", "create", "update", "delete", "query"])
     """Meter slug."""
-    meter_group_by_filters: Optional[dict[str, str]] = rest_field(name="meterGroupByFilters", visibility=["read", "create", "update", "delete", "query"])
+    meter_group_by_filters: Optional[dict[str, str]] = rest_field(
+        name="meterGroupByFilters", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Meter group by filters."""
-    advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = rest_field(name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"])
+    advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = rest_field(
+        name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Advanced meter group by filters."""
     id: str = rest_field(visibility=["read"])
     """Readonly unique ULID identifier. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -6379,8 +6330,7 @@ class Feature(_Model):
         meter_slug: Optional[str] = None,
         meter_group_by_filters: Optional[dict[str, str]] = None,
         advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6419,13 +6369,14 @@ class FeatureCreateInputs(_Model):
     """Optional metadata."""
     meter_slug: Optional[str] = rest_field(name="meterSlug", visibility=["read", "create", "update", "delete", "query"])
     """Meter slug."""
-    meter_group_by_filters: Optional[dict[str, str]] = rest_field(name="meterGroupByFilters", visibility=["read", "create", "update", "delete", "query"])
+    meter_group_by_filters: Optional[dict[str, str]] = rest_field(
+        name="meterGroupByFilters", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Meter group by filters."""
-    advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = rest_field(name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"])
+    advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = rest_field(
+        name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Advanced meter group by filters."""
-
-
-
 
     @overload
     def __init__(
@@ -6437,8 +6388,7 @@ class FeatureCreateInputs(_Model):
         meter_slug: Optional[str] = None,
         meter_group_by_filters: Optional[dict[str, str]] = None,
         advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6466,17 +6416,13 @@ class FeatureMeta(_Model):
     key: str = rest_field(visibility=["read", "create", "update"])
     """Feature Key. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         id: str,  # pylint: disable=redefined-builtin
         key: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6508,11 +6454,10 @@ class FeaturePaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.Feature"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.Feature"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -6522,8 +6467,7 @@ class FeaturePaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.Feature"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6543,19 +6487,17 @@ class FilterIDExact(_Model):
     :vartype in_property: list[str]
     """
 
-    in_property: Optional[list[str]] = rest_field(name="$in", visibility=["read", "create", "update", "delete", "query"])
+    in_property: Optional[list[str]] = rest_field(
+        name="$in", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The field must be in the provided list of values."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         in_property: Optional[list[str]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6605,7 +6547,9 @@ class FilterString(_Model):
     """The field must be equal to the provided value."""
     ne: Optional[str] = rest_field(name="$ne", visibility=["read", "create", "update", "delete", "query"])
     """The field must not be equal to the provided value."""
-    in_property: Optional[list[str]] = rest_field(name="$in", visibility=["read", "create", "update", "delete", "query"])
+    in_property: Optional[list[str]] = rest_field(
+        name="$in", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The field must be in the provided list of values."""
     nin: Optional[list[str]] = rest_field(name="$nin", visibility=["read", "create", "update", "delete", "query"])
     """The field must not be in the provided list of values."""
@@ -6625,13 +6569,14 @@ class FilterString(_Model):
     """The field must be less than the provided value."""
     lte: Optional[str] = rest_field(name="$lte", visibility=["read", "create", "update", "delete", "query"])
     """The field must be less than or equal to the provided value."""
-    and_property: Optional[list["_models.FilterString"]] = rest_field(name="$and", visibility=["read", "create", "update", "delete", "query"])
+    and_property: Optional[list["_models.FilterString"]] = rest_field(
+        name="$and", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Provide a list of filters to be combined with a logical AND."""
-    or_property: Optional[list["_models.FilterString"]] = rest_field(name="$or", visibility=["read", "create", "update", "delete", "query"])
+    or_property: Optional[list["_models.FilterString"]] = rest_field(
+        name="$or", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Provide a list of filters to be combined with a logical OR."""
-
-
-
 
     @overload
     def __init__(
@@ -6651,8 +6596,7 @@ class FilterString(_Model):
         lte: Optional[str] = None,
         and_property: Optional[list["_models.FilterString"]] = None,
         or_property: Optional[list["_models.FilterString"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6682,21 +6626,30 @@ class FilterTime(_Model):
     :vartype or_property: list[~openmeter._generated.models.FilterTime]
     """
 
-    gt: Optional[datetime.datetime] = rest_field(name="$gt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    gt: Optional[datetime.datetime] = rest_field(
+        name="$gt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The field must be greater than the provided value."""
-    gte: Optional[datetime.datetime] = rest_field(name="$gte", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    gte: Optional[datetime.datetime] = rest_field(
+        name="$gte", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The field must be greater than or equal to the provided value."""
-    lt: Optional[datetime.datetime] = rest_field(name="$lt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    lt: Optional[datetime.datetime] = rest_field(
+        name="$lt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The field must be less than the provided value."""
-    lte: Optional[datetime.datetime] = rest_field(name="$lte", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    lte: Optional[datetime.datetime] = rest_field(
+        name="$lte", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The field must be less than or equal to the provided value."""
-    and_property: Optional[list["_models.FilterTime"]] = rest_field(name="$and", visibility=["read", "create", "update", "delete", "query"])
+    and_property: Optional[list["_models.FilterTime"]] = rest_field(
+        name="$and", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Provide a list of filters to be combined with a logical AND."""
-    or_property: Optional[list["_models.FilterTime"]] = rest_field(name="$or", visibility=["read", "create", "update", "delete", "query"])
+    or_property: Optional[list["_models.FilterTime"]] = rest_field(
+        name="$or", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Provide a list of filters to be combined with a logical OR."""
-
-
-
 
     @overload
     def __init__(
@@ -6708,8 +6661,7 @@ class FilterTime(_Model):
         lte: Optional[datetime.datetime] = None,
         and_property: Optional[list["_models.FilterTime"]] = None,
         or_property: Optional[list["_models.FilterTime"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6736,17 +6688,13 @@ class FlatPrice(_Model):
     amount: str = rest_field(visibility=["read", "create", "update"])
     """The amount of the flat price. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         type: Literal[PriceType.FLAT],
         amount: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6775,12 +6723,11 @@ class FlatPriceWithPaymentTerm(_Model):
     """The type of the price. Required."""
     amount: str = rest_field(visibility=["read", "create", "update"])
     """The amount of the flat price. Required."""
-    payment_term: Optional[Union[str, "_models.PricePaymentTerm"]] = rest_field(name="paymentTerm", visibility=["read", "create", "update"])
+    payment_term: Optional[Union[str, "_models.PricePaymentTerm"]] = rest_field(
+        name="paymentTerm", visibility=["read", "create", "update"]
+    )
     """The payment term of the flat price.
      Defaults to in advance. Known values are: \"in_advance\" and \"in_arrears\"."""
-
-
-
 
     @overload
     def __init__(
@@ -6789,8 +6736,7 @@ class FlatPriceWithPaymentTerm(_Model):
         type: Literal[PriceType.FLAT],
         amount: str,
         payment_term: Optional[Union[str, "_models.PricePaymentTerm"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6821,10 +6767,6 @@ class ForbiddenProblemResponse(UnexpectedProblemResponse):
     :vartype instance: str
     """
 
-
-
-
-
     @overload
     def __init__(
         self,
@@ -6834,8 +6776,7 @@ class ForbiddenProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6850,7 +6791,7 @@ class ForbiddenProblemResponse(UnexpectedProblemResponse):
 
 class GrantBurnDownHistorySegment(_Model):
     """A segment of the grant burn down history.
-    
+
     A given segment represents the usage of a grant between events that changed either the grant
     burn down priority order or the usag period.
 
@@ -6894,16 +6835,12 @@ class GrantBurnDownHistorySegment(_Model):
     grant_usages: list["_models.GrantUsageRecord"] = rest_field(name="grantUsages", visibility=["read"])
     """Which grants were actually burnt down in the period and by what amount. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         period: "_models.Period",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6935,11 +6872,10 @@ class GrantPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.EntitlementGrant"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.EntitlementGrant"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -6949,8 +6885,7 @@ class GrantPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.EntitlementGrant"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -6977,17 +6912,13 @@ class GrantUsageRecord(_Model):
     usage: float = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The usage in the period. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         grant_id: str,
         usage: float,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -7019,11 +6950,10 @@ class GrantV2PaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.EntitlementGrantV2"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.EntitlementGrantV2"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -7033,8 +6963,7 @@ class GrantV2PaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.EntitlementGrantV2"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -7058,10 +6987,6 @@ class IDResource(_Model):
     """ID. Required."""
 
 
-
-
-
-
 class IngestedEvent(_Model):
     """An ingested event with optional validation error.
 
@@ -7079,17 +7004,22 @@ class IngestedEvent(_Model):
 
     event: "_models.Event" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The original event ingested. Required."""
-    customer_id: Optional[str] = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
+    customer_id: Optional[str] = rest_field(
+        name="customerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The customer ID if the event is associated with a customer."""
-    validation_error: Optional[str] = rest_field(name="validationError", visibility=["read", "create", "update", "delete", "query"])
+    validation_error: Optional[str] = rest_field(
+        name="validationError", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The validation error if the event failed validation."""
-    ingested_at: datetime.datetime = rest_field(name="ingestedAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    ingested_at: datetime.datetime = rest_field(
+        name="ingestedAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The date and time the event was ingested. Required."""
-    stored_at: datetime.datetime = rest_field(name="storedAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    stored_at: datetime.datetime = rest_field(
+        name="storedAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The date and time the event was stored. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -7100,8 +7030,7 @@ class IngestedEvent(_Model):
         stored_at: datetime.datetime,
         customer_id: Optional[str] = None,
         validation_error: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -7118,7 +7047,7 @@ class InstallWithApiKeyRequest(_Model):
     """InstallWithApiKeyRequest.
 
     :ivar name: Name of the application to install.
-     
+
      If name is not provided defaults to the marketplace listing's name.
     :vartype name: str
     :ivar create_billing_profile: If true, a billing profile will be created for the app.
@@ -7134,16 +7063,15 @@ class InstallWithApiKeyRequest(_Model):
     """Name of the application to install.
      
      If name is not provided defaults to the marketplace listing's name."""
-    create_billing_profile: Optional[bool] = rest_field(name="createBillingProfile", visibility=["read", "create", "update", "delete", "query"])
+    create_billing_profile: Optional[bool] = rest_field(
+        name="createBillingProfile", visibility=["read", "create", "update", "delete", "query"]
+    )
     """If true, a billing profile will be created for the app.
      The Stripe app will be also set as the default billing profile if the current default is a
      Sandbox app."""
     api_key: str = rest_field(name="apiKey", visibility=["read", "create", "update", "delete", "query"])
     """The API key for the provider.
      For example, the Stripe API key. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -7152,8 +7080,7 @@ class InstallWithApiKeyRequest(_Model):
         api_key: str,
         name: Optional[str] = None,
         create_billing_profile: Optional[bool] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -7184,10 +7111,6 @@ class InternalServerErrorProblemResponse(UnexpectedProblemResponse):
     :vartype instance: str
     """
 
-
-
-
-
     @overload
     def __init__(
         self,
@@ -7197,8 +7120,7 @@ class InternalServerErrorProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -7214,101 +7136,101 @@ class InternalServerErrorProblemResponse(UnexpectedProblemResponse):
 class Invoice(_Model):
     """Invoice represents an invoice in the system.
 
-    :ivar id: ID. Required.
-    :vartype id: str
-    :ivar description: Description.
-    :vartype description: str
-    :ivar metadata: Metadata.
-    :vartype metadata: ~openmeter._generated.models.Metadata
-    :ivar created_at: Creation Time. Required.
-    :vartype created_at: ~datetime.datetime
-    :ivar updated_at: Last Update Time. Required.
-    :vartype updated_at: ~datetime.datetime
-    :ivar deleted_at: Deletion Time.
-    :vartype deleted_at: ~datetime.datetime
-    :ivar type: Type of the invoice.
+        :ivar id: ID. Required.
+        :vartype id: str
+        :ivar description: Description.
+        :vartype description: str
+        :ivar metadata: Metadata.
+        :vartype metadata: ~openmeter._generated.models.Metadata
+        :ivar created_at: Creation Time. Required.
+        :vartype created_at: ~datetime.datetime
+        :ivar updated_at: Last Update Time. Required.
+        :vartype updated_at: ~datetime.datetime
+        :ivar deleted_at: Deletion Time.
+        :vartype deleted_at: ~datetime.datetime
+        :ivar type: Type of the invoice.
 
-The type of invoice determines the purpose of the invoice and how it should be handled.
+    The type of invoice determines the purpose of the invoice and how it should be handled.
 
-Supported types:
+    Supported types:
 
-     * standard: A regular commercial invoice document between a supplier and customer.
-     * credit_note: Reflects a refund either partial or complete of the preceding document. A
-       credit note effectively *extends* the previous document. Required. Known values are: "standard"
-       and "credit_note".
-    :vartype type: str or ~openmeter.models.InvoiceType
-    :ivar supplier: The taxable entity supplying the goods or services. Required.
-    :vartype supplier: ~openmeter._generated.models.BillingParty
-    :ivar customer: Legal entity receiving the goods or services. Required.
-    :vartype customer: ~openmeter._generated.models.BillingInvoiceCustomerExtendedDetails
-    :ivar number: Number specifies the human readable key used to reference this Invoice.
-     
-     The invoice number can change in the draft phases, as we are allocating temporary draft
-     invoice numbers, but it's final as soon as the invoice gets finalized (issued state).
-     
-     Please note that the number is (depending on the upstream settings) either unique for the
-     whole organization or unique for the customer, or in multi (stripe) account setups unique for
-     the
-     account. Required.
-    :vartype number: str
-    :ivar currency: Currency for all invoice line items.
-     
-     Multi currency invoices are not supported yet. Required.
-    :vartype currency: str
-    :ivar preceding: Key information regarding previous invoices and potentially details as to why
-     they were corrected.
-    :vartype preceding: list[~openmeter._generated.models.CreditNoteOriginalInvoiceRef]
-    :ivar totals: Summary of all the invoice totals, including taxes (calculated). Required.
-    :vartype totals: ~openmeter._generated.models.InvoiceTotals
-    :ivar status: The status of the invoice.
-     
-     This field only conatins a simplified status, for more detailed information use the
-     statusDetails field. Required. Known values are: "gathering", "draft", "issuing", "issued",
-     "payment_processing", "overdue", "paid", "uncollectible", and "voided".
-    :vartype status: str or ~openmeter.models.InvoiceStatus
-    :ivar status_details: The details of the current invoice status. Required.
-    :vartype status_details: ~openmeter._generated.models.InvoiceStatusDetails
-    :ivar issued_at: The time the invoice was issued.
+         * standard: A regular commercial invoice document between a supplier and customer.
+         * credit_note: Reflects a refund either partial or complete of the preceding document. A
+           credit note effectively *extends* the previous document. Required. Known values are: "standard"
+           and "credit_note".
+        :vartype type: str or ~openmeter.models.InvoiceType
+        :ivar supplier: The taxable entity supplying the goods or services. Required.
+        :vartype supplier: ~openmeter._generated.models.BillingParty
+        :ivar customer: Legal entity receiving the goods or services. Required.
+        :vartype customer: ~openmeter._generated.models.BillingInvoiceCustomerExtendedDetails
+        :ivar number: Number specifies the human readable key used to reference this Invoice.
 
-Depending on the status of the invoice this can mean multiple things:
+         The invoice number can change in the draft phases, as we are allocating temporary draft
+         invoice numbers, but it's final as soon as the invoice gets finalized (issued state).
 
-     * draft, gathering: The time the invoice will be issued based on the workflow settings.
-     * issued: The time the invoice was issued.
-    :vartype issued_at: ~datetime.datetime
-    :ivar draft_until: The time until the invoice is in draft status.
-     
-     On draft invoice creation it is calculated from the workflow settings.
-     
-     If manual approval is required, the draftUntil time is set.
-    :vartype draft_until: ~datetime.datetime
-    :ivar quantity_snapshoted_at: The time when the quantity snapshots on the invoice lines were
-     taken.
-    :vartype quantity_snapshoted_at: ~datetime.datetime
-    :ivar collection_at: The time when the invoice will be/has been collected.
-    :vartype collection_at: ~datetime.datetime
-    :ivar due_at: Due time of the fulfillment of the invoice (if available).
-    :vartype due_at: ~datetime.datetime
-    :ivar period: The period the invoice covers. If the invoice has no line items, it's not set.
-    :vartype period: ~openmeter._generated.models.Period
-    :ivar voided_at: The time the invoice was voided.
-     
-     If the invoice was voided, this field will be set to the time the invoice was voided.
-    :vartype voided_at: ~datetime.datetime
-    :ivar sent_to_customer_at: The time the invoice was sent to customer.
-    :vartype sent_to_customer_at: ~datetime.datetime
-    :ivar workflow: The workflow associated with the invoice.
-     
-     It is always a snapshot of the workflow settings at the time of invoice creation. The
-     field is optional as it should be explicitly requested with expand options. Required.
-    :vartype workflow: ~openmeter._generated.models.InvoiceWorkflowSettings
-    :ivar lines: List of invoice lines representing each of the items sold to the customer.
-    :vartype lines: list[~openmeter._generated.models.InvoiceLine]
-    :ivar payment: Information on when, how, and to whom the invoice should be paid.
-    :vartype payment: ~openmeter._generated.models.InvoicePaymentTerms
-    :ivar validation_issues: Validation issues reported by the invoice workflow.
-    :vartype validation_issues: list[~openmeter._generated.models.ValidationIssue]
-    :ivar external_ids: External IDs of the invoice in other apps such as Stripe.
-    :vartype external_ids: ~openmeter._generated.models.InvoiceAppExternalIds
+         Please note that the number is (depending on the upstream settings) either unique for the
+         whole organization or unique for the customer, or in multi (stripe) account setups unique for
+         the
+         account. Required.
+        :vartype number: str
+        :ivar currency: Currency for all invoice line items.
+
+         Multi currency invoices are not supported yet. Required.
+        :vartype currency: str
+        :ivar preceding: Key information regarding previous invoices and potentially details as to why
+         they were corrected.
+        :vartype preceding: list[~openmeter._generated.models.CreditNoteOriginalInvoiceRef]
+        :ivar totals: Summary of all the invoice totals, including taxes (calculated). Required.
+        :vartype totals: ~openmeter._generated.models.InvoiceTotals
+        :ivar status: The status of the invoice.
+
+         This field only conatins a simplified status, for more detailed information use the
+         statusDetails field. Required. Known values are: "gathering", "draft", "issuing", "issued",
+         "payment_processing", "overdue", "paid", "uncollectible", and "voided".
+        :vartype status: str or ~openmeter.models.InvoiceStatus
+        :ivar status_details: The details of the current invoice status. Required.
+        :vartype status_details: ~openmeter._generated.models.InvoiceStatusDetails
+        :ivar issued_at: The time the invoice was issued.
+
+    Depending on the status of the invoice this can mean multiple things:
+
+         * draft, gathering: The time the invoice will be issued based on the workflow settings.
+         * issued: The time the invoice was issued.
+        :vartype issued_at: ~datetime.datetime
+        :ivar draft_until: The time until the invoice is in draft status.
+
+         On draft invoice creation it is calculated from the workflow settings.
+
+         If manual approval is required, the draftUntil time is set.
+        :vartype draft_until: ~datetime.datetime
+        :ivar quantity_snapshoted_at: The time when the quantity snapshots on the invoice lines were
+         taken.
+        :vartype quantity_snapshoted_at: ~datetime.datetime
+        :ivar collection_at: The time when the invoice will be/has been collected.
+        :vartype collection_at: ~datetime.datetime
+        :ivar due_at: Due time of the fulfillment of the invoice (if available).
+        :vartype due_at: ~datetime.datetime
+        :ivar period: The period the invoice covers. If the invoice has no line items, it's not set.
+        :vartype period: ~openmeter._generated.models.Period
+        :ivar voided_at: The time the invoice was voided.
+
+         If the invoice was voided, this field will be set to the time the invoice was voided.
+        :vartype voided_at: ~datetime.datetime
+        :ivar sent_to_customer_at: The time the invoice was sent to customer.
+        :vartype sent_to_customer_at: ~datetime.datetime
+        :ivar workflow: The workflow associated with the invoice.
+
+         It is always a snapshot of the workflow settings at the time of invoice creation. The
+         field is optional as it should be explicitly requested with expand options. Required.
+        :vartype workflow: ~openmeter._generated.models.InvoiceWorkflowSettings
+        :ivar lines: List of invoice lines representing each of the items sold to the customer.
+        :vartype lines: list[~openmeter._generated.models.InvoiceLine]
+        :ivar payment: Information on when, how, and to whom the invoice should be paid.
+        :vartype payment: ~openmeter._generated.models.InvoicePaymentTerms
+        :ivar validation_issues: Validation issues reported by the invoice workflow.
+        :vartype validation_issues: list[~openmeter._generated.models.ValidationIssue]
+        :ivar external_ids: External IDs of the invoice in other apps such as Stripe.
+        :vartype external_ids: ~openmeter._generated.models.InvoiceAppExternalIds
     """
 
     id: str = rest_field(visibility=["read"])
@@ -7372,13 +7294,17 @@ Depending on the status of the invoice this can mean multiple things:
  
       * draft, gathering: The time the invoice will be issued based on the workflow settings.
       * issued: The time the invoice was issued."""
-    draft_until: Optional[datetime.datetime] = rest_field(name="draftUntil", visibility=["read", "update"], format="rfc3339")
+    draft_until: Optional[datetime.datetime] = rest_field(
+        name="draftUntil", visibility=["read", "update"], format="rfc3339"
+    )
     """The time until the invoice is in draft status.
      
      On draft invoice creation it is calculated from the workflow settings.
      
      If manual approval is required, the draftUntil time is set."""
-    quantity_snapshoted_at: Optional[datetime.datetime] = rest_field(name="quantitySnapshotedAt", visibility=["read"], format="rfc3339")
+    quantity_snapshoted_at: Optional[datetime.datetime] = rest_field(
+        name="quantitySnapshotedAt", visibility=["read"], format="rfc3339"
+    )
     """The time when the quantity snapshots on the invoice lines were taken."""
     collection_at: Optional[datetime.datetime] = rest_field(name="collectionAt", visibility=["read"], format="rfc3339")
     """The time when the invoice will be/has been collected."""
@@ -7390,7 +7316,9 @@ Depending on the status of the invoice this can mean multiple things:
     """The time the invoice was voided.
      
      If the invoice was voided, this field will be set to the time the invoice was voided."""
-    sent_to_customer_at: Optional[datetime.datetime] = rest_field(name="sentToCustomerAt", visibility=["read"], format="rfc3339")
+    sent_to_customer_at: Optional[datetime.datetime] = rest_field(
+        name="sentToCustomerAt", visibility=["read"], format="rfc3339"
+    )
     """The time the invoice was sent to customer."""
     workflow: "_models.InvoiceWorkflowSettings" = rest_field(visibility=["read", "create", "update"])
     """The workflow associated with the invoice.
@@ -7401,13 +7329,12 @@ Depending on the status of the invoice this can mean multiple things:
     """List of invoice lines representing each of the items sold to the customer."""
     payment: Optional["_models.InvoicePaymentTerms"] = rest_field(visibility=["read"])
     """Information on when, how, and to whom the invoice should be paid."""
-    validation_issues: Optional[list["_models.ValidationIssue"]] = rest_field(name="validationIssues", visibility=["read"])
+    validation_issues: Optional[list["_models.ValidationIssue"]] = rest_field(
+        name="validationIssues", visibility=["read"]
+    )
     """Validation issues reported by the invoice workflow."""
     external_ids: Optional["_models.InvoiceAppExternalIds"] = rest_field(name="externalIds", visibility=["read"])
     """External IDs of the invoice in other apps such as Stripe."""
-
-
-
 
     @overload
     def __init__(  # pylint: disable=too-many-locals
@@ -7422,8 +7349,7 @@ Depending on the status of the invoice this can mean multiple things:
         draft_until: Optional[datetime.datetime] = None,
         period: Optional["_models.Period"] = None,
         lines: Optional[list["_models.InvoiceLine"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -7455,17 +7381,13 @@ class InvoiceAppExternalIds(_Model):
     """The external ID of the invoice in the payment app if available."""
 
 
-
-
-
-
 class InvoiceAvailableActionDetails(_Model):
     """InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
     non-gathering invoices.
 
     :ivar resulting_state: The state the invoice will reach if the action is activated and
      all intermediate steps are successful.
-     
+
      For example advancing a draft_created invoice will result in a draft_manual_approval_needed
      invoice. Required.
     :vartype resulting_state: str
@@ -7479,20 +7401,11 @@ class InvoiceAvailableActionDetails(_Model):
      invoice. Required."""
 
 
-
-
-
-
 class InvoiceAvailableActionInvoiceDetails(_Model):
     """InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
     gathering invoices.
 
     """
-
-
-
-
-
 
 
 class InvoiceAvailableActions(_Model):
@@ -7522,16 +7435,14 @@ class InvoiceAvailableActions(_Model):
     """Delete the invoice (only non-issued invoices can be deleted)."""
     retry: Optional["_models.InvoiceAvailableActionDetails"] = rest_field(visibility=["read"])
     """Retry an invoice issuing step that failed."""
-    snapshot_quantities: Optional["_models.InvoiceAvailableActionDetails"] = rest_field(name="snapshotQuantities", visibility=["read"])
+    snapshot_quantities: Optional["_models.InvoiceAvailableActionDetails"] = rest_field(
+        name="snapshotQuantities", visibility=["read"]
+    )
     """Snapshot quantities for usage based line items."""
     void: Optional["_models.InvoiceAvailableActionDetails"] = rest_field(visibility=["read"])
     """Void an already issued invoice."""
     invoice: Optional["_models.InvoiceAvailableActionInvoiceDetails"] = rest_field(visibility=["read"])
     """Invoice a gathering invoice."""
-
-
-
-
 
 
 class InvoiceDetailedLine(_Model):
@@ -7556,12 +7467,12 @@ class InvoiceDetailedLine(_Model):
      OpenMeter. Required. Known values are: "subscription", "system", and "manual".
     :vartype managed_by: str or ~openmeter.models.InvoiceLineManagedBy
     :ivar status: Status of the line.
-     
+
      External calls always create valid lines, other line types are managed by the
      billing engine of OpenMeter. Required. Known values are: "valid", "detailed", and "split".
     :vartype status: str or ~openmeter.models.InvoiceLineStatus
     :ivar discounts: Discounts detailes applied to this line.
-     
+
      New discounts can be added via the invoice's discounts API, to facilitate
      discounts that are affecting multiple lines.
     :vartype discounts: ~openmeter._generated.models.InvoiceLineDiscounts
@@ -7576,7 +7487,7 @@ class InvoiceDetailedLine(_Model):
     :ivar totals: Totals for this line. Required.
     :vartype totals: ~openmeter._generated.models.InvoiceTotals
     :ivar period: Period of the line item applies to for revenue recognition pruposes.
-     
+
      Billing always treats periods as start being inclusive and end being exclusive. Required.
     :vartype period: ~openmeter._generated.models.Period
     :ivar external_ids: External IDs of the invoice in other apps such as Stripe.
@@ -7646,23 +7557,26 @@ class InvoiceDetailedLine(_Model):
     """External IDs of the invoice in other apps such as Stripe."""
     subscription: Optional["_models.InvoiceLineSubscriptionReference"] = rest_field(visibility=["read"])
     """Subscription are the references to the subscritpions that this line is related to."""
-    invoice_at: datetime.datetime = rest_field(name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339")
+    invoice_at: datetime.datetime = rest_field(
+        name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339"
+    )
     """The time this line item should be invoiced. Required."""
     type: Literal[InvoiceLineTypes.FLAT_FEE] = rest_field(visibility=["read"])
     """Type of the line. Required."""
     per_unit_amount: Optional[str] = rest_field(name="perUnitAmount", visibility=["read", "create", "update"])
     """Price of the item being sold."""
-    payment_term: Optional[Union[str, "_models.PricePaymentTerm"]] = rest_field(name="paymentTerm", visibility=["read", "create", "update"])
+    payment_term: Optional[Union[str, "_models.PricePaymentTerm"]] = rest_field(
+        name="paymentTerm", visibility=["read", "create", "update"]
+    )
     """Payment term of the line. Known values are: \"in_advance\" and \"in_arrears\"."""
     quantity: Optional[str] = rest_field(visibility=["read", "create", "update"])
     """Quantity of the item being sold."""
-    rate_card: Optional["_models.InvoiceDetailedLineRateCard"] = rest_field(name="rateCard", visibility=["read", "create", "update"])
+    rate_card: Optional["_models.InvoiceDetailedLineRateCard"] = rest_field(
+        name="rateCard", visibility=["read", "create", "update"]
+    )
     """The rate card that is used for this line."""
     category: Optional[Union[str, "_models.InvoiceDetailedLineCostCategory"]] = rest_field(visibility=["read"])
     """Category of the flat fee. Known values are: \"regular\" and \"commitment\"."""
-
-
-
 
     @overload
     def __init__(  # pylint: disable=too-many-locals
@@ -7681,8 +7595,7 @@ class InvoiceDetailedLine(_Model):
         payment_term: Optional[Union[str, "_models.PricePaymentTerm"]] = None,
         quantity: Optional[str] = None,
         rate_card: Optional["_models.InvoiceDetailedLineRateCard"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -7703,7 +7616,7 @@ class InvoiceDetailedLineRateCard(_Model):
     :ivar price: Price. Required.
     :vartype price: ~openmeter._generated.models.FlatPriceWithPaymentTerm
     :ivar quantity: Quantity of the item being sold.
-     
+
      Default: 1.
     :vartype quantity: str
     :ivar discounts: The discounts that are applied to the line.
@@ -7721,9 +7634,6 @@ class InvoiceDetailedLineRateCard(_Model):
     discounts: Optional["_models.BillingDiscounts"] = rest_field(visibility=["read", "create", "update"])
     """The discounts that are applied to the line."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -7732,8 +7642,7 @@ class InvoiceDetailedLineRateCard(_Model):
         tax_config: Optional["_models.TaxConfig"] = None,
         quantity: Optional[str] = None,
         discounts: Optional["_models.BillingDiscounts"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -7767,12 +7676,12 @@ class InvoiceLine(_Model):
      OpenMeter. Required. Known values are: "subscription", "system", and "manual".
     :vartype managed_by: str or ~openmeter.models.InvoiceLineManagedBy
     :ivar status: Status of the line.
-     
+
      External calls always create valid lines, other line types are managed by the
      billing engine of OpenMeter. Required. Known values are: "valid", "detailed", and "split".
     :vartype status: str or ~openmeter.models.InvoiceLineStatus
     :ivar discounts: Discounts detailes applied to this line.
-     
+
      New discounts can be added via the invoice's discounts API, to facilitate
      discounts that are affecting multiple lines.
     :vartype discounts: ~openmeter._generated.models.InvoiceLineDiscounts
@@ -7787,7 +7696,7 @@ class InvoiceLine(_Model):
     :ivar totals: Totals for this line. Required.
     :vartype totals: ~openmeter._generated.models.InvoiceTotals
     :ivar period: Period of the line item applies to for revenue recognition pruposes.
-     
+
      Billing always treats periods as start being inclusive and end being exclusive. Required.
     :vartype period: ~openmeter._generated.models.Period
     :ivar invoice_at: The time this line item should be invoiced. Required.
@@ -7812,26 +7721,26 @@ class InvoiceLine(_Model):
     :ivar children: The lines detailing the item or service sold.
     :vartype children: list[~openmeter._generated.models.InvoiceDetailedLine]
     :ivar rate_card: The rate card that is used for this line.
-     
+
      The rate card captures the intent of the price and discounts for the usage-based item.
     :vartype rate_card: ~openmeter._generated.models.InvoiceUsageBasedRateCard
     :ivar quantity: The quantity of the item being sold.
-     
+
      Any usage discounts applied previously are deducted from this quantity.
     :vartype quantity: str
     :ivar metered_quantity: The quantity of the item that has been metered for the period before
      any discounts were applied.
     :vartype metered_quantity: str
     :ivar pre_line_period_quantity: The quantity of the item used before this line's period.
-     
+
      It is non-zero in case of progressive billing, when this shows how much of the usage was
      already billed.
-     
+
      Any usage discounts applied previously are deducted from this quantity.
     :vartype pre_line_period_quantity: str
     :ivar metered_pre_line_period_quantity: The metered quantity of the item used in before this
      line's period without any discounts applied.
-     
+
      It is non-zero in case of progressive billing, when this shows how much of the usage was
      already billed.
     :vartype metered_pre_line_period_quantity: str
@@ -7879,7 +7788,9 @@ class InvoiceLine(_Model):
     """Period of the line item applies to for revenue recognition pruposes.
      
      Billing always treats periods as start being inclusive and end being exclusive. Required."""
-    invoice_at: datetime.datetime = rest_field(name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339")
+    invoice_at: datetime.datetime = rest_field(
+        name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339"
+    )
     """The time this line item should be invoiced. Required."""
     external_ids: Optional["_models.InvoiceLineAppExternalIds"] = rest_field(name="externalIds", visibility=["read"])
     """External IDs of the invoice in other apps such as Stripe."""
@@ -7895,7 +7806,9 @@ class InvoiceLine(_Model):
     """The feature that the usage is based on."""
     children: Optional[list["_models.InvoiceDetailedLine"]] = rest_field(visibility=["read"])
     """The lines detailing the item or service sold."""
-    rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = rest_field(name="rateCard", visibility=["read", "create", "update"])
+    rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = rest_field(
+        name="rateCard", visibility=["read", "create", "update"]
+    )
     """The rate card that is used for this line.
      
      The rate card captures the intent of the price and discounts for the usage-based item."""
@@ -7913,15 +7826,14 @@ class InvoiceLine(_Model):
      already billed.
      
      Any usage discounts applied previously are deducted from this quantity."""
-    metered_pre_line_period_quantity: Optional[str] = rest_field(name="meteredPreLinePeriodQuantity", visibility=["read"])
+    metered_pre_line_period_quantity: Optional[str] = rest_field(
+        name="meteredPreLinePeriodQuantity", visibility=["read"]
+    )
     """The metered quantity of the item used in before this line's period without any discounts
      applied.
      
      It is non-zero in case of progressive billing, when this shows how much of the usage was
      already billed."""
-
-
-
 
     @overload
     def __init__(  # pylint: disable=too-many-locals
@@ -7939,8 +7851,7 @@ class InvoiceLine(_Model):
         price: Optional["_types.RateCardUsageBasedPrice"] = None,
         feature_key: Optional[str] = None,
         rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -7997,10 +7908,6 @@ class InvoiceLineAmountDiscount(_Model):
     """Amount in the currency of the invoice. Required."""
 
 
-
-
-
-
 class InvoiceLineAppExternalIds(_Model):
     """InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps such as
     Stripe.
@@ -8017,36 +7924,33 @@ class InvoiceLineAppExternalIds(_Model):
     """The external ID of the invoice in the tax app if available."""
 
 
-
-
-
-
 class InvoiceLineDiscounts(_Model):
     """InvoiceLineDiscounts represents the discounts applied to the invoice line by type.
 
     :ivar amount: Amount based discounts applied to the line.
-     
+
      Amount based discounts are deduced from the total price of the line.
     :vartype amount: list[~openmeter._generated.models.InvoiceLineAmountDiscount]
     :ivar usage: Usage based discounts applied to the line.
-     
+
      Usage based discounts are deduced from the usage of the line before price calculations are
      applied.
     :vartype usage: list[~openmeter._generated.models.InvoiceLineUsageDiscount]
     """
 
-    amount: Optional[list["_models.InvoiceLineAmountDiscount"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    amount: Optional[list["_models.InvoiceLineAmountDiscount"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Amount based discounts applied to the line.
      
      Amount based discounts are deduced from the total price of the line."""
-    usage: Optional[list["_models.InvoiceLineUsageDiscount"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    usage: Optional[list["_models.InvoiceLineUsageDiscount"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Usage based discounts applied to the line.
      
      Usage based discounts are deduced from the usage of the line before price calculations are
      applied."""
-
-
-
 
     @overload
     def __init__(
@@ -8054,8 +7958,7 @@ class InvoiceLineDiscounts(_Model):
         *,
         amount: Optional[list["_models.InvoiceLineAmountDiscount"]] = None,
         usage: Optional[list["_models.InvoiceLineUsageDiscount"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8070,7 +7973,7 @@ class InvoiceLineDiscounts(_Model):
 
 class InvoiceLineReplaceUpdate(_Model):
     """InvoiceLineReplaceUpdate represents the update model for an UBP invoice line.
-    
+
     This type makes ID optional to allow for creating new lines as part of the update.
 
     :ivar name: Display name. Required.
@@ -8082,7 +7985,7 @@ class InvoiceLineReplaceUpdate(_Model):
     :ivar tax_config: Tax config specify the tax configuration for this line.
     :vartype tax_config: ~openmeter._generated.models.TaxConfig
     :ivar period: Period of the line item applies to for revenue recognition pruposes.
-     
+
      Billing always treats periods as start being inclusive and end being exclusive. Required.
     :vartype period: ~openmeter._generated.models.Period
     :ivar invoice_at: The time this line item should be invoiced. Required.
@@ -8098,7 +8001,7 @@ class InvoiceLineReplaceUpdate(_Model):
     :ivar feature_key: The feature that the usage is based on.
     :vartype feature_key: str
     :ivar rate_card: The rate card that is used for this line.
-     
+
      The rate card captures the intent of the price and discounts for the usage-based item.
     :vartype rate_card: ~openmeter._generated.models.InvoiceUsageBasedRateCard
     :ivar id: The ID of the line.
@@ -8117,7 +8020,9 @@ class InvoiceLineReplaceUpdate(_Model):
     """Period of the line item applies to for revenue recognition pruposes.
      
      Billing always treats periods as start being inclusive and end being exclusive. Required."""
-    invoice_at: datetime.datetime = rest_field(name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339")
+    invoice_at: datetime.datetime = rest_field(
+        name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339"
+    )
     """The time this line item should be invoiced. Required."""
     price: Optional["_types.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
     """Price of the usage-based item being sold. Is one of the following types:
@@ -8125,15 +8030,14 @@ class InvoiceLineReplaceUpdate(_Model):
      DynamicPriceWithCommitments, PackagePriceWithCommitments"""
     feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update"])
     """The feature that the usage is based on."""
-    rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = rest_field(name="rateCard", visibility=["read", "create", "update"])
+    rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = rest_field(
+        name="rateCard", visibility=["read", "create", "update"]
+    )
     """The rate card that is used for this line.
      
      The rate card captures the intent of the price and discounts for the usage-based item."""
     id: Optional[str] = rest_field(visibility=["update"])
     """The ID of the line."""
-
-
-
 
     @overload
     def __init__(
@@ -8149,8 +8053,7 @@ class InvoiceLineReplaceUpdate(_Model):
         feature_key: Optional[str] = None,
         rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = None,
         id: Optional[str] = None,  # pylint: disable=redefined-builtin
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8165,28 +8068,28 @@ class InvoiceLineReplaceUpdate(_Model):
 
 class InvoiceLineSubscriptionReference(_Model):
     """InvoiceLineSubscriptionReference contains the references to the subscription that this line is
-    related to.
+        related to.
 
-    :ivar subscription: The subscription. Required.
-    :vartype subscription: ~openmeter._generated.models.IDResource
-    :ivar phase: The phase of the subscription. Required.
-    :vartype phase: ~openmeter._generated.models.IDResource
-    :ivar item: The item this line is related to. Required.
-    :vartype item: ~openmeter._generated.models.IDResource
-    :ivar billing_period: The billing period of the subscription. In case the subscription item's
-    billing period is different
-from the subscription's billing period, this field will contain the billing period of the
-    subscription itself.
+        :ivar subscription: The subscription. Required.
+        :vartype subscription: ~openmeter._generated.models.IDResource
+        :ivar phase: The phase of the subscription. Required.
+        :vartype phase: ~openmeter._generated.models.IDResource
+        :ivar item: The item this line is related to. Required.
+        :vartype item: ~openmeter._generated.models.IDResource
+        :ivar billing_period: The billing period of the subscription. In case the subscription item's
+        billing period is different
+    from the subscription's billing period, this field will contain the billing period of the
+        subscription itself.
 
-For example, in case of:
+    For example, in case of:
 
-     * A monthly billed subscription anchored to 2025-01-01
-     * A subscription item billed daily
+         * A monthly billed subscription anchored to 2025-01-01
+         * A subscription item billed daily
 
-An example line would have the period of 2025-01-02 to 2025-01-03 as the item is billed daily,
-    but the subscription's billing period
-will be 2025-01-01 to 2025-01-31. Required.
-    :vartype billing_period: ~openmeter._generated.models.Period
+    An example line would have the period of 2025-01-02 to 2025-01-03 as the item is billed daily,
+        but the subscription's billing period
+    will be 2025-01-01 to 2025-01-31. Required.
+        :vartype billing_period: ~openmeter._generated.models.Period
     """
 
     subscription: "_models.IDResource" = rest_field(visibility=["read"])
@@ -8211,24 +8114,20 @@ will be 2025-01-01 to 2025-01-31. Required.
  will be 2025-01-01 to 2025-01-31. Required."""
 
 
-
-
-
-
 class InvoiceLineTaxItem(_Model):
     """TaxConfig stores the configuration for a tax line relative to an invoice line.
 
-    :ivar config: Tax provider configuration.
-    :vartype config: ~openmeter._generated.models.TaxConfig
-    :ivar percent: Percent defines the percentage set manually or determined from
-the rate key (calculated if rate present). A nil percent implies that
-this tax combo is **exempt** from tax.").
-    :vartype percent: float
-    :ivar surcharge: Some countries require an additional surcharge (calculated if rate present).
-    :vartype surcharge: str
-    :ivar behavior: Is the tax item inclusive or exclusive of the base amount. Known values are:
-     "inclusive" and "exclusive".
-    :vartype behavior: str or ~openmeter.models.InvoiceLineTaxBehavior
+        :ivar config: Tax provider configuration.
+        :vartype config: ~openmeter._generated.models.TaxConfig
+        :ivar percent: Percent defines the percentage set manually or determined from
+    the rate key (calculated if rate present). A nil percent implies that
+    this tax combo is **exempt** from tax.").
+        :vartype percent: float
+        :ivar surcharge: Some countries require an additional surcharge (calculated if rate present).
+        :vartype surcharge: str
+        :ivar behavior: Is the tax item inclusive or exclusive of the base amount. Known values are:
+         "inclusive" and "exclusive".
+        :vartype behavior: str or ~openmeter.models.InvoiceLineTaxBehavior
     """
 
     config: Optional["_models.TaxConfig"] = rest_field(visibility=["read"])
@@ -8244,13 +8143,9 @@ this tax combo is **exempt** from tax.").
      \"exclusive\"."""
 
 
-
-
-
-
 class InvoiceLineUsageDiscount(_Model):
     """InvoiceLineUsageDiscount represents an usage-based discount applied to the line.
-    
+
     The deduction is done before the pricing algorithm is applied.
 
     :ivar created_at: Creation Time. Required.
@@ -8297,10 +8192,6 @@ class InvoiceLineUsageDiscount(_Model):
     """Usage quantity in the unit of the underlying meter."""
 
 
-
-
-
-
 class InvoicePaginatedResponse(_Model):
     """Paginated response.
 
@@ -8320,11 +8211,10 @@ class InvoicePaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.Invoice"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.Invoice"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -8334,8 +8224,7 @@ class InvoicePaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.Invoice"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8361,16 +8250,12 @@ class InvoicePaymentTerms(_Model):
     """The terms of payment for the invoice. Is either a PaymentTermInstant type or a
      PaymentTermDueDate type."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         terms: Optional["_types.PaymentTerms"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8396,7 +8281,7 @@ class InvoicePendingLineCreate(_Model):
     :ivar tax_config: Tax config specify the tax configuration for this line.
     :vartype tax_config: ~openmeter._generated.models.TaxConfig
     :ivar period: Period of the line item applies to for revenue recognition pruposes.
-     
+
      Billing always treats periods as start being inclusive and end being exclusive. Required.
     :vartype period: ~openmeter._generated.models.Period
     :ivar invoice_at: The time this line item should be invoiced. Required.
@@ -8412,7 +8297,7 @@ class InvoicePendingLineCreate(_Model):
     :ivar feature_key: The feature that the usage is based on.
     :vartype feature_key: str
     :ivar rate_card: The rate card that is used for this line.
-     
+
      The rate card captures the intent of the price and discounts for the usage-based item.
     :vartype rate_card: ~openmeter._generated.models.InvoiceUsageBasedRateCard
     """
@@ -8429,7 +8314,9 @@ class InvoicePendingLineCreate(_Model):
     """Period of the line item applies to for revenue recognition pruposes.
      
      Billing always treats periods as start being inclusive and end being exclusive. Required."""
-    invoice_at: datetime.datetime = rest_field(name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339")
+    invoice_at: datetime.datetime = rest_field(
+        name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339"
+    )
     """The time this line item should be invoiced. Required."""
     price: Optional["_types.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
     """Price of the usage-based item being sold. Is one of the following types:
@@ -8437,13 +8324,12 @@ class InvoicePendingLineCreate(_Model):
      DynamicPriceWithCommitments, PackagePriceWithCommitments"""
     feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update"])
     """The feature that the usage is based on."""
-    rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = rest_field(name="rateCard", visibility=["read", "create", "update"])
+    rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = rest_field(
+        name="rateCard", visibility=["read", "create", "update"]
+    )
     """The rate card that is used for this line.
      
      The rate card captures the intent of the price and discounts for the usage-based item."""
-
-
-
 
     @overload
     def __init__(
@@ -8458,8 +8344,7 @@ class InvoicePendingLineCreate(_Model):
         price: Optional["_types.RateCardUsageBasedPrice"] = None,
         feature_key: Optional[str] = None,
         rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8486,17 +8371,13 @@ class InvoicePendingLineCreateInput(_Model):
     lines: list["_models.InvoicePendingLineCreate"] = rest_field(visibility=["create"])
     """The lines to be created. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         currency: str,
         lines: list["_models.InvoicePendingLineCreate"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8528,22 +8409,18 @@ class InvoicePendingLineCreateResponse(_Model):
     """Whether the invoice was newly created. Required."""
 
 
-
-
-
-
 class InvoicePendingLinesActionFiltersInput(_Model):
     """InvoicePendingLinesActionFiltersInput specifies which lines to include in the invoice.
 
-    :ivar line_ids: The pending line items to include in the invoice, if not provided:
+        :ivar line_ids: The pending line items to include in the invoice, if not provided:
 
-     * all line items that have invoice_at < asOf will be included
-     * [progressive billing only] all usage based line items will be included up to asOf, new
-usage-based line items will be staged for the rest of the billing cycle
+         * all line items that have invoice_at < asOf will be included
+         * [progressive billing only] all usage based line items will be included up to asOf, new
+    usage-based line items will be staged for the rest of the billing cycle
 
-All lineIDs present in the list, must exists and must be invoicable as of asOf, or the action
-    will fail.
-    :vartype line_ids: list[str]
+    All lineIDs present in the list, must exists and must be invoicable as of asOf, or the action
+        will fail.
+        :vartype line_ids: list[str]
     """
 
     line_ids: Optional[list[str]] = rest_field(name="lineIds", visibility=["create"])
@@ -8556,16 +8433,12 @@ All lineIDs present in the list, must exists and must be invoicable as of asOf, 
  All lineIDs present in the list, must exists and must be invoicable as of asOf, or the action
      will fail."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         line_ids: Optional[list[str]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8580,7 +8453,7 @@ All lineIDs present in the list, must exists and must be invoicable as of asOf, 
 
 class InvoicePendingLinesActionInput(_Model):
     """BillingInvoiceActionInput is the input for creating an invoice.
-    
+
     Invoice creation is always based on already pending line items created by the
     billingCreateLineByCustomer
     operation. Empty invoices are not allowed.
@@ -8588,13 +8461,13 @@ class InvoicePendingLinesActionInput(_Model):
     :ivar filters: Filters to apply when creating the invoice.
     :vartype filters: ~openmeter._generated.models.InvoicePendingLinesActionFiltersInput
     :ivar as_of: The time as of which the invoice is created.
-     
+
      If not provided, the current time is used.
     :vartype as_of: ~datetime.datetime
     :ivar customer_id: The customer ID for which to create the invoice. Required.
     :vartype customer_id: str
     :ivar progressive_billing_override: Override the progressive billing setting of the customer.
-     
+
      Can be used to disable/enable progressive billing in case the business logic
      requires it, if not provided the billing profile's progressive billing setting will be used.
     :vartype progressive_billing_override: bool
@@ -8614,9 +8487,6 @@ class InvoicePendingLinesActionInput(_Model):
      Can be used to disable/enable progressive billing in case the business logic
      requires it, if not provided the billing profile's progressive billing setting will be used."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -8625,8 +8495,7 @@ class InvoicePendingLinesActionInput(_Model):
         filters: Optional["_models.InvoicePendingLinesActionFiltersInput"] = None,
         as_of: Optional[datetime.datetime] = None,
         progressive_billing_override: Optional[bool] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8652,10 +8521,6 @@ class InvoiceReference(_Model):
     """The ID of the invoice. Required."""
     number: Optional[str] = rest_field(visibility=["read"])
     """The number of the invoice."""
-
-
-
-
 
 
 class InvoiceReplaceUpdate(_Model):
@@ -8688,9 +8553,6 @@ class InvoiceReplaceUpdate(_Model):
     workflow: "_models.InvoiceWorkflowReplaceUpdate" = rest_field(visibility=["update"])
     """The workflow settings for the invoice. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -8701,8 +8563,7 @@ class InvoiceReplaceUpdate(_Model):
         workflow: "_models.InvoiceWorkflowReplaceUpdate",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8721,7 +8582,7 @@ class InvoiceSimulationInput(_Model):
     :ivar number: The number of the invoice.
     :vartype number: str
     :ivar currency: Currency for all invoice line items.
-     
+
      Multi currency invoices are not supported yet. Required.
     :vartype currency: str
     :ivar lines: Lines to be included in the generated invoice. Required.
@@ -8737,9 +8598,6 @@ class InvoiceSimulationInput(_Model):
     lines: list["_models.InvoiceSimulationLine"] = rest_field(visibility=["create"])
     """Lines to be included in the generated invoice. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -8747,8 +8605,7 @@ class InvoiceSimulationInput(_Model):
         currency: str,
         lines: list["_models.InvoiceSimulationLine"],
         number: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8774,7 +8631,7 @@ class InvoiceSimulationLine(_Model):
     :ivar tax_config: Tax config specify the tax configuration for this line.
     :vartype tax_config: ~openmeter._generated.models.TaxConfig
     :ivar period: Period of the line item applies to for revenue recognition pruposes.
-     
+
      Billing always treats periods as start being inclusive and end being exclusive. Required.
     :vartype period: ~openmeter._generated.models.Period
     :ivar invoice_at: The time this line item should be invoiced. Required.
@@ -8790,7 +8647,7 @@ class InvoiceSimulationLine(_Model):
     :ivar feature_key: The feature that the usage is based on.
     :vartype feature_key: str
     :ivar rate_card: The rate card that is used for this line.
-     
+
      The rate card captures the intent of the price and discounts for the usage-based item.
     :vartype rate_card: ~openmeter._generated.models.InvoiceUsageBasedRateCard
     :ivar quantity: The quantity of the item being sold. Required.
@@ -8799,7 +8656,7 @@ class InvoiceSimulationLine(_Model):
      line is billed progressively.
     :vartype pre_line_period_quantity: str
     :ivar id: ID of the line. If not specified it will be auto-generated.
-     
+
      When discounts are specified, this must be provided, so that the discount can reference it.
     :vartype id: str
     """
@@ -8816,7 +8673,9 @@ class InvoiceSimulationLine(_Model):
     """Period of the line item applies to for revenue recognition pruposes.
      
      Billing always treats periods as start being inclusive and end being exclusive. Required."""
-    invoice_at: datetime.datetime = rest_field(name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339")
+    invoice_at: datetime.datetime = rest_field(
+        name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339"
+    )
     """The time this line item should be invoiced. Required."""
     price: Optional["_types.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
     """Price of the usage-based item being sold. Is one of the following types:
@@ -8824,7 +8683,9 @@ class InvoiceSimulationLine(_Model):
      DynamicPriceWithCommitments, PackagePriceWithCommitments"""
     feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update"])
     """The feature that the usage is based on."""
-    rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = rest_field(name="rateCard", visibility=["read", "create", "update"])
+    rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = rest_field(
+        name="rateCard", visibility=["read", "create", "update"]
+    )
     """The rate card that is used for this line.
      
      The rate card captures the intent of the price and discounts for the usage-based item."""
@@ -8836,9 +8697,6 @@ class InvoiceSimulationLine(_Model):
     """ID of the line. If not specified it will be auto-generated.
      
      When discounts are specified, this must be provided, so that the discount can reference it."""
-
-
-
 
     @overload
     def __init__(
@@ -8856,8 +8714,7 @@ class InvoiceSimulationLine(_Model):
         rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = None,
         pre_line_period_quantity: Optional[str] = None,
         id: Optional[str] = None,  # pylint: disable=redefined-builtin
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8872,7 +8729,7 @@ class InvoiceSimulationLine(_Model):
 
 class InvoiceStatusDetails(_Model):
     """InvoiceStatusDetails represents the details of the invoice status.
-    
+
     API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
     the next steps of the invoice instead of the extendedStatus field.
 
@@ -8892,19 +8749,17 @@ class InvoiceStatusDetails(_Model):
     """Is the invoice in a failed state?. Required."""
     extended_status: str = rest_field(name="extendedStatus", visibility=["read"])
     """Extended status information for the invoice. Required."""
-    available_actions: "_models.InvoiceAvailableActions" = rest_field(name="availableActions", visibility=["read", "create", "update", "delete", "query"])
+    available_actions: "_models.InvoiceAvailableActions" = rest_field(
+        name="availableActions", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The actions that can be performed on the invoice. Required."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         available_actions: "_models.InvoiceAvailableActions",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -8955,10 +8810,6 @@ class InvoiceTotals(_Model):
     """The total amount value of the line after taxes, discounts and commitments. Required."""
 
 
-
-
-
-
 class InvoiceUsageBasedRateCard(_Model):
     """InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.
 
@@ -8991,9 +8842,6 @@ class InvoiceUsageBasedRateCard(_Model):
     discounts: Optional["_models.BillingDiscounts"] = rest_field(visibility=["read", "create", "update"])
     """The discounts that are applied to the line."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -9002,8 +8850,7 @@ class InvoiceUsageBasedRateCard(_Model):
         feature_key: Optional[str] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
         discounts: Optional["_models.BillingDiscounts"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9039,11 +8886,10 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
     due_after: Optional[str] = rest_field(name="dueAfter", visibility=["read", "create", "update"])
     """The period after which the invoice is due.
      With some payment solutions it's only applicable for manual collection method."""
-    default_tax_config: Optional["_models.TaxConfig"] = rest_field(name="defaultTaxConfig", visibility=["read", "create", "update"])
+    default_tax_config: Optional["_models.TaxConfig"] = rest_field(
+        name="defaultTaxConfig", visibility=["read", "create", "update"]
+    )
     """Default tax configuration to apply to the invoices."""
-
-
-
 
     @overload
     def __init__(
@@ -9053,8 +8899,7 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
         draft_period: Optional[str] = None,
         due_after: Optional[str] = None,
         default_tax_config: Optional["_models.TaxConfig"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9069,7 +8914,7 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
 
 class InvoiceWorkflowReplaceUpdate(_Model):
     """InvoiceWorkflowReplaceUpdate represents the update model for an invoice workflow.
-    
+
     Fields that are immutable a re removed from the model. This is based on
     InvoiceWorkflowSettings.
 
@@ -9077,19 +8922,17 @@ class InvoiceWorkflowReplaceUpdate(_Model):
     :vartype workflow: ~openmeter._generated.models.InvoiceWorkflowSettingsReplaceUpdate
     """
 
-    workflow: "_models.InvoiceWorkflowSettingsReplaceUpdate" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    workflow: "_models.InvoiceWorkflowSettingsReplaceUpdate" = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The workflow used for this invoice. Required."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         workflow: "_models.InvoiceWorkflowSettingsReplaceUpdate",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9104,7 +8947,7 @@ class InvoiceWorkflowReplaceUpdate(_Model):
 
 class InvoiceWorkflowSettings(_Model):
     """InvoiceWorkflowSettings represents the workflow settings used by the invoice.
-    
+
     This is a clone of the billing profile's workflow settings at the time of invoice creation
     with customer overrides considered.
 
@@ -9114,7 +8957,7 @@ class InvoiceWorkflowSettings(_Model):
      ~openmeter._generated.models.BillingProfileAppReferences
     :ivar source_billing_profile_id: sourceBillingProfileID is the billing profile on which the
      workflow was based on.
-     
+
      The profile is snapshotted on invoice creation, after which it can be altered independently
      of the profile itself. Required.
     :vartype source_billing_profile_id: str
@@ -9133,16 +8976,12 @@ class InvoiceWorkflowSettings(_Model):
     workflow: "_models.BillingWorkflow" = rest_field(visibility=["read", "create", "update"])
     """The workflow details used by this invoice. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         workflow: "_models.BillingWorkflow",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9157,7 +8996,7 @@ class InvoiceWorkflowSettings(_Model):
 
 class InvoiceWorkflowSettingsReplaceUpdate(_Model):
     """Mutable workflow settings for an invoice.
-    
+
     Other fields on the invoice's workflow are not mutable, they serve as a history of the
     invoice's workflow
     at creation time.
@@ -9173,17 +9012,13 @@ class InvoiceWorkflowSettingsReplaceUpdate(_Model):
     payment: "_models.BillingWorkflowPaymentSettings" = rest_field(visibility=["update"])
     """The payment settings for this workflow. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         invoicing: "_models.InvoiceWorkflowInvoicingSettingsReplaceUpdate",
         payment: "_models.BillingWorkflowPaymentSettings",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9210,17 +9045,13 @@ class IssueAfterReset(_Model):
     priority: Optional[int] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Issue grant after reset priority."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         amount: float,
         priority: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9255,13 +9086,14 @@ class ListRequestFilter(_Model):
     id: Optional["_models.FilterString"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     source: Optional["_models.FilterString"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     subject: Optional["_models.FilterString"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    customer_id: Optional["_models.FilterIDExact"] = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
+    customer_id: Optional["_models.FilterIDExact"] = rest_field(
+        name="customerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     type: Optional["_models.FilterString"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     time: Optional["_models.FilterTime"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    ingested_at: Optional["_models.FilterTime"] = rest_field(name="ingestedAt", visibility=["read", "create", "update", "delete", "query"])
-
-
-
+    ingested_at: Optional["_models.FilterTime"] = rest_field(
+        name="ingestedAt", visibility=["read", "create", "update", "delete", "query"]
+    )
 
     @overload
     def __init__(
@@ -9274,8 +9106,7 @@ class ListRequestFilter(_Model):
         type: Optional["_models.FilterString"] = None,
         time: Optional["_models.FilterTime"] = None,
         ingested_at: Optional["_models.FilterTime"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9292,7 +9123,7 @@ class MarketplaceInstallRequestPayload(_Model):
     """Marketplace install request payload.
 
     :ivar name: Name of the application to install.
-     
+
      If name is not provided defaults to the marketplace listing's name.
     :vartype name: str
     :ivar create_billing_profile: If true, a billing profile will be created for the app.
@@ -9305,13 +9136,12 @@ class MarketplaceInstallRequestPayload(_Model):
     """Name of the application to install.
      
      If name is not provided defaults to the marketplace listing's name."""
-    create_billing_profile: Optional[bool] = rest_field(name="createBillingProfile", visibility=["read", "create", "update", "delete", "query"])
+    create_billing_profile: Optional[bool] = rest_field(
+        name="createBillingProfile", visibility=["read", "create", "update", "delete", "query"]
+    )
     """If true, a billing profile will be created for the app.
      The Stripe app will be also set as the default billing profile if the current default is a
      Sandbox app."""
-
-
-
 
     @overload
     def __init__(
@@ -9319,8 +9149,7 @@ class MarketplaceInstallRequestPayload(_Model):
         *,
         name: Optional[str] = None,
         create_billing_profile: Optional[bool] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9345,11 +9174,10 @@ class MarketplaceInstallResponse(_Model):
 
     app: "_types.App" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required. Is one of the following types: StripeApp, SandboxApp, CustomInvoicingApp"""
-    default_for_capability_types: list[Union[str, "_models.AppCapabilityType"]] = rest_field(name="defaultForCapabilityTypes", visibility=["read", "create", "update", "delete", "query"])
+    default_for_capability_types: list[Union[str, "_models.AppCapabilityType"]] = rest_field(
+        name="defaultForCapabilityTypes", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Default for capabilities. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -9357,8 +9185,7 @@ class MarketplaceInstallResponse(_Model):
         *,
         app: "_types.App",
         default_for_capability_types: list[Union[str, "_models.AppCapabilityType"]],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9374,7 +9201,7 @@ class MarketplaceInstallResponse(_Model):
 class MarketplaceListing(_Model):
     """A marketplace listing.
     Represent an available app in the app marketplace that can be installed to the organization.
-    
+
     Marketplace apps only exist in config so they don't extend the Resource model.
 
     :ivar type: The app's type. Required. Known values are: "stripe", "sandbox", and
@@ -9387,7 +9214,7 @@ class MarketplaceListing(_Model):
     :ivar capabilities: The app's capabilities. Required.
     :vartype capabilities: list[~openmeter._generated.models.AppCapability]
     :ivar install_methods: Install methods.
-     
+
      List of methods to install the app. Required.
     :vartype install_methods: list[str or ~openmeter.models.InstallMethod]
     """
@@ -9400,13 +9227,12 @@ class MarketplaceListing(_Model):
     """The app's description. Required."""
     capabilities: list["_models.AppCapability"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The app's capabilities. Required."""
-    install_methods: list[Union[str, "_models.InstallMethod"]] = rest_field(name="installMethods", visibility=["read", "create", "update", "delete", "query"])
+    install_methods: list[Union[str, "_models.InstallMethod"]] = rest_field(
+        name="installMethods", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Install methods.
      
      List of methods to install the app. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -9417,8 +9243,7 @@ class MarketplaceListing(_Model):
         description: str,
         capabilities: list["_models.AppCapability"],
         install_methods: list[Union[str, "_models.InstallMethod"]],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9450,11 +9275,10 @@ class MarketplaceListingPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.MarketplaceListing"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.MarketplaceListing"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -9464,8 +9288,7 @@ class MarketplaceListingPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.MarketplaceListing"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9483,11 +9306,6 @@ class Metadata(_Model):
     Metadata can be used to store additional information about a resource.
 
     """
-
-
-
-
-
 
 
 class Meter(_Model):
@@ -9521,15 +9339,15 @@ class Meter(_Model):
     :vartype event_from: ~datetime.datetime
     :ivar value_property: JSONPath expression to extract the value from the ingested event's data
      property.
-     
+
      The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be
      parsed to a number.
-     
+
      For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the
      valueProperty is ignored.
     :vartype value_property: str
     :ivar group_by: Named JSONPath expressions to extract the group by values from the event data.
-     
+
      Keys must be unique and consist only alphanumeric and underscore characters.
     :vartype group_by: dict[str, str]
     """
@@ -9556,7 +9374,9 @@ class Meter(_Model):
      \"UNIQUE_COUNT\", \"AVG\", \"MIN\", \"MAX\", and \"LATEST\"."""
     event_type: str = rest_field(name="eventType", visibility=["read", "create"])
     """The event type to aggregate. Required."""
-    event_from: Optional[datetime.datetime] = rest_field(name="eventFrom", visibility=["read", "create"], format="rfc3339")
+    event_from: Optional[datetime.datetime] = rest_field(
+        name="eventFrom", visibility=["read", "create"], format="rfc3339"
+    )
     """The date since the meter should include events.
      Useful to skip old events.
      If not specified, all historical events are included."""
@@ -9573,9 +9393,6 @@ class Meter(_Model):
      
      Keys must be unique and consist only alphanumeric and underscore characters."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -9589,8 +9406,7 @@ class Meter(_Model):
         event_from: Optional[datetime.datetime] = None,
         value_property: Optional[str] = None,
         group_by: Optional[dict[str, str]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9626,15 +9442,15 @@ class MeterCreate(_Model):
     :vartype event_from: ~datetime.datetime
     :ivar value_property: JSONPath expression to extract the value from the ingested event's data
      property.
-     
+
      The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be
      parsed to a number.
-     
+
      For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the
      valueProperty is ignored.
     :vartype value_property: str
     :ivar group_by: Named JSONPath expressions to extract the group by values from the event data.
-     
+
      Keys must be unique and consist only alphanumeric and underscore characters.
     :vartype group_by: dict[str, str]
     """
@@ -9648,16 +9464,22 @@ class MeterCreate(_Model):
     slug: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """A unique, human-readable identifier for the meter.
      Must consist only alphanumeric and underscore characters. Required."""
-    aggregation: Union[str, "_models.MeterAggregation"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    aggregation: Union[str, "_models.MeterAggregation"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The aggregation type to use for the meter. Required. Known values are: \"SUM\", \"COUNT\",
      \"UNIQUE_COUNT\", \"AVG\", \"MIN\", \"MAX\", and \"LATEST\"."""
     event_type: str = rest_field(name="eventType", visibility=["read", "create", "update", "delete", "query"])
     """The event type to aggregate. Required."""
-    event_from: Optional[datetime.datetime] = rest_field(name="eventFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    event_from: Optional[datetime.datetime] = rest_field(
+        name="eventFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The date since the meter should include events.
      Useful to skip old events.
      If not specified, all historical events are included."""
-    value_property: Optional[str] = rest_field(name="valueProperty", visibility=["read", "create", "update", "delete", "query"])
+    value_property: Optional[str] = rest_field(
+        name="valueProperty", visibility=["read", "create", "update", "delete", "query"]
+    )
     """JSONPath expression to extract the value from the ingested event's data property.
      
      The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be
@@ -9665,13 +9487,12 @@ class MeterCreate(_Model):
      
      For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the
      valueProperty is ignored."""
-    group_by: Optional[dict[str, str]] = rest_field(name="groupBy", visibility=["read", "create", "update", "delete", "query"])
+    group_by: Optional[dict[str, str]] = rest_field(
+        name="groupBy", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Named JSONPath expressions to extract the group by values from the event data.
      
      Keys must be unique and consist only alphanumeric and underscore characters."""
-
-
-
 
     @overload
     def __init__(
@@ -9686,8 +9507,7 @@ class MeterCreate(_Model):
         event_from: Optional[datetime.datetime] = None,
         value_property: Optional[str] = None,
         group_by: Optional[dict[str, str]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9707,11 +9527,11 @@ class MeterQueryRequest(_Model):
      Useful to track progress of a query.
     :vartype client_id: str
     :ivar from_property: Start date-time in RFC 3339 format.
-     
+
      Inclusive.
     :vartype from_property: ~datetime.datetime
     :ivar to: End date-time in RFC 3339 format.
-     
+
      Inclusive.
     :vartype to: ~datetime.datetime
     :ivar window_size: If not specified, a single usage aggregate will be returned for the entirety
@@ -9740,37 +9560,50 @@ class MeterQueryRequest(_Model):
     client_id: Optional[str] = rest_field(name="clientId", visibility=["read", "create", "update", "delete", "query"])
     """Client ID
      Useful to track progress of a query."""
-    from_property: Optional[datetime.datetime] = rest_field(name="from", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    from_property: Optional[datetime.datetime] = rest_field(
+        name="from", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Start date-time in RFC 3339 format.
      
      Inclusive."""
-    to: Optional[datetime.datetime] = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    to: Optional[datetime.datetime] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """End date-time in RFC 3339 format.
      
      Inclusive."""
-    window_size: Optional[Union[str, "_models.WindowSize"]] = rest_field(name="windowSize", visibility=["read", "create", "update", "delete", "query"])
+    window_size: Optional[Union[str, "_models.WindowSize"]] = rest_field(
+        name="windowSize", visibility=["read", "create", "update", "delete", "query"]
+    )
     """If not specified, a single usage aggregate will be returned for the entirety of the specified
      period for each subject and group. Known values are: \"MINUTE\", \"HOUR\", \"DAY\", and
      \"MONTH\"."""
-    window_time_zone: Optional[str] = rest_field(name="windowTimeZone", visibility=["read", "create", "update", "delete", "query"])
+    window_time_zone: Optional[str] = rest_field(
+        name="windowTimeZone", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The value is the name of the time zone as defined in the IANA Time Zone Database
      (`http://www.iana.org/time-zones <http://www.iana.org/time-zones>`_).
      If not specified, the UTC timezone will be used."""
     subject: Optional[list[str]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Filtering by multiple subjects."""
-    filter_customer_id: Optional[list[str]] = rest_field(name="filterCustomerId", visibility=["read", "create", "update", "delete", "query"])
+    filter_customer_id: Optional[list[str]] = rest_field(
+        name="filterCustomerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Filtering by multiple customers."""
-    filter_group_by: Optional[dict[str, list[str]]] = rest_field(name="filterGroupBy", visibility=["read", "create", "update", "delete", "query"])
+    filter_group_by: Optional[dict[str, list[str]]] = rest_field(
+        name="filterGroupBy", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Simple filter for group bys with exact match."""
-    advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = rest_field(name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"])
+    advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = rest_field(
+        name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Optional advanced meter group by filters.
      You can use this to filter for values of the meter groupBy fields."""
-    group_by: Optional[list[str]] = rest_field(name="groupBy", visibility=["read", "create", "update", "delete", "query"])
+    group_by: Optional[list[str]] = rest_field(
+        name="groupBy", visibility=["read", "create", "update", "delete", "query"]
+    )
     """If not specified a single aggregate will be returned for each subject and time window.
      ``subject`` is a reserved group by value."""
-
-
-
 
     @overload
     def __init__(
@@ -9786,8 +9619,7 @@ class MeterQueryRequest(_Model):
         filter_group_by: Optional[dict[str, list[str]]] = None,
         advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = None,
         group_by: Optional[list[str]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9818,22 +9650,25 @@ class MeterQueryResult(_Model):
     :vartype data: list[~openmeter._generated.models.MeterQueryRow]
     """
 
-    from_property: Optional[datetime.datetime] = rest_field(name="from", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    from_property: Optional[datetime.datetime] = rest_field(
+        name="from", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The start of the period the usage is queried from.
      If not specified, the usage is queried from the beginning of time."""
-    to: Optional[datetime.datetime] = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    to: Optional[datetime.datetime] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The end of the period the usage is queried to.
      If not specified, the usage is queried up to the current time."""
-    window_size: Optional[Union[str, "_models.WindowSize"]] = rest_field(name="windowSize", visibility=["read", "create", "update", "delete", "query"])
+    window_size: Optional[Union[str, "_models.WindowSize"]] = rest_field(
+        name="windowSize", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The window size that the usage is aggregated.
      If not specified, the usage is aggregated over the entire period. Known values are: \"MINUTE\",
      \"HOUR\", \"DAY\", and \"MONTH\"."""
     data: list["_models.MeterQueryRow"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The usage data.
      If no data is available, an empty array is returned. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -9843,8 +9678,7 @@ class MeterQueryResult(_Model):
         from_property: Optional[datetime.datetime] = None,
         to: Optional[datetime.datetime] = None,
         window_size: Optional[Union[str, "_models.WindowSize"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9877,20 +9711,23 @@ class MeterQueryRow(_Model):
 
     value: float = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The aggregated value. Required."""
-    window_start: datetime.datetime = rest_field(name="windowStart", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    window_start: datetime.datetime = rest_field(
+        name="windowStart", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The start of the window the value is aggregated over. Required."""
-    window_end: datetime.datetime = rest_field(name="windowEnd", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    window_end: datetime.datetime = rest_field(
+        name="windowEnd", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The end of the window the value is aggregated over. Required."""
     subject: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The subject the value is aggregated over.
      If not specified, the value is aggregated over all subjects. Required."""
-    customer_id: Optional[str] = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
+    customer_id: Optional[str] = rest_field(
+        name="customerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The customer ID the value is aggregated over."""
     group_by: dict[str, str] = rest_field(name="groupBy", visibility=["read", "create", "update", "delete", "query"])
     """The group by values the value is aggregated over. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -9902,8 +9739,7 @@ class MeterQueryRow(_Model):
         subject: str,
         group_by: dict[str, str],
         customer_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9918,7 +9754,7 @@ class MeterQueryRow(_Model):
 
 class MeterUpdate(_Model):
     """A meter update model.
-    
+
     Only the properties that can be updated are included.
     For example, the slug and aggregation cannot be updated.
 
@@ -9929,7 +9765,7 @@ class MeterUpdate(_Model):
     :ivar name: Display name.
     :vartype name: str
     :ivar group_by: Named JSONPath expressions to extract the group by values from the event data.
-     
+
      Keys must be unique and consist only alphanumeric and underscore characters.
     :vartype group_by: dict[str, str]
     """
@@ -9945,9 +9781,6 @@ class MeterUpdate(_Model):
      
      Keys must be unique and consist only alphanumeric and underscore characters."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -9956,8 +9789,7 @@ class MeterUpdate(_Model):
         metadata: Optional["_models.Metadata"] = None,
         name: Optional[str] = None,
         group_by: Optional[dict[str, str]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -9989,23 +9821,28 @@ class MigrateRequest(_Model):
     :vartype billing_anchor: ~datetime.datetime
     """
 
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    timing: Optional["_types.SubscriptionTiming"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Timing configuration for the migration, when the migration should take effect.
      If not supported by the subscription, 400 will be returned. Is either a Union[str,
      \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime type."""
-    target_version: Optional[int] = rest_field(name="targetVersion", visibility=["read", "create", "update", "delete", "query"])
+    target_version: Optional[int] = rest_field(
+        name="targetVersion", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The version of the plan to migrate to.
      If not provided, the subscription will migrate to the latest version of the current plan."""
-    starting_phase: Optional[str] = rest_field(name="startingPhase", visibility=["read", "create", "update", "delete", "query"])
+    starting_phase: Optional[str] = rest_field(
+        name="startingPhase", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The key of the phase to start the subscription in.
      If not provided, the subscription will start in the first phase of the plan."""
-    billing_anchor: Optional[datetime.datetime] = rest_field(name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    billing_anchor: Optional[datetime.datetime] = rest_field(
+        name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the previous
      subscription billing anchor will be used."""
-
-
-
 
     @overload
     def __init__(
@@ -10015,8 +9852,7 @@ class MigrateRequest(_Model):
         target_version: Optional[int] = None,
         starting_phase: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10048,10 +9884,6 @@ class NotFoundProblemResponse(UnexpectedProblemResponse):
     :vartype instance: str
     """
 
-
-
-
-
     @overload
     def __init__(
         self,
@@ -10061,8 +9893,7 @@ class NotFoundProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10089,16 +9920,12 @@ class NotificationChannelMeta(_Model):
     type: Union[str, "_models.NotificationChannelType"] = rest_field(visibility=["read", "create"])
     """Channel Type. Required. \"WEBHOOK\""""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         type: Union[str, "_models.NotificationChannelType"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10130,11 +9957,10 @@ class NotificationChannelPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.NotificationChannel"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_types.NotificationChannel"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -10144,8 +9970,7 @@ class NotificationChannelPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_types.NotificationChannel"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10212,9 +10037,6 @@ class NotificationChannelWebhook(_Model):
     signing_secret: Optional[str] = rest_field(name="signingSecret", visibility=["read", "create", "update"])
     """Signing Secret."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -10226,8 +10048,7 @@ class NotificationChannelWebhook(_Model):
         metadata: Optional["_models.Metadata"] = None,
         custom_headers: Optional[dict[str, str]] = None,
         signing_secret: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10259,7 +10080,9 @@ class NotificationChannelWebhookCreateRequest(_Model):
     :vartype signing_secret: str
     """
 
-    type: Literal[NotificationChannelType.WEBHOOK] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[NotificationChannelType.WEBHOOK] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Channel Type. Required."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Channel Name. Required."""
@@ -10269,13 +10092,14 @@ class NotificationChannelWebhookCreateRequest(_Model):
     """Metadata."""
     url: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Webhook URL. Required."""
-    custom_headers: Optional[dict[str, str]] = rest_field(name="customHeaders", visibility=["read", "create", "update", "delete", "query"])
+    custom_headers: Optional[dict[str, str]] = rest_field(
+        name="customHeaders", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Custom HTTP Headers."""
-    signing_secret: Optional[str] = rest_field(name="signingSecret", visibility=["read", "create", "update", "delete", "query"])
+    signing_secret: Optional[str] = rest_field(
+        name="signingSecret", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Signing Secret."""
-
-
-
 
     @overload
     def __init__(
@@ -10288,8 +10112,7 @@ class NotificationChannelWebhookCreateRequest(_Model):
         metadata: Optional["_models.Metadata"] = None,
         custom_headers: Optional[dict[str, str]] = None,
         signing_secret: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10344,7 +10167,9 @@ class NotificationEvent(_Model):
     """The nnotification rule which generated this event. Required. Is one of the following types:
      NotificationRuleBalanceThreshold, NotificationRuleEntitlementReset,
      NotificationRuleInvoiceCreated, NotificationRuleInvoiceUpdated"""
-    delivery_status: list["_models.NotificationEventDeliveryStatus"] = rest_field(name="deliveryStatus", visibility=["read"])
+    delivery_status: list["_models.NotificationEventDeliveryStatus"] = rest_field(
+        name="deliveryStatus", visibility=["read"]
+    )
     """Delivery Status. Required."""
     payload: "_types.NotificationEventPayload" = rest_field(visibility=["read"])
     """Timestamp when the notification event was created in RFC 3339 format. Required. Is one of the
@@ -10352,10 +10177,6 @@ class NotificationEvent(_Model):
      NotificationEventInvoiceCreatedPayload, NotificationEventInvoiceUpdatedPayload"""
     annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
     """Annotations."""
-
-
-
-
 
 
 class NotificationEventBalanceThresholdPayload(_Model):
@@ -10379,10 +10200,6 @@ class NotificationEventBalanceThresholdPayload(_Model):
     """Creation Time. Required."""
     data: "_models.NotificationEventBalanceThresholdPayloadData" = rest_field(visibility=["read"])
     """Payload Data. Required."""
-
-
-
-
 
 
 class NotificationEventBalanceThresholdPayloadData(_Model):  # pylint: disable=name-too-long
@@ -10416,10 +10233,6 @@ class NotificationEventBalanceThresholdPayloadData(_Model):  # pylint: disable=n
     """Threshold. Required."""
 
 
-
-
-
-
 class NotificationEventDeliveryStatus(_Model):
     """The delivery status of the notification event.
 
@@ -10449,10 +10262,6 @@ class NotificationEventDeliveryStatus(_Model):
     """Annotations."""
 
 
-
-
-
-
 class NotificationEventEntitlementValuePayloadBase(_Model):  # pylint: disable=name-too-long
     """Base data for any payload with entitlement entitlement value.
 
@@ -10480,10 +10289,6 @@ class NotificationEventEntitlementValuePayloadBase(_Model):  # pylint: disable=n
     """Customer."""
 
 
-
-
-
-
 class NotificationEventInvoiceCreatedPayload(_Model):
     """Payload for notification event with ``invoice.created`` type.
 
@@ -10505,10 +10310,6 @@ class NotificationEventInvoiceCreatedPayload(_Model):
     """Creation Time. Required."""
     data: "_models.Invoice" = rest_field(visibility=["read"])
     """Payload Data. Required."""
-
-
-
-
 
 
 class NotificationEventInvoiceUpdatedPayload(_Model):
@@ -10534,10 +10335,6 @@ class NotificationEventInvoiceUpdatedPayload(_Model):
     """Payload Data. Required."""
 
 
-
-
-
-
 class NotificationEventPaginatedResponse(_Model):
     """Paginated response.
 
@@ -10557,11 +10354,10 @@ class NotificationEventPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.NotificationEvent"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.NotificationEvent"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -10571,8 +10367,7 @@ class NotificationEventPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.NotificationEvent"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10606,10 +10401,6 @@ class NotificationEventResetPayload(_Model):
     """Creation Time. Required."""
     data: "_models.NotificationEventEntitlementValuePayloadBase" = rest_field(visibility=["read"])
     """Payload Data. Required."""
-
-
-
-
 
 
 class NotificationRuleBalanceThreshold(_Model):
@@ -10649,7 +10440,9 @@ class NotificationRuleBalanceThreshold(_Model):
     """Deletion Time."""
     id: str = rest_field(visibility=["read"])
     """Rule Unique Identifier. Required."""
-    type: Literal[NotificationEventType.ENTITLEMENTS_BALANCE_THRESHOLD] = rest_field(visibility=["read", "create", "update"])
+    type: Literal[NotificationEventType.ENTITLEMENTS_BALANCE_THRESHOLD] = rest_field(
+        visibility=["read", "create", "update"]
+    )
     """Rule Type. Required."""
     name: str = rest_field(visibility=["read", "create", "update"])
     """Rule Name. Required."""
@@ -10661,13 +10454,12 @@ class NotificationRuleBalanceThreshold(_Model):
     """Annotations."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update"])
     """Metadata."""
-    thresholds: list["_models.NotificationRuleBalanceThresholdValue"] = rest_field(visibility=["read", "create", "update"])
+    thresholds: list["_models.NotificationRuleBalanceThresholdValue"] = rest_field(
+        visibility=["read", "create", "update"]
+    )
     """Entitlement Balance Thresholds. Required."""
     features: Optional[list["_models.FeatureMeta"]] = rest_field(visibility=["read", "create", "update"])
     """Features."""
-
-
-
 
     @overload
     def __init__(
@@ -10680,8 +10472,7 @@ class NotificationRuleBalanceThreshold(_Model):
         disabled: Optional[bool] = None,
         metadata: Optional["_models.Metadata"] = None,
         features: Optional[list["_models.FeatureMeta"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10714,7 +10505,9 @@ class NotificationRuleBalanceThresholdCreateRequest(_Model):  # pylint: disable=
     :vartype features: list[str]
     """
 
-    type: Literal[NotificationEventType.ENTITLEMENTS_BALANCE_THRESHOLD] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[NotificationEventType.ENTITLEMENTS_BALANCE_THRESHOLD] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Rule Type. Required."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Rule Name. Required."""
@@ -10722,15 +10515,14 @@ class NotificationRuleBalanceThresholdCreateRequest(_Model):  # pylint: disable=
     """Rule Disabled."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Metadata."""
-    thresholds: list["_models.NotificationRuleBalanceThresholdValue"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    thresholds: list["_models.NotificationRuleBalanceThresholdValue"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Entitlement Balance Thresholds. Required."""
     channels: list[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Channels. Required."""
     features: Optional[list[str]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Features."""
-
-
-
 
     @overload
     def __init__(
@@ -10743,8 +10535,7 @@ class NotificationRuleBalanceThresholdCreateRequest(_Model):  # pylint: disable=
         disabled: Optional[bool] = None,
         metadata: Optional["_models.Metadata"] = None,
         features: Optional[list[str]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10769,12 +10560,11 @@ class NotificationRuleBalanceThresholdValue(_Model):
 
     value: float = rest_field(visibility=["read", "create", "update"])
     """Threshold Value. Required."""
-    type: Union[str, "_models.NotificationRuleBalanceThresholdValueType"] = rest_field(visibility=["read", "create", "update"])
+    type: Union[str, "_models.NotificationRuleBalanceThresholdValueType"] = rest_field(
+        visibility=["read", "create", "update"]
+    )
     """Type of the threshold. Required. Known values are: \"PERCENT\", \"NUMBER\", \"balance_value\",
      \"usage_percentage\", and \"usage_value\"."""
-
-
-
 
     @overload
     def __init__(
@@ -10782,8 +10572,7 @@ class NotificationRuleBalanceThresholdValue(_Model):
         *,
         value: float,
         type: Union[str, "_models.NotificationRuleBalanceThresholdValueType"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10846,9 +10635,6 @@ class NotificationRuleEntitlementReset(_Model):
     features: Optional[list["_models.FeatureMeta"]] = rest_field(visibility=["read", "create", "update"])
     """Features."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -10859,8 +10645,7 @@ class NotificationRuleEntitlementReset(_Model):
         disabled: Optional[bool] = None,
         metadata: Optional["_models.Metadata"] = None,
         features: Optional[list["_models.FeatureMeta"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10890,7 +10675,9 @@ class NotificationRuleEntitlementResetCreateRequest(_Model):  # pylint: disable=
     :vartype features: list[str]
     """
 
-    type: Literal[NotificationEventType.ENTITLEMENTS_RESET] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[NotificationEventType.ENTITLEMENTS_RESET] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Rule Type. Required."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Rule Name. Required."""
@@ -10903,9 +10690,6 @@ class NotificationRuleEntitlementResetCreateRequest(_Model):  # pylint: disable=
     features: Optional[list[str]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Features."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -10916,8 +10700,7 @@ class NotificationRuleEntitlementResetCreateRequest(_Model):  # pylint: disable=
         disabled: Optional[bool] = None,
         metadata: Optional["_models.Metadata"] = None,
         features: Optional[list[str]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -10976,9 +10759,6 @@ class NotificationRuleInvoiceCreated(_Model):
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update"])
     """Metadata."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -10988,8 +10768,7 @@ class NotificationRuleInvoiceCreated(_Model):
         channels: list["_models.NotificationChannelMeta"],
         disabled: Optional[bool] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11017,7 +10796,9 @@ class NotificationRuleInvoiceCreatedCreateRequest(_Model):  # pylint: disable=na
     :vartype channels: list[str]
     """
 
-    type: Literal[NotificationEventType.INVOICE_CREATED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[NotificationEventType.INVOICE_CREATED] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Rule Type. Required."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Rule Name. Required."""
@@ -11028,9 +10809,6 @@ class NotificationRuleInvoiceCreatedCreateRequest(_Model):  # pylint: disable=na
     channels: list[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Channels. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -11040,8 +10818,7 @@ class NotificationRuleInvoiceCreatedCreateRequest(_Model):  # pylint: disable=na
         channels: list[str],
         disabled: Optional[bool] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11100,9 +10877,6 @@ class NotificationRuleInvoiceUpdated(_Model):
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update"])
     """Metadata."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -11112,8 +10886,7 @@ class NotificationRuleInvoiceUpdated(_Model):
         channels: list["_models.NotificationChannelMeta"],
         disabled: Optional[bool] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11141,7 +10914,9 @@ class NotificationRuleInvoiceUpdatedCreateRequest(_Model):  # pylint: disable=na
     :vartype channels: list[str]
     """
 
-    type: Literal[NotificationEventType.INVOICE_UPDATED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[NotificationEventType.INVOICE_UPDATED] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Rule Type. Required."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Rule Name. Required."""
@@ -11152,9 +10927,6 @@ class NotificationRuleInvoiceUpdatedCreateRequest(_Model):  # pylint: disable=na
     channels: list[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Channels. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -11164,8 +10936,7 @@ class NotificationRuleInvoiceUpdatedCreateRequest(_Model):  # pylint: disable=na
         channels: list[str],
         disabled: Optional[bool] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11200,11 +10971,10 @@ class NotificationRulePaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.NotificationRule"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_types.NotificationRule"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -11214,8 +10984,7 @@ class NotificationRulePaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_types.NotificationRule"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11254,9 +11023,6 @@ class PackagePriceWithCommitments(_Model):
     maximum_amount: Optional[str] = rest_field(name="maximumAmount", visibility=["read", "create", "update"])
     """Maximum amount."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -11266,8 +11032,7 @@ class PackagePriceWithCommitments(_Model):
         quantity_per_package: str,
         minimum_amount: Optional[str] = None,
         maximum_amount: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11307,10 +11072,6 @@ class PaymentDueDate(_Model):
     """If different from the parent document's base currency."""
 
 
-
-
-
-
 class PaymentTermDueDate(_Model):
     """PaymentTermDueDate defines the terms for payment on a specific date.
 
@@ -11333,16 +11094,12 @@ class PaymentTermDueDate(_Model):
     due_at: list["_models.PaymentDueDate"] = rest_field(name="dueAt", visibility=["read"])
     """When the payment is due. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         type: Literal[PaymentTermType.DUE_DATE],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11373,16 +11130,12 @@ class PaymentTermInstant(_Model):
     notes: Optional[str] = rest_field(visibility=["read"])
     """Description of the conditions for payment."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         type: Literal[PaymentTermType.INSTANT],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11404,13 +11157,12 @@ class Period(_Model):
     :vartype to: ~datetime.datetime
     """
 
-    from_property: datetime.datetime = rest_field(name="from", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    from_property: datetime.datetime = rest_field(
+        name="from", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Period start time. Required."""
     to: datetime.datetime = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
     """Period end time. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -11418,8 +11170,7 @@ class Period(_Model):
         *,
         from_property: datetime.datetime,
         to: datetime.datetime,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11498,9 +11249,13 @@ class Plan(_Model):
     """Currency. Required."""
     billing_cadence: datetime.timedelta = rest_field(name="billingCadence", visibility=["read", "create", "update"])
     """Billing cadence. Required."""
-    pro_rating_config: Optional["_models.ProRatingConfig"] = rest_field(name="proRatingConfig", visibility=["read", "create", "update"])
+    pro_rating_config: Optional["_models.ProRatingConfig"] = rest_field(
+        name="proRatingConfig", visibility=["read", "create", "update"]
+    )
     """Pro-rating configuration."""
-    effective_from: Optional[datetime.datetime] = rest_field(name="effectiveFrom", visibility=["read"], format="rfc3339")
+    effective_from: Optional[datetime.datetime] = rest_field(
+        name="effectiveFrom", visibility=["read"], format="rfc3339"
+    )
     """Effective start date."""
     effective_to: Optional[datetime.datetime] = rest_field(name="effectiveTo", visibility=["read"], format="rfc3339")
     """Effective end date."""
@@ -11510,9 +11265,6 @@ class Plan(_Model):
     """Plan phases. Required."""
     validation_errors: list["_models.ValidationError"] = rest_field(name="validationErrors", visibility=["read"])
     """Validation errors. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -11527,8 +11279,7 @@ class Plan(_Model):
         metadata: Optional["_models.Metadata"] = None,
         alignment: Optional["_models.Alignment"] = None,
         pro_rating_config: Optional["_models.ProRatingConfig"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11583,9 +11334,6 @@ class PlanAddon(_Model):
     validation_errors: list["_models.ValidationError"] = rest_field(name="validationErrors", visibility=["read"])
     """Validation errors. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -11593,8 +11341,7 @@ class PlanAddon(_Model):
         from_plan_phase: str,
         metadata: Optional["_models.Metadata"] = None,
         max_quantity: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11624,13 +11371,12 @@ class PlanAddonCreate(_Model):
     """Metadata."""
     from_plan_phase: str = rest_field(name="fromPlanPhase", visibility=["read", "create", "update", "delete", "query"])
     """The plan phase from the add-on becomes purchasable. Required."""
-    max_quantity: Optional[int] = rest_field(name="maxQuantity", visibility=["read", "create", "update", "delete", "query"])
+    max_quantity: Optional[int] = rest_field(
+        name="maxQuantity", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Max quantity of the add-on."""
     addon_id: str = rest_field(name="addonId", visibility=["read", "create", "update", "delete", "query"])
     """Add-on unique identifier. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -11640,8 +11386,7 @@ class PlanAddonCreate(_Model):
         addon_id: str,
         metadata: Optional["_models.Metadata"] = None,
         max_quantity: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11673,11 +11418,10 @@ class PlanAddonPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.PlanAddon"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.PlanAddon"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -11687,8 +11431,7 @@ class PlanAddonPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.PlanAddon"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11719,9 +11462,6 @@ class PlanAddonReplaceUpdate(_Model):
     max_quantity: Optional[int] = rest_field(name="maxQuantity", visibility=["read", "create", "update"])
     """Max quantity of the add-on."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -11729,8 +11469,7 @@ class PlanAddonReplaceUpdate(_Model):
         from_plan_phase: str,
         metadata: Optional["_models.Metadata"] = None,
         max_quantity: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11778,15 +11517,16 @@ class PlanCreate(_Model):
     """Alignment configuration for the plan."""
     currency: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Currency. Required."""
-    billing_cadence: datetime.timedelta = rest_field(name="billingCadence", visibility=["read", "create", "update", "delete", "query"])
+    billing_cadence: datetime.timedelta = rest_field(
+        name="billingCadence", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Billing cadence. Required."""
-    pro_rating_config: Optional["_models.ProRatingConfig"] = rest_field(name="proRatingConfig", visibility=["read", "create", "update", "delete", "query"])
+    pro_rating_config: Optional["_models.ProRatingConfig"] = rest_field(
+        name="proRatingConfig", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Pro-rating configuration."""
     phases: list["_models.PlanPhase"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Plan phases. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -11801,8 +11541,7 @@ class PlanCreate(_Model):
         metadata: Optional["_models.Metadata"] = None,
         alignment: Optional["_models.Alignment"] = None,
         pro_rating_config: Optional["_models.ProRatingConfig"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11847,9 +11586,6 @@ class PlanPhase(_Model):
     rate_cards: list["_types.RateCard"] = rest_field(name="rateCards", visibility=["read", "create", "update"])
     """Rate cards. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -11860,8 +11596,7 @@ class PlanPhase(_Model):
         rate_cards: list["_types.RateCard"],
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11892,9 +11627,6 @@ class PlanReference(_Model):
     version: int = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The plan version. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -11902,8 +11634,7 @@ class PlanReference(_Model):
         id: str,  # pylint: disable=redefined-builtin
         key: str,
         version: int,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11930,17 +11661,13 @@ class PlanReferenceInput(_Model):
     version: Optional[int] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The plan version."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         key: str,
         version: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -11982,13 +11709,12 @@ class PlanReplaceUpdate(_Model):
     """Alignment configuration for the plan."""
     billing_cadence: datetime.timedelta = rest_field(name="billingCadence", visibility=["read", "create", "update"])
     """Billing cadence. Required."""
-    pro_rating_config: Optional["_models.ProRatingConfig"] = rest_field(name="proRatingConfig", visibility=["read", "create", "update"])
+    pro_rating_config: Optional["_models.ProRatingConfig"] = rest_field(
+        name="proRatingConfig", visibility=["read", "create", "update"]
+    )
     """Pro-rating configuration."""
     phases: list["_models.PlanPhase"] = rest_field(visibility=["read", "create", "update"])
     """Plan phases. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -12001,8 +11727,7 @@ class PlanReplaceUpdate(_Model):
         metadata: Optional["_models.Metadata"] = None,
         alignment: Optional["_models.Alignment"] = None,
         pro_rating_config: Optional["_models.ProRatingConfig"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12053,20 +11778,21 @@ class PlanSubscriptionChange(_Model):
     """Arbitrary metadata associated with the subscription."""
     plan: "_models.PlanReferenceInput" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The plan reference to change to. Required."""
-    starting_phase: Optional[str] = rest_field(name="startingPhase", visibility=["read", "create", "update", "delete", "query"])
+    starting_phase: Optional[str] = rest_field(
+        name="startingPhase", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The key of the phase to start the subscription in.
      If not provided, the subscription will start in the first phase of the plan."""
     name: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The name of the Subscription. If not provided the plan name is used."""
     description: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Description for the Subscription."""
-    billing_anchor: Optional[datetime.datetime] = rest_field(name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    billing_anchor: Optional[datetime.datetime] = rest_field(
+        name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the previous
      subscription billing anchor will be used."""
-
-
-
 
     @overload
     def __init__(
@@ -12080,8 +11806,7 @@ class PlanSubscriptionChange(_Model):
         name: Optional[str] = None,
         description: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12131,28 +11856,35 @@ class PlanSubscriptionCreate(_Model):
     """Arbitrary metadata associated with the subscription."""
     plan: "_models.PlanReferenceInput" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The plan reference to change to. Required."""
-    starting_phase: Optional[str] = rest_field(name="startingPhase", visibility=["read", "create", "update", "delete", "query"])
+    starting_phase: Optional[str] = rest_field(
+        name="startingPhase", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The key of the phase to start the subscription in.
      If not provided, the subscription will start in the first phase of the plan."""
     name: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The name of the Subscription. If not provided the plan name is used."""
     description: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Description for the Subscription."""
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    timing: Optional["_types.SubscriptionTiming"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Timing configuration for the change, when the change should take effect.
      The default is immediate. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
      datetime.datetime type."""
-    customer_id: Optional[str] = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
+    customer_id: Optional[str] = rest_field(
+        name="customerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The ID of the customer. Provide either the key or ID. Has presedence over the key."""
-    customer_key: Optional[str] = rest_field(name="customerKey", visibility=["read", "create", "update", "delete", "query"])
+    customer_key: Optional[str] = rest_field(
+        name="customerKey", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The key of the customer. Provide either the key or ID."""
-    billing_anchor: Optional[datetime.datetime] = rest_field(name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    billing_anchor: Optional[datetime.datetime] = rest_field(
+        name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the subscription
      start time will be used."""
-
-
-
 
     @overload
     def __init__(
@@ -12168,8 +11900,7 @@ class PlanSubscriptionCreate(_Model):
         customer_id: Optional[str] = None,
         customer_key: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12184,7 +11915,7 @@ class PlanSubscriptionCreate(_Model):
 
 class PortalToken(_Model):
     """A consumer portal token.
-    
+
     Validator doesn't obey required for readOnly properties
     See: `https://github.com/stoplightio/spectral/issues/1274
     <https://github.com/stoplightio/spectral/issues/1274>`_.
@@ -12213,11 +11944,10 @@ class PortalToken(_Model):
     created_at: Optional[datetime.datetime] = rest_field(name="createdAt", visibility=["read"], format="rfc3339")
     token: Optional[str] = rest_field(visibility=["read"])
     """The token is only returned at creation."""
-    allowed_meter_slugs: Optional[list[str]] = rest_field(name="allowedMeterSlugs", visibility=["read", "create", "update", "delete", "query"])
+    allowed_meter_slugs: Optional[list[str]] = rest_field(
+        name="allowedMeterSlugs", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Optional, if defined only the specified meters will be allowed."""
-
-
-
 
     @overload
     def __init__(
@@ -12225,8 +11955,7 @@ class PortalToken(_Model):
         *,
         subject: str,
         allowed_meter_slugs: Optional[list[str]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12258,10 +11987,6 @@ class PreconditionFailedProblemResponse(UnexpectedProblemResponse):
     :vartype instance: str
     """
 
-
-
-
-
     @overload
     def __init__(
         self,
@@ -12271,8 +11996,7 @@ class PreconditionFailedProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12304,9 +12028,6 @@ class PriceTier(_Model):
     unit_price: "_models.UnitPrice" = rest_field(name="unitPrice", visibility=["read", "create", "update"])
     """Unit price component. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -12314,8 +12035,7 @@ class PriceTier(_Model):
         flat_price: "_models.FlatPrice",
         unit_price: "_models.UnitPrice",
         up_to_amount: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12347,11 +12067,10 @@ class Progress(_Model):
     """Failed is the number of items that failed. Required."""
     total: int = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The total number of items to process. Required."""
-    updated_at: datetime.datetime = rest_field(name="updatedAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    updated_at: datetime.datetime = rest_field(
+        name="updatedAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The time the progress was last updated. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -12361,8 +12080,7 @@ class Progress(_Model):
         failed: int,
         total: int,
         updated_at: datetime.datetime,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12389,17 +12107,13 @@ class ProRatingConfig(_Model):
     mode: Union[str, "_models.ProRatingMode"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Pro-rating mode. Required. \"prorate_prices\""""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         enabled: bool,
         mode: Union[str, "_models.ProRatingMode"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12426,17 +12140,13 @@ class RateCardBooleanEntitlement(_Model):
     type: Literal[EntitlementType.BOOLEAN] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         type: Literal[EntitlementType.BOOLEAN],
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12492,7 +12202,9 @@ class RateCardFlatFee(_Model):
     """Metadata."""
     feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update"])
     """Feature key."""
-    entitlement_template: Optional["_types.RateCardEntitlement"] = rest_field(name="entitlementTemplate", visibility=["read", "create", "update"])
+    entitlement_template: Optional["_types.RateCardEntitlement"] = rest_field(
+        name="entitlementTemplate", visibility=["read", "create", "update"]
+    )
     """The entitlement of the rate card.
      Only available when featureKey is set. Is one of the following types:
      RateCardMeteredEntitlement, RateCardStaticEntitlement, RateCardBooleanEntitlement"""
@@ -12504,9 +12216,6 @@ class RateCardFlatFee(_Model):
     """Price. Required."""
     discounts: Optional["_models.Discounts"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Discounts."""
-
-
-
 
     @overload
     def __init__(
@@ -12523,8 +12232,7 @@ class RateCardFlatFee(_Model):
         entitlement_template: Optional["_types.RateCardEntitlement"] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
         discounts: Optional["_models.Discounts"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12560,19 +12268,24 @@ class RateCardMeteredEntitlement(_Model):
     """Additional metadata for the feature."""
     type: Literal[EntitlementType.METERED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-    is_soft_limit: Optional[bool] = rest_field(name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"])
+    is_soft_limit: Optional[bool] = rest_field(
+        name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Soft limit."""
-    issue_after_reset: Optional[float] = rest_field(name="issueAfterReset", visibility=["read", "create", "update", "delete", "query"])
+    issue_after_reset: Optional[float] = rest_field(
+        name="issueAfterReset", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Initial grant amount."""
-    issue_after_reset_priority: Optional[int] = rest_field(name="issueAfterResetPriority", visibility=["read", "create", "update", "delete", "query"])
+    issue_after_reset_priority: Optional[int] = rest_field(
+        name="issueAfterResetPriority", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Issue grant after reset priority."""
-    preserve_overage_at_reset: Optional[bool] = rest_field(name="preserveOverageAtReset", visibility=["read", "create", "update", "delete", "query"])
+    preserve_overage_at_reset: Optional[bool] = rest_field(
+        name="preserveOverageAtReset", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Preserve overage at reset."""
     usage_period: Optional[datetime.timedelta] = rest_field(name="usagePeriod", visibility=["read", "create", "update"])
     """Usage Period."""
-
-
-
 
     @overload
     def __init__(
@@ -12585,8 +12298,7 @@ class RateCardMeteredEntitlement(_Model):
         issue_after_reset_priority: Optional[int] = None,
         preserve_overage_at_reset: Optional[bool] = None,
         usage_period: Optional[datetime.timedelta] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12621,9 +12333,6 @@ class RateCardStaticEntitlement(_Model):
      entitlement access and it is useful for configuring fine-grained access settings to the
      feature, implemented in your own system. Has to be an object. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -12631,8 +12340,7 @@ class RateCardStaticEntitlement(_Model):
         type: Literal[EntitlementType.STATIC],
         config: str,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12695,7 +12403,9 @@ class RateCardUsageBased(_Model):
     """Metadata."""
     feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update"])
     """Feature key."""
-    entitlement_template: Optional["_types.RateCardEntitlement"] = rest_field(name="entitlementTemplate", visibility=["read", "create", "update"])
+    entitlement_template: Optional["_types.RateCardEntitlement"] = rest_field(
+        name="entitlementTemplate", visibility=["read", "create", "update"]
+    )
     """The entitlement of the rate card.
      Only available when featureKey is set. Is one of the following types:
      RateCardMeteredEntitlement, RateCardStaticEntitlement, RateCardBooleanEntitlement"""
@@ -12710,9 +12420,6 @@ class RateCardUsageBased(_Model):
      DynamicPriceWithCommitments, PackagePriceWithCommitments"""
     discounts: Optional["_models.Discounts"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Discounts."""
-
-
-
 
     @overload
     def __init__(
@@ -12729,8 +12436,7 @@ class RateCardUsageBased(_Model):
         entitlement_template: Optional["_types.RateCardEntitlement"] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
         discounts: Optional["_models.Discounts"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12758,13 +12464,12 @@ class RecurringPeriod(_Model):
     interval: "_types.RecurringPeriodInterval" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Interval. Required. Is either a str type or a Union[str,
      \"_models.RecurringPeriodIntervalEnum\"] type."""
-    interval_iso: datetime.timedelta = rest_field(name="intervalISO", visibility=["read", "create", "update", "delete", "query"])
+    interval_iso: datetime.timedelta = rest_field(
+        name="intervalISO", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The unit of time for the interval in ISO8601 format. Required."""
     anchor: datetime.datetime = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
     """Anchor time. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -12773,8 +12478,7 @@ class RecurringPeriod(_Model):
         interval: "_types.RecurringPeriodInterval",
         interval_iso: datetime.timedelta,
         anchor: datetime.datetime,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12800,11 +12504,10 @@ class RecurringPeriodCreateInput(_Model):
     interval: "_types.RecurringPeriodInterval" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Interval. Required. Is either a str type or a Union[str,
      \"_models.RecurringPeriodIntervalEnum\"] type."""
-    anchor: Optional[datetime.datetime] = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    anchor: Optional[datetime.datetime] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Anchor time."""
-
-
-
 
     @overload
     def __init__(
@@ -12812,8 +12515,7 @@ class RecurringPeriodCreateInput(_Model):
         *,
         interval: "_types.RecurringPeriodInterval",
         anchor: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12847,23 +12549,26 @@ class ResetEntitlementUsageInput(_Model):
     :vartype preserve_overage: bool
     """
 
-    effective_at: Optional[datetime.datetime] = rest_field(name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    effective_at: Optional[datetime.datetime] = rest_field(
+        name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The time at which the reset takes effect, defaults to now. The reset cannot be in the future.
      The provided value is truncated to the minute due to how historical meter data is stored."""
-    retain_anchor: Optional[bool] = rest_field(name="retainAnchor", visibility=["read", "create", "update", "delete", "query"])
+    retain_anchor: Optional[bool] = rest_field(
+        name="retainAnchor", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Determines whether the usage period anchor is retained or reset to the effectiveAt time.
  
       * If true, the usage period anchor is retained.
       * If false, the usage period anchor is reset to the effectiveAt time."""
-    preserve_overage: Optional[bool] = rest_field(name="preserveOverage", visibility=["read", "create", "update", "delete", "query"])
+    preserve_overage: Optional[bool] = rest_field(
+        name="preserveOverage", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Determines whether the overage is preserved or forgiven, overriding the entitlement's default
      behavior.
  
       * If true, the overage is preserved.
       * If false, the overage is forgiven."""
-
-
-
 
     @overload
     def __init__(
@@ -12872,8 +12577,7 @@ class ResetEntitlementUsageInput(_Model):
         effective_at: Optional[datetime.datetime] = None,
         retain_anchor: Optional[bool] = None,
         preserve_overage: Optional[bool] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12888,7 +12592,7 @@ class ResetEntitlementUsageInput(_Model):
 
 class SandboxApp(_Model):
     """Sandbox app can be used for testing OpenMeter features.
-    
+
     The app is not creating anything in external systems, thus it is safe to use for
     verifying OpenMeter features.
 
@@ -12936,9 +12640,6 @@ class SandboxApp(_Model):
     type: Literal[AppType.SANDBOX] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The app's type is Sandbox. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -12947,8 +12648,7 @@ class SandboxApp(_Model):
         type: Literal[AppType.SANDBOX],
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -12983,9 +12683,6 @@ class SandboxAppReplaceUpdate(_Model):
     type: Literal[AppType.SANDBOX] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The app's type is Sandbox. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -12994,8 +12691,7 @@ class SandboxAppReplaceUpdate(_Model):
         type: Literal[AppType.SANDBOX],
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13026,17 +12722,13 @@ class SandboxCustomerAppData(_Model):
     type: Literal[AppType.SANDBOX] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """App Type. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         type: Literal[AppType.SANDBOX],
         id: Optional[str] = None,  # pylint: disable=redefined-builtin
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13068,10 +12760,6 @@ class ServiceUnavailableProblemResponse(UnexpectedProblemResponse):
     :vartype instance: str
     """
 
-
-
-
-
     @overload
     def __init__(
         self,
@@ -13081,8 +12769,7 @@ class ServiceUnavailableProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13106,16 +12793,12 @@ class StripeAPIKeyInput(_Model):
     secret_api_key: str = rest_field(name="secretAPIKey", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         secret_api_key: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13193,9 +12876,6 @@ class StripeApp(_Model):
     secret_api_key: Optional[str] = rest_field(name="secretAPIKey", visibility=["create", "update"])
     """The Stripe API key."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -13205,8 +12885,7 @@ class StripeApp(_Model):
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         secret_api_key: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13245,9 +12924,6 @@ class StripeAppReplaceUpdate(_Model):
     secret_api_key: Optional[str] = rest_field(name="secretAPIKey", visibility=["create", "update"])
     """The Stripe API key."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -13257,8 +12933,7 @@ class StripeAppReplaceUpdate(_Model):
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         secret_api_key: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13290,15 +12965,16 @@ class StripeCustomerAppData(_Model):
     """App ID."""
     type: Literal[AppType.STRIPE] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """App Type. Required."""
-    stripe_customer_id: str = rest_field(name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"])
+    stripe_customer_id: str = rest_field(
+        name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The Stripe customer ID. Required."""
-    stripe_default_payment_method_id: Optional[str] = rest_field(name="stripeDefaultPaymentMethodId", visibility=["read", "create", "update", "delete", "query"])
+    stripe_default_payment_method_id: Optional[str] = rest_field(
+        name="stripeDefaultPaymentMethodId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The Stripe default payment method ID."""
     app: Optional["_models.StripeApp"] = rest_field(visibility=["read"])
     """The installed stripe app this data belongs to."""
-
-
-
 
     @overload
     def __init__(
@@ -13308,8 +12984,7 @@ class StripeCustomerAppData(_Model):
         stripe_customer_id: str,
         id: Optional[str] = None,  # pylint: disable=redefined-builtin
         stripe_default_payment_method_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13331,13 +13006,14 @@ class StripeCustomerAppDataBase(_Model):
     :vartype stripe_default_payment_method_id: str
     """
 
-    stripe_customer_id: str = rest_field(name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"])
+    stripe_customer_id: str = rest_field(
+        name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The Stripe customer ID. Required."""
-    stripe_default_payment_method_id: Optional[str] = rest_field(name="stripeDefaultPaymentMethodId", visibility=["read", "create", "update", "delete", "query"])
+    stripe_default_payment_method_id: Optional[str] = rest_field(
+        name="stripeDefaultPaymentMethodId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The Stripe default payment method ID."""
-
-
-
 
     @overload
     def __init__(
@@ -13345,8 +13021,7 @@ class StripeCustomerAppDataBase(_Model):
         *,
         stripe_customer_id: str,
         stripe_default_payment_method_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13361,12 +13036,12 @@ class StripeCustomerAppDataBase(_Model):
 
 class StripeCustomerPortalSession(_Model):
     """Stripe customer portal session.
-    
+
     See: `https://docs.stripe.com/api/customer_portal/sessions/object
     <https://docs.stripe.com/api/customer_portal/sessions/object>`_.
 
     :ivar id: The ID of the customer portal session.
-     
+
      See: `https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id
      <https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id>`_.
      Required.
@@ -13374,27 +13049,27 @@ class StripeCustomerPortalSession(_Model):
     :ivar stripe_customer_id: The ID of the stripe customer. Required.
     :vartype stripe_customer_id: str
     :ivar configuration_id: Configuration used to customize the customer portal.
-     
+
      See:
      `https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration
      <https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration>`_.
      Required.
     :vartype configuration_id: str
     :ivar livemode: Livemode.
-     
+
      See:
      `https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode
      <https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode>`_.
      Required.
     :vartype livemode: bool
     :ivar created_at: Created at.
-     
+
      See: `https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
      <https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created>`_.
      Required.
     :vartype created_at: ~datetime.datetime
     :ivar return_url: Return URL.
-     
+
      See:
      `https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url
      <https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url>`_.
@@ -13403,7 +13078,7 @@ class StripeCustomerPortalSession(_Model):
     :ivar locale: Status.
        /**
      The IETF language tag of the locale customer portal is displayed in.
-     
+
      See: `https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale
      <https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale>`_.
      Required.
@@ -13420,9 +13095,13 @@ class StripeCustomerPortalSession(_Model):
      See: `https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id
      <https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id>`_.
      Required."""
-    stripe_customer_id: str = rest_field(name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"])
+    stripe_customer_id: str = rest_field(
+        name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The ID of the stripe customer. Required."""
-    configuration_id: str = rest_field(name="configurationId", visibility=["read", "create", "update", "delete", "query"])
+    configuration_id: str = rest_field(
+        name="configurationId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Configuration used to customize the customer portal.
      
      See:
@@ -13436,7 +13115,9 @@ class StripeCustomerPortalSession(_Model):
      `https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode
      <https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode>`_.
      Required."""
-    created_at: datetime.datetime = rest_field(name="createdAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    created_at: datetime.datetime = rest_field(
+        name="createdAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """Created at.
      
      See: `https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
@@ -13462,9 +13143,6 @@ class StripeCustomerPortalSession(_Model):
      The ID of the customer.The URL to redirect the customer to after they have completed
      their requested actions. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -13477,8 +13155,7 @@ class StripeCustomerPortalSession(_Model):
         return_url: str,
         locale: str,
         url: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13501,16 +13178,12 @@ class StripeTaxConfig(_Model):
     code: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Tax code. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         code: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13549,9 +13222,6 @@ class StripeWebhookEvent(_Model):
     data: "_models.StripeWebhookEventData" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The event data. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -13561,8 +13231,7 @@ class StripeWebhookEvent(_Model):
         livemode: bool,
         created: int,
         data: "_models.StripeWebhookEventData",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13585,16 +13254,12 @@ class StripeWebhookEventData(_Model):
     object: Any = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         object: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13624,11 +13289,10 @@ class StripeWebhookResponse(_Model):
     """Required."""
     app_id: str = rest_field(name="appId", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-    customer_id: Optional[str] = rest_field(name="customerId", visibility=["read", "create", "update", "delete", "query"])
+    customer_id: Optional[str] = rest_field(
+        name="customerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     message: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-
-
-
 
     @overload
     def __init__(
@@ -13638,8 +13302,7 @@ class StripeWebhookResponse(_Model):
         app_id: str,
         customer_id: Optional[str] = None,
         message: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13695,19 +13358,24 @@ class Subject(_Model):
     key: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """A unique, human-readable identifier for the subject.
      This is typically a database ID or a customer key. Required."""
-    display_name: Optional[str] = rest_field(name="displayName", visibility=["read", "create", "update", "delete", "query"])
+    display_name: Optional[str] = rest_field(
+        name="displayName", visibility=["read", "create", "update", "delete", "query"]
+    )
     """A human-readable display name for the subject."""
     metadata: Optional[dict[str, Any]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Metadata for the subject."""
-    current_period_start: Optional[datetime.datetime] = rest_field(name="currentPeriodStart", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    current_period_start: Optional[datetime.datetime] = rest_field(
+        name="currentPeriodStart", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The start of the current period for the subject."""
-    current_period_end: Optional[datetime.datetime] = rest_field(name="currentPeriodEnd", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    current_period_end: Optional[datetime.datetime] = rest_field(
+        name="currentPeriodEnd", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The end of the current period for the subject."""
-    stripe_customer_id: Optional[str] = rest_field(name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"])
+    stripe_customer_id: Optional[str] = rest_field(
+        name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The Stripe customer ID for the subject."""
-
-
-
 
     @overload
     def __init__(
@@ -13719,8 +13387,7 @@ class Subject(_Model):
         current_period_start: Optional[datetime.datetime] = None,
         current_period_end: Optional[datetime.datetime] = None,
         stripe_customer_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13754,19 +13421,24 @@ class SubjectUpsert(_Model):
     key: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """A unique, human-readable identifier for the subject.
      This is typically a database ID or a customer key. Required."""
-    display_name: Optional[str] = rest_field(name="displayName", visibility=["read", "create", "update", "delete", "query"])
+    display_name: Optional[str] = rest_field(
+        name="displayName", visibility=["read", "create", "update", "delete", "query"]
+    )
     """A human-readable display name for the subject."""
     metadata: Optional[dict[str, Any]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Metadata for the subject."""
-    current_period_start: Optional[datetime.datetime] = rest_field(name="currentPeriodStart", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    current_period_start: Optional[datetime.datetime] = rest_field(
+        name="currentPeriodStart", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The start of the current period for the subject."""
-    current_period_end: Optional[datetime.datetime] = rest_field(name="currentPeriodEnd", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    current_period_end: Optional[datetime.datetime] = rest_field(
+        name="currentPeriodEnd", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The end of the current period for the subject."""
-    stripe_customer_id: Optional[str] = rest_field(name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"])
+    stripe_customer_id: Optional[str] = rest_field(
+        name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The Stripe customer ID for the subject."""
-
-
-
 
     @overload
     def __init__(
@@ -13778,8 +13450,7 @@ class SubjectUpsert(_Model):
         current_period_start: Optional[datetime.datetime] = None,
         current_period_end: Optional[datetime.datetime] = None,
         stripe_customer_id: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13846,9 +13517,13 @@ class Subscription(_Model):
     """Last Update Time. Required."""
     deleted_at: Optional[datetime.datetime] = rest_field(name="deletedAt", visibility=["read"], format="rfc3339")
     """Deletion Time."""
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence start of the resource. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence end of the resource."""
     alignment: Optional["_models.Alignment"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Alignment configuration for the plan."""
@@ -13868,9 +13543,6 @@ class Subscription(_Model):
     billing_anchor: datetime.datetime = rest_field(name="billingAnchor", visibility=["read"], format="rfc3339")
     """Billing anchor. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -13884,8 +13556,7 @@ class Subscription(_Model):
         active_to: Optional[datetime.datetime] = None,
         alignment: Optional["_models.Alignment"] = None,
         plan: Optional["_models.PlanReference"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -13970,9 +13641,6 @@ class SubscriptionAddon(_Model):
     rate_cards: list["_models.SubscriptionAddonRateCard"] = rest_field(name="rateCards", visibility=["read"])
     """Rate cards. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -13983,8 +13651,7 @@ class SubscriptionAddon(_Model):
         timing: "_types.SubscriptionTiming",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14019,16 +13686,12 @@ class SubscriptionAddonAddon(_Model):
     instance_type: Union[str, "_models.AddonInstanceType"] = rest_field(name="instanceType", visibility=["read"])
     """InstanceType. Required. Known values are: \"single\" and \"multiple\"."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         id: str,  # pylint: disable=redefined-builtin
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14070,11 +13733,10 @@ class SubscriptionAddonCreate(_Model):
     timing: "_types.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Timing. Required. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
      datetime.datetime type."""
-    addon: "_models.SubscriptionAddonCreateAddon" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    addon: "_models.SubscriptionAddonCreateAddon" = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Addon. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -14086,8 +13748,7 @@ class SubscriptionAddonCreate(_Model):
         addon: "_models.SubscriptionAddonCreateAddon",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14110,16 +13771,12 @@ class SubscriptionAddonCreateAddon(_Model):
     id: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The ID of the add-on. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         id: str,  # pylint: disable=redefined-builtin
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14143,21 +13800,19 @@ class SubscriptionAddonRateCard(_Model):
     :vartype affected_subscription_item_ids: list[str]
     """
 
-    rate_card: "_types.RateCard" = rest_field(name="rateCard", visibility=["read", "create", "update", "delete", "query"])
+    rate_card: "_types.RateCard" = rest_field(
+        name="rateCard", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Rate card. Required. Is either a RateCardFlatFee type or a RateCardUsageBased type."""
     affected_subscription_item_ids: list[str] = rest_field(name="affectedSubscriptionItemIds", visibility=["read"])
     """Affected subscription item IDs. Required."""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         rate_card: "_types.RateCard",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14181,15 +13836,16 @@ class SubscriptionAddonTimelineSegment(_Model):
     :vartype quantity: int
     """
 
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence start of the resource. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence end of the resource."""
     quantity: int = rest_field(visibility=["read"])
     """Quantity. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -14197,8 +13853,7 @@ class SubscriptionAddonTimelineSegment(_Model):
         *,
         active_from: datetime.datetime,
         active_to: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14239,9 +13894,6 @@ class SubscriptionAddonUpdate(_Model):
     """Timing. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime
      type."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -14251,8 +13903,7 @@ class SubscriptionAddonUpdate(_Model):
         metadata: Optional["_models.Metadata"] = None,
         quantity: Optional[int] = None,
         timing: Optional["_types.SubscriptionTiming"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14276,14 +13927,15 @@ class SubscriptionAlignment(_Model):
     :vartype current_aligned_billing_period: ~openmeter._generated.models.Period
     """
 
-    billables_must_align: Optional[bool] = rest_field(name="billablesMustAlign", visibility=["read", "create", "update"])
+    billables_must_align: Optional[bool] = rest_field(
+        name="billablesMustAlign", visibility=["read", "create", "update"]
+    )
     """Whether all Billable items and RateCards must align.
      Alignment means the Price's BillingCadence must align for both duration and anchor time."""
-    current_aligned_billing_period: Optional["_models.Period"] = rest_field(name="currentAlignedBillingPeriod", visibility=["read", "create", "update", "delete", "query"])
+    current_aligned_billing_period: Optional["_models.Period"] = rest_field(
+        name="currentAlignedBillingPeriod", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The current billing period. Only has value if the subscription is aligned and active."""
-
-
-
 
     @overload
     def __init__(
@@ -14291,8 +13943,7 @@ class SubscriptionAlignment(_Model):
         *,
         billables_must_align: Optional[bool] = None,
         current_aligned_billing_period: Optional["_models.Period"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14319,17 +13970,13 @@ class SubscriptionChangeResponseBody(_Model):
     next: "_models.SubscriptionExpanded" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The subscription it will be changed to. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         current: "_models.Subscription",
         next: "_models.SubscriptionExpanded",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14359,16 +14006,17 @@ class SubscriptionEdit(_Model):
     :vartype timing: str or ~openmeter.models.SubscriptionTimingEnum or ~datetime.datetime
     """
 
-    customizations: list["_types.SubscriptionEditOperation"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    customizations: list["_types.SubscriptionEditOperation"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Batch processing commands for manipulating running subscriptions.
      The key format is ``/phases/{phaseKey}`` or ``/phases/{phaseKey}/items/{itemKey}``. Required."""
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    timing: Optional["_types.SubscriptionTiming"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Whether the billing period should be restarted.Timing configuration to allow for the changes to
      take effect at different times. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type
      or a datetime.datetime type."""
-
-
-
 
     @overload
     def __init__(
@@ -14376,8 +14024,7 @@ class SubscriptionEdit(_Model):
         *,
         customizations: list["_types.SubscriptionEditOperation"],
         timing: Optional["_types.SubscriptionTiming"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14446,9 +14093,13 @@ class SubscriptionExpanded(_Model):
     """Last Update Time. Required."""
     deleted_at: Optional[datetime.datetime] = rest_field(name="deletedAt", visibility=["read"], format="rfc3339")
     """Deletion Time."""
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence start of the resource. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence end of the resource."""
     status: Union[str, "_models.SubscriptionStatus"] = rest_field(visibility=["read"])
     """The status of the subscription. Required. Known values are: \"active\", \"inactive\",
@@ -14465,13 +14116,14 @@ class SubscriptionExpanded(_Model):
     """Pro-rating configuration."""
     billing_anchor: datetime.datetime = rest_field(name="billingAnchor", visibility=["read"], format="rfc3339")
     """Billing anchor. Required."""
-    alignment: Optional["_models.SubscriptionAlignment"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    alignment: Optional["_models.SubscriptionAlignment"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Alignment details enriched with the current billing period."""
-    phases: list["_models.SubscriptionPhaseExpanded"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    phases: list["_models.SubscriptionPhaseExpanded"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The phases of the subscription. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -14487,8 +14139,7 @@ class SubscriptionExpanded(_Model):
         active_to: Optional[datetime.datetime] = None,
         plan: Optional["_models.PlanReference"] = None,
         alignment: Optional["_models.SubscriptionAlignment"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14524,17 +14175,17 @@ class SubscriptionItem(_Model):
     :vartype active_to: ~datetime.datetime
     :ivar key: The identifier of the RateCard.
      SubscriptionItem/RateCard can be identified, it has a reference:
-     
-     
-     
+
+
+
      1. If a Feature is associated with the SubscriptionItem, it is identified by the Feature
      1.1 It can be an ID reference, for an exact version of the Feature (Features can change across
      versions)
      1.2 It can be a Key reference, which always refers to the latest (active or inactive) version
      of a Feature
-     
+
      2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
-     
+
      We say "referenced by the Price" regardless of how a price itself is referenced, it
      colloquially makes sense to say "paying the same price for the same thing". In practice this
      should be derived from what's printed on the invoice line-item. Required.
@@ -14573,9 +14224,13 @@ class SubscriptionItem(_Model):
     """Last Update Time. Required."""
     deleted_at: Optional[datetime.datetime] = rest_field(name="deletedAt", visibility=["read"], format="rfc3339")
     """Deletion Time."""
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence start of the resource. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The cadence end of the resource."""
     key: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The identifier of the RateCard.
@@ -14594,9 +14249,13 @@ class SubscriptionItem(_Model):
      We say \"referenced by the Price\" regardless of how a price itself is referenced, it
      colloquially makes sense to say \"paying the same price for the same thing\". In practice this
      should be derived from what's printed on the invoice line-item. Required."""
-    feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update", "delete", "query"])
+    feature_key: Optional[str] = rest_field(
+        name="featureKey", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The feature's key (if present)."""
-    billing_cadence: datetime.timedelta = rest_field(name="billingCadence", visibility=["read", "create", "update", "delete", "query"])
+    billing_cadence: datetime.timedelta = rest_field(
+        name="billingCadence", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Billing cadence. Required."""
     price: "_types.RateCardUsageBasedPrice" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Price. Required. Is one of the following types: FlatPriceWithPaymentTerm,
@@ -14604,13 +14263,12 @@ class SubscriptionItem(_Model):
      PackagePriceWithCommitments"""
     discounts: Optional["_models.Discounts"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Discounts."""
-    included: Optional["_models.SubscriptionItemIncluded"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    included: Optional["_models.SubscriptionItemIncluded"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Describes what access is gained via the SubscriptionItem."""
     tax_config: Optional["_models.TaxConfig"] = rest_field(name="taxConfig", visibility=["read", "create", "update"])
     """Tax config."""
-
-
-
 
     @overload
     def __init__(
@@ -14628,8 +14286,7 @@ class SubscriptionItem(_Model):
         discounts: Optional["_models.Discounts"] = None,
         included: Optional["_models.SubscriptionItemIncluded"] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14660,17 +14317,13 @@ class SubscriptionItemIncluded(_Model):
     """The entitlement of the Subscription Item. Is one of the following types: EntitlementMetered,
      EntitlementStatic, EntitlementBoolean"""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         feature: "_models.Feature",
         entitlement: Optional["_types.Entitlement"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14702,11 +14355,10 @@ class SubscriptionPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_models.Subscription"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.Subscription"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items in the current page. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -14716,8 +14368,7 @@ class SubscriptionPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.Subscription"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14747,7 +14398,9 @@ class SubscriptionPhaseCreate(_Model):
     :vartype description: str
     """
 
-    start_after: datetime.timedelta = rest_field(name="startAfter", visibility=["read", "create", "update", "delete", "query"])
+    start_after: datetime.timedelta = rest_field(
+        name="startAfter", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Start after. Required."""
     duration: Optional[datetime.timedelta] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Duration."""
@@ -14760,9 +14413,6 @@ class SubscriptionPhaseCreate(_Model):
     description: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The description of the phase."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -14773,8 +14423,7 @@ class SubscriptionPhaseCreate(_Model):
         duration: Optional[datetime.timedelta] = None,
         discounts: Optional["_models.Discounts"] = None,
         description: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14790,40 +14439,40 @@ class SubscriptionPhaseCreate(_Model):
 class SubscriptionPhaseExpanded(_Model):
     """Expanded subscription phase.
 
-    :ivar id: ID. Required.
-    :vartype id: str
-    :ivar name: Display name. Required.
-    :vartype name: str
-    :ivar description: Description.
-    :vartype description: str
-    :ivar metadata: Metadata.
-    :vartype metadata: ~openmeter._generated.models.Metadata
-    :ivar created_at: Creation Time. Required.
-    :vartype created_at: ~datetime.datetime
-    :ivar updated_at: Last Update Time. Required.
-    :vartype updated_at: ~datetime.datetime
-    :ivar deleted_at: Deletion Time.
-    :vartype deleted_at: ~datetime.datetime
-    :ivar key: A locally unique identifier for the resource. Required.
-    :vartype key: str
-    :ivar discounts: Discounts.
-    :vartype discounts: ~openmeter._generated.models.Discounts
-    :ivar active_from: The time from which the phase is active. Required.
-    :vartype active_from: ~datetime.datetime
-    :ivar active_to: The until which the Phase is active.
-    :vartype active_to: ~datetime.datetime
-    :ivar items_property: The items of the phase. The structure is flattened to better conform to
-    the Plan API.
-The timelines are flattened according to the following rules:
+        :ivar id: ID. Required.
+        :vartype id: str
+        :ivar name: Display name. Required.
+        :vartype name: str
+        :ivar description: Description.
+        :vartype description: str
+        :ivar metadata: Metadata.
+        :vartype metadata: ~openmeter._generated.models.Metadata
+        :ivar created_at: Creation Time. Required.
+        :vartype created_at: ~datetime.datetime
+        :ivar updated_at: Last Update Time. Required.
+        :vartype updated_at: ~datetime.datetime
+        :ivar deleted_at: Deletion Time.
+        :vartype deleted_at: ~datetime.datetime
+        :ivar key: A locally unique identifier for the resource. Required.
+        :vartype key: str
+        :ivar discounts: Discounts.
+        :vartype discounts: ~openmeter._generated.models.Discounts
+        :ivar active_from: The time from which the phase is active. Required.
+        :vartype active_from: ~datetime.datetime
+        :ivar active_to: The until which the Phase is active.
+        :vartype active_to: ~datetime.datetime
+        :ivar items_property: The items of the phase. The structure is flattened to better conform to
+        the Plan API.
+    The timelines are flattened according to the following rules:
 
-     * for the current phase, the `items` contains only the active item for each key
-     * for past phases, the `items` contains only the last item for each key
-     * for future phases, the `items` contains only the first version of the item for each key.
-       Required.
-    :vartype items_property: list[~openmeter._generated.models.SubscriptionItem]
-    :ivar item_timelines: Includes all versions of the items on each key, including all edits,
-     scheduled changes, etc... Required.
-    :vartype item_timelines: dict[str, list[~openmeter._generated.models.SubscriptionItem]]
+         * for the current phase, the `items` contains only the active item for each key
+         * for past phases, the `items` contains only the last item for each key
+         * for future phases, the `items` contains only the first version of the item for each key.
+           Required.
+        :vartype items_property: list[~openmeter._generated.models.SubscriptionItem]
+        :ivar item_timelines: Includes all versions of the items on each key, including all edits,
+         scheduled changes, etc... Required.
+        :vartype item_timelines: dict[str, list[~openmeter._generated.models.SubscriptionItem]]
     """
 
     id: str = rest_field(visibility=["read"])
@@ -14844,11 +14493,17 @@ The timelines are flattened according to the following rules:
     """A locally unique identifier for the resource. Required."""
     discounts: Optional["_models.Discounts"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Discounts."""
-    active_from: datetime.datetime = rest_field(name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_from: datetime.datetime = rest_field(
+        name="activeFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The time from which the phase is active. Required."""
-    active_to: Optional[datetime.datetime] = rest_field(name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
+    active_to: Optional[datetime.datetime] = rest_field(
+        name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
     """The until which the Phase is active."""
-    items_property: list["_models.SubscriptionItem"] = rest_field(name="items", visibility=["read", "create", "update", "delete", "query"])
+    items_property: list["_models.SubscriptionItem"] = rest_field(
+        name="items", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The items of the phase. The structure is flattened to better conform to the Plan API.
  The timelines are flattened according to the following rules:
  
@@ -14856,12 +14511,11 @@ The timelines are flattened according to the following rules:
       * for past phases, the `items` contains only the last item for each key
       * for future phases, the `items` contains only the first version of the item for each key.
         Required."""
-    item_timelines: dict[str, list["_models.SubscriptionItem"]] = rest_field(name="itemTimelines", visibility=["read", "create", "update", "delete", "query"])
+    item_timelines: dict[str, list["_models.SubscriptionItem"]] = rest_field(
+        name="itemTimelines", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Includes all versions of the items on each key, including all edits, scheduled changes, etc...
      Required."""
-
-
-
 
     @overload
     def __init__(
@@ -14876,8 +14530,7 @@ The timelines are flattened according to the following rules:
         metadata: Optional["_models.Metadata"] = None,
         discounts: Optional["_models.Discounts"] = None,
         active_to: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14901,15 +14554,16 @@ class TaxConfig(_Model):
     :vartype custom_invoicing: ~openmeter._generated.models.CustomInvoicingTaxConfig
     """
 
-    behavior: Optional[Union[str, "_models.TaxBehavior"]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    behavior: Optional[Union[str, "_models.TaxBehavior"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """Tax behavior. Known values are: \"inclusive\" and \"exclusive\"."""
     stripe: Optional["_models.StripeTaxConfig"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Stripe tax config."""
-    custom_invoicing: Optional["_models.CustomInvoicingTaxConfig"] = rest_field(name="customInvoicing", visibility=["read", "create", "update", "delete", "query"])
+    custom_invoicing: Optional["_models.CustomInvoicingTaxConfig"] = rest_field(
+        name="customInvoicing", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Custom invoicing tax config."""
-
-
-
 
     @overload
     def __init__(
@@ -14918,8 +14572,7 @@ class TaxConfig(_Model):
         behavior: Optional[Union[str, "_models.TaxBehavior"]] = None,
         stripe: Optional["_models.StripeTaxConfig"] = None,
         custom_invoicing: Optional["_models.CustomInvoicingTaxConfig"] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -14936,7 +14589,7 @@ class TieredPriceWithCommitments(_Model):
     """Tiered price with spend commitments.
 
     :ivar type: The type of the price.
-     
+
      One of: flat, unit, or tiered. Required.
     :vartype type: str or ~openmeter._generated.models.TIERED
     :ivar mode: Mode. Required. Known values are: "volume" and "graduated".
@@ -14962,9 +14615,6 @@ class TieredPriceWithCommitments(_Model):
     maximum_amount: Optional[str] = rest_field(name="maximumAmount", visibility=["read", "create", "update"])
     """Maximum amount."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -14974,8 +14624,7 @@ class TieredPriceWithCommitments(_Model):
         tiers: list["_models.PriceTier"],
         minimum_amount: Optional[str] = None,
         maximum_amount: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -15007,10 +14656,6 @@ class UnauthorizedProblemResponse(UnexpectedProblemResponse):
     :vartype instance: str
     """
 
-
-
-
-
     @overload
     def __init__(
         self,
@@ -15020,8 +14665,7 @@ class UnauthorizedProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -15048,17 +14692,13 @@ class UnitPrice(_Model):
     amount: str = rest_field(visibility=["read", "create", "update"])
     """The amount of the unit price. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         type: Literal[PriceType.UNIT],
         amount: str,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -15093,9 +14733,6 @@ class UnitPriceWithCommitments(_Model):
     maximum_amount: Optional[str] = rest_field(name="maximumAmount", visibility=["read", "create", "update"])
     """Maximum amount."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -15104,8 +14741,7 @@ class UnitPriceWithCommitments(_Model):
         amount: str,
         minimum_amount: Optional[str] = None,
         maximum_amount: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -15141,10 +14777,6 @@ class ValidationError(_Model):
     """Additional attributes."""
 
 
-
-
-
-
 class ValidationErrorProblemResponse(_Model):
     """A BadRequestError with a validationErrors extension.
 
@@ -15178,9 +14810,6 @@ class ValidationErrorProblemResponse(_Model):
     extensions: Optional["_models.CreateResponseExtensions"] = rest_field(visibility=["read"])
     """Validation issues."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -15190,8 +14819,7 @@ class ValidationErrorProblemResponse(_Model):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -15206,7 +14834,7 @@ class ValidationErrorProblemResponse(_Model):
 
 class ValidationIssue(_Model):
     """ValidationIssue captures any validation issues related to the invoice.
-    
+
     Issues with severity "critical" will prevent the invoice from being issued.
 
     :ivar created_at: Creation Time. Required.
@@ -15254,10 +14882,6 @@ class ValidationIssue(_Model):
     """Additional context for the issue."""
 
 
-
-
-
-
 class VoidInvoiceAction(_Model):
     """InvoiceVoidAction describes how to handle the voided line items.
 
@@ -15277,17 +14901,13 @@ class VoidInvoiceAction(_Model):
     """The action to take on the line items. Required. Is either a VoidInvoiceLineDiscardAction type
      or a VoidInvoiceLinePendingAction type."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         percentage: float,
         action: "_types.VoidInvoiceLineAction",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -15308,7 +14928,7 @@ class VoidInvoiceActionInput(_Model):
     :ivar reason: The reason for voiding the invoice. Required.
     :vartype reason: str
     :ivar overrides: Per line item overrides for the action.
-     
+
      If not specified, the ``action`` will be applied to all line items.
     :vartype overrides: list[~openmeter._generated.models.VoidInvoiceActionLineOverride]
     """
@@ -15322,9 +14942,6 @@ class VoidInvoiceActionInput(_Model):
      
      If not specified, the ``action`` will be applied to all line items."""
 
-
-
-
     @overload
     def __init__(
         self,
@@ -15332,8 +14949,7 @@ class VoidInvoiceActionInput(_Model):
         action: "_models.VoidInvoiceAction",
         reason: str,
         overrides: Optional[list["_models.VoidInvoiceActionLineOverride"]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -15361,17 +14977,13 @@ class VoidInvoiceActionLineOverride(_Model):
     action: "_models.VoidInvoiceAction" = rest_field(visibility=["create"])
     """The action to take on the line item. Required."""
 
-
-
-
     @overload
     def __init__(
         self,
         *,
         line_id: str,
         action: "_models.VoidInvoiceAction",
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -15392,19 +15004,17 @@ class VoidInvoiceLineDiscardAction(_Model):
     :vartype type: str or ~openmeter._generated.models.DISCARD
     """
 
-    type: Literal[VoidInvoiceLineActionType.DISCARD] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[VoidInvoiceLineActionType.DISCARD] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The action to take on the line item. Required. The line items will never be charged for again"""
-
-
-
 
     @overload
     def __init__(
         self,
         *,
         type: Literal[VoidInvoiceLineActionType.DISCARD],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -15425,21 +15035,22 @@ class VoidInvoiceLinePendingAction(_Model):
      now)
     :vartype type: str or ~openmeter._generated.models.PENDING
     :ivar next_invoice_at: The time at which the line item should be invoiced again.
-     
+
      If not provided, the line item will be re-invoiced now.
     :vartype next_invoice_at: ~datetime.datetime
     """
 
-    type: Literal[VoidInvoiceLineActionType.PENDING] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    type: Literal[VoidInvoiceLineActionType.PENDING] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The action to take on the line item. Required. Queue the line items into the pending state,
      they will be included in the next invoice. (We want to generate an invoice right now)"""
-    next_invoice_at: Optional[datetime.datetime] = rest_field(name="nextInvoiceAt", visibility=["create"], format="rfc3339")
+    next_invoice_at: Optional[datetime.datetime] = rest_field(
+        name="nextInvoiceAt", visibility=["create"], format="rfc3339"
+    )
     """The time at which the line item should be invoiced again.
      
      If not provided, the line item will be re-invoiced now."""
-
-
-
 
     @overload
     def __init__(
@@ -15447,8 +15058,7 @@ class VoidInvoiceLinePendingAction(_Model):
         *,
         type: Literal[VoidInvoiceLineActionType.PENDING],
         next_invoice_at: Optional[datetime.datetime] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:
@@ -15475,18 +15085,19 @@ class WindowedBalanceHistory(_Model):
     :vartype burndown_history: list[~openmeter._generated.models.GrantBurnDownHistorySegment]
     """
 
-    windowed_history: list["_models.BalanceHistoryWindow"] = rest_field(name="windowedHistory", visibility=["read", "create", "update", "delete", "query"])
+    windowed_history: list["_models.BalanceHistoryWindow"] = rest_field(
+        name="windowedHistory", visibility=["read", "create", "update", "delete", "query"]
+    )
     """The windowed balance history.
  
       * It only returns rows for windows where there was usage.
       * The windows are inclusive at their start and exclusive at their end.
       * The last window may be smaller than the window size and is inclusive at both ends.
         Required."""
-    burndown_history: list["_models.GrantBurnDownHistorySegment"] = rest_field(name="burndownHistory", visibility=["read", "create", "update", "delete", "query"])
+    burndown_history: list["_models.GrantBurnDownHistorySegment"] = rest_field(
+        name="burndownHistory", visibility=["read", "create", "update", "delete", "query"]
+    )
     """Grant burndown history. Required."""
-
-
-
 
     @overload
     def __init__(
@@ -15494,8 +15105,7 @@ class WindowedBalanceHistory(_Model):
         *,
         windowed_history: list["_models.BalanceHistoryWindow"],
         burndown_history: list["_models.GrantBurnDownHistorySegment"],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(self, mapping: Mapping[str, Any]) -> None:

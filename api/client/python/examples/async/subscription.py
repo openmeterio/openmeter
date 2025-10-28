@@ -23,9 +23,7 @@ async def main() -> None:
     ) as client:
         try:
             # Create a subscription for the customer using the free plan
-            print(
-                f"Creating subscription for customer '{customer_key}' with plan '{plan_key}'..."
-            )
+            print(f"Creating subscription for customer '{customer_key}' with plan '{plan_key}'...")
 
             subscription_create = PlanSubscriptionCreate(
                 customer_key=customer_key,
@@ -40,9 +38,7 @@ async def main() -> None:
                 },
             )
 
-            subscription = await client.product_catalog.subscriptions.create(
-                subscription_create
-            )
+            subscription = await client.product_catalog.subscriptions.create(subscription_create)
             print(f"Subscription created successfully with ID: {subscription.id}")
             print(f"Subscription name: {subscription.name}")
             print(f"Subscription status: {subscription.status}")
@@ -53,9 +49,7 @@ async def main() -> None:
             print(f"Billing cadence: {subscription.billing_cadence}")
 
             # Retrieve the subscription to verify
-            retrieved_subscription = (
-                await client.product_catalog.subscriptions.get_expanded(subscription.id)
-            )
+            retrieved_subscription = await client.product_catalog.subscriptions.get_expanded(subscription.id)
             print(f"\nRetrieved subscription: {retrieved_subscription.name}")
             print(f"Status: {retrieved_subscription.status}")
             if retrieved_subscription.plan:
@@ -64,10 +58,8 @@ async def main() -> None:
 
             # List subscriptions for the customer
             print(f"\nListing subscriptions for customer '{customer_key}'...")
-            subscriptions_response = (
-                await client.customer.customers.list_customer_subscriptions(
-                    customer_key, status=[SubscriptionStatus.ACTIVE]
-                )
+            subscriptions_response = await client.customer.customers.list_customer_subscriptions(
+                customer_key, status=[SubscriptionStatus.ACTIVE]
             )
             for sub in subscriptions_response.items_property:
                 print(f"\t{sub.name} (ID: {sub.id}, Status: {sub.status})")

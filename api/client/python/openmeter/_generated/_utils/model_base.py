@@ -508,9 +508,7 @@ def _serialize(o, format: typing.Optional[str] = None):  # pylint: disable=too-m
     return o
 
 
-def _get_rest_field(
-    attr_to_rest_field: dict[str, "_RestField"], rest_name: str
-) -> typing.Optional["_RestField"]:
+def _get_rest_field(attr_to_rest_field: dict[str, "_RestField"], rest_name: str) -> typing.Optional["_RestField"]:
     try:
         return next(rf for rf in attr_to_rest_field.values() if rf._rest_name == rest_name)
     except StopIteration:
@@ -772,6 +770,7 @@ def _sorted_annotations(types: list[typing.Any]) -> list[typing.Any]:
         key=lambda x: hasattr(x, "__name__") and x.__name__.lower() in ("str", "float", "int", "bool"),
     )
 
+
 def _get_deserialize_callable_from_annotation(  # pylint: disable=too-many-return-statements, too-many-statements, too-many-branches
     annotation: typing.Any,
     module: typing.Optional[str],
@@ -939,34 +938,32 @@ def _deserialize(
 
 
 def _failsafe_deserialize(
-  deserializer: typing.Any,
-  response: HttpResponse,
-  module: typing.Optional[str] = None,
-  rf: typing.Optional["_RestField"] = None,
-  format: typing.Optional[str] = None,
+    deserializer: typing.Any,
+    response: HttpResponse,
+    module: typing.Optional[str] = None,
+    rf: typing.Optional["_RestField"] = None,
+    format: typing.Optional[str] = None,
 ) -> typing.Any:
-  try:
-      return _deserialize(deserializer, response.json(), module, rf, format)
-  except DeserializationError:
-      _LOGGER.warning(
-          "Ran into a deserialization error. Ignoring since this is failsafe deserialization",
-          exc_info=True
-      )
-      return None
+    try:
+        return _deserialize(deserializer, response.json(), module, rf, format)
+    except DeserializationError:
+        _LOGGER.warning(
+            "Ran into a deserialization error. Ignoring since this is failsafe deserialization", exc_info=True
+        )
+        return None
 
 
 def _failsafe_deserialize_xml(
-  deserializer: typing.Any,
-  response: HttpResponse, 
+    deserializer: typing.Any,
+    response: HttpResponse,
 ) -> typing.Any:
-  try:
-      return _deserialize_xml(deserializer, response.text())
-  except DeserializationError:
-      _LOGGER.warning(
-          "Ran into a deserialization error. Ignoring since this is failsafe deserialization",
-          exc_info=True
-      )
-      return None
+    try:
+        return _deserialize_xml(deserializer, response.text())
+    except DeserializationError:
+        _LOGGER.warning(
+            "Ran into a deserialization error. Ignoring since this is failsafe deserialization", exc_info=True
+        )
+        return None
 
 
 class _RestField:
@@ -1206,7 +1203,7 @@ def _deserialize_xml(
     deserializer: typing.Any,
     value: str,
 ) -> typing.Any:
-    element = ET.fromstring(value) # nosec
+    element = ET.fromstring(value)  # nosec
     return _deserialize(deserializer, element)
 
 

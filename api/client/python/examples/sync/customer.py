@@ -59,9 +59,7 @@ def main() -> None:
             },
         )
 
-        updated_customer = client.customer.customers.update(
-            created_customer.id, customer_update
-        )
+        updated_customer = client.customer.customers.update(created_customer.id, customer_update)
         print(f"\nCustomer updated successfully")
         print(f"Updated name: {updated_customer.name}")
         print(f"Updated email: {updated_customer.primary_email}")

@@ -23,9 +23,7 @@ client = Client(
 def main() -> None:
     try:
         # Create a subscription for the customer using the free plan
-        print(
-            f"Creating subscription for customer '{customer_key}' with plan '{plan_key}'..."
-        )
+        print(f"Creating subscription for customer '{customer_key}' with plan '{plan_key}'...")
 
         subscription_create = PlanSubscriptionCreate(
             customer_key=customer_key,
@@ -51,9 +49,7 @@ def main() -> None:
         print(f"Billing cadence: {subscription.billing_cadence}")
 
         # Retrieve the subscription to verify
-        retrieved_subscription = client.product_catalog.subscriptions.get_expanded(
-            subscription.id
-        )
+        retrieved_subscription = client.product_catalog.subscriptions.get_expanded(subscription.id)
         print(f"\nRetrieved subscription: {retrieved_subscription.name}")
         print(f"Status: {retrieved_subscription.status}")
         if retrieved_subscription.plan:

@@ -18,14 +18,10 @@ client = Client(
 def main() -> None:
     try:
         # Check customer access to a specific feature
-        print(
-            f"Checking access for customer '{customer_key}' to feature '{feature_key}'..."
-        )
+        print(f"Checking access for customer '{customer_key}' to feature '{feature_key}'...")
 
-        entitlement_value = (
-            client.entitlements.customer_entitlement.get_customer_entitlement_value(
-                customer_key, feature_key
-            )
+        entitlement_value = client.entitlements.customer_entitlement.get_customer_entitlement_value(
+            customer_key, feature_key
         )
 
         print(f"\nEntitlement Value:")

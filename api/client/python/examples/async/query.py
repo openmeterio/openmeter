@@ -17,9 +17,7 @@ async def main() -> None:
     ) as client:
         try:
             # Query total values
-            r: MeterQueryResult = await client.meters.query_json(
-                meter_id_or_slug="tokens_total"
-            )
+            r: MeterQueryResult = await client.meters.query_json(meter_id_or_slug="tokens_total")
             if r.data and len(r.data) > 0:
                 print("Query total values:", r.data[0].value)
             else:

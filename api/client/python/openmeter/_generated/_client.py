@@ -1,4 +1,3 @@
-# pylint: disable=line-too-long,useless-suppression
 # coding=utf-8
 
 from copy import deepcopy
@@ -10,7 +9,22 @@ from corehttp.runtime import PipelineClient, policies
 
 from ._configuration import OpenMeterClientConfiguration
 from ._utils.serialization import Deserializer, Serializer
-from .operations import AppOperations, BillingOperations, CustomerOperations, DebugOperations, EntitlementsOperations, EventsOperations, EventsV2Operations, InfoOperations, MetersOperations, NotificationOperations, PortalOperations, ProductCatalogOperations, SubjectsOperations
+from .operations import (
+    AppOperations,
+    BillingOperations,
+    CustomerOperations,
+    DebugOperations,
+    EntitlementsOperations,
+    EventsOperations,
+    EventsV2Operations,
+    InfoOperations,
+    MetersOperations,
+    NotificationOperations,
+    PortalOperations,
+    ProductCatalogOperations,
+    SubjectsOperations,
+)
+
 
 class OpenMeterClient:  # pylint: disable=client-accepts-api-version-keyword,too-many-instance-attributes
     """OpenMeter is a cloud native usage metering service.
@@ -47,69 +61,42 @@ class OpenMeterClient:  # pylint: disable=client-accepts-api-version-keyword,too
     """
 
     def __init__(  # pylint: disable=missing-client-constructor-parameter-credential
-        self,
-        *,
-        endpoint: str = "https://127.0.0.1",
-        **kwargs: Any
+        self, *, endpoint: str = "https://127.0.0.1", **kwargs: Any
     ) -> None:
-        _endpoint = '{endpoint}'
+        _endpoint = "{endpoint}"
         self._config = OpenMeterClientConfiguration(endpoint=endpoint, **kwargs)
 
-        _policies = kwargs.pop('policies', None)
+        _policies = kwargs.pop("policies", None)
         if _policies is None:
-            _policies = [self._config.headers_policy,self._config.user_agent_policy,self._config.proxy_policy,policies.ContentDecodePolicy(**kwargs),self._config.retry_policy,self._config.authentication_policy,self._config.logging_policy]
+            _policies = [
+                self._config.headers_policy,
+                self._config.user_agent_policy,
+                self._config.proxy_policy,
+                policies.ContentDecodePolicy(**kwargs),
+                self._config.retry_policy,
+                self._config.authentication_policy,
+                self._config.logging_policy,
+            ]
         self._client: PipelineClient = PipelineClient(endpoint=_endpoint, policies=_policies, **kwargs)
-
 
         self._serialize = Serializer()
         self._deserialize = Deserializer()
         self._serialize.client_side_validation = False
-        self.app = AppOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.customer = CustomerOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.product_catalog = ProductCatalogOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.entitlements = EntitlementsOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.billing = BillingOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.portal = PortalOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.notification = NotificationOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.info = InfoOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.events = EventsOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.events_v2 = EventsV2Operations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.meters = MetersOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.subjects = SubjectsOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
-        self.debug = DebugOperations(
-            self._client, self._config, self._serialize, self._deserialize
-        )
+        self.app = AppOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.customer = CustomerOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.product_catalog = ProductCatalogOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.entitlements = EntitlementsOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.billing = BillingOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.portal = PortalOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.notification = NotificationOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.info = InfoOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.events = EventsOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.events_v2 = EventsV2Operations(self._client, self._config, self._serialize, self._deserialize)
+        self.meters = MetersOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.subjects = SubjectsOperations(self._client, self._config, self._serialize, self._deserialize)
+        self.debug = DebugOperations(self._client, self._config, self._serialize, self._deserialize)
 
-
-    def send_request(
-        self,
-        request: HttpRequest, *, stream: bool = False,
-        **kwargs: Any
-    ) -> HttpResponse:
+    def send_request(self, request: HttpRequest, *, stream: bool = False, **kwargs: Any) -> HttpResponse:
         """Runs the network request through the client's chained policies.
 
         >>> from corehttp.rest import HttpRequest
@@ -129,7 +116,7 @@ class OpenMeterClient:  # pylint: disable=client-accepts-api-version-keyword,too
 
         request_copy = deepcopy(request)
         path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, 'str', skip_quote=True),
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
         }
 
         request_copy.url = self._client.format_url(request_copy.url, **path_format_arguments)
