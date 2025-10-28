@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -67,7 +68,14 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 	logger := o.Logger.With(slog.String(string(semconv.OTelScopeNameKey), "sarama"))
 
 	sarama.Logger = &SaramaLoggerAdaptor{
-		loggerFunc: logger.Info,
+		loggerFunc: func(fmt string, args ...any) {
+			// Temporary workaround to avoid flooding the logs with ApiVersionsRequest errors from Sarama.
+			// See: https://github.com/IBM/sarama/blob/85f7d7b0cf3e3d4224df99c6b11f276c8fc49fd5/broker.go#L223-L251
+			if strings.Contains(fmt, "Error while sending ApiVersionsRequest V3 to broker") {
+				return
+			}
+			logger.Info(fmt, args...)
+		},
 	}
 
 	// NOTE: always set the sarama.DebugLogger otherwise the debug level logs are redirected to the sarama.Logger by default
