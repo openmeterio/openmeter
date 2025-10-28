@@ -1,47 +1,43 @@
 from os import environ
+from typing import Optional
+import datetime
+import uuid
 import asyncio
 
 from openmeter.aio import Client
-from azure.core.exceptions import HttpResponseError
-from cloudevents.http import CloudEvent
-from cloudevents.conversion import to_dict
+from openmeter.models import Event
+from corehttp.exceptions import HttpResponseError
 
-ENDPOINT = environ.get("OPENMETER_ENDPOINT") or "http://localhost:8888"
-token = environ.get("OPENMETER_TOKEN")
-
-headers = {"Accept": "application/json"}
-if token and token != "":
-    headers["Authorization"] = f"Bearer {token}"
-
-client = Client(
-    endpoint=ENDPOINT,
-    headers=headers,
-)
+ENDPOINT: str = environ.get("OPENMETER_ENDPOINT") or "https://openmeter.cloud"
+token: Optional[str] = environ.get("OPENMETER_TOKEN")
 
 
-async def main():
-    async with client as c:
+async def main() -> None:
+    async with Client(
+        endpoint=ENDPOINT,
+        token=token,
+    ) as client:
         try:
-            event = CloudEvent(
-                attributes={
-                    "type": "request",
-                    "source": "openmeter-python",
-                    "subject": "user-id",
+            # Create a CloudEvents event
+            event = Event(
+                id=str(uuid.uuid4()),
+                source="my-app",
+                specversion="1.0",
+                type="prompt",
+                subject="customer-1",
+                time=datetime.datetime.now(datetime.timezone.utc),
+                data={
+                    "tokens": 100,
+                    "model": "gpt-4o",
+                    "type": "input",
                 },
-                data={"method": "GET", "route": "/hello"},
             )
-            await c.ingest_events(to_dict(event))
-            event = CloudEvent(
-                attributes={
-                    "type": "request",
-                    "source": "openmeter-python",
-                    "subject": "user-id",
-                },
-                data={"method": "POST", "route": "/hello"},
-            )
-            await c.ingest_events(to_dict(event))
+
+            # Ingest the event
+            await client.events.ingest_event(event)
+            print("Event ingested successfully")
         except HttpResponseError as e:
-            print(e)
+            print(f"Error ingesting event: {e}")
 
 
 asyncio.run(main())

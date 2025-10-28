@@ -1,11 +1,19 @@
 # python
-.python-version
+# Packaging
+*.egg-info/
+*.egg
+*.eggs/
+dist/
+build/
+CHANGELOG.md
+
+# Python cache
 __pycache__/
 *.pyc
-build
-dist
-pydo.egg-info
-.venv
+*.pyo
+*.pyd
 
-# generate
-openapi.yaml
+# Virtual envs
+.python-version
+.venv/
+venv/

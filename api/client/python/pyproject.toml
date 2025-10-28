@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "openmeter"
-version = "v0.0.0"
+version = "0.0.0"
 description = "Client for OpenMeter: Real-Time and Scalable Usage Metering"
 authors = ["Andras Toth <4157749+tothandras@users.noreply.github.com>"]
 license = "Apache-2.0"
@@ -8,32 +8,30 @@ readme = "README.md"
 repository = "https://github.com/openmeter/openmeter"
 homepage = "https://openmeter.io"
 keywords = [
-  "openmeter",
-  "api",
-  "client",
-  "usage",
-  "usage-based",
-  "metering",
-  "ai",
-  "aggregation",
-  "real-time",
-  "billing",
-  "cloud",
+    "openmeter",
+    "api",
+    "client",
+    "usage",
+    "usage-based",
+    "metering",
+    "ai",
+    "aggregation",
+    "real-time",
+    "billing",
+    "cloud",
 ]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-aiohttp = { version = ">=3.0", optional = true }
-azure-core = "^1.29.4"
 isodate = ">=0.6.1,<0.8.0"
+corehttp = { version = ">=1.0.0b6", extras = ["requests", "aiohttp"] }
+typing-extensions = ">=4.6.0"
 cloudevents = "^1.10.0"
+urllib3 = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
 black = ">=24.3,<26.0"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.extras]
-aio = ["aiohttp"]
