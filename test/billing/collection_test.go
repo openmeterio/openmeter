@@ -455,7 +455,6 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_SetsCollectionAtToNextAnchor
 					Period:          billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt:       periodEnd,
 					ManagedBy:       billing.ManuallyManagedLine,
-					Type:            billing.InvoiceLineTypeUsageBased,
 				},
 				UsageBased: &billing.UsageBasedLine{
 					FeatureKey: s.SetupApiRequestsTotalFeature(ctx, namespace).Feature.Key,
