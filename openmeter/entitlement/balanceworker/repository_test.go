@@ -3,10 +3,11 @@ package balanceworker
 import (
 	"testing"
 
-	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestGetEntitlementActivityPeriod(t *testing.T) {
