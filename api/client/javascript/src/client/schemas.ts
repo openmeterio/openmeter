@@ -10678,16 +10678,9 @@ export interface components {
       | components['schemas']['EditSubscriptionStretchPhase']
       | components['schemas']['EditSubscriptionUnscheduleEdit']
     /** @description Error extensions for the Subscription Errors. */
-    SubscriptionErrorExtensions:
-      | {
-          400: components['schemas']['ErrorExtension'][]
-        }
-      | {
-          409: components['schemas']['ErrorExtension'][]
-        }
-      | {
-          validationErrors?: components['schemas']['ValidationError'][]
-        }
+    SubscriptionErrorExtensions: {
+      validationErrors: components['schemas']['ErrorExtension'][]
+    }
     /** @description Expanded subscription */
     SubscriptionExpanded: {
       /**

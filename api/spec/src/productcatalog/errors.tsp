@@ -22,14 +22,8 @@ alias CommonSubscriptionErrors =
  */
 @friendlyName("SubscriptionErrorExtensions")
 union SubscriptionErrorExtensions {
-  `400`: {
-    `400`: ErrorExtension[],
-  },
-  `409`: {
-    `409`: ErrorExtension[],
-  },
-  validationErrors: {
-    validationErrors?: ValidationError[],
+  generic: {
+    validationErrors: ErrorExtension[],
   },
 }
 

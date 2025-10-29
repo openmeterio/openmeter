@@ -577,19 +577,12 @@ func TestPlan(t *testing.T) {
 
 			require.Equal(t, 409, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 
-			parsed, err := apiRes.ApplicationproblemJSON409.Extensions.AsSubscriptionErrorExtensions1()
-			require.Nil(t, err, "received the following body: %s", apiRes.Body)
-			require.NotNil(t, parsed)
-			require.GreaterOrEqual(t, len(parsed.N409), 1)
-			require.Equal(t, "only_single_subscription_allowed_per_customer_at_a_time", parsed.N409[0].Code)
+			extensions := apiRes.ApplicationproblemJSON409.Extensions
 
-			extensions := parsed.N409
+			require.GreaterOrEqual(t, len(extensions.ValidationErrors), 1)
+			require.Equal(t, "only_single_subscription_allowed_per_customer_at_a_time", extensions.ValidationErrors[0].Code)
 
-			require.Nil(t, err)
-			require.NotNil(t, extensions)
-			require.GreaterOrEqual(t, len(extensions), 1)
-
-			valErr := extensions[0]
+			valErr := extensions.ValidationErrors[0]
 			require.NotNil(t, valErr)
 			require.Equal(t, "only_single_subscription_allowed_per_customer_at_a_time", valErr.Code, "received the following body: %s", apiRes.Body)
 			require.NotContains(t, valErr.AdditionalProperties, "models.ErrorCode:only_single_subscription_allowed_per_customer_at_a_time")
@@ -767,13 +760,11 @@ func TestPlan(t *testing.T) {
 			require.Nil(t, err)
 
 			require.Equal(t, 400, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
-			parsed, err := apiRes.ApplicationproblemJSON400.Extensions.AsSubscriptionErrorExtensions2()
-			require.Nil(t, err, "received the following body: %s", apiRes.Body)
-			require.NotNil(t, parsed)
-			extensions := *parsed.ValidationErrors
-			require.GreaterOrEqual(t, len(extensions), 1)
+			// this breaks as we're not backwards compatible
+			extensions := apiRes.ApplicationproblemJSON400.Extensions
+			require.GreaterOrEqual(t, len(extensions.ValidationErrors), 1)
 
-			valErr := extensions[0]
+			valErr := extensions.ValidationErrors[0]
 			require.NotNil(t, valErr)
 			require.Equal(t, "rate_card_billing_cadence_unaligned", valErr.Code, "received the following body: %s", apiRes.Body)
 		})
@@ -827,13 +818,10 @@ func TestPlan(t *testing.T) {
 			require.Equal(t, 400, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions, "received the following body: %s", apiRes.Body)
 
-			parsed, err := apiRes.ApplicationproblemJSON400.Extensions.AsSubscriptionErrorExtensions2()
-			require.Nil(t, err, "received the following body: %s", apiRes.Body)
-			require.NotNil(t, parsed)
-			extensions := *parsed.ValidationErrors
-			require.GreaterOrEqual(t, len(extensions), 1)
+			extensions := apiRes.ApplicationproblemJSON400.Extensions
+			require.GreaterOrEqual(t, len(extensions.ValidationErrors), 1)
 
-			valErr := extensions[0]
+			valErr := extensions.ValidationErrors[0]
 			require.NotNil(t, valErr)
 			require.Equal(t, "entitlement_template_invalid_issue_after_reset_with_priority", valErr.Code, "received the following body: %s", apiRes.Body)
 			// we expect component and severity

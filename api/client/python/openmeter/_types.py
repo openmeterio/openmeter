@@ -23,9 +23,7 @@ RateCardUsageBasedPrice = Union[
 RateCard = Union["_models.RateCardFlatFee", "_models.RateCardUsageBased"]
 RecurringPeriodInterval = Union[str, str, "_models.RecurringPeriodIntervalEnum"]
 Entitlement = Union["_models.EntitlementMetered", "_models.EntitlementStatic", "_models.EntitlementBoolean"]
-SubscriptionErrorExtensions = Union[
-    "_models.CreateResponseExtensions", "_models.CreateResponseExtensions1", "_models.CreateResponseExtensions2"
-]
+SubscriptionErrorExtensions = "_models.CreateResponseExtensions"
 SubscriptionTiming = Union[str, "_models.SubscriptionTimingEnum", datetime.datetime]
 SubscriptionEditOperation = Union[
     "_models.EditSubscriptionAddItem",

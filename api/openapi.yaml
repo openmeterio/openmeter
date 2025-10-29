@@ -24749,29 +24749,14 @@ components:
           unschedule_edit: '#/components/schemas/EditSubscriptionUnscheduleEdit'
       description: The operation to be performed on the subscription.
     SubscriptionErrorExtensions:
-      anyOf:
-        - type: object
-          properties:
-            '400':
-              type: array
-              items:
-                $ref: '#/components/schemas/ErrorExtension'
-          required:
-            - '400'
-        - type: object
-          properties:
-            '409':
-              type: array
-              items:
-                $ref: '#/components/schemas/ErrorExtension'
-          required:
-            - '409'
-        - type: object
-          properties:
-            validationErrors:
-              type: array
-              items:
-                $ref: '#/components/schemas/ValidationError'
+      type: object
+      properties:
+        validationErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorExtension'
+      required:
+        - validationErrors
       description: Error extensions for the Subscription Errors.
     SubscriptionExpanded:
       type: object
