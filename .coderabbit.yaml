@@ -1,0 +1,58 @@
+language: "en"
+early_access: true
+tone_instructions: |
+  Be casual, friendly, and egoless, using approachable, clear, and conversational language that feels warm and engaging.
+  Keep the writing light, concise, and positive, as if speaking to a peer.
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  path_filters:
+    - "!**/*.mod"
+    - "!**/*.sum"
+    - "!**/openapi.yaml"
+    - "!**/openapi.cloud.yaml"
+    - "!api/client/**"
+    - "!api/spec/patches/**"
+    - "!**/node_modules/**"
+    - "!**/*.lock"
+    - "!**/*.log"
+  path_instructions:
+    - path: "**/*.go"
+      instructions: |
+        In general when reviewing the Golang code make readability and maintainability a priority, even potentially suggest restructuring the code to improve them.
+
+        Performance should be a priority in critical code paths. Anything related to event ingestion, message processing, database operations (regardless of database) should be vetted for potential performance bottlenecks.
+
+    - path: "**/*.tsp"
+      instructions: |
+        Review the TypeSpec code for conformity with TypeSpec best practices. When recommending changes also consider the fact that multiple codegeneration toolchains depend on the TypeSpec code, each of which have their idiosyncrasies and bugs.
+
+        The declared API should be accurate, in parity with the actual implementation, and easy to understand for the user.
+    - path: "**/*_test.go"
+      instructions: |
+        Make sure the tests are comprehensive and cover the changes. Keep a strong focus on unit tests and in-code integration tests.
+        When appropriate, recommend e2e tests for critical changes.
+    - path: "**/*.md"
+      instructions: |
+        "Assess the documentation for misspellings, grammatical errors, missing documentation and correctness"
+    - path: "**/*.md"
+      instructions: |
+        Review markdown documentation with these guidelines:
+        - Structure: Ensure consistent heading hierarchy and document organization
+        - Content: Verify accuracy of technical details, code examples, and API references
+        - Quality: Check for spelling, grammar, and broken links
+        - Completeness: Confirm all features and changes are properly documented
+        - Style: Follow project's documentation style guide and formatting conventions
+  auto_review:
+    enabled: false
+    ignore_title_keywords:
+      - "WIP"
+    drafts: false
+    base_branches:
+      - ".*" # review against all branches
+chat:
+  auto_reply: true
