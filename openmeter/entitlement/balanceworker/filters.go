@@ -68,6 +68,7 @@ var _ filters.Filter = (*EntitlementFilters)(nil)
 
 type EntitlementFilters struct {
 	filters []filters.NamedFilter
+	logger  *slog.Logger
 
 	meterEntitlementsFilterRequestsTotal metric.Int64Counter
 	meterEntitlementsFilterMatchesTotal  metric.Int64Counter
@@ -118,6 +119,7 @@ func NewEntitlementFilters(cfg EntitlementFiltersConfig) (*EntitlementFilters, e
 
 	return EntitlementFilters{
 		filters: []filters.NamedFilter{notificationFilter, highWatermarkCache},
+		logger:  cfg.Logger,
 	}.WithMetrics(cfg.MetricMeter)
 }
 
@@ -154,7 +156,7 @@ func (f EntitlementFilters) IsNamespaceInScope(ctx context.Context, namespace st
 		),
 	)
 
-	return f.executeFilters(ctx, func(ctx context.Context, filter filters.Filter) (bool, error) {
+	return f.executeFilters(ctx, func(ctx context.Context, filter filters.NamedFilter) (bool, error) {
 		return filter.IsNamespaceInScope(ctx, namespace)
 	}, FilterScopeNamespace)
 }
@@ -168,7 +170,7 @@ func (f EntitlementFilters) IsEntitlementInScope(ctx context.Context, req filter
 	)
 
 	return f.executeFilters(ctx,
-		func(ctx context.Context, filter filters.Filter) (bool, error) {
+		func(ctx context.Context, filter filters.NamedFilter) (bool, error) {
 			return filter.IsEntitlementInScope(ctx, req)
 		},
 		FilterScopeEntitlement,
@@ -176,7 +178,7 @@ func (f EntitlementFilters) IsEntitlementInScope(ctx context.Context, req filter
 	)
 }
 
-func (f EntitlementFilters) executeFilters(ctx context.Context, check func(ctx context.Context, filter filters.Filter) (bool, error), scope FilterScope, additionalAttributes ...attribute.KeyValue) (bool, error) {
+func (f EntitlementFilters) executeFilters(ctx context.Context, check func(ctx context.Context, filter filters.NamedFilter) (bool, error), scope FilterScope, additionalAttributes ...attribute.KeyValue) (bool, error) {
 	for _, filter := range f.filters {
 		attributes := []attribute.KeyValue{
 			attribute.String(metricLabelFilterName, filter.Name()),
@@ -188,6 +190,7 @@ func (f EntitlementFilters) executeFilters(ctx context.Context, check func(ctx c
 		isInScope, err := check(ctx, filter)
 		if err != nil {
 			f.meterEntitlementsFilterErrorsTotal.Add(ctx, 1, metric.WithAttributes(attributes...))
+			f.logger.ErrorContext(ctx, "failed to execute filter", "error", err, "filter_scope", string(scope), "filter_name", filter.Name())
 			return false, err
 		}
 

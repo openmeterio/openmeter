@@ -336,6 +336,10 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 						EntitlementID: e.ID,
 						SubjectKey:    pair.EventSubject,
 						CustomerID:    e.Edges.Customer.ID,
+						CreatedAt:     e.CreatedAt.UTC(),
+						DeletedAt:     convert.SafeToUTC(e.DeletedAt),
+						ActiveFrom:    convert.SafeToUTC(e.ActiveFrom),
+						ActiveTo:      convert.SafeToUTC(e.ActiveTo),
 						MeterSlug:     e.Edges.Feature.MeterSlug,
 					})
 				}
