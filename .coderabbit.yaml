@@ -48,7 +48,7 @@ reviews:
         - Completeness: Confirm all features and changes are properly documented
         - Style: Follow project's documentation style guide and formatting conventions
   auto_review:
-    enabled: false
+    enabled: true
     ignore_title_keywords:
       - "WIP"
     drafts: false
