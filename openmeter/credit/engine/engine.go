@@ -4,6 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -26,11 +29,39 @@ type RunParams struct {
 	Resets timeutil.SimpleTimeline
 }
 
+func (p RunParams) TotalAvailableGrantAmount() float64 {
+	res := lo.Reduce(p.Grants, func(agg alpacadecimal.Decimal, grant grant.Grant, _ int) alpacadecimal.Decimal {
+		return agg.Add(alpacadecimal.NewFromFloat(grant.Amount))
+	}, alpacadecimal.NewFromFloat(0))
+
+	return res.InexactFloat64()
+}
+
+func (p RunParams) Clone() RunParams {
+	grants := make([]grant.Grant, len(p.Grants))
+	copy(grants, p.Grants)
+
+	resets := timeutil.NewSimpleTimeline(p.Resets.GetTimes())
+
+	res := RunParams{
+		Meter:            p.Meter,
+		Grants:           grants,
+		Until:            p.Until,
+		StartingSnapshot: p.StartingSnapshot,
+		ResetBehavior:    p.ResetBehavior,
+		Resets:           resets,
+	}
+
+	return res
+}
+
 type RunResult struct {
 	// Snapshot of the balances at the END OF THE PERIOD.
 	Snapshot balance.Snapshot
 	// History of the grant burn down.
 	History GrantBurnDownHistory
+	// RunParams used to produce the result.
+	RunParams RunParams
 }
 
 type Engine interface {
