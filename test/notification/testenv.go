@@ -112,7 +112,7 @@ func (n testEnv) Namespace() string {
 
 const (
 	DefaultSvixHost             = "127.0.0.1"
-	DefaultSvixJWTSigningSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
+	DefaultSvixJWTSigningSecret = "DUMMY_JWT_SECRET"
 )
 
 func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, error) {
