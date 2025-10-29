@@ -13,14 +13,16 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/assert"
 
+	balanceworkerevents "github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/events"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
 type TopicMapping struct {
-	IngestEventsTopic string
-	SystemEventsTopic string
+	IngestEventsTopic        string
+	SystemEventsTopic        string
+	BalanceWorkerEventsTopic string
 }
 
 func (t TopicMapping) Validate() error {
@@ -30,6 +32,10 @@ func (t TopicMapping) Validate() error {
 
 	if t.SystemEventsTopic == "" {
 		return errors.New("system events topic is required")
+	}
+
+	if t.BalanceWorkerEventsTopic == "" {
+		return errors.New("balance worker events topic is required")
 	}
 
 	return nil
@@ -123,12 +129,15 @@ func New(opts Options) (Publisher, error) {
 	marshaler := marshaler.New(opts.MarshalerTransformFunc)
 
 	ingestVersionSubsystemPrefix := ingestevents.EventVersionSubsystem + "."
+	balanceWorkerVersionSubsystemPrefix := balanceworkerevents.EventVersionSubsystem + "."
 
 	eventBus, err := cqrs.NewEventBusWithConfig(opts.Publisher, cqrs.EventBusConfig{
 		GeneratePublishTopic: func(params cqrs.GenerateEventPublishTopicParams) (string, error) {
 			switch {
 			case strings.HasPrefix(params.EventName, ingestVersionSubsystemPrefix):
 				return opts.TopicMapping.IngestEventsTopic, nil
+			case strings.HasPrefix(params.EventName, balanceWorkerVersionSubsystemPrefix):
+				return opts.TopicMapping.BalanceWorkerEventsTopic, nil
 			default:
 				return opts.TopicMapping.SystemEventsTopic, nil
 			}
@@ -151,8 +160,9 @@ func NewMock(t *testing.T) Publisher {
 	eventBus, err := New(Options{
 		Publisher: &noop.Publisher{},
 		TopicMapping: TopicMapping{
-			IngestEventsTopic: "test",
-			SystemEventsTopic: "test",
+			IngestEventsTopic:        "test-ingest-events",
+			SystemEventsTopic:        "test-system-events",
+			BalanceWorkerEventsTopic: "test-balance-worker-events",
 		},
 		Logger: slog.Default(),
 	})

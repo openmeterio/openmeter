@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/events"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
@@ -34,8 +35,9 @@ const (
 type BatchedIngestEventHandler = func(ctx context.Context, event ingestevents.EventBatchedIngest) error
 
 type WorkerOptions struct {
-	SystemEventsTopic string
-	IngestEventsTopic string
+	SystemEventsTopic        string
+	IngestEventsTopic        string
+	BalanceWorkerEventsTopic string
 
 	Router   router.Options
 	EventBus eventbus.Publisher
@@ -78,6 +80,10 @@ func (o *WorkerOptions) Validate() error {
 
 	if o.IngestEventsTopic == "" {
 		return errors.New("ingest events topic is required")
+	}
+
+	if o.BalanceWorkerEventsTopic == "" {
+		return errors.New("balance worker events topic is required")
 	}
 
 	if o.MetricMeter == nil {
@@ -172,14 +178,19 @@ func New(opts WorkerOptions) (*Worker, error) {
 		eventHandler,
 	)
 
-	if opts.SystemEventsTopic != opts.IngestEventsTopic {
-		r.AddConsumerHandler(
-			"balance_worker_ingest_events",
-			opts.IngestEventsTopic,
-			opts.Router.Subscriber,
-			eventHandler,
-		)
-	}
+	r.AddConsumerHandler(
+		"balance_worker_ingest_events",
+		opts.IngestEventsTopic,
+		opts.Router.Subscriber,
+		eventHandler,
+	)
+
+	r.AddConsumerHandler(
+		"balance_worker_balance_worker_events",
+		opts.BalanceWorkerEventsTopic,
+		opts.Router.Subscriber,
+		eventHandler,
+	)
 
 	return worker, nil
 }
@@ -314,9 +325,9 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 		}),
 
 		// Balance worker triggered recalculation event
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *RecalculateEvent) error {
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *events.RecalculateEvent) error {
 			if event == nil {
-				return errors.New("nil batched ingest event")
+				return errors.New("nil recalculate event")
 			}
 
 			return w.opts.EventBus.
@@ -324,7 +335,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					pkgmodels.NamespacedID{Namespace: event.Entitlement.Namespace, ID: event.Entitlement.ID},
-					WithSource(metadata.ComposeResourcePath(event.Entitlement.Namespace, metadata.EntityEntitlement, event.Entitlement.ID)),
+					WithSource(event.OriginalSourceEvent),
 					WithEventAt(event.AsOf),
 				))
 		}),

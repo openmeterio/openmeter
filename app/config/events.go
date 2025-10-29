@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -11,33 +12,50 @@ import (
 )
 
 type EventsConfiguration struct {
-	SystemEvents EventSubsystemConfiguration
-	IngestEvents EventSubsystemConfiguration
+	SystemEvents        EventSubsystemConfiguration
+	IngestEvents        EventSubsystemConfiguration
+	BalanceWorkerEvents EventSubsystemConfiguration
 }
 
 func (c EventsConfiguration) Validate() error {
-	return c.SystemEvents.Validate()
+	var errs []error
+
+	if err := c.SystemEvents.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "system events"))
+	}
+
+	if err := c.IngestEvents.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "ingest events"))
+	}
+
+	if err := c.BalanceWorkerEvents.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "balance worker events"))
+	}
+
+	// Validate topic uniqueness
+	uniqueTopics := lo.Uniq([]string{c.SystemEvents.Topic, c.IngestEvents.Topic, c.BalanceWorkerEvents.Topic})
+	if len(uniqueTopics) != 3 {
+		errs = append(errs, errors.New("topic names must be unique"))
+	}
+
+	return errors.Join(errs...)
 }
 
 func (c EventsConfiguration) EventBusTopicMapping() eventbus.TopicMapping {
 	return eventbus.TopicMapping{
-		IngestEventsTopic: c.IngestEvents.Topic,
-		SystemEventsTopic: c.SystemEvents.Topic,
+		IngestEventsTopic:        c.IngestEvents.Topic,
+		SystemEventsTopic:        c.SystemEvents.Topic,
+		BalanceWorkerEventsTopic: c.BalanceWorkerEvents.Topic,
 	}
 }
 
 type EventSubsystemConfiguration struct {
-	Enabled bool
-	Topic   string
+	Topic string
 
 	AutoProvision AutoProvisionConfiguration
 }
 
 func (c EventSubsystemConfiguration) Validate() error {
-	if !c.Enabled {
-		return nil
-	}
-
 	var errs []error
 
 	if c.Topic == "" {
@@ -209,13 +227,15 @@ func ConfigureConsumer(v *viper.Viper, prefix string) {
 func ConfigureEvents(v *viper.Viper) {
 	// TODO: after the system events are fully implemented, we should enable them by default
 	v.SetDefault("events.enabled", false)
-	v.SetDefault("events.systemEvents.enabled", true)
 	v.SetDefault("events.systemEvents.topic", "om_sys.api_events")
 	v.SetDefault("events.systemEvents.autoProvision.enabled", true)
 	v.SetDefault("events.systemEvents.autoProvision.partitions", 4)
 
-	v.SetDefault("events.ingestEvents.enabled", true)
 	v.SetDefault("events.ingestEvents.topic", "om_sys.ingest_events")
 	v.SetDefault("events.ingestEvents.autoProvision.enabled", true)
 	v.SetDefault("events.ingestEvents.autoProvision.partitions", 8)
+
+	v.SetDefault("events.balanceWorkerEvents.topic", "om_sys.balance_worker_events")
+	v.SetDefault("events.balanceWorkerEvents.autoProvision.enabled", true)
+	v.SetDefault("events.balanceWorkerEvents.autoProvision.partitions", 4)
 }
