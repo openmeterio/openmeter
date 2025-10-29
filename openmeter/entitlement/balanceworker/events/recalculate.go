@@ -27,29 +27,10 @@ var (
 	EventVersionSubsystem = recalculateEventType.VersionSubsystem()
 )
 
-type RecalculateEventEntitlement struct {
-	models.NamespacedID
-
-	SubjectKey string `json:"subjectKey"`
-}
-
-func (e RecalculateEventEntitlement) Validate() error {
-	var errs []error
-
-	if err := e.NamespacedID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("namespaced id: %w", err))
-	}
-
-	if e.SubjectKey == "" {
-		errs = append(errs, errors.New("subject key is required"))
-	}
-
-	return errors.Join(errs...)
-}
-
 type RecalculateEvent struct {
-	Entitlement RecalculateEventEntitlement `json:"entitlement"`
-	AsOf        time.Time                   `json:"asOf"`
+	Entitlement         models.NamespacedID `json:"entitlement"`
+	AsOf                time.Time           `json:"asOf"`
+	OriginalSourceEvent string              `json:"originalSourceEvent"`
 }
 
 func (e RecalculateEvent) EventName() string {
@@ -58,8 +39,8 @@ func (e RecalculateEvent) EventName() string {
 
 func (e RecalculateEvent) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
-		Source:  metadata.ComposeResourcePath(e.Entitlement.Namespace, metadata.EntityEntitlement, e.Entitlement.ID),
-		Subject: metadata.ComposeResourcePath(e.Entitlement.Namespace, metadata.EntitySubjectKey, e.Entitlement.SubjectKey),
+		Source:  e.OriginalSourceEvent,
+		Subject: metadata.ComposeResourcePath(e.Entitlement.Namespace, metadata.EntityEntitlement, e.Entitlement.ID),
 	}
 }
 

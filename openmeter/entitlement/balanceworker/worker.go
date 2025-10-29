@@ -335,7 +335,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					pkgmodels.NamespacedID{Namespace: event.Entitlement.Namespace, ID: event.Entitlement.ID},
-					WithSource(metadata.ComposeResourcePath(event.Entitlement.Namespace, metadata.EntityEntitlement, event.Entitlement.ID)),
+					WithSource(event.OriginalSourceEvent),
 					WithEventAt(event.AsOf),
 				))
 		}),
