@@ -11,6 +11,8 @@ import (
 )
 
 type EntitlementsConfiguration struct {
+	// GracePeriod represents a period of time in the current usage period during which values will not be snapshotted.
+	// This in effect results in late events being included during this period.
 	GracePeriod datetime.ISODurationString
 }
 

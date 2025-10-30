@@ -2,6 +2,7 @@ package credit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"time"
@@ -55,10 +56,23 @@ func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.Nam
 }
 
 func (m *connector) runEngineInSpan(ctx context.Context, eng engine.Engine, runParams engine.RunParams) (engine.RunResult, error) {
-	ctx, span := m.Tracer.Start(ctx, "credit.runEngine")
+	ctx, span := m.Tracer.Start(ctx, "credit.runEngine", cTrace.WithEngineParams(runParams))
 	defer span.End()
 
-	return eng.Run(ctx, runParams)
+	res, err := eng.Run(ctx, runParams)
+
+	// Let's annotate the span with the calculated history periods so we understand the engine's execution
+	// We can do it even if we got an error, worst case scenario we'll have an empty list of periods.
+	periods := res.History.GetPeriods()
+
+	periodsJSON, marshalErr := json.Marshal(periods)
+	if marshalErr != nil {
+		m.Logger.WarnContext(ctx, "failed to marshal periods for tracing", "error", err)
+	} else {
+		span.SetAttributes(attribute.String("periods", string(periodsJSON)))
+	}
+
+	return res, err
 }
 
 type buildEngineForOwnerParams struct {
@@ -153,8 +167,8 @@ type snapshotParams struct {
 	grants []grant.Grant
 	// Owner of the snapshot
 	owner models.NamespacedID
-	// Snapshot is saved if the segment is before this time & the start of the current usage period (at time of snapshot)
-	before time.Time
+	// Snapshot is saved if the segment is not after this time & the start of the current usage period (at time of snapshot)
+	notAfter time.Time
 }
 
 // It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
@@ -176,7 +190,7 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 		seg := segs[i]
 
 		// We can save a segment if its not after the current period start (this way backfilling, granting, resetting, etc... will work for the current UsagePeriod)
-		if !seg.From.After(snapParams.before) {
+		if !seg.From.After(snapParams.notAfter) {
 			snap, err := runRes.History.GetSnapshotAtStartOfSegment(i)
 			if err != nil {
 				return fmt.Errorf("failed to get snapshot at start of segment: %w", err)

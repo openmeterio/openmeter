@@ -175,3 +175,12 @@ func (g *GrantBurnDownHistory) Overage() float64 {
 	lastSegment := g.segments[len(g.segments)-1]
 	return lastSegment.Overage
 }
+
+func (g *GrantBurnDownHistory) GetPeriods() []timeutil.ClosedPeriod {
+	periods := make([]timeutil.ClosedPeriod, len(g.segments))
+	for i, seg := range g.segments {
+		periods[i] = seg.ClosedPeriod
+	}
+
+	return periods
+}

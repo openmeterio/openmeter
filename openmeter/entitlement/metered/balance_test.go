@@ -231,7 +231,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			},
 		},
 		{
-			name: "Should save new snapshot",
+			name: "Should save new snapshot when querying period start",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := t.Context()
 				startTime := getAnchor(t)
@@ -250,13 +250,13 @@ func TestGetEntitlementBalance(t *testing.T) {
 				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
 				inp.MeasureUsageFrom = &startTime
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
-					Interval: timeutil.RecurrencePeriodDaily, // we need a faster recurrence as we wont save snapshots in the current usage period
+					Interval: timeutil.RecurrencePeriodDaily, // We use a faster recurrence so it overwrites the grace periods
 					Anchor:   inp.UsagePeriod.GetValue().Anchor,
 				}))
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				require.NoError(t, err)
 
-				queryTime := startTime.AddDate(0, 0, 9) // longer than grace period for saving snapshots
+				queryTime := startTime.AddDate(0, 0, 9) // falls on period start
 
 				// issue grants
 				owner := models.NamespacedID{
@@ -328,15 +328,272 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.NotEqual(t, snap1.At, snap2.At)
 				assert.Equal(t, balance.Snapshot{
 					Usage: balance.SnapshottedUsage{
-						Since: startTime.AddDate(0, 0, 2), // Entitlement resets daily, so this snapshot will be at a reset time
+						Since: queryTime, // querytime is the start of a UsagePeriod, so this snapshot will be at the start of the usage period
+						Usage: 0,         // And at a reset time the usage is 0
+					},
+					Balances: balance.Map{
+						g1.ID: 800,
+					},
+					Overage: 0,
+					At:      queryTime, // querytime is the start of a UsagePeriod, so we create a snapshot
+				}, snap2)
+			},
+		},
+		{
+			name: "Should save new snapshot at start of current period if period start is closer than graceperiod",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
+				ctx := t.Context()
+				startTime := getAnchor(t)
+				clock.SetTime(startTime)
+				defer clock.ResetTime()
+
+				// register usage so meter is found
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 1, startTime.AddDate(5, 0, 0))
+
+				randName := testutils.NameGenerator.Generate()
+
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
+				inp.MeasureUsageFrom = &startTime
+				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodDaily, // We use a faster recurrence so it overwrites the grace periods
+					Anchor:   inp.UsagePeriod.GetValue().Anchor,
+				}))
+				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				require.NoError(t, err)
+
+				queryTime := startTime.AddDate(0, 0, 9).Add(time.Hour) // queried an after hour period start (which is daily)
+
+				// issue grants
+				owner := models.NamespacedID{
+					Namespace: namespace,
+					ID:        entitlement.ID,
+				}
+
+				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:          entitlement.ID,
+					Namespace:        namespace,
+					Amount:           1000,
+					ResetMaxRollover: 1000,
+					Priority:         2,
+					EffectiveAt:      startTime,
+					ExpiresAt:        lo.ToPtr(startTime.AddDate(0, 0, 10)),
+				})
+				require.NoError(t, err)
+
+				// register usage for meter & feature
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, g1.EffectiveAt.Add(time.Minute))
+
+				// add a balance snapshot
+				err = deps.balanceSnapshotService.Save(
+					ctx,
+					owner, []balance.Snapshot{
+						{
+							Usage: balance.SnapshottedUsage{
+								Since: startTime,
+								Usage: 0,
+							},
+							Balances: balance.Map{
+								g1.ID: 1000,
+							},
+							Overage: 0,
+							At:      g1.EffectiveAt,
+						},
+					})
+				require.NoError(t, err)
+
+				clock.SetTime(queryTime)
+
+				// get last vaild snapshot
+				snap1, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
+				require.NoError(t, err)
+				assert.Equal(t, balance.Snapshot{
+					Usage: balance.SnapshottedUsage{
+						Since: startTime,
+						Usage: 0,
+					},
+					Balances: balance.Map{
+						g1.ID: 1000,
+					},
+					Overage: 0,
+					At:      g1.EffectiveAt,
+				}, snap1)
+
+				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
+				require.NoError(t, err)
+
+				// validate balance calc for good measure
+				assert.Equal(t, 0.0, entBalance.UsageInPeriod)
+				assert.Equal(t, 800.0, entBalance.Balance)
+				assert.Equal(t, 0.0, entBalance.Overage)
+
+				snap2, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
+				require.NoError(t, err)
+
+				// check snapshots
+				assert.NotEqual(t, snap1.At, snap2.At)
+				assert.Equal(t, balance.Snapshot{
+					Usage: balance.SnapshottedUsage{
+						Since: startTime.AddDate(0, 0, 9), // will create a snapshot at the start of the usage period
 						Usage: 0,                          // And at a reset time the usage is 0
 					},
 					Balances: balance.Map{
 						g1.ID: 800,
 					},
 					Overage: 0,
-					At:      startTime.AddDate(0, 0, 2), // When the 7 day graceperiod is over
+					At:      startTime.AddDate(0, 0, 9), // will create a snapshot at the start of the usage period
 				}, snap2)
+			},
+		},
+		{
+			name: "Should save new snapshot at last (non-deterministic) history breakpoint before the grace period (even if there are no previous snapshots available)",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
+				ctx := t.Context()
+				startTime := getAnchor(t)
+				clock.SetTime(startTime)
+				defer clock.ResetTime()
+
+				// register usage so meter is found
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 1, startTime.AddDate(5, 0, 0))
+
+				randName := testutils.NameGenerator.Generate()
+
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
+				inp.MeasureUsageFrom = &startTime
+				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodMonth, // We use a slower recurrence so grace period will fit inside it
+					Anchor:   inp.UsagePeriod.GetValue().Anchor,
+				}))
+				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				require.NoError(t, err)
+
+				queryTime := startTime.AddDate(0, 1, 9) // We progress into the next month when querying so we'll have a history breakpoint at reset time
+
+				// issue grants
+				owner := models.NamespacedID{
+					Namespace: namespace,
+					ID:        entitlement.ID,
+				}
+
+				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:          entitlement.ID,
+					Namespace:        namespace,
+					Amount:           1000,
+					ResetMaxRollover: 1000,
+					Priority:         2,
+					EffectiveAt:      startTime,
+					ExpiresAt:        lo.ToPtr(startTime.AddDate(0, 1, 10)), // let's also extend this a month
+				})
+				require.NoError(t, err)
+
+				// register usage for meter & feature
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, g1.EffectiveAt.Add(time.Minute))
+
+				// Let's not save a snapshot to simulate a clean-slate scenario
+
+				clock.SetTime(queryTime)
+
+				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
+				require.NoError(t, err)
+
+				// validate balance calc for good measure
+				assert.Equal(t, 0.0, entBalance.UsageInPeriod)
+				assert.Equal(t, 800.0, entBalance.Balance)
+				assert.Equal(t, 0.0, entBalance.Overage)
+
+				snap, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
+				require.NoError(t, err)
+
+				// check snapshot
+				assert.Equal(t, balance.Snapshot{
+					Usage: balance.SnapshottedUsage{
+						Since: startTime.AddDate(0, 1, 0), // Will create a snapshot at the last history breakpoint outside 7 day grace period (which is the last reset time)
+						Usage: 0,                          // And at a reset time the usage is 0
+					},
+					Balances: balance.Map{
+						g1.ID: 800,
+					},
+					Overage: 0,
+					At:      startTime.AddDate(0, 1, 0), // Will create a snapshot at the last history breakpoint outside 7 day grace period (which is the last reset time)
+				}, snap)
+			},
+		},
+		{
+			// This behavious is not ideal but would require a longer refactor to change. In a scenario where we're in the first usage period and there either haven't been any grants issued, or they were issued same time as start of measurement, we will only have a single history segment in the result which will result in us not snapshotting.
+			// This is not a significant issue as with the next periods we'll have a history breakpoint and start saving snapshots again. This is asserted in the test above [Should save new snapshot at last (non-deterministic) history breakpoint before the grace period (even if there are no previous snapshots available)]
+			name: "Will not save a snapshot if there are no previous snapshots and there have been no significant events since start of measurement (i.e. reset / grant issuing)",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
+				ctx := t.Context()
+				startTime := getAnchor(t)
+				clock.SetTime(startTime)
+				defer clock.ResetTime()
+
+				// register usage so meter is found
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 1, startTime.AddDate(5, 0, 0))
+
+				randName := testutils.NameGenerator.Generate()
+
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
+				inp.MeasureUsageFrom = &startTime
+				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodMonth,
+					Anchor:   inp.UsagePeriod.GetValue().Anchor,
+				}))
+				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				require.NoError(t, err)
+
+				queryTime := startTime.AddDate(0, 0, 9) // we'll only have a breakpoint at the usage period boundaries which is starttime, 9 days is longer than grace period (7 days)
+
+				// issue grants
+				owner := models.NamespacedID{
+					Namespace: namespace,
+					ID:        entitlement.ID,
+				}
+
+				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:          entitlement.ID,
+					Namespace:        namespace,
+					Amount:           1000,
+					ResetMaxRollover: 1000,
+					Priority:         2,
+					EffectiveAt:      startTime,
+					ExpiresAt:        lo.ToPtr(startTime.AddDate(0, 0, 10)),
+				})
+				require.NoError(t, err)
+
+				// register usage for meter & feature
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, g1.EffectiveAt.Add(time.Minute))
+
+				// don't add a balance snapshot (we'll calculate from start of time)
+
+				clock.SetTime(queryTime)
+
+				// get last vaild snapshot, assert there isn't one
+				_, err = deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
+				require.ErrorAs(t, err, lo.ToPtr(&balance.NoSavedBalanceForOwnerError{}))
+
+				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
+				require.NoError(t, err)
+
+				// validate balance calc for good measure
+				assert.Equal(t, 200.0, entBalance.UsageInPeriod)
+				assert.Equal(t, 800.0, entBalance.Balance)
+				assert.Equal(t, 0.0, entBalance.Overage)
+
+				// will not save a snapshot as there were no history breakpoints
+				_, err = deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
+				require.ErrorAs(t, err, lo.ToPtr(&balance.NoSavedBalanceForOwnerError{}))
 			},
 		},
 		{

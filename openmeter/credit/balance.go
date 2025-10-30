@@ -101,14 +101,19 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 		return def, fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
 	}
 
+	periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, at)
+	if err != nil {
+		return def, fmt.Errorf("failed to get usage period start at %s for owner %s: %w", at, ownerID.ID, err)
+	}
+
 	// Let's see if a snapshot should be saved
 	// TODO: it might be the case that we don't save any snapshots as they require a history breakpoint. To solve this,
 	// we should introduce artificial history breakpoints in the engine, but that would result in more streaming.Query calls, so first lets improve the visibility of what's happening.
 	if err := m.snapshotEngineResult(ctx, snapshotParams{
-		grants: grants,
-		owner:  ownerID,
-		before: m.getSnapshotBefore(clock.Now()),
-		meter:  owner.Meter,
+		grants:   grants,
+		owner:    ownerID,
+		notAfter: m.getSnapshotNotAfter(periodStart, clock.Now()),
+		meter:    owner.Meter,
 	}, result); err != nil {
 		return def, fmt.Errorf("failed to snapshot engine result: %w", err)
 	}
@@ -313,10 +318,10 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 
 		// Let's save the snapshot
 		snap, err = m.saveSnapshot(ctx, snapshotParams{
-			grants: grants,
-			owner:  ownerID,
-			before: at,
-			meter:  owner.Meter,
+			grants:   grants,
+			owner:    ownerID,
+			notAfter: at,
+			meter:    owner.Meter,
 		}, snap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save snapshot: %w", err)

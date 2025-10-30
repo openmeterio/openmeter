@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -52,7 +54,10 @@ type BalanceHistoryParams struct {
 }
 
 func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
-	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetEntitlementBalance")
+	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetEntitlementBalance", trace.WithAttributes(
+		attribute.String("entitlement_id", entitlementID.ID),
+		attribute.String("at", at.Format(time.RFC3339)),
+	))
 	defer span.End()
 
 	e.logger.DebugContext(ctx, "Getting entitlement balance", "entitlement", entitlementID, "at", at)
