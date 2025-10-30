@@ -46,7 +46,15 @@ func NewCreditConnector(
 	}
 }
 
-func (c *connector) getSnapshotBefore(at time.Time) time.Time {
+// balance can be snapshotted if we have a snapshottable value either
+// - before the current usage period (period start inclusive)
+// - or before the defined grace period
+func (c *connector) getSnapshotNotAfter(lastResetAt, at time.Time) time.Time {
 	t, _ := c.SnapshotGracePeriod.Negate().AddTo(at)
+
+	if lastResetAt.After(t) {
+		t = lastResetAt
+	}
+
 	return t
 }

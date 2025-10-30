@@ -1,9 +1,14 @@
 package credit
 
 import (
+	"strings"
+	"time"
+
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -21,7 +26,15 @@ func (c ctrace) WithOwner(owner models.NamespacedID) trace.SpanStartEventOption 
 
 func (c ctrace) WithPeriod(period timeutil.ClosedPeriod) trace.SpanStartEventOption {
 	return trace.WithAttributes(
-		attribute.String("period_from", period.From.String()),
-		attribute.String("period_to", period.To.String()),
+		attribute.String("period_from", period.From.Format(time.RFC3339)),
+		attribute.String("period_to", period.To.Format(time.RFC3339)),
+	)
+}
+
+func (c ctrace) WithEngineParams(params engine.RunParams) trace.SpanStartEventOption {
+	return trace.WithAttributes(
+		attribute.String("until", params.Until.Format(time.RFC3339)),
+		attribute.String("starting_snapshot_at", params.StartingSnapshot.At.Format(time.RFC3339)),
+		attribute.String("resets", strings.Join(lo.Map(params.Resets.GetTimes(), func(t time.Time, _ int) string { return t.Format(time.RFC3339) }), ", ")),
 	)
 }
