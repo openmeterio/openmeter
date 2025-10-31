@@ -36,7 +36,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	if err != nil {
 		return Application{}, nil, err
 	}
-	logger := common.NewLogger(logTelemetryConfig, resource, loggerProvider, commonMetadata)
+	attributeSchemaType := telemetryConfig.AttributeSchema
+	logger := common.NewLogger(logTelemetryConfig, resource, loggerProvider, commonMetadata, attributeSchemaType)
 	metricsTelemetryConfig := telemetryConfig.Metrics
 	meterProvider, cleanup2, err := common.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
 	if err != nil {

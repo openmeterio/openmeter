@@ -33,6 +33,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/datadog"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
 
@@ -142,13 +143,21 @@ func NewLoggerProvider(ctx context.Context, conf config.LogTelemetryConfig, res 
 	}, nil
 }
 
-func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource, loggerProvider log.LoggerProvider, metadata Metadata) *slog.Logger {
+func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource, loggerProvider log.LoggerProvider, metadata Metadata, attributeSchema config.AttributeSchemaType) *slog.Logger {
+	baseMiddlewares := []slogmulti.Middleware{
+		otelslog.ResourceMiddleware(res),
+	}
+
+	switch attributeSchema {
+	case config.AttributeSchemaTypeDatadog:
+		baseMiddlewares = append(baseMiddlewares, datadog.TraceDatadogAttributesMiddleware())
+	default:
+		baseMiddlewares = append(baseMiddlewares, otelslog.NewHandler)
+	}
+
 	// Stdout logger
 	stdoutLogger := slogmulti.
-		Pipe(
-			otelslog.ResourceMiddleware(res),
-			otelslog.NewHandler,
-		).
+		Pipe(baseMiddlewares...).
 		Handler(conf.NewHandler(os.Stdout))
 
 	// OTel logger

@@ -53,6 +53,7 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.TelemetryConfig), "Metrics"),
 	wire.FieldsOf(new(config.TelemetryConfig), "Trace"),
 	wire.FieldsOf(new(config.TelemetryConfig), "Log"),
+	wire.FieldsOf(new(config.TelemetryConfig), "AttributeSchema"),
 	// Termination
 	wire.FieldsOf(new(config.Configuration), "Termination"),
 )
