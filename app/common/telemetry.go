@@ -207,28 +207,33 @@ func NewMeter(meterProvider metric.MeterProvider, metadata Metadata) metric.Mete
 	return meterProvider.Meter(metadata.OpenTelemetryName)
 }
 
-func getOtelTraceSampler(sampler string) sdktrace.Sampler {
+func getOtelTraceSampler(sampler string) (sdktrace.Sampler, error) {
 	switch sampler {
 	case "always":
-		return sdktrace.AlwaysSample()
+		return sdktrace.AlwaysSample(), nil
 
 	case "never":
-		return sdktrace.NeverSample()
+		return sdktrace.NeverSample(), nil
 
 	default:
 		ratio, err := strconv.ParseFloat(sampler, 64)
 		if err != nil {
-			panic(fmt.Errorf("trace: invalid ratio: %w", err))
+			return nil, fmt.Errorf("trace: invalid ratio: %w", err)
 		}
 
-		return sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))
+		return sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio)), nil
 	}
 }
 
 func newOtelTracerProvider(ctx context.Context, res *resource.Resource, conf config.TraceTelemetryConfig) (trace.TracerProvider, func() error, error) {
+	sampler, err := getOtelTraceSampler(conf.Sampler)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get trace sampler: %w", err)
+	}
+
 	options := []sdktrace.TracerProviderOption{
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(getOtelTraceSampler(conf.Sampler)),
+		sdktrace.WithSampler(sampler),
 	}
 
 	if conf.Exporters.OTLP.Enabled {
