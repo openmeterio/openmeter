@@ -41,13 +41,14 @@ import (
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	telemetryConfig := conf.Telemetry
 	logTelemetryConfig := telemetryConfig.Log
+	attributeSchemaType := telemetryConfig.AttributeSchema
 	commonMetadata := metadata(conf)
 	resource := common.NewTelemetryResource(commonMetadata, telemetryConfig)
 	loggerProvider, cleanup, err := common.NewLoggerProvider(ctx, logTelemetryConfig, resource)
 	if err != nil {
 		return Application{}, nil, err
 	}
-	logger := common.NewLogger(logTelemetryConfig, resource, loggerProvider, commonMetadata)
+	logger := common.NewLogger(logTelemetryConfig, attributeSchemaType, resource, loggerProvider, commonMetadata)
 	metricsTelemetryConfig := telemetryConfig.Metrics
 	meterProvider, cleanup2, err := common.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
 	if err != nil {

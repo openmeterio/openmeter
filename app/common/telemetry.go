@@ -6,10 +6,13 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
+	ddotel "github.com/DataDog/dd-trace-go/v2/ddtrace/opentelemetry"
+	ddtracer "github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
@@ -33,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/datadog"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
 
@@ -47,7 +51,6 @@ var TelemetryWithoutServer = wire.NewSet(
 	wire.Bind(new(metric.MeterProvider), new(*sdkmetric.MeterProvider)),
 	NewMeter,
 	NewTracerProvider,
-	wire.Bind(new(trace.TracerProvider), new(*sdktrace.TracerProvider)),
 	NewTracer,
 
 	NewRuntimeMetricsCollector,
@@ -64,7 +67,6 @@ var Telemetry = wire.NewSet(
 	wire.Bind(new(metric.MeterProvider), new(*sdkmetric.MeterProvider)),
 	NewMeter,
 	NewTracerProvider,
-	wire.Bind(new(trace.TracerProvider), new(*sdktrace.TracerProvider)),
 	NewTracer,
 
 	NewHealthChecker,
@@ -142,12 +144,22 @@ func NewLoggerProvider(ctx context.Context, conf config.LogTelemetryConfig, res 
 	}, nil
 }
 
-func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource, loggerProvider log.LoggerProvider, metadata Metadata) *slog.Logger {
+func NewLogger(conf config.LogTelemetryConfig, attributeSchema config.AttributeSchemaType, res *resource.Resource, loggerProvider log.LoggerProvider, metadata Metadata) *slog.Logger {
 	// Stdout logger
+	baseMiddlewares := []slogmulti.Middleware{
+		otelslog.ResourceMiddleware(res),
+	}
+
+	switch attributeSchema {
+	case config.AttributeSchemaTypeDatadog:
+		baseMiddlewares = append(baseMiddlewares, datadog.TraceDatadogAttributesMiddleware())
+	default:
+		baseMiddlewares = append(baseMiddlewares, otelslog.NewHandler)
+	}
+
 	stdoutLogger := slogmulti.
 		Pipe(
-			otelslog.ResourceMiddleware(res),
-			otelslog.NewHandler,
+			baseMiddlewares...,
 		).
 		Handler(conf.NewHandler(os.Stdout))
 
@@ -194,19 +206,120 @@ func NewMeter(meterProvider metric.MeterProvider, metadata Metadata) metric.Mete
 	return meterProvider.Meter(metadata.OpenTelemetryName)
 }
 
-func NewTracerProvider(ctx context.Context, conf config.TraceTelemetryConfig, res *resource.Resource, logger *slog.Logger) (*sdktrace.TracerProvider, func(), error) {
-	tracerProvider, err := conf.NewTracerProvider(ctx, res)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to initialize OpenTelemetry Trace provider: %w", err)
+func getOtelTraceSampler(sampler string) sdktrace.Sampler {
+	switch sampler {
+	case "always":
+		return sdktrace.AlwaysSample()
+
+	case "never":
+		return sdktrace.NeverSample()
+
+	default:
+		ratio, err := strconv.ParseFloat(sampler, 64)
+		if err != nil {
+			panic(fmt.Errorf("trace: invalid ratio: %w", err))
+		}
+
+		return sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))
+	}
+}
+
+func newOtelTracerProvider(ctx context.Context, res *resource.Resource, conf config.TraceTelemetryConfig) (trace.TracerProvider, func() error, error) {
+	options := []sdktrace.TracerProviderOption{
+		sdktrace.WithResource(res),
+		sdktrace.WithSampler(getOtelTraceSampler(conf.Sampler)),
 	}
 
-	return tracerProvider, func() {
-		// Use dedicated context with timeout for shutdown as parent context might be canceled
-		// by the time the execution reaches this stage.
+	if conf.Exporters.OTLP.Enabled {
+		exporter, err := conf.Exporters.OTLP.NewExporter(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		options = append(options, sdktrace.WithBatcher(exporter))
+	}
+
+	provider := sdktrace.NewTracerProvider(options...)
+
+	return provider, func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
 		defer cancel()
 
-		if err := tracerProvider.Shutdown(ctx); err != nil {
+		if err := provider.ForceFlush(ctx); err != nil {
+			return fmt.Errorf("failed to flush tracer provider: %w", err)
+		}
+
+		if err := provider.Shutdown(ctx); err != nil {
+			return fmt.Errorf("failed to shutdown tracer provider: %w", err)
+		}
+
+		return nil
+	}, nil
+}
+
+func newDatadogTracerProvider(res *resource.Resource, conf config.TraceTelemetryConfig) (trace.TracerProvider, func() error, error) {
+	options := []ddtracer.StartOption{
+		ddtracer.WithTraceEnabled(true),
+	}
+	switch conf.Sampler {
+	case "always":
+		options = append(options, ddtracer.WithSampler(ddtracer.NewRateSampler(1.0)))
+
+	case "never":
+		options = append(options, ddtracer.WithSampler(ddtracer.NewRateSampler(0.0)))
+
+	default:
+		samplingRate, err := strconv.ParseFloat(conf.Sampler, 64)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse sampler: %w", err)
+		}
+
+		options = append(options, ddtracer.WithSampler(ddtracer.NewRateSampler(samplingRate)))
+	}
+
+	// let's add default attributes as tags
+	for _, attr := range res.Attributes() {
+		options = append(options, ddtracer.WithGlobalTag(string(attr.Key), attr.Value.AsString()))
+	}
+
+	if conf.Exporters.DataDog.Debug {
+		options = append(options, ddtracer.WithDebugMode(true))
+	}
+
+	provider := ddotel.NewTracerProvider(options...)
+
+	return provider, func() error {
+		provider.ForceFlush(DefaultShutdownTimeout, func(ok bool) {})
+
+		return provider.Shutdown()
+	}, nil
+}
+
+func NewTracerProvider(ctx context.Context, conf config.TraceTelemetryConfig, res *resource.Resource, logger *slog.Logger) (trace.TracerProvider, func(), error) {
+	if conf.Exporters.OTLP.Enabled && conf.Exporters.DataDog.Enabled {
+		return nil, nil, fmt.Errorf("only one exporter can be enabled (oltp vs datadog)")
+	}
+
+	var provider trace.TracerProvider
+	var shutdown func() error
+	var err error
+
+	if conf.Exporters.DataDog.Enabled {
+		provider, shutdown, err = newDatadogTracerProvider(res, conf)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to initialize Datadog Tracer provider: %w", err)
+		}
+	}
+
+	if conf.Exporters.OTLP.Enabled {
+		provider, shutdown, err = newOtelTracerProvider(ctx, res, conf)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to initialize OpenTelemetry Tracer provider: %w", err)
+		}
+	}
+
+	return provider, func() {
+		if err := shutdown(); err != nil {
 			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
 		}
 	}, nil

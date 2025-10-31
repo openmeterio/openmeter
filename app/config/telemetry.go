@@ -126,44 +126,9 @@ func (c TraceTelemetryConfig) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (c TraceTelemetryConfig) GetSampler() sdktrace.Sampler {
-	switch c.Sampler {
-	case "always":
-		return sdktrace.AlwaysSample()
-
-	case "never":
-		return sdktrace.NeverSample()
-
-	default:
-		ratio, err := strconv.ParseFloat(c.Sampler, 64)
-		if err != nil {
-			panic(fmt.Errorf("trace: invalid ratio: %w", err))
-		}
-
-		return sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))
-	}
-}
-
-func (c TraceTelemetryConfig) NewTracerProvider(ctx context.Context, res *resource.Resource) (*sdktrace.TracerProvider, error) {
-	options := []sdktrace.TracerProviderOption{
-		sdktrace.WithResource(res),
-		sdktrace.WithSampler(c.GetSampler()),
-	}
-
-	if c.Exporters.OTLP.Enabled {
-		exporter, err := c.Exporters.OTLP.NewExporter(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		options = append(options, sdktrace.WithBatcher(exporter))
-	}
-
-	return sdktrace.NewTracerProvider(options...), nil
-}
-
 type ExportersTraceTelemetryConfig struct {
-	OTLP OTLPExportersTraceTelemetryConfig
+	OTLP    OTLPExportersTraceTelemetryConfig
+	DataDog DataDogExportersTraceTelemetryConfig
 }
 
 // Validate validates the configuration.
@@ -172,6 +137,14 @@ func (c ExportersTraceTelemetryConfig) Validate() error {
 
 	if err := c.OTLP.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "otlp"))
+	}
+
+	if err := c.DataDog.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "datadog"))
+	}
+
+	if c.OTLP.Enabled && c.DataDog.Enabled {
+		errs = append(errs, errors.New("only one exporter can be enabled (oltp vs datadog)"))
 	}
 
 	return errors.Join(errs...)
@@ -213,6 +186,16 @@ func (c OTLPExportersTraceTelemetryConfig) NewExporter(ctx context.Context) (sdk
 	}
 
 	return exporter, nil
+}
+
+type DataDogExportersTraceTelemetryConfig struct {
+	Enabled bool
+	Debug   bool
+}
+
+// Validate validates the configuration.
+func (c DataDogExportersTraceTelemetryConfig) Validate() error {
+	return nil
 }
 
 type MetricsTelemetryConfig struct {
@@ -616,6 +599,8 @@ func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("telemetry.trace.sampler", "never")
 	v.SetDefault("telemetry.trace.exporters.otlp.enabled", false)
 	v.SetDefault("telemetry.trace.exporters.otlp.address", "")
+	v.SetDefault("telemetry.trace.exporters.datadog.enabled", false)
+	v.SetDefault("telemetry.trace.exporters.datadog.debug", false)
 
 	v.SetDefault("telemetry.metrics.exporters.prometheus.enabled", false)
 	v.SetDefault("telemetry.metrics.exporters.otlp.enabled", false)
