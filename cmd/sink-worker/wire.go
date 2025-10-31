@@ -59,6 +59,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.SinkWorkerProvisionTopics,
 		common.Streaming,
 		common.Telemetry,
+		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),
 	)

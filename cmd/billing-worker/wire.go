@@ -46,6 +46,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ProgressManager,
 		common.Streaming,
 		common.Telemetry,
+		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.Watermill,
 		common.WatermillRouter,
 		wire.Struct(new(Application), "*"),

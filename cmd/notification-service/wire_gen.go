@@ -34,7 +34,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	if err != nil {
 		return Application{}, nil, err
 	}
-	logger := common.NewLogger(logTelemetryConfig, resource, loggerProvider, commonMetadata)
+	v := common.TelemetryLoggerNoAdditionalMiddlewares()
+	logger := common.NewLogger(logTelemetryConfig, resource, loggerProvider, commonMetadata, v)
 	metricsTelemetryConfig := telemetryConfig.Metrics
 	meterProvider, cleanup2, err := common.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
 	if err != nil {
@@ -77,7 +78,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
 	notificationConfiguration := conf.Notification
-	v := common.NotificationServiceProvisionTopics(notificationConfiguration)
+	v2 := common.NotificationServiceProvisionTopics(notificationConfiguration)
 	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisioner
 	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
 	if err != nil {
@@ -90,7 +91,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	publisherOptions := kafka.PublisherOptions{
 		Broker:           brokerOptions,
-		ProvisionTopics:  v,
+		ProvisionTopics:  v2,
 		TopicProvisioner: topicProvisioner,
 	}
 	publisher, cleanup6, err := common.NewPublisher(ctx, publisherOptions, logger)
@@ -137,8 +138,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	webhookConfiguration := notificationConfiguration.Webhook
-	v2 := conf.Svix
-	handler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, v2)
+	v3 := conf.Svix
+	handler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, v3)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -171,7 +172,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
+	v4, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -206,7 +207,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, logger, progressmanagerService, manager)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v4, logger, progressmanagerService, manager)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -230,7 +231,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v4, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v5, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	application := Application{
 		GlobalInitializer:  globalInitializer,
 		Migrator:           migrator,
@@ -246,7 +247,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		MeterService:       service,
 		Notification:       notificationService,
 		StreamingConnector: connector,
-		TelemetryServer:    v4,
+		TelemetryServer:    v5,
 	}
 	return application, func() {
 		cleanup8()

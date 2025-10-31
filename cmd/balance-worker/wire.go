@@ -45,6 +45,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Streaming,
 		common.Subject,
 		common.Telemetry,
+		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.Watermill,
 		common.WatermillRouter,
 		common.Lockr,
