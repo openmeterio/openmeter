@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -35,7 +36,7 @@ func TestNextAfter(t *testing.T) {
 			name: "Should return time if it falls on recurrence period",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			boundary: timeutil.Inclusive,
 			time:     now,
@@ -45,7 +46,7 @@ func TestNextAfter(t *testing.T) {
 			name: "Should return next period after anchor",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			boundary: timeutil.Inclusive,
 			time:     now.Add(-time.Hour),
@@ -55,7 +56,7 @@ func TestNextAfter(t *testing.T) {
 			name: "Should return next period if anchor is in the far past",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -50),
+				Anchor:   addDateNoOverflow(now, 0, 0, -50),
 			},
 			boundary: timeutil.Inclusive,
 			time:     now.Add(-time.Hour),
@@ -65,7 +66,7 @@ func TestNextAfter(t *testing.T) {
 			name: "Should return next if anchor is in the future",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, 1),
+				Anchor:   addDateNoOverflow(now, 0, 0, 1),
 			},
 			boundary: timeutil.Inclusive,
 			time:     now.Add(-time.Hour),
@@ -75,7 +76,7 @@ func TestNextAfter(t *testing.T) {
 			name: "Should return next if anchor is in the far future",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, 50),
+				Anchor:   addDateNoOverflow(now, 0, 0, 50),
 			},
 			boundary: timeutil.Inclusive,
 			time:     now.Add(-time.Hour),
@@ -85,21 +86,21 @@ func TestNextAfter(t *testing.T) {
 			name: "Should work with weeks",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodWeek,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			boundary: timeutil.Inclusive,
 			time:     now,
-			want:     now.AddDate(0, 0, 6),
+			want:     addDateNoOverflow(now, 0, 0, 6),
 		},
 		{
 			name: "Should work with months",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodMonth,
-				Anchor:   now.AddDate(0, 0, 0),
+				Anchor:   addDateNoOverflow(now, 0, 0, 0),
 			},
 			boundary: timeutil.Inclusive,
-			time:     now.AddDate(0, 0, 1),
-			want:     now.AddDate(0, 1, 0),
+			time:     addDateNoOverflow(now, 0, 0, 1),
+			want:     addDateNoOverflow(now, 0, 1, 0),
 		},
 		// Exclusive boundary corner cases
 		{
@@ -110,27 +111,27 @@ func TestNextAfter(t *testing.T) {
 			},
 			boundary: timeutil.Exclusive,
 			time:     now,
-			want:     now.AddDate(0, 0, 1),
+			want:     addDateNoOverflow(now, 0, 0, 1),
 		},
 		{
 			name: "Exclusive: Should return the next anchor t is on anchor point, anchor is in past",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			boundary: timeutil.Exclusive,
 			time:     now,
-			want:     now.AddDate(0, 0, 1),
+			want:     addDateNoOverflow(now, 0, 0, 1),
 		},
 		{
 			name: "Exclusive: Should return the next anchor t is on anchor point, anchor is in future",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, 1),
+				Anchor:   addDateNoOverflow(now, 0, 0, 1),
 			},
 			boundary: timeutil.Exclusive,
 			time:     now,
-			want:     now.AddDate(0, 0, 1),
+			want:     addDateNoOverflow(now, 0, 0, 1),
 		},
 		// Inclusive boundary corner cases
 		{
@@ -147,7 +148,7 @@ func TestNextAfter(t *testing.T) {
 			name: "Inclusive: Should return the anchor if t is on anchor point, anchor is in past",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			boundary: timeutil.Inclusive,
 			time:     now,
@@ -157,7 +158,7 @@ func TestNextAfter(t *testing.T) {
 			name: "Inclusive: Should return the anchor if t is on anchor point, anchor is in future",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, 1),
+				Anchor:   addDateNoOverflow(now, 0, 0, 1),
 			},
 			boundary: timeutil.Inclusive,
 			time:     now,
@@ -192,23 +193,23 @@ func TestPrevBefore(t *testing.T) {
 			},
 			boundary: timeutil.Exclusive,
 			time:     now,
-			want:     now.AddDate(0, 0, -1),
+			want:     addDateNoOverflow(now, 0, 0, -1),
 		},
 		{
 			name: "Should return time - period if time falls on recurrence period",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			boundary: timeutil.Exclusive,
 			time:     now,
-			want:     now.AddDate(0, 0, -1),
+			want:     addDateNoOverflow(now, 0, 0, -1),
 		},
 		{
 			name: "Should return prev period after anchor",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			boundary: timeutil.Exclusive,
 			time:     now.Add(time.Hour),
@@ -218,7 +219,7 @@ func TestPrevBefore(t *testing.T) {
 			name: "Should return prev period if anchor is in the far past",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -50),
+				Anchor:   addDateNoOverflow(now, 0, 0, -50),
 			},
 			boundary: timeutil.Exclusive,
 			time:     now.Add(time.Hour),
@@ -228,7 +229,7 @@ func TestPrevBefore(t *testing.T) {
 			name: "Should return prev if anchor is in the future",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, 1),
+				Anchor:   addDateNoOverflow(now, 0, 0, 1),
 			},
 			boundary: timeutil.Exclusive,
 			time:     now.Add(time.Hour),
@@ -238,7 +239,7 @@ func TestPrevBefore(t *testing.T) {
 			name: "Should return next if anchor is in the far future",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, 50),
+				Anchor:   addDateNoOverflow(now, 0, 0, 50),
 			},
 			boundary: timeutil.Exclusive,
 			time:     now.Add(time.Hour),
@@ -248,11 +249,11 @@ func TestPrevBefore(t *testing.T) {
 			name: "Should work with weeks",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodWeek,
-				Anchor:   now.AddDate(0, 0, 1),
+				Anchor:   addDateNoOverflow(now, 0, 0, 1),
 			},
 			boundary: timeutil.Exclusive,
 			time:     now,
-			want:     now.AddDate(0, 0, -6),
+			want:     addDateNoOverflow(now, 0, 0, -6),
 		},
 		{
 			name: "Should work with months",
@@ -261,7 +262,7 @@ func TestPrevBefore(t *testing.T) {
 				Anchor:   now,
 			},
 			boundary: timeutil.Exclusive,
-			time:     now.AddDate(0, 0, 1),
+			time:     addDateNoOverflow(now, 0, 0, 1),
 			want:     now,
 		},
 		{
@@ -283,27 +284,27 @@ func TestPrevBefore(t *testing.T) {
 			},
 			boundary: timeutil.Exclusive,
 			time:     now,
-			want:     now.AddDate(0, 0, -1),
+			want:     addDateNoOverflow(now, 0, 0, -1),
 		},
 		{
 			name: "Exclusive: Should return the previous anchor t is on anchor point, anchor is in past",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			boundary: timeutil.Exclusive,
 			time:     now,
-			want:     now.AddDate(0, 0, -1),
+			want:     addDateNoOverflow(now, 0, 0, -1),
 		},
 		{
 			name: "Exclusive: Should return the previous anchor t is on anchor point, anchor is in future",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, 1),
+				Anchor:   addDateNoOverflow(now, 0, 0, 1),
 			},
 			boundary: timeutil.Exclusive,
 			time:     now,
-			want:     now.AddDate(0, 0, -1),
+			want:     addDateNoOverflow(now, 0, 0, -1),
 		},
 		// Inclusive boundary corner cases
 		{
@@ -320,7 +321,7 @@ func TestPrevBefore(t *testing.T) {
 			name: "Inclusive: Should return the anchor if t is on anchor point, anchor is in past",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			boundary: timeutil.Inclusive,
 			time:     now,
@@ -330,7 +331,7 @@ func TestPrevBefore(t *testing.T) {
 			name: "Inclusive: Should return the anchor if t is on anchor point, anchor is in future",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, 1),
+				Anchor:   addDateNoOverflow(now, 0, 0, 1),
 			},
 			boundary: timeutil.Inclusive,
 			time:     now,
@@ -360,23 +361,23 @@ func TestGetPeriodAt(t *testing.T) {
 			name: "Should return next period if time falls on recurrence period",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			time: now,
 			want: timeutil.ClosedPeriod{
 				From: now,
-				To:   now.AddDate(0, 0, 1),
+				To:   addDateNoOverflow(now, 0, 0, 1),
 			},
 		},
 		{
 			name: "Should return containing period in general case",
 			recurrence: timeutil.Recurrence{
 				Interval: timeutil.RecurrencePeriodDaily,
-				Anchor:   now.AddDate(0, 0, -1),
+				Anchor:   addDateNoOverflow(now, 0, 0, -1),
 			},
 			time: now.Add(-time.Hour),
 			want: timeutil.ClosedPeriod{
-				From: now.AddDate(0, 0, -1),
+				From: addDateNoOverflow(now, 0, 0, -1),
 				To:   now,
 			},
 		},
@@ -424,4 +425,8 @@ func TestGetPeriodAt(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func addDateNoOverflow(t time.Time, years int, months int, days int) time.Time {
+	return datetime.NewDateTime(t).AddDateNoOverflow(years, months, days).AsTime()
 }
