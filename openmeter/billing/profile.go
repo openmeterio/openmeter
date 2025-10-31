@@ -53,12 +53,6 @@ func (k AlignmentKind) Values() []string {
 	}
 }
 
-// ent codegen dies on type parameters like mo.Option[*billing.AnchoredAlignmentDetail]
-type AnchoredAlignmentDetailOption struct {
-	Value    *AnchoredAlignmentDetail
-	HasValue bool
-}
-
 type AnchoredAlignmentDetail struct {
 	Interval datetime.ISODuration `json:"interval"`
 	Anchor   time.Time            `json:"anchor"`
@@ -266,15 +260,20 @@ func (p Profile) Merge(o *CustomerOverride) Profile {
 	p.WorkflowConfig.Collection = CollectionConfig{
 		Alignment: lo.FromPtrOr(o.Collection.Alignment, p.WorkflowConfig.Collection.Alignment),
 		AnchoredAlignmentDetail: func() *AnchoredAlignmentDetail {
-			if o.Collection.AnchoredAlignmentDetail == nil {
+			if o.Collection.Alignment == nil {
 				return p.WorkflowConfig.Collection.AnchoredAlignmentDetail
 			}
 
-			if val, ok := o.Collection.AnchoredAlignmentDetail.Get(); ok {
-				return val
+			// This merge logic assumes that Alignment and AnchoredAlignmentDetail are always set together properly.
+			// We utilize this so CustomerOverride.AnchoredAlignmentDetail doesn't have to be Option[*AnchoredAlignmentDetail]
+			switch *o.Collection.Alignment {
+			case AlignmentKindAnchored:
+				return o.Collection.AnchoredAlignmentDetail
+			case AlignmentKindSubscription:
+				return o.Collection.AnchoredAlignmentDetail
+			default:
+				return nil
 			}
-
-			return p.WorkflowConfig.Collection.AnchoredAlignmentDetail
 		}(),
 		Interval: lo.FromPtrOr(o.Collection.Interval, p.WorkflowConfig.Collection.Interval),
 	}

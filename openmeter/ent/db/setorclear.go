@@ -434,14 +434,14 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearCollectionAlignment(value *
 	return u.SetCollectionAlignment(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetailOption) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetail) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearAnchoredAlignmentDetail()
 	}
 	return u.SetAnchoredAlignmentDetail(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetailOption) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetail) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
 		return u.ClearAnchoredAlignmentDetail()
 	}
