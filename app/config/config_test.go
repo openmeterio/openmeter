@@ -65,8 +65,7 @@ func TestComplete(t *testing.T) {
 		},
 		Environment: "local",
 		Telemetry: TelemetryConfig{
-			Address:         "127.0.0.1:10000",
-			AttributeSchema: AttributeSchemaTypeOTel,
+			Address: "127.0.0.1:10000",
 			Trace: TraceTelemetryConfig{
 				Sampler: "always",
 				Exporters: ExportersTraceTelemetryConfig{
