@@ -205,7 +205,7 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		field.JSON("anchored_alignment_detail", &billing.AnchoredAlignmentDetailOption{}).
+		field.JSON("anchored_alignment_detail", &billing.AnchoredAlignmentDetail{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).

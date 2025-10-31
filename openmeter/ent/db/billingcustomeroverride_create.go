@@ -111,7 +111,7 @@ func (_c *BillingCustomerOverrideCreate) SetNillableCollectionAlignment(v *billi
 }
 
 // SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
-func (_c *BillingCustomerOverrideCreate) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetailOption) *BillingCustomerOverrideCreate {
+func (_c *BillingCustomerOverrideCreate) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingCustomerOverrideCreate {
 	_c.mutation.SetAnchoredAlignmentDetail(v)
 	return _c
 }
@@ -309,6 +309,11 @@ func (_c *BillingCustomerOverrideCreate) check() error {
 	if v, ok := _c.mutation.CollectionAlignment(); ok {
 		if err := billingcustomeroverride.CollectionAlignmentValidator(v); err != nil {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.collection_alignment": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.AnchoredAlignmentDetail(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "anchored_alignment_detail", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.anchored_alignment_detail": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.InvoiceCollectionMethod(); ok {
@@ -565,7 +570,7 @@ func (u *BillingCustomerOverrideUpsert) ClearCollectionAlignment() *BillingCusto
 }
 
 // SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
-func (u *BillingCustomerOverrideUpsert) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetailOption) *BillingCustomerOverrideUpsert {
+func (u *BillingCustomerOverrideUpsert) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingCustomerOverrideUpsert {
 	u.Set(billingcustomeroverride.FieldAnchoredAlignmentDetail, v)
 	return u
 }
@@ -843,7 +848,7 @@ func (u *BillingCustomerOverrideUpsertOne) ClearCollectionAlignment() *BillingCu
 }
 
 // SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
-func (u *BillingCustomerOverrideUpsertOne) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetailOption) *BillingCustomerOverrideUpsertOne {
+func (u *BillingCustomerOverrideUpsertOne) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetAnchoredAlignmentDetail(v)
 	})
@@ -1312,7 +1317,7 @@ func (u *BillingCustomerOverrideUpsertBulk) ClearCollectionAlignment() *BillingC
 }
 
 // SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
-func (u *BillingCustomerOverrideUpsertBulk) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetailOption) *BillingCustomerOverrideUpsertBulk {
+func (u *BillingCustomerOverrideUpsertBulk) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetAnchoredAlignmentDetail(v)
 	})

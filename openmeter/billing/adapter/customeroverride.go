@@ -7,7 +7,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -38,17 +37,7 @@ func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.Crea
 			SetCustomerID(input.CustomerID).
 			SetNillableBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
 			SetNillableCollectionAlignment(input.Collection.Alignment).
-			SetAnchoredAlignmentDetail(func() *billing.AnchoredAlignmentDetailOption {
-				if input.Collection.AnchoredAlignmentDetail == nil {
-					return nil
-				}
-
-				val, ok := input.Collection.AnchoredAlignmentDetail.Get()
-				return &billing.AnchoredAlignmentDetailOption{
-					Value:    val,
-					HasValue: ok,
-				}
-			}()).
+			SetAnchoredAlignmentDetail(input.Collection.AnchoredAlignmentDetail).
 			SetNillableLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
 			SetNillableInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
 			SetNillableInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
@@ -420,15 +409,9 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 
 		CustomerID: dbOverride.CustomerID,
 		Collection: billing.CollectionOverrideConfig{
-			Alignment: dbOverride.CollectionAlignment,
-			AnchoredAlignmentDetail: func() *mo.Option[*billing.AnchoredAlignmentDetail] {
-				if dbOverride.AnchoredAlignmentDetail == nil {
-					return nil
-				}
-
-				return lo.ToPtr(lo.Ternary(dbOverride.AnchoredAlignmentDetail.HasValue, mo.Some(dbOverride.AnchoredAlignmentDetail.Value), mo.None[*billing.AnchoredAlignmentDetail]()))
-			}(),
-			Interval: collectionInterval,
+			Alignment:               dbOverride.CollectionAlignment,
+			AnchoredAlignmentDetail: dbOverride.AnchoredAlignmentDetail,
+			Interval:                collectionInterval,
 		},
 
 		Invoicing: billing.InvoicingOverrideConfig{

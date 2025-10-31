@@ -38,7 +38,7 @@ type BillingCustomerOverride struct {
 	// CollectionAlignment holds the value of the "collection_alignment" field.
 	CollectionAlignment *billing.AlignmentKind `json:"collection_alignment,omitempty"`
 	// AnchoredAlignmentDetail holds the value of the "anchored_alignment_detail" field.
-	AnchoredAlignmentDetail *billing.AnchoredAlignmentDetailOption `json:"anchored_alignment_detail,omitempty"`
+	AnchoredAlignmentDetail *billing.AnchoredAlignmentDetail `json:"anchored_alignment_detail,omitempty"`
 	// LineCollectionPeriod holds the value of the "line_collection_period" field.
 	LineCollectionPeriod *datetime.ISODurationString `json:"line_collection_period,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.

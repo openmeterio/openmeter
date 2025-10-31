@@ -10020,7 +10020,7 @@ type BillingCustomerOverrideMutation struct {
 	updated_at                  *time.Time
 	deleted_at                  *time.Time
 	collection_alignment        *billing.AlignmentKind
-	anchored_alignment_detail   **billing.AnchoredAlignmentDetailOption
+	anchored_alignment_detail   **billing.AnchoredAlignmentDetail
 	line_collection_period      *datetime.ISODurationString
 	invoice_auto_advance        *bool
 	invoice_draft_period        *datetime.ISODurationString
@@ -10434,12 +10434,12 @@ func (m *BillingCustomerOverrideMutation) ResetCollectionAlignment() {
 }
 
 // SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
-func (m *BillingCustomerOverrideMutation) SetAnchoredAlignmentDetail(bado *billing.AnchoredAlignmentDetailOption) {
-	m.anchored_alignment_detail = &bado
+func (m *BillingCustomerOverrideMutation) SetAnchoredAlignmentDetail(bad *billing.AnchoredAlignmentDetail) {
+	m.anchored_alignment_detail = &bad
 }
 
 // AnchoredAlignmentDetail returns the value of the "anchored_alignment_detail" field in the mutation.
-func (m *BillingCustomerOverrideMutation) AnchoredAlignmentDetail() (r *billing.AnchoredAlignmentDetailOption, exists bool) {
+func (m *BillingCustomerOverrideMutation) AnchoredAlignmentDetail() (r *billing.AnchoredAlignmentDetail, exists bool) {
 	v := m.anchored_alignment_detail
 	if v == nil {
 		return
@@ -10450,7 +10450,7 @@ func (m *BillingCustomerOverrideMutation) AnchoredAlignmentDetail() (r *billing.
 // OldAnchoredAlignmentDetail returns the old "anchored_alignment_detail" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldAnchoredAlignmentDetail(ctx context.Context) (v *billing.AnchoredAlignmentDetailOption, err error) {
+func (m *BillingCustomerOverrideMutation) OldAnchoredAlignmentDetail(ctx context.Context) (v *billing.AnchoredAlignmentDetail, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAnchoredAlignmentDetail is only allowed on UpdateOne operations")
 	}
@@ -11095,7 +11095,7 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 		m.SetCollectionAlignment(v)
 		return nil
 	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
-		v, ok := value.(*billing.AnchoredAlignmentDetailOption)
+		v, ok := value.(*billing.AnchoredAlignmentDetail)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

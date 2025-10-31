@@ -99,7 +99,7 @@ func (_u *BillingCustomerOverrideUpdate) ClearCollectionAlignment() *BillingCust
 }
 
 // SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
-func (_u *BillingCustomerOverrideUpdate) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetailOption) *BillingCustomerOverrideUpdate {
+func (_u *BillingCustomerOverrideUpdate) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingCustomerOverrideUpdate {
 	_u.mutation.SetAnchoredAlignmentDetail(v)
 	return _u
 }
@@ -309,6 +309,11 @@ func (_u *BillingCustomerOverrideUpdate) check() error {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.collection_alignment": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.AnchoredAlignmentDetail(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "anchored_alignment_detail", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.anchored_alignment_detail": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.InvoiceCollectionMethod(); ok {
 		if err := billingcustomeroverride.InvoiceCollectionMethodValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_collection_method": %w`, err)}
@@ -516,7 +521,7 @@ func (_u *BillingCustomerOverrideUpdateOne) ClearCollectionAlignment() *BillingC
 }
 
 // SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
-func (_u *BillingCustomerOverrideUpdateOne) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetailOption) *BillingCustomerOverrideUpdateOne {
+func (_u *BillingCustomerOverrideUpdateOne) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingCustomerOverrideUpdateOne {
 	_u.mutation.SetAnchoredAlignmentDetail(v)
 	return _u
 }
@@ -737,6 +742,11 @@ func (_u *BillingCustomerOverrideUpdateOne) check() error {
 	if v, ok := _u.mutation.CollectionAlignment(); ok {
 		if err := billingcustomeroverride.CollectionAlignmentValidator(v); err != nil {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.collection_alignment": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.AnchoredAlignmentDetail(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "anchored_alignment_detail", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.anchored_alignment_detail": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.InvoiceCollectionMethod(); ok {
