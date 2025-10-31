@@ -20,6 +20,8 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.AggregationConfiguration), "ClickHouse"),
 	// Customer
 	wire.FieldsOf(new(config.Configuration), "Customer"),
+	// COGS
+	wire.FieldsOf(new(config.Configuration), "COGS"),
 	// Database
 	wire.FieldsOf(new(config.Configuration), "Postgres"),
 	// Entitlement
