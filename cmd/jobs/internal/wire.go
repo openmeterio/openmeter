@@ -95,6 +95,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Secret,
 		common.ServerProvisionTopics,
 		common.TelemetryWithoutServer,
+		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),
 	)

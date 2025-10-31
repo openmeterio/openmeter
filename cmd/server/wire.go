@@ -127,6 +127,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewSubjectCustomerHook,
 		common.NewSubjectEntitlementValidatorHook,
 		common.Telemetry,
+		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.NewTerminationChecker,
 		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),

@@ -129,13 +129,17 @@ func NewLoggerProvider(ctx context.Context, conf config.LogTelemetryConfig, res 
 	}, nil
 }
 
-func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource, loggerProvider log.LoggerProvider, metadata Metadata) *slog.Logger {
+func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource, loggerProvider log.LoggerProvider, metadata Metadata, additionalMiddlewares []slogmulti.Middleware) *slog.Logger {
+	baseMiddlewares := []slogmulti.Middleware{
+		otelslog.ResourceMiddleware(res),
+		otelslog.NewHandler,
+	}
+
+	baseMiddlewares = append(baseMiddlewares, additionalMiddlewares...)
+
 	// Stdout logger
 	stdoutLogger := slogmulti.
-		Pipe(
-			otelslog.ResourceMiddleware(res),
-			otelslog.NewHandler,
-		).
+		Pipe(baseMiddlewares...).
 		Handler(conf.NewHandler(os.Stdout))
 
 	// OTel logger
@@ -157,6 +161,10 @@ func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource, loggerPro
 	)
 
 	return slog.New(middlewares.Handler(out))
+}
+
+func TelemetryLoggerNoAdditionalMiddlewares() []slogmulti.Middleware {
+	return nil
 }
 
 func NewMeterProvider(ctx context.Context, conf config.MetricsTelemetryConfig, res *resource.Resource, logger *slog.Logger) (*sdkmetric.MeterProvider, func(), error) {
