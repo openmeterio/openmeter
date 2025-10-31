@@ -16947,6 +16947,12 @@ components:
           description: Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
           example: 0
           readOnly: true
+        totalAvailableGrantAmount:
+          type: number
+          format: double
+          description: The summed value of all grant amounts that are active at the time of the query.
+          example: 100
+          readOnly: true
         config:
           type: string
           description: Only available for static entitlements. The JSON parsable config of the entitlement.

@@ -52,6 +52,9 @@ type EntitlementValue struct {
 	// Overage Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
 	Overage *float64 `json:"overage,omitempty"`
 
+	// TotalAvailableGrantAmount The summed value of all grant amounts that are active at the time of the query.
+	TotalAvailableGrantAmount *float64 `json:"totalAvailableGrantAmount,omitempty"`
+
 	// Usage Only available for metered entitlements. Returns the total feature usage in the current period.
 	Usage *float64 `json:"usage,omitempty"`
 }

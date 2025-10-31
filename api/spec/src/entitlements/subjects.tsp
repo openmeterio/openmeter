@@ -231,6 +231,13 @@ model EntitlementValue {
   overage?: float64;
 
   /**
+   * The summed value of all grant amounts that are active at the time of the query.
+   */
+  @example(100)
+  @visibility(Lifecycle.Read)
+  totalAvailableGrantAmount?: float64;
+
+  /**
    * Only available for static entitlements. The JSON parsable config of the entitlement.
    */
   @example("{ key: \"value\" }")

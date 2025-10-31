@@ -26,8 +26,6 @@ type ResetUsageForOwnerParams struct {
 
 // Generic connector for balance related operations.
 type BalanceConnector interface {
-	// GetBalanceSinceSnapshot returns the result of the engine.Run since a given snapshot.
-	GetBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error)
 	// GetBalanceAt returns the result of the engine.Run at a given time.
 	// It tries to minimize execution cost by calculating from the latest valid snapshot, thus the length of the returned history WILL NOT be deterministic.
 	GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error)
@@ -42,7 +40,8 @@ type BalanceConnector interface {
 
 var _ BalanceConnector = &connector{}
 
-func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error) {
+// GetBalanceSinceSnapshot returns the result of the engine.Run since a given snapshot.
+func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceSinceSnapshot", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
@@ -142,7 +141,7 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 		return def, err
 	}
 
-	return m.GetBalanceSinceSnapshot(ctx, ownerID, snap, at)
+	return m.getBalanceSinceSnapshot(ctx, ownerID, snap, at)
 }
 
 func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (engine.RunResult, error) {

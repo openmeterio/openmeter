@@ -157,10 +157,11 @@ func MapEntitlementValueToAPI(entitlementValue entitlement.EntitlementValue) (ap
 	switch ent := entitlementValue.(type) {
 	case *meteredentitlement.MeteredEntitlementValue:
 		return api.EntitlementValue{
-			HasAccess: ent.HasAccess(),
-			Balance:   &ent.Balance,
-			Usage:     &ent.UsageInPeriod,
-			Overage:   &ent.Overage,
+			HasAccess:                 ent.HasAccess(),
+			Balance:                   &ent.Balance,
+			Usage:                     &ent.UsageInPeriod,
+			Overage:                   &ent.Overage,
+			TotalAvailableGrantAmount: &ent.TotalAvailableGrantAmount,
 		}, nil
 	case *staticentitlement.StaticEntitlementValue:
 		var config *string

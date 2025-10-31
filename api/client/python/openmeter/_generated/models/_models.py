@@ -6125,6 +6125,9 @@ class EntitlementValue(_Model):
      wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period
      but they were only granted 80, there would be 20 overage.
     :vartype overage: float
+    :ivar total_available_grant_amount: The summed value of all grant amounts that are active at
+     the time of the query.
+    :vartype total_available_grant_amount: float
     :ivar config: Only available for static entitlements. The JSON parsable config of the
      entitlement.
     :vartype config: str
@@ -6142,6 +6145,8 @@ class EntitlementValue(_Model):
     """Only available for metered entitlements. Overage represents the usage that wasn't covered by
      grants, e.g. if the subject had a total feature usage of 100 in the period but they were only
      granted 80, there would be 20 overage."""
+    total_available_grant_amount: Optional[float] = rest_field(name="totalAvailableGrantAmount", visibility=["read"])
+    """The summed value of all grant amounts that are active at the time of the query."""
     config: Optional[str] = rest_field(visibility=["read"])
     """Only available for static entitlements. The JSON parsable config of the entitlement."""
 

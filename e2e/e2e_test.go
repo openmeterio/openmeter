@@ -1101,10 +1101,11 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
 		expected := &api.EntitlementValue{
-			Balance:   convert.ToPointer(99.0),
-			HasAccess: true,
-			Overage:   convert.ToPointer(0.0),
-			Usage:     convert.ToPointer(1.0),
+			Balance:                   convert.ToPointer(99.0),
+			HasAccess:                 true,
+			Overage:                   convert.ToPointer(0.0),
+			Usage:                     convert.ToPointer(1.0),
+			TotalAvailableGrantAmount: convert.ToPointer(100.0),
 		}
 
 		assert.Equal(t, expected, resp.JSON200)

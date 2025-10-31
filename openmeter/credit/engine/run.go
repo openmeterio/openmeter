@@ -14,6 +14,8 @@ import (
 )
 
 func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
+	resParams := params.Clone()
+
 	// Let's build the timeline
 	times := []time.Time{
 		params.StartingSnapshot.At,
@@ -90,8 +92,9 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 	}
 
 	return RunResult{
-		Snapshot: snapshot,
-		History:  history,
+		Snapshot:  snapshot,
+		History:   history,
+		RunParams: resParams,
 	}, nil
 }
 

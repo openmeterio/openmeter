@@ -22,11 +22,12 @@ import (
 )
 
 type EntitlementBalance struct {
-	EntitlementID string    `json:"entitlementId"`
-	Balance       float64   `json:"balance"`
-	UsageInPeriod float64   `json:"usageInPeriod"`
-	Overage       float64   `json:"overage"`
-	StartOfPeriod time.Time `json:"startOfPeriod"`
+	EntitlementID             string    `json:"entitlementId"`
+	Balance                   float64   `json:"balance"`
+	UsageInPeriod             float64   `json:"usageInPeriod"`
+	Overage                   float64   `json:"overage"`
+	TotalAvailableGrantAmount float64   `json:"totalAvailableGrantAmount"`
+	StartOfPeriod             time.Time `json:"startOfPeriod"`
 }
 
 type EntitlementBalanceHistoryWindow struct {
@@ -78,23 +79,19 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		return nil, fmt.Errorf("failed to get current usage period start at: %w", err)
 	}
 
-	lastSnap, err := e.balanceConnector.GetLastValidSnapshotAt(ctx, nsOwner, at)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get last valid snapshot at: %w", err)
-	}
-
 	// Let's calculate balance since the last snapshot
-	res, err := e.balanceConnector.GetBalanceSinceSnapshot(ctx, nsOwner, lastSnap, at)
+	res, err := e.balanceConnector.GetBalanceAt(ctx, nsOwner, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get balance since snapshot: %w", err)
 	}
 
 	return &EntitlementBalance{
-		EntitlementID: entitlementID.ID,
-		Balance:       res.Snapshot.Balance(),
-		UsageInPeriod: res.Snapshot.Usage.Usage,
-		Overage:       res.Snapshot.Overage,
-		StartOfPeriod: startOfPeriod,
+		EntitlementID:             entitlementID.ID,
+		Balance:                   res.Snapshot.Balance(),
+		UsageInPeriod:             res.Snapshot.Usage.Usage,
+		Overage:                   res.Snapshot.Overage,
+		TotalAvailableGrantAmount: res.RunParams.TotalAvailableGrantAmount(),
+		StartOfPeriod:             startOfPeriod,
 	}, nil
 }
 

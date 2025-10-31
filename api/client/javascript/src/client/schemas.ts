@@ -5603,6 +5603,12 @@ export interface components {
        */
       readonly overage?: number
       /**
+       * Format: double
+       * @description The summed value of all grant amounts that are active at the time of the query.
+       * @example 100
+       */
+      readonly totalAvailableGrantAmount?: number
+      /**
        * @description Only available for static entitlements. The JSON parsable config of the entitlement.
        * @example { key: "value" }
        */
