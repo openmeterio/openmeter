@@ -19,7 +19,15 @@ services:
       JMX_PORT: 9997
       KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9997"
     healthcheck:
-      test: ["CMD-SHELL", "JMX_PORT=9998", "kafka-topics", "--bootstrap-server", "kafka:9092", "--list"]
+      test:
+        [
+          "CMD-SHELL",
+          "JMX_PORT=9998",
+          "kafka-topics",
+          "--bootstrap-server",
+          "kafka:9092",
+          "--list",
+        ]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -41,7 +49,6 @@ services:
       timeout: 3s
       retries: 30
 
-
   ch-ui:
     image: ghcr.io/caioricciuti/ch-ui:latest
     profiles:
@@ -58,7 +65,16 @@ services:
   # docker compose --profile redis up
   redis:
     image: redis:7.0-alpine
-    command: ["redis-server", "--maxmemory", "50mb", "--maxmemory-policy", "noeviction", "--maxmemory-samples", "10"]
+    command:
+      [
+        "redis-server",
+        "--maxmemory",
+        "50mb",
+        "--maxmemory-policy",
+        "noeviction",
+        "--maxmemory-samples",
+        "10",
+      ]
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 5s
@@ -116,11 +132,11 @@ services:
   svix:
     image: svix/svix-server:v1.44
     environment:
-      WAIT_FOR: "true"  # We want to wait for the default services
+      WAIT_FOR: "true" # We want to wait for the default services
       SVIX_REDIS_DSN: "redis://redis:6379"
       SVIX_DB_DSN: "postgresql://svix:svix@postgres/svix"
       SVIX_CACHE_TYPE: "redis"
-      SVIX_JWT_SECRET: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
+      SVIX_JWT_SECRET: "DUMMY_JWT_SECRET"
       SVIX_LOG_LEVEL: "info"
       SVIX_QUEUE_TYPE: "redis"
     depends_on:

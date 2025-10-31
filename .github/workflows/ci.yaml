@@ -42,10 +42,10 @@ jobs:
           nix flake check --impure
           nix develop --impure .#ci
       - name: Save Nix store cache
-        uses: nix-community/cache-nix-action/save@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        uses: nix-community/cache-nix-action/save@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          save: 'true'
+          save: "true"
 
       - name: Populate go caches - go mod download
         run: nix develop --impure .#ci -c go mod download
@@ -76,7 +76,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
@@ -128,7 +128,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
@@ -194,7 +194,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
@@ -227,7 +227,7 @@ jobs:
         env:
           SVIX_HOST: localhost
           # Dev JWT secret, non-sensitive
-          SVIX_JWT_SECRET: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds
+          SVIX_JWT_SECRET: DUMMY_JWT_SECRET
         # count=1 is needed to force retest
         run: |
           nix develop --impure .#ci -c make test-nocache
@@ -293,7 +293,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
@@ -407,7 +407,7 @@ jobs:
     name: Quickstart
     runs-on: depot-ubuntu-latest-8
     needs:
-    - artifacts
+      - artifacts
 
     steps:
       - name: Checkout repository
@@ -437,7 +437,6 @@ jobs:
 
           cat quickstart/docker-compose.override.yaml
 
-
       - name: Launch Docker Compose
         run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d
         working-directory: quickstart
@@ -452,7 +451,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
@@ -498,7 +497,7 @@ jobs:
     runs-on: depot-ubuntu-latest-8
     # Note: This check is running against the image that is going to be pushed.
     needs:
-    - artifacts
+      - artifacts
 
     steps:
       - name: Checkout repository
@@ -520,7 +519,6 @@ jobs:
 
           cat e2e/docker-compose.override.yaml
 
-
       - name: Launch Docker Compose infra
         run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d
         working-directory: e2e
@@ -535,7 +533,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a  # v6.1.3
+        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
