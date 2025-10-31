@@ -32,6 +32,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/server"
@@ -316,6 +317,12 @@ func NewTracerProvider(ctx context.Context, conf config.TraceTelemetryConfig, re
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to initialize OpenTelemetry Tracer provider: %w", err)
 		}
+	}
+
+	// Fallback to noop tracer provider if no provider is available
+	if provider == nil {
+		provider = noop.NewTracerProvider()
+		shutdown = func() error { return nil }
 	}
 
 	return provider, func() {

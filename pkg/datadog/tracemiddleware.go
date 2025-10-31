@@ -41,7 +41,9 @@ func (h DatadogTraceAttributesHandler) Handle(ctx context.Context, record slog.R
 		attrs = append(attrs, slog.String(spanIDKey, spanCtx.SpanID().String()))
 	}
 
-	record.AddAttrs(slog.GroupAttrs(dataDogGroupKey, attrs...))
+	if len(attrs) > 0 {
+		record.AddAttrs(slog.GroupAttrs(dataDogGroupKey, attrs...))
+	}
 
 	return h.Handler.Handle(ctx, record)
 }
