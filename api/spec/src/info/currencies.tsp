@@ -1,7 +1,4 @@
-namespace OpenMeter.Info;
-
-using TypeSpec.Http;
-using TypeSpec.OpenAPI;
+namespace OpenMeter;
 
 /**
  * Currency describes a currency supported by OpenMeter.

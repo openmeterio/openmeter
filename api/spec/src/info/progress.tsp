@@ -1,11 +1,12 @@
-namespace OpenMeter.Info;
+namespace OpenMeter;
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
 @route("/api/v1/info/progress")
 @tag("Lookup Information")
-interface Progresses {
+@friendlyName("Progress")
+interface ProgressEndpoints {
   /**
    * Get progress
    */
@@ -13,9 +14,7 @@ interface Progresses {
   @route("/{id}")
   @operationId("getProgress")
   @summary("Get progress")
-  getProgress(
-    id: string,
-  ): Progress | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  getProgress(id: string): Progress | NotFoundError | CommonErrors;
 }
 
 /**

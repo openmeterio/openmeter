@@ -5,8 +5,7 @@ import "@typespec/openapi3";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-// TODO: does this have to be in a separate namespace?
-namespace OpenMeter.Entitlements;
+namespace OpenMeter;
 
 /**
  * Order by options for entitlements.
@@ -21,7 +20,8 @@ enum EntitlementOrderBy {
 
 @route("/api/v1/entitlements")
 @tag("Entitlements")
-interface Entitlements {
+@friendlyName("Entitlements")
+interface EntitlementsEndpoints {
   /**
    * List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.
    * To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
@@ -61,10 +61,10 @@ interface Entitlements {
     @query
     excludeInactive?: boolean = false,
 
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<EntitlementOrderBy>,
-  ): ListEntitlementsResult | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryLimitOffset,
+    ...QueryOrdering<EntitlementOrderBy>,
+  ): ListEntitlementsResult | CommonErrors;
 
   /**
    * Get entitlement by id.
@@ -75,7 +75,7 @@ interface Entitlements {
   get(
     @path
     entitlementId: ULID,
-  ): Entitlement | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Entitlement | NotFoundError | CommonErrors;
 }
 
 // TODO: Remove in v2
@@ -87,7 +87,7 @@ interface Entitlements {
 @friendlyName("ListEntitlementsResult")
 union ListEntitlementsResult {
   Entitlement[],
-  OpenMeter.PaginatedResponse<Entitlement>,
+  PaginatedResponse<Entitlement>,
 }
 
 /**

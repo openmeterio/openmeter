@@ -1,4 +1,4 @@
-namespace OpenMeter.App;
+namespace OpenMeter;
 
 /**
  * Sandbox app can be used for testing OpenMeter features.
@@ -13,5 +13,5 @@ model SandboxApp {
   /**
    * The app's type is Sandbox.
    */
-  type: Type.Sandbox;
+  type: AppType.Sandbox;
 }

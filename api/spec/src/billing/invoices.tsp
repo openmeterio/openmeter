@@ -1,7 +1,7 @@
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Billing;
+namespace OpenMeter;
 
 /**
  * InvoicesEndpoints is a collection of endpoints that allow invoice operations without prior
@@ -9,6 +9,7 @@ namespace OpenMeter.Billing;
  */
 @route("/api/v1/billing/invoices")
 @tag("Billing")
+@friendlyName("Invoices")
 interface InvoicesEndpoints {
   /**
    * Create a new invoice from the pending line items.
@@ -32,8 +33,8 @@ interface InvoicesEndpoints {
     @statusCode _: 201;
 
     @body
-    body: Invoice.Invoice[];
-  } | OpenMeter.CommonErrors;
+    body: Invoice[];
+  } | CommonErrors;
 
   /**
    * List invoices based on the specified filters.
@@ -48,9 +49,9 @@ interface InvoicesEndpoints {
   @operationId("listInvoices")
   list(
     ...InvoiceListParams,
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
-  ): OpenMeter.PaginatedResponse<Invoice.Invoice> | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryOrdering<InvoiceOrderBy>,
+  ): PaginatedResponse<Invoice> | CommonErrors;
 }
 
 /**
@@ -58,6 +59,7 @@ interface InvoicesEndpoints {
  */
 @route("/api/v1/billing/invoices/{invoiceId}")
 @tag("Billing")
+@friendlyName("Invoice")
 interface InvoiceEndpoints {
   /**
    * Get an invoice by ID.
@@ -76,7 +78,7 @@ interface InvoiceEndpoints {
 
     @query
     includeDeletedLines?: boolean = false,
-  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice | NotFoundError | CommonErrors;
 
   /**
    * Delete an invoice
@@ -93,7 +95,7 @@ interface InvoiceEndpoints {
     invoiceId: ULID,
   ): {
     @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  } | NotFoundError | CommonErrors;
 
   /**
    * Update an invoice
@@ -109,7 +111,7 @@ interface InvoiceEndpoints {
 
     @body
     request: InvoiceReplaceUpdate,
-  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice | NotFoundError | CommonErrors;
 
   /**
    * Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
@@ -123,7 +125,7 @@ interface InvoiceEndpoints {
   recalculateTaxAction(
     @path
     invoiceId: ULID,
-  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice | NotFoundError | CommonErrors;
 
   /**
    * Approve an invoice and start executing the payment workflow.
@@ -141,7 +143,7 @@ interface InvoiceEndpoints {
   approveAction(
     @path
     invoiceId: ULID,
-  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice | NotFoundError | CommonErrors;
 
   /**
    * Void an invoice
@@ -160,7 +162,7 @@ interface InvoiceEndpoints {
 
     @body
     request: VoidInvoiceActionInput,
-  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice | NotFoundError | CommonErrors;
 
   /**
    * Advance the invoice's state to the next status.
@@ -176,7 +178,7 @@ interface InvoiceEndpoints {
   advanceAction(
     @path
     invoiceId: ULID,
-  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice | NotFoundError | CommonErrors;
 
   /**
    * Retry advancing the invoice after a failed attempt.
@@ -190,7 +192,7 @@ interface InvoiceEndpoints {
   retryAction(
     @path
     invoiceId: ULID,
-  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice | NotFoundError | CommonErrors;
 
   /**
    * Snapshot quantities for usage based line items.
@@ -207,11 +209,12 @@ interface InvoiceEndpoints {
   snapshotQuantitiesAction(
     @path
     invoiceId: ULID,
-  ): Invoice.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoice | NotFoundError | CommonErrors;
 }
 
 @route("/api/v1/billing/customers/{customerId}/invoices")
 @tag("Billing")
+@friendlyName("CustomerInvoice")
 interface CustomerInvoiceEndpoints {
   /**
    * Simulate an invoice for a customer.
@@ -230,7 +233,7 @@ interface CustomerInvoiceEndpoints {
 
     @body
     request: InvoiceSimulationInput,
-  ): Invoice.Invoice | OpenMeter.CommonErrors;
+  ): Invoice | CommonErrors;
 
   // TODO[later]: Let's add a @get to list upcoming charges without the gathering invoices
   /**
@@ -256,7 +259,7 @@ interface CustomerInvoiceEndpoints {
   ): {
     @statusCode _: 201;
     @body body: InvoicePendingLineCreateResponse;
-  } | OpenMeter.CommonErrors;
+  } | CommonErrors;
 }
 
 /**
@@ -398,13 +401,13 @@ model InvoiceListParams {
    * Filter by the invoice status.
    */
   @query(#{ explode: true })
-  statuses?: Invoice.InvoiceStatus[];
+  statuses?: InvoiceStatus[];
 
   /**
    * Filter by invoice extended statuses
    */
   @query(#{ explode: true })
-  extendedStatuses?: Invoice.InvoiceExtendedStatus[];
+  extendedStatuses?: InvoiceExtendedStatus[];
 
   /**
    * Filter by invoice issued time.
@@ -545,7 +548,7 @@ model InvoiceSimulationInput {
    * The number of the invoice.
    */
   @visibility(Lifecycle.Create)
-  number?: Invoice.InvoiceNumber;
+  number?: InvoiceNumber;
 
   /**
    * Currency for all invoice line items.
@@ -568,7 +571,7 @@ model InvoiceSimulationInput {
 @friendlyName("InvoiceSimulationLine")
 model InvoiceSimulationLine {
   ...TypeSpec.Rest.Resource.ResourceCreateModel<OmitProperties<
-    Invoice.InvoiceLine,
+    InvoiceLine,
     "invoice" | "currency" | "children"
   >>;
 
@@ -599,7 +602,7 @@ model InvoiceSimulationLine {
 @friendlyName("InvoiceReplaceUpdate")
 model InvoiceReplaceUpdate {
   ...TypeSpec.Rest.Resource.ResourceReplaceModel<OmitProperties<
-    Invoice.Invoice,
+    Invoice,
     "lines" | "supplier" | "customer" | "discounts" | "workflow" | "draftUntil"
   >>;
 
@@ -607,19 +610,19 @@ model InvoiceReplaceUpdate {
    * The supplier of the lines included in the invoice.
    */
   @visibility(Lifecycle.Update)
-  supplier: TypeSpec.Rest.Resource.ResourceReplaceModel<Invoice.BillingParty>;
+  supplier: TypeSpec.Rest.Resource.ResourceReplaceModel<BillingParty>;
 
   /**
    * The customer the invoice is sent to.
    */
   @visibility(Lifecycle.Update)
-  customer: TypeSpec.Rest.Resource.ResourceReplaceModel<Invoice.BillingParty>;
+  customer: TypeSpec.Rest.Resource.ResourceReplaceModel<BillingParty>;
 
   /**
    * The lines included in the invoice.
    */
   @visibility(Lifecycle.Update)
-  lines: Invoice.InvoiceLineReplaceUpdate[];
+  lines: InvoiceLineReplaceUpdate[];
 
   /**
    * The workflow settings for the invoice.
@@ -689,7 +692,7 @@ model InvoicePendingLineCreateInput {
    */
   @visibility(Lifecycle.Create)
   @minItems(1)
-  lines: Invoice.InvoicePendingLineCreate[];
+  lines: InvoicePendingLineCreate[];
 }
 
 /**
@@ -701,13 +704,13 @@ model InvoicePendingLineCreateResponse {
    * The lines that were created.
    */
   @visibility(Lifecycle.Read)
-  lines: Invoice.InvoiceLine[];
+  lines: InvoiceLine[];
 
   /**
    * The invoice containing the created lines.
    */
   @visibility(Lifecycle.Read)
-  invoice: Invoice.Invoice;
+  invoice: Invoice;
 
   /**
    * Whether the invoice was newly created.

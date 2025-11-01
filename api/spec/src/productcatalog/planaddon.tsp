@@ -2,7 +2,7 @@ import "@typespec/http";
 import "../types.tsp";
 import "./ratecards.tsp";
 
-namespace OpenMeter.ProductCatalog;
+namespace OpenMeter;
 
 /**
  *  The PlanAddon describes the association between a plan and add-on.

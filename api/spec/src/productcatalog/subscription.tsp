@@ -12,7 +12,7 @@ import "../entitlements/main.tsp";
 
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.ProductCatalog;
+namespace OpenMeter;
 
 /**
  * Expanded subscription
@@ -284,12 +284,12 @@ model SubscriptionItemIncluded {
   /**
    * The feature the customer is entitled to use.
    */
-  feature: ProductCatalog.Feature;
+  feature: Feature;
 
   /**
    * The entitlement of the Subscription Item.
    */
-  entitlement?: Entitlements.Entitlement;
+  entitlement?: Entitlement;
 }
 
 /**

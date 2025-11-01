@@ -58,6 +58,15 @@ model Error {
   ...Record<unknown>;
 }
 
+alias CommonErrorsWithValidation =
+  | ValidationErrorResponse
+  | UnauthorizedError
+  | ForbiddenError
+  | InternalServerErrorError
+  | ServiceUnavailableError
+  | PreconditionFailedError
+  | Error;
+
 alias CommonErrors =
   | BadRequestError
   | UnauthorizedError

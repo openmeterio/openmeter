@@ -1,7 +1,4 @@
-namespace OpenMeter.ProductCatalog;
-
-using TypeSpec.OpenAPI;
-using OpenMeter.Entitlements;
+namespace OpenMeter;
 
 /**
  * The type of the rate card.
@@ -180,7 +177,7 @@ union RateCardEntitlement {
 @friendlyName("RateCardMeteredEntitlement")
 model RateCardMeteredEntitlement {
   ...OmitProperties<
-    OpenMeter.Entitlements.EntitlementMeteredCreateInputs,
+    EntitlementMeteredCreateInputs,
 
       | "featureKey"
       | "featureId"

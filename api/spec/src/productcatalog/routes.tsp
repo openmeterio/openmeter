@@ -1,14 +1,15 @@
 import "../rest.tsp";
 import "./subscriptionaddon.tsp";
 
-namespace OpenMeter.ProductCatalog;
+namespace OpenMeter;
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
 @route("/api/v1/features")
 @tag("Product Catalog")
-interface Features {
+@friendlyName("Features")
+interface FeaturesEndpoints {
   /**
    * List features.
    */
@@ -28,10 +29,10 @@ interface Features {
     @query
     includeArchived?: boolean = false,
 
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<FeatureOrderBy>,
-  ): ListFeaturesResult | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryLimitOffset,
+    ...QueryOrdering<FeatureOrderBy>,
+  ): ListFeaturesResult | CommonErrors;
 
   /**
    * Features are either metered or static. A feature is metered if meterSlug is provided at creation.
@@ -45,7 +46,7 @@ interface Features {
   create(@body feature: FeatureCreateInputs): {
     @statusCode _: 201;
     @body body: Feature;
-  } | OpenMeter.CommonErrors;
+  } | CommonErrors;
 
   /**
    * Get a feature by ID.
@@ -53,9 +54,7 @@ interface Features {
   @get
   @operationId("getFeature")
   @summary("Get feature")
-  get(
-    @path featureId: string,
-  ): Feature | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  get(@path featureId: string): Feature | NotFoundError | CommonErrors;
 
   /**
    * Archive a feature by ID.
@@ -68,12 +67,13 @@ interface Features {
   @summary("Delete feature")
   delete(@path featureId: string): {
     @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  } | NotFoundError | CommonErrors;
 }
 
 @route("/api/v1/plans")
 @tag("Product Catalog")
-interface Plans {
+@friendlyName("Plans")
+interface PlansEndpoints {
   /**
    * List all plans.
    */
@@ -125,9 +125,9 @@ interface Plans {
     @query(#{ explode: true })
     currency?: CurrencyCode[],
 
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryOrdering<PlanOrderBy>,
-  ): OpenMeter.PaginatedResponse<Plan> | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryOrdering<PlanOrderBy>,
+  ): PaginatedResponse<Plan> | CommonErrors;
 
   /**
    * Create a new plan.
@@ -138,7 +138,7 @@ interface Plans {
   create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Plan>): {
     @statusCode _: 201;
     @body body: Plan;
-  } | OpenMeter.CommonErrors;
+  } | CommonErrors;
 
   /**
    * Update plan by id.
@@ -150,7 +150,7 @@ interface Plans {
   update(
     @path planId: ULID,
     @body body: TypeSpec.Rest.Resource.ResourceReplaceModel<Plan>,
-  ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Plan | NotFoundError | CommonErrors;
 
   /**
    * Get a plan by id or key. The latest published version is returned if latter is used.
@@ -172,7 +172,7 @@ interface Plans {
     @query
     @example(true)
     includeLatest?: boolean = false,
-  ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Plan | NotFoundError | CommonErrors;
 
   /**
    * Soft delete plan by plan.id.
@@ -185,7 +185,7 @@ interface Plans {
   @summary("Delete plan")
   delete(@path planId: ULID): {
     @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  } | NotFoundError | CommonErrors;
 
   /**
    * Publish a plan version.
@@ -194,9 +194,7 @@ interface Plans {
   @route("/{planId}/publish")
   @operationId("publishPlan")
   @summary("Publish plan")
-  publish(
-    @path planId: ULID,
-  ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  publish(@path planId: ULID): Plan | NotFoundError | CommonErrors;
 
   /**
    * Archive a plan version.
@@ -205,9 +203,7 @@ interface Plans {
   @route("/{planId}/archive")
   @operationId("archivePlan")
   @summary("Archive plan version")
-  archive(
-    @path planId: ULID,
-  ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  archive(@path planId: ULID): Plan | NotFoundError | CommonErrors;
 
   /**
    * Create a new draft version from plan.
@@ -225,12 +221,13 @@ interface Plans {
   ): {
     @statusCode _: 201;
     @body body: Plan;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  } | NotFoundError | CommonErrors;
 }
 
 @route("/api/v1/plans/{planId}/addons")
 @tag("Product Catalog")
-interface PlanAddons {
+@friendlyName("PlanAddons")
+interface PlanAddonsEndpoints {
   /**
    * List all available add-ons for plan.
    */
@@ -267,9 +264,9 @@ interface PlanAddons {
     @query(#{ explode: true, style: "deepObject" })
     keyVersion?: Record<integer[]>,
 
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryOrdering<PlanAddonOrderBy>,
-  ): OpenMeter.PaginatedResponse<PlanAddon> | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryOrdering<PlanAddonOrderBy>,
+  ): PaginatedResponse<PlanAddon> | NotFoundError | CommonErrors;
 
   /**
    * Create new add-on assignment for plan.
@@ -282,9 +279,9 @@ interface PlanAddons {
         @statusCode _: 201;
         @body body: PlanAddon;
       }
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | OpenMeter.CommonErrors;
+    | ConflictError
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Update add-on assignment for plan.
@@ -297,7 +294,7 @@ interface PlanAddons {
     @path planId: ULID,
     @path planAddonId: ULID,
     @body body: TypeSpec.Rest.Resource.ResourceReplaceModel<PlanAddon>,
-  ): PlanAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): PlanAddon | NotFoundError | CommonErrors;
 
   /**
    * Get add-on assignment for plan by id.
@@ -309,7 +306,7 @@ interface PlanAddons {
   get(
     @path planId: ULIDOrKey,
     @path planAddonId: ULIDOrKey,
-  ): PlanAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): PlanAddon | NotFoundError | CommonErrors;
 
   /**
    * Delete add-on assignment for plan.
@@ -322,12 +319,13 @@ interface PlanAddons {
   @summary("Delete add-on assignment for plan")
   delete(@path planId: ULID, @path planAddonId: ULID): {
     @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  } | NotFoundError | CommonErrors;
 }
 
 @route("/api/v1/addons")
 @tag("Product Catalog")
-interface Addons {
+@friendlyName("Addons")
+interface AddonsEndpoints {
   /**
    * List all add-ons.
    */
@@ -379,9 +377,9 @@ interface Addons {
     @query(#{ explode: true })
     currency?: CurrencyCode[],
 
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryOrdering<AddonOrderBy>,
-  ): OpenMeter.PaginatedResponse<Addon> | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryOrdering<AddonOrderBy>,
+  ): PaginatedResponse<Addon> | CommonErrors;
 
   /**
    * Create a new add-on.
@@ -392,7 +390,7 @@ interface Addons {
   create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Addon>): {
     @statusCode _: 201;
     @body body: Addon;
-  } | OpenMeter.CommonErrors;
+  } | CommonErrors;
 
   /**
    * Update add-on by id.
@@ -404,7 +402,7 @@ interface Addons {
   update(
     @path addonId: ULID,
     @body request: TypeSpec.Rest.Resource.ResourceReplaceModel<Addon>,
-  ): Addon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Addon | NotFoundError | CommonErrors;
 
   /**
    * Get add-on by id or key. The latest published version is returned if latter is used.
@@ -426,7 +424,7 @@ interface Addons {
     @query
     @example(true)
     includeLatest?: boolean = false,
-  ): Addon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Addon | NotFoundError | CommonErrors;
 
   /**
    * Soft delete add-on by id.
@@ -439,7 +437,7 @@ interface Addons {
   @summary("Delete add-on")
   delete(@path addonId: ULID): {
     @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  } | NotFoundError | CommonErrors;
 
   /**
    * Publish a add-on version.
@@ -448,9 +446,7 @@ interface Addons {
   @route("/{addonId}/publish")
   @operationId("publishAddon")
   @summary("Publish add-on")
-  publish(
-    @path addonId: ULID,
-  ): Addon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  publish(@path addonId: ULID): Addon | NotFoundError | CommonErrors;
 
   /**
    * Archive a add-on version.
@@ -459,14 +455,13 @@ interface Addons {
   @route("/{addonId}/archive")
   @operationId("archiveAddon")
   @summary("Archive add-on version")
-  archive(
-    @path addonId: ULID,
-  ): Addon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  archive(@path addonId: ULID): Addon | NotFoundError | CommonErrors;
 }
 
 @route("/api/v1/subscriptions")
 @tag("Subscriptions")
-interface Subscriptions {
+@friendlyName("Subscriptions")
+interface SubscriptionsEndpoints {
   @get
   @sharedRoute
   @operationId("getSubscription")
@@ -478,7 +473,7 @@ interface Subscriptions {
      * The time at which the subscription should be queried. If not provided the current time is used.
      */
     @query(#{ explode: true }) at?: DateTime,
-  ): SubscriptionExpanded | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): SubscriptionExpanded | NotFoundError | CommonErrors;
 
   @post
   @operationId("createSubscription")
@@ -486,7 +481,7 @@ interface Subscriptions {
   create(@body body: SubscriptionCreate): {
     @statusCode _: 201;
     @body body: Subscription;
-  } | OpenMeter.ConflictError | CommonErrors;
+  } | ConflictError | CommonErrorsWithValidation;
 
   /**
    * Batch processing commands for manipulating running subscriptions.
@@ -502,11 +497,7 @@ interface Subscriptions {
 
     @body
     body: SubscriptionEdit,
-  ):
-    | Subscription
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | CommonErrors;
+  ): Subscription | ConflictError | NotFoundError | CommonErrorsWithValidation;
 
   /**
    * Closes a running subscription and starts a new one according to the specification.
@@ -523,9 +514,9 @@ interface Subscriptions {
     body: SubscriptionChange,
   ):
     | SubscriptionChangeResponseBody
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | CommonErrors;
+    | ConflictError
+    | NotFoundError
+    | CommonErrorsWithValidation;
 
   /**
    * Migrates the subscripiton to the provided version of the current plan.
@@ -566,9 +557,9 @@ interface Subscriptions {
     },
   ):
     | SubscriptionChangeResponseBody
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | CommonErrors;
+    | ConflictError
+    | NotFoundError
+    | CommonErrorsWithValidation;
 
   /**
    * Restores a canceled subscription.
@@ -581,7 +572,7 @@ interface Subscriptions {
   @route("/{subscriptionId}/restore")
   restore(
     @path subscriptionId: ULID,
-  ): Subscription | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Subscription | NotFoundError | CommonErrors;
 
   /**
    * Cancels the subscription.
@@ -599,11 +590,7 @@ interface Subscriptions {
        */
       timing?: SubscriptionTiming;
     },
-  ):
-    | Subscription
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | CommonErrors;
+  ): Subscription | ConflictError | NotFoundError | CommonErrorsWithValidation;
 
   /**
    * Cancels the scheduled cancelation.
@@ -614,9 +601,9 @@ interface Subscriptions {
   @route("/{subscriptionId}/unschedule-cancelation")
   unscheduleCancelation(@path subscriptionId: ULID):
     | Subscription
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | CommonErrors;
+    | ConflictError
+    | NotFoundError
+    | CommonErrorsWithValidation;
 
   /**
    * Deletes a subscription. Only scheduled subscriptions can be deleted.
@@ -627,12 +614,13 @@ interface Subscriptions {
   @route("/{subscriptionId}")
   delete(@path subscriptionId: ULID): {
     @statusCode _: 204;
-  } | OpenMeter.NotFoundError | CommonErrors;
+  } | NotFoundError | CommonErrorsWithValidation;
 }
 
 @route("/api/v1/subscriptions/{subscriptionId}/addons")
 @tag("Subscriptions")
-interface SubscriptionAddons {
+@friendlyName("SubscriptionAddons")
+interface SubscriptionAddonsEndpoints {
   /**
    * Create a new subscription addon, either providing the key or the id of the addon.
    */
@@ -649,9 +637,9 @@ interface SubscriptionAddons {
         @statusCode _: 201;
         @body body: SubscriptionAddon;
       }
-    | OpenMeter.ConflictError
-    | OpenMeter.NotFoundError
-    | OpenMeter.CommonErrors;
+    | ConflictError
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * List all addons of a subscription. In the returned list will match to a set unique by addonId.
@@ -661,7 +649,7 @@ interface SubscriptionAddons {
   @summary("List subscription addons")
   list(
     @path subscriptionId: ULID, // Should we implement pagination? This should never be a large list.
-  ): SubscriptionAddon[] | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): SubscriptionAddon[] | NotFoundError | CommonErrors;
 
   /**
    * Get a subscription addon by id.
@@ -673,7 +661,7 @@ interface SubscriptionAddons {
   get(
     @path subscriptionId: ULID,
     @path subscriptionAddonId: ULID,
-  ): SubscriptionAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): SubscriptionAddon | NotFoundError | CommonErrors;
 
   /**
    * Updates a subscription addon (allows changing the quantity: purchasing more instances or cancelling the current instances)
@@ -688,5 +676,5 @@ interface SubscriptionAddons {
 
     @body
     body: TypeSpec.Rest.Resource.ResourceCreateOrUpdateModel<SubscriptionAddon>,
-  ): SubscriptionAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): SubscriptionAddon | NotFoundError | CommonErrors;
 }

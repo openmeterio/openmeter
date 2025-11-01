@@ -5,9 +5,8 @@ import "@typespec/openapi3";
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
-using OpenMeter.ProductCatalog;
 
-namespace OpenMeter.Billing.Invoice;
+namespace OpenMeter;
 
 /**
  * TaxConfig stores the configuration for a tax line relative to an invoice line.

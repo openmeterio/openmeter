@@ -9,4 +9,4 @@ import "./stripe.tsp";
 import "./sandbox.tsp";
 import "./custominvoicing.tsp";
 
-namespace OpenMeter.App;
+namespace OpenMeter;

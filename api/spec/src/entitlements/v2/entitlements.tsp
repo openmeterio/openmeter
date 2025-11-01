@@ -7,11 +7,12 @@ import "../..";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Entitlements.V2;
+namespace OpenMeter;
 
 @route("/api/v2/entitlements")
 @tag("Entitlements")
-interface Entitlements {
+@friendlyName("EntitlementsV2")
+interface EntitlementsV2Endpoints {
   /**
    * List all entitlements for all the customers and features. This endpoint is intended for administrative purposes only.
    * To fetch the entitlements of a specific subject please use the /api/v2/customers/{customerIdOrKey}/entitlements endpoint.
@@ -58,10 +59,10 @@ interface Entitlements {
     @query
     excludeInactive?: boolean = false,
 
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<EntitlementOrderBy>,
-  ): OpenMeter.PaginatedResponse<EntitlementV2> | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryLimitOffset,
+    ...QueryOrdering<EntitlementOrderBy>,
+  ): PaginatedResponse<EntitlementV2> | CommonErrors;
 
   /**
    * Get entitlement by id.
@@ -72,7 +73,7 @@ interface Entitlements {
   get(
     @path
     entitlementId: ULID,
-  ): EntitlementV2 | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): EntitlementV2 | NotFoundError | CommonErrors;
 }
 
 /**
@@ -143,7 +144,7 @@ model IssueAfterReset {
 @friendlyName("EntitlementMeteredV2CreateInputs")
 model EntitlementMeteredV2CreateInputs {
   ...OmitProperties<
-    OpenMeter.Entitlements.EntitlementMeteredCreateInputs,
+    EntitlementMeteredCreateInputs,
     "isUnlimited" | "issueAfterReset" | "issueAfterResetPriority"
   >;
 
