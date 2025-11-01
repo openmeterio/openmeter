@@ -13031,12 +13031,12 @@ class ProductCatalogSubscriptionsOperations:
                     pass
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
-            if response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
-                raise ResourceExistsError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.ValidationErrorProblemResponse, response)
-            elif response.status_code == 401:
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
+            elif response.status_code == 409:
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
+                raise ResourceExistsError(response=response, model=error)
+            if response.status_code == 401:
                 error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
@@ -13191,15 +13191,15 @@ class ProductCatalogSubscriptionsOperations:
                     pass
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
-            if response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
-                raise ResourceExistsError(response=response, model=error)
             if response.status_code == 404:
                 error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.ValidationErrorProblemResponse, response)
-            elif response.status_code == 401:
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
+            elif response.status_code == 409:
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
+                raise ResourceExistsError(response=response, model=error)
+            if response.status_code == 401:
                 error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
@@ -13343,15 +13343,15 @@ class ProductCatalogSubscriptionsOperations:
                     pass
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
-            if response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
-                raise ResourceExistsError(response=response, model=error)
             if response.status_code == 404:
                 error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.ValidationErrorProblemResponse, response)
-            elif response.status_code == 401:
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
+            elif response.status_code == 409:
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
+                raise ResourceExistsError(response=response, model=error)
+            if response.status_code == 401:
                 error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
@@ -13514,15 +13514,15 @@ class ProductCatalogSubscriptionsOperations:
                     pass
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
-            if response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
-                raise ResourceExistsError(response=response, model=error)
             if response.status_code == 404:
                 error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.ValidationErrorProblemResponse, response)
-            elif response.status_code == 401:
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
+            elif response.status_code == 409:
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
+                raise ResourceExistsError(response=response, model=error)
+            if response.status_code == 401:
                 error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
@@ -13761,15 +13761,15 @@ class ProductCatalogSubscriptionsOperations:
                     pass
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
-            if response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
-                raise ResourceExistsError(response=response, model=error)
             if response.status_code == 404:
                 error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.ValidationErrorProblemResponse, response)
-            elif response.status_code == 401:
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
+            elif response.status_code == 409:
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
+                raise ResourceExistsError(response=response, model=error)
+            if response.status_code == 401:
                 error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
@@ -13841,15 +13841,15 @@ class ProductCatalogSubscriptionsOperations:
                     pass
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
-            if response.status_code == 409:
-                error = _failsafe_deserialize(_models.ConflictProblemResponse, response)
-                raise ResourceExistsError(response=response, model=error)
             if response.status_code == 404:
                 error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.ValidationErrorProblemResponse, response)
-            elif response.status_code == 401:
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
+            elif response.status_code == 409:
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
+                raise ResourceExistsError(response=response, model=error)
+            if response.status_code == 401:
                 error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:
@@ -13889,7 +13889,6 @@ class ProductCatalogSubscriptionsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
         error_map: MutableMapping = {
-            409: ResourceExistsError,
             304: ResourceNotModifiedError,
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
@@ -13921,8 +13920,11 @@ class ProductCatalogSubscriptionsOperations:
                 error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
                 raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
-                error = _failsafe_deserialize(_models.ValidationErrorProblemResponse, response)
-            elif response.status_code == 401:
+                error = _failsafe_deserialize(_models.SubscriptionBadRequestErrorResponse, response)
+            elif response.status_code == 409:
+                error = _failsafe_deserialize(_models.SubscriptionConflictErrorResponse, response)
+                raise ResourceExistsError(response=response, model=error)
+            if response.status_code == 401:
                 error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
                 raise ClientAuthenticationError(response=response, model=error)
             if response.status_code == 403:

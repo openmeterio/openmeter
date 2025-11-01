@@ -484,6 +484,8 @@ class UnexpectedProblemResponse(_Model):
     :ivar instance: A URI reference that identifies the specific occurrence of the problem.
      Required.
     :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present.
+    :vartype extensions: dict[str, any]
     """
 
     type: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -496,6 +498,8 @@ class UnexpectedProblemResponse(_Model):
     """A human-readable explanation specific to this occurrence of the problem. Required."""
     instance: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """A URI reference that identifies the specific occurrence of the problem. Required."""
+    extensions: Optional[dict[str, Any]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Additional properties specific to the problem type may be present."""
 
     @overload
     def __init__(
@@ -506,6 +510,7 @@ class UnexpectedProblemResponse(_Model):
         detail: str,
         instance: str,
         status: Optional[int] = None,
+        extensions: Optional[dict[str, Any]] = None,
     ) -> None: ...
 
     @overload
@@ -537,6 +542,8 @@ class BadRequestProblemResponse(UnexpectedProblemResponse):
     :ivar instance: A URI reference that identifies the specific occurrence of the problem.
      Required.
     :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present.
+    :vartype extensions: dict[str, any]
     """
 
     @overload
@@ -548,6 +555,7 @@ class BadRequestProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
+        extensions: Optional[dict[str, Any]] = None,
     ) -> None: ...
 
     @overload
@@ -2002,6 +2010,8 @@ class ConflictProblemResponse(UnexpectedProblemResponse):
     :ivar instance: A URI reference that identifies the specific occurrence of the problem.
      Required.
     :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present.
+    :vartype extensions: dict[str, any]
     """
 
     @overload
@@ -2013,6 +2023,7 @@ class ConflictProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
+        extensions: Optional[dict[str, Any]] = None,
     ) -> None: ...
 
     @overload
@@ -2066,19 +2077,20 @@ class CreateCheckoutSessionTaxIdCollection(_Model):
 class CreateResponseExtensions(_Model):
     """CreateResponseExtensions.
 
-    :ivar validation_errors:
-    :vartype validation_errors: list[~openmeter._generated.models.ValidationError]
+    :ivar validation_errors: Required.
+    :vartype validation_errors: list[~openmeter._generated.models.ErrorExtension]
     """
 
-    validation_errors: Optional[list["_models.ValidationError"]] = rest_field(
+    validation_errors: list["_models.ErrorExtension"] = rest_field(
         name="validationErrors", visibility=["read", "create", "update", "delete", "query"]
     )
+    """Required."""
 
     @overload
     def __init__(
         self,
         *,
-        validation_errors: Optional[list["_models.ValidationError"]] = None,
+        validation_errors: list["_models.ErrorExtension"],
     ) -> None: ...
 
     @overload
@@ -6146,6 +6158,25 @@ class EntitlementValue(_Model):
     """Only available for static entitlements. The JSON parsable config of the entitlement."""
 
 
+class ErrorExtension(_Model):
+    """Generic ErrorExtension as part of HTTPProblem.Extensions.[StatusCode].
+
+    :ivar field: The path to the field. Required.
+    :vartype field: str
+    :ivar code: The machine readable description of the error. Required.
+    :vartype code: str
+    :ivar message: The human readable description of the error. Required.
+    :vartype message: str
+    """
+
+    field: str = rest_field(visibility=["read"])
+    """The path to the field. Required."""
+    code: str = rest_field(visibility=["read"])
+    """The machine readable description of the error. Required."""
+    message: str = rest_field(visibility=["read"])
+    """The human readable description of the error. Required."""
+
+
 class Event(_Model):
     """CloudEvents Specification JSON Schema
 
@@ -6765,6 +6796,8 @@ class ForbiddenProblemResponse(UnexpectedProblemResponse):
     :ivar instance: A URI reference that identifies the specific occurrence of the problem.
      Required.
     :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present.
+    :vartype extensions: dict[str, any]
     """
 
     @overload
@@ -6776,6 +6809,7 @@ class ForbiddenProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
+        extensions: Optional[dict[str, Any]] = None,
     ) -> None: ...
 
     @overload
@@ -7109,6 +7143,8 @@ class InternalServerErrorProblemResponse(UnexpectedProblemResponse):
     :ivar instance: A URI reference that identifies the specific occurrence of the problem.
      Required.
     :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present.
+    :vartype extensions: dict[str, any]
     """
 
     @overload
@@ -7120,6 +7156,7 @@ class InternalServerErrorProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
+        extensions: Optional[dict[str, Any]] = None,
     ) -> None: ...
 
     @overload
@@ -9882,6 +9919,8 @@ class NotFoundProblemResponse(UnexpectedProblemResponse):
     :ivar instance: A URI reference that identifies the specific occurrence of the problem.
      Required.
     :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present.
+    :vartype extensions: dict[str, any]
     """
 
     @overload
@@ -9893,6 +9932,7 @@ class NotFoundProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
+        extensions: Optional[dict[str, Any]] = None,
     ) -> None: ...
 
     @overload
@@ -11985,6 +12025,8 @@ class PreconditionFailedProblemResponse(UnexpectedProblemResponse):
     :ivar instance: A URI reference that identifies the specific occurrence of the problem.
      Required.
     :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present.
+    :vartype extensions: dict[str, any]
     """
 
     @overload
@@ -11996,6 +12038,7 @@ class PreconditionFailedProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
+        extensions: Optional[dict[str, Any]] = None,
     ) -> None: ...
 
     @overload
@@ -12758,6 +12801,8 @@ class ServiceUnavailableProblemResponse(UnexpectedProblemResponse):
     :ivar instance: A URI reference that identifies the specific occurrence of the problem.
      Required.
     :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present.
+    :vartype extensions: dict[str, any]
     """
 
     @overload
@@ -12769,6 +12814,7 @@ class ServiceUnavailableProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
+        extensions: Optional[dict[str, Any]] = None,
     ) -> None: ...
 
     @overload
@@ -13956,6 +14002,68 @@ class SubscriptionAlignment(_Model):
         super().__init__(*args, **kwargs)
 
 
+class SubscriptionBadRequestErrorResponse(_Model):
+    """The server cannot or will not process the request due to something that is perceived to be a
+    client error (e.g., malformed request syntax, invalid request message framing, or deceptive
+    request routing). Variants with ErrorExtensions specific to subscriptions.
+
+    :ivar type: Type contains a URI that identifies the problem type. Required.
+    :vartype type: str
+    :ivar title: A a short, human-readable summary of the problem type. Required.
+    :vartype title: str
+    :ivar status: The HTTP status code generated by the origin server for this occurrence of the
+     problem.
+    :vartype status: int
+    :ivar detail: A human-readable explanation specific to this occurrence of the problem.
+     Required.
+    :vartype detail: str
+    :ivar instance: A URI reference that identifies the specific occurrence of the problem.
+     Required.
+    :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present. Is one of
+     the following types: CreateResponseExtensions
+    :vartype extensions: ~openmeter._generated.models.CreateResponseExtensions
+    """
+
+    type: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Type contains a URI that identifies the problem type. Required."""
+    title: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """A a short, human-readable summary of the problem type. Required."""
+    status: Optional[int] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """The HTTP status code generated by the origin server for this occurrence of the problem."""
+    detail: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """A human-readable explanation specific to this occurrence of the problem. Required."""
+    instance: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """A URI reference that identifies the specific occurrence of the problem. Required."""
+    extensions: Optional["_types.SubscriptionErrorExtensions"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Additional properties specific to the problem type may be present. Is one of the following
+     types: CreateResponseExtensions"""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        type: str,
+        title: str,
+        detail: str,
+        instance: str,
+        status: Optional[int] = None,
+        extensions: Optional["_types.SubscriptionErrorExtensions"] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
 class SubscriptionChangeResponseBody(_Model):
     """Response body for subscription change.
 
@@ -13976,6 +14084,68 @@ class SubscriptionChangeResponseBody(_Model):
         *,
         current: "_models.Subscription",
         next: "_models.SubscriptionExpanded",
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class SubscriptionConflictErrorResponse(_Model):
+    """The request could not be completed due to a conflict with the current state of the target
+    resource.
+    Variants with ErrorExtensions specific to subscriptions.
+
+    :ivar type: Type contains a URI that identifies the problem type. Required.
+    :vartype type: str
+    :ivar title: A a short, human-readable summary of the problem type. Required.
+    :vartype title: str
+    :ivar status: The HTTP status code generated by the origin server for this occurrence of the
+     problem.
+    :vartype status: int
+    :ivar detail: A human-readable explanation specific to this occurrence of the problem.
+     Required.
+    :vartype detail: str
+    :ivar instance: A URI reference that identifies the specific occurrence of the problem.
+     Required.
+    :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present. Is one of
+     the following types: CreateResponseExtensions
+    :vartype extensions: ~openmeter._generated.models.CreateResponseExtensions
+    """
+
+    type: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Type contains a URI that identifies the problem type. Required."""
+    title: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """A a short, human-readable summary of the problem type. Required."""
+    status: Optional[int] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """The HTTP status code generated by the origin server for this occurrence of the problem."""
+    detail: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """A human-readable explanation specific to this occurrence of the problem. Required."""
+    instance: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """A URI reference that identifies the specific occurrence of the problem. Required."""
+    extensions: Optional["_types.SubscriptionErrorExtensions"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Additional properties specific to the problem type may be present. Is one of the following
+     types: CreateResponseExtensions"""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        type: str,
+        title: str,
+        detail: str,
+        instance: str,
+        status: Optional[int] = None,
+        extensions: Optional["_types.SubscriptionErrorExtensions"] = None,
     ) -> None: ...
 
     @overload
@@ -14654,6 +14824,8 @@ class UnauthorizedProblemResponse(UnexpectedProblemResponse):
     :ivar instance: A URI reference that identifies the specific occurrence of the problem.
      Required.
     :vartype instance: str
+    :ivar extensions: Additional properties specific to the problem type may be present.
+    :vartype extensions: dict[str, any]
     """
 
     @overload
@@ -14665,6 +14837,7 @@ class UnauthorizedProblemResponse(UnexpectedProblemResponse):
         detail: str,
         instance: str,
         status: Optional[int] = None,
+        extensions: Optional[dict[str, Any]] = None,
     ) -> None: ...
 
     @overload
@@ -14775,61 +14948,6 @@ class ValidationError(_Model):
     """The human readable description of the error. Required."""
     attributes: Optional["_models.Annotations"] = rest_field(visibility=["read"])
     """Additional attributes."""
-
-
-class ValidationErrorProblemResponse(_Model):
-    """A BadRequestError with a validationErrors extension.
-
-    :ivar type: Type contains a URI that identifies the problem type. Required.
-    :vartype type: str
-    :ivar title: A a short, human-readable summary of the problem type. Required.
-    :vartype title: str
-    :ivar status: The HTTP status code generated by the origin server for this occurrence of the
-     problem.
-    :vartype status: int
-    :ivar detail: A human-readable explanation specific to this occurrence of the problem.
-     Required.
-    :vartype detail: str
-    :ivar instance: A URI reference that identifies the specific occurrence of the problem.
-     Required.
-    :vartype instance: str
-    :ivar extensions: Validation issues.
-    :vartype extensions: ~openmeter._generated.models.CreateResponseExtensions
-    """
-
-    type: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Type contains a URI that identifies the problem type. Required."""
-    title: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """A a short, human-readable summary of the problem type. Required."""
-    status: Optional[int] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The HTTP status code generated by the origin server for this occurrence of the problem."""
-    detail: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """A human-readable explanation specific to this occurrence of the problem. Required."""
-    instance: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """A URI reference that identifies the specific occurrence of the problem. Required."""
-    extensions: Optional["_models.CreateResponseExtensions"] = rest_field(visibility=["read"])
-    """Validation issues."""
-
-    @overload
-    def __init__(
-        self,
-        *,
-        type: str,
-        title: str,
-        detail: str,
-        instance: str,
-        status: Optional[int] = None,
-    ) -> None: ...
-
-    @overload
-    def __init__(self, mapping: Mapping[str, Any]) -> None:
-        """
-        :param mapping: raw JSON to initialize the model.
-        :type mapping: Mapping[str, Any]
-        """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
 
 
 class ValidationIssue(_Model):

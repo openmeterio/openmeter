@@ -19,7 +19,7 @@ import (
 const ErrCodeSomething models.ErrorCode = "something"
 
 func TestIssueIfHTTPStatusKnownErrorResponses(t *testing.T) {
-	t.Run("Should map http.StatusBadRequest to validationIssues for backwards compatibility", func(t *testing.T) {
+	t.Run("Should map http.StatusBadRequest to errors", func(t *testing.T) {
 		testHandler := httptransport.NewHandler(
 			func(ctx context.Context, r *http.Request) (any, error) {
 				return nil, nil
@@ -55,7 +55,7 @@ func TestIssueIfHTTPStatusKnownErrorResponses(t *testing.T) {
 		extensions, ok := body["extensions"].(map[string]interface{})
 		require.True(t, ok)
 
-		issues, ok := extensions["validationIssues"].([]interface{})
+		issues, ok := extensions["validationErrors"].([]interface{})
 		require.True(t, ok, "got body: %+v", body)
 		require.Len(t, issues, 1)
 
@@ -70,7 +70,7 @@ func TestIssueIfHTTPStatusKnownErrorResponses(t *testing.T) {
 			}, issues[0])
 	})
 
-	t.Run("Should map other statuses to statuscode", func(t *testing.T) {
+	t.Run("Should map other statuses to errors", func(t *testing.T) {
 		testHandler := httptransport.NewHandler(
 			func(ctx context.Context, r *http.Request) (any, error) {
 				return nil, nil
@@ -106,7 +106,10 @@ func TestIssueIfHTTPStatusKnownErrorResponses(t *testing.T) {
 		extensions, ok := body["extensions"].(map[string]interface{})
 		require.True(t, ok)
 
-		issues, ok := extensions["409"].([]interface{})
+		_, ok = extensions["409"].([]interface{})
+		require.False(t, ok)
+
+		issues, ok := extensions["validationErrors"].([]interface{})
 		require.True(t, ok, "got body: %+v", body)
 		require.Len(t, issues, 1)
 
