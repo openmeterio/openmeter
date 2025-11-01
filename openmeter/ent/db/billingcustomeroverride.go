@@ -37,6 +37,8 @@ type BillingCustomerOverride struct {
 	BillingProfileID *string `json:"billing_profile_id,omitempty"`
 	// CollectionAlignment holds the value of the "collection_alignment" field.
 	CollectionAlignment *billing.AlignmentKind `json:"collection_alignment,omitempty"`
+	// AnchoredAlignmentDetail holds the value of the "anchored_alignment_detail" field.
+	AnchoredAlignmentDetail *billing.AnchoredAlignmentDetail `json:"anchored_alignment_detail,omitempty"`
 	// LineCollectionPeriod holds the value of the "line_collection_period" field.
 	LineCollectionPeriod *datetime.ISODurationString `json:"line_collection_period,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
@@ -95,7 +97,7 @@ func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
+		case billingcustomeroverride.FieldAnchoredAlignmentDetail, billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
 			values[i] = new([]byte)
 		case billingcustomeroverride.FieldInvoiceAutoAdvance, billingcustomeroverride.FieldInvoiceProgressiveBilling:
 			values[i] = new(sql.NullBool)
@@ -168,6 +170,14 @@ func (_m *BillingCustomerOverride) assignValues(columns []string, values []any) 
 			} else if value.Valid {
 				_m.CollectionAlignment = new(billing.AlignmentKind)
 				*_m.CollectionAlignment = billing.AlignmentKind(value.String)
+			}
+		case billingcustomeroverride.FieldAnchoredAlignmentDetail:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field anchored_alignment_detail", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AnchoredAlignmentDetail); err != nil {
+					return fmt.Errorf("unmarshal field anchored_alignment_detail: %w", err)
+				}
 			}
 		case billingcustomeroverride.FieldLineCollectionPeriod:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -291,6 +301,9 @@ func (_m *BillingCustomerOverride) String() string {
 		builder.WriteString("collection_alignment=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("anchored_alignment_detail=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AnchoredAlignmentDetail))
 	builder.WriteString(", ")
 	if v := _m.LineCollectionPeriod; v != nil {
 		builder.WriteString("line_collection_period=")

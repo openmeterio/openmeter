@@ -713,7 +713,7 @@ func (m *InvoiceStateMachine) isReadyForCollection() bool {
 
 func (m *InvoiceStateMachine) snapshotQuantityAsNeeded(ctx context.Context) error {
 	// Let's skip the snapshot if we already have the snapshot and it happened after the collection date
-	if m.Invoice.QuantitySnapshotedAt != nil && !m.Invoice.QuantitySnapshotedAt.Before(lo.FromPtrOr(m.Invoice.CollectionAt, m.Invoice.CreatedAt)) {
+	if m.Invoice.QuantitySnapshotedAt != nil && !m.Invoice.QuantitySnapshotedAt.Before(m.Invoice.DefaultCollectionAtForStandardInvoice()) {
 		m.Logger.InfoContext(ctx, "skipping snapshot quantity as it already exists and was taken after the collection date",
 			"invoice", m.Invoice.ID,
 			"quantity_snapshoted_at", m.Invoice.QuantitySnapshotedAt,

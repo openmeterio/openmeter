@@ -4630,3 +4630,119 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedCustomerHandling() {
 	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 	s.Equal(float64(5*12), invoice.Totals.Total.InexactFloat64())
 }
+
+func (s *SubscriptionHandlerTestSuite) TestFirstDayOfMonthBillingForSubPeriodLength() {
+	s.T().Skip("Skipping test for now")
+
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2025-10-15T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	// Given
+	//	a monthly, first-day-of-month anchored subscription started mid-month
+	// When
+	// 	we end the subscription before the end of month
+	// Then
+	//  lines should only be billable with the start of the month
+
+	planInput := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: false,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	plan, err := s.PlanService.CreatePlan(ctx, planInput)
+	s.NoError(err)
+
+	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, s.Namespace, productcatalogsubscription.PlanRefInput{
+		Key:     plan.Key,
+		Version: lo.ToPtr(1),
+	})
+	s.NoError(err)
+
+	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(clock.Now()),
+			},
+			Name: "subs-1",
+		},
+		Namespace:     s.Namespace,
+		CustomerID:    s.Customer.ID,
+		BillingAnchor: lo.ToPtr(s.mustParseTime("2025-10-01T00:00:00Z")),
+	}, subscriptionPlan)
+
+	s.NoError(err)
+	s.NotNil(subsView)
+
+	clock.FreezeTime(s.mustParseTime("2024-01-20T00:00:00Z")) // This will be the present
+
+	s.NoError(s.Handler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, subsView, clock.Now()))
+
+	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Customers: []string{s.Customer.ID},
+		Expand:    billing.InvoiceExpandAll,
+	})
+	s.NoError(err)
+	s.Len(invoices.Items, 1)
+
+	gatheringInvoice := invoices.Items[0]
+
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-advance",
+			},
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			})),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-02-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+		},
+	})
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, clock.Now()))
+
+	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", invoice)
+}

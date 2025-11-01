@@ -10020,6 +10020,7 @@ type BillingCustomerOverrideMutation struct {
 	updated_at                  *time.Time
 	deleted_at                  *time.Time
 	collection_alignment        *billing.AlignmentKind
+	anchored_alignment_detail   **billing.AnchoredAlignmentDetail
 	line_collection_period      *datetime.ISODurationString
 	invoice_auto_advance        *bool
 	invoice_draft_period        *datetime.ISODurationString
@@ -10430,6 +10431,55 @@ func (m *BillingCustomerOverrideMutation) CollectionAlignmentCleared() bool {
 func (m *BillingCustomerOverrideMutation) ResetCollectionAlignment() {
 	m.collection_alignment = nil
 	delete(m.clearedFields, billingcustomeroverride.FieldCollectionAlignment)
+}
+
+// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
+func (m *BillingCustomerOverrideMutation) SetAnchoredAlignmentDetail(bad *billing.AnchoredAlignmentDetail) {
+	m.anchored_alignment_detail = &bad
+}
+
+// AnchoredAlignmentDetail returns the value of the "anchored_alignment_detail" field in the mutation.
+func (m *BillingCustomerOverrideMutation) AnchoredAlignmentDetail() (r *billing.AnchoredAlignmentDetail, exists bool) {
+	v := m.anchored_alignment_detail
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnchoredAlignmentDetail returns the old "anchored_alignment_detail" field's value of the BillingCustomerOverride entity.
+// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingCustomerOverrideMutation) OldAnchoredAlignmentDetail(ctx context.Context) (v *billing.AnchoredAlignmentDetail, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnchoredAlignmentDetail is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnchoredAlignmentDetail requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnchoredAlignmentDetail: %w", err)
+	}
+	return oldValue.AnchoredAlignmentDetail, nil
+}
+
+// ClearAnchoredAlignmentDetail clears the value of the "anchored_alignment_detail" field.
+func (m *BillingCustomerOverrideMutation) ClearAnchoredAlignmentDetail() {
+	m.anchored_alignment_detail = nil
+	m.clearedFields[billingcustomeroverride.FieldAnchoredAlignmentDetail] = struct{}{}
+}
+
+// AnchoredAlignmentDetailCleared returns if the "anchored_alignment_detail" field was cleared in this mutation.
+func (m *BillingCustomerOverrideMutation) AnchoredAlignmentDetailCleared() bool {
+	_, ok := m.clearedFields[billingcustomeroverride.FieldAnchoredAlignmentDetail]
+	return ok
+}
+
+// ResetAnchoredAlignmentDetail resets all changes to the "anchored_alignment_detail" field.
+func (m *BillingCustomerOverrideMutation) ResetAnchoredAlignmentDetail() {
+	m.anchored_alignment_detail = nil
+	delete(m.clearedFields, billingcustomeroverride.FieldAnchoredAlignmentDetail)
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
@@ -10863,7 +10913,7 @@ func (m *BillingCustomerOverrideMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingCustomerOverrideMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.namespace != nil {
 		fields = append(fields, billingcustomeroverride.FieldNamespace)
 	}
@@ -10884,6 +10934,9 @@ func (m *BillingCustomerOverrideMutation) Fields() []string {
 	}
 	if m.collection_alignment != nil {
 		fields = append(fields, billingcustomeroverride.FieldCollectionAlignment)
+	}
+	if m.anchored_alignment_detail != nil {
+		fields = append(fields, billingcustomeroverride.FieldAnchoredAlignmentDetail)
 	}
 	if m.line_collection_period != nil {
 		fields = append(fields, billingcustomeroverride.FieldLineCollectionPeriod)
@@ -10928,6 +10981,8 @@ func (m *BillingCustomerOverrideMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingProfileID()
 	case billingcustomeroverride.FieldCollectionAlignment:
 		return m.CollectionAlignment()
+	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
+		return m.AnchoredAlignmentDetail()
 	case billingcustomeroverride.FieldLineCollectionPeriod:
 		return m.LineCollectionPeriod()
 	case billingcustomeroverride.FieldInvoiceAutoAdvance:
@@ -10965,6 +11020,8 @@ func (m *BillingCustomerOverrideMutation) OldField(ctx context.Context, name str
 		return m.OldBillingProfileID(ctx)
 	case billingcustomeroverride.FieldCollectionAlignment:
 		return m.OldCollectionAlignment(ctx)
+	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
+		return m.OldAnchoredAlignmentDetail(ctx)
 	case billingcustomeroverride.FieldLineCollectionPeriod:
 		return m.OldLineCollectionPeriod(ctx)
 	case billingcustomeroverride.FieldInvoiceAutoAdvance:
@@ -11036,6 +11093,13 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCollectionAlignment(v)
+		return nil
+	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
+		v, ok := value.(*billing.AnchoredAlignmentDetail)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnchoredAlignmentDetail(v)
 		return nil
 	case billingcustomeroverride.FieldLineCollectionPeriod:
 		v, ok := value.(datetime.ISODurationString)
@@ -11125,6 +11189,9 @@ func (m *BillingCustomerOverrideMutation) ClearedFields() []string {
 	if m.FieldCleared(billingcustomeroverride.FieldCollectionAlignment) {
 		fields = append(fields, billingcustomeroverride.FieldCollectionAlignment)
 	}
+	if m.FieldCleared(billingcustomeroverride.FieldAnchoredAlignmentDetail) {
+		fields = append(fields, billingcustomeroverride.FieldAnchoredAlignmentDetail)
+	}
 	if m.FieldCleared(billingcustomeroverride.FieldLineCollectionPeriod) {
 		fields = append(fields, billingcustomeroverride.FieldLineCollectionPeriod)
 	}
@@ -11168,6 +11235,9 @@ func (m *BillingCustomerOverrideMutation) ClearField(name string) error {
 		return nil
 	case billingcustomeroverride.FieldCollectionAlignment:
 		m.ClearCollectionAlignment()
+		return nil
+	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
+		m.ClearAnchoredAlignmentDetail()
 		return nil
 	case billingcustomeroverride.FieldLineCollectionPeriod:
 		m.ClearLineCollectionPeriod()
@@ -11218,6 +11288,9 @@ func (m *BillingCustomerOverrideMutation) ResetField(name string) error {
 		return nil
 	case billingcustomeroverride.FieldCollectionAlignment:
 		m.ResetCollectionAlignment()
+		return nil
+	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
+		m.ResetAnchoredAlignmentDetail()
 		return nil
 	case billingcustomeroverride.FieldLineCollectionPeriod:
 		m.ResetLineCollectionPeriod()
@@ -27916,6 +27989,7 @@ type BillingWorkflowConfigMutation struct {
 	updated_at                   *time.Time
 	deleted_at                   *time.Time
 	collection_alignment         *billing.AlignmentKind
+	anchored_alignment_detail    **billing.AnchoredAlignmentDetail
 	line_collection_period       *datetime.ISODurationString
 	invoice_auto_advance         *bool
 	invoice_draft_period         *datetime.ISODurationString
@@ -28230,6 +28304,55 @@ func (m *BillingWorkflowConfigMutation) OldCollectionAlignment(ctx context.Conte
 // ResetCollectionAlignment resets all changes to the "collection_alignment" field.
 func (m *BillingWorkflowConfigMutation) ResetCollectionAlignment() {
 	m.collection_alignment = nil
+}
+
+// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
+func (m *BillingWorkflowConfigMutation) SetAnchoredAlignmentDetail(bad *billing.AnchoredAlignmentDetail) {
+	m.anchored_alignment_detail = &bad
+}
+
+// AnchoredAlignmentDetail returns the value of the "anchored_alignment_detail" field in the mutation.
+func (m *BillingWorkflowConfigMutation) AnchoredAlignmentDetail() (r *billing.AnchoredAlignmentDetail, exists bool) {
+	v := m.anchored_alignment_detail
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnchoredAlignmentDetail returns the old "anchored_alignment_detail" field's value of the BillingWorkflowConfig entity.
+// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingWorkflowConfigMutation) OldAnchoredAlignmentDetail(ctx context.Context) (v *billing.AnchoredAlignmentDetail, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnchoredAlignmentDetail is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnchoredAlignmentDetail requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnchoredAlignmentDetail: %w", err)
+	}
+	return oldValue.AnchoredAlignmentDetail, nil
+}
+
+// ClearAnchoredAlignmentDetail clears the value of the "anchored_alignment_detail" field.
+func (m *BillingWorkflowConfigMutation) ClearAnchoredAlignmentDetail() {
+	m.anchored_alignment_detail = nil
+	m.clearedFields[billingworkflowconfig.FieldAnchoredAlignmentDetail] = struct{}{}
+}
+
+// AnchoredAlignmentDetailCleared returns if the "anchored_alignment_detail" field was cleared in this mutation.
+func (m *BillingWorkflowConfigMutation) AnchoredAlignmentDetailCleared() bool {
+	_, ok := m.clearedFields[billingworkflowconfig.FieldAnchoredAlignmentDetail]
+	return ok
+}
+
+// ResetAnchoredAlignmentDetail resets all changes to the "anchored_alignment_detail" field.
+func (m *BillingWorkflowConfigMutation) ResetAnchoredAlignmentDetail() {
+	m.anchored_alignment_detail = nil
+	delete(m.clearedFields, billingworkflowconfig.FieldAnchoredAlignmentDetail)
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
@@ -28681,7 +28804,7 @@ func (m *BillingWorkflowConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingWorkflowConfigMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.namespace != nil {
 		fields = append(fields, billingworkflowconfig.FieldNamespace)
 	}
@@ -28696,6 +28819,9 @@ func (m *BillingWorkflowConfigMutation) Fields() []string {
 	}
 	if m.collection_alignment != nil {
 		fields = append(fields, billingworkflowconfig.FieldCollectionAlignment)
+	}
+	if m.anchored_alignment_detail != nil {
+		fields = append(fields, billingworkflowconfig.FieldAnchoredAlignmentDetail)
 	}
 	if m.line_collection_period != nil {
 		fields = append(fields, billingworkflowconfig.FieldLineCollectionPeriod)
@@ -28742,6 +28868,8 @@ func (m *BillingWorkflowConfigMutation) Field(name string) (ent.Value, bool) {
 		return m.DeletedAt()
 	case billingworkflowconfig.FieldCollectionAlignment:
 		return m.CollectionAlignment()
+	case billingworkflowconfig.FieldAnchoredAlignmentDetail:
+		return m.AnchoredAlignmentDetail()
 	case billingworkflowconfig.FieldLineCollectionPeriod:
 		return m.LineCollectionPeriod()
 	case billingworkflowconfig.FieldInvoiceAutoAdvance:
@@ -28779,6 +28907,8 @@ func (m *BillingWorkflowConfigMutation) OldField(ctx context.Context, name strin
 		return m.OldDeletedAt(ctx)
 	case billingworkflowconfig.FieldCollectionAlignment:
 		return m.OldCollectionAlignment(ctx)
+	case billingworkflowconfig.FieldAnchoredAlignmentDetail:
+		return m.OldAnchoredAlignmentDetail(ctx)
 	case billingworkflowconfig.FieldLineCollectionPeriod:
 		return m.OldLineCollectionPeriod(ctx)
 	case billingworkflowconfig.FieldInvoiceAutoAdvance:
@@ -28840,6 +28970,13 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCollectionAlignment(v)
+		return nil
+	case billingworkflowconfig.FieldAnchoredAlignmentDetail:
+		v, ok := value.(*billing.AnchoredAlignmentDetail)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnchoredAlignmentDetail(v)
 		return nil
 	case billingworkflowconfig.FieldLineCollectionPeriod:
 		v, ok := value.(datetime.ISODurationString)
@@ -28937,6 +29074,9 @@ func (m *BillingWorkflowConfigMutation) ClearedFields() []string {
 	if m.FieldCleared(billingworkflowconfig.FieldDeletedAt) {
 		fields = append(fields, billingworkflowconfig.FieldDeletedAt)
 	}
+	if m.FieldCleared(billingworkflowconfig.FieldAnchoredAlignmentDetail) {
+		fields = append(fields, billingworkflowconfig.FieldAnchoredAlignmentDetail)
+	}
 	if m.FieldCleared(billingworkflowconfig.FieldInvoiceDefaultTaxSettings) {
 		fields = append(fields, billingworkflowconfig.FieldInvoiceDefaultTaxSettings)
 	}
@@ -28956,6 +29096,9 @@ func (m *BillingWorkflowConfigMutation) ClearField(name string) error {
 	switch name {
 	case billingworkflowconfig.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case billingworkflowconfig.FieldAnchoredAlignmentDetail:
+		m.ClearAnchoredAlignmentDetail()
 		return nil
 	case billingworkflowconfig.FieldInvoiceDefaultTaxSettings:
 		m.ClearInvoiceDefaultTaxSettings()
@@ -28982,6 +29125,9 @@ func (m *BillingWorkflowConfigMutation) ResetField(name string) error {
 		return nil
 	case billingworkflowconfig.FieldCollectionAlignment:
 		m.ResetCollectionAlignment()
+		return nil
+	case billingworkflowconfig.FieldAnchoredAlignmentDetail:
+		m.ResetAnchoredAlignmentDetail()
 		return nil
 	case billingworkflowconfig.FieldLineCollectionPeriod:
 		m.ResetLineCollectionPeriod()

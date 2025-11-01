@@ -37,6 +37,7 @@ func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.Crea
 			SetCustomerID(input.CustomerID).
 			SetNillableBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
 			SetNillableCollectionAlignment(input.Collection.Alignment).
+			SetAnchoredAlignmentDetail(input.Collection.AnchoredAlignmentDetail).
 			SetNillableLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
 			SetNillableInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
 			SetNillableInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
@@ -408,8 +409,9 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 
 		CustomerID: dbOverride.CustomerID,
 		Collection: billing.CollectionOverrideConfig{
-			Alignment: dbOverride.CollectionAlignment,
-			Interval:  collectionInterval,
+			Alignment:               dbOverride.CollectionAlignment,
+			AnchoredAlignmentDetail: dbOverride.AnchoredAlignmentDetail,
+			Interval:                collectionInterval,
 		},
 
 		Invoicing: billing.InvoicingOverrideConfig{

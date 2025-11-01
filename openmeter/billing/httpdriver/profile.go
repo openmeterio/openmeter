@@ -422,6 +422,11 @@ func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.
 		return api.BillingProfile{}, errors.New("profile is nil")
 	}
 
+	workflowConfig, err := mapWorkflowConfigToAPI(p.WorkflowConfig)
+	if err != nil {
+		return api.BillingProfile{}, fmt.Errorf("failed to map workflow config to API: %w", err)
+	}
+
 	out := api.BillingProfile{
 		Id:        p.ID,
 		CreatedAt: p.CreatedAt,
@@ -434,7 +439,7 @@ func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.
 
 		Name:     p.Name,
 		Supplier: mapSupplierContactToAPI(p.Supplier),
-		Workflow: mapWorkflowConfigToAPI(p.WorkflowConfig),
+		Workflow: workflowConfig,
 	}
 
 	if p.Apps != nil {
@@ -559,41 +564,56 @@ func mapSupplierContactToAPI(c billing.SupplierContact) api.BillingParty {
 	return out
 }
 
-func mapWorkflowConfigToAPI(c billing.WorkflowConfig) api.BillingWorkflow {
-	return api.BillingWorkflow{
-		Collection: &api.BillingWorkflowCollectionSettings{
-			Alignment: &api.BillingWorkflowCollectionAlignmentSubscription{
-				Type: api.BillingWorkflowCollectionAlignmentSubscriptionType(c.Collection.Alignment),
+func mapAlignmentToAPI(c billing.CollectionConfig) (*api.BillingWorkflowCollectionAlignment, error) {
+	apiAlignment := &api.BillingWorkflowCollectionAlignment{}
+
+	switch c.Alignment {
+	case billing.AlignmentKindSubscription:
+		if err := apiAlignment.FromBillingWorkflowCollectionAlignmentSubscription(
+			api.BillingWorkflowCollectionAlignmentSubscription{
+				Type: api.BillingWorkflowCollectionAlignmentSubscriptionType(c.Alignment),
 			},
-			Interval: lo.EmptyableToPtr(c.Collection.Interval.String()),
-		},
+		); err != nil {
+			return &api.BillingWorkflowCollectionAlignment{}, fmt.Errorf("failed to map alignment to API: %w", err)
+		}
+	case billing.AlignmentKindAnchored:
+		if c.AnchoredAlignmentDetail == nil {
+			return &api.BillingWorkflowCollectionAlignment{}, fmt.Errorf("anchored alignment detail is not set")
+		}
 
-		Invoicing: &api.BillingWorkflowInvoicingSettings{
-			AutoAdvance:        lo.ToPtr(c.Invoicing.AutoAdvance),
-			DraftPeriod:        lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
-			DueAfter:           lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
-			ProgressiveBilling: lo.ToPtr(c.Invoicing.ProgressiveBilling),
-			DefaultTaxConfig:   mapTaxConfigToAPI(c.Invoicing.DefaultTaxConfig),
-		},
+		interval := api.RecurringPeriodInterval{}
+		if err := interval.FromRecurringPeriodInterval0(c.AnchoredAlignmentDetail.Interval.ISOString().String()); err != nil {
+			return &api.BillingWorkflowCollectionAlignment{}, fmt.Errorf("failed to map interval to API: %w", err)
+		}
 
-		Payment: &api.BillingWorkflowPaymentSettings{
-			CollectionMethod: (*api.CollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
-		},
-
-		Tax: &api.BillingWorkflowTaxSettings{
-			Enabled:  lo.ToPtr(c.Tax.Enabled),
-			Enforced: lo.ToPtr(c.Tax.Enforced),
-		},
+		if err := apiAlignment.FromBillingWorkflowCollectionAlignmentAnchored(
+			api.BillingWorkflowCollectionAlignmentAnchored{
+				Type: api.BillingWorkflowCollectionAlignmentAnchoredType(c.Alignment),
+				RecurringPeriod: api.RecurringPeriodV2{
+					Anchor:   c.AnchoredAlignmentDetail.Anchor,
+					Interval: interval,
+				},
+			},
+		); err != nil {
+			return &api.BillingWorkflowCollectionAlignment{}, fmt.Errorf("failed to map alignment to API: %w", err)
+		}
+	default:
+		return &api.BillingWorkflowCollectionAlignment{}, fmt.Errorf("invalid alignment: %s", c.Alignment)
 	}
+
+	return apiAlignment, nil
 }
 
-func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) api.BillingWorkflow {
+func mapWorkflowConfigToAPI(c billing.WorkflowConfig) (api.BillingWorkflow, error) {
+	apiAlignment, err := mapAlignmentToAPI(c.Collection)
+	if err != nil {
+		return api.BillingWorkflow{}, fmt.Errorf("failed to map alignment to API: %w", err)
+	}
+
 	return api.BillingWorkflow{
 		Collection: &api.BillingWorkflowCollectionSettings{
-			Alignment: &api.BillingWorkflowCollectionAlignmentSubscription{
-				Type: api.BillingWorkflowCollectionAlignmentSubscriptionType(c.Collection.Alignment),
-			},
-			Interval: lo.EmptyableToPtr(c.Collection.Interval.String()),
+			Alignment: apiAlignment,
+			Interval:  lo.EmptyableToPtr(c.Collection.Interval.String()),
 		},
 
 		Invoicing: &api.BillingWorkflowInvoicingSettings{
@@ -612,5 +632,36 @@ func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) api.BillingWorkflo
 			Enabled:  lo.ToPtr(c.Tax.Enabled),
 			Enforced: lo.ToPtr(c.Tax.Enforced),
 		},
+	}, nil
+}
+
+func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) (api.BillingWorkflow, error) {
+	apiAlignment, err := mapAlignmentToAPI(c.Collection)
+	if err != nil {
+		return api.BillingWorkflow{}, fmt.Errorf("failed to map alignment to API: %w", err)
 	}
+
+	return api.BillingWorkflow{
+		Collection: &api.BillingWorkflowCollectionSettings{
+			Alignment: apiAlignment,
+			Interval:  lo.EmptyableToPtr(c.Collection.Interval.String()),
+		},
+
+		Invoicing: &api.BillingWorkflowInvoicingSettings{
+			AutoAdvance:        lo.ToPtr(c.Invoicing.AutoAdvance),
+			DraftPeriod:        lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
+			DueAfter:           lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
+			ProgressiveBilling: lo.ToPtr(c.Invoicing.ProgressiveBilling),
+			DefaultTaxConfig:   mapTaxConfigToAPI(c.Invoicing.DefaultTaxConfig),
+		},
+
+		Payment: &api.BillingWorkflowPaymentSettings{
+			CollectionMethod: (*api.CollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
+		},
+
+		Tax: &api.BillingWorkflowTaxSettings{
+			Enabled:  lo.ToPtr(c.Tax.Enabled),
+			Enforced: lo.ToPtr(c.Tax.Enforced),
+		},
+	}, nil
 }

@@ -410,6 +410,83 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	s.Equal(previousSnapshot, *invoice.QuantitySnapshotedAt)
 }
 
+func (s *CollectionTestSuite) TestAnchoredAlignment_SetsCollectionAtToNextAnchor() {
+	namespace := "ns-anchored-collection-at"
+	ctx := context.Background()
+	defer clock.ResetTime()
+
+	now := lo.Must(time.Parse(time.RFC3339, "2025-06-15T12:00:00Z"))
+	clock.SetTime(now)
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+
+	// Billing profile with anchored alignment to first of month
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+		profile.WorkflowConfig.Collection.Alignment = billing.AlignmentKindAnchored
+		profile.WorkflowConfig.Collection.AnchoredAlignmentDetail = lo.ToPtr(billing.AnchoredAlignmentDetail{
+			Interval: lo.Must(datetime.ISODurationString("P1M").Parse()),
+			Anchor:   time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC),
+		})
+	}))
+
+	// Create customer
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Name:           "Test Customer",
+			BillingAddress: &models.Address{Country: lo.ToPtr(models.CountryCode("US"))},
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"test-subject-1"},
+			},
+		},
+	})
+	s.Require().NoError(err)
+
+	// Create a minimal pending usage-based line that invoices at end of day
+	periodStart := now
+	periodEnd := now.Add(12 * time.Hour)
+	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []*billing.Line{
+			{
+				LineBase: billing.LineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
+					Period:          billing.Period{Start: periodStart, End: periodEnd},
+					InvoiceAt:       periodEnd,
+					ManagedBy:       billing.ManuallyManagedLine,
+				},
+				UsageBased: &billing.UsageBasedLine{
+					FeatureKey: s.SetupApiRequestsTotalFeature(ctx, namespace).Feature.Key,
+					Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
+				},
+			},
+		},
+	})
+	s.Require().NoError(err)
+
+	// Let's advance time
+	clock.SetTime(periodEnd.Add(time.Hour * 1))
+	defer clock.ResetTime()
+
+	// Create standard invoice from pending lines; collectionAt should be next anchor (1st of next month)
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+
+	inv := invoices[0]
+	s.Require().NotNil(inv.CollectionAt)
+	nextAnchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
+	s.Equal(nextAnchor, *inv.CollectionAt)
+
+	// Assert the workflow collection alignment is snapshotted on the invoice
+	s.Equal(billing.AlignmentKindAnchored, inv.Workflow.Config.Collection.Alignment)
+	s.Require().NotNil(inv.Workflow.Config.Collection.AnchoredAlignmentDetail)
+	s.Equal("P1M", inv.Workflow.Config.Collection.AnchoredAlignmentDetail.Interval.String())
+}
+
 func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectionPeriod() {
 	namespace := "ns-collection-flow-ubp-editing-extending-collection-period"
 	ctx := context.Background()

@@ -500,6 +500,16 @@ func CollectionAlignmentNotNil() predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldCollectionAlignment))
 }
 
+// AnchoredAlignmentDetailIsNil applies the IsNil predicate on the "anchored_alignment_detail" field.
+func AnchoredAlignmentDetailIsNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldIsNull(FieldAnchoredAlignmentDetail))
+}
+
+// AnchoredAlignmentDetailNotNil applies the NotNil predicate on the "anchored_alignment_detail" field.
+func AnchoredAlignmentDetailNotNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldAnchoredAlignmentDetail))
+}
+
 // LineCollectionPeriodEQ applies the EQ predicate on the "line_collection_period" field.
 func LineCollectionPeriodEQ(v datetime.ISODurationString) predicate.BillingCustomerOverride {
 	vc := string(v)

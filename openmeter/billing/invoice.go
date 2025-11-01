@@ -327,6 +327,14 @@ func (i InvoiceBase) Validate() error {
 	return outErr
 }
 
+func (i InvoiceBase) DefaultCollectionAtForStandardInvoice() time.Time {
+	if i.CollectionAt == nil {
+		return i.CreatedAt
+	}
+
+	return lo.FromPtr(i.CollectionAt)
+}
+
 type Invoice struct {
 	InvoiceBase `json:",inline"`
 
@@ -855,9 +863,10 @@ type CreateInvoiceAdapterInput struct {
 	Metadata  map[string]string
 	IssuedAt  time.Time
 
-	Type        InvoiceType
-	Description *string
-	DueAt       *time.Time
+	Type         InvoiceType
+	Description  *string
+	DueAt        *time.Time
+	CollectionAt *time.Time
 
 	Totals Totals
 }
@@ -897,6 +906,10 @@ func (c CreateInvoiceAdapterInput) Validate() error {
 
 	if c.Number == "" {
 		return errors.New("invoice number is required")
+	}
+
+	if c.CollectionAt != nil && c.Status != InvoiceStatusGathering {
+		return errors.New("setting collectionAt is only allowed when creating gathering invoices")
 	}
 
 	return nil

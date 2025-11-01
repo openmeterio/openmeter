@@ -259,8 +259,12 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
-				Alignment: billing.AlignmentKindSubscription,
-				Interval:  datetime.MustParseDuration(t, "PT30M"),
+				Alignment: billing.AlignmentKindAnchored,
+				AnchoredAlignmentDetail: lo.ToPtr(billing.AnchoredAlignmentDetail{
+					Interval: datetime.MustParseDuration(t, "PT30M"),
+					Anchor:   time.Now(),
+				}),
+				Interval: datetime.MustParseDuration(t, "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
@@ -304,6 +308,10 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 		Profile: profile.ProfileID(),
 		Expand:  billing.ProfileExpandAll,
 	})
+
+	// We should strip monotonic time for comparison on CollectionConfig.
+	profile.WorkflowConfig.Collection.AnchoredAlignmentDetail.Anchor = profile.WorkflowConfig.Collection.AnchoredAlignmentDetail.Anchor.Truncate(time.Nanosecond).UTC()
+	fetchedProfile.WorkflowConfig.Collection.AnchoredAlignmentDetail.Anchor = fetchedProfile.WorkflowConfig.Collection.AnchoredAlignmentDetail.Anchor.Truncate(time.Nanosecond).UTC()
 
 	// Sanity check db conversion & fetching
 	require.NoError(s.T(), err)
@@ -468,6 +476,31 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 		require.Equal(t, expectedOutput, *updatedProfile)
 	})
+}
+
+func (s *ProfileTestSuite) TestProfileSubscriptionAlignmentPersists() {
+	ctx := context.Background()
+	ns := "test_profile_subscription_alignment_persists"
+
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+
+	input := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	input.Namespace = ns
+	input.WorkflowConfig.Collection.Alignment = billing.AlignmentKindSubscription
+
+	prof, err := s.BillingService.CreateProfile(ctx, input)
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), prof)
+
+	fetched, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
+		Profile: prof.ProfileID(),
+		Expand:  billing.ProfileExpandAll,
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), fetched)
+
+	require.Equal(s.T(), billing.AlignmentKindSubscription, fetched.WorkflowConfig.Collection.Alignment)
+	require.Nil(s.T(), fetched.WorkflowConfig.Collection.AnchoredAlignmentDetail)
 }
 
 func toUpdateProfileInput(profile billing.Profile) billing.UpdateProfileInput {
