@@ -53,6 +53,9 @@ type SubscriptionRepository interface {
 
 	// List subscriptions
 	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
+
+	// UpdateAnnotations updates the annotations of a subscription
+	UpdateAnnotations(ctx context.Context, id models.NamespacedID, annotations models.Annotations) (*Subscription, error)
 }
 
 type CreateSubscriptionPhaseEntityInput struct {

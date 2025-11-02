@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"sync"
 
 	"github.com/samber/lo"
@@ -272,6 +273,22 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 	}
 
 	return transaction.RunWithNoValue(ctx, s.TransactionManager, func(ctx context.Context) error {
+		// Handle subscription change tracking annotations cleanup
+		supersedingID := subscription.AnnotationParser.GetSupersedingSubscriptionID(view.Subscription.Annotations)
+		previousID := subscription.AnnotationParser.GetPreviousSubscriptionID(view.Subscription.Annotations)
+
+		if supersedingID != nil {
+			if err := s.updateSupersedingSubscriptionAnnotations(ctx, view.Subscription.Namespace, *supersedingID, previousID); err != nil {
+				return err
+			}
+		}
+
+		if previousID != nil {
+			if err := s.updatePreviousSubscriptionAnnotations(ctx, view.Subscription.Namespace, *previousID, supersedingID); err != nil {
+				return err
+			}
+		}
+
 		// First, let's delete all phases
 		for _, phase := range view.Phases {
 			if err := s.deletePhase(ctx, phase); err != nil {
@@ -292,6 +309,101 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 
 		return nil
 	})
+}
+
+func (s *service) updateSupersedingSubscriptionAnnotations(ctx context.Context, namespace string, supersedingID string, previousID *string) error {
+	supersedingView, err := s.GetView(ctx, models.NamespacedID{
+		ID:        supersedingID,
+		Namespace: namespace,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get superseding subscription: %w", err)
+	}
+
+	supersedingAnnotations := supersedingView.Subscription.Annotations
+	if supersedingAnnotations != nil {
+		supersedingAnnotations = maps.Clone(supersedingAnnotations)
+	} else {
+		supersedingAnnotations = models.Annotations{}
+	}
+
+	// If the deleted subscription had a previous subscription, link the superseding to it
+	if previousID != nil {
+		supersedingAnnotations, err = subscription.AnnotationParser.SetPreviousSubscriptionID(supersedingAnnotations, *previousID)
+		if err != nil {
+			return fmt.Errorf("failed to update superseding subscription's previous ID: %w", err)
+		}
+		_, err = s.SubscriptionRepo.UpdateAnnotations(ctx, supersedingView.Subscription.NamespacedID, supersedingAnnotations)
+		if err != nil {
+			return fmt.Errorf("failed to update superseding subscription annotations: %w", err)
+		}
+	} else {
+		// Otherwise, clear the previous subscription ID from the superseding subscription
+		if supersedingAnnotations == nil {
+			// Nothing to clear if annotations are nil, skip update
+			return nil
+		}
+		delete(supersedingAnnotations, subscription.AnnotationPreviousSubscriptionID)
+		// If the map is now empty, set it to nil
+		if len(supersedingAnnotations) == 0 {
+			supersedingAnnotations = nil
+		}
+		_, err = s.SubscriptionRepo.UpdateAnnotations(ctx, supersedingView.Subscription.NamespacedID, supersedingAnnotations)
+		if err != nil {
+			return fmt.Errorf("failed to update superseding subscription annotations: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *service) updatePreviousSubscriptionAnnotations(ctx context.Context, namespace string, previousID string, supersedingID *string) error {
+	previousView, err := s.GetView(ctx, models.NamespacedID{
+		ID:        previousID,
+		Namespace: namespace,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get previous subscription: %w", err)
+	}
+
+	previousAnnotations := previousView.Subscription.Annotations
+	if previousAnnotations != nil {
+		previousAnnotations = maps.Clone(previousAnnotations)
+	} else {
+		previousAnnotations = models.Annotations{}
+	}
+
+	// If the deleted subscription had a superseding subscription, link the previous to it
+	if supersedingID != nil {
+		previousAnnotations, err = subscription.AnnotationParser.SetSupersedingSubscriptionID(previousAnnotations, *supersedingID)
+		if err != nil {
+			return fmt.Errorf("failed to update previous subscription's superseding ID: %w", err)
+		}
+		_, err = s.SubscriptionRepo.UpdateAnnotations(ctx, previousView.Subscription.NamespacedID, previousAnnotations)
+		if err != nil {
+			return fmt.Errorf("failed to update previous subscription annotations: %w", err)
+		}
+	} else {
+		// Otherwise, clear the superseding subscription ID from the previous subscription
+		if previousAnnotations == nil {
+			// Nothing to clear if annotations are nil, skip update
+			return nil
+		}
+		previousAnnotations, err = subscription.AnnotationParser.ClearSupersedingSubscriptionID(previousAnnotations)
+		if err != nil {
+			return fmt.Errorf("failed to clear previous subscription's superseding ID: %w", err)
+		}
+		// If the map is now empty, set it to nil
+		if len(previousAnnotations) == 0 {
+			previousAnnotations = nil
+		}
+		_, err = s.SubscriptionRepo.UpdateAnnotations(ctx, previousView.Subscription.NamespacedID, previousAnnotations)
+		if err != nil {
+			return fmt.Errorf("failed to update previous subscription annotations: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID, timing subscription.Timing) (subscription.Subscription, error) {
@@ -409,6 +521,10 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 
 		return sub, nil
 	})
+}
+
+func (s *service) UpdateAnnotations(ctx context.Context, subscriptionID models.NamespacedID, annotations models.Annotations) (*subscription.Subscription, error) {
+	return s.SubscriptionRepo.UpdateAnnotations(ctx, subscriptionID, annotations)
 }
 
 func (s *service) Get(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {

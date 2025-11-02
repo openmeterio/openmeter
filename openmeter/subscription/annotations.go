@@ -15,6 +15,12 @@ const (
 	AnnotationOwnerSubSystem = "subscription.owner"
 
 	AnnotationBooleanEntitlementCount = "subscription.entitlement.boolean.count"
+
+	// AnnotationPreviousSubscriptionID is the ID of the subscription that was superseded by this subscription
+	AnnotationPreviousSubscriptionID = "subscription.previous.id"
+
+	// AnnotationSupersedingSubscriptionID is the ID of the subscription that supersedes this subscription
+	AnnotationSupersedingSubscriptionID = "subscription.superseding.id"
 )
 
 const OwnerSubscriptionSubSystem = "subscription"
@@ -95,5 +101,65 @@ func (a annotationParser) SetBooleanEntitlementCount(annotations models.Annotati
 		return nil, errors.New("annotations are nil")
 	}
 	annotations[AnnotationBooleanEntitlementCount] = count
+	return annotations, nil
+}
+
+func (a annotationParser) GetPreviousSubscriptionID(annotations models.Annotations) *string {
+	if annotations == nil {
+		return nil
+	}
+
+	prevID, ok := annotations[AnnotationPreviousSubscriptionID]
+	if !ok {
+		return nil
+	}
+
+	prevIDStr, ok := prevID.(string)
+	if !ok {
+		return nil
+	}
+
+	return &prevIDStr
+}
+
+func (a annotationParser) SetPreviousSubscriptionID(annotations models.Annotations, subscriptionID string) (models.Annotations, error) {
+	if annotations == nil {
+		return nil, errors.New("annotations are nil")
+	}
+	annotations[AnnotationPreviousSubscriptionID] = subscriptionID
+	return annotations, nil
+}
+
+func (a annotationParser) GetSupersedingSubscriptionID(annotations models.Annotations) *string {
+	if annotations == nil {
+		return nil
+	}
+
+	supersedingID, ok := annotations[AnnotationSupersedingSubscriptionID]
+	if !ok {
+		return nil
+	}
+
+	supersedingIDStr, ok := supersedingID.(string)
+	if !ok {
+		return nil
+	}
+
+	return &supersedingIDStr
+}
+
+func (a annotationParser) SetSupersedingSubscriptionID(annotations models.Annotations, subscriptionID string) (models.Annotations, error) {
+	if annotations == nil {
+		return nil, errors.New("annotations are nil")
+	}
+	annotations[AnnotationSupersedingSubscriptionID] = subscriptionID
+	return annotations, nil
+}
+
+func (a annotationParser) ClearSupersedingSubscriptionID(annotations models.Annotations) (models.Annotations, error) {
+	if annotations == nil {
+		return nil, errors.New("annotations are nil")
+	}
+	delete(annotations, AnnotationSupersedingSubscriptionID)
 	return annotations, nil
 }

@@ -16,6 +16,7 @@ type MockService struct {
 	DeleteFn            func(ctx context.Context, subscriptionID models.NamespacedID) error
 	CancelFn            func(ctx context.Context, subscriptionID models.NamespacedID, at subscription.Timing) (subscription.Subscription, error)
 	ContinueFn          func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
+	UpdateAnnotationsFn func(ctx context.Context, subscriptionID models.NamespacedID, annotations models.Annotations) (*subscription.Subscription, error)
 	GetFn               func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 	GetViewFn           func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error)
 	ListFn              func(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error)
@@ -54,6 +55,10 @@ func (s *MockService) Cancel(ctx context.Context, subscriptionID models.Namespac
 
 func (s *MockService) Continue(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	return s.ContinueFn(ctx, subscriptionID)
+}
+
+func (s *MockService) UpdateAnnotations(ctx context.Context, subscriptionID models.NamespacedID, annotations models.Annotations) (*subscription.Subscription, error) {
+	return s.UpdateAnnotationsFn(ctx, subscriptionID, annotations)
 }
 
 func (s *MockService) Get(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {

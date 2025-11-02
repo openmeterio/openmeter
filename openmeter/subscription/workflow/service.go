@@ -26,6 +26,7 @@ type CreateSubscriptionWorkflowInput struct {
 	CustomerID string
 
 	BillingAnchor *time.Time `json:"billingAnchor,omitempty"`
+	Annotations   models.Annotations
 }
 
 type ChangeSubscriptionWorkflowInput struct {

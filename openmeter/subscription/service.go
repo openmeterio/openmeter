@@ -30,6 +30,8 @@ type CommandService interface {
 	Cancel(ctx context.Context, subscriptionID models.NamespacedID, timing Timing) (Subscription, error)
 	// Continue a canceled subscription (effectively undoing the cancellation)
 	Continue(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
+	// UpdateAnnotations updates the annotations of a subscription
+	UpdateAnnotations(ctx context.Context, subscriptionID models.NamespacedID, annotations models.Annotations) (*Subscription, error)
 }
 
 type Service interface {

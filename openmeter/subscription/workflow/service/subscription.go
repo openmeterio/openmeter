@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	"github.com/samber/lo"
 
@@ -68,7 +69,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			Name:          lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
 			Description:   inp.Description,
 			BillingAnchor: billingAnchor,
-			Annotations:   models.Annotations{},
+			Annotations:   inp.Annotations,
 		})
 
 		if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {
@@ -199,16 +200,41 @@ func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.Namesp
 
 		inp.Timing = verbatumTiming
 
+		// Prepare annotations for the new subscription with reference to the previous subscription
+		createInputAnnotations := models.Annotations{}
+		_, err = subscription.AnnotationParser.SetPreviousSubscriptionID(createInputAnnotations, curr.ID)
+		if err != nil {
+			return res{}, fmt.Errorf("failed to set previous subscription ID: %w", err)
+		}
+
 		// Third, let's create a new subscription with the new plan
 		new, err := s.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
 			ChangeSubscriptionWorkflowInput: inp,
 			Namespace:                       curr.Namespace,
 			CustomerID:                      curr.CustomerId,
 			BillingAnchor:                   lo.ToPtr(lo.FromPtrOr(inp.BillingAnchor, curr.BillingAnchor)), // We default to the current anchor
+			Annotations:                     createInputAnnotations,
 		}, plan)
 		if err != nil {
 			return res{}, fmt.Errorf("failed to create new subscription: %w", err)
 		}
+
+		// Update the current subscription to reference the new subscription as superseding
+		currAnnotations := curr.Annotations
+		if currAnnotations == nil {
+			currAnnotations = models.Annotations{}
+		} else {
+			currAnnotations = maps.Clone(currAnnotations)
+		}
+		currAnnotations, err = subscription.AnnotationParser.SetSupersedingSubscriptionID(currAnnotations, new.Subscription.ID)
+		if err != nil {
+			return res{}, fmt.Errorf("failed to set superseding subscription ID: %w", err)
+		}
+		updatedCurr, err := s.Service.UpdateAnnotations(ctx, curr.NamespacedID, currAnnotations)
+		if err != nil {
+			return res{}, fmt.Errorf("failed to update current subscription annotations: %w", err)
+		}
+		curr = *updatedCurr
 
 		// Let's just return after a great success
 		return res{curr, new}, nil
