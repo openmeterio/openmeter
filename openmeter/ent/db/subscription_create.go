@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // SubscriptionCreate is the builder for creating a Subscription entity.
@@ -35,6 +36,12 @@ type SubscriptionCreate struct {
 // SetNamespace sets the "namespace" field.
 func (_c *SubscriptionCreate) SetNamespace(v string) *SubscriptionCreate {
 	_c.mutation.SetNamespace(v)
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *SubscriptionCreate) SetAnnotations(v models.Annotations) *SubscriptionCreate {
+	_c.mutation.SetAnnotations(v)
 	return _c
 }
 
@@ -430,6 +437,10 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec,
 		_spec.SetField(subscription.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(subscription.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(subscription.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -631,6 +642,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetAnnotations sets the "annotations" field.
+func (u *SubscriptionUpsert) SetAnnotations(v models.Annotations) *SubscriptionUpsert {
+	u.Set(subscription.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateAnnotations() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *SubscriptionUpsert) ClearAnnotations() *SubscriptionUpsert {
+	u.SetNull(subscription.FieldAnnotations)
+	return u
+}
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *SubscriptionUpsert) SetUpdatedAt(v time.Time) *SubscriptionUpsert {
@@ -843,6 +872,27 @@ func (u *SubscriptionUpsertOne) Update(set func(*SubscriptionUpsert)) *Subscript
 		set(&SubscriptionUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *SubscriptionUpsertOne) SetAnnotations(v models.Annotations) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateAnnotations() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *SubscriptionUpsertOne) ClearAnnotations() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearAnnotations()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -1251,6 +1301,27 @@ func (u *SubscriptionUpsertBulk) Update(set func(*SubscriptionUpsert)) *Subscrip
 		set(&SubscriptionUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *SubscriptionUpsertBulk) SetAnnotations(v models.Annotations) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateAnnotations() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *SubscriptionUpsertBulk) ClearAnnotations() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearAnnotations()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.

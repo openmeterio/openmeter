@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Subscription is the model entity for the Subscription schema.
@@ -25,6 +26,8 @@ type Subscription struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -141,7 +144,7 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case subscription.FieldMetadata:
+		case subscription.FieldAnnotations, subscription.FieldMetadata:
 			values[i] = new([]byte)
 		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency, subscription.FieldBillingCadence:
 			values[i] = new(sql.NullString)
@@ -175,6 +178,14 @@ func (_m *Subscription) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
+			}
+		case subscription.FieldAnnotations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
+				}
 			}
 		case subscription.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -334,6 +345,9 @@ func (_m *Subscription) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

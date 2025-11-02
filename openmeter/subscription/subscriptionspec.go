@@ -41,13 +41,14 @@ type CreateSubscriptionPlanInput struct {
 
 type CreateSubscriptionCustomerInput struct {
 	models.MetadataModel `json:",inline"`
-	Name                 string         `json:"name"`
-	Description          *string        `json:"description,omitempty"`
-	CustomerId           string         `json:"customerId"`
-	Currency             currencyx.Code `json:"currency"`
-	ActiveFrom           time.Time      `json:"activeFrom,omitempty"`
-	ActiveTo             *time.Time     `json:"activeTo,omitempty"`
-	BillingAnchor        time.Time      `json:"billingAnchor,omitempty"`
+	Name                 string             `json:"name"`
+	Description          *string            `json:"description,omitempty"`
+	CustomerId           string             `json:"customerId"`
+	Currency             currencyx.Code     `json:"currency"`
+	ActiveFrom           time.Time          `json:"activeFrom,omitempty"`
+	ActiveTo             *time.Time         `json:"activeTo,omitempty"`
+	BillingAnchor        time.Time          `json:"billingAnchor,omitempty"`
+	Annotations          models.Annotations `json:"annotations"`
 }
 
 type SubscriptionSpec struct {
@@ -70,6 +71,7 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		ProRatingConfig: s.ProRatingConfig,
 		BillingAnchor:   s.BillingAnchor,
 		MetadataModel:   s.MetadataModel,
+		Annotations:     s.Annotations,
 		Name:            s.Name,
 		Description:     s.Description,
 		CadencedModel: models.CadencedModel{

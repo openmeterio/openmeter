@@ -2263,6 +2263,7 @@ var (
 	SubscriptionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
@@ -2286,13 +2287,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscriptions_customers_subscription",
-				Columns:    []*schema.Column{SubscriptionsColumns[14]},
+				Columns:    []*schema.Column{SubscriptionsColumns[15]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "subscriptions_plans_subscriptions",
-				Columns:    []*schema.Column{SubscriptionsColumns[15]},
+				Columns:    []*schema.Column{SubscriptionsColumns[16]},
 				RefColumns: []*schema.Column{PlansColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -2309,6 +2310,16 @@ var (
 				Columns: []*schema.Column{SubscriptionsColumns[1]},
 			},
 			{
+				Name:    "subscription_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
 				Name:    "subscription_namespace_id",
 				Unique:  false,
 				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[0]},
@@ -2316,7 +2327,7 @@ var (
 			{
 				Name:    "subscription_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[14]},
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[15]},
 			},
 		},
 	}

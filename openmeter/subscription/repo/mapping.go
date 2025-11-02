@@ -33,6 +33,13 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		return subscription.Subscription{}, fmt.Errorf("failed to parse billing cadence: %w", err)
 	}
 
+	var annotations models.Annotations
+	if len(sub.Annotations) > 0 {
+		annotations = sub.Annotations
+	} else {
+		annotations = models.Annotations{}
+	}
+
 	return subscription.Subscription{
 		NamespacedID: models.NamespacedID{
 			ID:        sub.ID,
@@ -50,6 +57,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		MetadataModel: models.MetadataModel{
 			Metadata: sub.Metadata,
 		},
+		Annotations:     annotations,
 		PlanRef:         ref,
 		Name:            sub.Name,
 		Description:     sub.Description,

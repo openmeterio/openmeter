@@ -42,6 +42,7 @@ func TestCreation(t *testing.T) {
 			ActiveFrom:    currentTime,
 			BillingAnchor: currentTime,
 			Name:          "Test Subscription",
+			Annotations:   models.Annotations{},
 		})
 		require.Nil(t, err)
 
@@ -52,6 +53,7 @@ func TestCreation(t *testing.T) {
 		require.Equal(t, subscriptiontestutils.ExampleNamespace, sub.Namespace)
 		require.Equal(t, cust.ID, sub.CustomerId)
 		require.Equal(t, currencyx.Code("USD"), sub.Currency)
+		require.NotNil(t, sub.Annotations)
 
 		t.Run("Should find subscription by ID", func(t *testing.T) {
 			found, err := service.Get(ctx, models.NamespacedID{
@@ -65,6 +67,9 @@ func TestCreation(t *testing.T) {
 			assert.Equal(t, sub.Namespace, found.Namespace)
 			assert.Equal(t, sub.CustomerId, found.CustomerId)
 			assert.Equal(t, sub.Currency, found.Currency)
+			// Annotations should be initialized as empty map
+			assert.NotNil(t, found.Annotations)
+			assert.Equal(t, models.Annotations{}, found.Annotations)
 		})
 
 		t.Run("Should create subscription as specced", func(t *testing.T) {
@@ -83,6 +88,51 @@ func TestCreation(t *testing.T) {
 			// Let's validate the spec & the view
 			subscriptiontestutils.ValidateSpecAndView(t, defaultSpecFromPlan, found)
 		})
+	})
+
+	t.Run("Should preserve annotations when creating subscription", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+
+		specWithAnnotations, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime,
+			BillingAnchor: currentTime,
+			Name:          "Test Subscription with Annotations",
+			Annotations:   models.Annotations{"test.key": "test.value", "another.key": float64(123)},
+		})
+		require.Nil(t, err)
+
+		subWithAnnotations, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, specWithAnnotations)
+		require.Nil(t, err)
+		require.Equal(t, models.Annotations{"test.key": "test.value", "another.key": float64(123)}, subWithAnnotations.Annotations)
+
+		// Verify annotations are preserved when retrieving
+		found, err := service.Get(ctx, models.NamespacedID{
+			ID:        subWithAnnotations.ID,
+			Namespace: subWithAnnotations.Namespace,
+		})
+		require.Nil(t, err)
+		assert.Equal(t, models.Annotations{"test.key": "test.value", "another.key": float64(123)}, found.Annotations)
+
+		// Verify annotations are preserved in view
+		view, err := service.GetView(ctx, models.NamespacedID{ID: subWithAnnotations.ID, Namespace: subWithAnnotations.Namespace})
+		require.Nil(t, err)
+		assert.Equal(t, models.Annotations{"test.key": "test.value", "another.key": float64(123)}, view.Subscription.Annotations)
 	})
 
 	t.Run("Should not allow creating a subscription with different currency compared to the customer", func(t *testing.T) {

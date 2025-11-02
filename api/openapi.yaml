@@ -24298,6 +24298,12 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
         alignment:
           allOf:
             - $ref: '#/components/schemas/Alignment'
@@ -24873,6 +24879,12 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/SubscriptionStatus'

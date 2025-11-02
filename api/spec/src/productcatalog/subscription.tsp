@@ -65,6 +65,13 @@ model Subscription {
   ...global.CadencedResource;
 
   /**
+   * Set of key-value pairs managed by the system. Cannot be modified by user.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Annotations")
+  annotations?: Annotations;
+
+  /**
    * Alignment configuration for the plan.
    */
   alignment?: Alignment;

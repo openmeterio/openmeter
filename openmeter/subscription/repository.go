@@ -18,6 +18,8 @@ type CreateSubscriptionEntityInput struct {
 	models.NamespacedModel
 	models.MetadataModel
 
+	Annotations models.Annotations `json:"annotations"`
+
 	Plan        *PlanRef
 	Name        string  `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`

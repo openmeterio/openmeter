@@ -68,6 +68,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			Name:          lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
 			Description:   inp.Description,
 			BillingAnchor: billingAnchor,
+			Annotations:   models.Annotations{},
 		})
 
 		if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {

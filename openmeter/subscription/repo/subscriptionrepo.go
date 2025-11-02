@@ -80,6 +80,7 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 			SetName(sub.Name).
 			SetNillableDescription(sub.Description).
 			SetMetadata(sub.Metadata).
+			SetAnnotations(sub.Annotations).
 			SetBillingAnchor(sub.BillingAnchor.UTC())
 
 		if sub.ActiveTo != nil {

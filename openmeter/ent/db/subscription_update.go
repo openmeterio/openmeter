@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // SubscriptionUpdate is the builder for updating Subscription entities.
@@ -32,6 +33,18 @@ type SubscriptionUpdate struct {
 // Where appends a list predicates to the SubscriptionUpdate builder.
 func (_u *SubscriptionUpdate) Where(ps ...predicate.Subscription) *SubscriptionUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *SubscriptionUpdate) SetAnnotations(v models.Annotations) *SubscriptionUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *SubscriptionUpdate) ClearAnnotations() *SubscriptionUpdate {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -415,6 +428,12 @@ func (_u *SubscriptionUpdate) sqlSave(ctx context.Context) (_node int, err error
 			}
 		}
 	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(subscription.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(subscription.FieldAnnotations, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscription.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -685,6 +704,18 @@ type SubscriptionUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SubscriptionMutation
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *SubscriptionUpdateOne) SetAnnotations(v models.Annotations) *SubscriptionUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *SubscriptionUpdateOne) ClearAnnotations() *SubscriptionUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -1096,6 +1127,12 @@ func (_u *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscripti
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(subscription.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(subscription.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscription.FieldUpdatedAt, field.TypeTime, value)
