@@ -18,6 +18,7 @@ reviews:
     - "!api/client/**"
     - "!api/spec/patches/**"
     - "!**/node_modules/**"
+    - "!**/ent/db/**"
     - "!**/*.lock"
     - "!**/*.log"
   path_instructions:
