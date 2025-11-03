@@ -140,3 +140,134 @@ async def main():
 
 asyncio.run(main())
 ```
+
+## Client API Reference
+
+The OpenMeter Python SDK provides a comprehensive client interface organized into logical operation groups. Below is a complete reference of all available methods.
+
+### Overview
+
+| Namespace | Operation | Method | Description |
+|-----------|-----------|--------|-------------|
+| **Events** | | | Track usage by ingesting events |
+| | Create | `client.events.ingest_event(event)` | Ingest a single event or batch of events |
+| | Read | `client.events.list(params)` | List ingested events with filtering |
+| | Read | `client.events_v2.list(params)` | List ingested events with advanced filtering (V2) |
+| **Meters** | | | Track and aggregate usage data from events |
+| | Create | `client.meters.create(meter)` | Create a new meter |
+| | Read | `client.meters.get(meter_id_or_slug)` | Get a meter by ID or slug |
+| | Read | `client.meters.list(params)` | List all meters |
+| | Read | `client.meters.query_json(meter_id_or_slug, params)` | Query usage data |
+| | Update | `client.meters.update_json(meter_id_or_slug, meter)` | Update a meter by ID or slug |
+| | Delete | `client.meters.delete(meter_id_or_slug)` | Delete a meter by ID or slug |
+| **Subjects** | | | Manage entities that consume resources |
+| | Create | `client.subjects.upsert(subjects)` | Create or update one or multiple subjects |
+| | Read | `client.subjects.get(subject_id_or_key)` | Get a subject by ID or key |
+| | Read | `client.subjects.list()` | List all subjects |
+| | Delete | `client.subjects.delete(subject_id_or_key)` | Delete a subject by ID or key |
+| **Customers** | | | Manage customer subscription lifecycles and plan assignments |
+| | Create | `client.customer.create(customer)` | Create a new customer |
+| | Read | `client.customer.get(customer_id_or_key)` | Get a customer by ID or key |
+| | Read | `client.customer.list(params)` | List all customers |
+| | Update | `client.customer.update(customer_id_or_key, customer)` | Update a customer |
+| | Delete | `client.customer.delete(customer_id_or_key)` | Delete a customer |
+| **Customer Apps** | | | Manage customer app data |
+| | Update | `client.customer.customer_apps.upsert_app_data(customer_id_or_key, app_data)` | Upsert app data |
+| | Read | `client.customer.customer_apps.list_app_data(customer_id_or_key, params)` | List app data |
+| | Delete | `client.customer.customer_apps.delete_app_data(customer_id_or_key, app_id)` | Delete app data |
+| **Customer Stripe** | | | Manage Stripe integration for customers |
+| | Update | `client.customer.customer_stripe.upsert_stripe_customer(customer_id_or_key, data)` | Upsert Stripe app data |
+| | Read | `client.customer.customer_stripe.get_stripe_customer(customer_id_or_key)` | Get Stripe app data |
+| | Create | `client.customer.customer_stripe.create_customer_portal_session(customer_id_or_key, params)` | Create a Stripe customer portal session |
+| **Customer Entitlements** | | | Manage customer entitlements |
+| | Read | `client.entitlements.v2.customer_entitlements.list(customer_id_or_key)` | List entitlements |
+| | Create | `client.entitlements.v2.customer_entitlements.create(customer_id_or_key, entitlement)` | Create an entitlement |
+| | Read | `client.entitlements.v2.customer_entitlements.get(customer_id_or_key, entitlement_id_or_feature_id)` | Get an entitlement |
+| | Delete | `client.entitlements.v2.customer_entitlements.delete(customer_id_or_key, entitlement_id)` | Delete an entitlement |
+| | Update | `client.entitlements.v2.customer_entitlements.create_entitlement_override(customer_id_or_key, entitlement_id_or_feature_id, override)` | Override an entitlement |
+| | Read | `client.entitlements.v2.customer_entitlements.get_entitlement_value(customer_id_or_key, entitlement_id_or_feature_id, params)` | Get entitlement value |
+| | Read | `client.entitlements.v2.customer_entitlements.get_entitlement_history(customer_id_or_key, entitlement_id_or_feature_id, params)` | Get entitlement history |
+| | Update | `client.entitlements.v2.customer_entitlements.reset_entitlement_usage(customer_id_or_key, entitlement_id, params)` | Reset usage |
+| | Read | `client.entitlements.v2.customer_entitlements.list_entitlement_grants(customer_id_or_key, entitlement_id_or_feature_id, params)` | List grants |
+| | Create | `client.entitlements.v2.customer_entitlements.create_grant(customer_id_or_key, entitlement_id_or_feature_id, grant)` | Create a grant |
+| **Features** | | | Define application capabilities and services |
+| | Create | `client.product_catalog.create(feature)` | Create a new feature |
+| | Read | `client.product_catalog.get(feature_id)` | Get a feature by ID |
+| | Read | `client.product_catalog.list(params)` | List all features |
+| | Delete | `client.product_catalog.delete(feature_id)` | Delete a feature by ID |
+| **Plans** | | | Manage subscription plans and pricing |
+| | Create | `client.product_catalog.create_plan(plan)` | Create a new plan |
+| | Read | `client.product_catalog.get_plan(plan_id)` | Get a plan by ID |
+| | Read | `client.product_catalog.list_plans(params)` | List all plans |
+| | Update | `client.product_catalog.update_plan(plan_id, plan)` | Update a plan |
+| | Delete | `client.product_catalog.delete_plan(plan_id)` | Delete a plan by ID |
+| | Other | `client.product_catalog.archive_plan(plan_id)` | Archive a plan |
+| | Other | `client.product_catalog.publish_plan(plan_id)` | Publish a plan |
+| **Addons** | | | Manage standalone addons available across plans |
+| | Create | `client.product_catalog.create_addon(addon)` | Create a new addon |
+| | Read | `client.product_catalog.get_addon(addon_id)` | Get an addon by ID |
+| | Read | `client.product_catalog.list_addons(params)` | List all addons |
+| | Update | `client.product_catalog.update_addon(addon_id, addon)` | Update an addon |
+| | Delete | `client.product_catalog.delete_addon(addon_id)` | Delete an addon by ID |
+| | Other | `client.product_catalog.publish_addon(addon_id)` | Publish an addon |
+| | Other | `client.product_catalog.archive_addon(addon_id)` | Archive an addon |
+| **Subscriptions** | | | Manage customer subscriptions |
+| | Create | `client.product_catalog.create_subscription(body)` | Create a new subscription |
+| | Read | `client.product_catalog.get_subscription(subscription_id)` | Get a subscription by ID |
+| | Update | `client.product_catalog.edit_subscription(subscription_id, body)` | Edit a subscription |
+| | Delete | `client.product_catalog.delete_subscription(subscription_id)` | Delete a subscription |
+| | Other | `client.product_catalog.cancel_subscription(subscription_id, body)` | Cancel a subscription |
+| | Other | `client.product_catalog.change_subscription(subscription_id, body)` | Change a subscription |
+| | Other | `client.product_catalog.migrate_subscription(subscription_id, body)` | Migrate to a new plan version |
+| | Other | `client.product_catalog.unschedule_subscription_cancelation(subscription_id)` | Unschedule a subscription cancelation |
+| **Entitlements** | | | Admin entitlements and access controls |
+| | Read | `client.entitlements.list_entitlements(params)` | List all entitlements (admin) |
+| | Read | `client.entitlements.get_entitlement(entitlement_id)` | Get an entitlement by ID |
+| | Read | `client.entitlements.list_grants(params)` | List all grants (admin) |
+| | Delete | `client.entitlements.void_grant(grant_id)` | Void a grant |
+| **Billing Profiles** | | | Manage billing profiles |
+| | Create | `client.billing.create_billing_profile(profile)` | Create a billing profile |
+| | Read | `client.billing.get_billing_profile(id)` | Get a billing profile by ID |
+| | Read | `client.billing.list_billing_profiles(params)` | List billing profiles |
+| | Update | `client.billing.update_billing_profile(id, profile)` | Update a billing profile |
+| | Delete | `client.billing.delete_billing_profile(id)` | Delete a billing profile |
+| **Billing Invoices** | | | Manage invoices |
+| | Read | `client.billing.list_invoices(params)` | List invoices |
+| | Read | `client.billing.get_invoice(id, params)` | Get an invoice by ID |
+| | Update | `client.billing.update_invoice(id, invoice)` | Update an invoice |
+| | Delete | `client.billing.delete_invoice(id)` | Delete an invoice |
+| | Other | `client.billing.advance_invoice(id)` | Advance invoice to next status |
+| | Other | `client.billing.approve_invoice(id)` | Approve an invoice |
+| | Other | `client.billing.retry_invoice(id, body)` | Retry advancing after failure |
+| | Other | `client.billing.void_invoice(id)` | Void an invoice |
+| | Other | `client.billing.recalculate_invoice_tax(id)` | Recalculate invoice tax amounts |
+| | Other | `client.billing.simulate_invoice(customer_id, params)` | Simulate an invoice for a customer |
+| | Create | `client.billing.create_invoice_line_items(customer_id, body)` | Create pending line items |
+| | Create | `client.billing.invoice_pending_lines(customer_id)` | Invoice pending lines |
+| **Apps** | | | Manage integrations and app marketplace |
+| | Read | `client.app.list(params)` | List installed apps |
+| | Read | `client.app.get(id)` | Get an app by ID |
+| | Update | `client.app.update(id, body)` | Update an app |
+| | Delete | `client.app.uninstall(id)` | Uninstall an app |
+| **Notifications** | | | Set up automated notifications for usage thresholds |
+| | Create | `client.notification.create_channel(channel)` | Create a notification channel |
+| | Read | `client.notification.get_channel(channel_id)` | Get a notification channel by ID |
+| | Update | `client.notification.update_channel(channel_id, channel)` | Update a notification channel |
+| | Read | `client.notification.list_channels(params)` | List notification channels |
+| | Delete | `client.notification.delete_channel(channel_id)` | Delete a notification channel |
+| | Create | `client.notification.create_rule(rule)` | Create a notification rule |
+| | Read | `client.notification.get_rule(rule_id)` | Get a notification rule by ID |
+| | Update | `client.notification.update_rule(rule_id, rule)` | Update a notification rule |
+| | Read | `client.notification.list_rules(params)` | List notification rules |
+| | Delete | `client.notification.delete_rule(rule_id)` | Delete a notification rule |
+| | Read | `client.notification.get_event(event_id)` | Get a notification event by ID |
+| | Read | `client.notification.list_events(params)` | List notification events |
+| **Portal** | | | Manage consumer portal tokens for customer-facing interfaces |
+| | Create | `client.portal.create_token(body)` | Create a consumer portal token |
+| | Read | `client.portal.list_tokens(params)` | List consumer portal tokens |
+| | Other | `client.portal.invalidate_tokens(params)` | Invalidate consumer portal tokens |
+| **Info** | | | Utility endpoints for system information |
+| | Read | `client.info.list_currencies()` | List all supported currencies |
+| | Read | `client.info.get_progress(id)` | Get progress of a long-running operation |
+| **Debug** | | | Debug utilities for monitoring and troubleshooting |
+| | Read | `client.debug.get_metrics()` | Get event ingestion metrics |

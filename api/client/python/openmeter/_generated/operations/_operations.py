@@ -894,7 +894,7 @@ def build_app_app_custom_invoicing_payment_status_request(  # pylint: disable=na
     return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
 
 
-def build_customer_customers_apps_list_app_data_request(  # pylint: disable=name-too-long
+def build_customer_customer_apps_list_app_data_request(  # pylint: disable=name-too-long
     customer_id_or_key: "_types.ULIDOrExternalKey",
     *,
     page: Optional[int] = None,
@@ -929,7 +929,7 @@ def build_customer_customers_apps_list_app_data_request(  # pylint: disable=name
     return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
 
 
-def build_customer_customers_apps_upsert_app_data_request(  # pylint: disable=name-too-long
+def build_customer_customer_apps_upsert_app_data_request(  # pylint: disable=name-too-long
     customer_id_or_key: "_types.ULIDOrExternalKey", **kwargs: Any
 ) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
@@ -953,7 +953,7 @@ def build_customer_customers_apps_upsert_app_data_request(  # pylint: disable=na
     return HttpRequest(method="PUT", url=_url, headers=_headers, **kwargs)
 
 
-def build_customer_customers_apps_delete_app_data_request(  # pylint: disable=name-too-long
+def build_customer_customer_apps_delete_app_data_request(  # pylint: disable=name-too-long
     customer_id_or_key: "_types.ULIDOrExternalKey", app_id: str, **kwargs: Any
 ) -> HttpRequest:
     # Construct URL
@@ -1146,7 +1146,7 @@ def build_customer_customers_list_customer_subscriptions_request(  # pylint: dis
     return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
 
 
-def build_customer_customers_stripe_get_request(  # pylint: disable=name-too-long
+def build_customer_customer_stripe_get_request(  # pylint: disable=name-too-long
     customer_id_or_key: "_types.ULIDOrExternalKey", **kwargs: Any
 ) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
@@ -1167,7 +1167,7 @@ def build_customer_customers_stripe_get_request(  # pylint: disable=name-too-lon
     return HttpRequest(method="GET", url=_url, headers=_headers, **kwargs)
 
 
-def build_customer_customers_stripe_upsert_request(  # pylint: disable=name-too-long
+def build_customer_customer_stripe_upsert_request(  # pylint: disable=name-too-long
     customer_id_or_key: "_types.ULIDOrExternalKey", **kwargs: Any
 ) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
@@ -1191,7 +1191,7 @@ def build_customer_customers_stripe_upsert_request(  # pylint: disable=name-too-
     return HttpRequest(method="PUT", url=_url, headers=_headers, **kwargs)
 
 
-def build_customer_customers_stripe_create_portal_session_request(  # pylint: disable=name-too-long
+def build_customer_customer_stripe_create_portal_session_request(  # pylint: disable=name-too-long
     customer_id_or_key: "_types.ULIDOrExternalKey", **kwargs: Any
 ) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
@@ -4119,11 +4119,11 @@ class CustomerOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-        self.customers_apps = CustomerCustomersAppsOperations(
+        self.customer_apps = CustomerCustomerAppsOperations(
             self._client, self._config, self._serialize, self._deserialize
         )
         self.customers = CustomerCustomersOperations(self._client, self._config, self._serialize, self._deserialize)
-        self.customers_stripe = CustomerCustomersStripeOperations(
+        self.customer_stripe = CustomerCustomerStripeOperations(
             self._client, self._config, self._serialize, self._deserialize
         )
 
@@ -8640,14 +8640,14 @@ class AppAppCustomInvoicingOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class CustomerCustomersAppsOperations:
+class CustomerCustomerAppsOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
 
         Instead, you should access the following operations through
         :class:`~openmeter.OpenMeterClient`'s
-        :attr:`customers_apps` attribute.
+        :attr:`customer_apps` attribute.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -8699,7 +8699,7 @@ class CustomerCustomersAppsOperations:
 
         cls: ClsType[_models.CustomerAppDataPaginatedResponse] = kwargs.pop("cls", None)
 
-        _request = build_customer_customers_apps_list_app_data_request(
+        _request = build_customer_customer_apps_list_app_data_request(
             customer_id_or_key=customer_id_or_key,
             page=page,
             page_size=page_size,
@@ -8858,7 +8858,7 @@ class CustomerCustomersAppsOperations:
         else:
             _content = json.dumps(app_data, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
 
-        _request = build_customer_customers_apps_upsert_app_data_request(
+        _request = build_customer_customer_apps_upsert_app_data_request(
             customer_id_or_key=customer_id_or_key,
             content_type=content_type,
             content=_content,
@@ -8942,7 +8942,7 @@ class CustomerCustomersAppsOperations:
 
         cls: ClsType[None] = kwargs.pop("cls", None)
 
-        _request = build_customer_customers_apps_delete_app_data_request(
+        _request = build_customer_customer_apps_delete_app_data_request(
             customer_id_or_key=customer_id_or_key,
             app_id=app_id,
             headers=_headers,
@@ -9708,14 +9708,14 @@ class CustomerCustomersOperations:
         return deserialized  # type: ignore
 
 
-class CustomerCustomersStripeOperations:
+class CustomerCustomerStripeOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
 
         Instead, you should access the following operations through
         :class:`~openmeter.OpenMeterClient`'s
-        :attr:`customers_stripe` attribute.
+        :attr:`customer_stripe` attribute.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -9748,7 +9748,7 @@ class CustomerCustomersStripeOperations:
 
         cls: ClsType[_models.StripeCustomerAppData] = kwargs.pop("cls", None)
 
-        _request = build_customer_customers_stripe_get_request(
+        _request = build_customer_customer_stripe_get_request(
             customer_id_or_key=customer_id_or_key,
             headers=_headers,
             params=_params,
@@ -9921,7 +9921,7 @@ class CustomerCustomersStripeOperations:
         else:
             _content = json.dumps(app_data, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
 
-        _request = build_customer_customers_stripe_upsert_request(
+        _request = build_customer_customer_stripe_upsert_request(
             customer_id_or_key=customer_id_or_key,
             content_type=content_type,
             content=_content,
@@ -10113,7 +10113,7 @@ class CustomerCustomersStripeOperations:
         else:
             _content = json.dumps(params, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
 
-        _request = build_customer_customers_stripe_create_portal_session_request(
+        _request = build_customer_customer_stripe_create_portal_session_request(
             customer_id_or_key=customer_id_or_key,
             content_type=content_type,
             content=_content,

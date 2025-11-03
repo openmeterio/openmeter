@@ -15,6 +15,7 @@ namespace OpenMeter.Customer;
  */
 @route("/api/v1/customers/{customerIdOrKey}/stripe")
 @tag("CustomersStripe")
+@friendlyName("CustomerStripe")
 interface CustomersStripe {
   /**
    * Get stripe app data for a customer.

@@ -11,6 +11,7 @@ namespace OpenMeter.Entitlements.V2;
 
 @route("/api/v2/customers/{customerIdOrKey}/entitlements")
 @tag("Entitlements")
+@friendlyName("CustomerEntitlements")
 interface CustomerEntitlements {
   /**
    * OpenMeter has three types of entitlements: metered, boolean, and static. The type property determines the type of entitlement. The underlying feature has to be compatible with the entitlement type specified in the request (e.g., a metered entitlement needs a feature associated with a meter).
@@ -102,6 +103,7 @@ interface CustomerEntitlements {
 @route("/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}")
 @tag("Entitlements")
 @tag("Customers")
+@friendlyName("CustomerEntitlement")
 interface CustomerEntitlement {
   /**
    * List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.

@@ -7,7 +7,7 @@ from corehttp.exceptions import HttpResponseError
 ENDPOINT: str = environ.get("OPENMETER_ENDPOINT") or "https://openmeter.cloud"
 token: Optional[str] = environ.get("OPENMETER_TOKEN")
 customer_key: str = environ.get("OPENMETER_CUSTOMER_KEY") or "acme-corp-1"
-feature_key: str = environ.get("OPENMETER_FEATURE_KEY") or "api-access"
+feature_key: str = environ.get("OPENMETER_FEATURE_KEY") or "api_access"
 
 client = Client(
     endpoint=ENDPOINT,
