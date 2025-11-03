@@ -33,6 +33,7 @@ import (
 	subscriptionaddonrepo "github.com/openmeterio/openmeter/openmeter/subscription/addon/repo"
 	subscriptionaddonservice "github.com/openmeterio/openmeter/openmeter/subscription/addon/service"
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/entitlement"
+	annotationhook "github.com/openmeterio/openmeter/openmeter/subscription/hooks/annotations"
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
@@ -237,6 +238,10 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Publisher:        publisher,
 	})
 	require.NoError(t, err)
+
+	annotationCleanupHook, err := annotationhook.NewAnnotationCleanupHook(svc, subRepo, logger)
+	require.NoError(t, err)
+	require.NoError(t, svc.RegisterHook(annotationCleanupHook))
 
 	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            svc,

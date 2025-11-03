@@ -18,6 +18,8 @@ type CreateSubscriptionEntityInput struct {
 	models.NamespacedModel
 	models.MetadataModel
 
+	Annotations models.Annotations `json:"annotations"`
+
 	Plan        *PlanRef
 	Name        string  `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
@@ -51,6 +53,9 @@ type SubscriptionRepository interface {
 
 	// List subscriptions
 	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
+
+	// UpdateAnnotations updates the annotations of a subscription
+	UpdateAnnotations(ctx context.Context, id models.NamespacedID, annotations models.Annotations) (*Subscription, error)
 }
 
 type CreateSubscriptionPhaseEntityInput struct {

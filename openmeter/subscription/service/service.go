@@ -36,8 +36,9 @@ type ServiceConfig struct {
 	Publisher          eventbus.Publisher
 	Lockr              *lockr.Locker
 	FeatureFlags       ffx.Service
-	// External validations (optional)
-	Validators []subscription.SubscriptionCommandValidator
+
+	// Hooks
+	Hooks []subscription.SubscriptionCommandHook
 }
 
 func New(conf ServiceConfig) (subscription.Service, error) {
@@ -54,7 +55,7 @@ func New(conf ServiceConfig) (subscription.Service, error) {
 		return nil, err
 	}
 
-	if err := svc.RegisterValidator(val); err != nil {
+	if err := svc.RegisterHook(val); err != nil {
 		return nil, err
 	}
 
@@ -69,7 +70,7 @@ type service struct {
 	mu sync.RWMutex
 }
 
-func (s *service) RegisterValidator(validator subscription.SubscriptionCommandValidator) error {
+func (s *service) RegisterHook(validator subscription.SubscriptionCommandHook) error {
 	if validator == nil {
 		return errors.New("invalid subscription validator: nil")
 	}
@@ -77,7 +78,7 @@ func (s *service) RegisterValidator(validator subscription.SubscriptionCommandVa
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.Validators = append(s.Validators, validator)
+	s.Hooks = append(s.Hooks, validator)
 
 	return nil
 }
@@ -133,8 +134,8 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
-		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
-			return v.ValidateCreate(ctx, namespace, spec)
+		err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
+			return v.BeforeCreate(ctx, namespace, spec)
 		})...)
 		if err != nil {
 			return def, fmt.Errorf("failed to validate subscription: %w", err)
@@ -173,8 +174,8 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return sub, err
 		}
 
-		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
-			return v.ValidateCreated(ctx, view)
+		err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
+			return v.AfterCreate(ctx, view)
 		})...)
 		if err != nil {
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
@@ -209,8 +210,8 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
-		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
-			return v.ValidateUpdate(ctx, subscriptionID, newSpec)
+		err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
+			return v.BeforeUpdate(ctx, subscriptionID, newSpec)
 		})...)
 		if err != nil {
 			return def, fmt.Errorf("failed to validate subscription: %w", err)
@@ -227,8 +228,8 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 			return subs, err
 		}
 
-		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
-			return v.ValidateUpdated(ctx, view)
+		err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
+			return v.AfterUpdate(ctx, updatedView)
 		})...)
 		if err != nil {
 			return subs, fmt.Errorf("failed to validate subscription: %w", err)
@@ -264,8 +265,8 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
-		return v.ValidateDeleted(ctx, view)
+	err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
+		return v.BeforeDelete(ctx, view)
 	})...)
 	if err != nil {
 		return fmt.Errorf("failed to validate subscription: %w", err)
@@ -338,8 +339,8 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
-		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
-			return v.ValidateCanceled(ctx, view)
+		err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
+			return v.AfterCancel(ctx, view)
 		})...)
 		if err != nil {
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
@@ -378,8 +379,8 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
-		if err := errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
-			return v.ValidateContinue(ctx, view)
+		if err := errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
+			return v.BeforeContinue(ctx, view)
 		})...); err != nil {
 			return subscription.Subscription{}, fmt.Errorf("failed to validate subscription: %w", err)
 		}
@@ -395,8 +396,8 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 			return sub, err
 		}
 
-		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionCommandValidator, _ int) error {
-			return v.ValidateContinued(ctx, view)
+		err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
+			return v.AfterContinue(ctx, view)
 		})...)
 		if err != nil {
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
@@ -409,6 +410,10 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 
 		return sub, nil
 	})
+}
+
+func (s *service) UpdateAnnotations(ctx context.Context, subscriptionID models.NamespacedID, annotations models.Annotations) (*subscription.Subscription, error) {
+	return s.SubscriptionRepo.UpdateAnnotations(ctx, subscriptionID, annotations)
 }
 
 func (s *service) Get(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {

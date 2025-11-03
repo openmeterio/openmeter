@@ -19,6 +19,7 @@ import (
 	subscriptionaddonrepo "github.com/openmeterio/openmeter/openmeter/subscription/addon/repo"
 	subscriptionaddonservice "github.com/openmeterio/openmeter/openmeter/subscription/addon/service"
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/entitlement"
+	annotationhook "github.com/openmeterio/openmeter/openmeter/subscription/hooks/annotations"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptioncustomer "github.com/openmeterio/openmeter/openmeter/subscription/validators/customer"
@@ -117,6 +118,15 @@ func NewSubscriptionServices(
 
 	validator, err := subscriptioncustomer.NewValidator(subscriptionService, customerService)
 	if err != nil {
+		return SubscriptionServiceWithWorkflow{}, err
+	}
+
+	annotationCleanupHook, err := annotationhook.NewAnnotationCleanupHook(subscriptionService, subscriptionRepo, logger)
+	if err != nil {
+		return SubscriptionServiceWithWorkflow{}, err
+	}
+
+	if err := subscriptionService.RegisterHook(annotationCleanupHook); err != nil {
 		return SubscriptionServiceWithWorkflow{}, err
 	}
 

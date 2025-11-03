@@ -13606,6 +13606,8 @@ class Subscription(_Model):
     :vartype active_from: ~datetime.datetime
     :ivar active_to: The cadence end of the resource.
     :vartype active_to: ~datetime.datetime
+    :ivar annotations: Annotations.
+    :vartype annotations: ~openmeter._generated.models.Annotations
     :ivar alignment: Alignment configuration for the plan.
     :vartype alignment: ~openmeter._generated.models.Alignment
     :ivar status: The status of the subscription. Required. Known values are: "active", "inactive",
@@ -13647,6 +13649,8 @@ class Subscription(_Model):
         name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
     """The cadence end of the resource."""
+    annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
+    """Annotations."""
     alignment: Optional["_models.Alignment"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Alignment configuration for the plan."""
     status: Union[str, "_models.SubscriptionStatus"] = rest_field(visibility=["read"])
@@ -14304,6 +14308,8 @@ class SubscriptionExpanded(_Model):
     :vartype active_from: ~datetime.datetime
     :ivar active_to: The cadence end of the resource.
     :vartype active_to: ~datetime.datetime
+    :ivar annotations: Annotations.
+    :vartype annotations: ~openmeter._generated.models.Annotations
     :ivar status: The status of the subscription. Required. Known values are: "active", "inactive",
      "canceled", and "scheduled".
     :vartype status: str or ~openmeter.models.SubscriptionStatus
@@ -14347,6 +14353,8 @@ class SubscriptionExpanded(_Model):
         name="activeTo", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
     """The cadence end of the resource."""
+    annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
+    """Annotations."""
     status: Union[str, "_models.SubscriptionStatus"] = rest_field(visibility=["read"])
     """The status of the subscription. Required. Known values are: \"active\", \"inactive\",
      \"canceled\", and \"scheduled\"."""

@@ -176,6 +176,11 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		}
 	}
 
+	var annotations *api.Annotations
+	if len(sub.Annotations) > 0 {
+		annotations = lo.ToPtr(api.Annotations(sub.Annotations))
+	}
+
 	return api.Subscription{
 		Id:          sub.ID,
 		ActiveFrom:  sub.ActiveFrom,
@@ -187,6 +192,7 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		Status:      api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
 		Plan:        ref,
 		Metadata:    lo.EmptyableToPtr(api.Metadata(sub.Metadata)),
+		Annotations: annotations,
 		CreatedAt:   sub.CreatedAt,
 		UpdatedAt:   sub.UpdatedAt,
 		DeletedAt:   sub.DeletedAt,

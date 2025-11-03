@@ -10312,6 +10312,11 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
+      /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations']
       /** @description Alignment configuration for the plan. */
       alignment?: components['schemas']['Alignment']
       /** @description The status of the subscription. */
@@ -10766,6 +10771,11 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
+      /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations']
       /** @description The status of the subscription. */
       readonly status: components['schemas']['SubscriptionStatus']
       /**

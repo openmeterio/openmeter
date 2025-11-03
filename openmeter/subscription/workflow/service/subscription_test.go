@@ -1766,6 +1766,207 @@ func TestMultiSubscription(t *testing.T) {
 	})
 }
 
+func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
+	// Let's define what deps a test case needs
+	type testCaseDeps struct {
+		CurrentTime     time.Time
+		Customer        customer.Customer
+		WorkflowService subscriptionworkflow.Service
+		Service         subscription.Service
+		DBDeps          *subscriptiontestutils.DBDeps
+		Plan1           subscription.Plan
+		Plan2           subscription.Plan
+		SubsDeps        *subscriptiontestutils.SubscriptionDependencies
+	}
+
+	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
+		return func(fn func(t *testing.T, deps testCaseDeps)) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+			examplePlanInput2 := subscriptiontestutils.GetExamplePlanInput(t)
+			examplePlanInput2.Key = "example-plan-2"
+			examplePlanInput2.Name = "Example Plan 2"
+
+			tcDeps := testCaseDeps{
+				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
+			}
+
+			clock.SetTime(tcDeps.CurrentTime)
+
+			// Let's build the dependencies
+			dbDeps := subscriptiontestutils.SetupDBDeps(t)
+			require.NotNil(t, dbDeps)
+			defer dbDeps.Cleanup(t)
+
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeatures(t)
+
+			// Let's create the two plans
+			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
+			plan2 := deps.PlanHelper.CreatePlan(t, examplePlanInput2)
+
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			require.NotNil(t, cust)
+
+			tcDeps.Customer = *cust
+			tcDeps.DBDeps = dbDeps
+			tcDeps.Service = deps.SubscriptionService
+			tcDeps.WorkflowService = deps.WorkflowService
+			tcDeps.Plan1 = plan1
+			tcDeps.Plan2 = plan2
+			tcDeps.SubsDeps = &deps
+
+			fn(t, tcDeps)
+		}
+	}
+
+	t.Run("Should set annotations when changing subscription to new plan", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			// Create first subscription
+			sub1, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "First Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			// Change to new plan
+			curr, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub1.Subscription.NamespacedID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+				},
+				Name: "Second Subscription",
+			}, deps.Plan2)
+			require.Nil(t, err)
+
+			// Verify old subscription has superseding subscription ID
+			currView, err := deps.Service.GetView(ctx, curr.NamespacedID)
+			require.Nil(t, err)
+			require.NotNil(t, currView.Subscription.Annotations)
+			supersedingID := subscription.AnnotationParser.GetSupersedingSubscriptionID(currView.Subscription.Annotations)
+			require.NotNil(t, supersedingID)
+			assert.Equal(t, new.Subscription.ID, *supersedingID)
+
+			// Verify new subscription has previous subscription ID
+			newView, err := deps.Service.GetView(ctx, new.Subscription.NamespacedID)
+			require.Nil(t, err)
+			require.NotNil(t, newView.Subscription.Annotations)
+			previousID := subscription.AnnotationParser.GetPreviousSubscriptionID(newView.Subscription.Annotations)
+			require.NotNil(t, previousID)
+			assert.Equal(t, curr.ID, *previousID)
+		})
+	})
+
+	t.Run("Should clean up annotations when restoring subscription that superseded another", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			// Create first subscription
+			sub1, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "First Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			// Change to new plan - this creates sub2 and links sub1->sub2
+			curr, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub1.Subscription.NamespacedID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+				},
+				Name: "Second Subscription",
+			}, deps.Plan2)
+			require.Nil(t, err)
+
+			// Verify annotations are set
+			currView, err := deps.Service.GetView(ctx, curr.NamespacedID)
+			require.Nil(t, err)
+			require.NotNil(t, currView.Subscription.Annotations)
+			supersedingID := subscription.AnnotationParser.GetSupersedingSubscriptionID(currView.Subscription.Annotations)
+			require.NotNil(t, supersedingID)
+			assert.Equal(t, new.Subscription.ID, *supersedingID)
+
+			// Restore the original subscription (this deletes sub2)
+			clock.SetTime(clock.Now().Add(time.Hour))
+			_, err = deps.WorkflowService.Restore(ctx, curr.NamespacedID)
+			require.Nil(t, err)
+
+			// Verify sub1 no longer has superseding subscription ID
+			currViewAfter, err := deps.Service.GetView(ctx, curr.NamespacedID)
+			require.Nil(t, err)
+			if currViewAfter.Subscription.Annotations != nil {
+				supersedingIDAfter := subscription.AnnotationParser.GetSupersedingSubscriptionID(currViewAfter.Subscription.Annotations)
+				assert.Nil(t, supersedingIDAfter)
+			}
+
+			// Verify sub2 is deleted
+			_, err = deps.Service.GetView(ctx, new.Subscription.NamespacedID)
+			require.Error(t, err)
+			require.ErrorAs(t, err, lo.ToPtr(&subscription.SubscriptionNotFoundError{}))
+		})
+	})
+
+	t.Run("Should clean up annotations when restoring subscription that was superseded", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			// Create first subscription
+			sub1, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "First Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			// Change to new plan - this creates sub2 and links sub1->sub2
+			curr, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub1.Subscription.NamespacedID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+				},
+				Name: "Second Subscription",
+			}, deps.Plan2)
+			require.Nil(t, err)
+
+			// Verify sub2 has previous subscription ID
+			newView, err := deps.Service.GetView(ctx, new.Subscription.NamespacedID)
+			require.Nil(t, err)
+			require.NotNil(t, newView.Subscription.Annotations)
+			previousID := subscription.AnnotationParser.GetPreviousSubscriptionID(newView.Subscription.Annotations)
+			require.NotNil(t, previousID)
+			assert.Equal(t, curr.ID, *previousID)
+
+			// Restore the original subscription (this deletes sub2)
+			clock.SetTime(clock.Now().Add(time.Hour))
+			_, err = deps.WorkflowService.Restore(ctx, curr.NamespacedID)
+			require.Nil(t, err)
+
+			// Verify sub2 is deleted
+			_, err = deps.Service.GetView(ctx, new.Subscription.NamespacedID)
+			require.Error(t, err)
+			require.ErrorAs(t, err, lo.ToPtr(&subscription.SubscriptionNotFoundError{}))
+		})
+	})
+}
+
 var immediate = subscription.Timing{
 	Enum: lo.ToPtr(subscription.TimingImmediate),
 }

@@ -18,7 +18,7 @@ type QueryService interface {
 }
 
 type CommandService interface {
-	ValidatorService
+	HookService
 
 	// Create a new subscription accotding to the given spec
 	Create(ctx context.Context, namespace string, spec SubscriptionSpec) (Subscription, error)
@@ -30,6 +30,8 @@ type CommandService interface {
 	Cancel(ctx context.Context, subscriptionID models.NamespacedID, timing Timing) (Subscription, error)
 	// Continue a canceled subscription (effectively undoing the cancellation)
 	Continue(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
+	// UpdateAnnotations updates the annotations of a subscription
+	UpdateAnnotations(ctx context.Context, subscriptionID models.NamespacedID, annotations models.Annotations) (*Subscription, error)
 }
 
 type Service interface {
@@ -37,6 +39,6 @@ type Service interface {
 	CommandService
 }
 
-type ValidatorService interface {
-	RegisterValidator(SubscriptionCommandValidator) error
+type HookService interface {
+	RegisterHook(SubscriptionCommandHook) error
 }

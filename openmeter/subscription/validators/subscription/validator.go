@@ -37,11 +37,11 @@ func (c SubscriptionUniqueConstraintValidatorConfig) Validate() error {
 }
 
 type SubscriptionUniqueConstraintValidator struct {
-	subscription.NoOpSubscriptionCommandValidator
+	subscription.NoOpSubscriptionCommandHook
 	Config SubscriptionUniqueConstraintValidatorConfig
 }
 
-func NewSubscriptionUniqueConstraintValidator(config SubscriptionUniqueConstraintValidatorConfig) (subscription.SubscriptionCommandValidator, error) {
+func NewSubscriptionUniqueConstraintValidator(config SubscriptionUniqueConstraintValidatorConfig) (subscription.SubscriptionCommandHook, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid subscription unique constraint validator config: %w", err)
 	}
@@ -51,7 +51,7 @@ func NewSubscriptionUniqueConstraintValidator(config SubscriptionUniqueConstrain
 	}, nil
 }
 
-func (v SubscriptionUniqueConstraintValidator) ValidateCreate(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) error {
+func (v SubscriptionUniqueConstraintValidator) BeforeCreate(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) error {
 	subs, err := v.collectCustomerSubscriptionsStarting(ctx, namespace, spec.CustomerId, spec.ActiveFrom)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func (v SubscriptionUniqueConstraintValidator) ValidateCreate(ctx context.Contex
 	return nil
 }
 
-func (v SubscriptionUniqueConstraintValidator) ValidateUpdate(ctx context.Context, currentId models.NamespacedID, targetSpec subscription.SubscriptionSpec) error {
+func (v SubscriptionUniqueConstraintValidator) BeforeUpdate(ctx context.Context, currentId models.NamespacedID, targetSpec subscription.SubscriptionSpec) error {
 	// We only do these validations if multi-subscription is enabled
 	multiSubscriptionEnabled, err := v.Config.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF)
 	if err != nil {
@@ -137,7 +137,7 @@ func (v SubscriptionUniqueConstraintValidator) ValidateUpdate(ctx context.Contex
 	return nil
 }
 
-func (v SubscriptionUniqueConstraintValidator) ValidateContinue(ctx context.Context, view subscription.SubscriptionView) error {
+func (v SubscriptionUniqueConstraintValidator) BeforeContinue(ctx context.Context, view subscription.SubscriptionView) error {
 	// We're only validatint that the subscription can be continued indefinitely
 	spec := view.AsSpec()
 	spec.ActiveTo = nil
@@ -182,23 +182,23 @@ func (v SubscriptionUniqueConstraintValidator) ValidateContinue(ctx context.Cont
 	return nil
 }
 
-func (v SubscriptionUniqueConstraintValidator) ValidateCreated(ctx context.Context, view subscription.SubscriptionView) error {
+func (v SubscriptionUniqueConstraintValidator) AfterCreate(ctx context.Context, view subscription.SubscriptionView) error {
 	return v.pipelineAfter(ctx, view)
 }
 
-func (v SubscriptionUniqueConstraintValidator) ValidateUpdated(ctx context.Context, view subscription.SubscriptionView) error {
+func (v SubscriptionUniqueConstraintValidator) AfterUpdate(ctx context.Context, view subscription.SubscriptionView) error {
 	return v.pipelineAfter(ctx, view)
 }
 
-func (v SubscriptionUniqueConstraintValidator) ValidateCanceled(ctx context.Context, view subscription.SubscriptionView) error {
+func (v SubscriptionUniqueConstraintValidator) AfterCancel(ctx context.Context, view subscription.SubscriptionView) error {
 	return v.pipelineAfter(ctx, view)
 }
 
-func (v SubscriptionUniqueConstraintValidator) ValidateContinued(ctx context.Context, view subscription.SubscriptionView) error {
+func (v SubscriptionUniqueConstraintValidator) AfterContinue(ctx context.Context, view subscription.SubscriptionView) error {
 	return v.pipelineAfter(ctx, view)
 }
 
-func (v SubscriptionUniqueConstraintValidator) ValidateDeleted(ctx context.Context, view subscription.SubscriptionView) error {
+func (v SubscriptionUniqueConstraintValidator) BeforeDelete(ctx context.Context, view subscription.SubscriptionView) error {
 	return v.pipelineAfter(ctx, view)
 }
 

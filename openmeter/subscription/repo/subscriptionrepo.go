@@ -50,6 +50,24 @@ func (r *subscriptionRepo) SetEndOfCadence(ctx context.Context, id models.Namesp
 	})
 }
 
+func (r *subscriptionRepo) UpdateAnnotations(ctx context.Context, id models.NamespacedID, annotations models.Annotations) (*subscription.Subscription, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (*subscription.Subscription, error) {
+		ent, err := repo.db.Subscription.UpdateOneID(id.ID).SetAnnotations(annotations).Where(dbsubscription.Namespace(id.Namespace)).Save(ctx)
+		if db.IsNotFound(err) {
+			return nil, subscription.NewSubscriptionNotFoundError(
+				id.ID,
+			)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		sub, err := MapDBSubscription(ent)
+
+		return lo.ToPtr(sub), err
+	})
+}
+
 func (r *subscriptionRepo) GetByID(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {
 		res, err := repo.db.Subscription.Query().WithPlan().Where(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).Where(SubscriptionNotDeletedAt(clock.Now())...).First(ctx)
@@ -80,6 +98,7 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 			SetName(sub.Name).
 			SetNillableDescription(sub.Description).
 			SetMetadata(sub.Metadata).
+			SetAnnotations(sub.Annotations).
 			SetBillingAnchor(sub.BillingAnchor.UTC())
 
 		if sub.ActiveTo != nil {

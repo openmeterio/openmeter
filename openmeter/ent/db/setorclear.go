@@ -2898,6 +2898,20 @@ func (u *SubjectUpdateOne) SetOrClearMetadata(value *map[string]interface{}) *Su
 	return u.SetMetadata(*value)
 }
 
+func (u *SubscriptionUpdate) SetOrClearAnnotations(value *models.Annotations) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearAnnotations(value *models.Annotations) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *SubscriptionUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

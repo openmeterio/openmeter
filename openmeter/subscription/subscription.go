@@ -28,6 +28,8 @@ type Subscription struct {
 	BillingCadence  datetime.ISODuration           `json:"billing_cadence"`
 	BillingAnchor   time.Time                      `json:"billingAnchor"`
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
+
+	Annotations models.Annotations `json:"annotations"`
 }
 
 func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
@@ -37,6 +39,7 @@ func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
 			Namespace: s.Namespace,
 		},
 		MetadataModel:   s.MetadataModel,
+		Annotations:     s.Annotations,
 		Plan:            s.PlanRef,
 		Name:            s.Name,
 		Description:     s.Description,
