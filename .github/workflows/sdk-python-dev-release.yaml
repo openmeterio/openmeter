@@ -1,61 +1,17 @@
-name: Release
-
-on:
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
+name: Python SDK Beta Release
 
 permissions:
   contents: read
 
-env:
-  DAGGER_VERSION: 0.18.14
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  artifacts:
-    name: Artifacts
-    uses: ./.github/workflows/artifacts.yaml
-    with:
-      publish: true
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-      security-events: write
-
-  dagger:
-    name: Dagger
-    runs-on: depot-ubuntu-latest-8
-
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-      security-events: write
-
-    steps:
-      # Required as a workaround for Dagger to properly detect Git metadata
-      - name: Checkout repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          persist-credentials: false
-
-      - name: Run pipeline
-        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
-        with:
-          verb: call
-          args: release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token env:GITHUB_TOKEN --pypi-token env:PYPI_TOKEN --npm-token env:NPM_TOKEN
-          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  sdk-python-release:
-    name: Python SDK Release
+  release-beta-sdk:
+    name: Python SDK Beta Release
     runs-on: depot-ubuntu-latest-8
 
     steps:
@@ -95,6 +51,6 @@ jobs:
         run: |
           nix develop --impure .#ci -c make -C api/client/python publish-python-sdk
         env:
-          PY_SDK_RELEASE_VERSION: ${{ github.ref_name }}
+          PY_SDK_RELEASE_TAG: alpha
           COMMIT_SHORT_SHA: ${{ steps.get-short-sha.outputs.id }}
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}

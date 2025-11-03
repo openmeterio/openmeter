@@ -8,8 +8,10 @@ if TYPE_CHECKING:
 
 from ._client import Client  # type: ignore
 from ._version import VERSION
+from ._commit import COMMIT
 
 __version__ = VERSION
+__commit__ = COMMIT
 
 try:
     from ._generated._patch import __all__ as _patch_all
