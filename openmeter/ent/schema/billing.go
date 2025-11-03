@@ -123,6 +123,12 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 		field.Enum("collection_alignment").
 			GoType(billing.AlignmentKind("")),
 
+		field.JSON("anchored_alignment_detail", &billing.AnchoredAlignmentDetail{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
+
 		field.String("line_collection_period").GoType(datetime.ISODurationString("")),
 
 		field.Bool("invoice_auto_advance"),
@@ -194,11 +200,16 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			}),
 
 		// Workflow config overrides
-		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
 		field.Enum("collection_alignment").
 			GoType(billing.AlignmentKind("")).
 			Optional().
 			Nillable(),
+
+		field.JSON("anchored_alignment_detail", &billing.AnchoredAlignmentDetail{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
 
 		field.String("line_collection_period").
 			GoType(datetime.ISODurationString("")).

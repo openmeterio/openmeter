@@ -67,13 +67,32 @@ func (c CustomerOverride) Validate() error {
 }
 
 type CollectionOverrideConfig struct {
-	Alignment *AlignmentKind        `json:"alignment,omitempty"`
-	Interval  *datetime.ISODuration `json:"interval,omitempty"`
+	Alignment               *AlignmentKind           `json:"alignment,omitempty"`
+	AnchoredAlignmentDetail *AnchoredAlignmentDetail `json:"anchoredAlignmentDetail,omitempty"`
+	Interval                *datetime.ISODuration    `json:"interval,omitempty"`
 }
 
 func (c *CollectionOverrideConfig) Validate() error {
-	if c.Alignment != nil && *c.Alignment != AlignmentKindSubscription {
-		return fmt.Errorf("invalid alignment: %s", *c.Alignment)
+	if c.Alignment != nil {
+		if err := c.Alignment.Validate(); err != nil {
+			return fmt.Errorf("invalid alignment: %w", err)
+		}
+	}
+
+	if c.AnchoredAlignmentDetail != nil {
+		if c.Alignment == nil {
+			return fmt.Errorf("alignment is required when anchored alignment detail is set")
+		}
+
+		switch *c.Alignment {
+		case AlignmentKindAnchored:
+			if err := c.AnchoredAlignmentDetail.Validate(); err != nil {
+				return fmt.Errorf("invalid anchored alignment detail: %w", err)
+			}
+
+		case AlignmentKindSubscription:
+			return fmt.Errorf("anchored alignment detail is not supported when alignment is subscription")
+		}
 	}
 
 	if c.Interval != nil && c.Interval.IsNegative() {

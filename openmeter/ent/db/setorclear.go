@@ -434,6 +434,20 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearCollectionAlignment(value *
 	return u.SetCollectionAlignment(*value)
 }
 
+func (u *BillingCustomerOverrideUpdate) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetail) *BillingCustomerOverrideUpdate {
+	if value == nil {
+		return u.ClearAnchoredAlignmentDetail()
+	}
+	return u.SetAnchoredAlignmentDetail(*value)
+}
+
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetail) *BillingCustomerOverrideUpdateOne {
+	if value == nil {
+		return u.ClearAnchoredAlignmentDetail()
+	}
+	return u.SetAnchoredAlignmentDetail(*value)
+}
+
 func (u *BillingCustomerOverrideUpdate) SetOrClearLineCollectionPeriod(value *datetime.ISODurationString) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearLineCollectionPeriod()
@@ -1790,6 +1804,20 @@ func (u *BillingWorkflowConfigUpdateOne) SetOrClearDeletedAt(value *time.Time) *
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingWorkflowConfigUpdate) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpdate {
+	if value == nil {
+		return u.ClearAnchoredAlignmentDetail()
+	}
+	return u.SetAnchoredAlignmentDetail(*value)
+}
+
+func (u *BillingWorkflowConfigUpdateOne) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpdateOne {
+	if value == nil {
+		return u.ClearAnchoredAlignmentDetail()
+	}
+	return u.SetAnchoredAlignmentDetail(*value)
 }
 
 func (u *BillingWorkflowConfigUpdate) SetOrClearInvoiceDefaultTaxSettings(value *productcatalog.TaxConfig) *BillingWorkflowConfigUpdate {

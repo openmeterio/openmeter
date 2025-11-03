@@ -326,6 +326,9 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 					return nil, fmt.Errorf("generating invoice number: %w", err)
 				}
 
+				// Let's calculate when the invoice will be collected
+				// - do we push back the collection date here on gathering creation (if firs day of month billing)???
+
 				// let's create the invoice
 				invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 					Namespace: input.Customer.Namespace,

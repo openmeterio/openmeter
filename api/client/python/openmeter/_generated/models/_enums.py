@@ -71,6 +71,8 @@ class BillingCollectionAlignment(str, Enum, metaclass=CaseInsensitiveEnumMeta):
 
     SUBSCRIPTION = "subscription"
     """Align the collection to the start of the subscription period."""
+    ANCHORED = "anchored"
+    """Align the collection to the anchor time and cadence."""
 
 
 class BillingProfileCustomerOverrideExpand(str, Enum, metaclass=CaseInsensitiveEnumMeta):

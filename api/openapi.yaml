@@ -13344,6 +13344,7 @@ components:
       type: string
       enum:
         - subscription
+        - anchored
       description: |-
         BillingCollectionAlignment specifies when the pending line items should be collected into
         an invoice.
@@ -14044,13 +14045,37 @@ components:
       description: App reference type specifies the type of reference inside an app reference
     BillingWorkflowCollectionAlignment:
       type: object
-      allOf:
+      oneOf:
         - $ref: '#/components/schemas/BillingWorkflowCollectionAlignmentSubscription'
+        - $ref: '#/components/schemas/BillingWorkflowCollectionAlignmentAnchored'
+      discriminator:
+        propertyName: type
+        mapping:
+          subscription: '#/components/schemas/BillingWorkflowCollectionAlignmentSubscription'
+          anchored: '#/components/schemas/BillingWorkflowCollectionAlignmentAnchored'
       description: |-
         The alignment for collecting the pending line items into an invoice.
 
         Defaults to subscription, which means that we are to create a new invoice every time the
         a subscription period starts (for in advance items) or ends (for in arrears items).
+    BillingWorkflowCollectionAlignmentAnchored:
+      type: object
+      required:
+        - type
+        - recurringPeriod
+      properties:
+        type:
+          type: string
+          enum:
+            - anchored
+          description: The type of alignment.
+        recurringPeriod:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodV2'
+          description: The recurring period for the alignment.
+      description: |-
+        BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items
+        into an invoice.
     BillingWorkflowCollectionAlignmentSubscription:
       type: object
       required:
@@ -23300,25 +23325,26 @@ components:
       type: object
       required:
         - interval
-        - intervalISO
         - anchor
+        - intervalISO
       properties:
         interval:
           allOf:
             - $ref: '#/components/schemas/RecurringPeriodInterval'
           description: The unit of time for the interval. Heuristically maps ISO duraitons to enum values or returns the ISO duration.
           title: Interval
-        intervalISO:
-          type: string
-          format: duration
-          description: The unit of time for the interval in ISO8601 format.
         anchor:
           type: string
           format: date-time
           description: A date-time anchor to base the recurring period on.
           example: '2023-01-01T01:01:01.001Z'
           title: Anchor time
+        intervalISO:
+          type: string
+          format: duration
+          description: The unit of time for the interval in ISO8601 format.
       description: Recurring period with an interval and an anchor.
+      deprecated: true
       example:
         interval: DAY
         intervalISO: P1D
@@ -23359,6 +23385,24 @@ components:
       description: |-
         The unit of time for the interval.
         One of: `day`, `week`, `month`, or `year`.
+    RecurringPeriodV2:
+      type: object
+      required:
+        - interval
+        - anchor
+      properties:
+        interval:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodInterval'
+          description: The unit of time for the interval. Heuristically maps ISO duraitons to enum values or returns the ISO duration.
+          title: Interval
+        anchor:
+          type: string
+          format: date-time
+          description: A date-time anchor to base the recurring period on.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Anchor time
+      description: Recurring period with an interval and an anchor.
     RemovePhaseShifting:
       type: string
       enum:

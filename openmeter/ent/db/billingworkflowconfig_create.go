@@ -82,6 +82,12 @@ func (_c *BillingWorkflowConfigCreate) SetCollectionAlignment(v billing.Alignmen
 	return _c
 }
 
+// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
+func (_c *BillingWorkflowConfigCreate) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingWorkflowConfigCreate {
+	_c.mutation.SetAnchoredAlignmentDetail(v)
+	return _c
+}
+
 // SetLineCollectionPeriod sets the "line_collection_period" field.
 func (_c *BillingWorkflowConfigCreate) SetLineCollectionPeriod(v datetime.ISODurationString) *BillingWorkflowConfigCreate {
 	_c.mutation.SetLineCollectionPeriod(v)
@@ -293,6 +299,11 @@ func (_c *BillingWorkflowConfigCreate) check() error {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.AnchoredAlignmentDetail(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "anchored_alignment_detail", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.anchored_alignment_detail": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.LineCollectionPeriod(); !ok {
 		return &ValidationError{Name: "line_collection_period", err: errors.New(`db: missing required field "BillingWorkflowConfig.line_collection_period"`)}
 	}
@@ -382,6 +393,10 @@ func (_c *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *sq
 	if value, ok := _c.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 		_node.CollectionAlignment = value
+	}
+	if value, ok := _c.mutation.AnchoredAlignmentDetail(); ok {
+		_spec.SetField(billingworkflowconfig.FieldAnchoredAlignmentDetail, field.TypeJSON, value)
+		_node.AnchoredAlignmentDetail = value
 	}
 	if value, ok := _c.mutation.LineCollectionPeriod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldLineCollectionPeriod, field.TypeString, value)
@@ -542,6 +557,24 @@ func (u *BillingWorkflowConfigUpsert) SetCollectionAlignment(v billing.Alignment
 // UpdateCollectionAlignment sets the "collection_alignment" field to the value that was provided on create.
 func (u *BillingWorkflowConfigUpsert) UpdateCollectionAlignment() *BillingWorkflowConfigUpsert {
 	u.SetExcluded(billingworkflowconfig.FieldCollectionAlignment)
+	return u
+}
+
+// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
+func (u *BillingWorkflowConfigUpsert) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldAnchoredAlignmentDetail, v)
+	return u
+}
+
+// UpdateAnchoredAlignmentDetail sets the "anchored_alignment_detail" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateAnchoredAlignmentDetail() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldAnchoredAlignmentDetail)
+	return u
+}
+
+// ClearAnchoredAlignmentDetail clears the value of the "anchored_alignment_detail" field.
+func (u *BillingWorkflowConfigUpsert) ClearAnchoredAlignmentDetail() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldAnchoredAlignmentDetail)
 	return u
 }
 
@@ -759,6 +792,27 @@ func (u *BillingWorkflowConfigUpsertOne) SetCollectionAlignment(v billing.Alignm
 func (u *BillingWorkflowConfigUpsertOne) UpdateCollectionAlignment() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateCollectionAlignment()
+	})
+}
+
+// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
+func (u *BillingWorkflowConfigUpsertOne) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetAnchoredAlignmentDetail(v)
+	})
+}
+
+// UpdateAnchoredAlignmentDetail sets the "anchored_alignment_detail" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateAnchoredAlignmentDetail() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateAnchoredAlignmentDetail()
+	})
+}
+
+// ClearAnchoredAlignmentDetail clears the value of the "anchored_alignment_detail" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearAnchoredAlignmentDetail() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearAnchoredAlignmentDetail()
 	})
 }
 
@@ -1162,6 +1216,27 @@ func (u *BillingWorkflowConfigUpsertBulk) SetCollectionAlignment(v billing.Align
 func (u *BillingWorkflowConfigUpsertBulk) UpdateCollectionAlignment() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateCollectionAlignment()
+	})
+}
+
+// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetAnchoredAlignmentDetail(v)
+	})
+}
+
+// UpdateAnchoredAlignmentDetail sets the "anchored_alignment_detail" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateAnchoredAlignmentDetail() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateAnchoredAlignmentDetail()
+	})
+}
+
+// ClearAnchoredAlignmentDetail clears the value of the "anchored_alignment_detail" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearAnchoredAlignmentDetail() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearAnchoredAlignmentDetail()
 	})
 }
 

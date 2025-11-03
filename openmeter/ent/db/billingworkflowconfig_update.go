@@ -73,6 +73,18 @@ func (_u *BillingWorkflowConfigUpdate) SetNillableCollectionAlignment(v *billing
 	return _u
 }
 
+// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
+func (_u *BillingWorkflowConfigUpdate) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpdate {
+	_u.mutation.SetAnchoredAlignmentDetail(v)
+	return _u
+}
+
+// ClearAnchoredAlignmentDetail clears the value of the "anchored_alignment_detail" field.
+func (_u *BillingWorkflowConfigUpdate) ClearAnchoredAlignmentDetail() *BillingWorkflowConfigUpdate {
+	_u.mutation.ClearAnchoredAlignmentDetail()
+	return _u
+}
+
 // SetLineCollectionPeriod sets the "line_collection_period" field.
 func (_u *BillingWorkflowConfigUpdate) SetLineCollectionPeriod(v datetime.ISODurationString) *BillingWorkflowConfigUpdate {
 	_u.mutation.SetLineCollectionPeriod(v)
@@ -303,6 +315,11 @@ func (_u *BillingWorkflowConfigUpdate) check() error {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.AnchoredAlignmentDetail(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "anchored_alignment_detail", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.anchored_alignment_detail": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.InvoiceCollectionMethod(); ok {
 		if err := billingworkflowconfig.InvoiceCollectionMethodValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
@@ -339,6 +356,12 @@ func (_u *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if value, ok := _u.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AnchoredAlignmentDetail(); ok {
+		_spec.SetField(billingworkflowconfig.FieldAnchoredAlignmentDetail, field.TypeJSON, value)
+	}
+	if _u.mutation.AnchoredAlignmentDetailCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldAnchoredAlignmentDetail, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.LineCollectionPeriod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldLineCollectionPeriod, field.TypeString, value)
@@ -485,6 +508,18 @@ func (_u *BillingWorkflowConfigUpdateOne) SetNillableCollectionAlignment(v *bill
 	if v != nil {
 		_u.SetCollectionAlignment(*v)
 	}
+	return _u
+}
+
+// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
+func (_u *BillingWorkflowConfigUpdateOne) SetAnchoredAlignmentDetail(v *billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpdateOne {
+	_u.mutation.SetAnchoredAlignmentDetail(v)
+	return _u
+}
+
+// ClearAnchoredAlignmentDetail clears the value of the "anchored_alignment_detail" field.
+func (_u *BillingWorkflowConfigUpdateOne) ClearAnchoredAlignmentDetail() *BillingWorkflowConfigUpdateOne {
+	_u.mutation.ClearAnchoredAlignmentDetail()
 	return _u
 }
 
@@ -731,6 +766,11 @@ func (_u *BillingWorkflowConfigUpdateOne) check() error {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.AnchoredAlignmentDetail(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "anchored_alignment_detail", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.anchored_alignment_detail": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.InvoiceCollectionMethod(); ok {
 		if err := billingworkflowconfig.InvoiceCollectionMethodValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
@@ -784,6 +824,12 @@ func (_u *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if value, ok := _u.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AnchoredAlignmentDetail(); ok {
+		_spec.SetField(billingworkflowconfig.FieldAnchoredAlignmentDetail, field.TypeJSON, value)
+	}
+	if _u.mutation.AnchoredAlignmentDetailCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldAnchoredAlignmentDetail, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.LineCollectionPeriod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldLineCollectionPeriod, field.TypeString, value)
