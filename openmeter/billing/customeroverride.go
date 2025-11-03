@@ -86,18 +86,14 @@ func (c *CollectionOverrideConfig) Validate() error {
 
 		switch *c.Alignment {
 		case AlignmentKindAnchored:
-			if c.AnchoredAlignmentDetail == nil {
-				return fmt.Errorf("anchored alignment detail is required when alignment is anchored")
-			}
-
 			if err := c.AnchoredAlignmentDetail.Validate(); err != nil {
 				return fmt.Errorf("invalid anchored alignment detail: %w", err)
 			}
 
 		case AlignmentKindSubscription:
-			if c.AnchoredAlignmentDetail != nil {
-				return fmt.Errorf("anchored alignment detail is not supported when alignment is subscription")
-			}
+
+			return fmt.Errorf("anchored alignment detail is not supported when alignment is subscription")
+
 		}
 	}
 
