@@ -37,6 +37,34 @@ def main() -> None:
         if entitlement_value.config is not None:
             print(f"Config: {entitlement_value.config}")
 
+        # List customer entitlements and demonstrate type-specific handling
+        print(f"\nListing all entitlements for customer '{customer_key}'...")
+        entitlements_response = client.customer_entitlements_v2.list(customer_key)
+
+        print(f"\nEntitlements by Type:")
+        for entitlement in entitlements_response.items_property:
+            # Note: Due to a deserialization issue in the SDK, items come back as dicts
+            # Access fields using dict syntax or .get()
+            print(f"\n  Feature: {entitlement.get('featureKey')}")
+            print(f"  ID: {entitlement.get('id')}")
+
+            # Handle different entitlement types using discriminator
+            entitlement_type = entitlement.get("type")
+            if entitlement_type == "metered":
+                # Metered entitlement
+                print(f"  Type: Metered")
+                print(f"  Soft Limit: {entitlement.get('isSoftLimit')}")
+                if entitlement.get("issueAfterReset") is not None:
+                    print(f"  Issue After Reset: {entitlement.get('issueAfterReset')}")
+            elif entitlement_type == "static":
+                # Static entitlement
+                print(f"  Type: Static")
+                if entitlement.get("config") is not None:
+                    print(f"  Config: {entitlement.get('config')}")
+            elif entitlement_type == "boolean":
+                # Boolean entitlement
+                print(f"  Type: Boolean")
+
         # Get overall customer access to all features
         print(f"\nGetting overall access for customer '{customer_key}'...")
         customer_access = client.customer.get_customer_access(customer_key)

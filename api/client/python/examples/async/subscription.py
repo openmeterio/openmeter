@@ -4,6 +4,7 @@ import asyncio
 
 from openmeter.aio import Client
 from openmeter.models import (
+    Metadata,
     PlanSubscriptionCreate,
     PlanReferenceInput,
     SubscriptionStatus,
@@ -26,16 +27,18 @@ async def main() -> None:
             print(f"Creating subscription for customer '{customer_key}' with plan '{plan_key}'...")
 
             subscription_create = PlanSubscriptionCreate(
-                customer_key=customer_key,
                 plan=PlanReferenceInput(
                     key=plan_key,
                 ),
                 name="Free Plan Subscription",
                 description="Subscription to the free plan for Acme Corporation",
-                metadata={
-                    "source": "example",
-                    "environment": "development",
-                },
+                customer_key=customer_key,
+                metadata=Metadata(
+                    {
+                        "source": "example",
+                        "environment": "development",
+                    }
+                ),
             )
 
             subscription = await client.subscriptions.create(subscription_create)
