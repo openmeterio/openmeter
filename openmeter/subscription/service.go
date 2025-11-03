@@ -18,7 +18,7 @@ type QueryService interface {
 }
 
 type CommandService interface {
-	ValidatorService
+	HookService
 
 	// Create a new subscription accotding to the given spec
 	Create(ctx context.Context, namespace string, spec SubscriptionSpec) (Subscription, error)
@@ -39,6 +39,6 @@ type Service interface {
 	CommandService
 }
 
-type ValidatorService interface {
-	RegisterValidator(SubscriptionCommandValidator) error
+type HookService interface {
+	RegisterHook(SubscriptionCommandHook) error
 }

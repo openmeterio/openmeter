@@ -88,7 +88,7 @@ func BillingService(
 		return nil, err
 	}
 
-	if err = subscriptionServices.Service.RegisterValidator(subscriptionValidator); err != nil {
+	if err = subscriptionServices.Service.RegisterHook(subscriptionValidator); err != nil {
 		return nil, err
 	}
 

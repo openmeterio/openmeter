@@ -22,15 +22,15 @@ type MockService struct {
 	ListFn              func(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error)
 	ExpandViewsFn       func(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error)
 	GetAllForCustomerFn func(ctx context.Context, customerID models.NamespacedID, period timeutil.StartBoundedPeriod) ([]subscription.Subscription, error)
-	Validators          []subscription.SubscriptionCommandValidator
+	Hooks               []subscription.SubscriptionCommandHook
 }
 
-func (s *MockService) RegisterValidator(validator subscription.SubscriptionCommandValidator) error {
-	if validator == nil {
-		return errors.New("invalid subscription validator: nil")
+func (s *MockService) RegisterHook(hook subscription.SubscriptionCommandHook) error {
+	if hook == nil {
+		return errors.New("invalid subscription hook: nil")
 	}
 
-	s.Validators = append(s.Validators, validator)
+	s.Hooks = append(s.Hooks, hook)
 
 	return nil
 }

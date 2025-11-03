@@ -1229,7 +1229,7 @@ func (n NoopSubscriptionService) UpdateAnnotations(ctx context.Context, subscrip
 	return nil, nil
 }
 
-func (n NoopSubscriptionService) RegisterValidator(validator subscription.SubscriptionCommandValidator) error {
+func (n NoopSubscriptionService) RegisterHook(validator subscription.SubscriptionCommandHook) error {
 	return nil
 }
 
