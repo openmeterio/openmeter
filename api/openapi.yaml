@@ -9604,11 +9604,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/SubscriptionBadRequestErrorResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -9622,11 +9622,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
         '409':
-          description: The request could not be completed due to a conflict with the current state of the target resource.
+          description: |-
+            The request could not be completed due to a conflict with the current state of the target resource.
+            Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ConflictProblemResponse'
+                $ref: '#/components/schemas/SubscriptionConflictErrorResponse'
         '412':
           description: One or more conditions given in the request header fields evaluated to false when tested on the server.
           content:
@@ -9759,11 +9761,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/SubscriptionBadRequestErrorResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -9783,11 +9785,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
         '409':
-          description: The request could not be completed due to a conflict with the current state of the target resource.
+          description: |-
+            The request could not be completed due to a conflict with the current state of the target resource.
+            Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ConflictProblemResponse'
+                $ref: '#/components/schemas/SubscriptionConflictErrorResponse'
         '412':
           description: One or more conditions given in the request header fields evaluated to false when tested on the server.
           content:
@@ -9836,11 +9840,11 @@ paths:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/SubscriptionBadRequestErrorResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -9859,6 +9863,14 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '409':
+          description: |-
+            The request could not be completed due to a conflict with the current state of the target resource.
+            Variants with ErrorExtensions specific to subscriptions.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionConflictErrorResponse'
         '412':
           description: One or more conditions given in the request header fields evaluated to false when tested on the server.
           content:
@@ -10220,11 +10232,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/SubscriptionBadRequestErrorResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10244,11 +10256,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
         '409':
-          description: The request could not be completed due to a conflict with the current state of the target resource.
+          description: |-
+            The request could not be completed due to a conflict with the current state of the target resource.
+            Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ConflictProblemResponse'
+                $ref: '#/components/schemas/SubscriptionConflictErrorResponse'
         '412':
           description: One or more conditions given in the request header fields evaluated to false when tested on the server.
           content:
@@ -10309,11 +10323,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubscriptionChangeResponseBody'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/SubscriptionBadRequestErrorResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10333,11 +10347,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
         '409':
-          description: The request could not be completed due to a conflict with the current state of the target resource.
+          description: |-
+            The request could not be completed due to a conflict with the current state of the target resource.
+            Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ConflictProblemResponse'
+                $ref: '#/components/schemas/SubscriptionConflictErrorResponse'
         '412':
           description: One or more conditions given in the request header fields evaluated to false when tested on the server.
           content:
@@ -10394,11 +10410,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubscriptionChangeResponseBody'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/SubscriptionBadRequestErrorResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10418,11 +10434,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
         '409':
-          description: The request could not be completed due to a conflict with the current state of the target resource.
+          description: |-
+            The request could not be completed due to a conflict with the current state of the target resource.
+            Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ConflictProblemResponse'
+                $ref: '#/components/schemas/SubscriptionConflictErrorResponse'
         '412':
           description: One or more conditions given in the request header fields evaluated to false when tested on the server.
           content:
@@ -10574,11 +10592,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subscription'
         '400':
-          description: A BadRequestError with a validationErrors extension.
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorProblemResponse'
+                $ref: '#/components/schemas/SubscriptionBadRequestErrorResponse'
         '401':
           description: The request has not been applied because it lacks valid authentication credentials for the target resource.
           content:
@@ -10598,11 +10616,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
         '409':
-          description: The request could not be completed due to a conflict with the current state of the target resource.
+          description: |-
+            The request could not be completed due to a conflict with the current state of the target resource.
+            Variants with ErrorExtensions specific to subscriptions.
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ConflictProblemResponse'
+                $ref: '#/components/schemas/SubscriptionConflictErrorResponse'
         '412':
           description: One or more conditions given in the request header fields evaluated to false when tested on the server.
           content:
@@ -17325,6 +17345,30 @@ components:
           example: '{ key: "value" }'
           readOnly: true
       description: Entitlements are the core of OpenMeter access management. They define access to features for subjects. Entitlements can be metered, boolean, or static.
+    ErrorExtension:
+      type: object
+      required:
+        - field
+        - code
+        - message
+      properties:
+        field:
+          type: string
+          description: The path to the field.
+          example: addons/pro/ratecards/token/featureKey
+          readOnly: true
+        code:
+          type: string
+          description: The machine readable description of the error.
+          example: invalid_feature_key
+          readOnly: true
+        message:
+          type: string
+          description: The human readable description of the error.
+          example: not found feature by key
+          readOnly: true
+      additionalProperties: {}
+      description: Generic ErrorExtension as part of HTTPProblem.Extensions.[StatusCode]
     Event:
       type: object
       required:
@@ -24560,6 +24604,45 @@ components:
             - $ref: '#/components/schemas/Period'
           description: The current billing period. Only has value if the subscription is aligned and active.
       description: Alignment details enriched with the current billing period.
+    SubscriptionBadRequestErrorResponse:
+      type: object
+      required:
+        - type
+        - title
+        - detail
+        - instance
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Type contains a URI that identifies the problem type.
+          example: about:blank
+          default: about:blank
+        title:
+          type: string
+          description: A a short, human-readable summary of the problem type.
+          example: Bad Request
+        status:
+          type: integer
+          format: int16
+          minimum: 400
+          maximum: 599
+          description: The HTTP status code generated by the origin server for this occurrence of the problem.
+          example: 400
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem.
+          example: The request body must be a JSON object.
+        instance:
+          type: string
+          format: uri
+          description: A URI reference that identifies the specific occurrence of the problem.
+          example: urn:request:local/JMOlctsKV8-000001
+        extensions:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionErrorExtensions'
+          description: Additional properties specific to the problem type may be present.
+      description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). Variants with ErrorExtensions specific to subscriptions.
     SubscriptionChange:
       oneOf:
         - $ref: '#/components/schemas/PlanSubscriptionChange'
@@ -24582,6 +24665,47 @@ components:
           description: The new state of the subscription after the change.
           title: The subscription it will be changed to
       description: Response body for subscription change.
+    SubscriptionConflictErrorResponse:
+      type: object
+      required:
+        - type
+        - title
+        - detail
+        - instance
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Type contains a URI that identifies the problem type.
+          example: about:blank
+          default: about:blank
+        title:
+          type: string
+          description: A a short, human-readable summary of the problem type.
+          example: Bad Request
+        status:
+          type: integer
+          format: int16
+          minimum: 400
+          maximum: 599
+          description: The HTTP status code generated by the origin server for this occurrence of the problem.
+          example: 400
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem.
+          example: The request body must be a JSON object.
+        instance:
+          type: string
+          format: uri
+          description: A URI reference that identifies the specific occurrence of the problem.
+          example: urn:request:local/JMOlctsKV8-000001
+        extensions:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionErrorExtensions'
+          description: Additional properties specific to the problem type may be present.
+      description: |-
+        The request could not be completed due to a conflict with the current state of the target resource.
+        Variants with ErrorExtensions specific to subscriptions.
     SubscriptionCreate:
       oneOf:
         - $ref: '#/components/schemas/PlanSubscriptionCreate'
@@ -24624,6 +24748,16 @@ components:
           stretch_phase: '#/components/schemas/EditSubscriptionStretchPhase'
           unschedule_edit: '#/components/schemas/EditSubscriptionUnscheduleEdit'
       description: The operation to be performed on the subscription.
+    SubscriptionErrorExtensions:
+      type: object
+      properties:
+        validationErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorExtension'
+      required:
+        - validationErrors
+      description: Error extensions for the Subscription Errors.
     SubscriptionExpanded:
       type: object
       required:
@@ -25329,6 +25463,15 @@ components:
           format: uri
           description: A URI reference that identifies the specific occurrence of the problem.
           example: urn:request:local/JMOlctsKV8-000001
+        extensions:
+          type: object
+          additionalProperties: {}
+          description: Additional properties specific to the problem type may be present.
+          example:
+            validationErrors:
+              - code: validation_error
+                message: Validation error
+            otherAttribute: otherValue
       additionalProperties: {}
       description: |-
         A Problem Details object (RFC 7807).

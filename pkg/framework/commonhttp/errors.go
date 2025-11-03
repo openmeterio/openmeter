@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
 
 	"github.com/samber/lo"
 
@@ -138,7 +137,7 @@ func HandleIssueIfHTTPStatusKnown(ctx context.Context, err error, w http.Respons
 
 		issueCode, ok := code.(int)
 		if !ok {
-			slog.Default().DebugContext(ctx, "issue does has HTTP status code attribute but it's not an integer", "issue", issue)
+			slog.Default().DebugContext(ctx, "issue does have HTTP status code attribute but it's not an integer", "issue", issue)
 			continue
 		}
 
@@ -163,19 +162,14 @@ func HandleIssueIfHTTPStatusKnown(ctx context.Context, err error, w http.Respons
 		for code, issues := range issuesByCodeMap {
 			responseStatusCode = code
 			extendProblemFuncs = append(extendProblemFuncs, func() map[string]interface{} {
-				codeStr := strconv.Itoa(code)
-
-				// This is for backwards compatibility with how we used to encode validation issues for productcatalog
-				// TODO[galexi]: remove this once we've migrated to the new format
-				if code == http.StatusBadRequest {
-					codeStr = "validationIssues"
-				}
-
 				return map[string]interface{}{
-					codeStr: lo.Map(issues, func(issue models.ValidationIssue, _ int) map[string]interface{} {
-						// We don't want to expose this attribute to the client
+					// FIXME[galexi,chrisgacsal]: having everything under "validationErrors" makes no sense but we need it for backwards compatibility, otherwise its just hacky...
+					// should migrate to more generic form like "errors"
+					"validationErrors": lo.Map(issues, func(issue models.ValidationIssue, _ int) map[string]interface{} {
+						// We don't want to expose private attributes to the client
 						attrs := issue.Attributes()
 						delete(attrs, httpStatusCodeErrorAttribute)
+						delete(attrs, issue.Code())
 						issue = issue.SetAttributes(attrs)
 
 						return issue.AsErrorExtension()
@@ -184,7 +178,7 @@ func HandleIssueIfHTTPStatusKnown(ctx context.Context, err error, w http.Respons
 			})
 		}
 	default:
-		slog.Default().WarnContext(ctx, "unknown HTTP status attribute priorization behavior", "behavior", opts.statusPriorizationBehavior)
+		slog.Default().ErrorContext(ctx, "Unknown HTTP status attribute priorization behavior, passing to next error handler", "behavior", opts.statusPriorizationBehavior)
 		return false
 	}
 

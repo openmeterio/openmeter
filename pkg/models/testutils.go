@@ -21,6 +21,8 @@ func RequireValidationIssuesMatch(t *testing.T, expected ValidationIssues, actua
 		require.Equal(t, expectedField.String(), actualField.String(), "[code = %s] field string must match at index %d", actual[i].Code(), i)
 		require.Equal(t, expectedField.JSONPath(), actualField.JSONPath(), "[code = %s] field json path must match at index %d", actual[i].Code(), i)
 
+		// Do not strip attributes; compare full set, including status code
+
 		actCopy[i].field = nil
 		expCopy[i].field = nil
 	}

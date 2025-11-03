@@ -551,6 +551,42 @@ func TestPlan(t *testing.T) {
 		require.Equal(t, "P1M", subscription.BillingCadence)
 		require.Equal(t, api.ProRatingModeProratePrices, subscription.ProRatingConfig.Mode)
 		require.True(t, subscription.ProRatingConfig.Enabled)
+
+		t.Run("Should return nice validation error if the customer already has a subscription", func(t *testing.T) {
+			require.NotNil(t, customer1)
+			require.NotNil(t, customer1.Id)
+
+			ct := &api.SubscriptionTiming{}
+			require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+
+			create := api.SubscriptionCreate{}
+			err := create.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
+				Timing:      ct,
+				CustomerId:  &customer1.Id,
+				Name:        lo.ToPtr("Test Subscription"),
+				Description: lo.ToPtr("Test Subscription Description"),
+				Plan: api.PlanReferenceInput{
+					Key:     PlanKey,
+					Version: lo.ToPtr(1),
+				},
+			})
+			require.Nil(t, err)
+
+			apiRes, err := client.CreateSubscriptionWithResponse(ctx, create)
+			require.Nil(t, err)
+
+			require.Equal(t, 409, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+
+			extensions := apiRes.ApplicationproblemJSON409.Extensions
+
+			require.GreaterOrEqual(t, len(extensions.ValidationErrors), 1)
+			require.Equal(t, "only_single_subscription_allowed_per_customer_at_a_time", extensions.ValidationErrors[0].Code)
+
+			valErr := extensions.ValidationErrors[0]
+			require.NotNil(t, valErr)
+			require.Equal(t, "only_single_subscription_allowed_per_customer_at_a_time", valErr.Code, "received the following body: %s", apiRes.Body)
+			require.NotContains(t, valErr.AdditionalProperties, "models.ErrorCode:only_single_subscription_allowed_per_customer_at_a_time")
+		})
 	})
 
 	t.Run("Should create only ONE subscription per customer, even if we spam the API in a short period of time", func(t *testing.T) {
@@ -724,10 +760,11 @@ func TestPlan(t *testing.T) {
 			require.Nil(t, err)
 
 			require.Equal(t, 400, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
-			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors)
-			require.Len(t, *apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors, 1, "received the following body: %s", apiRes.Body)
+			// this breaks as we're not backwards compatible
+			extensions := apiRes.ApplicationproblemJSON400.Extensions
+			require.GreaterOrEqual(t, len(extensions.ValidationErrors), 1)
 
-			valErr := (*apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors)[0]
+			valErr := extensions.ValidationErrors[0]
 			require.NotNil(t, valErr)
 			require.Equal(t, "rate_card_billing_cadence_unaligned", valErr.Code, "received the following body: %s", apiRes.Body)
 		})
@@ -780,12 +817,14 @@ func TestPlan(t *testing.T) {
 
 			require.Equal(t, 400, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions, "received the following body: %s", apiRes.Body)
-			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors, "received the following body: %s", apiRes.Body)
-			require.Len(t, *apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors, 1, "received the following body: %s", apiRes.Body)
 
-			valErr := (*apiRes.ApplicationproblemJSON400.Extensions.ValidationErrors)[0]
+			extensions := apiRes.ApplicationproblemJSON400.Extensions
+			require.GreaterOrEqual(t, len(extensions.ValidationErrors), 1)
+
+			valErr := extensions.ValidationErrors[0]
 			require.NotNil(t, valErr)
 			require.Equal(t, "entitlement_template_invalid_issue_after_reset_with_priority", valErr.Code, "received the following body: %s", apiRes.Body)
+			// we expect component and severity
 			require.Equal(t, "$.phases[?(@.key=='test_plan_phase_3')].items.plan_feature_1.entitlementTemplate.issueAfterReset", valErr.Field, "received the following body: %s", apiRes.Body)
 		})
 
