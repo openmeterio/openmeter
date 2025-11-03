@@ -91,9 +91,7 @@ func (c *CollectionOverrideConfig) Validate() error {
 			}
 
 		case AlignmentKindSubscription:
-
 			return fmt.Errorf("anchored alignment detail is not supported when alignment is subscription")
-
 		}
 	}
 
