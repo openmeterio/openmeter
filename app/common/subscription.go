@@ -121,7 +121,7 @@ func NewSubscriptionServices(
 		return SubscriptionServiceWithWorkflow{}, err
 	}
 
-	annotationCleanupHook, err := annotationhook.NewAnnotationCleanupHook(subscriptionService, subscriptionRepo)
+	annotationCleanupHook, err := annotationhook.NewAnnotationCleanupHook(subscriptionService, subscriptionRepo, logger)
 	if err != nil {
 		return SubscriptionServiceWithWorkflow{}, err
 	}

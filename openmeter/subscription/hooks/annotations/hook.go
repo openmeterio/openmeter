@@ -3,6 +3,7 @@ package annotationhook
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"maps"
 
 	"github.com/samber/lo"
@@ -15,9 +16,11 @@ type AnnotationCleanupHook struct {
 	subscription.NoOpSubscriptionCommandHook
 	subscriptionQueryService subscription.QueryService
 	subscriptionRepo         subscription.SubscriptionRepository
+
+	logger *slog.Logger
 }
 
-func NewAnnotationCleanupHook(subscriptionQueryService subscription.QueryService, subscriptionRepository subscription.SubscriptionRepository) (*AnnotationCleanupHook, error) {
+func NewAnnotationCleanupHook(subscriptionQueryService subscription.QueryService, subscriptionRepository subscription.SubscriptionRepository, logger *slog.Logger) (*AnnotationCleanupHook, error) {
 	if subscriptionQueryService == nil {
 		return nil, fmt.Errorf("subscription query service is required")
 	}
@@ -25,10 +28,15 @@ func NewAnnotationCleanupHook(subscriptionQueryService subscription.QueryService
 		return nil, fmt.Errorf("subscription repository is required")
 	}
 
+	if logger == nil {
+		return nil, fmt.Errorf("logger is required")
+	}
+
 	return &AnnotationCleanupHook{
 		NoOpSubscriptionCommandHook: subscription.NoOpSubscriptionCommandHook{},
 		subscriptionQueryService:    subscriptionQueryService,
 		subscriptionRepo:            subscriptionRepository,
+		logger:                      logger,
 	}, nil
 }
 
@@ -55,6 +63,17 @@ func (h *AnnotationCleanupHook) updateSupersedingSubscriptionAnnotations(ctx con
 		Namespace: view.Subscription.Namespace,
 	})
 	if err != nil {
+		if subscription.IsSubscriptionNotFoundError(err) {
+			h.logger.Error("superseding subscription not found, continuing without cleanup",
+				"error", err,
+				"supersedingID", lo.FromPtr(supersedingID),
+				"previousID", lo.FromPtr(previousID),
+				"subscription", view.Subscription,
+			)
+
+			return nil
+		}
+
 		return fmt.Errorf("failed to get superseding subscription: %w", err)
 	}
 
@@ -110,6 +129,17 @@ func (h *AnnotationCleanupHook) updatePreviousSubscriptionAnnotations(ctx contex
 		Namespace: view.Subscription.Namespace,
 	})
 	if err != nil {
+		if subscription.IsSubscriptionNotFoundError(err) {
+			h.logger.Error("previous subscription not found, continuing without cleanup",
+				"error", err,
+				"supersedingID", lo.FromPtr(supersedingID),
+				"previousID", lo.FromPtr(previousID),
+				"subscription", view.Subscription,
+			)
+
+			return nil
+		}
+
 		return fmt.Errorf("failed to get previous subscription: %w", err)
 	}
 

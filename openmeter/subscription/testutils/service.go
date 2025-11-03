@@ -239,7 +239,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	})
 	require.NoError(t, err)
 
-	annotationCleanupHook, err := annotationhook.NewAnnotationCleanupHook(svc, subRepo)
+	annotationCleanupHook, err := annotationhook.NewAnnotationCleanupHook(svc, subRepo, logger)
 	require.NoError(t, err)
 	require.NoError(t, svc.RegisterHook(annotationCleanupHook))
 

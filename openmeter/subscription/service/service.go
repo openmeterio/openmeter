@@ -229,7 +229,7 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		}
 
 		err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
-			return v.AfterUpdate(ctx, view)
+			return v.AfterUpdate(ctx, updatedView)
 		})...)
 		if err != nil {
 			return subs, fmt.Errorf("failed to validate subscription: %w", err)
