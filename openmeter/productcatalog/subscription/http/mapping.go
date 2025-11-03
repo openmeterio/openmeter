@@ -423,6 +423,7 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 		Description:     apiSub.Description,
 		Id:              apiSub.Id,
 		Metadata:        apiSub.Metadata,
+		Annotations:     apiSub.Annotations,
 		ProRatingConfig: apiSub.ProRatingConfig,
 		BillingAnchor:   apiSub.BillingAnchor,
 		BillingCadence:  apiSub.BillingCadence,
