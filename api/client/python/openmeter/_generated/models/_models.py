@@ -10513,6 +10513,17 @@ class NotificationEventPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
+class NotificationEventResendParams(_Model):
+    """A notification event that will be re-sent.
+
+    :ivar channels: Channels.
+    :vartype channels: list[str]
+    """
+
+    channels: Optional[list[str]] = rest_field(visibility=["read"])
+    """Channels."""
+
+
 class NotificationEventResetPayload(_Model):
     """Payload for notification event with ``entitlements.reset`` type.
 

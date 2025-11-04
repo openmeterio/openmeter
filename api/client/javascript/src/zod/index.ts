@@ -9153,6 +9153,20 @@ export const getNotificationEventParams = zod.object({
 })
 
 /**
+ * @summary Re-send notification event
+ */
+export const resendNotificationEventPathEventIdRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
+
+export const resendNotificationEventParams = zod.object({
+  eventId: zod.coerce.string().regex(resendNotificationEventPathEventIdRegExp),
+})
+
+export const resendNotificationEventBody = zod
+  .object({})
+  .describe('A notification event that will be re-sent.')
+
+/**
  * List all notification rules.
  * @summary List notification rules
  */
