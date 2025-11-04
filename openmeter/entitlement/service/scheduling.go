@@ -96,7 +96,7 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 					conflict = cErr.E2
 				}
 
-				return nil, &entitlement.AlreadyExistsError{EntitlementID: conflict.ID, FeatureID: conflict.FeatureID, SubjectKey: conflict.SubjectKey}
+				return nil, &entitlement.AlreadyExistsError{EntitlementID: conflict.ID, FeatureID: conflict.FeatureID, CustomerID: conflict.Customer.ID}
 			} else {
 				return nil, err
 			}

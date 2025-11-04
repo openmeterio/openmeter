@@ -21,7 +21,6 @@ import (
 	db_usagereset "github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
-	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -528,7 +527,6 @@ func (a *entitlementDBAdapter) mapEntitlementEntity(e *db.Entitlement) (*entitle
 			},
 			Annotations:     e.Annotations,
 			ID:              e.ID,
-			SubjectKey:      e.Edges.Subject.Key,
 			FeatureID:       e.FeatureID,
 			FeatureKey:      e.FeatureKey,
 			EntitlementType: entitlement.EntitlementType(e.EntitlementType),
@@ -540,15 +538,6 @@ func (a *entitlementDBAdapter) mapEntitlementEntity(e *db.Entitlement) (*entitle
 		IssueAfterResetPriority: e.IssueAfterResetPriority,
 		IsSoftLimit:             e.IsSoftLimit,
 		PreserveOverageAtReset:  e.PreserveOverageAtReset,
-	}
-
-	ent.Subject = subject.Subject{
-		Namespace:        e.Edges.Subject.Namespace,
-		Id:               e.Edges.Subject.ID,
-		Key:              e.Edges.Subject.Key,
-		DisplayName:      e.Edges.Subject.DisplayName,
-		Metadata:         e.Edges.Subject.Metadata,
-		StripeCustomerId: e.Edges.Subject.StripeCustomerID,
 	}
 
 	if mapped, mapErr := customeradapter.CustomerFromDBEntity(*e.Edges.Customer, customer.Expands{}); mapErr == nil {
