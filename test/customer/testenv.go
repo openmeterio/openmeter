@@ -7,11 +7,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	customerhooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entcustomervalidator "github.com/openmeterio/openmeter/openmeter/entitlement/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -22,6 +25,7 @@ import (
 	subject "github.com/openmeterio/openmeter/openmeter/subject"
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
+	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptioncustomer "github.com/openmeterio/openmeter/openmeter/subscription/validators/customer"
@@ -152,6 +156,29 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, err
 	}
 
+	subjectCustomerHook, err := customerhooks.NewSubjectCustomerHook(customerhooks.SubjectCustomerHookConfig{
+		Customer:         customerService,
+		CustomerOverride: noopCustomerOverrideService{},
+		Logger:           logger,
+		Tracer:           noop.NewTracerProvider().Tracer("test_env"),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	subjectService.RegisterHooks(subjectCustomerHook)
+
+	customerSubjectHook, err := subjecthooks.NewCustomerSubjectHook(subjecthooks.CustomerSubjectHookConfig{
+		Subject: subjectService,
+		Logger:  logger,
+		Tracer:  noop.NewTracerProvider().Tracer("test_env"),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	customerService.RegisterHooks(customerSubjectHook)
+
 	// Subscription
 	subsDeps := subscriptiontestutils.NewService(t, dbDeps)
 
@@ -175,4 +202,8 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		subscription: subsDeps.SubscriptionService,
 		subject:      subjectService,
 	}, nil
+}
+
+type noopCustomerOverrideService struct {
+	billing.CustomerOverrideService
 }

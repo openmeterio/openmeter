@@ -1,7 +1,6 @@
 package subscriptiontestutils
 
 import (
-	"log/slog"
 	"testing"
 	"time"
 
@@ -133,12 +132,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 	customerService.RegisterHooks(subjectCustomerHook)
 
-	subjectEntitlementValidatorHook, err := subjecthooks.NewEntitlementValidatorHook(subjecthooks.EntitlementValidatorHookConfig{
-		EntitlementService: entitlementRegistry.Entitlement,
-	})
-	require.NoError(t, err)
-	subjectService.RegisterHooks(subjectEntitlementValidatorHook)
-
 	// customer hooks
 	customerSubjectHook, err := customerservicehooks.NewSubjectCustomerHook(customerservicehooks.SubjectCustomerHookConfig{
 		Customer:         customerService,
@@ -148,13 +141,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	})
 	require.NoError(t, err)
 	subjectService.RegisterHooks(customerSubjectHook)
-
-	customerSubjectValidatorHook, err := customerservicehooks.NewSubjectValidatorHook(customerservicehooks.SubjectValidatorHookConfig{
-		Customer: customerService,
-		Logger:   slog.Default(),
-	})
-	require.NoError(t, err)
-	subjectService.RegisterHooks(customerSubjectValidatorHook)
 
 	entitlementValidatorHook, err := customerservicehooks.NewEntitlementValidatorHook(customerservicehooks.EntitlementValidatorHookConfig{
 		EntitlementService: entitlementRegistry.Entitlement,

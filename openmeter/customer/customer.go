@@ -52,6 +52,21 @@ type Customer struct {
 	ActiveSubscriptionIDs mo.Option[[]string]
 }
 
+// AsCustomerMutate returns a CustomerMutate from the Customer
+func (c Customer) AsCustomerMutate() CustomerMutate {
+	return CustomerMutate{
+		Key:              c.Key,
+		Name:             c.Name,
+		Description:      c.Description,
+		UsageAttribution: c.UsageAttribution,
+		PrimaryEmail:     c.PrimaryEmail,
+		Currency:         c.Currency,
+		BillingAddress:   c.BillingAddress,
+		Metadata:         c.Metadata,
+		Annotation:       c.Annotation,
+	}
+}
+
 // GetUsageAttribution returns the customer usage attribution
 // implementing the streaming.CustomerUsageAttribution interface
 func (c Customer) GetUsageAttribution() streaming.CustomerUsageAttribution {

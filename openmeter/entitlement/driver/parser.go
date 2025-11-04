@@ -33,7 +33,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 
 	subjKey, err := metered.Customer.UsageAttribution.GetFirstSubjectKey()
 	if err != nil {
-		return nil, err
+		subjKey = ""
 	}
 
 	return &api.EntitlementMetered{
@@ -75,7 +75,7 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 
 	subjKey, err := static.Customer.UsageAttribution.GetFirstSubjectKey()
 	if err != nil {
-		return nil, err
+		subjKey = ""
 	}
 
 	apiRes := &api.EntitlementStatic{
@@ -107,7 +107,7 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 
 	subjKey, err := boolean.Customer.UsageAttribution.GetFirstSubjectKey()
 	if err != nil {
-		return nil, err
+		subjKey = ""
 	}
 
 	apiRes := &api.EntitlementBoolean{

@@ -59,4 +59,14 @@ func TestCustomer(t *testing.T) {
 			testSuite.TestDelete(ctx, t)
 		})
 	})
+
+	t.Run("Subject", func(t *testing.T) {
+		testSuite := CustomerHandlerTestSuite{
+			Env: env,
+		}
+
+		t.Run("TestSubjectDeletion", func(t *testing.T) {
+			testSuite.TestSubjectDeletion(ctx, t)
+		})
+	})
 }

@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
@@ -22,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	subjectservicehooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -50,6 +52,79 @@ func (s subjectCustomerHook) provision(ctx context.Context, sub *subject.Subject
 
 			return nil
 		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (s subjectCustomerHook) PostDelete(ctx context.Context, sub *subject.Subject) error {
+	ctx, span := s.tracer.Start(ctx, "subject_customer_hook.post_delete", trace.WithAttributes(
+		attribute.String("subject.id", sub.Id),
+		attribute.String("subject.key", sub.Key),
+	))
+	defer span.End()
+
+	// Let's get the customer by usage attribution
+	cus, err := s.provisioner.customer.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace:  sub.Namespace,
+		SubjectKey: sub.Key,
+	})
+	if err != nil {
+		if models.IsGenericNotFoundError(err) {
+			span.AddEvent("customer not found by usage attribution", trace.WithAttributes(
+				attribute.String("error", err.Error()),
+			))
+
+			return nil
+		}
+
+		return err
+	}
+
+	if cus == nil {
+		span.AddEvent("customer not found by usage attribution")
+
+		return nil
+	}
+
+	if cus.DeletedAt != nil && cus.DeletedAt.Before(clock.Now()) {
+		span.AddEvent("customer is deleted", trace.WithAttributes(
+			attribute.String("customer.id", cus.ID),
+			attribute.String("customer.deleted_at", cus.DeletedAt.Format(time.RFC3339)),
+		))
+
+		return nil
+	}
+
+	// Let's update the customer usage attribution
+	cus, err = s.provisioner.customer.UpdateCustomer(ctx, customer.UpdateCustomerInput{
+		CustomerID: customer.CustomerID{
+			Namespace: cus.Namespace,
+			ID:        cus.ID,
+		},
+		CustomerMutate: func() customer.CustomerMutate {
+			mut := cus.AsCustomerMutate()
+
+			mut.UsageAttribution.SubjectKeys = lo.Filter(mut.UsageAttribution.SubjectKeys, func(key string, _ int) bool {
+				return key != sub.Key
+			})
+
+			return mut
+		}(),
+	})
+
+	if cus != nil {
+		span.AddEvent("updated customer usage attribution", trace.WithAttributes(
+			attribute.String("customer.usage_attribution.subject_keys", strings.Join(cus.UsageAttribution.SubjectKeys, ", ")),
+		))
+	}
+
+	if err != nil {
+		span.AddEvent("failed to update customer usage attribution", trace.WithAttributes(
+			attribute.String("error", err.Error()),
+		))
 
 		return err
 	}
