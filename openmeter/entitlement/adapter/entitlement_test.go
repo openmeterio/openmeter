@@ -494,7 +494,7 @@ func TestEntitlementLoadsSubjectAndCustomerAndPreservesAcrossTypedMapping(t *tes
 	})
 	require.NoError(t, err)
 
-	subjKey, err := cust.UsageAttribution.GetSubjectKey()
+	subjKey, err := cust.UsageAttribution.GetFirstSubjectKey()
 	require.NoError(t, err)
 
 	// Fetch individually and assert Subject and Customer are populated
