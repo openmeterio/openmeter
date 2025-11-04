@@ -118,7 +118,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(%s, toIntervalDay(1), '%s') AS windowstart", timeColumn, tz),
-				fmt.Sprintf("tumbleEnd(%s, toIntervalDay(1), '%s') AS windowend", timeColumn, tz),
+				"windowstart + toIntervalDay(1) AS windowend",
 			)
 
 		case meterpkg.WindowSizeMonth:

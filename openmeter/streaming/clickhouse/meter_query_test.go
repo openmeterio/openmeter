@@ -202,6 +202,53 @@ func TestQueryMeter(t *testing.T) {
 			wantArgs: []interface{}{"my_namespace", "event1", from.Unix(), to.Unix()},
 		},
 		{
+			name: "Aggregate data between period, groupped by DAY window size",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationSum,
+					ValueProperty: lo.ToPtr("$.value"),
+					GroupBy: map[string]string{
+						"group1": "$.group1",
+						"group2": "$.group2",
+					},
+				},
+				From:       &from,
+				To:         &to,
+				WindowSize: lo.ToPtr(meter.WindowSizeDay),
+			},
+			wantSQL:  "SELECT tumbleStart(om_events.time, toIntervalDay(1), 'UTC') AS windowstart, windowstart + toIntervalDay(1) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.time >= ? AND om_events.time < ? GROUP BY windowstart, windowend ORDER BY windowstart",
+			wantArgs: []interface{}{"my_namespace", "event1", from.Unix(), to.Unix()},
+		},
+		{
+			name: "Aggregate data between period in a different timezone, groupped by DAY window size",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationSum,
+					ValueProperty: lo.ToPtr("$.value"),
+					GroupBy: map[string]string{
+						"group1": "$.group1",
+						"group2": "$.group2",
+					},
+				},
+				From:           &from,
+				To:             &to,
+				WindowSize:     lo.ToPtr(meter.WindowSizeDay),
+				WindowTimeZone: tz,
+			},
+			wantSQL:  "SELECT tumbleStart(om_events.time, toIntervalDay(1), 'Asia/Shanghai') AS windowstart, windowstart + toIntervalDay(1) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.time >= ? AND om_events.time < ? GROUP BY windowstart, windowend ORDER BY windowstart",
+			wantArgs: []interface{}{"my_namespace", "event1", from.Unix(), to.Unix()},
+		},
+		{
 			name: "Aggregate data for a single subject",
 			query: queryMeter{
 				Database:        "openmeter",
