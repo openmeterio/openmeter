@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -354,9 +353,7 @@ type GenericProperties struct {
 	FeatureID  string `json:"featureId,omitempty"`
 	FeatureKey string `json:"featureKey,omitempty"`
 
-	SubjectKey string             `json:"subjectKey,omitempty"`
-	Subject    subject.Subject    `json:"subject,omitempty"`
-	Customer   *customer.Customer `json:"customer,omitempty"`
+	Customer *customer.Customer `json:"customer,omitempty"`
 
 	EntitlementType           EntitlementType        `json:"type,omitempty"`
 	UsagePeriod               *UsagePeriod           `json:"usagePeriod,omitempty"`

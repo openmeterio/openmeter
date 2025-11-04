@@ -31,6 +31,11 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		return nil, err
 	}
 
+	subjKey, err := metered.Customer.UsageAttribution.GetSubjectKey()
+	if err != nil {
+		return nil, err
+	}
+
 	return &api.EntitlementMetered{
 		ActiveFrom:  metered.ActiveFromTime(),
 		ActiveTo:    metered.ActiveToTime(),
@@ -52,7 +57,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		MeasureUsageFrom:       metered.MeasureUsageFrom,
 		Metadata:               convert.MapToPointer(metered.Metadata),
 		Annotations:            lo.EmptyableToPtr(api.Annotations(metered.Annotations)),
-		SubjectKey:             metered.SubjectKey,
+		SubjectKey:             subjKey,
 		Type:                   api.EntitlementMeteredType(metered.EntitlementType),
 		UpdatedAt:              metered.UpdatedAt,
 		UsagePeriod:            *mapUsagePeriod(e.UsagePeriod),
@@ -68,6 +73,11 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 		return nil, err
 	}
 
+	subjKey, err := static.Customer.UsageAttribution.GetSubjectKey()
+	if err != nil {
+		return nil, err
+	}
+
 	apiRes := &api.EntitlementStatic{
 		ActiveFrom:         static.ActiveFromTime(),
 		ActiveTo:           static.ActiveToTime(),
@@ -78,7 +88,7 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 		Id:                 static.ID,
 		Metadata:           convert.MapToPointer(static.Metadata),
 		Annotations:        lo.EmptyableToPtr(api.Annotations(static.Annotations)),
-		SubjectKey:         static.SubjectKey,
+		SubjectKey:         subjKey,
 		Type:               api.EntitlementStaticType(static.EntitlementType),
 		UpdatedAt:          static.UpdatedAt,
 		Config:             static.Config,
@@ -95,6 +105,11 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 		return nil, err
 	}
 
+	subjKey, err := boolean.Customer.UsageAttribution.GetSubjectKey()
+	if err != nil {
+		return nil, err
+	}
+
 	apiRes := &api.EntitlementBoolean{
 		ActiveFrom:         boolean.ActiveFromTime(),
 		ActiveTo:           boolean.ActiveToTime(),
@@ -105,7 +120,7 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 		Id:                 boolean.ID,
 		Metadata:           convert.MapToPointer(boolean.Metadata),
 		Annotations:        lo.EmptyableToPtr(api.Annotations(boolean.Annotations)),
-		SubjectKey:         boolean.SubjectKey,
+		SubjectKey:         subjKey,
 		Type:               api.EntitlementBooleanType(boolean.EntitlementType),
 		UpdatedAt:          boolean.UpdatedAt,
 		CurrentUsagePeriod: mapPeriod(boolean.CurrentUsagePeriod),

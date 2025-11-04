@@ -64,7 +64,6 @@ func NewBalanceSnapshotEvent(in BalanceSnapshotEventInput) snapshot.SnapshotEven
 				ID:              TestEntitlementID,
 				FeatureID:       in.Feature.ID,
 				FeatureKey:      in.Feature.Key,
-				SubjectKey:      TestSubjectKey,
 				EntitlementType: entitlement.EntitlementTypeMetered,
 
 				UsagePeriod:               &TestEntitlementUsagePeriod,
