@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -108,58 +107,78 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	require.Equal(t, TestSubjectKeys, createdCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
 	require.Equal(t, &models.Metadata{"foo": "bar"}, createdCustomer.Metadata, "Customer metadata must match")
 
-	// Test key conflicts
-	_, err = service.CreateCustomer(ctx, customer.CreateCustomerInput{
-		Namespace: s.namespace,
-		CustomerMutate: customer.CustomerMutate{
-			Name: TestName,
-			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: TestSubjectKeys,
-			},
-		},
+	// Test subjects are created
+	t.Run("Should create subjects alongside customer", func(t *testing.T) {
+		for _, subjectKey := range TestSubjectKeys {
+			subject, err := s.Env.Subject().GetByKey(ctx, models.NamespacedKey{
+				Namespace: s.namespace,
+				Key:       subjectKey,
+			})
+
+			require.NoError(t, err, "Getting subject must not return error")
+			require.NotNil(t, subject, "Subject must not be nil")
+			require.Equal(t, subjectKey, subject.Key, "Subject key must match")
+		}
 	})
 
-	require.True(
-		t,
-		customer.IsSubjectKeyConflictError(err),
-		"Creating a customer with same subject keys must return conflict error",
-	)
+	// Test key conflicts
+	t.Run("Should return conflict error if subject keys conflict", func(t *testing.T) {
+		_, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: s.namespace,
+			CustomerMutate: customer.CustomerMutate{
+				Name: TestName,
+				UsageAttribution: customer.CustomerUsageAttribution{
+					SubjectKeys: TestSubjectKeys,
+				},
+			},
+		})
+
+		require.True(
+			t,
+			customer.IsSubjectKeyConflictError(err),
+			"Creating a customer with same subject keys must return conflict error",
+		)
+	})
 
 	// Test key overlaps with id
-	_, err = service.CreateCustomer(ctx, customer.CreateCustomerInput{
-		Namespace: s.namespace,
-		CustomerMutate: customer.CustomerMutate{
-			Key:  lo.ToPtr(createdCustomer.ID), // Overlaps with id of existing customer
-			Name: TestName,
-			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{"subject-1"},
+	t.Run("Should return conflict error if key overlaps with id", func(t *testing.T) {
+		_, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: s.namespace,
+			CustomerMutate: customer.CustomerMutate{
+				Key:  lo.ToPtr(createdCustomer.ID), // Overlaps with id of existing customer
+				Name: TestName,
+				UsageAttribution: customer.CustomerUsageAttribution{
+					SubjectKeys: []string{"subject-1"},
+				},
 			},
-		},
-	})
+		})
 
-	require.True(
-		t,
-		models.IsGenericConflictError(err),
-		"Creating a customer with a key that overlaps with id must return conflict error",
-	)
+		require.True(
+			t,
+			models.IsGenericConflictError(err),
+			"Creating a customer with a key that overlaps with id must return conflict error",
+		)
+	})
 
 	// Test key overlaps with subject
-	_, err = service.CreateCustomer(ctx, customer.CreateCustomerInput{
-		Namespace: s.namespace,
-		CustomerMutate: customer.CustomerMutate{
-			Key:  lo.ToPtr(TestSubjectKeys[0]), // Overlaps with subject of existing customer
-			Name: TestName,
-			UsageAttribution: customer.CustomerUsageAttribution{
-				SubjectKeys: []string{"subject-1"},
+	t.Run("Should return conflict error if key overlaps with subject", func(t *testing.T) {
+		_, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: s.namespace,
+			CustomerMutate: customer.CustomerMutate{
+				Key:  lo.ToPtr(TestSubjectKeys[0]), // Overlaps with subject of existing customer
+				Name: TestName,
+				UsageAttribution: customer.CustomerUsageAttribution{
+					SubjectKeys: []string{"subject-1"},
+				},
 			},
-		},
-	})
+		})
 
-	require.True(
-		t,
-		models.IsGenericConflictError(err),
-		"Creating a customer with a key that overlaps with subject must return conflict error",
-	)
+		require.True(
+			t,
+			models.IsGenericConflictError(err),
+			"Creating a customer with a key that overlaps with subject must return conflict error",
+		)
+	})
 }
 
 // TestUpdate tests the updating of a customer
@@ -185,7 +204,7 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 	require.Equal(t, TestSubjectKeys, originalCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
 
 	newName := "New Name"
-	newSubjectKeys := []string{"subject-1"}
+	newSubjectKeys := []string{"subject-new"}
 
 	// Update the customer with new fields
 	updatedCustomer, err := service.UpdateCustomer(ctx, customer.UpdateCustomerInput{
@@ -222,6 +241,34 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 	require.Equal(t, &TestAddressPostalCode, updatedCustomer.BillingAddress.PostalCode, "Customer billing address postal code must match")
 	require.Equal(t, &TestAddressPhoneNumber, updatedCustomer.BillingAddress.PhoneNumber, "Customer billing address phone number must match")
 	require.Equal(t, &models.Metadata{"foo": "bar"}, updatedCustomer.Metadata, "Customer metadata must match")
+
+	// Test subjects are created appropriately
+	t.Run("Should create subjects alongside customer", func(t *testing.T) {
+		for _, subjectKey := range newSubjectKeys {
+			subject, err := s.Env.Subject().GetByKey(ctx, models.NamespacedKey{
+				Namespace: s.namespace,
+				Key:       subjectKey,
+			})
+
+			require.NoError(t, err, "Getting subject must not return error")
+			require.NotNil(t, subject, "Subject must not be nil")
+			require.Equal(t, subjectKey, subject.Key, "Subject key must match")
+		}
+	})
+
+	// Test that old subjects are not deleted just left dangling
+	t.Run("Should not delete old subjects", func(t *testing.T) {
+		for _, subjectKey := range originalCustomer.UsageAttribution.SubjectKeys {
+			subject, err := s.Env.Subject().GetByKey(ctx, models.NamespacedKey{
+				Namespace: s.namespace,
+				Key:       subjectKey,
+			})
+
+			require.NoError(t, err, "Getting subject must not return error")
+			require.NotNil(t, subject, "Subject must not be nil")
+			require.Equal(t, subjectKey, subject.Key, "Subject key must match")
+		}
+	})
 
 	// Create another customer with a different key and subject key to test conflicts
 	otherCustomerKey := "other-customer-key"
@@ -839,7 +886,6 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	// Delete the customer with active entitlement should return validation error
 	entitlementService := s.Env.Entitlement()
 	featureService := s.Env.Feature()
-	subjectService := s.Env.Subject()
 
 	feature, err := featureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 		Namespace: s.namespace,
@@ -848,14 +894,6 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	})
 	require.NoError(t, err, "Creating feature must not return error")
 	require.NotNil(t, feature, "Feature must not be nil")
-
-	// Note: As of writing this test, we need to create the subject manually
-	subject, err := subjectService.Create(ctx, subject.CreateInput{
-		Namespace: s.namespace,
-		Key:       createdCustomer.GetUsageAttribution().SubjectKeys[0],
-	})
-	require.NoError(t, err, "Creating subject must not return error")
-	require.NotNil(t, subject, "Subject must not be nil")
 
 	entitlement, err := entitlementService.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
 		Namespace:        s.namespace,
