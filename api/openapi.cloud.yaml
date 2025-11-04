@@ -6685,7 +6685,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NotificationEventResendParams'
+              $ref: '#/components/schemas/NotificationEventResendRequest'
   /api/v1/notification/rules:
     get:
       operationId: listNotificationRules
@@ -20737,7 +20737,7 @@ components:
           invoice.created: '#/components/schemas/NotificationEventInvoiceCreatedPayload'
           invoice.updated: '#/components/schemas/NotificationEventInvoiceUpdatedPayload'
       description: The delivery status of the notification event.
-    NotificationEventResendParams:
+    NotificationEventResendRequest:
       type: object
       properties:
         channels:
@@ -20749,7 +20749,6 @@ components:
             example: 01G65Z755AFWAKHE12NY0CQ9FH
           description: Notification channels to which the event should be re-sent.
           title: Channels
-          readOnly: true
       description: A notification event that will be re-sent.
     NotificationEventResetPayload:
       type: object

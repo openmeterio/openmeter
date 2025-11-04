@@ -9162,8 +9162,23 @@ export const resendNotificationEventParams = zod.object({
   eventId: zod.coerce.string().regex(resendNotificationEventPathEventIdRegExp),
 })
 
+export const resendNotificationEventBodyChannelsItemRegExp =
+  /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
+
 export const resendNotificationEventBody = zod
-  .object({})
+  .object({
+    channels: zod
+      .array(
+        zod.coerce
+          .string()
+          .regex(resendNotificationEventBodyChannelsItemRegExp)
+          .describe(
+            'ULID (Universally Unique Lexicographically Sortable Identifier).',
+          ),
+      )
+      .optional()
+      .describe('Notification channels to which the event should be re-sent.'),
+  })
   .describe('A notification event that will be re-sent.')
 
 /**

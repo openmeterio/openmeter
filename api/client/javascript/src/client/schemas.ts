@@ -8267,12 +8267,12 @@ export interface components {
       | components['schemas']['NotificationEventInvoiceCreatedPayload']
       | components['schemas']['NotificationEventInvoiceUpdatedPayload']
     /** @description A notification event that will be re-sent. */
-    NotificationEventResendParams: {
+    NotificationEventResendRequest: {
       /**
        * Channels
        * @description Notification channels to which the event should be re-sent.
        */
-      readonly channels?: string[]
+      channels?: string[]
     }
     /** @description Payload for notification event with `entitlements.reset` type. */
     NotificationEventResetPayload: {
@@ -12114,8 +12114,8 @@ export type NotificationEventPaginatedResponse =
   components['schemas']['NotificationEventPaginatedResponse']
 export type NotificationEventPayload =
   components['schemas']['NotificationEventPayload']
-export type NotificationEventResendParams =
-  components['schemas']['NotificationEventResendParams']
+export type NotificationEventResendRequest =
+  components['schemas']['NotificationEventResendRequest']
 export type NotificationEventResetPayload =
   components['schemas']['NotificationEventResetPayload']
 export type NotificationEventType =
@@ -20894,7 +20894,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['NotificationEventResendParams']
+        'application/json': components['schemas']['NotificationEventResendRequest']
       }
     }
     responses: {

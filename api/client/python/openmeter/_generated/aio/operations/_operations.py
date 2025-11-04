@@ -14101,7 +14101,7 @@ class NotificationEventsOperations:
     async def resend(
         self,
         event_id: str,
-        body: _models.NotificationEventResendParams,
+        request: _models.NotificationEventResendRequest,
         *,
         content_type: str = "application/json",
         **kwargs: Any
@@ -14112,8 +14112,8 @@ class NotificationEventsOperations:
 
         :param event_id: Required.
         :type event_id: str
-        :param body: Required.
-        :type body: ~openmeter._generated.models.NotificationEventResendParams
+        :param request: Required.
+        :type request: ~openmeter._generated.models.NotificationEventResendRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -14124,7 +14124,7 @@ class NotificationEventsOperations:
 
     @overload
     async def resend(
-        self, event_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, event_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.NotificationEvent:
         """Re-send notification event.
 
@@ -14132,8 +14132,8 @@ class NotificationEventsOperations:
 
         :param event_id: Required.
         :type event_id: str
-        :param body: Required.
-        :type body: JSON
+        :param request: Required.
+        :type request: JSON
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -14144,7 +14144,7 @@ class NotificationEventsOperations:
 
     @overload
     async def resend(
-        self, event_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+        self, event_id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.NotificationEvent:
         """Re-send notification event.
 
@@ -14152,8 +14152,8 @@ class NotificationEventsOperations:
 
         :param event_id: Required.
         :type event_id: str
-        :param body: Required.
-        :type body: IO[bytes]
+        :param request: Required.
+        :type request: IO[bytes]
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -14163,7 +14163,7 @@ class NotificationEventsOperations:
         """
 
     async def resend(
-        self, event_id: str, body: Union[_models.NotificationEventResendParams, JSON, IO[bytes]], **kwargs: Any
+        self, event_id: str, request: Union[_models.NotificationEventResendRequest, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.NotificationEvent:
         """Re-send notification event.
 
@@ -14171,9 +14171,9 @@ class NotificationEventsOperations:
 
         :param event_id: Required.
         :type event_id: str
-        :param body: Is one of the following types: NotificationEventResendParams, JSON, IO[bytes]
+        :param request: Is one of the following types: NotificationEventResendRequest, JSON, IO[bytes]
          Required.
-        :type body: ~openmeter._generated.models.NotificationEventResendParams or JSON or IO[bytes]
+        :type request: ~openmeter._generated.models.NotificationEventResendRequest or JSON or IO[bytes]
         :return: NotificationEvent. The NotificationEvent is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.NotificationEvent
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -14192,10 +14192,10 @@ class NotificationEventsOperations:
 
         content_type = content_type or "application/json"
         _content = None
-        if isinstance(body, (IOBase, bytes)):
-            _content = body
+        if isinstance(request, (IOBase, bytes)):
+            _content = request
         else:
-            _content = json.dumps(body, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
+            _content = json.dumps(request, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
 
         _request = build_notification_events_resend_request(
             event_id=event_id,

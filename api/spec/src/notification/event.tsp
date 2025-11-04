@@ -146,12 +146,12 @@ model NotificationEventDeliveryAttempt {
 /**
  * A notification event that will be re-sent.
  */
-@friendlyName("NotificationEventResendParams")
-model NotificationEventResendParams {
+@friendlyName("NotificationEventResendRequest")
+model NotificationEventResendRequest {
   /**
    * Notification channels to which the event should be re-sent.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Create)
   @summary("Channels")
   channels?: Array<ULID>;
 }
@@ -331,6 +331,6 @@ interface NotificationEventsEndpoints {
   @summary("Re-send notification event")
   resend(
     @path eventId: ULID,
-    @body body: NotificationEventResendParams,
+    @body request: NotificationEventResendRequest,
   ): NotificationEvent | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }

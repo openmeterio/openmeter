@@ -10513,15 +10513,32 @@ class NotificationEventPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotificationEventResendParams(_Model):
+class NotificationEventResendRequest(_Model):
     """A notification event that will be re-sent.
 
     :ivar channels: Channels.
     :vartype channels: list[str]
     """
 
-    channels: Optional[list[str]] = rest_field(visibility=["read"])
+    channels: Optional[list[str]] = rest_field(visibility=["create"])
     """Channels."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        channels: Optional[list[str]] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
 
 class NotificationEventResetPayload(_Model):
