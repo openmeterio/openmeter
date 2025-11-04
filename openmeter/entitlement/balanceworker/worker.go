@@ -292,6 +292,19 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				))
 		}),
 
+		// Metered entitlement reset event v2
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *meteredentitlement.EntitlementResetEventV2) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementEvent(
+					ctx,
+					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
+					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID)),
+					WithEventAt(event.ResetAt),
+					WithSourceOperation(snapshot.ValueOperationReset),
+				))
+		}),
+
 		// Ingest batched event
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *ingestevents.EventBatchedIngest) error {
 			if event == nil {
