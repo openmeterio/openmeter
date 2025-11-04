@@ -3,6 +3,7 @@ package customer
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/samber/mo"
 
@@ -201,13 +202,16 @@ func (c CustomerUsageAttribution) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// UsageAttribution
-func (c CustomerUsageAttribution) GetSubjectKey() (string, error) {
-	if len(c.SubjectKeys) != 1 {
-		return "", NewErrCustomerSubjectKeyNotSingular(c.SubjectKeys)
+// Deprecated: This functionality is only present for backwards compatibility
+func (c CustomerUsageAttribution) GetFirstSubjectKey() (string, error) {
+	if len(c.SubjectKeys) == 0 {
+		return "", models.NewGenericValidationError(errors.New("no subject keys found"))
 	}
 
-	return c.SubjectKeys[0], nil
+	sortedKeys := slices.Clone(c.SubjectKeys)
+	slices.Sort(sortedKeys)
+
+	return sortedKeys[0], nil
 }
 
 // GetCustomerByUsageAttributionInput represents the input for the GetCustomerByUsageAttribution method

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -31,18 +30,7 @@ func (s *service) validateCreate(ctx context.Context, cust customer.Customer, sp
 		return err
 	}
 
-	// 3. Let's make sure the customer has a subject if needed
-	if _, err := cust.UsageAttribution.GetSubjectKey(); err != nil {
-		if spec.HasEntitlements() {
-			return models.NewGenericValidationError(errors.New("customer has no subject but subscription has entitlements"))
-		}
-
-		if spec.HasMeteredBillables() {
-			return models.NewGenericValidationError(errors.New("customer has no subject but subscription has metered billables"))
-		}
-	}
-
-	// 4. Let's make sure the currency is valid
+	// 3. Let's make sure the currency is valid
 	if spec.HasBillables() {
 		if cust.Currency != nil && (string(*cust.Currency) != string(spec.Currency)) {
 			return models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cust.Currency, spec.Currency))
@@ -79,16 +67,6 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 
 	if cus == nil {
 		return fmt.Errorf("customer is nil")
-	}
-
-	if _, err := cus.UsageAttribution.GetSubjectKey(); err != nil {
-		if newSpec.HasEntitlements() {
-			return models.NewGenericValidationError(errors.New("customer has no subject but subscription has entitlements"))
-		}
-
-		if newSpec.HasMeteredBillables() {
-			return models.NewGenericValidationError(errors.New("customer has no subject but subscription has metered billables"))
-		}
 	}
 
 	if newSpec.HasBillables() {
