@@ -37,6 +37,7 @@ const (
 	TestFeatureID   = "api-call-id"
 	TestSubjectKey  = "john-doe"
 	TestSubjectID   = "john-doe-id"
+	TestCustomerID  = "john-doe-customer-id"
 	// TestWebhookURL is the target URL where the notifications are sent to.
 	// Use the following URL to verify notifications events sent over webhook channel:
 	// https://play.svix.com/view/e_eyihAQHBB5d6T9ck1iYevP825pg

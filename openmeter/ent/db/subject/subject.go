@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -30,17 +29,8 @@ const (
 	FieldStripeCustomerID = "stripe_customer_id"
 	// FieldMetadata holds the string denoting the metadata field in the database.
 	FieldMetadata = "metadata"
-	// EdgeEntitlements holds the string denoting the entitlements edge name in mutations.
-	EdgeEntitlements = "entitlements"
 	// Table holds the table name of the subject in the database.
 	Table = "subjects"
-	// EntitlementsTable is the table that holds the entitlements relation/edge.
-	EntitlementsTable = "entitlements"
-	// EntitlementsInverseTable is the table name for the Entitlement entity.
-	// It exists in this package in order to avoid circular dependency with the "entitlement" package.
-	EntitlementsInverseTable = "entitlements"
-	// EntitlementsColumn is the table column denoting the entitlements relation/edge.
-	EntitlementsColumn = "subject_id"
 )
 
 // Columns holds all SQL columns for subject fields.
@@ -122,25 +112,4 @@ func ByDisplayName(opts ...sql.OrderTermOption) OrderOption {
 // ByStripeCustomerID orders the results by the stripe_customer_id field.
 func ByStripeCustomerID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStripeCustomerID, opts...).ToFunc()
-}
-
-// ByEntitlementsCount orders the results by entitlements count.
-func ByEntitlementsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newEntitlementsStep(), opts...)
-	}
-}
-
-// ByEntitlements orders the results by entitlements terms.
-func ByEntitlements(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newEntitlementsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-func newEntitlementsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(EntitlementsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, EntitlementsTable, EntitlementsColumn),
-	)
 }

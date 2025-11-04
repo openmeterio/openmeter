@@ -4,13 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	entitlementdb "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	subjectdb "github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -282,21 +279,6 @@ func (a *adapter) Delete(ctx context.Context, id models.NamespacedID) error {
 		sub, err := tx.db.Subject.Query().
 			Where(subjectdb.Namespace(id.Namespace)).
 			Where(subjectdb.ID(id.ID)).
-			WithEntitlements(func(query *db.EntitlementQuery) {
-				query.Where(
-					entitlementdb.Namespace(id.Namespace),
-					entitlementdb.SubjectID(id.ID),
-					entitlementdb.Or(
-						entitlementdb.DeletedAtGTE(now),
-						entitlementdb.DeletedAtIsNil(),
-					),
-					entitlementdb.ActiveFromLTE(now),
-					entitlementdb.Or(
-						entitlementdb.ActiveToGTE(now),
-						entitlementdb.ActiveToIsNil(),
-					),
-				)
-			}).
 			First(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -311,19 +293,6 @@ func (a *adapter) Delete(ctx context.Context, id models.NamespacedID) error {
 		// Return if Subject is already deleted
 		if sub.DeletedAt != nil && sub.DeletedAt.Before(now) {
 			return nil
-		}
-
-		if len(sub.Edges.Entitlements) > 0 {
-			entitlementIDs := lo.FilterMap(sub.Edges.Entitlements, func(item *db.Entitlement, _ int) (string, bool) {
-				if item != nil {
-					return item.ID, true
-				}
-
-				return "", false
-			})
-			return models.NewGenericPreConditionFailedError(
-				fmt.Errorf("subject has active entitlements with ids: %s", strings.Join(entitlementIDs, ", ")),
-			)
 		}
 
 		return tx.db.Subject.

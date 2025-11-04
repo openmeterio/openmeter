@@ -375,9 +375,6 @@ func (_u *EntitlementUpdate) check() error {
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Entitlement.customer"`)
 	}
-	if _u.mutation.SubjectCleared() && len(_u.mutation.SubjectIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "Entitlement.subject"`)
-	}
 	return nil
 }
 
@@ -1027,9 +1024,6 @@ func (_u *EntitlementUpdateOne) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Entitlement.customer"`)
-	}
-	if _u.mutation.SubjectCleared() && len(_u.mutation.SubjectIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "Entitlement.subject"`)
 	}
 	return nil
 }
