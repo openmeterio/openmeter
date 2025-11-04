@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
-	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -54,17 +53,16 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			return nil, err
 		}
 
-		event := EntitlementResetEvent{
+		event := EntitlementResetEventV2{
 			EntitlementID: entitlementID.ID,
 			Namespace: eventmodels.NamespaceID{
 				ID: entitlementID.Namespace,
 			},
-			Subject: subject.SubjectKey{
-				Key: ent.SubjectKey,
-			},
-			ResetAt:          params.At,
-			RetainAnchor:     params.RetainAnchor,
-			ResetRequestedAt: time.Now(),
+			CustomerID:               ent.Customer.ID,
+			CustomerUsageAttribution: ent.Customer.UsageAttribution,
+			ResetAt:                  params.At,
+			RetainAnchor:             params.RetainAnchor,
+			ResetRequestedAt:         time.Now(),
 		}
 
 		if err := e.publisher.Publish(ctx, event); err != nil {
