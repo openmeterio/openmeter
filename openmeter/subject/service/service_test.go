@@ -1,7 +1,6 @@
 package service_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -203,8 +202,7 @@ func Test_SubjectService(t *testing.T) {
 						Namespace: sub1.Namespace,
 						ID:        sub1.Id,
 					})
-					require.ErrorAsf(t, err, lo.ToPtr(new(models.GenericPreConditionFailedError)), "deleting subject should fail")
-					require.Containsf(t, err.Error(), fmt.Sprintf("subject has active entitlements with ids: %s", ent.ID), "error message must contain entitlement error")
+					require.NoErrorf(t, err, "We will not delete the entitlements as they belong to the customer not the subject")
 
 					t.Run("Delete", func(t *testing.T) {
 						at := now.Add(1 * time.Hour)

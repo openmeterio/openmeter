@@ -363,6 +363,10 @@ type GenericProperties struct {
 
 func (e GenericProperties) Validate() error {
 	// TODO: there are no clear validation requirements now but lets implement the interface
+	if e.Customer == nil {
+		return fmt.Errorf("customer is required")
+	}
+
 	return nil
 }
 

@@ -47,10 +47,6 @@ func (Entitlement) Fields() []ent.Field {
 		field.String("customer_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
-		field.String("subject_id").Immutable().SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
-		}),
-		field.String("subject_key").NotEmpty().Immutable(),
 		field.Time("measure_usage_from").Optional().Nillable().Immutable(),
 		field.Float("issue_after_reset").Optional().Nillable().Immutable(),
 		field.Uint8("issue_after_reset_priority").Optional().Nillable().Immutable(),
@@ -78,8 +74,6 @@ func (Entitlement) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
 		index.Fields("namespace", "customer_id"),
-		index.Fields("namespace", "subject_id"),
-		index.Fields("namespace", "subject_key"),
 		index.Fields("namespace", "id", "customer_id"),
 		index.Fields("namespace", "feature_id", "id"),
 		index.Fields("namespace", "current_usage_period_end"),
@@ -110,12 +104,6 @@ func (Entitlement) Edges() []ent.Edge {
 		edge.From("customer", Customer.Type).
 			Ref("entitlements").
 			Field("customer_id").
-			Required().
-			Unique().
-			Immutable(),
-		edge.From("subject", Subject.Type).
-			Ref("entitlements").
-			Field("subject_id").
 			Required().
 			Unique().
 			Immutable(),

@@ -5019,22 +5019,6 @@ func (c *EntitlementClient) QueryCustomer(_m *Entitlement) *CustomerQuery {
 	return query
 }
 
-// QuerySubject queries the subject edge of a Entitlement.
-func (c *EntitlementClient) QuerySubject(_m *Entitlement) *SubjectQuery {
-	query := (&SubjectClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
-			sqlgraph.To(subject.Table, subject.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.SubjectTable, entitlement.SubjectColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // Hooks returns the client hooks.
 func (c *EntitlementClient) Hooks() []Hook {
 	return c.hooks.Entitlement
@@ -6933,22 +6917,6 @@ func (c *SubjectClient) GetX(ctx context.Context, id string) *Subject {
 		panic(err)
 	}
 	return obj
-}
-
-// QueryEntitlements queries the entitlements edge of a Subject.
-func (c *SubjectClient) QueryEntitlements(_m *Subject) *EntitlementQuery {
-	query := (&EntitlementClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subject.Table, subject.FieldID, id),
-			sqlgraph.To(entitlement.Table, entitlement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, subject.EntitlementsTable, subject.EntitlementsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
 }
 
 // Hooks returns the client hooks.
