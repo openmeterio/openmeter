@@ -331,11 +331,11 @@ class InvoiceLineManagedBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """InvoiceLineManagedBy specifies who manages the line."""
 
     SUBSCRIPTION = "subscription"
-    """The line is managed by the susbcription engine of OpenMeter.
+    """The line is managed by the susbcription engine of
     
     If there are any changes to the subscription the line will be updated accordingly."""
     SYSTEM = "system"
-    """The line is managed by the billing system of the OpenMeter.
+    """The line is managed by the billing system of the
     
     The line is immutable."""
     MANUAL = "manual"

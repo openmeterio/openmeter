@@ -5,9 +5,7 @@ import "@typespec/openapi3";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-using OpenMeter.Billing.Invoice;
-
-namespace OpenMeter.Notification;
+namespace OpenMeter;
 
 /**
  * Payload for notification event with `invoice.*` type.

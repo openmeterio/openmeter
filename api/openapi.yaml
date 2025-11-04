@@ -9,8 +9,6 @@ info:
     OpenMeter is a cloud native usage metering service.
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 tags:
-  - name: CustomersApps
-  - name: CustomersStripe
   - name: Subscriptions
     description: With Subscriptions, you can easily start, cancel, and manage customer subscriptions. For example, provisioning them on a specific plan or assigning custom rate cards.
   - name: Subjects
@@ -3377,7 +3375,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - CustomersApps
+        - Customers
+        - Apps
     put:
       operationId: upsertCustomerAppData
       summary: Upsert customer app data
@@ -3446,7 +3445,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - CustomersApps
+        - Customers
+        - Apps
       requestBody:
         required: true
         content:
@@ -3525,7 +3525,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - CustomersApps
+        - Customers
+        - Apps
   /api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/value:
     get:
       operationId: getCustomerEntitlementValue
@@ -3680,7 +3681,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - CustomersStripe
+        - Customers
+        - Apps
     put:
       operationId: upsertCustomerStripeAppData
       summary: Upsert customer stripe app data
@@ -3749,7 +3751,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - CustomersStripe
+        - Customers
+        - Apps
       requestBody:
         required: true
         content:
@@ -3828,7 +3831,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - CustomersStripe
+        - Customers
+        - Apps
       requestBody:
         required: true
         content:
@@ -4323,7 +4327,7 @@ paths:
       operationId: ingestEvents
       parameters: []
       description: Ingests an event or batch of events following the CloudEvents specification.
-      summary: 'Ingest events '
+      summary: 'Ingest events  '
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '

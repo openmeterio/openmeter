@@ -13,4 +13,4 @@ import "./grant.tsp";
 import "./subjects.tsp";
 import "./customer.tsp";
 
-namespace OpenMeter.Entitlements;
+namespace OpenMeter;

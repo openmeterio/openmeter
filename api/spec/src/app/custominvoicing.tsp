@@ -7,12 +7,10 @@ import "../errors.tsp";
 import "../types.tsp";
 import "../billing/invoices/main.tsp";
 
-using OpenMeter.Billing.Invoice;
-
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.App;
+namespace OpenMeter;
 
 /**
  * Custom Invoicing app can be used for interface with any invoicing or payment system.
@@ -27,7 +25,7 @@ model CustomInvoicingApp {
   /**
    * The app's type is CustomInvoicing.
    */
-  type: Type.CustomInvoicing;
+  type: AppType.CustomInvoicing;
 
   /**
    * Enable draft.sync hook.
@@ -45,7 +43,8 @@ model CustomInvoicingApp {
 }
 
 @tag("App: Custom Invoicing")
-interface AppCustomInvoicing {
+@friendlyName("AppCustomInvoicing")
+interface AppCustomInvoicingEndpoints {
   @post
   @route("/api/v1/apps/custom-invoicing/{invoiceId}/draft/synchronized")
   @operationId("appCustomInvoicingDraftSynchronized")

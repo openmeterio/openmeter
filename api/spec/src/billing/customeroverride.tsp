@@ -1,11 +1,12 @@
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Billing;
+namespace OpenMeter;
 
 @route("/api/v1/billing/customers")
 @tag("Billing")
-interface CustomerOverrides {
+@friendlyName("CustomerOverrides")
+interface CustomerOverridesEndpoints {
   /**
    * List customer overrides using the specified filters.
    *
@@ -20,8 +21,8 @@ interface CustomerOverrides {
   @operationId("listBillingProfileCustomerOverrides")
   list(
     ...ListCustomerOverridesParams,
-    ...OpenMeter.QueryPagination,
-  ): OpenMeter.PaginatedResponse<BillingProfileCustomerOverrideWithDetails> | OpenMeter.CommonErrors;
+    ...QueryPagination,
+  ): PaginatedResponse<BillingProfileCustomerOverrideWithDetails> | CommonErrors;
 
   /**
    * The customer override can be used to pin a given customer to a billing profile
@@ -40,7 +41,7 @@ interface CustomerOverrides {
 
     @body
     request: BillingProfileCustomerOverrideCreate,
-  ): BillingProfileCustomerOverrideWithDetails | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): BillingProfileCustomerOverrideWithDetails | NotFoundError | CommonErrors;
 
   /**
    * Get a customer override by customer id.
@@ -60,7 +61,7 @@ interface CustomerOverrides {
 
     @query(#{ explode: true })
     expand?: BillingProfileCustomerOverrideExpand[],
-  ): BillingProfileCustomerOverrideWithDetails | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): BillingProfileCustomerOverrideWithDetails | NotFoundError | CommonErrors;
 
   /**
    * Delete a customer override by customer id.
@@ -77,7 +78,7 @@ interface CustomerOverrides {
     customerId: ULID,
   ): {
     @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  } | NotFoundError | CommonErrors;
 }
 
 /**
@@ -140,7 +141,7 @@ model BillingCustomerProfile {
    * The name and contact information for the supplier this billing profile represents
    */
   @visibility(Lifecycle.Read)
-  supplier: Invoice.BillingParty;
+  supplier: BillingParty;
 
   /**
    * The billing workflow settings for this profile
@@ -185,7 +186,7 @@ model BillingProfileCustomerOverrideWithDetails {
   /**
    * The customer this override belongs to.
    */
-  customer?: Customer.Customer;
+  customer?: Customer;
 }
 
 /**
@@ -248,7 +249,7 @@ model ListCustomerOverridesParams {
   /**
    * Order the response by.
    */
-  ...OpenMeter.QueryOrdering<BillingProfileCustomerOverrideOrderBy>;
+  ...QueryOrdering<BillingProfileCustomerOverrideOrderBy>;
 }
 /**
  * Payload for creating a new or updating an existing customer override.
@@ -280,17 +281,17 @@ model BillingProfileCustomerWorkflowOverride {
    * The tax app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  taxApp: OpenMeter.App.App;
+  taxApp: App;
 
   /**
    * The invoicing app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  invoicingApp: OpenMeter.App.App;
+  invoicingApp: App;
 
   /**
    * The payment app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  paymentApp: OpenMeter.App.App;
+  paymentApp: App;
 }

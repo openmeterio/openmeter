@@ -1,0 +1,4 @@
+{
+  "include": ["async", "sync"],
+  "typeCheckingMode": "basic"
+}

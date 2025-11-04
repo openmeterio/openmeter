@@ -1,7 +1,7 @@
 import "./app.tsp";
 import "../types.tsp";
 
-namespace OpenMeter.App;
+namespace OpenMeter;
 
 /**
  * CustomerAppData
@@ -25,7 +25,7 @@ union CustomerAppData {
  * Customer App Base.
  */
 @friendlyName("CustomerAppDataBase")
-model CustomerAppBase<TYPE extends Type> {
+model CustomerAppBase<TYPE extends AppType> {
   /**
    * The app ID.
    * If not provided, it will use the global default for the app type.
@@ -51,16 +51,16 @@ model SandboxCustomerAppData {
   @visibility(Lifecycle.Read)
   app?: SandboxApp;
 
-  ...CustomerAppBase<Type.Sandbox>;
+  ...CustomerAppBase<AppType.Sandbox>;
 }
 
 /**
  * Stripe Customer App Data.
  */
-@example(#{ type: Type.Stripe, stripeCustomerId: "cus_xxxxxxxxxxxxxx" })
+@example(#{ type: AppType.Stripe, stripeCustomerId: "cus_xxxxxxxxxxxxxx" })
 @friendlyName("StripeCustomerAppData")
 model StripeCustomerAppData {
-  ...CustomerAppBase<Type.Stripe>;
+  ...CustomerAppBase<AppType.Stripe>;
   ...StripeCustomerAppDataBase;
 
   /**
@@ -97,7 +97,7 @@ model CustomInvoicingCustomerAppData {
   @visibility(Lifecycle.Read)
   app?: CustomInvoicingApp;
 
-  ...CustomerAppBase<Type.CustomInvoicing>;
+  ...CustomerAppBase<AppType.CustomInvoicing>;
 
   /**
    * Metadata to be used by the custom invoicing provider.

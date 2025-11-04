@@ -7,11 +7,12 @@ import "../..";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Entitlements.V2;
+namespace OpenMeter;
 
 @route("/api/v2/grants")
 @tag("Entitlements")
-interface Grants {
+@friendlyName("GrantsV2")
+interface GrantsV2Endpoints {
   /**
    * List all grants for all the customers and entitlements. This endpoint is intended for administrative purposes only.
    * To fetch the grants of a specific entitlement please use the /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants endpoint.
@@ -42,8 +43,8 @@ interface Grants {
      */
     @query includeDeleted?: boolean = false,
 
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<GrantOrderBy>,
-  ): OpenMeter.PaginatedResponse<GrantV2> | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryLimitOffset,
+    ...QueryOrdering<GrantOrderBy>,
+  ): PaginatedResponse<GrantV2> | CommonErrors;
 }

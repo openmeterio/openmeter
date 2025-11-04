@@ -6,7 +6,7 @@ using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Billing.Invoice;
+namespace OpenMeter;
 
 /**
  * PaymentDueDate contains an amount that should be paid by the given date.

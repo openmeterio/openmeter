@@ -1,6 +1,6 @@
 import "../types.tsp";
 
-namespace OpenMeter.App;
+namespace OpenMeter;
 
 /**
  * App capability.
@@ -9,16 +9,16 @@ namespace OpenMeter.App;
  */
 @friendlyName("AppCapability")
 @example(#{
-  type: CapabilityType.CollectPayments,
+  type: AppCapabilityType.CollectPayments,
   key: "stripe_collect_payment",
   name: "Collect Payments",
   description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
 })
-model Capability {
+model AppCapability {
   /**
    * The capability type.
    */
-  type: CapabilityType;
+  type: AppCapabilityType;
 
   /**
    * Key
@@ -40,7 +40,7 @@ model Capability {
  * App capability type.
  */
 @friendlyName("AppCapabilityType")
-enum CapabilityType {
+enum AppCapabilityType {
   /**
    * The app can report aggregated usage.
    */

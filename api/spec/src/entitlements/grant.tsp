@@ -6,7 +6,7 @@ import "@typespec/openapi3";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Entitlements;
+namespace OpenMeter;
 
 /**
  * Order by options for grants.
@@ -22,7 +22,8 @@ enum GrantOrderBy {
 
 @route("/api/v1/grants")
 @tag("Entitlements")
-interface Grants {
+@friendlyName("Grants")
+interface GrantsEndpoints {
   /**
    * List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.
    * To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
@@ -53,10 +54,10 @@ interface Grants {
      */
     @query includeDeleted?: boolean = false,
 
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<GrantOrderBy>,
-  ): Grant[] | OpenMeter.PaginatedResponse<Grant> | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryLimitOffset,
+    ...QueryOrdering<GrantOrderBy>,
+  ): Grant[] | PaginatedResponse<Grant> | CommonErrors;
 
   /**
    * Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
@@ -69,9 +70,9 @@ interface Grants {
     | {
         @statusCode _: 204;
       }
-    | OpenMeter.NotFoundError
-    | OpenMeter.CommonErrors
-    | OpenMeter.ConflictError;
+    | NotFoundError
+    | CommonErrors
+    | ConflictError;
 }
 
 /**

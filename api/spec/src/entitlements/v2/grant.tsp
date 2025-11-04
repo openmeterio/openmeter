@@ -4,7 +4,7 @@ import "@typespec/openapi3";
 import "..";
 import "../..";
 
-namespace OpenMeter.Entitlements.V2;
+namespace OpenMeter;
 
 /**
  * The grant.
@@ -58,10 +58,7 @@ model GrantV2 {
  */
 @friendlyName("EntitlementGrantCreateInputV2")
 model GrantCreateInputV2 {
-  ...OmitProperties<
-    OpenMeter.Entitlements.GrantCreateInput,
-    "maxRolloverAmount" | "expiration"
-  >;
+  ...OmitProperties<GrantCreateInput, "maxRolloverAmount" | "expiration">;
 
   /**
    * Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset. The default value equals grant amount.

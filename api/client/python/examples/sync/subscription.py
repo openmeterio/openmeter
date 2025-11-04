@@ -3,6 +3,7 @@ from typing import Optional
 
 from openmeter import Client
 from openmeter.models import (
+    Metadata,
     PlanSubscriptionCreate,
     PlanReferenceInput,
     SubscriptionStatus,
@@ -26,19 +27,21 @@ def main() -> None:
         print(f"Creating subscription for customer '{customer_key}' with plan '{plan_key}'...")
 
         subscription_create = PlanSubscriptionCreate(
-            customer_key=customer_key,
             plan=PlanReferenceInput(
                 key=plan_key,
             ),
             name="Free Plan Subscription",
             description="Subscription to the free plan for Acme Corporation",
-            metadata={
-                "source": "example",
-                "environment": "development",
-            },
+            customer_key=customer_key,
+            metadata=Metadata(
+                {
+                    "source": "example",
+                    "environment": "development",
+                }
+            ),
         )
 
-        subscription = client.product_catalog.subscriptions.create(subscription_create)
+        subscription = client.subscriptions.create(subscription_create)
         print(f"Subscription created successfully with ID: {subscription.id}")
         print(f"Subscription name: {subscription.name}")
         print(f"Subscription status: {subscription.status}")
@@ -49,7 +52,7 @@ def main() -> None:
         print(f"Billing cadence: {subscription.billing_cadence}")
 
         # Retrieve the subscription to verify
-        retrieved_subscription = client.product_catalog.subscriptions.get_expanded(subscription.id)
+        retrieved_subscription = client.subscriptions.get_expanded(subscription.id)
         print(f"\nRetrieved subscription: {retrieved_subscription.name}")
         print(f"Status: {retrieved_subscription.status}")
         if retrieved_subscription.plan:
@@ -58,7 +61,7 @@ def main() -> None:
 
         # List subscriptions for the customer
         print(f"\nListing subscriptions for customer '{customer_key}'...")
-        subscriptions_response = client.customer.customers.list_customer_subscriptions(
+        subscriptions_response = client.customers.list_customer_subscriptions(
             customer_key, status=[SubscriptionStatus.ACTIVE]
         )
         for sub in subscriptions_response.items_property:

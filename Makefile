@@ -31,7 +31,6 @@ generate-javascript-sdk: ## Generate JavaScript SDK
 .PHONY: gen-api
 gen-api: update-openapi generate-javascript-sdk ## Generate API and SDKs
 	$(call print-target)
-	# dagger call generate python-sdk -o api/client/python
 
 .PHONY: generate-all
 generate-all: update-openapi generate-javascript-sdk ## Execute all code generators

@@ -2,7 +2,7 @@ from os import environ
 from typing import Optional
 
 from openmeter import Client
-from openmeter.models import MeterQueryResult
+from openmeter.models import MeterQueryResult, FilterString
 from corehttp.exceptions import HttpResponseError
 
 ENDPOINT: str = environ.get("OPENMETER_ENDPOINT") or "https://openmeter.cloud"
@@ -35,7 +35,7 @@ def main() -> None:
         # Query total values for model=gpt-4o
         r = client.meters.query_json(
             meter_id_or_slug="tokens_total",
-            advanced_meter_group_by_filters={"model": {"$eq": "gpt-4o"}},
+            advanced_meter_group_by_filters={"model": FilterString(eq="gpt-4o")},
         )
         if r.data and len(r.data) > 0:
             print("Query total values for model=gpt-4o:", r.data[0].value)

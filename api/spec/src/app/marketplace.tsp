@@ -9,14 +9,15 @@ import "../types.tsp";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.App;
+namespace OpenMeter;
 
 /**
  * Marketplace API.
  */
 @route("/api/v1/marketplace")
 @tag("Apps")
-interface Marketplace {
+@friendlyName("Marketplace")
+interface MarketplaceEndpoints {
   /**
    * List available apps of the app marketplace.
    */
@@ -35,7 +36,7 @@ interface Marketplace {
   @route("/listings/{type}")
   @operationId("getMarketplaceListing")
   @summary("Get app details by type")
-  get(type: Type): MarketplaceListing | CommonErrors;
+  get(type: AppType): MarketplaceListing | CommonErrors;
 
   /* **************** Install App via OAuth2 **************** */
 
@@ -48,7 +49,7 @@ interface Marketplace {
   @operationId("marketplaceOAuth2InstallGetURL")
   @summary("Get OAuth2 install URL")
   getOAuth2InstallURL(
-    @path type: Type,
+    @path type: AppType,
   ): OAuth2.ClientAppStartResponse | CommonErrors;
 
   /**
@@ -100,12 +101,13 @@ model MarketplaceInstallResponse {
   /**
    * Default for capabilities
    */
-  defaultForCapabilityTypes: CapabilityType[];
+  defaultForCapabilityTypes: AppCapabilityType[];
 }
 
 /**
  * Marketplace OAuth2 install request.
  */
+#suppress "@openmeter/api-spec/casing" "Valid casing"
 @friendlyName("MarketplaceOAuth2InstallAuthorizeRequest")
 model MarketplaceOAuth2InstallAuthorizeRequest {
   ...OAuth2.AuthorizationCodeGrantParams;
@@ -113,7 +115,7 @@ model MarketplaceOAuth2InstallAuthorizeRequest {
   /**
    * The type of the app to install.
    */
-  @path type: Type;
+  @path type: AppType;
 }
 
 /**
@@ -143,7 +145,7 @@ model MarketplaceApiKeyInstallRequest {
   /**
    * The type of the app to install.
    */
-  @path type: Type;
+  @path type: AppType;
 
   @body _: {
     ...MarketplaceInstallRequestPayload;
@@ -164,7 +166,7 @@ model MarketplaceInstallRequest {
   /**
    * The type of the app to install.
    */
-  @path type: Type;
+  @path type: AppType;
 
   @body _: MarketplaceInstallRequestPayload;
 }
@@ -177,36 +179,36 @@ model MarketplaceInstallRequest {
  */
 @friendlyName("MarketplaceListing")
 @example(#{
-  type: Type.Stripe,
+  type: AppType.Stripe,
   name: "Stripe",
   description: "Stripe interation allows you to collect payments with Stripe.",
   capabilities: #[
     #{
-      type: CapabilityType.CalculateTax,
+      type: AppCapabilityType.CalculateTax,
       key: "stripe_calculate_tax",
       name: "Calculate Tax",
       description: "Stripe Tax calculates tax portion of the invoices.",
     },
     #{
-      type: CapabilityType.InvoiceCustomers,
+      type: AppCapabilityType.InvoiceCustomers,
       key: "stripe_invoice_customers",
       name: "Invoice Customers",
       description: "Stripe invoices customers with due amount.",
     },
     #{
-      type: CapabilityType.CollectPayments,
+      type: AppCapabilityType.CollectPayments,
       key: "stripe_collect_payments",
       name: "Collect Payments",
       description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
     }
   ],
-  installMethods: #[InstallMethod.WithOAuth2, InstallMethod.WithAPIKey],
+  installMethods: #[AppInstallMethod.WithOAuth2, AppInstallMethod.WithAPIKey],
 })
 model MarketplaceListing {
   /**
    * The app's type
    */
-  type: Type;
+  type: AppType;
 
   /**
    * The app's name.
@@ -221,21 +223,21 @@ model MarketplaceListing {
   /**
    * The app's capabilities.
    */
-  capabilities: Capability[];
+  capabilities: AppCapability[];
 
   /**
    * Install methods.
    *
    * List of methods to install the app.
    */
-  installMethods: InstallMethod[];
+  installMethods: AppInstallMethod[];
 }
 
 /**
  * Install method of the application.
  */
 @friendlyName("InstallMethod")
-enum InstallMethod {
+enum AppInstallMethod {
   WithOAuth2: "with_oauth2",
   WithAPIKey: "with_api_key",
   NoCredentialsRequired: "no_credentials_required",

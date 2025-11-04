@@ -1,8 +1,9 @@
 import "@typespec/http";
 import "../types.tsp";
+import "../errors.tsp";
 import "./ratecards.tsp";
 
-namespace OpenMeter.ProductCatalog;
+namespace OpenMeter;
 
 /**
  * Common errors for the product catalog API.
@@ -10,12 +11,12 @@ namespace OpenMeter.ProductCatalog;
 alias CommonSubscriptionErrors =
   | SubscriptionBadRequestErrorResponse
   | SubscriptionConflictErrorResponse
-  | OpenMeter.UnauthorizedError
-  | OpenMeter.ForbiddenError
-  | OpenMeter.InternalServerErrorError
-  | OpenMeter.ServiceUnavailableError
-  | OpenMeter.PreconditionFailedError
-  | OpenMeter.Error;
+  | UnauthorizedError
+  | ForbiddenError
+  | InternalServerErrorError
+  | ServiceUnavailableError
+  | PreconditionFailedError
+  | Error;
 
 /**
  * Error extensions for the Subscription Errors.
@@ -33,7 +34,7 @@ union SubscriptionErrorExtensions {
 @error
 @friendlyName("SubscriptionBadRequestErrorResponse")
 model SubscriptionBadRequestErrorResponse {
-  ...OmitProperties<OpenMeter.BadRequestError, "extensions">;
+  ...OmitProperties<BadRequestError, "extensions">;
 
   /**
    * Additional properties specific to the problem type may be present.
@@ -48,7 +49,7 @@ model SubscriptionBadRequestErrorResponse {
 @error
 @friendlyName("SubscriptionConflictErrorResponse")
 model SubscriptionConflictErrorResponse {
-  ...OmitProperties<OpenMeter.ConflictError, "extensions">;
+  ...OmitProperties<ConflictError, "extensions">;
 
   /**
    * Additional properties specific to the problem type may be present.

@@ -3,11 +3,12 @@ import "../rest.tsp";
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace OpenMeter.Billing;
+namespace OpenMeter;
 
 @route("/api/v1/billing/profiles")
 @tag("Billing")
-interface Profiles {
+@friendlyName("BillingProfiles")
+interface BillingProfilesEndpoints {
   /**
    * List all billing profiles matching the specified filters.
    *
@@ -25,9 +26,9 @@ interface Profiles {
     @query(#{ explode: true })
     expand?: BillingProfileExpand[],
 
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryOrdering<BillingProfileOrderBy>,
-  ): OpenMeter.PaginatedResponse<BillingProfile> | OpenMeter.CommonErrors;
+    ...QueryPagination,
+    ...QueryOrdering<BillingProfileOrderBy>,
+  ): PaginatedResponse<BillingProfile> | CommonErrors;
 
   /**
    * Create a new billing profile
@@ -41,7 +42,7 @@ interface Profiles {
   create(@body profile: BillingProfileCreate): {
     @statusCode _: 201;
     @body profile: BillingProfile;
-  } | OpenMeter.CommonErrors;
+  } | CommonErrors;
 
   /**
    * Delete a billing profile by id.
@@ -60,7 +61,7 @@ interface Profiles {
     id: ULID,
   ): {
     @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  } | NotFoundError | CommonErrors;
 
   /**
    * Get a billing profile by id.
@@ -79,7 +80,7 @@ interface Profiles {
 
     @query(#{ explode: true })
     expand?: BillingProfileExpand[],
-  ): BillingProfile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): BillingProfile | NotFoundError | CommonErrors;
 
   /**
    * Update a billing profile by id.
@@ -96,7 +97,7 @@ interface Profiles {
     id: ULID,
 
     @body profile: BillingProfileReplaceUpdate,
-  ): BillingProfile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): BillingProfile | NotFoundError | CommonErrors;
 }
 
 /**
@@ -129,7 +130,7 @@ model BillingProfile {
    * The name and contact information for the supplier this billing profile represents
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  supplier: Invoice.BillingParty;
+  supplier: BillingParty;
 
   /**
    * The billing workflow settings for this profile
@@ -198,19 +199,19 @@ model BillingProfileApps {
    * The tax app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  tax: OpenMeter.App.App;
+  tax: App;
 
   /**
    * The invoicing app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  invoicing: OpenMeter.App.App;
+  invoicing: App;
 
   /**
    * The payment app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  payment: OpenMeter.App.App;
+  payment: App;
 }
 
 /**
@@ -222,19 +223,19 @@ model BillingProfileAppReferences {
    * The tax app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  tax: OpenMeter.App.AppReference;
+  tax: AppReference;
 
   /**
    * The invoicing app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  invoicing: OpenMeter.App.AppReference;
+  invoicing: AppReference;
 
   /**
    * The payment app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  payment: OpenMeter.App.AppReference;
+  payment: AppReference;
 }
 
 /**
@@ -454,7 +455,7 @@ model BillingWorkflowInvoicingSettings {
    * Default tax configuration to apply to the invoices.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  defaultTaxConfig?: OpenMeter.ProductCatalog.TaxConfig;
+  defaultTaxConfig?: TaxConfig;
 }
 
 /**
