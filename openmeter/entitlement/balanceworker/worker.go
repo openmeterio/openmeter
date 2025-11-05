@@ -207,18 +207,6 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 		w.opts.EventBus.Marshaler(),
 		metricMeter,
 
-		// Entitlement created event
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementCreatedEvent) error {
-			return w.opts.EventBus.
-				WithContext(ctx).
-				PublishIfNoError(w.handleEntitlementEvent(
-					ctx,
-					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
-					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
-					WithEventAt(event.CreatedAt),
-				))
-		}),
-
 		// Entitlement created event v2
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementCreatedEventV2) error {
 			return w.opts.EventBus.
@@ -228,17 +216,6 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.Entitlement.ID},
 					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.Entitlement.ID)),
 					WithEventAt(event.Entitlement.ManagedModel.CreatedAt),
-				))
-		}),
-
-		// Entitlement deleted event
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementDeletedEvent) error {
-			return w.opts.EventBus.
-				WithContext(ctx).
-				PublishIfNoError(w.handleEntitlementEvent(ctx,
-					pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
-					WithSource(metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID)),
-					WithEventAt(lo.FromPtrOr(event.DeletedAt, time.Now())),
 				))
 		}),
 
