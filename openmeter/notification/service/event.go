@@ -118,8 +118,12 @@ func (s Service) ResendEvent(ctx context.Context, params notification.ResendEven
 		}
 
 		for _, status := range event.DeliveryStatus {
-			// TODO: if params.Channels not empty, only resend to these input channels
 			if !lo.Contains(allowedStates, status.State) {
+				continue
+			}
+
+			// If there are params.Channels, only resend to those channels.
+			if len(params.Channels) > 0 && !lo.Contains(params.Channels, status.ChannelID) {
 				continue
 			}
 
