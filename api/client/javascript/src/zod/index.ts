@@ -6663,7 +6663,7 @@ export const updateBillingProfileBody = zod
 export const createCustomerBodyNameMax = 256 as const
 export const createCustomerBodyDescriptionMax = 1024 as const
 export const createCustomerBodyKeyMax = 256 as const
-export const createCustomerBodyUsageAttributionSubjectKeysMax = 1 as const
+export const createCustomerBodyUsageAttributionSubjectKeysMin = 0 as const
 export const createCustomerBodyCurrencyMinOne = 3 as const
 
 export const createCustomerBodyCurrencyMaxOne = 3 as const
@@ -6765,12 +6765,13 @@ export const createCustomerBody = zod
                 'SubjectKey is a key that is used to identify a subject.',
               ),
           )
-          .min(1)
-          .max(createCustomerBodyUsageAttributionSubjectKeysMax)
-          .describe('The subjects that are attributed to the customer.'),
+          .min(createCustomerBodyUsageAttributionSubjectKeysMin)
+          .describe(
+            'The subjects that are attributed to the customer.\nCan be empty when no subjects are associated with the customer.',
+          ),
       })
       .describe(
-        'Mapping to attribute metered usage to the customer.\nOne customer can have multiple subjects,\nbut one subject can only belong to one customer.',
+        'Mapping to attribute metered usage to the customer.\nOne customer can have zero or more subjects,\nbut one subject can only belong to one customer.',
       )
       .describe('Mapping to attribute metered usage to the customer'),
   })
@@ -6906,7 +6907,7 @@ export const updateCustomerParams = zod.object({
 export const updateCustomerBodyNameMax = 256 as const
 export const updateCustomerBodyDescriptionMax = 1024 as const
 export const updateCustomerBodyKeyMax = 256 as const
-export const updateCustomerBodyUsageAttributionSubjectKeysMax = 1 as const
+export const updateCustomerBodyUsageAttributionSubjectKeysMin = 0 as const
 export const updateCustomerBodyCurrencyMinOne = 3 as const
 
 export const updateCustomerBodyCurrencyMaxOne = 3 as const
@@ -7008,12 +7009,13 @@ export const updateCustomerBody = zod
                 'SubjectKey is a key that is used to identify a subject.',
               ),
           )
-          .min(1)
-          .max(updateCustomerBodyUsageAttributionSubjectKeysMax)
-          .describe('The subjects that are attributed to the customer.'),
+          .min(updateCustomerBodyUsageAttributionSubjectKeysMin)
+          .describe(
+            'The subjects that are attributed to the customer.\nCan be empty when no subjects are associated with the customer.',
+          ),
       })
       .describe(
-        'Mapping to attribute metered usage to the customer.\nOne customer can have multiple subjects,\nbut one subject can only belong to one customer.',
+        'Mapping to attribute metered usage to the customer.\nOne customer can have zero or more subjects,\nbut one subject can only belong to one customer.',
       )
       .describe('Mapping to attribute metered usage to the customer'),
   })
@@ -12291,8 +12293,8 @@ export const createStripeCheckoutSessionBodyCustomerNameMax = 256 as const
 export const createStripeCheckoutSessionBodyCustomerDescriptionMax =
   1024 as const
 export const createStripeCheckoutSessionBodyCustomerKeyMaxOne = 256 as const
-export const createStripeCheckoutSessionBodyCustomerUsageAttributionSubjectKeysMax =
-  1 as const
+export const createStripeCheckoutSessionBodyCustomerUsageAttributionSubjectKeysMin =
+  0 as const
 export const createStripeCheckoutSessionBodyCustomerCurrencyMinOne = 3 as const
 
 export const createStripeCheckoutSessionBodyCustomerCurrencyMaxOne = 3 as const
@@ -12451,16 +12453,15 @@ export const createStripeCheckoutSessionBody = zod
                         'SubjectKey is a key that is used to identify a subject.',
                       ),
                   )
-                  .min(1)
-                  .max(
-                    createStripeCheckoutSessionBodyCustomerUsageAttributionSubjectKeysMax,
+                  .min(
+                    createStripeCheckoutSessionBodyCustomerUsageAttributionSubjectKeysMin,
                   )
                   .describe(
-                    'The subjects that are attributed to the customer.',
+                    'The subjects that are attributed to the customer.\nCan be empty when no subjects are associated with the customer.',
                   ),
               })
               .describe(
-                'Mapping to attribute metered usage to the customer.\nOne customer can have multiple subjects,\nbut one subject can only belong to one customer.',
+                'Mapping to attribute metered usage to the customer.\nOne customer can have zero or more subjects,\nbut one subject can only belong to one customer.',
               )
               .describe('Mapping to attribute metered usage to the customer'),
           })
