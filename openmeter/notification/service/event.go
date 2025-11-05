@@ -142,7 +142,15 @@ func (s Service) ResendEvent(ctx context.Context, params notification.ResendEven
 			}
 		}
 
-		return event, nil
+		updatedEvent, err := s.adapter.GetEvent(ctx, notification.GetEventInput{
+			Namespace: params.Namespace,
+			ID:        params.ID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get updated event: %w", err)
+		}
+
+		return updatedEvent, nil
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
