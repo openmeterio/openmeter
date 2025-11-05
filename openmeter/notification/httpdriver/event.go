@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -121,6 +122,56 @@ func (h *handler) GetEvent() GetEventHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getNotificationEvent"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+type (
+	ResendEventRequest  = notification.ResendEventInput
+	ResendEventResponse = api.NotificationEvent
+	ResendEventHandler  httptransport.HandlerWithArgs[ResendEventRequest, ResendEventResponse, string]
+)
+
+func (h *handler) ResendEvent() ResendEventHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, eventID string) (ResendEventRequest, error) {
+			body := api.NotificationEventResendRequest{}
+			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+				return ResendEventRequest{}, fmt.Errorf("field to decode resend event request: %w", err)
+			}
+
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ResendEventRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			req := ResendEventRequest{
+				NamespacedID: models.NamespacedID{
+					Namespace: ns,
+					ID:        eventID,
+				},
+				Channels: lo.FromPtr(body.Channels),
+			}
+
+			return req, nil
+		},
+		func(ctx context.Context, request ResendEventRequest) (ResendEventResponse, error) {
+			event, err := h.service.ResendEvent(ctx, request)
+			if err != nil {
+				return ResendEventResponse{}, fmt.Errorf("failed to resend event: %w", err)
+			}
+
+			if event == nil {
+				return ResendEventResponse{}, errors.New("failed to resend event: nil event returned")
+			}
+
+			return FromEvent(*event)
+		},
+		commonhttp.JSONResponseEncoderWithStatus[ResendEventResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("resendNotificationEvent"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)

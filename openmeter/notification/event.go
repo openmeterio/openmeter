@@ -175,3 +175,32 @@ func (i CreateEventInput) Validate() error {
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
+
+var (
+	_ models.Validator                         = (*ResendEventInput)(nil)
+	_ models.CustomValidator[ResendEventInput] = (*ResendEventInput)(nil)
+)
+
+type ResendEventInput struct {
+	models.NamespacedID
+
+	Channels []string `json:"channels,omitempty"`
+}
+
+func (i ResendEventInput) ValidateWith(validators ...models.ValidatorFunc[ResendEventInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i ResendEventInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID == "" {
+		errs = append(errs, errors.New("id is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}

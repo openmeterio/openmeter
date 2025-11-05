@@ -17,4 +17,6 @@ const (
 
 	AnnotationEventInvoiceID     = "event.invoice.id"
 	AnnotationEventInvoiceNumber = "event.invoice.number"
+
+	AnnotationEventResendTimestamp = "event.resend.timestamp"
 )
