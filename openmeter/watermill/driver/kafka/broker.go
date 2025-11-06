@@ -109,6 +109,7 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 	}
 
 	config.Producer.Retry.Max = 10
+	config.Producer.MaxMessageBytes = 2000000 // 2MB
 	config.Producer.Return.Successes = true
 
 	meterRegistry, err := metrics.NewRegistry(metrics.NewRegistryOptions{
