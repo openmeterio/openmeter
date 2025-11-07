@@ -258,7 +258,8 @@ func (h svixHandler) GetMessage(ctx context.Context, params webhook.GetMessageIn
 		span := trace.SpanFromContext(ctx)
 
 		spanAttrs := []attribute.KeyValue{
-			attribute.String(AnnotationMessageEventID, params.ID),
+			attribute.String(AnnotationMessageID, params.ID),
+			attribute.String(AnnotationMessageEventID, params.EventID),
 			attribute.String(AnnotationApplicationUID, params.Namespace),
 		}
 
