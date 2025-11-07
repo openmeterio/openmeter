@@ -67,7 +67,7 @@ func (h svixHandler) SendMessage(ctx context.Context, params webhook.SendMessage
 
 			if svixErr, ok := lo.ErrorsAs[Error](err); ok {
 				// Conflict received in case the EventID already exist meaning the message is already published.
-				// Let's try to get the message from the API.
+				// Return a custom error to indicate that the message is not ready yet.
 				if svixErr.HTTPStatus == http.StatusConflict {
 					return nil, webhook.NewMessageNotReadyError(params.Namespace, params.EventID)
 				}
