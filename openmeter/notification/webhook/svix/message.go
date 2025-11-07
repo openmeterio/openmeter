@@ -47,9 +47,9 @@ func (h svixHandler) SendMessage(ctx context.Context, params webhook.SendMessage
 		span := trace.SpanFromContext(ctx)
 
 		spanAttrs := []attribute.KeyValue{
-			attribute.String("svix.event.id", lo.FromPtr(input.EventId)),
-			attribute.String("svix.event.type", input.EventType),
-			attribute.String("svix.app.id", params.Namespace),
+			attribute.String(AnnotationMessageEventID, lo.FromPtr(input.EventId)),
+			attribute.String(AnnotationEventType, input.EventType),
+			attribute.String(AnnotationApplicationUID, params.Namespace),
 		}
 
 		span.SetAttributes(spanAttrs...)
@@ -111,8 +111,8 @@ func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID s
 		span := trace.SpanFromContext(ctx)
 
 		spanAttrs := []attribute.KeyValue{
-			attribute.String("svix.event.id", eventID),
-			attribute.String("svix.app.id", namespace),
+			attribute.String(AnnotationMessageEventID, eventID),
+			attribute.String(AnnotationApplicationUID, namespace),
 		}
 
 		span.SetAttributes(spanAttrs...)
@@ -179,7 +179,7 @@ func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID s
 		}
 
 		span.AddEvent("delivery attempts", trace.WithAttributes(spanAttrs...), trace.WithAttributes(
-			attribute.Int("svix.message.attempts_count", len(attemptsBySvixEndpointID)),
+			attribute.Int(AnnotationMessageAttemptsCount, len(attemptsBySvixEndpointID)),
 		))
 
 		// Fetch delivery attempts for the event by endpoints.
@@ -258,8 +258,8 @@ func (h svixHandler) GetMessage(ctx context.Context, params webhook.GetMessageIn
 		span := trace.SpanFromContext(ctx)
 
 		spanAttrs := []attribute.KeyValue{
-			attribute.String("svix.event.id", params.ID),
-			attribute.String("svix.app.id", params.Namespace),
+			attribute.String(AnnotationMessageEventID, params.ID),
+			attribute.String(AnnotationApplicationUID, params.Namespace),
 		}
 
 		span.SetAttributes(spanAttrs...)

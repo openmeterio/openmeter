@@ -27,8 +27,8 @@ func (h svixHandler) RegisterEventTypes(ctx context.Context, params webhook.Regi
 			}
 
 			spanAttrs := []attribute.KeyValue{
-				attribute.String("svix.event_type.name", eventType.Name),
-				attribute.String("svix.event_type.group_name", eventType.GroupName),
+				attribute.String(AnnotationEventType, eventType.Name),
+				attribute.String(AnnotationEventGroupName, eventType.GroupName),
 			}
 
 			span.AddEvent("upserting schema(s) for event type", trace.WithAttributes(spanAttrs...))

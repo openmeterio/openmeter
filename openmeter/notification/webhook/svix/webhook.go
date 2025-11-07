@@ -188,10 +188,10 @@ func (h svixHandler) CreateWebhook(ctx context.Context, params webhook.CreateWeb
 		span := trace.SpanFromContext(ctx)
 
 		spanAttrs := []attribute.KeyValue{
-			attribute.String("svix.app_id", params.Namespace),
-			attribute.String("svix.endpoint_id", endpointUID),
-			attribute.String("svix.endpoint_url", input.Url),
-			attribute.String("svix.idempotency_key", idempotencyKey),
+			attribute.String(AnnotationApplicationUID, params.Namespace),
+			attribute.String(AnnotationEndpointUID, endpointUID),
+			attribute.String(AnnotationEndpointURL, input.Url),
+			attribute.String("idempotency_key", idempotencyKey),
 		}
 
 		span.AddEvent("creating endpoint", trace.WithAttributes(spanAttrs...))
@@ -270,9 +270,9 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 		span := trace.SpanFromContext(ctx)
 
 		spanAttrs := []attribute.KeyValue{
-			attribute.String("svix.app_id", params.Namespace),
-			attribute.String("svix.endpoint_id", params.ID),
-			attribute.String("svix.endpoint_url", params.URL),
+			attribute.String(AnnotationApplicationUID, params.Namespace),
+			attribute.String(AnnotationEndpointUID, params.ID),
+			attribute.String(AnnotationEndpointURL, params.URL),
 		}
 
 		span.AddEvent("updating endpoint", trace.WithAttributes(spanAttrs...))
@@ -384,8 +384,8 @@ func (h svixHandler) DeleteWebhook(ctx context.Context, params webhook.DeleteWeb
 		span := trace.SpanFromContext(ctx)
 
 		spanAttrs := []attribute.KeyValue{
-			attribute.String("svix.app_id", params.Namespace),
-			attribute.String("svix.endpoint_id", params.ID),
+			attribute.String(AnnotationApplicationUID, params.Namespace),
+			attribute.String(AnnotationEndpointUID, params.ID),
 		}
 
 		span.AddEvent("deleting endpoint", trace.WithAttributes(spanAttrs...))
@@ -414,8 +414,8 @@ func (h svixHandler) GetWebhook(ctx context.Context, params webhook.GetWebhookIn
 		span := trace.SpanFromContext(ctx)
 
 		spanAttrs := []attribute.KeyValue{
-			attribute.String("svix.app_id", params.Namespace),
-			attribute.String("svix.endpoint_id", params.ID),
+			attribute.String(AnnotationApplicationUID, params.Namespace),
+			attribute.String(AnnotationEndpointUID, params.ID),
 		}
 
 		span.AddEvent("fetching endpoint", trace.WithAttributes(spanAttrs...))
@@ -469,7 +469,7 @@ func (h svixHandler) ListWebhooks(ctx context.Context, params webhook.ListWebhoo
 
 		for !stop {
 			spanAttrs := []attribute.KeyValue{
-				attribute.String("svix.app_id", params.Namespace),
+				attribute.String(AnnotationApplicationUID, params.Namespace),
 				attribute.String("iterator", lo.FromPtr(opts.Iterator)),
 			}
 
