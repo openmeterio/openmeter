@@ -84,7 +84,7 @@ func (h svixHandler) SendMessage(ctx context.Context, params webhook.SendMessage
 			EventID:          lo.FromPtr(out.EventId),
 			EventType:        out.EventType,
 			Channels:         out.Channels,
-			Payload:          &out.Payload,
+			Payload:          &params.Payload,
 			DeliveryStatuses: nil,
 			Annotations: models.Annotations{
 				AnnotationMessageID:      out.Id,
