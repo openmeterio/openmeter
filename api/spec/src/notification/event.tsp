@@ -63,6 +63,84 @@ model NotificationEventDeliveryStatus {
   @visibility(Lifecycle.Read)
   @summary("Annotations")
   annotations?: Annotations;
+
+  /**
+   * Timestamp of the next delivery attempt. If null it means there will be no more delivery attempts.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Timestamp of the next delivery attempt")
+  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+  nextAttempt?: DateTime;
+
+  /**
+   * List of delivery attempts.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Delivery Attempts")
+  attempts: Array<NotificationEventDeliveryAttempt>;
+}
+
+/**
+ * The response of the event delivery attempt.
+ */
+@friendlyName("EventDeliveryAttemptResponse")
+model EventDeliveryAttemptResponse {
+  /**
+   * Status code of the response if available.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Status Code")
+  statusCode?: integer;
+
+  /**
+   * The body of the response.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Response Body")
+  body: string;
+
+  /**
+   * The duration of the response in milliseconds.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Response Duration")
+  durationMs: integer;
+
+  /**
+   * URL where the event was sent in case of notification channel with webhook type.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("URL")
+  url?: string;
+}
+
+/**
+ * The delivery attempt of the notification event.
+ */
+@friendlyName("NotificationEventDeliveryAttempt")
+model NotificationEventDeliveryAttempt {
+  /**
+   * State of teh delivery attempt.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("State of teh delivery attempt")
+  @example(NotificationEventDeliveryStatusState.Success)
+  state: NotificationEventDeliveryStatusState;
+
+  /**
+   * Response returned by the notification event recipient.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Response returned by the notification event recipient")
+  response: EventDeliveryAttemptResponse;
+
+  /**
+   * Timestamp of the delivery attempt.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Timestamp of the delivery attempt")
+  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+  timestamp: DateTime;
 }
 
 /**

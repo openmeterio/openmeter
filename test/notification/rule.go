@@ -168,12 +168,12 @@ func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn1 := NewCreateRuleInput("NotificationListRule1", s.channel.ID)
+	createIn1 := NewCreateRuleInput(s.Env.Namespace(), "NotificationListRule1", s.channel.ID)
 	rule1, err := service.CreateRule(ctx, createIn1)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule1, "Rule must not be nil")
 
-	createIn2 := NewCreateRuleInput("NotificationListRule2", s.channel.ID)
+	createIn2 := NewCreateRuleInput(s.Env.Namespace(), "NotificationListRule2", s.channel.ID)
 	rule2, err := service.CreateRule(ctx, createIn2)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule2, "Rule must not be nil")
@@ -211,7 +211,7 @@ func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
 func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateRuleInput("NotificationUpdateRule1", s.channel.ID)
+	createIn := NewCreateRuleInput(s.Env.Namespace(), "NotificationUpdateRule1", s.channel.ID)
 	rule, err := service.CreateRule(ctx, createIn)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule, "Rule must not be nil")
@@ -236,6 +236,7 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 				}),
 			},
 		},
+		Channels: []string{s.channel.ID},
 		Metadata: models.Metadata{
 			"namespace": rule.Namespace,
 			"name":      "NotificationUpdateRule2",
@@ -260,7 +261,7 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 func (s *RuleTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateRuleInput("NotificationDeleteRule1", s.channel.ID)
+	createIn := NewCreateRuleInput(s.Env.Namespace(), "NotificationDeleteRule1", s.channel.ID)
 
 	rule, err := service.CreateRule(ctx, createIn)
 	require.NoError(t, err, "Creating rule must not return error")
@@ -277,7 +278,7 @@ func (s *RuleTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 func (s *RuleTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateRuleInput("NotificationGetRule1", s.channel.ID)
+	createIn := NewCreateRuleInput(s.Env.Namespace(), "NotificationGetRule1", s.channel.ID)
 
 	rule, err := service.CreateRule(ctx, createIn)
 	require.NoError(t, err, "Creating rule must not return error")

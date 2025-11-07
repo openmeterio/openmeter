@@ -104,7 +104,9 @@ func (a *adapter) UpdateEventDeliveryStatus(ctx context.Context, params notifica
 			Where(statusdb.Namespace(params.Namespace)).
 			SetState(params.State).
 			SetReason(params.Reason).
-			SetAnnotations(params.Annotations)
+			SetAnnotations(params.Annotations).
+			SetOrClearNextAttemptAt(params.NextAttempt).
+			SetAttempts(params.Attempts)
 
 		row, err := query.Save(ctx)
 		if err != nil {

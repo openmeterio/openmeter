@@ -5,6 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Webhook struct {
@@ -23,11 +27,7 @@ type Webhook struct {
 	UpdatedAt     time.Time
 }
 
-type validator interface {
-	Validate() error
-}
-
-var _ validator = (*ListWebhooksInput)(nil)
+var _ models.Validator = (*ListWebhooksInput)(nil)
 
 type ListWebhooksInput struct {
 	Namespace string
@@ -47,7 +47,7 @@ func (i ListWebhooksInput) Validate() error {
 	return NewValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*CreateWebhookInput)(nil)
+var _ models.Validator = (*CreateWebhookInput)(nil)
 
 type CreateWebhookInput struct {
 	Namespace string
@@ -76,7 +76,7 @@ func (i CreateWebhookInput) Validate() error {
 	}
 
 	if i.Secret != nil && *i.Secret != "" {
-		if err := ValidateSigningSecret(*i.Secret); err != nil {
+		if err := secret.ValidateSigningSecret(*i.Secret); err != nil {
 			errs = append(errs, fmt.Errorf("invalid secret: %w", err))
 		}
 	}
@@ -84,7 +84,7 @@ func (i CreateWebhookInput) Validate() error {
 	return NewValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*UpdateWebhookInput)(nil)
+var _ models.Validator = (*UpdateWebhookInput)(nil)
 
 type UpdateWebhookInput struct {
 	Namespace string
@@ -119,7 +119,7 @@ func (i UpdateWebhookInput) Validate() error {
 	if i.Secret == nil {
 		errs = append(errs, errors.New("secret is required"))
 	} else {
-		if err := ValidateSigningSecret(*i.Secret); err != nil {
+		if err := secret.ValidateSigningSecret(*i.Secret); err != nil {
 			errs = append(errs, fmt.Errorf("invalid secret: %w", err))
 		}
 	}
@@ -127,7 +127,7 @@ func (i UpdateWebhookInput) Validate() error {
 	return NewValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*UpdateWebhookChannelsInput)(nil)
+var _ models.Validator = (*UpdateWebhookChannelsInput)(nil)
 
 type UpdateWebhookChannelsInput struct {
 	Namespace string
@@ -151,7 +151,7 @@ func (i UpdateWebhookChannelsInput) Validate() error {
 	return NewValidationError(errors.Join(errs...))
 }
 
-var _ validator = (*GetWebhookInput)(nil)
+var _ models.Validator = (*GetWebhookInput)(nil)
 
 type GetWebhookInput struct {
 	Namespace string
@@ -175,6 +175,15 @@ func (i GetWebhookInput) Validate() error {
 
 type DeleteWebhookInput = GetWebhookInput
 
+type Payload = map[string]any
+
+type MessageDeliveryStatus struct {
+	NextAttempt *time.Time                            `json:"nextAttempt"`
+	State       notification.EventDeliveryStatusState `json:"state"`
+	ChannelID   string                                `json:"channel_id"`
+	Attempts    []notification.EventDeliveryAttempt   `json:"attempts"`
+}
+
 type Message struct {
 	Namespace string
 
@@ -182,10 +191,19 @@ type Message struct {
 	EventID   string
 	EventType string
 	Channels  []string
-	Payload   map[string]interface{}
+
+	Annotations models.Annotations
+
+	// Expanded attributes
+
+	// Payload stores the message payload if it was requested.
+	Payload *Payload
+
+	// DeliveryStatuses stores the message delivery status if it was requested.
+	DeliveryStatuses *[]MessageDeliveryStatus
 }
 
-var _ validator = (*SendMessageInput)(nil)
+var _ models.Validator = (*SendMessageInput)(nil)
 
 type SendMessageInput struct {
 	Namespace string
@@ -193,7 +211,7 @@ type SendMessageInput struct {
 	EventID   string
 	EventType string
 	Channels  []string
-	Payload   map[string]interface{}
+	Payload   Payload
 }
 
 func (i SendMessageInput) Validate() error {
@@ -212,6 +230,22 @@ func (i SendMessageInput) Validate() error {
 	}
 
 	return NewValidationError(errors.Join(errs...))
+}
+
+type ExpandParams struct {
+	// Payload stores whether the message payload for the webhook message should be included in the response or not.
+	Payload bool
+	// DeliveryStatus stores whether the delivery status for the webhook message should be included in the response or not.
+	DeliveryStatus bool
+}
+
+type GetMessageInput struct {
+	Namespace string
+
+	ID      string
+	EventID string
+
+	Expand ExpandParams
 }
 
 type RegisterEventTypesInputs struct {
@@ -248,6 +282,7 @@ type WebhookHandler interface {
 
 type MessageHandler interface {
 	SendMessage(ctx context.Context, params SendMessageInput) (*Message, error)
+	GetMessage(ctx context.Context, params GetMessageInput) (*Message, error)
 }
 
 type Handler interface {

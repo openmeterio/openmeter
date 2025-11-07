@@ -463,13 +463,15 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 	deliveryStatuses := make([]api.NotificationEventDeliveryStatus, 0, len(e.DeliveryStatus))
 	for _, deliveryStatus := range e.DeliveryStatus {
 		status := api.NotificationEventDeliveryStatus{
+			Annotations: lo.EmptyableToPtr(api.Annotations(deliveryStatus.Annotations)),
+			Attempts:    AsEventDeliveryAttempts(deliveryStatus.Attempts),
 			Channel: api.NotificationChannelMeta{
 				Id: deliveryStatus.ChannelID,
 			},
-			State:     api.NotificationEventDeliveryStatusState(deliveryStatus.State),
-			UpdatedAt: deliveryStatus.UpdatedAt,
-
-			Annotations: lo.EmptyableToPtr(api.Annotations(deliveryStatus.Annotations)),
+			NextAttempt: deliveryStatus.NextAttempt,
+			Reason:      deliveryStatus.Reason,
+			State:       api.NotificationEventDeliveryStatusState(deliveryStatus.State),
+			UpdatedAt:   deliveryStatus.UpdatedAt,
 		}
 		if channel, ok := channelsByID[deliveryStatus.ChannelID]; ok {
 			status.Channel = api.NotificationChannelMeta{
@@ -540,6 +542,27 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 	}
 
 	return event, nil
+}
+
+func AsEventDeliveryAttempts(attempts []notification.EventDeliveryAttempt) []api.NotificationEventDeliveryAttempt {
+	result := make([]api.NotificationEventDeliveryAttempt, 0, len(attempts))
+
+	notification.SortEventDeliveryAttemptsInDescOrder(attempts)
+
+	for _, attempt := range attempts {
+		result = append(result, api.NotificationEventDeliveryAttempt{
+			Response: api.EventDeliveryAttemptResponse{
+				Body:       attempt.Response.Body,
+				StatusCode: attempt.Response.StatusCode,
+				Url:        attempt.Response.URL,
+				DurationMs: int(attempt.Response.Duration.Milliseconds()),
+			},
+			State:     api.NotificationEventDeliveryStatusState(attempt.State),
+			Timestamp: attempt.Timestamp,
+		})
+	}
+
+	return result
 }
 
 func FromEventType(t notification.EventType) (api.NotificationEventType, error) {

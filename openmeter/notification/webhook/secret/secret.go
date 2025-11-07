@@ -1,10 +1,12 @@
-package webhook
+package secret
 
 import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"strings"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const DefaultSigningSecretSize = 32
@@ -39,5 +41,5 @@ func ValidateSigningSecret(secret string) error {
 		errs = append(errs, errors.New("invalid base64 string"))
 	}
 
-	return NewValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

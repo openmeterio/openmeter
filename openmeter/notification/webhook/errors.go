@@ -2,6 +2,8 @@ package webhook
 
 import (
 	"errors"
+	"fmt"
+	"time"
 )
 
 var ErrNotImplemented = errors.New("not implemented")
@@ -72,4 +74,89 @@ func isError[T error](err error) bool {
 	var t T
 
 	return errors.As(err, &t)
+}
+
+type RetryableError struct {
+	err error
+
+	retryAfter time.Duration
+}
+
+func (e RetryableError) Error() string {
+	return e.err.Error()
+}
+
+func (e RetryableError) Unwrap() error {
+	return e.err
+}
+
+func (e RetryableError) RetryAfter() time.Duration {
+	return e.retryAfter
+}
+
+func IsRetryableError(err error) bool {
+	return isError[RetryableError](err)
+}
+
+const DefaultRetryAfter = 15 * time.Second
+
+func NewRetryableError(err error, after time.Duration) error {
+	if err == nil {
+		return nil
+	}
+
+	if after == 0 {
+		after = DefaultRetryAfter
+	}
+
+	return RetryableError{
+		err:        err,
+		retryAfter: after,
+	}
+}
+
+type MessageNotReadyError struct {
+	namespace string
+	eventID   string
+}
+
+func (e MessageNotReadyError) Error() string {
+	return fmt.Sprintf("message not ready [namespace=%s eventID=%s]", e.namespace, e.eventID)
+}
+
+func NewMessageNotReadyError(namespace string, eventID string) error {
+	return MessageNotReadyError{
+		namespace: namespace,
+		eventID:   eventID,
+	}
+}
+
+func IsMessageNotReadyError(err error) bool {
+	return isError[MessageNotReadyError](err)
+}
+
+type UnrecoverableError struct {
+	err error
+}
+
+func (e UnrecoverableError) Error() string {
+	return e.err.Error()
+}
+
+func (e UnrecoverableError) Unwrap() error {
+	return e.err
+}
+
+func IsUnrecoverableError(err error) bool {
+	return isError[UnrecoverableError](err)
+}
+
+func NewUnrecoverableError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return UnrecoverableError{
+		err: err,
+	}
 }

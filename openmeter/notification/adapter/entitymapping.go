@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -130,6 +132,15 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *noti
 		Reason:    e.Reason,
 		CreatedAt: e.CreatedAt.UTC(),
 		UpdatedAt: e.UpdatedAt.UTC(),
+
+		NextAttempt: func() *time.Time {
+			if e.NextAttemptAt == nil {
+				return nil
+			}
+
+			return lo.ToPtr(lo.FromPtr(e.NextAttemptAt).UTC())
+		}(),
+		Attempts: e.Attempts,
 
 		Annotations: e.Annotations,
 	}

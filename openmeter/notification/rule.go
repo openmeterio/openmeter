@@ -209,6 +209,10 @@ func (i CreateRuleInput) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if len(i.Channels) == 0 {
+		errs = append(errs, errors.New("at least one channel is required"))
+	}
+
 	if len(i.Channels) > MaxChannelsPerRule {
 		errs = append(errs, fmt.Errorf("too many channels: %d > %d", len(i.Channels), MaxChannelsPerRule))
 	}
@@ -265,6 +269,10 @@ func (i UpdateRuleInput) Validate() error {
 
 	if err := i.Config.Validate(); err != nil {
 		errs = append(errs, err)
+	}
+
+	if len(i.Channels) == 0 {
+		errs = append(errs, errors.New("at least one channel is required"))
 	}
 
 	if len(i.Channels) > MaxChannelsPerRule {

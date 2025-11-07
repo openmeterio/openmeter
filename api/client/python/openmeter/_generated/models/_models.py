@@ -6300,6 +6300,29 @@ class Event(_Model):
         super().__init__(*args, **kwargs)
 
 
+class EventDeliveryAttemptResponse(_Model):
+    """The response of the event delivery attempt.
+
+    :ivar status_code: Status Code.
+    :vartype status_code: int
+    :ivar body: Response Body. Required.
+    :vartype body: str
+    :ivar duration_ms: Response Duration. Required.
+    :vartype duration_ms: int
+    :ivar url: URL.
+    :vartype url: str
+    """
+
+    status_code: Optional[int] = rest_field(name="statusCode", visibility=["read"])
+    """Status Code."""
+    body: str = rest_field(visibility=["read"])
+    """Response Body. Required."""
+    duration_ms: int = rest_field(name="durationMs", visibility=["read"])
+    """Response Duration. Required."""
+    url: Optional[str] = rest_field(visibility=["read"])
+    """URL."""
+
+
 class ExpirationPeriod(_Model):
     """The grant expiration definition.
 
@@ -10314,6 +10337,27 @@ class NotificationEventBalanceThresholdPayloadData(_Model):  # pylint: disable=n
     """Threshold. Required."""
 
 
+class NotificationEventDeliveryAttempt(_Model):
+    """The delivery attempt of the notification event.
+
+    :ivar state: State of teh delivery attempt. Required. Known values are: "SUCCESS", "FAILED",
+     "SENDING", and "PENDING".
+    :vartype state: str or ~openmeter.models.NotificationEventDeliveryStatusState
+    :ivar response: Response returned by the notification event recipient. Required.
+    :vartype response: ~openmeter._generated.models.EventDeliveryAttemptResponse
+    :ivar timestamp: Timestamp of the delivery attempt. Required.
+    :vartype timestamp: ~datetime.datetime
+    """
+
+    state: Union[str, "_models.NotificationEventDeliveryStatusState"] = rest_field(visibility=["read"])
+    """State of teh delivery attempt. Required. Known values are: \"SUCCESS\", \"FAILED\",
+     \"SENDING\", and \"PENDING\"."""
+    response: "_models.EventDeliveryAttemptResponse" = rest_field(visibility=["read"])
+    """Response returned by the notification event recipient. Required."""
+    timestamp: datetime.datetime = rest_field(visibility=["read"], format="rfc3339")
+    """Timestamp of the delivery attempt. Required."""
+
+
 class NotificationEventDeliveryStatus(_Model):
     """The delivery status of the notification event.
 
@@ -10328,6 +10372,10 @@ class NotificationEventDeliveryStatus(_Model):
     :vartype channel: ~openmeter._generated.models.NotificationChannelMeta
     :ivar annotations: Annotations.
     :vartype annotations: ~openmeter._generated.models.Annotations
+    :ivar next_attempt: Timestamp of the next delivery attempt.
+    :vartype next_attempt: ~datetime.datetime
+    :ivar attempts: Delivery Attempts. Required.
+    :vartype attempts: list[~openmeter._generated.models.NotificationEventDeliveryAttempt]
     """
 
     state: Union[str, "_models.NotificationEventDeliveryStatusState"] = rest_field(visibility=["read"])
@@ -10341,6 +10389,10 @@ class NotificationEventDeliveryStatus(_Model):
     """Notification Channel. Required."""
     annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
     """Annotations."""
+    next_attempt: Optional[datetime.datetime] = rest_field(name="nextAttempt", visibility=["read"], format="rfc3339")
+    """Timestamp of the next delivery attempt."""
+    attempts: list["_models.NotificationEventDeliveryAttempt"] = rest_field(visibility=["read"])
+    """Delivery Attempts. Required."""
 
 
 class NotificationEventEntitlementValuePayloadBase(_Model):  # pylint: disable=name-too-long

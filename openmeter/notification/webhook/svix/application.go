@@ -29,8 +29,8 @@ func (h svixHandler) CreateApplication(ctx context.Context, id string) (*svix.Ap
 		span := trace.SpanFromContext(ctx)
 
 		spanAttrs := []attribute.KeyValue{
-			attribute.String("svix.app_name", input.Name),
-			attribute.String("svix.app_id", lo.FromPtr(input.Uid)),
+			attribute.String(AnnotationApplicationName, input.Name),
+			attribute.String(AnnotationApplicationUID, lo.FromPtr(input.Uid)),
 			attribute.String("idempotency_key", idempotencyKey),
 		}
 

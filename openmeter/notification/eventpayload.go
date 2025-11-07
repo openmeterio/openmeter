@@ -9,13 +9,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func PayloadToMapInterface(t any) (map[string]interface{}, error) {
+type RawPayload map[string]any
+
+func AsRawPayload(t any) (RawPayload, error) {
 	b, err := json.Marshal(t)
 	if err != nil {
 		return nil, err
 	}
 
-	var m map[string]interface{}
+	var m RawPayload
 	if err = json.Unmarshal(b, &m); err != nil {
 		return nil, err
 	}

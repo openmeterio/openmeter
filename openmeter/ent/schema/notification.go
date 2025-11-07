@@ -198,6 +198,11 @@ func (NotificationEventDeliveryStatus) Fields() []ent.Field {
 			Default(string(notification.EventDeliveryStatusStatePending)),
 		field.String("reason").
 			Optional(),
+		field.Time("next_attempt_at").
+			Optional().
+			Nillable(),
+		field.JSON("attempts", []notification.EventDeliveryAttempt{}).
+			Optional(),
 	}
 }
 
@@ -212,6 +217,7 @@ func (NotificationEventDeliveryStatus) Indexes() []ent.Index {
 		index.Fields("namespace", "id"),
 		index.Fields("namespace", "event_id", "channel_id"),
 		index.Fields("namespace", "state"),
+		index.Fields("namespace", "state", "next_attempt_at"),
 	}
 }
 

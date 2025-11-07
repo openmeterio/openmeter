@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -80,6 +81,44 @@ func (_u *NotificationEventDeliveryStatusUpdate) SetNillableReason(v *string) *N
 // ClearReason clears the value of the "reason" field.
 func (_u *NotificationEventDeliveryStatusUpdate) ClearReason() *NotificationEventDeliveryStatusUpdate {
 	_u.mutation.ClearReason()
+	return _u
+}
+
+// SetNextAttemptAt sets the "next_attempt_at" field.
+func (_u *NotificationEventDeliveryStatusUpdate) SetNextAttemptAt(v time.Time) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.SetNextAttemptAt(v)
+	return _u
+}
+
+// SetNillableNextAttemptAt sets the "next_attempt_at" field if the given value is not nil.
+func (_u *NotificationEventDeliveryStatusUpdate) SetNillableNextAttemptAt(v *time.Time) *NotificationEventDeliveryStatusUpdate {
+	if v != nil {
+		_u.SetNextAttemptAt(*v)
+	}
+	return _u
+}
+
+// ClearNextAttemptAt clears the value of the "next_attempt_at" field.
+func (_u *NotificationEventDeliveryStatusUpdate) ClearNextAttemptAt() *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.ClearNextAttemptAt()
+	return _u
+}
+
+// SetAttempts sets the "attempts" field.
+func (_u *NotificationEventDeliveryStatusUpdate) SetAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.SetAttempts(v)
+	return _u
+}
+
+// AppendAttempts appends value to the "attempts" field.
+func (_u *NotificationEventDeliveryStatusUpdate) AppendAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.AppendAttempts(v)
+	return _u
+}
+
+// ClearAttempts clears the value of the "attempts" field.
+func (_u *NotificationEventDeliveryStatusUpdate) ClearAttempts() *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.ClearAttempts()
 	return _u
 }
 
@@ -200,6 +239,23 @@ func (_u *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context) (_
 	if _u.mutation.ReasonCleared() {
 		_spec.ClearField(notificationeventdeliverystatus.FieldReason, field.TypeString)
 	}
+	if value, ok := _u.mutation.NextAttemptAt(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldNextAttemptAt, field.TypeTime, value)
+	}
+	if _u.mutation.NextAttemptAtCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldNextAttemptAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Attempts(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldAttempts, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAttempts(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, notificationeventdeliverystatus.FieldAttempts, value)
+		})
+	}
+	if _u.mutation.AttemptsCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldAttempts, field.TypeJSON)
+	}
 	if _u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -314,6 +370,44 @@ func (_u *NotificationEventDeliveryStatusUpdateOne) SetNillableReason(v *string)
 // ClearReason clears the value of the "reason" field.
 func (_u *NotificationEventDeliveryStatusUpdateOne) ClearReason() *NotificationEventDeliveryStatusUpdateOne {
 	_u.mutation.ClearReason()
+	return _u
+}
+
+// SetNextAttemptAt sets the "next_attempt_at" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetNextAttemptAt(v time.Time) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.SetNextAttemptAt(v)
+	return _u
+}
+
+// SetNillableNextAttemptAt sets the "next_attempt_at" field if the given value is not nil.
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetNillableNextAttemptAt(v *time.Time) *NotificationEventDeliveryStatusUpdateOne {
+	if v != nil {
+		_u.SetNextAttemptAt(*v)
+	}
+	return _u
+}
+
+// ClearNextAttemptAt clears the value of the "next_attempt_at" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) ClearNextAttemptAt() *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.ClearNextAttemptAt()
+	return _u
+}
+
+// SetAttempts sets the "attempts" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.SetAttempts(v)
+	return _u
+}
+
+// AppendAttempts appends value to the "attempts" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) AppendAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.AppendAttempts(v)
+	return _u
+}
+
+// ClearAttempts clears the value of the "attempts" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) ClearAttempts() *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.ClearAttempts()
 	return _u
 }
 
@@ -463,6 +557,23 @@ func (_u *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Context)
 	}
 	if _u.mutation.ReasonCleared() {
 		_spec.ClearField(notificationeventdeliverystatus.FieldReason, field.TypeString)
+	}
+	if value, ok := _u.mutation.NextAttemptAt(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldNextAttemptAt, field.TypeTime, value)
+	}
+	if _u.mutation.NextAttemptAtCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldNextAttemptAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Attempts(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldAttempts, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAttempts(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, notificationeventdeliverystatus.FieldAttempts, value)
+		})
+	}
+	if _u.mutation.AttemptsCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldAttempts, field.TypeJSON)
 	}
 	if _u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{

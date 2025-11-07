@@ -5,33 +5,23 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-func (h *Handler) reconcilePending(ctx context.Context, event *notification.Event) error {
-	return h.dispatch(ctx, event)
-}
-
-func (h *Handler) reconcileSending(_ context.Context, _ *notification.Event) error {
-	// NOTE(chrisgacsal): implement when EventDeliveryStatusStateSending state is need to be handled
-	return nil
-}
-
-func (h *Handler) reconcileFailed(_ context.Context, _ *notification.Event) error {
-	// NOTE(chrisgacsal): reconcile failed events when adding support for retry on event delivery failure
-	return nil
-}
-
 func (h *Handler) reconcileEvent(ctx context.Context, event *notification.Event) error {
 	fn := func(ctx context.Context) error {
-		var errs []error
+		if event == nil {
+			return fmt.Errorf("event must not be nil")
+		}
 
 		span := trace.SpanFromContext(ctx)
 
@@ -42,27 +32,20 @@ func (h *Handler) reconcileEvent(ctx context.Context, event *notification.Event)
 
 		span.SetAttributes(spanAttrs...)
 
-		for _, status := range event.DeliveryStatus {
-			span.AddEvent("reconciling event", trace.WithAttributes(spanAttrs...),
-				trace.WithAttributes(
-					attribute.Stringer("notification.event.delivery_status.state", status.State),
-					attribute.String("notification.event.channel.id", status.ChannelID),
-				),
-			)
+		channelTypes := lo.UniqMap(event.Rule.Channels, func(item notification.Channel, _ int) notification.ChannelType {
+			return item.Type
+		})
 
-			switch status.State {
-			case notification.EventDeliveryStatusStatePending:
-				if err := h.reconcilePending(ctx, event); err != nil {
+		var errs []error
+
+		for _, channelType := range channelTypes {
+			switch channelType {
+			case notification.ChannelTypeWebhook:
+				if err := h.reconcileWebhookEvent(ctx, event); err != nil {
 					errs = append(errs, err)
 				}
-			case notification.EventDeliveryStatusStateSending:
-				if err := h.reconcileSending(ctx, event); err != nil {
-					errs = append(errs, err)
-				}
-			case notification.EventDeliveryStatusStateFailed:
-				if err := h.reconcileFailed(ctx, event); err != nil {
-					errs = append(errs, err)
-				}
+			default:
+				h.logger.ErrorContext(ctx, "unsupported channel type", "type", channelType)
 			}
 		}
 
@@ -101,12 +84,15 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 			}
 
 			for {
+				// TODO: add filtering by delivery status next attempt field to prevent reconciliation of events
+				// that are expected to have state updates in the future
 				out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
 					Page: page,
 					DeliveryStatusStates: []notification.EventDeliveryStatusState{
 						notification.EventDeliveryStatusStatePending,
 						notification.EventDeliveryStatusStateSending,
 					},
+					NextAttemptBefore: clock.Now(),
 				})
 				if err != nil {
 					return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
@@ -116,11 +102,12 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 					attribute.Int("event_handler.reconcile.count", len(out.Items)),
 				))
 
-				for _, deliveryStatus := range out.Items {
-					if err = h.reconcileEvent(ctx, &deliveryStatus); err != nil {
+				for _, event := range out.Items {
+					// TODO: run reconciliation in parallel (goroutines)
+					if err = h.reconcileEvent(ctx, &event); err != nil {
 						errs = append(errs,
 							fmt.Errorf("failed to reconcile notification event [namespace=%s event.id=%s]: %w",
-								deliveryStatus.Namespace, deliveryStatus.ID, err),
+								event.Namespace, event.ID, err),
 						)
 					}
 				}

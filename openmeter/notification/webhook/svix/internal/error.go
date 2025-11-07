@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 	svix "github.com/svix/svix-webhooks/go"
@@ -19,6 +20,8 @@ type SvixError struct {
 	HTTPStatus int
 	Code       *string
 	Details    []string
+
+	RetryAfter time.Duration
 }
 
 func (e SvixError) Error() string {
@@ -34,10 +37,14 @@ func (e SvixError) Error() string {
 
 func (e SvixError) Wrap() error {
 	switch e.HTTPStatus {
-	case HTTPStatusValidationError, http.StatusBadRequest:
-		return webhook.NewValidationError(e)
+	case http.StatusBadRequest, http.StatusConflict, http.StatusUnprocessableEntity:
+		return webhook.NewUnrecoverableError(webhook.NewValidationError(e))
 	case http.StatusNotFound:
 		return webhook.NewNotFoundError(e)
+	case http.StatusTooManyRequests:
+		return webhook.NewRetryableError(e, e.RetryAfter)
+	case http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return webhook.NewRetryableError(e, e.RetryAfter)
 	default:
 		return e
 	}
@@ -58,8 +65,6 @@ type SvixValidationError struct {
 	Type    string   `json:"type"`
 }
 
-const HTTPStatusValidationError = 422
-
 func WrapSvixError(err error) error {
 	if err == nil {
 		return nil
@@ -71,7 +76,7 @@ func WrapSvixError(err error) error {
 	}
 
 	switch svixErr.Status() {
-	case HTTPStatusValidationError:
+	case http.StatusUnprocessableEntity:
 		var body SvixValidationErrorBody
 
 		if e := json.Unmarshal(svixErr.Body(), &body); e != nil {
@@ -80,8 +85,11 @@ func WrapSvixError(err error) error {
 
 		return SvixError{
 			HTTPStatus: svixErr.Status(),
+			Code:       lo.ToPtr("validation_error"),
 			Details: lo.Map(body.Detail, func(item SvixValidationError, _ int) string {
-				return fmt.Sprintf("%s: %s", item.Type, item.Message)
+				loc := strings.Join(item.Loc, ".")
+
+				return fmt.Sprintf("[location=%s type=%s]: %s", loc, item.Type, item.Message)
 			}),
 		}.Wrap()
 	default:

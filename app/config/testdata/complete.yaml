@@ -141,6 +141,9 @@ meters:
 
 notification:
   enabled: true
+  reconcileInterval: 1m
+  sendingTimeout: 1h
+  pendingTimeout: 2h
 
 svix:
   apiKey: test-svix-token

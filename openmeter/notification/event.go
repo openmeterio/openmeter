@@ -90,6 +90,8 @@ type ListEventsInput struct {
 
 	DeliveryStatusStates []EventDeliveryStatusState `json:"deliveryStatusStates,omitempty"`
 
+	NextAttemptBefore time.Time `json:"nextAttemptBefore,omitempty"`
+
 	OrderBy OrderBy
 	Order   sortx.Order
 }

@@ -61,6 +61,7 @@ func NewNoopNotificationEventHandler() (notification.EventHandler, func(), error
 }
 
 func NewNotificationEventHandler(
+	config config.NotificationConfiguration,
 	logger *slog.Logger,
 	tracer trace.Tracer,
 	adapter notification.Repository,
@@ -69,10 +70,13 @@ func NewNotificationEventHandler(
 	closeFn := func() {}
 
 	eventHandler, err := eventhandler.New(eventhandler.Config{
-		Repository: adapter,
-		Webhook:    webhook,
-		Logger:     logger,
-		Tracer:     tracer,
+		Repository:        adapter,
+		Webhook:           webhook,
+		Logger:            logger,
+		Tracer:            tracer,
+		ReconcileInterval: config.ReconcileInterval,
+		SendingTimeout:    config.SendingTimeout,
+		PendingTimeout:    config.PendingTimeout,
 	})
 	if err != nil {
 		return nil, closeFn, fmt.Errorf("failed to initialize notification event handler: %w", err)

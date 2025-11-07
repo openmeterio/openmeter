@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 func (s Service) ListRules(ctx context.Context, params notification.ListRulesInput) (notification.ListRulesResult, error) {
@@ -19,6 +20,61 @@ func (s Service) ListRules(ctx context.Context, params notification.ListRulesInp
 	}
 
 	return s.adapter.ListRules(ctx, params)
+}
+
+func ValidateRuleChannels[I notification.CreateRuleInput | notification.UpdateRuleInput](ctx context.Context, s Service) func(input I) error {
+	return func(params I) error {
+		var (
+			channels  []string
+			namespace string
+		)
+
+		switch i := any(params).(type) {
+		case notification.CreateRuleInput:
+			channels = i.Channels
+			namespace = i.Namespace
+		case notification.UpdateRuleInput:
+			channels = i.Channels
+			namespace = i.Namespace
+		}
+
+		if len(channels) == 0 {
+			return errors.New("rule must have at least one channel")
+		}
+
+		channelsOut, err := s.adapter.ListChannels(ctx, notification.ListChannelsInput{
+			Page: pagination.Page{
+				PageSize:   len(channels),
+				PageNumber: 1,
+			},
+			Namespaces:      []string{namespace},
+			Channels:        channels,
+			IncludeDisabled: true,
+			OrderBy:         notification.OrderByCreatedAt,
+			Order:           sortx.OrderAsc,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to validate channels: %w", err)
+		}
+
+		channelIDs := lo.SliceToMap(channelsOut.Items, func(item notification.Channel) (string, struct{}) {
+			return item.ID, struct{}{}
+		})
+
+		var missingChannels []string
+
+		for _, channelID := range channels {
+			if _, ok := channelIDs[channelID]; !ok {
+				missingChannels = append(missingChannels, channelID)
+			}
+		}
+
+		if len(missingChannels) > 0 {
+			return fmt.Errorf("non-existing channels: %v", missingChannels)
+		}
+
+		return nil
+	}
 }
 
 func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleInput) (*notification.Rule, error) {
@@ -35,6 +91,11 @@ func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleI
 		err := params.Config.ValidateWith(notification.ValidateRuleConfigWithFeatures(ctx, s, params.Namespace))
 		if err != nil {
 			return nil, fmt.Errorf("invalid config: %w", err)
+		}
+
+		err = params.ValidateWith(ValidateRuleChannels[notification.CreateRuleInput](ctx, s))
+		if err != nil {
+			return nil, fmt.Errorf("invalid channels: %w", err)
 		}
 
 		logger.Debug("creating rule", "type", params.Type)
@@ -150,7 +211,12 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 			return nil
 		})
 		if err != nil {
-			return nil, fmt.Errorf("invalid params: %w", err)
+			return nil, fmt.Errorf("invalid rule type: %w", err)
+		}
+
+		err = params.ValidateWith(ValidateRuleChannels[notification.UpdateRuleInput](ctx, s))
+		if err != nil {
+			return nil, fmt.Errorf("invalid channels: %w", err)
 		}
 
 		logger.Debug("updating rule")
