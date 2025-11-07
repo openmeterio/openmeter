@@ -59,18 +59,10 @@ type EventDeliveryAttempt struct {
 	Timestamp time.Time                    `json:"timestamp"`
 }
 
+// SortEventDeliveryAttemptsInDescOrder sorts the EventDeliveryAttempts in descending order by timestamp.
 func SortEventDeliveryAttemptsInDescOrder(attempts []EventDeliveryAttempt) {
-	// Sort it by timestamp in descending order
 	slices.SortFunc(attempts, func(a, b EventDeliveryAttempt) int {
-		if a.Timestamp.Equal(b.Timestamp) {
-			return 0
-		}
-
-		if a.Timestamp.After(b.Timestamp) {
-			return -1
-		}
-
-		return 1
+		return a.Timestamp.Compare(b.Timestamp) * -1
 	})
 }
 

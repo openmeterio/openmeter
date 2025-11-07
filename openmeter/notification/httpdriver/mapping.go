@@ -544,10 +544,12 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 	return event, nil
 }
 
-func AsEventDeliveryAttempts(a []notification.EventDeliveryAttempt) []api.NotificationEventDeliveryAttempt {
-	result := make([]api.NotificationEventDeliveryAttempt, 0, len(a))
+func AsEventDeliveryAttempts(attempts []notification.EventDeliveryAttempt) []api.NotificationEventDeliveryAttempt {
+	result := make([]api.NotificationEventDeliveryAttempt, 0, len(attempts))
 
-	for _, attempt := range a {
+	notification.SortEventDeliveryAttemptsInDescOrder(attempts)
+
+	for _, attempt := range attempts {
 		result = append(result, api.NotificationEventDeliveryAttempt{
 			Response: api.EventDeliveryAttemptResponse{
 				Body:       attempt.Response.Body,
