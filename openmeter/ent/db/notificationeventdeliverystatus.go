@@ -36,6 +36,10 @@ type NotificationEventDeliveryStatus struct {
 	State notification.EventDeliveryStatusState `json:"state,omitempty"`
 	// Reason holds the value of the "reason" field.
 	Reason string `json:"reason,omitempty"`
+	// NextAttemptAt holds the value of the "next_attempt_at" field.
+	NextAttemptAt *time.Time `json:"next_attempt_at,omitempty"`
+	// Attempts holds the value of the "attempts" field.
+	Attempts []notification.EventDeliveryAttempt `json:"attempts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationEventDeliveryStatusQuery when eager-loading is set.
 	Edges        NotificationEventDeliveryStatusEdges `json:"edges"`
@@ -65,11 +69,11 @@ func (*NotificationEventDeliveryStatus) scanValues(columns []string) ([]any, err
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case notificationeventdeliverystatus.FieldAnnotations:
+		case notificationeventdeliverystatus.FieldAnnotations, notificationeventdeliverystatus.FieldAttempts:
 			values[i] = new([]byte)
 		case notificationeventdeliverystatus.FieldID, notificationeventdeliverystatus.FieldNamespace, notificationeventdeliverystatus.FieldEventID, notificationeventdeliverystatus.FieldChannelID, notificationeventdeliverystatus.FieldState, notificationeventdeliverystatus.FieldReason:
 			values[i] = new(sql.NullString)
-		case notificationeventdeliverystatus.FieldCreatedAt, notificationeventdeliverystatus.FieldUpdatedAt:
+		case notificationeventdeliverystatus.FieldCreatedAt, notificationeventdeliverystatus.FieldUpdatedAt, notificationeventdeliverystatus.FieldNextAttemptAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -142,6 +146,21 @@ func (_m *NotificationEventDeliveryStatus) assignValues(columns []string, values
 			} else if value.Valid {
 				_m.Reason = value.String
 			}
+		case notificationeventdeliverystatus.FieldNextAttemptAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field next_attempt_at", values[i])
+			} else if value.Valid {
+				_m.NextAttemptAt = new(time.Time)
+				*_m.NextAttemptAt = value.Time
+			}
+		case notificationeventdeliverystatus.FieldAttempts:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field attempts", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Attempts); err != nil {
+					return fmt.Errorf("unmarshal field attempts: %w", err)
+				}
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -206,6 +225,14 @@ func (_m *NotificationEventDeliveryStatus) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("reason=")
 	builder.WriteString(_m.Reason)
+	builder.WriteString(", ")
+	if v := _m.NextAttemptAt; v != nil {
+		builder.WriteString("next_attempt_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("attempts=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Attempts))
 	builder.WriteByte(')')
 	return builder.String()
 }

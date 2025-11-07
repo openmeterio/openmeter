@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -2462,6 +2463,34 @@ func (u *NotificationEventDeliveryStatusUpdateOne) SetOrClearReason(value *strin
 		return u.ClearReason()
 	}
 	return u.SetReason(*value)
+}
+
+func (u *NotificationEventDeliveryStatusUpdate) SetOrClearNextAttemptAt(value *time.Time) *NotificationEventDeliveryStatusUpdate {
+	if value == nil {
+		return u.ClearNextAttemptAt()
+	}
+	return u.SetNextAttemptAt(*value)
+}
+
+func (u *NotificationEventDeliveryStatusUpdateOne) SetOrClearNextAttemptAt(value *time.Time) *NotificationEventDeliveryStatusUpdateOne {
+	if value == nil {
+		return u.ClearNextAttemptAt()
+	}
+	return u.SetNextAttemptAt(*value)
+}
+
+func (u *NotificationEventDeliveryStatusUpdate) SetOrClearAttempts(value *[]notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdate {
+	if value == nil {
+		return u.ClearAttempts()
+	}
+	return u.SetAttempts(*value)
+}
+
+func (u *NotificationEventDeliveryStatusUpdateOne) SetOrClearAttempts(value *[]notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdateOne {
+	if value == nil {
+		return u.ClearAttempts()
+	}
+	return u.SetAttempts(*value)
 }
 
 func (u *NotificationRuleUpdate) SetOrClearDeletedAt(value *time.Time) *NotificationRuleUpdate {

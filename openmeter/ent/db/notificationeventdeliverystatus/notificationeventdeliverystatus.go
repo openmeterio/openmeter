@@ -32,6 +32,10 @@ const (
 	FieldState = "state"
 	// FieldReason holds the string denoting the reason field in the database.
 	FieldReason = "reason"
+	// FieldNextAttemptAt holds the string denoting the next_attempt_at field in the database.
+	FieldNextAttemptAt = "next_attempt_at"
+	// FieldAttempts holds the string denoting the attempts field in the database.
+	FieldAttempts = "attempts"
 	// EdgeEvents holds the string denoting the events edge name in mutations.
 	EdgeEvents = "events"
 	// Table holds the table name of the notificationeventdeliverystatus in the database.
@@ -54,6 +58,8 @@ var Columns = []string{
 	FieldChannelID,
 	FieldState,
 	FieldReason,
+	FieldNextAttemptAt,
+	FieldAttempts,
 }
 
 var (
@@ -142,6 +148,11 @@ func ByState(opts ...sql.OrderTermOption) OrderOption {
 // ByReason orders the results by the reason field.
 func ByReason(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReason, opts...).ToFunc()
+}
+
+// ByNextAttemptAt orders the results by the next_attempt_at field.
+func ByNextAttemptAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNextAttemptAt, opts...).ToFunc()
 }
 
 // ByEventsCount orders the results by events count.

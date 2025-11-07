@@ -96,6 +96,11 @@ func Reason(v string) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldReason, v))
 }
 
+// NextAttemptAt applies equality check predicate on the "next_attempt_at" field. It's identical to NextAttemptAtEQ.
+func NextAttemptAt(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldNextAttemptAt, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldNamespace, v))
@@ -484,6 +489,66 @@ func ReasonEqualFold(v string) predicate.NotificationEventDeliveryStatus {
 // ReasonContainsFold applies the ContainsFold predicate on the "reason" field.
 func ReasonContainsFold(v string) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldContainsFold(FieldReason, v))
+}
+
+// NextAttemptAtEQ applies the EQ predicate on the "next_attempt_at" field.
+func NextAttemptAtEQ(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldNextAttemptAt, v))
+}
+
+// NextAttemptAtNEQ applies the NEQ predicate on the "next_attempt_at" field.
+func NextAttemptAtNEQ(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNEQ(FieldNextAttemptAt, v))
+}
+
+// NextAttemptAtIn applies the In predicate on the "next_attempt_at" field.
+func NextAttemptAtIn(vs ...time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIn(FieldNextAttemptAt, vs...))
+}
+
+// NextAttemptAtNotIn applies the NotIn predicate on the "next_attempt_at" field.
+func NextAttemptAtNotIn(vs ...time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotIn(FieldNextAttemptAt, vs...))
+}
+
+// NextAttemptAtGT applies the GT predicate on the "next_attempt_at" field.
+func NextAttemptAtGT(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGT(FieldNextAttemptAt, v))
+}
+
+// NextAttemptAtGTE applies the GTE predicate on the "next_attempt_at" field.
+func NextAttemptAtGTE(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGTE(FieldNextAttemptAt, v))
+}
+
+// NextAttemptAtLT applies the LT predicate on the "next_attempt_at" field.
+func NextAttemptAtLT(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLT(FieldNextAttemptAt, v))
+}
+
+// NextAttemptAtLTE applies the LTE predicate on the "next_attempt_at" field.
+func NextAttemptAtLTE(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLTE(FieldNextAttemptAt, v))
+}
+
+// NextAttemptAtIsNil applies the IsNil predicate on the "next_attempt_at" field.
+func NextAttemptAtIsNil() predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIsNull(FieldNextAttemptAt))
+}
+
+// NextAttemptAtNotNil applies the NotNil predicate on the "next_attempt_at" field.
+func NextAttemptAtNotNil() predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotNull(FieldNextAttemptAt))
+}
+
+// AttemptsIsNil applies the IsNil predicate on the "attempts" field.
+func AttemptsIsNil() predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIsNull(FieldAttempts))
+}
+
+// AttemptsNotNil applies the NotNil predicate on the "attempts" field.
+func AttemptsNotNil() predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotNull(FieldAttempts))
 }
 
 // HasEvents applies the HasEdge predicate on the "events" edge.
