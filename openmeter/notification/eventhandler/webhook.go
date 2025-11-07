@@ -64,7 +64,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 		for _, status := range sortedActiveStatuses {
 			// Skip the delivery status update if next_attempt is set, and it is in the future.
 			if next := lo.FromPtr(status.NextAttempt); !next.IsZero() && next.After(clock.Now()) {
-				span.AddEvent("skipping delivery status update due to no next_attempt is set or in the future", trace.WithAttributes(spanAttrs...),
+				span.AddEvent("skipping delivery status update: next_attempt is set in the future", trace.WithAttributes(spanAttrs...),
 					trace.WithAttributes(attribute.String("next_attempt", next.UTC().Format(time.RFC3339))),
 				)
 
@@ -78,12 +78,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 			switch status.State {
 			case notification.EventDeliveryStatusStatePending:
 				// Check if the delivery status is pending for too long.
-				nextAttempt := lo.FromPtr(status.NextAttempt)
-				if nextAttempt.IsZero() {
-					nextAttempt = clock.Now()
-				}
-
-				if nextAttempt.Sub(status.CreatedAt) > h.pendingTimeout {
+				if clock.Now().Sub(status.CreatedAt) > h.pendingTimeout {
 					input = &notification.UpdateEventDeliveryStatusInput{
 						NamespacedID: status.NamespacedID,
 						State:        notification.EventDeliveryStatusStateFailed,
@@ -210,12 +205,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 				}
 			case notification.EventDeliveryStatusStateSending:
 				// Check if the delivery status is sending for too long.
-				nextAttempt := lo.FromPtr(status.NextAttempt)
-				if nextAttempt.IsZero() {
-					nextAttempt = clock.Now()
-				}
-
-				if nextAttempt.Sub(status.CreatedAt) > h.sendingTimeout {
+				if clock.Now().Sub(status.CreatedAt) > h.sendingTimeout {
 					input = &notification.UpdateEventDeliveryStatusInput{
 						NamespacedID: status.NamespacedID,
 						State:        notification.EventDeliveryStatusStateFailed,
