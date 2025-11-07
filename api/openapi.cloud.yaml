@@ -17101,6 +17101,33 @@ components:
       x-go-type-import:
         path: github.com/cloudevents/sdk-go/v2/event
       x-go-type: event.Event
+    EventDeliveryAttemptResponse:
+      type: object
+      required:
+        - body
+        - durationMs
+      properties:
+        statusCode:
+          type: integer
+          description: Status code of the response if available.
+          title: Status Code
+          readOnly: true
+        body:
+          type: string
+          description: The body of the response.
+          title: Response Body
+          readOnly: true
+        durationMs:
+          type: integer
+          description: The duration of the response in milliseconds.
+          title: Response Duration
+          readOnly: true
+        url:
+          type: string
+          description: URL where the event was sent in case of notification channel with webhook type.
+          title: URL
+          readOnly: true
+      description: The response of the event delivery attempt.
     ExpirationDuration:
       type: string
       enum:
@@ -20385,6 +20412,34 @@ components:
           title: Threshold
           readOnly: true
       description: Data of the payload for notification event with `entitlements.balance.threshold` type.
+    NotificationEventDeliveryAttempt:
+      type: object
+      required:
+        - state
+        - response
+        - timestamp
+      properties:
+        state:
+          allOf:
+            - $ref: '#/components/schemas/NotificationEventDeliveryStatusState'
+          description: State of teh delivery attempt.
+          title: State of teh delivery attempt
+          example: SUCCESS
+          readOnly: true
+        response:
+          allOf:
+            - $ref: '#/components/schemas/EventDeliveryAttemptResponse'
+          description: Response returned by the notification event recipient.
+          title: Response returned by the notification event recipient
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the delivery attempt.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Timestamp of the delivery attempt
+          readOnly: true
+      description: The delivery attempt of the notification event.
     NotificationEventDeliveryStatus:
       type: object
       required:
@@ -20392,6 +20447,7 @@ components:
         - reason
         - updatedAt
         - channel
+        - attempts
       properties:
         state:
           allOf:
@@ -20423,6 +20479,20 @@ components:
             - $ref: '#/components/schemas/Annotations'
           description: Set of key-value pairs managed by the system. Cannot be modified by user.
           title: Annotations
+          readOnly: true
+        nextAttempt:
+          type: string
+          format: date-time
+          description: Timestamp of the next delivery attempt. If null it means there will be no more delivery attempts.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Timestamp of the next delivery attempt
+          readOnly: true
+        attempts:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationEventDeliveryAttempt'
+          description: List of delivery attempts.
+          title: Delivery Attempts
           readOnly: true
       description: The delivery status of the notification event.
     NotificationEventDeliveryStatusState:
