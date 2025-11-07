@@ -489,7 +489,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventHandler, cleanup8, err := common.NewNotificationEventHandler(logger, tracer, repository, handler)
+	eventHandler, cleanup8, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, repository, handler)
 	if err != nil {
 		cleanup7()
 		cleanup6()

@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
@@ -21,6 +22,10 @@ type NotificationConfiguration struct {
 	Consumer ConsumerConfiguration
 
 	Webhook WebhookConfiguration
+
+	ReconcileInterval time.Duration
+	SendingTimeout    time.Duration
+	PendingTimeout    time.Duration
 }
 
 func (c NotificationConfiguration) Validate() error {
@@ -39,4 +44,7 @@ func ConfigureNotification(v *viper.Viper) {
 	v.SetDefault("notification.consumer.consumerGroupName", "om_notification_service")
 	v.SetDefault("notification.webhook.eventTypeRegistrationTimeout", webhook.DefaultRegistrationTimeout)
 	v.SetDefault("notification.webhook.skipEventTypeRegistrationOnError", false)
+	v.SetDefault("notification.reconcileInterval", notification.DefaultReconcileInterval)
+	v.SetDefault("notification.sendingTimeout", notification.DefaultDeliveryStateSendingTimeout)
+	v.SetDefault("notification.pendingTimeout", notification.DefaultDeliveryStatePendingTimeout)
 }

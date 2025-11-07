@@ -381,6 +381,9 @@ func TestComplete(t *testing.T) {
 				EventTypeRegistrationTimeout:     notificationwebhook.DefaultRegistrationTimeout,
 				SkipEventTypeRegistrationOnError: false,
 			},
+			ReconcileInterval: time.Minute,
+			SendingTimeout:    time.Hour,
+			PendingTimeout:    2 * time.Hour,
 		},
 		Svix: svix.SvixConfig{
 			APIKey:    "test-svix-token",
