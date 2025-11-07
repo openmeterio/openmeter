@@ -48,6 +48,16 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			query = query.Where(eventdb.HasDeliveryStatusesWith(statusdb.StateIn(params.DeliveryStatusStates...)))
 		}
 
+		if !params.NextAttemptBefore.IsZero() {
+			query = query.Where(eventdb.HasDeliveryStatusesWith(
+				statusdb.StateNotIn(notification.EventDeliveryStatusStateSuccess, notification.EventDeliveryStatusStateFailed),
+				statusdb.Or(
+					statusdb.NextAttemptAtIsNil(),
+					statusdb.NextAttemptAtLTE(params.NextAttemptBefore.UTC()),
+				),
+			))
+		}
+
 		if len(params.Features) > 0 {
 			query = query.Where(
 				eventdb.Or(

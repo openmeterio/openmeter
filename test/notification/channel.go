@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -108,7 +108,7 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 
-	secret, err := notificationwebhook.NewSigningSecretWithDefaultSize()
+	secret, err := webhooksecret.NewSigningSecretWithDefaultSize()
 	require.NoError(t, err, "Generating new signing secret must not return an error")
 
 	updateIn := notification.UpdateChannelInput{

@@ -3,6 +3,7 @@ package notification
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -45,19 +46,50 @@ func (e EventDeliveryStatusState) Values() []string {
 	}
 }
 
+type EventDeliveryAttemptResponse struct {
+	StatusCode *int          `json:"status_code,omitempty,omitzero"`
+	Body       string        `json:"body,omitzero"`
+	Duration   time.Duration `json:"duration,omitempty,omitzero"`
+	URL        *string       `json:"url,omitempty,omitzero"`
+}
+
+type EventDeliveryAttempt struct {
+	State     EventDeliveryStatusState     `json:"state"`
+	Response  EventDeliveryAttemptResponse `json:"response"`
+	Timestamp time.Time                    `json:"timestamp"`
+}
+
+func SortEventDeliveryAttemptsInDescOrder(attempts []EventDeliveryAttempt) {
+	// Sort it by timestamp in descending order
+	slices.SortFunc(attempts, func(a, b EventDeliveryAttempt) int {
+		if a.Timestamp.Equal(b.Timestamp) {
+			return 0
+		}
+
+		if a.Timestamp.After(b.Timestamp) {
+			return -1
+		}
+
+		return 1
+	})
+}
+
 type EventDeliveryStatus struct {
 	models.NamespacedID
 
 	// EventID defines the Event identifier the EventDeliveryStatus belongs to.
-	EventID string `json:"eventId"`
+	EventID string
 
-	ChannelID string                   `json:"channelId"`
-	State     EventDeliveryStatusState `json:"state"`
-	Reason    string                   `json:"reason,omitempty"`
-	CreatedAt time.Time                `json:"createdAt"`
-	UpdatedAt time.Time                `json:"updatedAt,omitempty"`
+	ChannelID string
+	State     EventDeliveryStatusState
+	Reason    string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 
-	Annotations models.Annotations `json:"annotations,omitempty"`
+	Attempts    []EventDeliveryAttempt
+	NextAttempt *time.Time
+
+	Annotations models.Annotations
 }
 
 var (
@@ -154,6 +186,10 @@ type UpdateEventDeliveryStatusInput struct {
 	Reason string
 	// Annotations
 	Annotations models.Annotations
+	// NextAttempt defines the next time the Event should be attempted to be delivered.
+	NextAttempt *time.Time
+	// Attempts is a list of delivery attempts for the Event.
+	Attempts []EventDeliveryAttempt
 }
 
 func (i UpdateEventDeliveryStatusInput) ValidateWith(validators ...models.ValidatorFunc[UpdateEventDeliveryStatusInput]) error {

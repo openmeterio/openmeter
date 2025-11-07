@@ -15,8 +15,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix/internal"
-	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/idempotency"
 )
@@ -151,7 +151,7 @@ func (h svixHandler) CreateWebhook(ctx context.Context, params webhook.CreateWeb
 		if lo.FromPtr(params.Secret) == "" {
 			var secret string
 
-			secret, err = webhook.NewSigningSecretWithDefaultSize()
+			secret, err = webhooksecret.NewSigningSecretWithDefaultSize()
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate signing secret: %w", err)
 			}
@@ -169,27 +169,15 @@ func (h svixHandler) CreateWebhook(ctx context.Context, params webhook.CreateWeb
 		}
 
 		input := svix.EndpointIn{
-			Uid: &endpointUID,
-			Description: convert.SafeDeRef(params.Description, func(p string) *string {
-				if p != "" {
-					return &p
-				}
-
-				return nil
-			}),
+			Uid:         &endpointUID,
+			Description: lo.EmptyableToPtr(lo.FromPtr(params.Description)),
 			Url:         params.URL,
 			Disabled:    &params.Disabled,
 			RateLimit:   params.RateLimit,
 			Secret:      params.Secret,
 			FilterTypes: params.EventTypes,
 			Channels:    params.Channels,
-			Metadata: func() *map[string]string {
-				if len(params.Metadata) > 0 {
-					return &params.Metadata
-				}
-
-				return nil
-			}(),
+			Metadata:    lo.EmptyableToPtr(params.Metadata),
 		}
 
 		idempotencyKey, err := idempotency.Key()
@@ -262,33 +250,21 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 		// use the NullFilterChannel as a dummy filter, so it is possible to set up a webhook endpoint before
 		// knowing what type of messages are going to be routed to it.
 
-		if len(params.EventTypes) == 0 && len(params.Channels) == 0 {
+		if len(params.Channels) == 0 {
 			params.Channels = []string{
 				NullChannel,
 			}
 		}
 
 		input := svix.EndpointUpdate{
-			Uid: &params.ID,
-			Description: convert.SafeDeRef(params.Description, func(p string) *string {
-				if p != "" {
-					return &p
-				}
-
-				return nil
-			}),
+			Uid:         &params.ID,
+			Description: lo.EmptyableToPtr(lo.FromPtr(params.Description)),
 			Url:         params.URL,
 			Disabled:    &params.Disabled,
 			RateLimit:   params.RateLimit,
 			FilterTypes: params.EventTypes,
 			Channels:    params.Channels,
-			Metadata: func() *map[string]string {
-				if len(params.Metadata) > 0 {
-					return &params.Metadata
-				}
-
-				return nil
-			}(),
+			Metadata:    lo.EmptyableToPtr(params.Metadata),
 		}
 
 		span := trace.SpanFromContext(ctx)

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -102,7 +102,7 @@ func (w WebHookChannelConfig) Validate() error {
 	}
 
 	if w.SigningSecret != "" {
-		if err := webhook.ValidateSigningSecret(w.SigningSecret); err != nil {
+		if err := webhooksecret.ValidateSigningSecret(w.SigningSecret); err != nil {
 			errs = append(errs, fmt.Errorf("invalid signing secret: %w", err))
 		}
 	}

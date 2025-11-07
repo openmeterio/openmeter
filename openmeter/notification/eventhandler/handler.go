@@ -23,6 +23,8 @@ type Config struct {
 	Logger            *slog.Logger
 	Tracer            trace.Tracer
 	ReconcileInterval time.Duration
+	SendingTimeout    time.Duration
+	PendingTimeout    time.Duration
 }
 
 func (c *Config) Validate() error {
@@ -62,6 +64,10 @@ type Handler struct {
 	stopChClose func()
 
 	lockr *lockr.Locker
+
+	// Delivery status timeouts
+	sendingTimeout time.Duration
+	pendingTimeout time.Duration
 }
 
 func (h *Handler) Start() error {
@@ -113,6 +119,14 @@ func New(config Config) (*Handler, error) {
 		config.ReconcileInterval = notification.DefaultReconcileInterval
 	}
 
+	if config.PendingTimeout == 0 {
+		config.PendingTimeout = notification.DefaultDeliveryStatePendingTimeout
+	}
+
+	if config.SendingTimeout == 0 {
+		config.SendingTimeout = notification.DefaultDeliveryStateSendingTimeout
+	}
+
 	reconcileLockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: config.Logger})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize lockr: %w", err)
@@ -132,5 +146,7 @@ func New(config Config) (*Handler, error) {
 		stopCh:            stopCh,
 		stopChClose:       stopChClose,
 		lockr:             reconcileLockr,
+		sendingTimeout:    config.SendingTimeout,
+		pendingTimeout:    config.PendingTimeout,
 	}, nil
 }
