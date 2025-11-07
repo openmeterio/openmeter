@@ -315,42 +315,6 @@ func getDeliveryStatusByChannelID(items []webhook.MessageDeliveryStatus, channel
 	return nil
 }
 
-func (h *Handler) getOrSendWebhookMessage(ctx context.Context, event *notification.Event) (*webhook.Message, error) {
-	fn := func(ctx context.Context) (*webhook.Message, error) {
-		if event == nil {
-			return nil, fmt.Errorf("event must not be nil")
-		}
-
-		span := trace.SpanFromContext(ctx)
-
-		spanAttrs := []attribute.KeyValue{
-			attribute.String("notification.namespace", event.Namespace),
-			attribute.Stringer("notification.event.type", event.Type),
-			attribute.String("notification.event.id", event.ID),
-		}
-
-		span.SetAttributes(spanAttrs...)
-
-		msg, err := h.getWebhookMessage(ctx, event)
-		if err != nil || webhook.IsNotFoundError(err) {
-			return nil, fmt.Errorf("failed to get webhook message: %w", err)
-		}
-
-		if msg != nil {
-			return msg, nil
-		}
-
-		msg, err = h.sendWebhookMessage(ctx, event)
-		if err != nil {
-			return nil, fmt.Errorf("failed to send webhook message: %w", err)
-		}
-
-		return msg, nil
-	}
-
-	return tracex.Start[*webhook.Message](ctx, h.tracer, "event_handler.get_or_webhook_message").Wrap(fn)
-}
-
 func (h *Handler) getWebhookMessage(ctx context.Context, event *notification.Event) (*webhook.Message, error) {
 	fn := func(ctx context.Context) (*webhook.Message, error) {
 		if event == nil {
