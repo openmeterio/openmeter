@@ -44,8 +44,8 @@ func ValidateRuleChannels[I notification.CreateRuleInput | notification.UpdateRu
 
 		channelsOut, err := s.adapter.ListChannels(ctx, notification.ListChannelsInput{
 			Page: pagination.Page{
-				PageSize:   1,
-				PageNumber: len(channels),
+				PageSize:   len(channels),
+				PageNumber: 1,
 			},
 			Namespaces:      []string{namespace},
 			Channels:        channels,
