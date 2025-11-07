@@ -5706,6 +5706,29 @@ export interface components {
         [key: string]: unknown
       } | null
     }
+    /** @description The response of the event delivery attempt. */
+    EventDeliveryAttemptResponse: {
+      /**
+       * Status Code
+       * @description Status code of the response if available.
+       */
+      readonly statusCode?: number
+      /**
+       * Response Body
+       * @description The body of the response.
+       */
+      readonly body: string
+      /**
+       * Response Duration
+       * @description The duration of the response in milliseconds.
+       */
+      readonly durationMs: number
+      /**
+       * URL
+       * @description URL where the event was sent in case of notification channel with webhook type.
+       */
+      readonly url?: string
+    }
     /**
      * @description The expiration duration enum
      * @enum {string}
@@ -8056,6 +8079,27 @@ export interface components {
       /** Threshold */
       readonly threshold: components['schemas']['NotificationRuleBalanceThresholdValue']
     }
+    /** @description The delivery attempt of the notification event. */
+    NotificationEventDeliveryAttempt: {
+      /**
+       * State of teh delivery attempt
+       * @description State of teh delivery attempt.
+       * @example SUCCESS
+       */
+      readonly state: components['schemas']['NotificationEventDeliveryStatusState']
+      /**
+       * Response returned by the notification event recipient
+       * @description Response returned by the notification event recipient.
+       */
+      readonly response: components['schemas']['EventDeliveryAttemptResponse']
+      /**
+       * Timestamp of the delivery attempt
+       * Format: date-time
+       * @description Timestamp of the delivery attempt.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly timestamp: Date
+    }
     /** @description The delivery status of the notification event. */
     NotificationEventDeliveryStatus: {
       /**
@@ -8086,6 +8130,18 @@ export interface components {
        * @description Set of key-value pairs managed by the system. Cannot be modified by user.
        */
       readonly annotations?: components['schemas']['Annotations']
+      /**
+       * Timestamp of the next delivery attempt
+       * Format: date-time
+       * @description Timestamp of the next delivery attempt. If null it means there will be no more delivery attempts.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly nextAttempt?: Date
+      /**
+       * Delivery Attempts
+       * @description List of delivery attempts.
+       */
+      readonly attempts: components['schemas']['NotificationEventDeliveryAttempt'][]
     }
     /**
      * Delivery State
@@ -11859,6 +11915,8 @@ export type EntitlementV2PaginatedResponse =
 export type EntitlementValue = components['schemas']['EntitlementValue']
 export type ErrorExtension = components['schemas']['ErrorExtension']
 export type Event = components['schemas']['Event']
+export type EventDeliveryAttemptResponse =
+  components['schemas']['EventDeliveryAttemptResponse']
 export type ExpirationDuration = components['schemas']['ExpirationDuration']
 export type ExpirationPeriod = components['schemas']['ExpirationPeriod']
 export type Feature = components['schemas']['Feature']
@@ -12013,6 +12071,8 @@ export type NotificationEventBalanceThresholdPayload =
   components['schemas']['NotificationEventBalanceThresholdPayload']
 export type NotificationEventBalanceThresholdPayloadData =
   components['schemas']['NotificationEventBalanceThresholdPayloadData']
+export type NotificationEventDeliveryAttempt =
+  components['schemas']['NotificationEventDeliveryAttempt']
 export type NotificationEventDeliveryStatus =
   components['schemas']['NotificationEventDeliveryStatus']
 export type NotificationEventDeliveryStatusState =
