@@ -68,5 +68,9 @@ func TestCustomer(t *testing.T) {
 		t.Run("TestSubjectDeletion", func(t *testing.T) {
 			testSuite.TestSubjectDeletion(ctx, t)
 		})
+
+		t.Run("TestMultiSubjectIntegrationFlow", func(t *testing.T) {
+			testSuite.TestMultiSubjectIntegrationFlow(ctx, t)
+		})
 	})
 }
