@@ -138,8 +138,8 @@ func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID s
 				state := deliveryStateFromSvixMessageStatus(attempt.Status)
 
 				if state == "" {
-					return nil, fmt.Errorf("failed to map delivery attempt state [svix.message.status=%d svix.message.status_test=%s]: %w",
-						attempt.Status, attempt.StatusText, err)
+					return nil, fmt.Errorf("failed to map delivery attempt state [svix.message.status=%d svix.message.status_text=%s]",
+						attempt.Status, attempt.StatusText)
 				}
 
 				deliveryAttempt := notification.EventDeliveryAttempt{
@@ -210,8 +210,8 @@ func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID s
 				}
 
 				if state == "" {
-					return nil, fmt.Errorf("failed to map delivery status [svix.message.status=%d svix.message.status_test=%s]: %w",
-						dest.Status, dest.StatusText, err)
+					return nil, fmt.Errorf("failed to map delivery status [svix.message.status=%d svix.message.status_text=%s]",
+						dest.Status, dest.StatusText)
 				}
 
 				if dest.Uid == nil {
