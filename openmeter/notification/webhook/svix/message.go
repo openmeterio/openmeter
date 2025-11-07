@@ -215,7 +215,7 @@ func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID s
 				}
 
 				if dest.Uid == nil {
-					return nil, fmt.Errorf("invalid webhook endpiont: uid is nil")
+					return nil, fmt.Errorf("invalid webhook endpoint: uid is nil")
 				}
 
 				statuses = append(statuses, webhook.MessageDeliveryStatus{
