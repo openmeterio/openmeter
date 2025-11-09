@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/samber/lo"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	statusdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -100,12 +103,20 @@ func (a *adapter) GetEventDeliveryStatus(ctx context.Context, params notificatio
 
 func (a *adapter) UpdateEventDeliveryStatus(ctx context.Context, params notification.UpdateEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
 	fn := func(ctx context.Context, a *adapter) (*notification.EventDeliveryStatus, error) {
+		nextAttempt := func() *time.Time {
+			if params.NextAttempt == nil {
+				return nil
+			}
+
+			return lo.ToPtr(lo.FromPtr(params.NextAttempt).UTC())
+		}()
+
 		query := a.db.NotificationEventDeliveryStatus.UpdateOneID(params.ID).
 			Where(statusdb.Namespace(params.Namespace)).
 			SetState(params.State).
 			SetReason(params.Reason).
 			SetAnnotations(params.Annotations).
-			SetOrClearNextAttemptAt(params.NextAttempt).
+			SetOrClearNextAttemptAt(nextAttempt).
 			SetAttempts(params.Attempts)
 
 		row, err := query.Save(ctx)
