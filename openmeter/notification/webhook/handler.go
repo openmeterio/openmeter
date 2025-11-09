@@ -268,6 +268,8 @@ func (i GetMessageInput) Validate() error {
 	return NewValidationError(errors.Join(errs...))
 }
 
+var _ models.Validator = (*ResendMessageInput)(nil)
+
 type ResendMessageInput struct {
 	Namespace string
 
