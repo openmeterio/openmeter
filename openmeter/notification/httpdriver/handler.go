@@ -39,6 +39,7 @@ type RuleHandler interface {
 type EventHandler interface {
 	ListEvents() ListEventsHandler
 	GetEvent() GetEventHandler
+	ResendEvent() ResendEventHandler
 }
 
 var _ Handler = (*handler)(nil)

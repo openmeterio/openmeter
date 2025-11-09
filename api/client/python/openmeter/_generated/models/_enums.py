@@ -481,6 +481,7 @@ class NotificationEventDeliveryStatusState(str, Enum, metaclass=CaseInsensitiveE
     FAILED = "FAILED"
     SENDING = "SENDING"
     PENDING = "PENDING"
+    RESENDING = "RESENDING"
 
 
 class NotificationEventOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):

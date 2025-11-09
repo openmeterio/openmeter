@@ -43,6 +43,7 @@ type EventService interface {
 	ListEvents(ctx context.Context, params ListEventsInput) (ListEventsResult, error)
 	GetEvent(ctx context.Context, params GetEventInput) (*Event, error)
 	CreateEvent(ctx context.Context, params CreateEventInput) (*Event, error)
+	ResendEvent(ctx context.Context, params ResendEventInput) error
 	ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (ListEventsDeliveryStatusResult, error)
 	GetEventDeliveryStatus(ctx context.Context, params GetEventDeliveryStatusInput) (*EventDeliveryStatus, error)
 	UpdateEventDeliveryStatus(ctx context.Context, params UpdateEventDeliveryStatusInput) (*EventDeliveryStatus, error)

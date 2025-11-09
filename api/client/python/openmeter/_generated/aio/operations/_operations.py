@@ -130,6 +130,7 @@ from ...operations._operations import (
     build_notification_channels_update_request,
     build_notification_events_get_request,
     build_notification_events_list_request,
+    build_notification_events_resend_request,
     build_notification_rules_create_request,
     build_notification_rules_delete_request,
     build_notification_rules_get_request,
@@ -14095,6 +14096,152 @@ class NotificationEventsOperations:
             return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
+
+    @overload
+    async def resend(
+        self,
+        event_id: str,
+        request: _models.NotificationEventResendRequest,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
+    ) -> None:
+        """Re-send notification event.
+
+        resend.
+
+        :param event_id: Required.
+        :type event_id: str
+        :param request: Required.
+        :type request: ~openmeter._generated.models.NotificationEventResendRequest
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~corehttp.exceptions.HttpResponseError:
+        """
+
+    @overload
+    async def resend(
+        self, event_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+    ) -> None:
+        """Re-send notification event.
+
+        resend.
+
+        :param event_id: Required.
+        :type event_id: str
+        :param request: Required.
+        :type request: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~corehttp.exceptions.HttpResponseError:
+        """
+
+    @overload
+    async def resend(
+        self, event_id: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> None:
+        """Re-send notification event.
+
+        resend.
+
+        :param event_id: Required.
+        :type event_id: str
+        :param request: Required.
+        :type request: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~corehttp.exceptions.HttpResponseError:
+        """
+
+    async def resend(
+        self, event_id: str, request: Union[_models.NotificationEventResendRequest, JSON, IO[bytes]], **kwargs: Any
+    ) -> None:
+        """Re-send notification event.
+
+        resend.
+
+        :param event_id: Required.
+        :type event_id: str
+        :param request: Is one of the following types: NotificationEventResendRequest, JSON, IO[bytes]
+         Required.
+        :type request: ~openmeter._generated.models.NotificationEventResendRequest or JSON or IO[bytes]
+        :return: None
+        :rtype: None
+        :raises ~corehttp.exceptions.HttpResponseError:
+        """
+        error_map: MutableMapping = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _content = None
+        if isinstance(request, (IOBase, bytes)):
+            _content = request
+        else:
+            _content = json.dumps(request, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
+
+        _request = build_notification_events_resend_request(
+            event_id=event_id,
+            content_type=content_type,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        path_format_arguments = {
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
+        }
+        _request.url = self._client.format_url(_request.url, **path_format_arguments)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [202]:
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            error = None
+            if response.status_code == 404:
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
+                raise ResourceNotFoundError(response=response, model=error)
+            if response.status_code == 400:
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
+            elif response.status_code == 401:
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
+                raise ClientAuthenticationError(response=response, model=error)
+            if response.status_code == 403:
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
+            elif response.status_code == 500:
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
+            elif response.status_code == 503:
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
+            elif response.status_code == 412:
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
+            else:
+                error = _failsafe_deserialize(
+                    _models.UnexpectedProblemResponse,
+                    response,
+                )
+            raise HttpResponseError(response=response, model=error)
+
+        if cls:
+            return cls(pipeline_response, None, {})  # type: ignore
 
 
 class EntitlementsV2Operations:

@@ -2,9 +2,9 @@ package svix
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -247,13 +247,11 @@ func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID s
 
 func (h svixHandler) GetMessage(ctx context.Context, params webhook.GetMessageInput) (*webhook.Message, error) {
 	fn := func(ctx context.Context) (*webhook.Message, error) {
-		msgID := lo.CoalesceOrEmpty(params.ID, params.EventID)
-
-		if msgID == "" {
-			return nil, webhook.NewValidationError(
-				errors.New("either svix message id or event id must be provided"),
-			)
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid get message params: %w", err)
 		}
+
+		msgID := lo.CoalesceOrEmpty(params.ID, params.EventID)
 
 		span := trace.SpanFromContext(ctx)
 
@@ -305,6 +303,49 @@ func (h svixHandler) GetMessage(ctx context.Context, params webhook.GetMessageIn
 	return tracex.Start[*webhook.Message](ctx, h.tracer, "svix.get_message").Wrap(fn)
 }
 
+func (h svixHandler) ResendMessage(ctx context.Context, params webhook.ResendMessageInput) error {
+	fn := func(ctx context.Context) error {
+		if err := params.Validate(); err != nil {
+			return fmt.Errorf("invalid resend message params: %w", err)
+		}
+
+		span := trace.SpanFromContext(ctx)
+
+		spanAttrs := []attribute.KeyValue{
+			attribute.String(AnnotationMessageID, params.ID),
+			attribute.String(AnnotationMessageEventID, params.EventID),
+			attribute.String(AnnotationApplicationUID, params.Namespace),
+			attribute.String(AnnotationEndpointUID, params.ChannelID),
+		}
+
+		span.SetAttributes(spanAttrs...)
+
+		span.AddEvent("resend webhook message", trace.WithAttributes(spanAttrs...))
+
+		idempotencyKey, err := idempotency.Key()
+		if err != nil {
+			return fmt.Errorf("failed to generate idempotency key: %w", err)
+		}
+
+		err = h.client.MessageAttempt.Resend(ctx, params.Namespace, params.EventID, params.ChannelID, &svix.MessageAttemptResendOptions{
+			IdempotencyKey: &idempotencyKey,
+		})
+		if err = internal.WrapSvixError(err); err != nil {
+			// NOTE(chrisgacsal): this is a workaround for a bug in svix-webhooks. Remove this after upstream released the fix.
+			if strings.Contains(err.Error(), "unexpected end of JSON input") {
+				return nil
+			}
+
+			return fmt.Errorf("failed to resend message [svix.app=%s svix.message.id=%s svix.endpoint.uid=%s]: %w",
+				params.Namespace, params.EventID, params.ChannelID, err)
+		}
+
+		return nil
+	}
+
+	return tracex.StartWithNoValue(ctx, h.tracer, "svix.resend_message").Wrap(fn)
+}
+
 func deliveryStateFromSvixMessageStatus(status svixmodels.MessageStatus) notification.EventDeliveryStatusState {
 	switch status {
 	case svixmodels.MESSAGESTATUS_SUCCESS:
@@ -316,6 +357,6 @@ func deliveryStateFromSvixMessageStatus(status svixmodels.MessageStatus) notific
 	case svixmodels.MESSAGESTATUS_SENDING:
 		return notification.EventDeliveryStatusStateSending
 	default:
-		return ""
+		return notification.EventDeliveryStatusState(fmt.Sprintf("unknown_status: %d", status))
 	}
 }

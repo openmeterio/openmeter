@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -73,4 +77,87 @@ func (s Service) CreateEvent(ctx context.Context, params notification.CreateEven
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
+}
+
+func (s Service) ResendEvent(ctx context.Context, params notification.ResendEventInput) error {
+	if err := params.Validate(); err != nil {
+		return fmt.Errorf("invalid params: %w", err)
+	}
+
+	fn := func(ctx context.Context) error {
+		event, err := s.adapter.GetEvent(ctx, notification.GetEventInput{
+			Namespace: params.Namespace,
+			ID:        params.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to get event: %w", err)
+		}
+
+		var errs []error
+
+		channelsByID := lo.SliceToMap(event.Rule.Channels, func(item notification.Channel) (string, notification.Channel) {
+			return item.ID, item
+		})
+
+		for _, channelID := range params.Channels {
+			channel, ok := channelsByID[channelID]
+			if !ok {
+				errs = append(errs, fmt.Errorf("channel %s not found", channelID))
+				continue
+			}
+
+			if channel.Disabled {
+				errs = append(errs, fmt.Errorf("channel %s is disabled", channelID))
+			}
+		}
+
+		if len(errs) > 0 {
+			return models.NewGenericValidationError(errors.Join(errs...))
+		}
+
+		allowedStates := []notification.EventDeliveryStatusState{
+			notification.EventDeliveryStatusStateSending,
+			notification.EventDeliveryStatusStateSuccess,
+			notification.EventDeliveryStatusStateFailed,
+		}
+
+		now := clock.Now()
+
+		for _, status := range event.DeliveryStatus {
+			if !lo.Contains(allowedStates, status.State) {
+				continue
+			}
+
+			// If there are params.Channels, only resend to those channels.
+			if len(params.Channels) > 0 && !lo.Contains(params.Channels, status.ChannelID) {
+				continue
+			}
+
+			// Don't resend to disabled channels.
+			channel, ok := channelsByID[status.ChannelID]
+			if ok && channel.Disabled {
+				continue
+			}
+
+			annotations := lo.Assign(status.Annotations, models.Annotations{
+				notification.AnnotationEventResendTimestamp: now.UTC().Format(time.RFC3339),
+			})
+
+			_, err = s.adapter.UpdateEventDeliveryStatus(ctx, notification.UpdateEventDeliveryStatusInput{
+				NamespacedID: status.NamespacedID,
+				State:        notification.EventDeliveryStatusStateResending,
+				Reason:       "event re-send was triggered",
+				Annotations:  annotations,
+				NextAttempt:  lo.ToPtr(now),
+				Attempts:     status.Attempts,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to resend event: %w", err)
+			}
+		}
+
+		return nil
+	}
+
+	return transaction.RunWithNoValue(ctx, s.adapter, fn)
 }

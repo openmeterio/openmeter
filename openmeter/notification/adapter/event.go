@@ -143,7 +143,7 @@ func (a *adapter) GetEvent(ctx context.Context, params notification.GetEventInpu
 			Where(eventdb.Namespace(params.Namespace)).
 			Where(eventdb.ID(params.ID)).
 			WithDeliveryStatuses().
-			WithRules()
+			WithRules(RulesEagerLoadChannelsFn)
 
 		eventRow, err := query.First(ctx)
 		if err != nil {
@@ -172,6 +172,10 @@ func (a *adapter) GetEvent(ctx context.Context, params notification.GetEventInpu
 	}
 
 	return entutils.TransactingRepo(ctx, a, fn)
+}
+
+var RulesEagerLoadChannelsFn = func(q *entdb.NotificationRuleQuery) {
+	q.WithChannels()
 }
 
 func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEventInput) (*notification.Event, error) {

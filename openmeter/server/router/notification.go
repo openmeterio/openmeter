@@ -48,6 +48,12 @@ func (a *Router) GetNotificationEvent(w http.ResponseWriter, r *http.Request, ev
 	a.notificationHandler.GetEvent().With(eventID).ServeHTTP(w, r)
 }
 
+// Resend notification event
+// (POST /api/v1/notification/events/{eventId}/resend)
+func (a *Router) ResendNotificationEvent(w http.ResponseWriter, r *http.Request, eventID string) {
+	a.notificationHandler.ResendEvent().With(eventID).ServeHTTP(w, r)
+}
+
 // List notification rules
 // (GET /api/v1/notification/rules)
 func (a *Router) ListNotificationRules(w http.ResponseWriter, r *http.Request, params api.ListNotificationRulesParams) {

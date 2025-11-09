@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	EventDeliveryStatusStateSuccess EventDeliveryStatusState = "SUCCESS"
-	EventDeliveryStatusStateFailed  EventDeliveryStatusState = "FAILED"
-	EventDeliveryStatusStateSending EventDeliveryStatusState = "SENDING"
-	EventDeliveryStatusStatePending EventDeliveryStatusState = "PENDING"
+	EventDeliveryStatusStateSuccess   EventDeliveryStatusState = "SUCCESS"
+	EventDeliveryStatusStateFailed    EventDeliveryStatusState = "FAILED"
+	EventDeliveryStatusStateSending   EventDeliveryStatusState = "SENDING"
+	EventDeliveryStatusStatePending   EventDeliveryStatusState = "PENDING"
+	EventDeliveryStatusStateResending EventDeliveryStatusState = "RESENDING"
 )
 
 var (
@@ -30,7 +31,8 @@ func (e EventDeliveryStatusState) String() string {
 
 func (e EventDeliveryStatusState) Validate() error {
 	switch e {
-	case EventDeliveryStatusStateSuccess, EventDeliveryStatusStateFailed, EventDeliveryStatusStateSending, EventDeliveryStatusStatePending:
+	case EventDeliveryStatusStateSuccess, EventDeliveryStatusStateFailed,
+		EventDeliveryStatusStateSending, EventDeliveryStatusStatePending, EventDeliveryStatusStateResending:
 		return nil
 	default:
 		return models.NewGenericValidationError(fmt.Errorf("invalid event delivery status state: %s", e))
@@ -43,6 +45,7 @@ func (e EventDeliveryStatusState) Values() []string {
 		string(EventDeliveryStatusStateFailed),
 		string(EventDeliveryStatusStateSending),
 		string(EventDeliveryStatusStatePending),
+		string(EventDeliveryStatusStateResending),
 	}
 }
 

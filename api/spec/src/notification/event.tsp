@@ -144,16 +144,33 @@ model NotificationEventDeliveryAttempt {
 }
 
 /**
+ * A notification event that will be re-sent.
+ */
+@friendlyName("NotificationEventResendRequest")
+model NotificationEventResendRequest {
+  /**
+   * Notification channels to which the event should be re-sent.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Channels")
+  channels?: Array<ULID>;
+}
+
+/**
  * The delivery state of the notification event to the channel.
  */
 @friendlyName("NotificationEventDeliveryStatusState")
 @summary("Delivery State")
-@extension("x-enum-varnames", #["Success", "Failed", "Sending", "Pending"])
+@extension(
+  "x-enum-varnames",
+  #["Success", "Failed", "Sending", "Pending", "Resending"]
+)
 enum NotificationEventDeliveryStatusState {
   Success: "SUCCESS",
   Failed: "FAILED",
   Sending: "SENDING",
   Pending: "PENDING",
+  Resending: "RESENDING",
 }
 
 /**
@@ -311,4 +328,12 @@ interface NotificationEventsEndpoints {
   @operationId("getNotificationEvent")
   @summary("Get notification event")
   get(@path eventId: string): NotificationEvent | NotFoundError | CommonErrors;
+
+  @post
+  @route("/{eventId}/resend")
+  @operationId("resendNotificationEvent")
+  @summary("Re-send notification event")
+  resend(@path eventId: ULID, @body request: NotificationEventResendRequest): {
+    @statusCode _: 202;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }

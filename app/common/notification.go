@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/google/wire"
+	svix "github.com/svix/svix-webhooks/go"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -126,14 +127,16 @@ func NewNotificationWebhookHandler(
 	logger *slog.Logger,
 	tracer trace.Tracer,
 	webhookConfig config.WebhookConfiguration,
-	svixConfig config.SvixConfig,
+	svixClient *svix.Svix,
 ) (notificationwebhook.Handler, error) {
-	if !svixConfig.IsEnabled() {
+	if svixClient == nil {
+		logger.Warn("svix client not configured, using noop handler")
+
 		return webhooknoop.New(logger), nil
 	}
 
 	handler, err := webhooksvix.New(webhooksvix.Config{
-		SvixConfig:              svixConfig,
+		SvixAPIClient:           svixClient,
 		RegisterEventTypes:      notificationwebhook.NotificationEventTypes,
 		RegistrationTimeout:     webhookConfig.EventTypeRegistrationTimeout,
 		SkipRegistrationOnError: webhookConfig.SkipEventTypeRegistrationOnError,

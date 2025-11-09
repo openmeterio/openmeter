@@ -55,21 +55,20 @@ func (c SvixConfig) IsEnabled() bool {
 }
 
 type Config struct {
-	SvixConfig
-
 	RegisterEventTypes      []webhook.EventType
 	RegistrationTimeout     time.Duration
 	SkipRegistrationOnError bool
 
-	Logger *slog.Logger
-	Tracer trace.Tracer
+	SvixAPIClient *svix.Svix
+	Logger        *slog.Logger
+	Tracer        trace.Tracer
 }
 
 func (c Config) Validate() error {
 	var errs []error
 
-	if err := c.SvixConfig.Validate(); err != nil {
-		errs = append(errs, err)
+	if c.SvixAPIClient == nil {
+		errs = append(errs, errors.New("svix client is required"))
 	}
 
 	if c.Logger == nil {
@@ -84,8 +83,8 @@ func (c Config) Validate() error {
 }
 
 func New(config Config) (webhook.Handler, error) {
-	if err := config.SvixConfig.Validate(); err != nil {
-		return nil, err
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid svix webhook handler config: %w", err)
 	}
 
 	if config.RegisterEventTypes == nil {
@@ -129,30 +128,12 @@ type svixHandler struct {
 }
 
 func NewHandler(config Config) (webhook.Handler, error) {
-	if err := config.SvixConfig.Validate(); err != nil {
-		return nil, err
-	}
-
-	opts := &svix.SvixOptions{
-		Debug: config.Debug,
-	}
-
-	if config.ServerURL != "" {
-		serverURL, err := url.Parse(config.ServerURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse svix server URL: %w", err)
-		}
-
-		opts.ServerUrl = serverURL
-	}
-
-	client, err := svix.New(config.APIKey, opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create svix client: %w", err)
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid svix webhook handler config: %w", err)
 	}
 
 	return &svixHandler{
-		client: client,
+		client: config.SvixAPIClient,
 		logger: config.Logger,
 		tracer: config.Tracer,
 	}, nil

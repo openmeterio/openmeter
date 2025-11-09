@@ -10341,7 +10341,7 @@ class NotificationEventDeliveryAttempt(_Model):
     """The delivery attempt of the notification event.
 
     :ivar state: State of teh delivery attempt. Required. Known values are: "SUCCESS", "FAILED",
-     "SENDING", and "PENDING".
+     "SENDING", "PENDING", and "RESENDING".
     :vartype state: str or ~openmeter.models.NotificationEventDeliveryStatusState
     :ivar response: Response returned by the notification event recipient. Required.
     :vartype response: ~openmeter._generated.models.EventDeliveryAttemptResponse
@@ -10351,7 +10351,7 @@ class NotificationEventDeliveryAttempt(_Model):
 
     state: Union[str, "_models.NotificationEventDeliveryStatusState"] = rest_field(visibility=["read"])
     """State of teh delivery attempt. Required. Known values are: \"SUCCESS\", \"FAILED\",
-     \"SENDING\", and \"PENDING\"."""
+     \"SENDING\", \"PENDING\", and \"RESENDING\"."""
     response: "_models.EventDeliveryAttemptResponse" = rest_field(visibility=["read"])
     """Response returned by the notification event recipient. Required."""
     timestamp: datetime.datetime = rest_field(visibility=["read"], format="rfc3339")
@@ -10362,7 +10362,7 @@ class NotificationEventDeliveryStatus(_Model):
     """The delivery status of the notification event.
 
     :ivar state: Delivery state of the notification event to the channel. Required. Known values
-     are: "SUCCESS", "FAILED", "SENDING", and "PENDING".
+     are: "SUCCESS", "FAILED", "SENDING", "PENDING", and "RESENDING".
     :vartype state: str or ~openmeter.models.NotificationEventDeliveryStatusState
     :ivar reason: State Reason. Required.
     :vartype reason: str
@@ -10380,7 +10380,7 @@ class NotificationEventDeliveryStatus(_Model):
 
     state: Union[str, "_models.NotificationEventDeliveryStatusState"] = rest_field(visibility=["read"])
     """Delivery state of the notification event to the channel. Required. Known values are:
-     \"SUCCESS\", \"FAILED\", \"SENDING\", and \"PENDING\"."""
+     \"SUCCESS\", \"FAILED\", \"SENDING\", \"PENDING\", and \"RESENDING\"."""
     reason: str = rest_field(visibility=["read"])
     """State Reason. Required."""
     updated_at: datetime.datetime = rest_field(name="updatedAt", visibility=["read"], format="rfc3339")
@@ -10500,6 +10500,34 @@ class NotificationEventPaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.NotificationEvent"],
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class NotificationEventResendRequest(_Model):
+    """A notification event that will be re-sent.
+
+    :ivar channels: Channels.
+    :vartype channels: list[str]
+    """
+
+    channels: Optional[list[str]] = rest_field(visibility=["create"])
+    """Channels."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        channels: Optional[list[str]] = None,
     ) -> None: ...
 
     @overload

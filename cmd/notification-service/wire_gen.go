@@ -139,7 +139,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	webhookConfiguration := notificationConfiguration.Webhook
 	v3 := conf.Svix
-	handler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, v3)
+	svix, err := common.NewSvixAPIClient(v3, meterProvider, tracerProvider)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	handler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, svix)
 	if err != nil {
 		cleanup6()
 		cleanup5()

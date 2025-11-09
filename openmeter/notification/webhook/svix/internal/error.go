@@ -80,7 +80,7 @@ func WrapSvixError(err error) error {
 		var body SvixValidationErrorBody
 
 		if e := json.Unmarshal(svixErr.Body(), &body); e != nil {
-			return err
+			return fmt.Errorf("failed to parse Svix error response: %w", err)
 		}
 
 		return SvixError{
@@ -96,7 +96,7 @@ func WrapSvixError(err error) error {
 		var body SvixErrorBody
 
 		if e := json.Unmarshal(svixErr.Body(), &body); e != nil {
-			return err
+			return fmt.Errorf("failed to parse Svix error response: %w", err)
 		}
 
 		return SvixError{
