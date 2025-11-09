@@ -1826,7 +1826,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "event_id", Type: field.TypeString},
 		{Name: "channel_id", Type: field.TypeString},
-		{Name: "state", Type: field.TypeEnum, Enums: []string{"SUCCESS", "FAILED", "SENDING", "PENDING"}, Default: "PENDING"},
+		{Name: "state", Type: field.TypeEnum, Enums: []string{"SUCCESS", "FAILED", "SENDING", "PENDING", "RESENDING"}, Default: "PENDING"},
 		{Name: "reason", Type: field.TypeString, Nullable: true},
 		{Name: "next_attempt_at", Type: field.TypeTime, Nullable: true},
 		{Name: "attempts", Type: field.TypeJSON, Nullable: true},
