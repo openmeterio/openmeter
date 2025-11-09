@@ -180,7 +180,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 
 						attempts := status.Attempts
 						state := notification.EventDeliveryStatusStateSending
-						nextAttempt := lo.ToPtr(now.Add(h.reconcileInterval))
+						nextAttempt := lo.ToPtr(now)
 
 						msgStatusByChannel := getDeliveryStatusByChannelID(lo.FromPtr(msg.DeliveryStatuses), status.ChannelID)
 
@@ -258,6 +258,8 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 					msgStatusByChannel := getDeliveryStatusByChannelID(lo.FromPtr(msg.DeliveryStatuses), status.ChannelID)
 
 					if msgStatusByChannel == nil {
+						h.logger.ErrorContext(ctx, "no channel found for webhook message delivery status")
+
 						input = &notification.UpdateEventDeliveryStatusInput{
 							NamespacedID: status.NamespacedID,
 							State:        notification.EventDeliveryStatusStateFailed,
@@ -282,6 +284,9 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 						}
 
 						if !inSync {
+							span.AddEvent("delivery state is out of sync", trace.WithAttributes(spanAttrs...))
+							h.logger.DebugContext(ctx, "delivery state is out of sync")
+
 							input = &notification.UpdateEventDeliveryStatusInput{
 								NamespacedID: status.NamespacedID,
 								State:        notification.EventDeliveryStatusStateSending,
@@ -289,17 +294,17 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 								NextAttempt:  status.NextAttempt,
 								Attempts:     msgStatusByChannel.Attempts,
 							}
+
+							break
 						}
 					}
 
-					if input == nil {
-						input = &notification.UpdateEventDeliveryStatusInput{
-							NamespacedID: status.NamespacedID,
-							State:        msgStatusByChannel.State,
-							Annotations:  status.Annotations.Merge(msg.Annotations),
-							NextAttempt:  msgStatusByChannel.NextAttempt,
-							Attempts:     msgStatusByChannel.Attempts,
-						}
+					input = &notification.UpdateEventDeliveryStatusInput{
+						NamespacedID: status.NamespacedID,
+						State:        msgStatusByChannel.State,
+						Annotations:  status.Annotations.Merge(msg.Annotations),
+						NextAttempt:  msgStatusByChannel.NextAttempt,
+						Attempts:     msgStatusByChannel.Attempts,
 					}
 				default:
 					span.RecordError(err, trace.WithAttributes(spanAttrs...))
@@ -317,6 +322,8 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 
 				continue
 			}
+
+			h.logger.DebugContext(ctx, "updating delivery status", "update", input)
 
 			_, err = h.repo.UpdateEventDeliveryStatus(ctx, *input)
 			if err != nil {
