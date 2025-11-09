@@ -40,7 +40,9 @@ func NewSvixAPIClient(
 	// Disable HTTP/2.0
 	tr := http.DefaultTransport.(*http.Transport).Clone()
 	tr.ForceAttemptHTTP2 = false
-	tr.TLSClientConfig = new(tls.Config)
+	tr.TLSClientConfig = &tls.Config{
+		MinVersion: tls.VersionTLS13,
+	}
 	tr.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
 
 	opts.HTTPClient = &http.Client{
