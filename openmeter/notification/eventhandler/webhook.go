@@ -61,9 +61,11 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 
 		var errs []error
 
+		now := clock.Now()
+
 		for _, status := range sortedActiveStatuses {
 			// Skip the delivery status update if next_attempt is set, and it is in the future.
-			if next := lo.FromPtr(status.NextAttempt); !next.IsZero() && next.After(clock.Now()) {
+			if next := lo.FromPtr(status.NextAttempt); !next.IsZero() && next.After(now) {
 				span.AddEvent("skipping delivery status update: next_attempt is set in the future", trace.WithAttributes(spanAttrs...),
 					trace.WithAttributes(attribute.String("next_attempt", next.UTC().Format(time.RFC3339))),
 				)
@@ -78,7 +80,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 			switch status.State {
 			case notification.EventDeliveryStatusStatePending:
 				// Check if the delivery status is pending for too long.
-				if clock.Now().Sub(status.CreatedAt) > h.pendingTimeout {
+				if now.Sub(status.CreatedAt) > h.pendingTimeout {
 					input = &notification.UpdateEventDeliveryStatusInput{
 						NamespacedID: status.NamespacedID,
 						State:        notification.EventDeliveryStatusStateFailed,
@@ -97,7 +99,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 
 					attempts := status.Attempts
 					state := notification.EventDeliveryStatusStateSending
-					nextAttempt := lo.ToPtr(clock.Now().Add(h.reconcileInterval))
+					nextAttempt := lo.ToPtr(now)
 
 					msgStatusByChannel := getDeliveryStatusByChannelID(lo.FromPtr(msg.DeliveryStatuses), status.ChannelID)
 
@@ -170,7 +172,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 							State:        notification.EventDeliveryStatusStatePending,
 							Reason:       ErrSystemRecoverableError.Error(),
 							Annotations:  status.Annotations,
-							NextAttempt:  lo.ToPtr(clock.Now().Add(retryAfter)),
+							NextAttempt:  lo.ToPtr(now.Add(retryAfter)),
 							Attempts:     status.Attempts,
 						}
 					case msg != nil:
@@ -178,7 +180,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 
 						attempts := status.Attempts
 						state := notification.EventDeliveryStatusStateSending
-						nextAttempt := lo.ToPtr(clock.Now().Add(h.reconcileInterval))
+						nextAttempt := lo.ToPtr(now.Add(h.reconcileInterval))
 
 						msgStatusByChannel := getDeliveryStatusByChannelID(lo.FromPtr(msg.DeliveryStatuses), status.ChannelID)
 
@@ -203,9 +205,23 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 					span.RecordError(err, trace.WithAttributes(spanAttrs...))
 					errs = append(errs, fmt.Errorf("unhandled reconciling state: %s", status.State.String()))
 				}
+			case notification.EventDeliveryStatusStateResending:
+				err = h.resendWebhookMessage(ctx, event, &status)
+				if err != nil {
+					errs = append(errs, fmt.Errorf("failed to resend webhook message: %w", err))
+				}
+
+				// Ignore any error from the resend operation.
+				input = &notification.UpdateEventDeliveryStatusInput{
+					NamespacedID: status.NamespacedID,
+					State:        notification.EventDeliveryStatusStateSending,
+					Annotations:  status.Annotations,
+					NextAttempt:  lo.ToPtr(now),
+					Attempts:     status.Attempts,
+				}
 			case notification.EventDeliveryStatusStateSending:
 				// Check if the delivery status is sending for too long.
-				if clock.Now().Sub(status.CreatedAt) > h.sendingTimeout {
+				if now.Sub(status.CreatedAt) > h.sendingTimeout {
 					input = &notification.UpdateEventDeliveryStatusInput{
 						NamespacedID: status.NamespacedID,
 						State:        notification.EventDeliveryStatusStateFailed,
@@ -227,12 +243,12 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 						stuckInSendingSince = *status.NextAttempt
 					}
 
-					if clock.Now().Sub(stuckInSendingSince) > time.Hour {
+					if now.Sub(stuckInSendingSince) > time.Hour {
 						input = &notification.UpdateEventDeliveryStatusInput{
 							NamespacedID: status.NamespacedID,
 							State:        notification.EventDeliveryStatusStatePending,
 							Annotations:  status.Annotations,
-							NextAttempt:  status.NextAttempt,
+							NextAttempt:  lo.ToPtr(now),
 							Attempts:     status.Attempts,
 						}
 					}
@@ -254,12 +270,36 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 						break
 					}
 
-					input = &notification.UpdateEventDeliveryStatusInput{
-						NamespacedID: status.NamespacedID,
-						State:        msgStatusByChannel.State,
-						Annotations:  status.Annotations.Merge(msg.Annotations),
-						NextAttempt:  msgStatusByChannel.NextAttempt,
-						Attempts:     msgStatusByChannel.Attempts,
+					if next := lo.FromPtr(status.NextAttempt); !next.IsZero() {
+						// Check if attempts are synchronized between webhook provider and OpenMeter.
+						var inSync bool
+
+						for _, msgAttempt := range msgStatusByChannel.Attempts {
+							if msgAttempt.Timestamp.Compare(next) != -1 {
+								inSync = true
+								break
+							}
+						}
+
+						if !inSync {
+							input = &notification.UpdateEventDeliveryStatusInput{
+								NamespacedID: status.NamespacedID,
+								State:        notification.EventDeliveryStatusStateSending,
+								Annotations:  status.Annotations.Merge(msg.Annotations),
+								NextAttempt:  status.NextAttempt,
+								Attempts:     msgStatusByChannel.Attempts,
+							}
+						}
+					}
+
+					if input == nil {
+						input = &notification.UpdateEventDeliveryStatusInput{
+							NamespacedID: status.NamespacedID,
+							State:        msgStatusByChannel.State,
+							Annotations:  status.Annotations.Merge(msg.Annotations),
+							NextAttempt:  msgStatusByChannel.NextAttempt,
+							Attempts:     msgStatusByChannel.Attempts,
+						}
 					}
 				default:
 					span.RecordError(err, trace.WithAttributes(spanAttrs...))
@@ -303,6 +343,45 @@ func getDeliveryStatusByChannelID(items []webhook.MessageDeliveryStatus, channel
 	}
 
 	return nil
+}
+
+func (h *Handler) resendWebhookMessage(ctx context.Context, event *notification.Event, status *notification.EventDeliveryStatus) error {
+	fn := func(ctx context.Context) error {
+		if event == nil {
+			return fmt.Errorf("event must not be nil")
+		}
+
+		if status == nil {
+			return fmt.Errorf("delivery staus must not be nil")
+		}
+
+		span := trace.SpanFromContext(ctx)
+
+		spanAttrs := []attribute.KeyValue{
+			attribute.String("notification.namespace", event.Namespace),
+			attribute.Stringer("notification.event.type", event.Type),
+			attribute.String("notification.event.id", event.ID),
+			attribute.String("notification.channel.id", status.ChannelID),
+		}
+
+		span.SetAttributes(spanAttrs...)
+
+		span.AddEvent("resending webhook message on channel", trace.WithAttributes(spanAttrs...))
+
+		err := h.webhook.ResendMessage(ctx, webhook.ResendMessageInput{
+			Namespace: event.Namespace,
+			EventID:   event.ID,
+			ChannelID: status.ChannelID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to resend webhook message [namespace=%s notification.event.id=%s notification.channel.id=%s]: %w",
+				event.Namespace, event.ID, status.ChannelID, err)
+		}
+
+		return nil
+	}
+
+	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.resend_webhook_message").Wrap(fn)
 }
 
 func (h *Handler) getWebhookMessage(ctx context.Context, event *notification.Event) (*webhook.Message, error) {

@@ -221,6 +221,10 @@ func (i SendMessageInput) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
+	if i.EventID == "" {
+		errs = append(errs, errors.New("event ID is required"))
+	}
+
 	if i.EventType == "" {
 		errs = append(errs, errors.New("event type is required"))
 	}
@@ -239,6 +243,8 @@ type ExpandParams struct {
 	DeliveryStatus bool
 }
 
+var _ models.Validator = (*GetMessageInput)(nil)
+
 type GetMessageInput struct {
 	Namespace string
 
@@ -246,6 +252,46 @@ type GetMessageInput struct {
 	EventID string
 
 	Expand ExpandParams
+}
+
+func (i GetMessageInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID == "" && i.EventID == "" {
+		errs = append(errs, errors.New("message ID or event ID must be provided"))
+	}
+
+	return NewValidationError(errors.Join(errs...))
+}
+
+type ResendMessageInput struct {
+	Namespace string
+
+	ID        string
+	EventID   string
+	ChannelID string
+}
+
+func (i ResendMessageInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID == "" && i.EventID == "" {
+		errs = append(errs, errors.New("message ID or event ID must be provided"))
+	}
+
+	if i.ChannelID == "" {
+		errs = append(errs, errors.New("channel ID must be provided"))
+	}
+
+	return NewValidationError(errors.Join(errs...))
 }
 
 type RegisterEventTypesInputs struct {
@@ -283,6 +329,7 @@ type WebhookHandler interface {
 type MessageHandler interface {
 	SendMessage(ctx context.Context, params SendMessageInput) (*Message, error)
 	GetMessage(ctx context.Context, params GetMessageInput) (*Message, error)
+	ResendMessage(ctx context.Context, params ResendMessageInput) error
 }
 
 type Handler interface {

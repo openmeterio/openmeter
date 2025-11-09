@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
@@ -55,7 +56,15 @@ func (h *Handler) reconcileEvent(ctx context.Context, event *notification.Event)
 	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.reconcile_event").Wrap(fn)
 }
 
-const reconcileLockKey = "notification.event_handler.reconcile_lock"
+const (
+	reconcileLockKey = "notification.event_handler.reconcile_lock"
+
+	// nextAttemptDelay is a jitter to delay reconciliation of events to give time for downstream service providers to
+	// update their states with the result of the latest attempts which usually happen asynchronously.
+	// This way we can limit the number of missing state updates which could happen if we try to reconcile/synchronize
+	// states right around the *nextAttempt* time provided the downstream service in the previous reconciliation attempt.
+	nextAttemptDelay = 10 * time.Second
+)
 
 func (h *Handler) Reconcile(ctx context.Context) error {
 	fn := func(ctx context.Context) error {
@@ -84,15 +93,14 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 			}
 
 			for {
-				// TODO: add filtering by delivery status next attempt field to prevent reconciliation of events
-				// that are expected to have state updates in the future
 				out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
 					Page: page,
 					DeliveryStatusStates: []notification.EventDeliveryStatusState{
 						notification.EventDeliveryStatusStatePending,
 						notification.EventDeliveryStatusStateSending,
+						notification.EventDeliveryStatusStateResending,
 					},
-					NextAttemptBefore: clock.Now(),
+					NextAttemptBefore: clock.Now().Add(-1 * nextAttemptDelay),
 				})
 				if err != nil {
 					return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)

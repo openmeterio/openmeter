@@ -868,8 +868,8 @@ func (n NoopNotificationService) GetEvent(_ context.Context, _ notification.GetE
 	return &notification.Event{}, nil
 }
 
-func (n NoopNotificationService) ResendEvent(_ context.Context, _ notification.ResendEventInput) (*notification.Event, error) {
-	return &notification.Event{}, nil
+func (n NoopNotificationService) ResendEvent(_ context.Context, _ notification.ResendEventInput) error {
+	return nil
 }
 
 func (n NoopNotificationService) CreateEvent(_ context.Context, _ notification.CreateEventInput) (*notification.Event, error) {

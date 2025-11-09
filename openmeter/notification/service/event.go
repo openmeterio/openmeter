@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 func (s Service) ListEvents(ctx context.Context, params notification.ListEventsInput) (notification.ListEventsResult, error) {
@@ -77,18 +79,18 @@ func (s Service) CreateEvent(ctx context.Context, params notification.CreateEven
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
-func (s Service) ResendEvent(ctx context.Context, params notification.ResendEventInput) (*notification.Event, error) {
+func (s Service) ResendEvent(ctx context.Context, params notification.ResendEventInput) error {
 	if err := params.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid params: %w", err)
+		return fmt.Errorf("invalid params: %w", err)
 	}
 
-	fn := func(ctx context.Context) (*notification.Event, error) {
+	fn := func(ctx context.Context) error {
 		event, err := s.adapter.GetEvent(ctx, notification.GetEventInput{
 			Namespace: params.Namespace,
 			ID:        params.ID,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get event: %w", err)
+			return fmt.Errorf("failed to get event: %w", err)
 		}
 
 		var errs []error
@@ -109,13 +111,16 @@ func (s Service) ResendEvent(ctx context.Context, params notification.ResendEven
 		}
 
 		if len(errs) > 0 {
-			return nil, models.NewGenericValidationError(errors.Join(errs...))
+			return models.NewGenericValidationError(errors.Join(errs...))
 		}
 
 		allowedStates := []notification.EventDeliveryStatusState{
+			notification.EventDeliveryStatusStateSending,
 			notification.EventDeliveryStatusStateSuccess,
 			notification.EventDeliveryStatusStateFailed,
 		}
+
+		now := clock.Now()
 
 		for _, status := range event.DeliveryStatus {
 			if !lo.Contains(allowedStates, status.State) {
@@ -128,30 +133,24 @@ func (s Service) ResendEvent(ctx context.Context, params notification.ResendEven
 			}
 
 			annotations := lo.Assign(status.Annotations, models.Annotations{
-				notification.AnnotationEventResendTimestamp: time.Now().UTC().Format(time.RFC3339),
+				notification.AnnotationEventResendTimestamp: now.UTC().Format(time.RFC3339),
 			})
 
-			_, err := s.adapter.UpdateEventDeliveryStatus(ctx, notification.UpdateEventDeliveryStatusInput{
+			_, err = s.adapter.UpdateEventDeliveryStatus(ctx, notification.UpdateEventDeliveryStatusInput{
 				NamespacedID: status.NamespacedID,
-				State:        notification.EventDeliveryStatusStateSending,
+				State:        notification.EventDeliveryStatusStateResending,
 				Reason:       "event re-send was triggered",
 				Annotations:  annotations,
+				NextAttempt:  lo.ToPtr(now),
+				Attempts:     status.Attempts,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to resend event: %w", err)
+				return fmt.Errorf("failed to resend event: %w", err)
 			}
 		}
 
-		updatedEvent, err := s.adapter.GetEvent(ctx, notification.GetEventInput{
-			Namespace: params.Namespace,
-			ID:        params.ID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get updated event: %w", err)
-		}
-
-		return updatedEvent, nil
+		return nil
 	}
 
-	return transaction.Run(ctx, s.adapter, fn)
+	return transaction.RunWithNoValue(ctx, s.adapter, fn)
 }

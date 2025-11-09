@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	svix "github.com/svix/svix-webhooks/go"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -157,14 +159,23 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 
 	logger.Info("Svix API key", slog.String("apiKey", svixAPIKey))
 
+	svixServerURL, err := url.Parse(fmt.Sprintf(SvixServerURLTemplate, svixHost))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse Svix server URL: %w", err)
+	}
+
+	svixAPIClient, err := svix.New(svixAPIKey, &svix.SvixOptions{
+		ServerUrl: svixServerURL,
+		Debug:     false,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Svix API client: %w", err)
+	}
+
 	webhook, err := webhooksvix.New(webhooksvix.Config{
-		SvixConfig: webhooksvix.SvixConfig{
-			APIKey:    svixAPIKey,
-			ServerURL: fmt.Sprintf(SvixServerURLTemplate, svixHost),
-			Debug:     false,
-		},
-		Logger: logger,
-		Tracer: tracer,
+		SvixAPIClient: svixAPIClient,
+		Logger:        logger,
+		Tracer:        tracer,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create webhook handler: %w", err)

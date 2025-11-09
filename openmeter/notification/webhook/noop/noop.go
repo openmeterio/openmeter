@@ -75,3 +75,9 @@ func (h Handler) GetMessage(ctx context.Context, params webhook.GetMessageInput)
 
 	return nil, webhook.ErrNotImplemented
 }
+
+func (h Handler) ResendMessage(ctx context.Context, params webhook.ResendMessageInput) error {
+	h.logger.InfoContext(ctx, "resending message", "params", params)
+
+	return webhook.ErrNotImplemented
+}

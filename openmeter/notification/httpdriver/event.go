@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -129,7 +129,7 @@ func (h *handler) GetEvent() GetEventHandler {
 
 type (
 	ResendEventRequest  = notification.ResendEventInput
-	ResendEventResponse = api.NotificationEvent
+	ResendEventResponse = interface{}
 	ResendEventHandler  httptransport.HandlerWithArgs[ResendEventRequest, ResendEventResponse, string]
 )
 
@@ -157,18 +157,13 @@ func (h *handler) ResendEvent() ResendEventHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ResendEventRequest) (ResendEventResponse, error) {
-			event, err := h.service.ResendEvent(ctx, request)
+			err := h.service.ResendEvent(ctx, request)
 			if err != nil {
-				return ResendEventResponse{}, fmt.Errorf("failed to resend event: %w", err)
+				return nil, fmt.Errorf("failed to resend event: %w", err)
 			}
-
-			if event == nil {
-				return ResendEventResponse{}, errors.New("failed to resend event: nil event returned")
-			}
-
-			return FromEvent(*event)
+			return nil, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[ResendEventResponse](http.StatusOK),
+		commonhttp.EmptyResponseEncoder[ResendEventResponse](http.StatusAccepted),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("resendNotificationEvent"),
