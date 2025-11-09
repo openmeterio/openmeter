@@ -161,12 +161,16 @@ model NotificationEventResendRequest {
  */
 @friendlyName("NotificationEventDeliveryStatusState")
 @summary("Delivery State")
-@extension("x-enum-varnames", #["Success", "Failed", "Sending", "Pending"])
+@extension(
+  "x-enum-varnames",
+  #["Success", "Failed", "Sending", "Pending", "Resending"]
+)
 enum NotificationEventDeliveryStatusState {
   Success: "SUCCESS",
   Failed: "FAILED",
   Sending: "SENDING",
   Pending: "PENDING",
+  Resending: "RESENDING",
 }
 
 /**
@@ -329,8 +333,7 @@ interface NotificationEventsEndpoints {
   @route("/{eventId}/resend")
   @operationId("resendNotificationEvent")
   @summary("Re-send notification event")
-  resend(
-    @path eventId: ULID,
-    @body request: NotificationEventResendRequest,
-  ): NotificationEvent | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  resend(@path eventId: ULID, @body request: NotificationEventResendRequest): {
+    @statusCode _: 202;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }

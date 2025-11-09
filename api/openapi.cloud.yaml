@@ -6624,12 +6624,8 @@ paths:
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
             example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NotificationEvent'
+        '202':
+          description: The request has been accepted for processing, but processing has not yet completed.
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -20577,6 +20573,7 @@ components:
         - FAILED
         - SENDING
         - PENDING
+        - RESENDING
       description: The delivery state of the notification event to the channel.
       title: Delivery State
       x-enum-varnames:
@@ -20584,6 +20581,7 @@ components:
         - Failed
         - Sending
         - Pending
+        - Resending
     NotificationEventEntitlementValuePayloadBase:
       type: object
       required:
