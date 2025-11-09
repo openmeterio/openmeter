@@ -103,6 +103,7 @@ func (s Service) ResendEvent(ctx context.Context, params notification.ResendEven
 			channel, ok := channelsByID[channelID]
 			if !ok {
 				errs = append(errs, fmt.Errorf("channel %s not found", channelID))
+				continue
 			}
 
 			if channel.Disabled {
