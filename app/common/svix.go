@@ -47,7 +47,7 @@ func NewSvixAPIClient(
 
 	opts.HTTPClient = &http.Client{
 		Transport: otelhttp.NewTransport(
-			http.DefaultTransport,
+			tr,
 			otelhttp.WithMeterProvider(meterProvider),
 			otelhttp.WithTracerProvider(tracerProvider),
 			otelhttp.WithSpanOptions(trace.WithAttributes(semconv.PeerService("svix"))),
