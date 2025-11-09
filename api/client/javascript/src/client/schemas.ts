@@ -8170,6 +8170,7 @@ export interface components {
       | 'FAILED'
       | 'SENDING'
       | 'PENDING'
+      | 'RESENDING'
     /** @description Base data for any payload with entitlement entitlement value. */
     NotificationEventEntitlementValuePayloadBase: {
       /** Entitlement */
@@ -20898,14 +20899,12 @@ export interface operations {
       }
     }
     responses: {
-      /** @description The request has succeeded. */
-      200: {
+      /** @description The request has been accepted for processing, but processing has not yet completed. */
+      202: {
         headers: {
           [name: string]: unknown
         }
-        content: {
-          'application/json': components['schemas']['NotificationEvent']
-        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
