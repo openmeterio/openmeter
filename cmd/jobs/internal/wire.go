@@ -94,6 +94,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Lockr,
 		common.Secret,
 		common.ServerProvisionTopics,
+		common.NewSvixAPIClient,
 		common.TelemetryWithoutServer,
 		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.WatermillNoPublisher,

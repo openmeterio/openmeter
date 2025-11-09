@@ -124,6 +124,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Secret,
 		common.ServerProvisionTopics,
 		common.Subject,
+		common.NewSvixAPIClient,
 		common.NewSubjectCustomerHook,
 		common.NewSubjectEntitlementValidatorHook,
 		common.Telemetry,
