@@ -132,6 +132,12 @@ func (s Service) ResendEvent(ctx context.Context, params notification.ResendEven
 				continue
 			}
 
+			// Don't resend to disabled channels.
+			channel, ok := channelsByID[status.ChannelID]
+			if ok && channel.Disabled {
+				continue
+			}
+
 			annotations := lo.Assign(status.Annotations, models.Annotations{
 				notification.AnnotationEventResendTimestamp: now.UTC().Format(time.RFC3339),
 			})
