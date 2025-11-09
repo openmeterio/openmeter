@@ -57,11 +57,12 @@ func sortDeliveryStatusStateByPriority(states []notification.EventDeliveryStatus
 		return nil
 	}
 
-	priority := map[notification.EventDeliveryStatusState]int{
-		notification.EventDeliveryStatusStatePending: 0,
-		notification.EventDeliveryStatusStateSending: 1,
-		notification.EventDeliveryStatusStateFailed:  3,
-		notification.EventDeliveryStatusStateSuccess: 3,
+	priority := map[notification.EventDeliveryStatusState]int8{
+		notification.EventDeliveryStatusStatePending:   0,
+		notification.EventDeliveryStatusStateResending: 0,
+		notification.EventDeliveryStatusStateSending:   1,
+		notification.EventDeliveryStatusStateFailed:    2,
+		notification.EventDeliveryStatusStateSuccess:   2,
 	}
 
 	slices.SortFunc(states, func(a, b notification.EventDeliveryStatus) int {
