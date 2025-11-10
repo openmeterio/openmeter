@@ -11,7 +11,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/avast/retry-go/v4"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source"
@@ -182,38 +181,35 @@ func (m *Migrate) WaitForMigrationJob(waitOpts ...WaitForMigrationOption) error 
 		return err
 	}
 
-	err = retry.Do(
-		func() error {
-			ver, dirty, err := m.Version()
-			if err != nil {
-				return retry.Unrecoverable(err)
-			}
-			if dirty {
-				return retry.Unrecoverable(fmt.Errorf("database is dirty, please run migrations manually"))
-			}
+	maxMigrationWaitDuration := time.Duration(opts.MaxRetries) * opts.Delay
 
-			m.logger.Info("waiting for migration job",
-				slog.Int("current_db_version", int(ver)),
-				slog.Int("latest_known_version", int(latestKnownVersion)),
-			)
+	failAfter := time.Now().Add(maxMigrationWaitDuration)
+	for {
+		if time.Now().After(failAfter) {
+			return fmt.Errorf("timeout waiting for migration job after %s", maxMigrationWaitDuration)
+		}
 
-			if ver >= latestKnownVersion {
-				// We are at least on the version that is required by the binary => good to go
-				return nil
-			}
+		ver, dirty, err := m.Version()
+		if err != nil {
+			return err
+		}
+		if dirty {
+			return fmt.Errorf("database is dirty, please run migrations manually")
+		}
 
-			return fmt.Errorf("database is not at the latest version, current version: %d, target version: %d", ver, latestKnownVersion)
-		},
-		retry.Delay(opts.Delay),
-		retry.MaxDelay(opts.Delay),
-		retry.Attempts(opts.MaxRetries),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to wait for migration job: %w", err)
+		if ver >= latestKnownVersion {
+			// We are at least on the version that is required by the binary => good to go
+			m.logger.Info("database migrations are ready", "current_db_version", ver, "latest_known_version", latestKnownVersion)
+			return nil
+		}
+
+		m.logger.Info("waiting for migration job",
+			slog.Int("current_db_version", int(ver)),
+			slog.Int("latest_known_version", int(latestKnownVersion)),
+		)
+
+		time.Sleep(opts.Delay)
 	}
-
-	m.logger.Info("database migrations are ready")
-	return nil
 }
 
 func setMigrationTableName(conn, tableName string) (string, error) {
