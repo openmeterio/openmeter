@@ -15,7 +15,7 @@ if [ -z "${PY_SDK_RELEASE_VERSION:-}" ]; then
     exit 1
   fi
 
-	LATEST_VERSION=$(curl -s https://pypi.org/pypi/openmeter/json | grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4)
+	LATEST_VERSION=$(curl -s https://pypi.org/pypi/openmeter/json | jq -r '.releases | keys[] | select(test("a[0-9]+"))' | sort -V | tail -1)
 	if [ -z "$LATEST_VERSION" ]; then
 		PY_SDK_RELEASE_VERSION="1.0.0a0"
 	else
