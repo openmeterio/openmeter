@@ -102,27 +102,6 @@ func (m *Openmeter) binaryArchive(version string, platform dagger.Platform) *dag
 	)
 }
 
-func (m *Openmeter) publishPythonSdk(ctx context.Context, version string, pypiToken *dagger.Secret) error {
-	_, err := dag.Python(dagger.PythonOpts{
-		Container: dag.Python(dagger.PythonOpts{Container: dag.Container().From("pypy:3.10-7.3.16-slim")}).
-			WithPipCache(cacheVolume("pip")).
-			Container().
-			WithExec([]string{"pip", "--disable-pip-version-check", "install", "pipx"}).
-			WithEnvVariable("PATH", "${PATH}:/root/.local/bin", dagger.ContainerWithEnvVariableOpts{Expand: true}).
-			WithExec([]string{"pipx", "install", "poetry"}),
-	}).
-		WithSource(m.Source.Directory("api/client/python")). // TODO: generate SDK on the fly?
-		Container().
-		WithExec([]string{"poetry", "install"}).
-		WithExec([]string{"poetry", "version", version}).
-		WithSecretVariable("POETRY_PYPI_TOKEN_PYPI", pypiToken).
-		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithExec([]string{"poetry", "publish", "--build"}).
-		Sync(ctx)
-
-	return err
-}
-
 // TODO: keep in sync with api/client/javascript/Makefile for now, if the release process is moved to nix, can be removed
 func (m *Openmeter) PublishJavascriptSdk(ctx context.Context, version string, tag string, npmToken *dagger.Secret) error {
 	// TODO: generate SDK on the fly?
