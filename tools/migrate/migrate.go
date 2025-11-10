@@ -233,6 +233,6 @@ func (m *Migrate) CloseOrLogError() {
 	}
 
 	if dbErr != nil {
-		m.logger.Error("failed to close postgresdatabase", "error", dbErr)
+		m.logger.Error("failed to close postgres database", "error", dbErr)
 	}
 }
