@@ -106,7 +106,16 @@ func (s *BaseSuite) SetupSuite() {
 	if os.Getenv("TEST_DISABLE_ATLAS") != "" {
 		s.Require().NoError(dbClient.Schema.Create(context.Background()))
 	} else {
-		s.Require().NoError(migrate.Up(s.TestDB.URL))
+		migrator, err := migrate.New(migrate.MigrateOptions{
+			ConnectionString: s.TestDB.URL,
+			Migrations:       migrate.OMMigrationsConfig,
+			Logger:           testutils.NewLogger(t),
+		})
+		s.NoError(err)
+
+		defer migrator.CloseOrLogError()
+
+		s.NoError(migrator.Up())
 	}
 
 	// setup invoicing stack

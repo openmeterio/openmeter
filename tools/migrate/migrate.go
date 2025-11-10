@@ -31,6 +31,7 @@ type Migrate struct {
 	*goMigrate
 
 	sourceDriver source.Driver
+	logger       *slog.Logger
 }
 
 func (m *Migrate) LatestVersion() (uint, error) {
@@ -71,14 +72,75 @@ func NewLogger(log *slog.Logger) migrate.Logger {
 }
 
 //go:embed migrations
-var OMMigrations embed.FS
+var omMigrations embed.FS
 
-// NewMigrate creates a new migrate instance.
-func NewMigrate(conn string, fs fs.FS, fsPath string) (*Migrate, error) {
-	fs = NewSourceWrapper(fs)
-	sourceDriver, err := iofs.New(fs, fsPath)
+type MigrationsConfig struct {
+	FS             fs.FS
+	FSPath         string
+	StateTableName string
+}
+
+func (m *MigrationsConfig) Validate() error {
+	var errs []error
+	if m.FS == nil {
+		errs = append(errs, errors.New("fs is required"))
+	}
+	if m.FSPath == "" {
+		errs = append(errs, errors.New("fs path is required"))
+	}
+
+	if m.StateTableName == "" {
+		errs = append(errs, errors.New("state table name is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+var OMMigrationsConfig = MigrationsConfig{
+	FS:             omMigrations,
+	FSPath:         "migrations",
+	StateTableName: MigrationsTable,
+}
+
+type MigrateOptions struct {
+	ConnectionString string
+	Migrations       MigrationsConfig
+	Logger           *slog.Logger
+}
+
+func (m *MigrateOptions) Validate() error {
+	var errs []error
+
+	if m.ConnectionString == "" {
+		errs = append(errs, errors.New("connection string is required"))
+	}
+
+	if err := m.Migrations.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("migrations config is invalid: %w", err))
+	}
+
+	if m.Logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+// New creates a new migrate instance.
+func New(options MigrateOptions) (*Migrate, error) {
+	if err := options.Validate(); err != nil {
+		return nil, err
+	}
+
+	fs := NewSourceWrapper(options.Migrations.FS)
+	sourceDriver, err := iofs.New(fs, options.Migrations.FSPath)
 	if err != nil {
 		return nil, err
+	}
+
+	conn, err := setMigrationTableName(options.ConnectionString, options.Migrations.StateTableName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set migration table name: %w", err)
 	}
 
 	migrate, err := migrate.NewWithSourceInstance("iofs", sourceDriver, conn)
@@ -89,35 +151,8 @@ func NewMigrate(conn string, fs fs.FS, fsPath string) (*Migrate, error) {
 	return &Migrate{
 		goMigrate:    migrate,
 		sourceDriver: sourceDriver,
+		logger:       options.Logger,
 	}, nil
-}
-
-func getMigrationForConn(conn string) (*Migrate, error) {
-	conn, err := SetMigrationTableName(conn, MigrationsTable)
-	if err != nil {
-		return nil, err
-	}
-
-	m, err := NewMigrate(conn, OMMigrations, "migrations")
-	if err != nil {
-		return nil, err
-	}
-
-	return m, nil
-}
-
-func Up(conn string) error {
-	m, err := getMigrationForConn(conn)
-	if err != nil {
-		return err
-	}
-
-	defer m.Close()
-	err = m.Up()
-	if err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-	return nil
 }
 
 type WaitForMigrationOption func(*waitForMigrationOptions)
@@ -139,16 +174,10 @@ func getWaitForMigrationOptions(waitOpts []WaitForMigrationOption) waitForMigrat
 	return opts
 }
 
-func WaitForMigrationJob(conn string, logger *slog.Logger, waitOpts ...WaitForMigrationOption) error {
+func (m *Migrate) WaitForMigrationJob(waitOpts ...WaitForMigrationOption) error {
 	opts := getWaitForMigrationOptions(waitOpts)
 
-	m, err := getMigrationForConn(conn)
-	if err != nil {
-		return err
-	}
-	defer m.Close()
-
-	currentBinaryTargetVersion, err := m.LatestVersion()
+	latestKnownVersion, err := m.LatestVersion()
 	if err != nil {
 		return err
 	}
@@ -163,17 +192,17 @@ func WaitForMigrationJob(conn string, logger *slog.Logger, waitOpts ...WaitForMi
 				return retry.Unrecoverable(fmt.Errorf("database is dirty, please run migrations manually"))
 			}
 
-			logger.Info("waiting for migration job",
+			m.logger.Info("waiting for migration job",
 				slog.Int("current_db_version", int(ver)),
-				slog.Int("current_binary_target_version", int(currentBinaryTargetVersion)),
+				slog.Int("latest_known_version", int(latestKnownVersion)),
 			)
 
-			if ver >= currentBinaryTargetVersion {
+			if ver >= latestKnownVersion {
 				// We are at least on the version that is required by the binary => good to go
 				return nil
 			}
 
-			return fmt.Errorf("database is not at the latest version, current version: %d, target version: %d", ver, currentBinaryTargetVersion)
+			return fmt.Errorf("database is not at the latest version, current version: %d, target version: %d", ver, latestKnownVersion)
 		},
 		retry.Delay(opts.Delay),
 		retry.MaxDelay(opts.Delay),
@@ -183,11 +212,11 @@ func WaitForMigrationJob(conn string, logger *slog.Logger, waitOpts ...WaitForMi
 		return fmt.Errorf("failed to wait for migration job: %w", err)
 	}
 
-	logger.Info("database migrations are ready")
+	m.logger.Info("database migrations are ready")
 	return nil
 }
 
-func SetMigrationTableName(conn, tableName string) (string, error) {
+func setMigrationTableName(conn, tableName string) (string, error) {
 	parsedURL, err := url.Parse(conn)
 	if err != nil {
 		return "", err
@@ -198,4 +227,16 @@ func SetMigrationTableName(conn, tableName string) (string, error) {
 	parsedURL.RawQuery = values.Encode()
 
 	return parsedURL.String(), nil
+}
+
+func (m *Migrate) CloseOrLogError() {
+	sourceErr, dbErr := m.goMigrate.Close()
+
+	if sourceErr != nil {
+		m.logger.Error("failed to close migration source", "error", sourceErr)
+	}
+
+	if dbErr != nil {
+		m.logger.Error("failed to close postgresdatabase", "error", dbErr)
+	}
 }

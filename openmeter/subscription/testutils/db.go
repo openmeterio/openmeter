@@ -50,7 +50,11 @@ func SetupDBDeps(t *testing.T) *DBDeps {
 	entDriver := testdb.EntDriver
 
 	// Let's use migrations to create the schema
-	migrator, err := migrate.NewMigrate(testdb.URL, migrate.OMMigrations, "migrations")
+	migrator, err := migrate.New(migrate.MigrateOptions{
+		ConnectionString: testdb.URL,
+		Migrations:       migrate.OMMigrationsConfig,
+		Logger:           testutils.NewLogger(t),
+	})
 	defer func() {
 		if migrator != nil {
 			if err1, err2 := migrator.Close(); err1 != nil || err2 != nil {
