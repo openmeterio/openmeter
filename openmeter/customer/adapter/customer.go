@@ -466,14 +466,14 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 				customerdb.Or(
 					// We lookup the customer by subject key in the subjects table
 					customerdb.HasSubjectsWith(
-						customersubjectsdb.SubjectKey(input.SubjectKey),
+						customersubjectsdb.SubjectKey(input.Key),
 						customersubjectsdb.Or(
 							customersubjectsdb.DeletedAtIsNil(),
 							customersubjectsdb.DeletedAtGT(now),
 						),
 					),
 					// Or else we lookup the customer by key in the customers table
-					customerdb.Key(input.SubjectKey),
+					customerdb.Key(input.Key),
 				),
 			).
 			Where(customerdb.DeletedAtIsNil())
@@ -486,7 +486,7 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 		if err != nil {
 			if entdb.IsNotFound(err) {
 				return nil, models.NewGenericNotFoundError(
-					fmt.Errorf("customer with subject key %s not found in %s namespace", input.SubjectKey, input.Namespace),
+					fmt.Errorf("customer with subject key %s not found in %s namespace", input.Key, input.Namespace),
 				)
 			}
 

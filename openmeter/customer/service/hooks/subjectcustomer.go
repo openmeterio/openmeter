@@ -68,8 +68,8 @@ func (s subjectCustomerHook) PostDelete(ctx context.Context, sub *subject.Subjec
 
 	// Let's get the customer by usage attribution
 	cus, err := s.provisioner.customer.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  sub.Namespace,
-		SubjectKey: sub.Key,
+		Namespace: sub.Namespace,
+		Key:       sub.Key,
 	})
 	if err != nil {
 		if models.IsGenericNotFoundError(err) {
@@ -305,8 +305,8 @@ var ErrCustomerKeyConflict = errors.New("customer key conflict")
 func (p CustomerProvisioner) getCustomerForSubject(ctx context.Context, sub *subject.Subject) (*customer.Customer, error) {
 	// Try to find Customer for Subject by usage attribution
 	cus, err := p.customer.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  sub.Namespace,
-		SubjectKey: sub.Key,
+		Namespace: sub.Namespace,
+		Key:       sub.Key,
 	})
 	if err != nil && !models.IsGenericNotFoundError(err) {
 		return nil, err

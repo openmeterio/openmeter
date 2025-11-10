@@ -765,8 +765,8 @@ func (s *CustomerHandlerTestSuite) TestGetByUsageAttribution(ctx context.Context
 
 	// Get the customer by usage attribution
 	cus, err := service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  s.namespace,
-		SubjectKey: TestSubjectKeys[0],
+		Namespace: s.namespace,
+		Key:       TestSubjectKeys[0],
 	})
 
 	require.NoError(t, err, "Fetching customer must not return error")
@@ -776,8 +776,8 @@ func (s *CustomerHandlerTestSuite) TestGetByUsageAttribution(ctx context.Context
 
 	// Get the customer by key
 	cus, err = service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  s.namespace,
-		SubjectKey: TestKey,
+		Namespace: s.namespace,
+		Key:       TestKey,
 	})
 
 	require.NoError(t, err, "Fetching customer must not return error")
@@ -787,8 +787,8 @@ func (s *CustomerHandlerTestSuite) TestGetByUsageAttribution(ctx context.Context
 
 	// Get the customer by key
 	cus, err = service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  s.namespace,
-		SubjectKey: TestKey,
+		Namespace: s.namespace,
+		Key:       TestKey,
 	})
 
 	require.NoError(t, err, "Fetching customer must not return error")
@@ -798,8 +798,8 @@ func (s *CustomerHandlerTestSuite) TestGetByUsageAttribution(ctx context.Context
 
 	// Get the customer by usage attribution with a non-existent subject key
 	_, err = service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  s.namespace,
-		SubjectKey: "non-existent-subject-key",
+		Namespace: s.namespace,
+		Key:       "non-existent-subject-key",
 	})
 
 	require.True(t, models.IsGenericNotFoundError(err), "Fetching customer with non-existent subject key must return not found error")
