@@ -52,6 +52,10 @@ func (m Migrator) Migrate(ctx context.Context) error {
 		if err := migrate.Up(m.Config.AsURL()); err != nil {
 			return fmt.Errorf("failed to migrate db: %w", err)
 		}
+	case config.AutoMigrateMigrationJob:
+		if err := migrate.WaitForMigrationJob(m.Config.AsURL(), m.Logger); err != nil {
+			return fmt.Errorf("failed to wait for migration job: %w", err)
+		}
 	}
 
 	m.Logger.Info("database initialized")
