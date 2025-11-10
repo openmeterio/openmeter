@@ -150,7 +150,11 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 			require.NoError(t, err, "creating subject should not fail")
 			assert.NotNilf(t, sub, "subject must not be nil")
 
-			cus, err := env.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			cusForSubject, err := provisioner.EnsureCustomer(ctx, &sub)
+			require.NoError(t, err, "provisioning customer should not fail")
+			assert.NotNilf(t, cusForSubject, "customer must not be nil")
+
+			_, err = env.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 				Namespace: namespace,
 				CustomerMutate: customer.CustomerMutate{
 					Key:         lo.ToPtr(sub.Key),
@@ -170,22 +174,8 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 					Annotation: nil,
 				},
 			})
-			require.NoError(t, err, "creating customer should not fail")
-			assert.NotNilf(t, cus, "customer must not be nil")
 
-			cus, err = provisioner.EnsureCustomer(ctx, &sub)
-			require.NoError(t, err, "provisioning customer should not fail")
-			assert.NotNilf(t, cus, "customer must not be nil")
-
-			cus, err = env.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-				CustomerID: &customer.CustomerID{
-					Namespace: cus.Namespace,
-					ID:        cus.ID,
-				},
-			})
-			require.NoErrorf(t, err, "getting customer for subject should not fail")
-			assert.NotNilf(t, cus, "customer must not be nil")
-			AssertSubjectCustomerEqual(t, &sub, cus)
+			require.True(t, models.IsGenericConflictError(err), "creating customer should fail with conflict")
 		})
 
 		t.Run("CustomerKeyMismatch", func(t *testing.T) {

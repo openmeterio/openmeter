@@ -277,8 +277,8 @@ func (a *adapter) enrichEventsWithCustomerID(ctx context.Context, namespace stri
 		// FIXME: do this in a batches to avoid hitting the database for each event
 		// Get the customer by usage attribution subject key
 		cust, err := a.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-			Namespace:  namespace,
-			SubjectKey: event.Subject,
+			Namespace: namespace,
+			Key:       event.Subject,
 		})
 		if err != nil {
 			if models.IsGenericNotFoundError(err) {

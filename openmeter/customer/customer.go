@@ -212,8 +212,10 @@ func (c CustomerUsageAttribution) GetSubjectKey() (string, error) {
 
 // GetCustomerByUsageAttributionInput represents the input for the GetCustomerByUsageAttribution method
 type GetCustomerByUsageAttributionInput struct {
-	Namespace  string
-	SubjectKey string
+	Namespace string
+
+	// The key of either the customer or one of its subjects
+	Key string
 
 	// Expand
 	Expands Expands
@@ -224,7 +226,7 @@ func (i GetCustomerByUsageAttributionInput) Validate() error {
 		return models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
-	if i.SubjectKey == "" {
+	if i.Key == "" {
 		return models.NewGenericValidationError(errors.New("subject key is required"))
 	}
 
