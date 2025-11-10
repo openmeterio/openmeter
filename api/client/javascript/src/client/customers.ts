@@ -315,7 +315,7 @@ export class CustomerStripe {
     options?: RequestOptions,
   ) {
     const resp = await this.client.GET(
-      '/api/v1/customers/{customerIdOrKey}/apps',
+      '/api/v1/customers/{customerIdOrKey}/stripe',
       {
         params: {
           path: { customerIdOrKey },
