@@ -97,4 +97,4 @@ jobs:
         env:
           PY_SDK_RELEASE_VERSION: ${{ github.ref_name }}
           COMMIT_SHORT_SHA: ${{ steps.get-short-sha.outputs.id }}
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
