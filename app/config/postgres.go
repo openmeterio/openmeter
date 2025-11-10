@@ -66,9 +66,10 @@ func ConfigurePostgres(v *viper.Viper, prefix string) {
 type AutoMigrate string
 
 const (
-	AutoMigrateEnt       AutoMigrate = "ent"
-	AutoMigrateMigration AutoMigrate = "migration"
-	AutoMigrateOff       AutoMigrate = "false"
+	AutoMigrateEnt          AutoMigrate = "ent"
+	AutoMigrateMigration    AutoMigrate = "migration"
+	AutoMigrateMigrationJob AutoMigrate = "migration-job"
+	AutoMigrateOff          AutoMigrate = "false"
 )
 
 func (a AutoMigrate) Enabled() bool {
@@ -78,7 +79,7 @@ func (a AutoMigrate) Enabled() bool {
 
 func (a AutoMigrate) Validate() error {
 	switch a {
-	case AutoMigrateEnt, AutoMigrateMigration, AutoMigrateOff:
+	case AutoMigrateEnt, AutoMigrateMigration, AutoMigrateMigrationJob, AutoMigrateOff:
 		return nil
 	default:
 		return errors.New("invalid auto-migrate value")
