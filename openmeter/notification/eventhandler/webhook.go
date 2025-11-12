@@ -22,6 +22,9 @@ var (
 	ErrSystemDispatchAttemptsExhausted = errors.New("system error: multiple dispatch attempts failed. retry will NOT be attempted")
 	ErrSystemRecoverableError          = errors.New("system error: unexpected error happened during sending event. retry will be attempted")
 	ErrSystemUnrecoverableError        = errors.New("system error: unrecoverable error happened during sending event. retry will NOT be attempted")
+	ErrSystemChannelDisabled           = errors.New("system error: channel is disabled. retry will NOT be attempted")
+	ErrSystemChannelNotFound           = errors.New("system error: channel not found. retry will NOT be attempted")
+	ErrSystemRuleNotAssignToChannel    = errors.New("system error: rule not assigned to channel. retry will NOT be attempted")
 )
 
 func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification.Event) error {
@@ -51,6 +54,22 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 		if len(sortedActiveStatuses) == 0 {
 			return nil
 		}
+
+		// Fetch the list of webhook endpoints for the active delivery statuses.
+		webhooksOut, err := h.webhook.ListWebhooks(ctx, webhook.ListWebhooksInput{
+			Namespace: event.Namespace,
+			IDs: lo.Map(sortedActiveStatuses, func(item notification.EventDeliveryStatus, _ int) string {
+				return item.ChannelID
+			}),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list webhooks: %w", err)
+		}
+
+		// Map the webhook endpoints by channel ID, so it is easier to look up the endpoint for delivery status by a given channel ID.
+		webhooksByChannelID := lo.SliceToMap(webhooksOut, func(item webhook.Webhook) (string, webhook.Webhook) {
+			return item.ID, item
+		})
 
 		// Check if the message already exists in the webhook provider.
 		// Return the error if it is other than not found as it is going to be handled by the reconciler logic.
@@ -377,6 +396,68 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 						trace.WithAttributes(spanAttrs...),
 						trace.WithAttributes(deliveryStatusAttrs...),
 					)
+
+					wh, ok := webhooksByChannelID[status.ChannelID]
+					if !ok {
+						h.logger.ErrorContext(ctx, "notification channel for delivery status does not exist at webhook provider. it means its state is out of sync",
+							"namespace", event.Namespace,
+							"notification.event.id", event.ID,
+							"notification.delivery_status.id", status.ID,
+							"notification.channel.id", status.ChannelID,
+						)
+
+						input = &notification.UpdateEventDeliveryStatusInput{
+							NamespacedID: status.NamespacedID,
+							State:        notification.EventDeliveryStatusStateFailed,
+							Reason:       ErrSystemChannelNotFound.Error(),
+							Annotations:  status.Annotations,
+							NextAttempt:  nil,
+							Attempts:     status.Attempts,
+						}
+
+						break
+					}
+
+					if !lo.Contains(wh.Channels, event.Rule.ID) {
+						h.logger.ErrorContext(ctx, "notification rule is not associated with notification channel for delivery status at webhook provider. it means its state is out of sync",
+							"namespace", event.Namespace,
+							"notification.event.id", event.ID,
+							"notification.delivery_status.id", status.ID,
+							"notification.channel.id", status.ChannelID,
+							"notification.rule.id", event.Rule.ID,
+						)
+
+						input = &notification.UpdateEventDeliveryStatusInput{
+							NamespacedID: status.NamespacedID,
+							State:        notification.EventDeliveryStatusStateFailed,
+							Reason:       ErrSystemRuleNotAssignToChannel.Error(),
+							Annotations:  status.Annotations,
+							NextAttempt:  nil,
+							Attempts:     status.Attempts,
+						}
+
+						break
+					}
+
+					if wh.Disabled {
+						h.logger.WarnContext(ctx, "notification channel for delivery status is disabled at webhook provider. it means its state is out of sync",
+							"namespace", event.Namespace,
+							"notification.event.id", event.ID,
+							"notification.delivery_status.id", status.ID,
+							"notification.channel.id", status.ChannelID,
+						)
+
+						input = &notification.UpdateEventDeliveryStatusInput{
+							NamespacedID: status.NamespacedID,
+							State:        notification.EventDeliveryStatusStateFailed,
+							Reason:       ErrSystemChannelDisabled.Error(),
+							Annotations:  status.Annotations,
+							NextAttempt:  nil,
+							Attempts:     status.Attempts,
+						}
+
+						break
+					}
 
 					msgStatusByChannel := getDeliveryStatusByChannelID(lo.FromPtr(msg.DeliveryStatuses), status.ChannelID)
 
