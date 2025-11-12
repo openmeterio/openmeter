@@ -43,17 +43,31 @@ func (m Migrator) Migrate(ctx context.Context) error {
 
 	m.Logger.Debug("running migrations", slog.String("strategy", string(config.AutoMigrateEnt)))
 
-	switch m.Config.AutoMigrate {
-	case config.AutoMigrateEnt:
+	if m.Config.AutoMigrate == config.AutoMigrateEnt {
 		if err := m.Client.Schema.Create(ctx); err != nil {
 			return fmt.Errorf("failed to migrate db: %w", err)
 		}
+
+		return nil
+	}
+
+	migrator, err := migrate.New(migrate.MigrateOptions{
+		ConnectionString: m.Config.AsURL(),
+		Migrations:       migrate.OMMigrationsConfig,
+		Logger:           m.Logger,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create migrator: %w", err)
+	}
+	defer migrator.CloseOrLogError()
+
+	switch m.Config.AutoMigrate {
 	case config.AutoMigrateMigration:
-		if err := migrate.Up(m.Config.AsURL()); err != nil {
+		if err := migrator.Up(); err != nil {
 			return fmt.Errorf("failed to migrate db: %w", err)
 		}
 	case config.AutoMigrateMigrationJob:
-		if err := migrate.WaitForMigrationJob(m.Config.AsURL(), m.Logger); err != nil {
+		if err := migrator.WaitForMigrationJob(); err != nil {
 			return fmt.Errorf("failed to wait for migration job: %w", err)
 		}
 	}

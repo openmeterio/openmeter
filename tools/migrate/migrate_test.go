@@ -90,7 +90,11 @@ func (r runner) Test(t *testing.T) {
 	testDB := testutils.InitPostgresDB(t)
 	defer testDB.PGDriver.Close()
 
-	migrator, err := migrate.NewMigrate(testDB.URL, migrate.OMMigrations, "migrations")
+	migrator, err := migrate.New(migrate.MigrateOptions{
+		ConnectionString: testDB.URL,
+		Migrations:       migrate.OMMigrationsConfig,
+		Logger:           testutils.NewLogger(t),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,8 +180,8 @@ func (r runner) purgeDB(t *testing.T, db *testutils.TestDB) {
 		SELECT tablename
 		FROM pg_tables
 		WHERE schemaname = $1
-		AND tablename != 'schema_migrations'
-	`, schema)
+		AND tablename != $2
+	`, schema, migrate.OMMigrationsConfig.StateTableName)
 	require.NoError(t, err)
 	defer rows.Close()
 

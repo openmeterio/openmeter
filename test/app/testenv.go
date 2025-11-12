@@ -78,9 +78,19 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	driver := testutils.InitPostgresDB(t)
 
 	entClient := driver.EntDriver.Client()
-	if err := migrate.Up(driver.URL); err != nil {
+	migrator, err := migrate.New(migrate.MigrateOptions{
+		ConnectionString: driver.URL,
+		Migrations:       migrate.OMMigrationsConfig,
+		Logger:           testutils.NewLogger(t),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create migrator: %w", err)
+	}
+	if err := migrator.Up(); err != nil {
 		t.Fatalf("failed to create schema: %v", err)
 	}
+
+	defer migrator.CloseOrLogError()
 
 	// Customer
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
