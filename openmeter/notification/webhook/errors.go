@@ -115,24 +115,24 @@ func NewRetryableError(err error, after time.Duration) error {
 	}
 }
 
-type MessageNotReadyError struct {
+type MessageAlreadyExistsError struct {
 	namespace string
 	eventID   string
 }
 
-func (e MessageNotReadyError) Error() string {
-	return fmt.Sprintf("message not ready [namespace=%s eventID=%s]", e.namespace, e.eventID)
+func (e MessageAlreadyExistsError) Error() string {
+	return fmt.Sprintf("message already exists [namespace=%s eventID=%s]", e.namespace, e.eventID)
 }
 
-func NewMessageNotReadyError(namespace string, eventID string) error {
-	return MessageNotReadyError{
+func NewMessageAlreadyExistsError(namespace string, eventID string) error {
+	return MessageAlreadyExistsError{
 		namespace: namespace,
 		eventID:   eventID,
 	}
 }
 
-func IsMessageNotReadyError(err error) bool {
-	return isError[MessageNotReadyError](err)
+func IsMessageAlreadyExistsError(err error) bool {
+	return isError[MessageAlreadyExistsError](err)
 }
 
 type UnrecoverableError struct {

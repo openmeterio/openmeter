@@ -201,6 +201,9 @@ type Message struct {
 
 	// DeliveryStatuses stores the message delivery status if it was requested.
 	DeliveryStatuses *[]MessageDeliveryStatus
+
+	// Timestamp when the message was created.
+	Timestamp time.Time
 }
 
 var _ models.Validator = (*SendMessageInput)(nil)

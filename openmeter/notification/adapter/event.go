@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
@@ -12,6 +13,7 @@ import (
 	statusdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -143,7 +145,7 @@ func (a *adapter) GetEvent(ctx context.Context, params notification.GetEventInpu
 			Where(eventdb.Namespace(params.Namespace)).
 			Where(eventdb.ID(params.ID)).
 			WithDeliveryStatuses().
-			WithRules(RulesEagerLoadChannelsFn)
+			WithRules(RulesEagerLoadChannels(clock.Now()))
 
 		eventRow, err := query.First(ctx)
 		if err != nil {
@@ -174,8 +176,15 @@ func (a *adapter) GetEvent(ctx context.Context, params notification.GetEventInpu
 	return entutils.TransactingRepo(ctx, a, fn)
 }
 
-var RulesEagerLoadChannelsFn = func(q *entdb.NotificationRuleQuery) {
-	q.WithChannels()
+func RulesEagerLoadChannels(at time.Time) func(q *entdb.NotificationRuleQuery) {
+	return func(q *entdb.NotificationRuleQuery) {
+		q.WithChannels(func(cq *entdb.NotificationChannelQuery) {
+			cq.Where(channeldb.Or(
+				channeldb.DeletedAtIsNil(),
+				channeldb.DeletedAtGT(at),
+			))
+		})
+	}
 }
 
 func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEventInput) (*notification.Event, error) {
