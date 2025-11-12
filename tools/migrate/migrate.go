@@ -52,6 +52,27 @@ func (m *Migrate) LatestVersion() (uint, error) {
 	}
 }
 
+func (m *Migrate) Up() error {
+	return m.filterErrNoChange(m.goMigrate.Up())
+}
+
+func (m *Migrate) Down() error {
+	return m.filterErrNoChange(m.goMigrate.Down())
+}
+
+func (m *Migrate) Migrate(version uint) error {
+	return m.filterErrNoChange(m.goMigrate.Migrate(version))
+}
+
+func (m *Migrate) filterErrNoChange(err error) error {
+	if errors.Is(err, migrate.ErrNoChange) {
+		m.logger.Info("no migrations to apply")
+		return nil
+	}
+
+	return err
+}
+
 type logger struct {
 	log *slog.Logger
 }
