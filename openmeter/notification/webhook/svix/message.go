@@ -69,7 +69,7 @@ func (h svixHandler) SendMessage(ctx context.Context, params webhook.SendMessage
 				// Conflict received in case the EventID already exist meaning the message is already published.
 				// Return a custom error to indicate that the message is not ready yet.
 				if svixErr.HTTPStatus == http.StatusConflict {
-					return nil, webhook.NewMessageNotReadyError(params.Namespace, params.EventID)
+					return nil, webhook.NewMessageAlreadyExistsError(params.Namespace, params.EventID)
 				}
 
 				return nil, fmt.Errorf("failed to send message: %w", err)
@@ -86,6 +86,7 @@ func (h svixHandler) SendMessage(ctx context.Context, params webhook.SendMessage
 			Channels:         out.Channels,
 			Payload:          &params.Payload,
 			DeliveryStatuses: nil,
+			Timestamp:        out.Timestamp,
 			Annotations: models.Annotations{
 				AnnotationMessageID:      out.Id,
 				AnnotationMessageEventID: out.EventId,
@@ -350,12 +351,10 @@ func deliveryStateFromSvixMessageStatus(status svixmodels.MessageStatus) notific
 	switch status {
 	case svixmodels.MESSAGESTATUS_SUCCESS:
 		return notification.EventDeliveryStatusStateSuccess
-	case svixmodels.MESSAGESTATUS_PENDING:
+	case svixmodels.MESSAGESTATUS_PENDING, svixmodels.MESSAGESTATUS_SENDING:
 		return notification.EventDeliveryStatusStateSending
 	case svixmodels.MESSAGESTATUS_FAIL:
 		return notification.EventDeliveryStatusStateFailed
-	case svixmodels.MESSAGESTATUS_SENDING:
-		return notification.EventDeliveryStatusStateSending
 	default:
 		return notification.EventDeliveryStatusState(fmt.Sprintf("unknown_status: %d", status))
 	}

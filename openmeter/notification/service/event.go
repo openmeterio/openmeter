@@ -148,7 +148,7 @@ func (s Service) ResendEvent(ctx context.Context, params notification.ResendEven
 				State:        notification.EventDeliveryStatusStateResending,
 				Reason:       "event re-send was triggered",
 				Annotations:  annotations,
-				NextAttempt:  lo.ToPtr(now),
+				NextAttempt:  nil,
 				Attempts:     status.Attempts,
 			})
 			if err != nil {
