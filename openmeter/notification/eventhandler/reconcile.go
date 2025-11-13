@@ -114,7 +114,7 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 					// TODO: run reconciliation in parallel (goroutines)
 					if err = h.reconcileEvent(ctx, &event); err != nil {
 						errs = append(errs,
-							fmt.Errorf("failed to reconcile notification event [namespace=%s event.id=%s]: %w",
+							fmt.Errorf("failed to reconcile notification event [namespace=%s notification.event.id=%s]: %w",
 								event.Namespace, event.ID, err),
 						)
 					}

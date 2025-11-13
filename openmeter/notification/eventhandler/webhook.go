@@ -121,146 +121,14 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 					break
 				}
 
-				switch {
-				case msg != nil:
-					// Event fetched from the provider successfully, however, the event delivery states might be missing in case
-					// the provider has not populated the delivery statuses mostly because the event has not been processed yet.
-
-					span.AddEvent("webhook message fetched from provider",
-						trace.WithAttributes(spanAttrs...),
-						trace.WithAttributes(deliveryStatusAttrs...),
-					)
-
-					attempts := status.Attempts
-					state := notification.EventDeliveryStatusStateSending
-					nextAttempt := (*time.Time)(nil)
-
-					msgStatusByChannel := getDeliveryStatusByChannelID(lo.FromPtr(msg.DeliveryStatuses), status.ChannelID)
-
-					if msgStatusByChannel != nil {
-						attempts = msgStatusByChannel.Attempts
-						state = msgStatusByChannel.State
-						nextAttempt = msgStatusByChannel.NextAttempt
-					}
-
-					input = &notification.UpdateEventDeliveryStatusInput{
-						NamespacedID: status.NamespacedID,
-						State:        state,
-						Annotations:  status.Annotations,
-						NextAttempt:  nextAttempt,
-						Attempts:     attempts,
-					}
-				case webhook.IsNotFoundError(err):
-					// The provider returned a not found error, which means that either the event has not been dispatched to the provider
-					// or the provider has not processed the event yet. The latter case can be verified by resending the message and checking
-					// if the message already exists error is returned indicating that the message has been dispatched.
-
+				// The provider returned a not found error, which means that either the event has not been dispatched to the provider
+				// or the provider has not processed the event yet. The latter case can be verified by resending the message and checking
+				// if the message already exists error is returned indicating that the message has been dispatched.
+				if webhook.IsNotFoundError(err) {
 					msg, err = h.sendWebhookMessage(ctx, event)
+				}
 
-					switch {
-					case webhook.IsMessageAlreadyExistsError(err):
-						// Event is sent to the provider but has not been processed yet. Keep it in pending state and update the next attempt.
-
-						span.AddEvent("webhook message is already sent to provider but it has not been processed",
-							trace.WithAttributes(spanAttrs...),
-							trace.WithAttributes(deliveryStatusAttrs...),
-						)
-
-						input = &notification.UpdateEventDeliveryStatusInput{
-							NamespacedID: status.NamespacedID,
-							State:        notification.EventDeliveryStatusStatePending,
-							Annotations:  status.Annotations,
-							NextAttempt:  nil,
-							Attempts:     status.Attempts,
-						}
-					case webhook.IsUnrecoverableError(err):
-						// Unrecoverable error happened, no retry is possible.
-
-						span.AddEvent("fetching webhook message from provider returned unrecoverable error",
-							trace.WithAttributes(spanAttrs...),
-							trace.WithAttributes(deliveryStatusAttrs...),
-						)
-
-						span.RecordError(err, trace.WithAttributes(spanAttrs...), trace.WithAttributes(deliveryStatusAttrs...))
-
-						h.logger.ErrorContext(ctx, "fetching webhook message from provider returned unrecoverable error",
-							"error", err.Error(), "delivery_status.state", status.State, "namespace", event.Namespace, "event_id", event.ID)
-
-						input = &notification.UpdateEventDeliveryStatusInput{
-							NamespacedID: status.NamespacedID,
-							State:        notification.EventDeliveryStatusStateFailed,
-							Reason:       ErrSystemUnrecoverableError.Error(),
-							Annotations:  status.Annotations,
-							NextAttempt:  nil,
-							Attempts:     status.Attempts,
-						}
-					case err != nil:
-						// Transient error happened, retry after a short delay.
-
-						span.AddEvent("fetching webhook message from provider returned transient error",
-							trace.WithAttributes(spanAttrs...),
-							trace.WithAttributes(deliveryStatusAttrs...),
-						)
-
-						span.RecordError(err, trace.WithAttributes(spanAttrs...), trace.WithAttributes(deliveryStatusAttrs...))
-
-						h.logger.WarnContext(ctx, "fetching webhook message from provider returned transient error",
-							"error", err.Error(),
-							"notification.delivery_status.state", status.State,
-							"namespace", event.Namespace,
-							"notification.event.id", event.ID,
-						)
-
-						retryAfter := h.reconcileInterval
-
-						rErr, ok := lo.ErrorsAs[webhook.RetryableError](err)
-						if ok {
-							retryAfter = rErr.RetryAfter()
-						}
-
-						input = &notification.UpdateEventDeliveryStatusInput{
-							NamespacedID: status.NamespacedID,
-							State:        notification.EventDeliveryStatusStatePending,
-							Reason:       ErrSystemRecoverableError.Error(),
-							Annotations:  status.Annotations,
-							NextAttempt:  lo.ToPtr(now.Add(retryAfter)),
-							Attempts:     status.Attempts,
-						}
-					case msg != nil:
-						// This happens when an event is ment to be dispatched to multiple channels therefore,
-						// it has multiple corresponding delivery statuses, and one of them already triggered
-						// the dispatch of the event via *sendWebhookMessage* API.
-
-						span.AddEvent("webhook message is sent to provider",
-							trace.WithAttributes(spanAttrs...),
-							trace.WithAttributes(deliveryStatusAttrs...),
-						)
-
-						attempts := status.Attempts
-						state := notification.EventDeliveryStatusStateSending
-						nextAttempt := (*time.Time)(nil)
-
-						msgStatusByChannel := getDeliveryStatusByChannelID(lo.FromPtr(msg.DeliveryStatuses), status.ChannelID)
-
-						if msgStatusByChannel != nil {
-							attempts = msgStatusByChannel.Attempts
-							state = msgStatusByChannel.State
-							nextAttempt = msgStatusByChannel.NextAttempt
-						}
-
-						input = &notification.UpdateEventDeliveryStatusInput{
-							NamespacedID: status.NamespacedID,
-							State:        state,
-							Annotations:  status.Annotations,
-							NextAttempt:  nextAttempt,
-							Attempts:     attempts,
-						}
-					default:
-						errs = append(errs,
-							fmt.Errorf("unhandled reconciling state after dispatching event [namespace=%s notification.delivery_status.id=%s notification.delivery_status.state=%s]",
-								status.Namespace, status.ID, status.State.String()),
-						)
-					}
+				switch {
 				case webhook.IsMessageAlreadyExistsError(err):
 					// Event is sent to the provider but has not been processed yet. Keep it in pending state and update the next attempt.
 
@@ -328,6 +196,34 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 						Annotations:  status.Annotations,
 						NextAttempt:  lo.ToPtr(now.Add(retryAfter)),
 						Attempts:     status.Attempts,
+					}
+				case msg != nil:
+					// Event fetched from the provider successfully, however, the event delivery states might be missing in case
+					// the provider has not populated the delivery statuses mostly because the event has not been processed yet.
+
+					span.AddEvent("webhook message fetched from provider",
+						trace.WithAttributes(spanAttrs...),
+						trace.WithAttributes(deliveryStatusAttrs...),
+					)
+
+					attempts := status.Attempts
+					state := notification.EventDeliveryStatusStateSending
+					nextAttempt := (*time.Time)(nil)
+
+					msgStatusByChannel := getDeliveryStatusByChannelID(lo.FromPtr(msg.DeliveryStatuses), status.ChannelID)
+
+					if msgStatusByChannel != nil {
+						attempts = msgStatusByChannel.Attempts
+						state = msgStatusByChannel.State
+						nextAttempt = msgStatusByChannel.NextAttempt
+					}
+
+					input = &notification.UpdateEventDeliveryStatusInput{
+						NamespacedID: status.NamespacedID,
+						State:        state,
+						Annotations:  status.Annotations,
+						NextAttempt:  nextAttempt,
+						Attempts:     attempts,
 					}
 				default:
 					errs = append(errs,
@@ -514,7 +410,6 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 						Attempts:     msgStatusByChannel.Attempts,
 					}
 				default:
-					span.RecordError(err, trace.WithAttributes(spanAttrs...))
 					errs = append(errs, fmt.Errorf("unhandled reconciling state: %s", status.State.String()))
 				}
 			case notification.EventDeliveryStatusStateSuccess, notification.EventDeliveryStatusStateFailed:
@@ -539,12 +434,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 			}
 		}
 
-		err = errors.Join(errs...)
-		if err != nil {
-			h.logger.ErrorContext(ctx, "reconciling webhook event has errors", "errors", errs)
-		}
-
-		return err
+		return errors.Join(errs...)
 	}
 
 	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.reconcile_event.webhook").Wrap(fn)
