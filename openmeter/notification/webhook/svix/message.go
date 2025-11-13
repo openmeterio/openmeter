@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -332,11 +331,6 @@ func (h svixHandler) ResendMessage(ctx context.Context, params webhook.ResendMes
 			IdempotencyKey: &idempotencyKey,
 		})
 		if err = internal.WrapSvixError(err); err != nil {
-			// NOTE(chrisgacsal): this is a workaround for a bug in svix-webhooks. Remove this after upstream released the fix.
-			if strings.Contains(err.Error(), "unexpected end of JSON input") {
-				return nil
-			}
-
 			return fmt.Errorf("failed to resend message [svix.app=%s svix.message.id=%s svix.endpoint.uid=%s]: %w",
 				params.Namespace, params.EventID, params.ChannelID, err)
 		}
