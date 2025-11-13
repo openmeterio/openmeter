@@ -355,49 +355,30 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 						break
 					}
 
+					// Get the message delivery status for the current channel.
 					msgStatusByChannel := getDeliveryStatusByChannelID(lo.FromPtr(msg.DeliveryStatuses), status.ChannelID)
 
+					// If message delivery status not found, skip reconciling the delivery status as
+					// the provider might not populate the delivery status yet. The delivery status will be eventually
+					// reconciled either by the information provided by the provider or by setting the delivery status
+					// to 'FAILED' after the sending timeout is reached.
 					if msgStatusByChannel == nil {
-						h.logger.ErrorContext(ctx, "no channel found for webhook message delivery status",
-							"namespace", event.Namespace,
-							"notification.event.id", event.ID,
-							"notification.delivery_status.id", status.ID)
-
-						input = &notification.UpdateEventDeliveryStatusInput{
-							NamespacedID: status.NamespacedID,
-							State:        notification.EventDeliveryStatusStateFailed,
-							Reason:       ErrSystemUnrecoverableError.Error(),
-							Annotations:  status.Annotations,
-							NextAttempt:  nil,
-							Attempts:     status.Attempts,
-						}
-
 						break
 					}
 
-					if next := lo.FromPtr(status.NextAttempt); !next.IsZero() {
-						// Check if attempts are synchronized between the webhook provider and OpenMeter.
-						var inSync bool
-
-						for _, msgAttempt := range msgStatusByChannel.Attempts {
-							if msgAttempt.Timestamp.Compare(next) != -1 {
-								inSync = true
-								break
-							}
-						}
-
-						if !inSync {
-							span.AddEvent("delivery state is out of sync", trace.WithAttributes(spanAttrs...))
-							h.logger.DebugContext(ctx, "delivery state is out of sync")
-
-							input = &notification.UpdateEventDeliveryStatusInput{
-								NamespacedID: status.NamespacedID,
-								State:        notification.EventDeliveryStatusStateSending,
-								Annotations:  status.Annotations.Merge(msg.Annotations),
-								NextAttempt:  status.NextAttempt,
-								Attempts:     msgStatusByChannel.Attempts,
-							}
-
+					// Check if attempts are synchronized between the webhook provider and OpenMeter.
+					// This check is required to avoid transitioning the delivery status to its final state
+					// ('SUCCESS' or 'FAILED') before all the attempts are collected from the provider.
+					// It is possible that the provider reports that the message delivery status is 'SUCCESS' or 'FAILED'
+					// while the corresponding delivery attempt is not yet available. Therefore, we need to keep reconciling
+					// the delivery status until all the attempts are collected.
+					if msgStatusByChannel.State == notification.EventDeliveryStatusStateSuccess ||
+						msgStatusByChannel.State == notification.EventDeliveryStatusStateFailed {
+						if len(status.Attempts) >= len(msgStatusByChannel.Attempts) {
+							// The list of delivery attempts from the message (returned by the provider) must have at least one extra item
+							// compared to the list of delivery status has when the message delivery status is in one of the final states.
+							// Wait until the next reconciliation attempt to reconcile the delivery status to ensure we collected all the
+							// delivery attempts from the provider.
 							break
 						}
 					}
