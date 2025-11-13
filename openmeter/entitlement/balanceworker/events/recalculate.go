@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -21,16 +23,18 @@ var (
 	recalculateEventType = metadata.EventType{
 		Subsystem: EventSubsystem,
 		Name:      RecalculateEventName,
-		Version:   "v1",
+		Version:   "v2",
 	}
 	recalculateEventName  = metadata.GetEventName(recalculateEventType)
 	EventVersionSubsystem = recalculateEventType.VersionSubsystem()
 )
 
 type RecalculateEvent struct {
-	Entitlement         models.NamespacedID `json:"entitlement"`
-	AsOf                time.Time           `json:"asOf"`
-	OriginalSourceEvent string              `json:"originalSourceEvent"`
+	Entitlement         models.NamespacedID                  `json:"entitlement"`
+	AsOf                time.Time                            `json:"asOf"`
+	OriginalEventSource string                               `json:"originalEventSource"`
+	SourceOperation     snapshot.ValueOperationType          `json:"sourceOperation"`
+	RawIngestedEvents   []serializer.CloudEventsKafkaPayload `json:"rawIngestedEvents"`
 }
 
 func (e RecalculateEvent) EventName() string {
@@ -39,7 +43,7 @@ func (e RecalculateEvent) EventName() string {
 
 func (e RecalculateEvent) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
-		Source:  e.OriginalSourceEvent,
+		Source:  e.OriginalEventSource,
 		Subject: metadata.ComposeResourcePath(e.Entitlement.Namespace, metadata.EntityEntitlement, e.Entitlement.ID),
 	}
 }

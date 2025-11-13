@@ -9,6 +9,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/events"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -50,21 +52,16 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 			continue
 		}
 
-		event, err := w.handleEntitlementEvent(
-			ctx,
-			pkgmodels.NamespacedID{Namespace: ent.Namespace, ID: ent.EntitlementID},
-			WithSource(metadata.ComposeResourcePath(ent.Namespace, metadata.EntityEvent)),
-			WithEventAt(event.StoredAt),
-			WithRawIngestedEvents(event.RawEvents),
-		)
+		err := w.opts.EventBus.Publish(ctx, events.RecalculateEvent{
+			Entitlement: pkgmodels.NamespacedID{Namespace: ent.Namespace, ID: ent.EntitlementID},
+
+			OriginalEventSource: metadata.ComposeResourcePath(ent.Namespace, metadata.EntityEvent),
+			AsOf:                event.StoredAt,
+			SourceOperation:     snapshot.ValueOperationUpdate,
+			RawIngestedEvents:   event.RawEvents,
+		})
 		if err != nil {
-			errs = append(errs, fmt.Errorf("handling entitlement event for %s: %w", ent.EntitlementID, err))
-
-			continue
-		}
-
-		if err = w.opts.EventBus.Publish(ctx, event); err != nil {
-			errs = append(errs, fmt.Errorf("handling entitlement event for %s: %w", ent.EntitlementID, err))
+			return fmt.Errorf("failed to publish recalculate event: %w", err)
 		}
 	}
 
