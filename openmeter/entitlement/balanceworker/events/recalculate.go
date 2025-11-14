@@ -27,6 +27,7 @@ const (
 	OperationTypeGrantVoided             OperationType = "grant_voided"
 	OperationTypeMeteredEntitlementReset OperationType = "metered_entitlement_reset"
 	OperationTypeIngest                  OperationType = "ingest"
+	OperationTypeRecalculate             OperationType = "recalculate"
 )
 
 func (o OperationType) Values() []OperationType {
@@ -38,6 +39,7 @@ func (o OperationType) Values() []OperationType {
 		OperationTypeGrantVoided,
 		OperationTypeMeteredEntitlementReset,
 		OperationTypeIngest,
+		OperationTypeRecalculate,
 	}
 }
 
