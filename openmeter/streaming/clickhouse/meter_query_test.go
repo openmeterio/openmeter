@@ -375,6 +375,7 @@ func TestQueryMeter(t *testing.T) {
 							},
 							ID: "customer1",
 						},
+						Key: lo.ToPtr("customer-key-1"),
 						UsageAttribution: customer.CustomerUsageAttribution{
 							SubjectKeys: []string{"subject1"},
 						},
@@ -392,10 +393,17 @@ func TestQueryMeter(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.subject IN (?)",
-			wantArgs: []interface{}{"my_namespace", "event1", []string{"subject1", "subject2"}},
+			wantSQL: "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, sum(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.subject IN (?)",
+			wantArgs: []interface{}{"my_namespace", "event1", []string{
+				// Only the first customer has a key
+				"customer-key-1",
+				// Usage attribution subjects of the first customer
+				"subject1",
+				// Usage attribution subjects of the second customer
+				"subject2",
+			}},
 		},
-		{
+		{ // Filter by both customer and subject
 			name: "Filter by both customer and subject",
 			query: queryMeter{
 				Database:        "openmeter",

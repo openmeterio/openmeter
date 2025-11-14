@@ -28,8 +28,8 @@ type subjectValidatorHook struct {
 
 func (s subjectValidatorHook) PreDelete(ctx context.Context, sub *subject.Subject) error {
 	cus, err := s.customer.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  sub.Namespace,
-		SubjectKey: sub.Key,
+		Namespace: sub.Namespace,
+		Key:       sub.Key,
 	})
 	if err != nil {
 		if models.IsGenericNotFoundError(err) {
