@@ -38,8 +38,9 @@ var _ models.Validator = (*EntitlementFiltersConfig)(nil)
 type EntitlementFiltersConfig struct {
 	NotificationService notification.Service
 	MetricMeter         metric.Meter
-	StateStorage        FilterStateStorage
 	Logger              *slog.Logger
+
+	HighWatermarkCacheSize int
 }
 
 func (c EntitlementFiltersConfig) Validate() error {
@@ -53,8 +54,8 @@ func (c EntitlementFiltersConfig) Validate() error {
 		errs = append(errs, fmt.Errorf("metric meter is required"))
 	}
 
-	if err := c.StateStorage.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("state storage: %w", err))
+	if c.HighWatermarkCacheSize <= 0 {
+		errs = append(errs, fmt.Errorf("high watermark cache size must be positive"))
 	}
 
 	if c.Logger == nil {
@@ -76,6 +77,10 @@ type EntitlementFilters struct {
 }
 
 func NewEntitlementFilters(cfg EntitlementFiltersConfig) (*EntitlementFilters, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
 	notificationFilter, err := filters.NewNotificationsFilter(filters.NotificationsFilterConfig{
 		NotificationService: cfg.NotificationService,
 		CacheTTL:            defaultCacheTTL,
@@ -85,33 +90,7 @@ func NewEntitlementFilters(cfg EntitlementFiltersConfig) (*EntitlementFilters, e
 		return nil, err
 	}
 
-	var highWatermarkCacheBackend filters.HighWatermarkBackend
-
-	switch cfg.StateStorage.Driver() {
-	case FilterStateStorageDriverRedis:
-		redis, err := cfg.StateStorage.Redis()
-		if err != nil {
-			return nil, err
-		}
-
-		highWatermarkCacheBackend, err = filters.NewHighWatermarkRedisBackend(filters.HighWatermarkRedisBackendConfig{
-			Redis:      redis.Client,
-			Logger:     cfg.Logger,
-			Expiration: redis.Expiration,
-		})
-		if err != nil {
-			return nil, err
-		}
-	case FilterStateStorageDriverInMemory:
-		highWatermarkCacheBackend, err = filters.NewHighWatermarkInMemoryBackend(defaultLRUCacheSize)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unsupported state storage driver: %s", cfg.StateStorage.Driver())
-	}
-
-	highWatermarkCache, err := filters.NewHighWatermarkCache(highWatermarkCacheBackend)
+	highWatermarkCache, err := filters.NewHighWatermarkCache(cfg.HighWatermarkCacheSize)
 	if err != nil {
 		return nil, err
 	}

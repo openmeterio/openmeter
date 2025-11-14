@@ -14,20 +14,15 @@ func NewRecalculateBalanceSnapshotsCommand() *cobra.Command {
 		Use:   "recalculate-balance-snapshots",
 		Short: "Recalculate balance snapshots and send the resulting events into the eventbus",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			filterStateStorage, err := balanceworker.NewFilterStateStorage(balanceworker.FilterStateStorageInMemory{})
-			if err != nil {
-				return err
-			}
-
 			recalculator, err := balanceworker.NewRecalculator(balanceworker.RecalculatorOptions{
-				Entitlement:         internal.App.EntitlementRegistry,
-				EventBus:            internal.App.EventPublisher,
-				MetricMeter:         internal.App.Meter,
-				NotificationService: internal.App.NotificationService,
-				FilterStateStorage:  filterStateStorage,
-				Logger:              internal.App.Logger,
-				Customer:            internal.App.Customer,
-				Subject:             internal.App.Subject,
+				Entitlement:            internal.App.EntitlementRegistry,
+				EventBus:               internal.App.EventPublisher,
+				MetricMeter:            internal.App.Meter,
+				NotificationService:    internal.App.NotificationService,
+				HighWatermarkCacheSize: 100_000,
+				Logger:                 internal.App.Logger,
+				Customer:               internal.App.Customer,
+				Subject:                internal.App.Subject,
 			})
 			if err != nil {
 				return err

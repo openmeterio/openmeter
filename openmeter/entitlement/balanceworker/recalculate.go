@@ -52,8 +52,9 @@ type RecalculatorOptions struct {
 	MetricMeter metric.Meter
 
 	NotificationService notification.Service
-	FilterStateStorage  FilterStateStorage
 	Logger              *slog.Logger
+
+	HighWatermarkCacheSize int
 }
 
 func (o RecalculatorOptions) Validate() error {
@@ -91,8 +92,8 @@ func (o RecalculatorOptions) Validate() error {
 		errs = append(errs, errors.New("missing subject service"))
 	}
 
-	if err := o.FilterStateStorage.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("filter state storage: %w", err))
+	if o.HighWatermarkCacheSize <= 0 {
+		errs = append(errs, fmt.Errorf("high watermark cache size must be positive"))
 	}
 
 	if o.Logger == nil {
@@ -136,10 +137,10 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 	}
 
 	entitlementFilters, err := NewEntitlementFilters(EntitlementFiltersConfig{
-		NotificationService: opts.NotificationService,
-		MetricMeter:         opts.MetricMeter,
-		StateStorage:        opts.FilterStateStorage,
-		Logger:              opts.Logger,
+		NotificationService:    opts.NotificationService,
+		MetricMeter:            opts.MetricMeter,
+		HighWatermarkCacheSize: opts.HighWatermarkCacheSize,
+		Logger:                 opts.Logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entitlement filters: %w", err)
