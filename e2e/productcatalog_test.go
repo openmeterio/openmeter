@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"net/http"
 	"slices"
 	"testing"
@@ -9,7 +10,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
 	"golang.org/x/sync/semaphore"
 
 	api "github.com/openmeterio/openmeter/api/client/go"

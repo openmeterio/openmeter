@@ -179,6 +179,24 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 			"Creating a customer with a key that overlaps with subject must return conflict error",
 		)
 	})
+
+	// Test creating a customer without subjects
+	t.Run("Should allow creation without subject keys", func(t *testing.T) {
+		customerWithoutSubjects, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: s.namespace,
+			CustomerMutate: customer.CustomerMutate{
+				Key:  lo.ToPtr("customer-no-subjects"),
+				Name: "Customer Without Subjects",
+				UsageAttribution: customer.CustomerUsageAttribution{
+					SubjectKeys: []string{},
+				},
+			},
+		})
+
+		require.NoError(t, err, "Creating customer without subject keys must not return error")
+		require.NotNil(t, customerWithoutSubjects, "Customer without subjects must not be nil")
+		require.Empty(t, customerWithoutSubjects.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must be empty")
+	})
 }
 
 // TestUpdate tests the updating of a customer

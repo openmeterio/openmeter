@@ -48,7 +48,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 		// so we cannot do accurate calculations unless we follow that same windowing.
 		owner, err := m.OwnerConnector.DescribeOwner(ctx, ownerID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to describe owner: %w", err)
 		}
 		granularity := time.Minute
 		input.EffectiveAt = input.EffectiveAt.Truncate(granularity)
