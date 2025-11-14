@@ -4,7 +4,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
-	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
@@ -65,7 +64,5 @@ func (Subject) Indexes() []ent.Index {
 
 // Edges of the Subject.
 func (Subject) Edges() []ent.Edge {
-	return []ent.Edge{
-		edge.To("entitlements", Entitlement.Type),
-	}
+	return []ent.Edge{}
 }

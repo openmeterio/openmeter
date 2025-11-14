@@ -300,29 +300,31 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 		// Create customer subjects
 		// TODO: customer.AddSubjects produces an invalid database query so we create it separately in a transaction.
 		// The number and shape of the queries executed is the same, it's a devex thing only.
-		_, err = repo.db.CustomerSubjects.
-			CreateBulk(
-				lo.Map(
-					input.UsageAttribution.SubjectKeys,
-					func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
-						return repo.db.CustomerSubjects.Create().
-							SetNamespace(customerEntity.Namespace).
-							SetCustomerID(customerEntity.ID).
-							SetSubjectKey(subjectKey).
-							SetCreatedAt(customerEntity.CreatedAt)
-					},
-				)...,
-			).
-			Save(ctx)
-		if err != nil {
-			if entdb.IsConstraintError(err) {
-				return nil, customer.NewSubjectKeyConflictError(
-					input.Namespace,
-					input.UsageAttribution.SubjectKeys,
-				)
-			}
+		if len(input.UsageAttribution.SubjectKeys) > 0 {
+			_, err = repo.db.CustomerSubjects.
+				CreateBulk(
+					lo.Map(
+						input.UsageAttribution.SubjectKeys,
+						func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
+							return repo.db.CustomerSubjects.Create().
+								SetNamespace(customerEntity.Namespace).
+								SetCustomerID(customerEntity.ID).
+								SetSubjectKey(subjectKey).
+								SetCreatedAt(customerEntity.CreatedAt)
+						},
+					)...,
+				).
+				Save(ctx)
+			if err != nil {
+				if entdb.IsConstraintError(err) {
+					return nil, customer.NewSubjectKeyConflictError(
+						input.Namespace,
+						input.UsageAttribution.SubjectKeys,
+					)
+				}
 
-			return nil, fmt.Errorf("failed to create customer: failed to add subject keys: %w", err)
+				return nil, fmt.Errorf("failed to create customer: failed to add subject keys: %w", err)
+			}
 		}
 
 		return repo.GetCustomer(ctx, customer.GetCustomerInput{

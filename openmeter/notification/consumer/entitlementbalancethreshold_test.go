@@ -532,7 +532,6 @@ func Test_BalanceEventDedupHash(t *testing.T) {
 						ID:              "01K3GXRSGHFABJ10SDK83PMSBS",
 						FeatureID:       "01K3GXRC9AEDQP27NYXTB42FFJ",
 						FeatureKey:      "api_requests_total",
-						SubjectKey:      "test",
 						EntitlementType: entitlement.EntitlementTypeMetered,
 						UsagePeriod:     &entitlement.UsagePeriod{},
 						CurrentUsagePeriod: &timeutil.ClosedPeriod{
@@ -613,7 +612,6 @@ func Test_BalanceEventDedupHash(t *testing.T) {
 						ID:              "01K3GXRSGHFABJ10SDK83PMSBS",
 						FeatureID:       "01K3GXRC9AEDQP27NYXTB42FFJ",
 						FeatureKey:      "api_requests_total",
-						SubjectKey:      "test",
 						EntitlementType: entitlement.EntitlementTypeMetered,
 						UsagePeriod:     &entitlement.UsagePeriod{},
 						CurrentUsagePeriod: &timeutil.ClosedPeriod{

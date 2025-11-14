@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -135,18 +134,6 @@ func (_c *EntitlementCreate) SetFeatureKey(v string) *EntitlementCreate {
 // SetCustomerID sets the "customer_id" field.
 func (_c *EntitlementCreate) SetCustomerID(v string) *EntitlementCreate {
 	_c.mutation.SetCustomerID(v)
-	return _c
-}
-
-// SetSubjectID sets the "subject_id" field.
-func (_c *EntitlementCreate) SetSubjectID(v string) *EntitlementCreate {
-	_c.mutation.SetSubjectID(v)
-	return _c
-}
-
-// SetSubjectKey sets the "subject_key" field.
-func (_c *EntitlementCreate) SetSubjectKey(v string) *EntitlementCreate {
-	_c.mutation.SetSubjectKey(v)
 	return _c
 }
 
@@ -372,11 +359,6 @@ func (_c *EntitlementCreate) SetCustomer(v *Customer) *EntitlementCreate {
 	return _c.SetCustomerID(v.ID)
 }
 
-// SetSubject sets the "subject" edge to the Subject entity.
-func (_c *EntitlementCreate) SetSubject(v *Subject) *EntitlementCreate {
-	return _c.SetSubjectID(v.ID)
-}
-
 // Mutation returns the EntitlementMutation object of the builder.
 func (_c *EntitlementCreate) Mutation() *EntitlementMutation {
 	return _c.mutation
@@ -464,25 +446,11 @@ func (_c *EntitlementCreate) check() error {
 	if _, ok := _c.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "Entitlement.customer_id"`)}
 	}
-	if _, ok := _c.mutation.SubjectID(); !ok {
-		return &ValidationError{Name: "subject_id", err: errors.New(`db: missing required field "Entitlement.subject_id"`)}
-	}
-	if _, ok := _c.mutation.SubjectKey(); !ok {
-		return &ValidationError{Name: "subject_key", err: errors.New(`db: missing required field "Entitlement.subject_key"`)}
-	}
-	if v, ok := _c.mutation.SubjectKey(); ok {
-		if err := entitlement.SubjectKeyValidator(v); err != nil {
-			return &ValidationError{Name: "subject_key", err: fmt.Errorf(`db: validator failed for field "Entitlement.subject_key": %w`, err)}
-		}
-	}
 	if len(_c.mutation.FeatureIDs()) == 0 {
 		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "Entitlement.feature"`)}
 	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "Entitlement.customer"`)}
-	}
-	if len(_c.mutation.SubjectIDs()) == 0 {
-		return &ValidationError{Name: "subject", err: errors.New(`db: missing required edge "Entitlement.subject"`)}
 	}
 	return nil
 }
@@ -558,10 +526,6 @@ func (_c *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec, e
 	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(entitlement.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = value
-	}
-	if value, ok := _c.mutation.SubjectKey(); ok {
-		_spec.SetField(entitlement.FieldSubjectKey, field.TypeString, value)
-		_node.SubjectKey = value
 	}
 	if value, ok := _c.mutation.MeasureUsageFrom(); ok {
 		_spec.SetField(entitlement.FieldMeasureUsageFrom, field.TypeTime, value)
@@ -707,23 +671,6 @@ func (_c *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec, e
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.CustomerID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.SubjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   entitlement.SubjectTable,
-			Columns: []string{entitlement.SubjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subject.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.SubjectID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -971,12 +918,6 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.CustomerID(); exists {
 			s.SetIgnore(entitlement.FieldCustomerID)
-		}
-		if _, exists := u.create.mutation.SubjectID(); exists {
-			s.SetIgnore(entitlement.FieldSubjectID)
-		}
-		if _, exists := u.create.mutation.SubjectKey(); exists {
-			s.SetIgnore(entitlement.FieldSubjectKey)
 		}
 		if _, exists := u.create.mutation.MeasureUsageFrom(); exists {
 			s.SetIgnore(entitlement.FieldMeasureUsageFrom)
@@ -1415,12 +1356,6 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.CustomerID(); exists {
 				s.SetIgnore(entitlement.FieldCustomerID)
-			}
-			if _, exists := b.mutation.SubjectID(); exists {
-				s.SetIgnore(entitlement.FieldSubjectID)
-			}
-			if _, exists := b.mutation.SubjectKey(); exists {
-				s.SetIgnore(entitlement.FieldSubjectKey)
 			}
 			if _, exists := b.mutation.MeasureUsageFrom(); exists {
 				s.SetIgnore(entitlement.FieldMeasureUsageFrom)

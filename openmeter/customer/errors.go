@@ -95,17 +95,6 @@ func IsSubjectKeyConflictError(err error) bool {
 	return errors.As(err, &e)
 }
 
-const ErrCodeCustomerSubjectKeyNotSingular models.ErrorCode = "customer_subject_key_not_singular"
-
-var ErrCustomerSubjectKeyNotSingular = models.NewValidationIssue(
-	ErrCodeCustomerSubjectKeyNotSingular,
-	"customer subject key is not singular",
-)
-
-func NewErrCustomerSubjectKeyNotSingular(subjectKeys []string) error {
-	return ErrCustomerSubjectKeyNotSingular.WithAttr("subject_keys", subjectKeys)
-}
-
 const ErrCodeDeletingCustomerWithActiveSubscriptions models.ErrorCode = "deleting_customer_with_active_subscriptions"
 
 var ErrDeletingCustomerWithActiveSubscriptions = models.NewValidationIssue(

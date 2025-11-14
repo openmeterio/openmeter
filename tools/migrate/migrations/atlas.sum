@@ -1,4 +1,4 @@
-h1:HM34IdJW4Qh3HNlWl+sWIMvm7kKOXPGo2YthNi8Y0Ug=
+h1:Ur1/ldbabig2YI2S1Om8vlngli13LeZpcY3HmDW47bA=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -136,3 +136,4 @@ h1:HM34IdJW4Qh3HNlWl+sWIMvm7kKOXPGo2YthNi8Y0Ug=
 20251029132709_first-day-of-month-billing.up.sql h1:rezjrUjWbya/Cjz3iJ6+672m4r6JC+C4N7LdwXIxlr0=
 20251102163348_add-subscription-annotations.up.sql h1:GoOqU0ARBBZu17pD7woVvBC/J3WWkcSKjucX3wJuGMc=
 20251106124357_notification_deliverystatus.up.sql h1:sT5sjEyWDR0ZNzINXoa/mH3no5nCISSn+7qXiI5eoS4=
+20251110132128_remove-subject-from-entitlement.up.sql h1:ZzmCEU4xwzJsPibRymap0GX1+msFl120Z9DZickBQEM=

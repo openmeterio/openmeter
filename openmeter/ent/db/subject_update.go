@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 )
@@ -121,45 +120,9 @@ func (_u *SubjectUpdate) ClearMetadata() *SubjectUpdate {
 	return _u
 }
 
-// AddEntitlementIDs adds the "entitlements" edge to the Entitlement entity by IDs.
-func (_u *SubjectUpdate) AddEntitlementIDs(ids ...string) *SubjectUpdate {
-	_u.mutation.AddEntitlementIDs(ids...)
-	return _u
-}
-
-// AddEntitlements adds the "entitlements" edges to the Entitlement entity.
-func (_u *SubjectUpdate) AddEntitlements(v ...*Entitlement) *SubjectUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddEntitlementIDs(ids...)
-}
-
 // Mutation returns the SubjectMutation object of the builder.
 func (_u *SubjectUpdate) Mutation() *SubjectMutation {
 	return _u.mutation
-}
-
-// ClearEntitlements clears all "entitlements" edges to the Entitlement entity.
-func (_u *SubjectUpdate) ClearEntitlements() *SubjectUpdate {
-	_u.mutation.ClearEntitlements()
-	return _u
-}
-
-// RemoveEntitlementIDs removes the "entitlements" edge to Entitlement entities by IDs.
-func (_u *SubjectUpdate) RemoveEntitlementIDs(ids ...string) *SubjectUpdate {
-	_u.mutation.RemoveEntitlementIDs(ids...)
-	return _u
-}
-
-// RemoveEntitlements removes "entitlements" edges to Entitlement entities.
-func (_u *SubjectUpdate) RemoveEntitlements(v ...*Entitlement) *SubjectUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveEntitlementIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -249,51 +212,6 @@ func (_u *SubjectUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(subject.FieldMetadata, field.TypeJSON)
-	}
-	if _u.mutation.EntitlementsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subject.EntitlementsTable,
-			Columns: []string{subject.EntitlementsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedEntitlementsIDs(); len(nodes) > 0 && !_u.mutation.EntitlementsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subject.EntitlementsTable,
-			Columns: []string{subject.EntitlementsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.EntitlementsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subject.EntitlementsTable,
-			Columns: []string{subject.EntitlementsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -407,45 +325,9 @@ func (_u *SubjectUpdateOne) ClearMetadata() *SubjectUpdateOne {
 	return _u
 }
 
-// AddEntitlementIDs adds the "entitlements" edge to the Entitlement entity by IDs.
-func (_u *SubjectUpdateOne) AddEntitlementIDs(ids ...string) *SubjectUpdateOne {
-	_u.mutation.AddEntitlementIDs(ids...)
-	return _u
-}
-
-// AddEntitlements adds the "entitlements" edges to the Entitlement entity.
-func (_u *SubjectUpdateOne) AddEntitlements(v ...*Entitlement) *SubjectUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddEntitlementIDs(ids...)
-}
-
 // Mutation returns the SubjectMutation object of the builder.
 func (_u *SubjectUpdateOne) Mutation() *SubjectMutation {
 	return _u.mutation
-}
-
-// ClearEntitlements clears all "entitlements" edges to the Entitlement entity.
-func (_u *SubjectUpdateOne) ClearEntitlements() *SubjectUpdateOne {
-	_u.mutation.ClearEntitlements()
-	return _u
-}
-
-// RemoveEntitlementIDs removes the "entitlements" edge to Entitlement entities by IDs.
-func (_u *SubjectUpdateOne) RemoveEntitlementIDs(ids ...string) *SubjectUpdateOne {
-	_u.mutation.RemoveEntitlementIDs(ids...)
-	return _u
-}
-
-// RemoveEntitlements removes "entitlements" edges to Entitlement entities.
-func (_u *SubjectUpdateOne) RemoveEntitlements(v ...*Entitlement) *SubjectUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveEntitlementIDs(ids...)
 }
 
 // Where appends a list predicates to the SubjectUpdate builder.
@@ -565,51 +447,6 @@ func (_u *SubjectUpdateOne) sqlSave(ctx context.Context) (_node *Subject, err er
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(subject.FieldMetadata, field.TypeJSON)
-	}
-	if _u.mutation.EntitlementsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subject.EntitlementsTable,
-			Columns: []string{subject.EntitlementsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedEntitlementsIDs(); len(nodes) > 0 && !_u.mutation.EntitlementsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subject.EntitlementsTable,
-			Columns: []string{subject.EntitlementsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.EntitlementsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   subject.EntitlementsTable,
-			Columns: []string{subject.EntitlementsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Subject{config: _u.config}
 	_spec.Assign = _node.assignValues

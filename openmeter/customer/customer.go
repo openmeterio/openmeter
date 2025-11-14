@@ -3,6 +3,7 @@ package customer
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/samber/mo"
 
@@ -49,6 +50,21 @@ type Customer struct {
 	Annotation       *models.Annotations      `json:"annotations,omitempty"`
 
 	ActiveSubscriptionIDs mo.Option[[]string]
+}
+
+// AsCustomerMutate returns a CustomerMutate from the Customer
+func (c Customer) AsCustomerMutate() CustomerMutate {
+	return CustomerMutate{
+		Key:              c.Key,
+		Name:             c.Name,
+		Description:      c.Description,
+		UsageAttribution: c.UsageAttribution,
+		PrimaryEmail:     c.PrimaryEmail,
+		Currency:         c.Currency,
+		BillingAddress:   c.BillingAddress,
+		Metadata:         c.Metadata,
+		Annotation:       c.Annotation,
+	}
 }
 
 // GetUsageAttribution returns the customer usage attribution
@@ -201,13 +217,16 @@ func (c CustomerUsageAttribution) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// UsageAttribution
-func (c CustomerUsageAttribution) GetSubjectKey() (string, error) {
-	if len(c.SubjectKeys) != 1 {
-		return "", NewErrCustomerSubjectKeyNotSingular(c.SubjectKeys)
+// Deprecated: This functionality is only present for backwards compatibility
+func (c CustomerUsageAttribution) GetFirstSubjectKey() (string, error) {
+	if len(c.SubjectKeys) == 0 {
+		return "", models.NewGenericValidationError(errors.New("no subject keys found"))
 	}
 
-	return c.SubjectKeys[0], nil
+	sortedKeys := slices.Clone(c.SubjectKeys)
+	slices.Sort(sortedKeys)
+
+	return sortedKeys[0], nil
 }
 
 // GetCustomerByUsageAttributionInput represents the input for the GetCustomerByUsageAttribution method

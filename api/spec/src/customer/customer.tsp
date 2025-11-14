@@ -267,18 +267,17 @@ model Customer {
 
 /**
  * Mapping to attribute metered usage to the customer.
- * One customer can have multiple subjects,
+ * One customer can have zero or more subjects,
  * but one subject can only belong to one customer.
  */
 @friendlyName("CustomerUsageAttribution")
 model CustomerUsageAttribution {
   /**
    * The subjects that are attributed to the customer.
-   * @TODO allow multiple subjects
+   * Can be empty when no subjects are associated with the customer.
    */
   @summary("SubjectKeys")
-  @minItems(1)
-  @maxItems(1)
+  @minItems(0)
   subjectKeys: SubjectKey[];
 }
 

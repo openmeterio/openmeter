@@ -15552,13 +15552,14 @@ components:
             type: string
             minLength: 1
             description: SubjectKey is a key that is used to identify a subject.
-          minItems: 1
-          maxItems: 1
-          description: The subjects that are attributed to the customer.
+          minItems: 0
+          description: |-
+            The subjects that are attributed to the customer.
+            Can be empty when no subjects are associated with the customer.
           title: SubjectKeys
       description: |-
         Mapping to attribute metered usage to the customer.
-        One customer can have multiple subjects,
+        One customer can have zero or more subjects,
         but one subject can only belong to one customer.
     DiscountPercentage:
       type: object

@@ -4,7 +4,6 @@ package db
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -13,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 )
@@ -21,12 +19,11 @@ import (
 // SubjectQuery is the builder for querying Subject entities.
 type SubjectQuery struct {
 	config
-	ctx              *QueryContext
-	order            []subject.OrderOption
-	inters           []Interceptor
-	predicates       []predicate.Subject
-	withEntitlements *EntitlementQuery
-	modifiers        []func(*sql.Selector)
+	ctx        *QueryContext
+	order      []subject.OrderOption
+	inters     []Interceptor
+	predicates []predicate.Subject
+	modifiers  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -61,28 +58,6 @@ func (_q *SubjectQuery) Unique(unique bool) *SubjectQuery {
 func (_q *SubjectQuery) Order(o ...subject.OrderOption) *SubjectQuery {
 	_q.order = append(_q.order, o...)
 	return _q
-}
-
-// QueryEntitlements chains the current query on the "entitlements" edge.
-func (_q *SubjectQuery) QueryEntitlements() *EntitlementQuery {
-	query := (&EntitlementClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subject.Table, subject.FieldID, selector),
-			sqlgraph.To(entitlement.Table, entitlement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, subject.EntitlementsTable, subject.EntitlementsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // First returns the first Subject entity from the query.
@@ -272,27 +247,15 @@ func (_q *SubjectQuery) Clone() *SubjectQuery {
 		return nil
 	}
 	return &SubjectQuery{
-		config:           _q.config,
-		ctx:              _q.ctx.Clone(),
-		order:            append([]subject.OrderOption{}, _q.order...),
-		inters:           append([]Interceptor{}, _q.inters...),
-		predicates:       append([]predicate.Subject{}, _q.predicates...),
-		withEntitlements: _q.withEntitlements.Clone(),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]subject.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.Subject{}, _q.predicates...),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
-}
-
-// WithEntitlements tells the query-builder to eager-load the nodes that are connected to
-// the "entitlements" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *SubjectQuery) WithEntitlements(opts ...func(*EntitlementQuery)) *SubjectQuery {
-	query := (&EntitlementClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withEntitlements = query
-	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -371,11 +334,8 @@ func (_q *SubjectQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *SubjectQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Subject, error) {
 	var (
-		nodes       = []*Subject{}
-		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
-			_q.withEntitlements != nil,
-		}
+		nodes = []*Subject{}
+		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Subject).scanValues(nil, columns)
@@ -383,7 +343,6 @@ func (_q *SubjectQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Subj
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Subject{config: _q.config}
 		nodes = append(nodes, node)
-		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(_q.modifiers) > 0 {
@@ -398,45 +357,7 @@ func (_q *SubjectQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Subj
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withEntitlements; query != nil {
-		if err := _q.loadEntitlements(ctx, query, nodes,
-			func(n *Subject) { n.Edges.Entitlements = []*Entitlement{} },
-			func(n *Subject, e *Entitlement) { n.Edges.Entitlements = append(n.Edges.Entitlements, e) }); err != nil {
-			return nil, err
-		}
-	}
 	return nodes, nil
-}
-
-func (_q *SubjectQuery) loadEntitlements(ctx context.Context, query *EntitlementQuery, nodes []*Subject, init func(*Subject), assign func(*Subject, *Entitlement)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*Subject)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(entitlement.FieldSubjectID)
-	}
-	query.Where(predicate.Entitlement(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(subject.EntitlementsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.SubjectID
-		node, ok := nodeids[fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "subject_id" returned %v for node %v`, fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
 }
 
 func (_q *SubjectQuery) sqlCount(ctx context.Context) (int, error) {

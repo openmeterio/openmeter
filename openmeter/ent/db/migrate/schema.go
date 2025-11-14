@@ -1449,7 +1449,6 @@ var (
 		{Name: "active_from", Type: field.TypeTime, Nullable: true},
 		{Name: "active_to", Type: field.TypeTime, Nullable: true},
 		{Name: "feature_key", Type: field.TypeString},
-		{Name: "subject_key", Type: field.TypeString},
 		{Name: "measure_usage_from", Type: field.TypeTime, Nullable: true},
 		{Name: "issue_after_reset", Type: field.TypeFloat64, Nullable: true},
 		{Name: "issue_after_reset_priority", Type: field.TypeUint8, Nullable: true},
@@ -1463,7 +1462,6 @@ var (
 		{Name: "annotations", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "subject_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// EntitlementsTable holds the schema information for the "entitlements" table.
 	EntitlementsTable = &schema.Table{
@@ -1473,20 +1471,14 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "entitlements_customers_entitlements",
-				Columns:    []*schema.Column{EntitlementsColumns[22]},
+				Columns:    []*schema.Column{EntitlementsColumns[21]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "entitlements_features_entitlement",
-				Columns:    []*schema.Column{EntitlementsColumns[23]},
+				Columns:    []*schema.Column{EntitlementsColumns[22]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "entitlements_subjects_entitlements",
-				Columns:    []*schema.Column{EntitlementsColumns[24]},
-				RefColumns: []*schema.Column{SubjectsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
@@ -1509,37 +1501,27 @@ var (
 			{
 				Name:    "entitlement_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[22]},
-			},
-			{
-				Name:    "entitlement_namespace_subject_id",
-				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[24]},
-			},
-			{
-				Name:    "entitlement_namespace_subject_key",
-				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[10]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[21]},
 			},
 			{
 				Name:    "entitlement_namespace_id_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[0], EntitlementsColumns[22]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[0], EntitlementsColumns[21]},
 			},
 			{
 				Name:    "entitlement_namespace_feature_id_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[23], EntitlementsColumns[0]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[22], EntitlementsColumns[0]},
 			},
 			{
 				Name:    "entitlement_namespace_current_usage_period_end",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[20]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[19]},
 			},
 			{
 				Name:    "entitlement_current_usage_period_end_deleted_at",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[20], EntitlementsColumns[5]},
+				Columns: []*schema.Column{EntitlementsColumns[19], EntitlementsColumns[5]},
 			},
 			{
 				Name:    "entitlement_created_at_id",
@@ -2747,7 +2729,6 @@ func init() {
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[1].RefTable = FeaturesTable
-	EntitlementsTable.ForeignKeys[2].RefTable = SubjectsTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable

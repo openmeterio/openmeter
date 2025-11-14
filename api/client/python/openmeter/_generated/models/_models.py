@@ -3218,7 +3218,7 @@ class CustomerReplaceUpdate(_Model):
 
 class CustomerUsageAttribution(_Model):
     """Mapping to attribute metered usage to the customer.
-    One customer can have multiple subjects,
+    One customer can have zero or more subjects,
     but one subject can only belong to one customer.
 
     :ivar subject_keys: SubjectKeys. Required.

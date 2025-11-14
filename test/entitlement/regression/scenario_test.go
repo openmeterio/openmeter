@@ -628,7 +628,7 @@ func TestBalanceWorkerActiveToFromEntitlementsMapping(t *testing.T) {
 	bwRepo, ok := deps.EntitlementRepo.(balanceworker.BalanceWorkerRepository)
 	assert.True(ok)
 
-	subjKey, err := cust.UsageAttribution.GetSubjectKey()
+	subjKey, err := cust.UsageAttribution.GetFirstSubjectKey()
 	assert.NoError(err)
 
 	affectedEntitlements, err := bwRepo.ListEntitlementsAffectedByIngestEvents(ctx, []balanceworker.IngestEventQueryFilter{

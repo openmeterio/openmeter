@@ -27,7 +27,7 @@ func resolveCustomerAndSubject(ctx context.Context, customerService customer.Ser
 		)
 	}
 
-	subjKey, err := cus.UsageAttribution.GetSubjectKey()
+	subjKey, err := cus.UsageAttribution.GetFirstSubjectKey()
 	if err != nil {
 		return customer.Customer{}, subject.Subject{}, fmt.Errorf("failed to get subject key for customer %s: %w", customerID, err)
 	}
