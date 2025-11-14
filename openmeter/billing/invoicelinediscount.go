@@ -3,13 +3,11 @@ package billing
 import (
 	"errors"
 	"fmt"
-	"reflect"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -37,7 +35,7 @@ func (i LineDiscountBase) Validate() error {
 }
 
 func (i LineDiscountBase) Equal(other LineDiscountBase) bool {
-	return reflect.DeepEqual(i, other)
+	return deriveEqualLineDiscountBase(&i, &other)
 }
 
 func (i LineDiscountBase) Clone() LineDiscountBase {
@@ -82,19 +80,7 @@ func (i AmountLineDiscount) Validate() error {
 }
 
 func (i AmountLineDiscount) Equal(other AmountLineDiscount) bool {
-	if !i.LineDiscountBase.Equal(other.LineDiscountBase) {
-		return false
-	}
-
-	if !i.Amount.Equal(other.Amount) {
-		return false
-	}
-
-	if !i.RoundingAmount.Equal(other.RoundingAmount) {
-		return false
-	}
-
-	return true
+	return deriveEqualAmountLineDiscount(&i, &other)
 }
 
 func (i AmountLineDiscount) Clone() AmountLineDiscount {
@@ -121,15 +107,7 @@ func (i AmountLineDiscountManaged) Validate() error {
 }
 
 func (i AmountLineDiscountManaged) Equal(other AmountLineDiscountManaged) bool {
-	if !i.ManagedModelWithID.Equal(other.ManagedModelWithID) {
-		return false
-	}
-
-	if !i.AmountLineDiscount.Equal(other.AmountLineDiscount) {
-		return false
-	}
-
-	return true
+	return deriveEqualAmountLineDiscountManaged(&i, &other)
 }
 
 func (i AmountLineDiscountManaged) Clone() AmountLineDiscountManaged {
@@ -248,19 +226,7 @@ func (i UsageLineDiscount) Validate() error {
 }
 
 func (i UsageLineDiscount) Equal(other UsageLineDiscount) bool {
-	if !i.LineDiscountBase.Equal(other.LineDiscountBase) {
-		return false
-	}
-
-	if !i.Quantity.Equal(other.Quantity) {
-		return false
-	}
-
-	if !equal.PtrEqual(i.PreLinePeriodQuantity, other.PreLinePeriodQuantity) {
-		return false
-	}
-
-	return true
+	return deriveEqualUsageLineDiscount(&i, &other)
 }
 
 func (i UsageLineDiscount) Clone() UsageLineDiscount {
@@ -287,15 +253,7 @@ func (i UsageLineDiscountManaged) Validate() error {
 }
 
 func (i UsageLineDiscountManaged) Equal(other UsageLineDiscountManaged) bool {
-	if !i.ManagedModelWithID.Equal(other.ManagedModelWithID) {
-		return false
-	}
-
-	if !i.UsageLineDiscount.Equal(other.UsageLineDiscount) {
-		return false
-	}
-
-	return true
+	return deriveEqualUsageLineDiscountManaged(&i, &other)
 }
 
 func (i UsageLineDiscountManaged) Clone() UsageLineDiscountManaged {

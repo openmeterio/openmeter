@@ -1,5 +1,7 @@
 package models
 
+import "reflect"
+
 type Annotations map[string]interface{}
 
 func (a Annotations) GetBool(key string) bool {
@@ -86,4 +88,26 @@ func (a Annotations) Merge(m Annotations) Annotations {
 	}
 
 	return result
+}
+
+func (a Annotations) Equal(other Annotations) bool {
+	if a == nil || other == nil {
+		return a == nil && other == nil
+	}
+
+	if len(a) != len(other) {
+		return false
+	}
+
+	for k, v := range a {
+		otherV, ok := other[k]
+		if !ok {
+			return false
+		}
+
+		if !reflect.DeepEqual(v, otherV) {
+			return false
+		}
+	}
+	return true
 }

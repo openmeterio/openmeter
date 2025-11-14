@@ -3,7 +3,6 @@ package billing
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -17,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -125,7 +123,7 @@ type LineBase struct {
 }
 
 func (i LineBase) Equal(other LineBase) bool {
-	return reflect.DeepEqual(i, other)
+	return deriveEqualLineBase(&i, &other)
 }
 
 func (i LineBase) GetParentID() (string, bool) {
@@ -647,35 +645,7 @@ type UsageBasedLine struct {
 }
 
 func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {
-	if other == nil {
-		return false
-	}
-
-	if !i.Price.Equal(other.Price) {
-		return false
-	}
-
-	if i.FeatureKey != other.FeatureKey {
-		return false
-	}
-
-	if !equal.PtrEqual(i.Quantity, other.Quantity) {
-		return false
-	}
-
-	if !equal.PtrEqual(i.MeteredQuantity, other.MeteredQuantity) {
-		return false
-	}
-
-	if !equal.PtrEqual(i.PreLinePeriodQuantity, other.PreLinePeriodQuantity) {
-		return false
-	}
-
-	if !equal.PtrEqual(i.MeteredPreLinePeriodQuantity, other.MeteredPreLinePeriodQuantity) {
-		return false
-	}
-
-	return true
+	return deriveEqualUsageBasedLine(&i, other)
 }
 
 func (i UsageBasedLine) Clone() *UsageBasedLine {
