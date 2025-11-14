@@ -10,7 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/events"
-	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -57,7 +56,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 
 			OriginalEventSource: metadata.ComposeResourcePath(ent.Namespace, metadata.EntityEvent),
 			AsOf:                event.StoredAt,
-			SourceOperation:     snapshot.ValueOperationUpdate,
+			SourceOperation:     events.OperationTypeIngest,
 			RawIngestedEvents:   event.RawEvents,
 		})
 		if err != nil {

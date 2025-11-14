@@ -214,6 +214,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 				OriginalEventSource: metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.Entitlement.ID),
 				AsOf:                event.Entitlement.ManagedModel.CreatedAt,
+				SourceOperation:     events.OperationTypeEntitlementCreated,
 			})
 		}),
 
@@ -224,6 +225,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 				OriginalEventSource: metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.Entitlement.ID),
 				AsOf:                lo.FromPtrOr(event.Entitlement.ManagedModel.DeletedAt, time.Now()),
+				SourceOperation:     events.OperationTypeEntitlementDeleted,
 			})
 		}),
 
@@ -234,6 +236,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 				OriginalEventSource: metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
 				AsOf:                event.CreatedAt,
+				SourceOperation:     events.OperationTypeGrantCreated,
 			})
 		}),
 
@@ -244,6 +247,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 				OriginalEventSource: metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.Grant.OwnerID, metadata.EntityGrant, event.Grant.ID),
 				AsOf:                event.Grant.ManagedModel.CreatedAt,
+				SourceOperation:     events.OperationTypeGrantCreated,
 			})
 		}),
 
@@ -254,6 +258,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 				OriginalEventSource: metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
 				AsOf:                event.UpdatedAt,
+				SourceOperation:     events.OperationTypeGrantVoided,
 			})
 		}),
 
@@ -264,6 +269,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 				OriginalEventSource: metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.Grant.OwnerID, metadata.EntityGrant, event.Grant.ID),
 				AsOf:                event.Grant.ManagedModel.UpdatedAt,
+				SourceOperation:     events.OperationTypeGrantVoided,
 			})
 		}),
 
@@ -274,7 +280,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 				OriginalEventSource: metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID),
 				AsOf:                event.ResetAt,
-				SourceOperation:     snapshot.ValueOperationReset,
+				SourceOperation:     events.OperationTypeMeteredEntitlementReset,
 			})
 		}),
 
@@ -293,13 +299,19 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				return errors.New("nil recalculate event")
 			}
 
+			// Let's map the operation type to the target snapshot operation type
+			snapshotOperation := snapshot.ValueOperationUpdate
+			switch event.SourceOperation {
+			case events.OperationTypeMeteredEntitlementReset:
+				snapshotOperation = snapshot.ValueOperationReset
+			case events.OperationTypeEntitlementDeleted:
+				snapshotOperation = snapshot.ValueOperationDelete
+			}
+
 			options := []handleOption{
 				WithSource(event.OriginalEventSource),
 				WithEventAt(event.AsOf),
-			}
-
-			if event.SourceOperation != "" {
-				options = append(options, WithSourceOperation(event.SourceOperation))
+				WithSourceOperation(snapshotOperation),
 			}
 
 			if len(event.RawIngestedEvents) > 0 {
