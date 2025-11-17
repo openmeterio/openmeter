@@ -13,6 +13,7 @@ import (
 // ProgressManagerConfiguration stores the configuration parameters for the progress manager
 type ProgressManagerConfiguration struct {
 	Enabled    bool
+	KeyPrefix  string
 	Expiration time.Duration
 	Redis      redis.Config
 }
@@ -39,5 +40,6 @@ func (c ProgressManagerConfiguration) Validate() error {
 // ConfigureProgressManager sets the default values for the progress manager configuration
 func ConfigureProgressManager(v *viper.Viper) {
 	v.SetDefault("progressManager.expiration", "5m")
+	v.SetDefault("progressManager.keyPrefix", "")
 	redis.Configure(v, "progressManager.redis")
 }

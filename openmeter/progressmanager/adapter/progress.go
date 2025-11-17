@@ -13,7 +13,7 @@ import (
 
 // keyPrefix is the prefix for progress data in the Redis store.
 // All progress keys will be stored as "progress:<namespace>:<id>"
-const keyPrefix = "progress:"
+const staticKeyPrefix = "progress:"
 
 // GetProgress retrieves the progress
 func (a *adapter) GetProgress(ctx context.Context, input entity.GetProgressInput) (*entity.Progress, error) {
@@ -23,7 +23,7 @@ func (a *adapter) GetProgress(ctx context.Context, input entity.GetProgressInput
 
 	var progress entity.Progress
 
-	cmd := a.redis.Get(ctx, getKey(input.ProgressID))
+	cmd := a.redis.Get(ctx, a.getKey(input.ProgressID))
 
 	if cmd.Err() != nil {
 		if cmd.Err() == redis.Nil {
@@ -53,7 +53,7 @@ func (a *adapter) UpsertProgress(ctx context.Context, input entity.UpsertProgres
 		return fmt.Errorf("marshal progress: %w", err)
 	}
 
-	cmd := a.redis.Set(ctx, getKey(input.ProgressID), data, a.expiration)
+	cmd := a.redis.Set(ctx, a.getKey(input.ProgressID), data, a.expiration)
 	if cmd.Err() != nil {
 		return fmt.Errorf("set progress: %w", cmd.Err())
 	}
@@ -62,6 +62,10 @@ func (a *adapter) UpsertProgress(ctx context.Context, input entity.UpsertProgres
 }
 
 // getKey returns the key for the KV store
-func getKey(id entity.ProgressID) string {
-	return fmt.Sprintf("%s:%s:%s", keyPrefix, id.Namespace, id.ID)
+func (a *adapter) getKey(id entity.ProgressID) string {
+	if a.keyPrefix == "" {
+		return fmt.Sprintf("%s:%s:%s", staticKeyPrefix, id.Namespace, id.ID)
+	}
+
+	return fmt.Sprintf("%s:%s:%s:%s", a.keyPrefix, staticKeyPrefix, id.Namespace, id.ID)
 }

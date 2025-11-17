@@ -14,6 +14,7 @@ type Config struct {
 	Expiration time.Duration
 	Redis      *redis.Client
 	Logger     *slog.Logger
+	KeyPrefix  string
 }
 
 func (c Config) Validate() error {
@@ -41,12 +42,15 @@ func New(config Config) (progressmanager.Adapter, error) {
 		expiration: config.Expiration,
 		redis:      config.Redis,
 		logger:     config.Logger,
+		keyPrefix:  config.KeyPrefix,
 	}, nil
 }
 
 var _ progressmanager.Adapter = (*adapter)(nil)
 
 type adapter struct {
+	// keyPrefix is the prefix for progress data in the Redis store, if needed, the key format will be "<keyPrefix>:progress:<namespace>:<id>" or "progress:<namespace>:<id>" if the prefix is empty
+	keyPrefix string
 	// expiration defines how long progress data is stored in Redis before automatic removal
 	expiration time.Duration
 	// redis is the client for storing and retrieving progress data

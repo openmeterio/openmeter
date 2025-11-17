@@ -28,6 +28,7 @@ func NewProgressManager(logger *slog.Logger, conf config.ProgressManagerConfigur
 
 	pm, err := adapter.New(adapter.Config{
 		Expiration: conf.Expiration,
+		KeyPrefix:  conf.KeyPrefix,
 		Logger:     logger,
 		Redis:      redisClient,
 	})
