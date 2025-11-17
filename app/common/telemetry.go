@@ -160,7 +160,8 @@ func NewLogger(conf config.LogTelemetryConfig, res *resource.Resource, loggerPro
 		contextx.NewLogHandler,
 	)
 
-	return slog.New(middlewares.Handler(out))
+	return slog.New(middlewares.Handler(out)).
+		With(semconv.ServiceVersion(metadata.Version))
 }
 
 func TelemetryLoggerNoAdditionalMiddlewares() []slogmulti.Middleware {
