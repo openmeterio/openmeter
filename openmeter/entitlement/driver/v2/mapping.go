@@ -282,7 +282,9 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 
 			switch {
 			case issueAmount != nil && len(lo.FromPtr(v.Grants)) != 0:
-				return entCreateInp, grantsInp, errors.New("issueAfterReset and grants cannot be used together")
+				return entCreateInp, grantsInp, models.NewGenericValidationError(
+					errors.New("issueAfterReset and grants cannot be used together"),
+				)
 			case issueAmount != nil:
 				entCreateInp.IssueAfterReset = issueAmount
 				entCreateInp.IssueAfterResetPriority = issuePriority
