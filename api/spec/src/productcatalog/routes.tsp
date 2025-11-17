@@ -33,7 +33,10 @@ interface FeaturesEndpoints {
     ...QueryPagination,
     ...QueryLimitOffset,
     ...QueryOrdering<FeatureOrderBy>,
-  ): ListFeaturesResult | CommonErrors;
+  ): {
+    @statusCode _: 200;
+    @body body: ListFeaturesResult;
+  } | CommonErrors;
 
   /**
    * Features are either metered or static. A feature is metered if meterSlug is provided at creation.

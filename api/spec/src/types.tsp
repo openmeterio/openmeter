@@ -8,6 +8,7 @@ using TypeSpec.OpenAPI;
 // See: https://github.com/ulid/spec/issues/94
 @pattern("^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$")
 @example("01G65Z755AFWAKHE12NY0CQ9FH")
+@extension("x-inline", true)
 scalar ULID extends string;
 
 /**
@@ -19,6 +20,7 @@ scalar ULID extends string;
 )
 @minLength(1)
 @maxLength(64)
+@extension("x-inline", true)
 scalar Key extends string;
 
 /**
@@ -26,6 +28,7 @@ scalar Key extends string;
  */
 @maxLength(256)
 @minLength(1)
+@extension("x-inline", true)
 scalar ExternalKey extends string;
 
 /**
@@ -37,6 +40,7 @@ scalar ExternalKey extends string;
 @pattern("^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$")
 @minLength(1)
 @maxLength(64)
+@extension("x-inline", true)
 scalar ULIDOrKey extends string;
 
 /**
@@ -67,6 +71,7 @@ model Metadata {
  */
 @encode(DateTimeKnownEncoding.rfc3339)
 @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+@extension("x-inline", true)
 scalar DateTime extends utcDateTime;
 
 /**
@@ -219,6 +224,7 @@ model Archiveable {
 // A stricter alternative that doesn't allow fractional components is: ^P(?:\d+Y)?(?:\d+M)?(?:\d+W)?(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+S)?)?$
 // ^before using the stricter pattern make sure to double escape the backslashes
 @pattern("^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$")
+@extension("x-inline", true)
 scalar ISO8601Duration extends string;
 
 /**

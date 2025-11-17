@@ -20,15 +20,15 @@
     "./openapi.yaml": "./output/openapi.OpenMeterCloud.yaml"
   },
   "devDependencies": {
-    "@types/node": "24.8.0",
-    "@typespec/compiler": "1.5.0",
-    "@typespec/http": "1.5.0",
-    "@typespec/http-client-python": "0.19.1",
-    "@typespec/openapi": "1.5.0",
-    "@typespec/openapi3": "1.5.0",
-    "@typespec/prettier-plugin-typespec": "1.5.0",
-    "@typespec/rest": "0.75.0",
-    "@typespec/versioning": "0.75.0",
+    "@types/node": "24.10.1",
+    "@typespec/compiler": "1.6.0",
+    "@typespec/http": "1.6.0",
+    "@typespec/http-client-python": "0.20.3",
+    "@typespec/openapi": "1.6.0",
+    "@typespec/openapi3": "1.6.0",
+    "@typespec/prettier-plugin-typespec": "1.6.0",
+    "@typespec/rest": "0.76.0",
+    "@typespec/versioning": "0.76.0",
     "prettier": "3.6.2",
     "typescript": "5.6.3"
   },
@@ -40,11 +40,11 @@
       "esbuild"
     ],
     "patchedDependencies": {
+      "@typespec/compiler": "patches/@typespec__compiler.patch",
       "@typespec/http": "patches/@typespec__http.patch",
       "@typespec/openapi": "patches/@typespec__openapi.patch",
       "@typespec/openapi3": "patches/@typespec__openapi3.patch",
-      "@typespec/http-client-python": "patches/@typespec__http-client-python.patch",
-      "@typespec/compiler": "patches/@typespec__compiler.patch"
+      "@typespec/http-client-python": "patches/@typespec__http-client-python.patch"
     }
   }
 }

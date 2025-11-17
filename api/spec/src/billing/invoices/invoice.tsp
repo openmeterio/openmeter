@@ -313,6 +313,7 @@ model InvoiceStatusDetails {
 }
 
 // TODO[later]: we can make this an enum, but only if we have reached a stable state with the statuses.
+@extension("x-inline", true)
 scalar InvoiceExtendedStatus extends string;
 
 /**
