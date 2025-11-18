@@ -3,12 +3,11 @@ emit:
 parameters:
   base-dir:
     default: '{cwd}'
-  client-dir:
-    default: '{cwd}/../client'
 output-dir: '{base-dir}'
 options:
   '@typespec/openapi3':
-    emitter-output-dir: '{output-dir}/output'
+    emitter-output-dir: '{output-dir}/output/definitions/metering-and-billing/v3'
+    omit-unreachable-types: true
 linter:
   extends:
-    - '@openmeter/api-spec/legacy'
+    - '@openmeter/api-spec/aip'
