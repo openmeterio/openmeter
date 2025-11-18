@@ -70,27 +70,27 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "openapi-fetch": "0.14.0",
+    "openapi-fetch": "0.15.0",
     "openapi-typescript-helpers": "0.0.15"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.4",
-    "@fetch-mock/vitest": "0.2.15",
+    "@biomejs/biome": "2.3.6",
+    "@fetch-mock/vitest": "0.2.18",
     "@knighted/duel": "2.1.5",
-    "@types/node": "24.5.2",
+    "@types/node": "24.10.1",
     "@types/node-fetch": "2.6.13",
-    "@types/react": "19.1.15",
-    "fetch-mock": "12.5.4",
+    "@types/react": "19.2.6",
+    "fetch-mock": "12.6.0",
     "openapi-typescript": "7.8.0",
     "orval": "7.13.0",
     "prettier": "3.6.2",
-    "react": "19.1.1",
-    "rollup": "4.52.3",
-    "ts-morph": "27.0.0",
+    "react": "19.2.0",
+    "rollup": "4.53.2",
+    "ts-morph": "27.0.2",
     "tslib": "2.8.1",
     "tsx": "4.20.6",
-    "typescript": "5.9.2",
-    "vitest": "3.2.4",
+    "typescript": "5.9.3",
+    "vitest": "4.0.10",
     "zod": "3.25.7"
   },
   "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a",
@@ -104,6 +104,10 @@
     ],
     "patchedDependencies": {
       "openapi-typescript": "patches/openapi-typescript.patch"
+    },
+    "overrides": {
+      "js-yaml@>=4.0.0 <4.1.1": ">=4.1.1",
+      "glob@>=11.0.0 <11.1.0": ">=11.1.0"
     }
   }
 }
