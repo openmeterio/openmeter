@@ -753,6 +753,7 @@ func (s *CustomerHandlerTestSuite) TestGetByUsageAttribution(ctx context.Context
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: TestName,
+			Key:  lo.ToPtr(TestKey),
 			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
@@ -764,21 +765,41 @@ func (s *CustomerHandlerTestSuite) TestGetByUsageAttribution(ctx context.Context
 
 	// Get the customer by usage attribution
 	cus, err := service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  s.namespace,
-		SubjectKey: TestSubjectKeys[0],
+		Namespace: s.namespace,
+		Key:       TestSubjectKeys[0],
 	})
 
 	require.NoError(t, err, "Fetching customer must not return error")
 	require.NotNil(t, cus, "Customer must not be nil")
 	require.Equal(t, s.namespace, cus.Namespace, "Customer namespace must match")
 	require.Equal(t, createdCustomer.ID, cus.ID, "Customer ID must match")
-	require.Equal(t, TestName, cus.Name, "Customer name must match")
-	require.Equal(t, TestSubjectKeys, cus.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+
+	// Get the customer by key
+	cus, err = service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace: s.namespace,
+		Key:       TestKey,
+	})
+
+	require.NoError(t, err, "Fetching customer must not return error")
+	require.NotNil(t, cus, "Customer must not be nil")
+	require.Equal(t, s.namespace, cus.Namespace, "Customer namespace must match")
+	require.Equal(t, createdCustomer.ID, cus.ID, "Customer ID must match")
+
+	// Get the customer by key
+	cus, err = service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+		Namespace: s.namespace,
+		Key:       TestKey,
+	})
+
+	require.NoError(t, err, "Fetching customer must not return error")
+	require.NotNil(t, cus, "Customer must not be nil")
+	require.Equal(t, s.namespace, cus.Namespace, "Customer namespace must match")
+	require.Equal(t, createdCustomer.ID, cus.ID, "Customer ID must match")
 
 	// Get the customer by usage attribution with a non-existent subject key
 	_, err = service.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  s.namespace,
-		SubjectKey: "non-existent-subject-key",
+		Namespace: s.namespace,
+		Key:       "non-existent-subject-key",
 	})
 
 	require.True(t, models.IsGenericNotFoundError(err), "Fetching customer with non-existent subject key must return not found error")

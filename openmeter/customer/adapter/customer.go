@@ -462,13 +462,20 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 
 		query := repo.db.Customer.Query().
 			Where(customerdb.Namespace(input.Namespace)).
-			Where(customerdb.HasSubjectsWith(
-				customersubjectsdb.SubjectKey(input.SubjectKey),
-				customersubjectsdb.Or(
-					customersubjectsdb.DeletedAtIsNil(),
-					customersubjectsdb.DeletedAtGT(now),
+			Where(
+				customerdb.Or(
+					// We lookup the customer by subject key in the subjects table
+					customerdb.HasSubjectsWith(
+						customersubjectsdb.SubjectKey(input.Key),
+						customersubjectsdb.Or(
+							customersubjectsdb.DeletedAtIsNil(),
+							customersubjectsdb.DeletedAtGT(now),
+						),
+					),
+					// Or else we lookup the customer by key in the customers table
+					customerdb.Key(input.Key),
 				),
-			)).
+			).
 			Where(customerdb.DeletedAtIsNil())
 		query = WithSubjects(query, now)
 		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
@@ -479,7 +486,7 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 		if err != nil {
 			if entdb.IsNotFound(err) {
 				return nil, models.NewGenericNotFoundError(
-					fmt.Errorf("customer with subject key %s not found in %s namespace", input.SubjectKey, input.Namespace),
+					fmt.Errorf("customer with subject key %s not found in %s namespace", input.Key, input.Namespace),
 				)
 			}
 

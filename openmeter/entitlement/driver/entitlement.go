@@ -569,8 +569,8 @@ func (h *entitlementHandler) resolveCustomerFromSubject(ctx context.Context, nam
 	}
 
 	cust, err := h.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-		Namespace:  namespace,
-		SubjectKey: subj.Key,
+		Namespace: namespace,
+		Key:       subj.Key,
 	})
 	if err != nil {
 		return nil, err

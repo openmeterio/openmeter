@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"github.com/huandu/go-sqlbuilder"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
+
+const subjectToCustomerIDDictionary = "subject_to_customer_id"
 
 // selectCustomerIdColumn
 func selectCustomerIdColumn(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
@@ -21,28 +22,43 @@ func selectCustomerIdColumn(eventsTableName string, customers []streaming.Custom
 	getColumn := columnFactory(eventsTableName)
 	subjectColumn := getColumn("subject")
 
-	// Build a map of subject to customer id
+	// Build a map of event subjects to customer ids
 	var values []string
 
+	// For each customer, we map event subjects to customer ids
 	for _, customer := range customers {
-		// Add each subject key to the map and map it to the customer id
+		customerIDSQL := fmt.Sprintf("'%s'", sqlbuilder.Escape(customer.GetUsageAttribution().ID))
+
+		// We map the customer key to the customer id if it exists
+		if customer.GetUsageAttribution().Key != nil {
+			customerKeySQL := fmt.Sprintf("'%s'", sqlbuilder.Escape(*customer.GetUsageAttribution().Key))
+			values = append(values, customerKeySQL, customerIDSQL)
+		}
+
+		// We map each subject key to the customer id
 		for _, subjectKey := range customer.GetUsageAttribution().SubjectKeys {
 			subjectSQL := fmt.Sprintf("'%s'", sqlbuilder.Escape(subjectKey))
-			customerIDSQL := fmt.Sprintf("'%s'", sqlbuilder.Escape(customer.GetUsageAttribution().ID))
 
 			values = append(values, subjectSQL, customerIDSQL)
 		}
 	}
 
-	mapAs := "subject_to_customer_id"
-	mapSQL := fmt.Sprintf("WITH map(%s) as %s", strings.Join(values, ", "), mapAs)
+	// If there are no values, we return an empty customer id column
+	// This can happen if none of the customers has key or usage attribution subjects
+	if len(values) == 0 {
+		return query.SelectMore("'' AS customer_id")
+	}
+
+	// Name of the map (dictionary)
+
+	mapSQL := fmt.Sprintf("WITH map(%s) as %s", strings.Join(values, ", "), subjectToCustomerIDDictionary)
 
 	// Add the map to query via WITH clause
 	mapQuery := sqlbuilder.ClickHouse.NewCTEBuilder().SQL(mapSQL)
 	query = query.With(mapQuery)
 
 	// Select the customer id column
-	query = query.SelectMore(fmt.Sprintf("%s[%s] AS customer_id", mapAs, subjectColumn))
+	query = query.SelectMore(fmt.Sprintf("%s[%s] AS customer_id", subjectToCustomerIDDictionary, subjectColumn))
 
 	return query
 }
@@ -58,12 +74,26 @@ func customersWhere(eventsTableName string, customers []streaming.Customer, quer
 	getColumn := columnFactory(eventsTableName)
 	subjectColumn := getColumn("subject")
 
-	// If the customer filter is provided, we add all the subjects to the filter
-	subjects := lo.Map(customers, func(customer streaming.Customer, _ int) []string {
-		return customer.GetUsageAttribution().SubjectKeys
-	})
+	var subjects []string
 
-	return query.Where(query.In(subjectColumn, lo.Flatten(subjects)))
+	// Collect all the subjects from the customers
+	for _, customer := range customers {
+		// Add the customer key to the filter if it exists
+		if customer.GetUsageAttribution().Key != nil {
+			subjects = append(subjects, *customer.GetUsageAttribution().Key)
+		}
+
+		// Add each subject key to the filter
+		subjects = append(subjects, customer.GetUsageAttribution().SubjectKeys...)
+	}
+
+	// If there are no subjects, we return an empty subject filter
+	// This can happen if none of the customers has key or usage attribution subjects
+	if len(subjects) == 0 {
+		return query
+	}
+
+	return query.Where(query.In(subjectColumn, subjects))
 }
 
 // subjectWhere applies the subject filter to the query.
