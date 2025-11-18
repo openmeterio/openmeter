@@ -1,7 +1,7 @@
 import { createRule, paramMessage } from '@typespec/compiler'
 
 export const operationSummaryRule = createRule({
-  name: 'operationSummary',
+  name: 'operation-summary',
   severity: 'warning',
   description: 'Ensure operation summary.',
   messages: {

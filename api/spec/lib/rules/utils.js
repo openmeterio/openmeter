@@ -8,7 +8,7 @@ export function isPascalCaseNoAcronyms(value) {
     return true
   }
 
-  return /^([A-Z][a-z0-9]+)*[A-Z]?$/.test(value)
+  return /^([A-Z][a-z0-9]+)*[A-Z]?$|^[A-Z]+$/.test(value)
 }
 
 /**

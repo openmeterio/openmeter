@@ -1,0 +1,31 @@
+components:
+  parameters:
+    OrganizationIdParameter:
+      name: organizationId
+      in: path
+      description: UUID representing an organization.
+      required: true
+      schema:
+        $ref: '#/components/schemas/OrganizationId'
+  schemas:
+    CreatedAt:
+      type: string
+      format: date-time
+      example: '2022-11-04T20:10:06.927Z'
+      description: An ISO-8601 timestamp representation of entity creation date.
+      readOnly: true
+      x-speakeasy-param-suppress-computed-diff: true
+    UpdatedAt:
+      type: string
+      format: date-time
+      example: '2022-11-04T20:10:06.927Z'
+      description: An ISO-8601 timestamp representation of entity update date.
+      readOnly: true
+      x-speakeasy-param-suppress-computed-diff: true
+    DeletedAt:
+      type: string
+      format: date-time
+      example: '2022-11-04T20:10:06.927Z'
+      description: An ISO-8601 timestamp representation of entity deletion date.
+      readOnly: true
+      x-speakeasy-param-suppress-computed-diff: true

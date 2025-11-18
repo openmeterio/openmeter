@@ -1,4 +1,4 @@
-import { createRule, paramMessage } from '@typespec/compiler'
+import { createRule, paramMessage, getDoc } from '@typespec/compiler'
 
 export const docDecoratorRule = createRule({
   name: 'doc-decorator',
@@ -9,12 +9,7 @@ export const docDecoratorRule = createRule({
   },
   create: (context) => ({
     model: (target) => {
-      if (
-        target.name &&
-        !target.decorators.find(
-          (d) => d.decorator?.name === 'docFromCommentDecorator',
-        )
-      ) {
+      if (target.name && !getDoc(context.program, target)) {
         context.reportDiagnostic({
           target,
           format: {
@@ -23,14 +18,16 @@ export const docDecoratorRule = createRule({
         })
       }
 
+      if (target.name.endsWith('Response')) {
+        return
+      }
+
       for (const [name, property] of target.properties) {
         if (
           target.name &&
           name &&
-          name !== '_' &&
-          !property.decorators.find(
-            (d) => d.decorator?.name === 'docFromCommentDecorator',
-          )
+          !['_', 'contentType'].includes(name) &&
+          !getDoc(context.program, property)
         ) {
           context.reportDiagnostic({
             target: property,
@@ -42,12 +39,7 @@ export const docDecoratorRule = createRule({
       }
     },
     enum: (target) => {
-      if (
-        target.name &&
-        !target.decorators.find(
-          (d) => d.decorator?.name === 'docFromCommentDecorator',
-        )
-      ) {
+      if (target.name && !getDoc(context.program, target)) {
         context.reportDiagnostic({
           target,
           format: {
@@ -57,12 +49,7 @@ export const docDecoratorRule = createRule({
       }
     },
     union: (target) => {
-      if (
-        target.name &&
-        !target.decorators.find(
-          (d) => d.decorator?.name === 'docFromCommentDecorator',
-        )
-      ) {
+      if (target.name && !getDoc(context.program, target)) {
         context.reportDiagnostic({
           target,
           format: {

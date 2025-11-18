@@ -1,0 +1,192 @@
+components:
+  schemas:
+    PaginatedMeta:
+      type: object
+      title: PaginatedMeta
+      x-speakeasy-terraform-ignore: true
+      description: returns the pagination information
+      properties:
+        page:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+        - page
+    PageMeta:
+      type: object
+      description: Contains pagination query parameters and the total number of objects returned.
+      required:
+        - number
+        - size
+        - total
+      properties:
+        number:
+          type: number
+          example: 1
+          x-speakeasy-terraform-ignore: true
+        size:
+          type: number
+          example: 10
+          x-speakeasy-terraform-ignore: true
+        total:
+          type: number
+          example: 100
+          x-speakeasy-terraform-ignore: true
+    CursorPageParameters:
+      type: object
+      properties:
+        size:
+          type: integer
+          description: The number of items included per page.
+          example: 10
+        after:
+          type: string
+          description: Cursor param specifying the page (i.e. the next page) of data returned.
+          example: ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ
+        before:
+          type: string
+          description: Cursor param specifying the page (i.e. the previous page) of data returned.
+          example: ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ
+    CursorMetaPage:
+      type: object
+      required:
+        - size
+        - next
+        - previous
+      properties:
+        first:
+          description: URI to the first page
+          type: string
+          format: path
+        last:
+          description: URI to the last page
+          type: string
+          format: path
+        next:
+          description: URI to the next page
+          type: string
+          format: path
+          nullable: true
+        previous:
+          description: URI to the previous page
+          type: string
+          format: path
+          nullable: true
+        size:
+          description: Requested page size
+          type: number
+          example: 10
+    CursorPaginatedMetaWithSizeAndTotal:
+      type: object
+      title: CursorPaginatedMetaWithSizeAndTotal
+      description: returns the pagination information
+      properties:
+        page:
+          $ref: '#/components/schemas/CursorMetaWithSizeAndTotal'
+      required:
+        - page
+    CursorMetaWithSizeAndTotal:
+      type: object
+      required:
+        - size
+        - next
+        - total
+      properties:
+        next:
+          description: URI to the next page
+          type: string
+          format: path
+          nullable: true
+        size:
+          description: Requested page size
+          type: number
+          example: 10
+        total:
+          description: Total number of objects in the collection; will only be present on the first page
+          type: number
+          example: 974
+          nullable: true
+    CursorMeta:
+      type: object
+      description: Pagination metadata.
+      required:
+        - page
+      properties:
+        page:
+          $ref: '#/components/schemas/CursorMetaPage'
+    CursorMetaWithTotal:
+      type: object
+      description: Pagination metadata with exact total. Useful when the collection size is inexpensive to provide.
+      required:
+        - page
+      properties:
+        page:
+          allOf:
+            - $ref: '#/components/schemas/CursorMetaPage'
+            - type: object
+              required:
+                - total
+              properties:
+                total:
+                  description: Total number of objects in the collection
+                  type: number
+                  example: 974
+    CursorMetaWithEstimatedTotal:
+      type: object
+      description: Pagination metadata with estimated total. Useful when exact total cannot be computed in reasonable time.
+      required:
+        - page
+      properties:
+        page:
+          allOf:
+            - $ref: '#/components/schemas/CursorMetaPage'
+            - type: object
+              required:
+                - estimated_total
+              properties:
+                estimated_total:
+                  description: Approximate number of objects in the collection
+                  type: number
+                  example: 1000000000
+  parameters:
+    CursorPageQuery:
+      name: page
+      description: Determines which page of the collection to retrieve.
+      required: false
+      in: query
+      schema:
+        $ref: '#/components/schemas/CursorPageParameters'
+    PageBefore:
+      name: 'page[before]'
+      description: Request the next page of data, starting with the item before this parameter.
+      required: false
+      in: query
+      allowEmptyValue: true
+      schema:
+        type: string
+        example: 'ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ'
+    PageAfter:
+      name: 'page[after]'
+      description: Request the next page of data, starting with the item after this parameter.
+      required: false
+      in: query
+      allowEmptyValue: true
+      schema:
+        type: string
+        example: 'ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ'
+    PageSize:
+      name: 'page[size]'
+      description: The maximum number of items to include per page. The last page of a collection may include fewer items.
+      required: false
+      in: query
+      allowEmptyValue: true
+      schema:
+        type: integer
+        example: 10
+    PageNumber:
+      name: 'page[number]'
+      description: Determines which page of the entities to retrieve.
+      required: false
+      in: query
+      allowEmptyValue: true
+      schema:
+        type: integer
+        example: 1

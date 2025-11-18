@@ -1,0 +1,12 @@
+namespace Shared;
+
+const MeteringAndBillingTitle = "Metering & Billing";
+const MetersTag = "Meters";
+const MetersDescription = "Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.";
+
+const UsageEventsTag = "Usage Events";
+const UsageEventsDescription = "Usage events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.";
+
+const UnstableExtension = "x-unstable";
+const InternalExtension = "x-internal";
+const PrivateExtension = "x-private";
