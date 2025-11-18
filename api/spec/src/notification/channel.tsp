@@ -222,9 +222,10 @@ interface NotificationChannelsEndpoints {
   @get
   @operationId("getNotificationChannel")
   @summary("Get notification channel")
-  get(
-    @path channelId: ULID,
-  ): NotificationChannel | NotFoundError | CommonErrors;
+  get(@path channelId: ULID): {
+    @statusCode _: 200;
+    @body body: NotificationChannel;
+  } | NotFoundError | CommonErrors;
 
   /**
    * Soft delete notification channel by id.

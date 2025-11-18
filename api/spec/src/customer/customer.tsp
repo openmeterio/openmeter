@@ -285,4 +285,5 @@ model CustomerUsageAttribution {
  * SubjectKey is a key that is used to identify a subject.
  */
 @minLength(1)
+@extension("x-inline", true)
 scalar SubjectKey extends string;

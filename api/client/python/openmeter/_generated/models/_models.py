@@ -8223,25 +8223,25 @@ class InvoiceLineSubscriptionReference(_Model):
 class InvoiceLineTaxItem(_Model):
     """TaxConfig stores the configuration for a tax line relative to an invoice line.
 
-        :ivar config: Tax provider configuration.
-        :vartype config: ~openmeter._generated.models.TaxConfig
-        :ivar percent: Percent defines the percentage set manually or determined from
-    the rate key (calculated if rate present). A nil percent implies that
-    this tax combo is **exempt** from tax.").
-        :vartype percent: float
-        :ivar surcharge: Some countries require an additional surcharge (calculated if rate present).
-        :vartype surcharge: str
-        :ivar behavior: Is the tax item inclusive or exclusive of the base amount. Known values are:
-         "inclusive" and "exclusive".
-        :vartype behavior: str or ~openmeter.models.InvoiceLineTaxBehavior
+    :ivar config: Tax provider configuration.
+    :vartype config: ~openmeter._generated.models.TaxConfig
+    :ivar percent: Percent defines the percentage set manually or determined from
+     the rate key (calculated if rate present). A nil percent implies that
+     this tax combo is **exempt** from tax.").
+    :vartype percent: float
+    :ivar surcharge: Some countries require an additional surcharge (calculated if rate present).
+    :vartype surcharge: str
+    :ivar behavior: Is the tax item inclusive or exclusive of the base amount. Known values are:
+     "inclusive" and "exclusive".
+    :vartype behavior: str or ~openmeter.models.InvoiceLineTaxBehavior
     """
 
     config: Optional["_models.TaxConfig"] = rest_field(visibility=["read"])
     """Tax provider configuration."""
     percent: Optional[float] = rest_field(visibility=["read"])
     """Percent defines the percentage set manually or determined from
- the rate key (calculated if rate present). A nil percent implies that
- this tax combo is **exempt** from tax.\")."""
+     the rate key (calculated if rate present). A nil percent implies that
+     this tax combo is **exempt** from tax.\")."""
     surcharge: Optional[str] = rest_field(visibility=["read"])
     """Some countries require an additional surcharge (calculated if rate present)."""
     behavior: Optional[Union[str, "_models.InvoiceLineTaxBehavior"]] = rest_field(visibility=["read"])

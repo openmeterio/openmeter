@@ -64,7 +64,10 @@ interface EntitlementsEndpoints {
     ...QueryPagination,
     ...QueryLimitOffset,
     ...QueryOrdering<EntitlementOrderBy>,
-  ): ListEntitlementsResult | CommonErrors;
+  ): {
+    @statusCode _: 200;
+    @body body: ListEntitlementsResult;
+  } | CommonErrors;
 
   /**
    * Get entitlement by id.
