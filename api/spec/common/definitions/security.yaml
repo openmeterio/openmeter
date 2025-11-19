@@ -1,0 +1,14 @@
+components:
+  securitySchemes:
+    personalAccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: Token
+    systemAccountAccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: Token
+    konnectAccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

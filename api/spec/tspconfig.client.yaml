@@ -18,4 +18,4 @@ options:
       name: Apache 2.0
 linter:
   extends:
-    - '@openmeter/api-spec/all'
+    - '@openmeter/api-spec/legacy'

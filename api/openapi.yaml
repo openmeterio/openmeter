@@ -4327,7 +4327,7 @@ paths:
       operationId: ingestEvents
       parameters: []
       description: Ingests an event or batch of events following the CloudEvents specification.
-      summary: 'Ingest events  '
+      summary: Ingest events
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '

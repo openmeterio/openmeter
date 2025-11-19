@@ -7,19 +7,14 @@ using TypeSpec.OpenAPI;
 namespace Events;
 
 /**
- * CloudEvents event.
+ * Metering event following the CloudEvents specification.
  */
-@extension("x-go-type", "event.Event")
-@extension(
-  "x-go-type-import",
-  #{ path: "github.com/cloudevents/sdk-go/v2/event" }
-)
-@friendlyName("UsageEvent")
-@summary("Usage Event")
+@friendlyName("MeteringEvent")
+@summary("Metering Event")
 @example(#{
+  specversion: "1.0",
   id: "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
   source: "service-name",
-  specversion: "1.0",
   type: "prompt",
   subject: "customer-id",
   time: Shared.DateTime.fromISO("2023-01-01T01:01:01.001Z"),
@@ -30,7 +25,7 @@ namespace Events;
     type: "input",
   },
 })
-model UsageEvent {
+model MeteringEvent {
   /**
    * Identifies the event.
    */
@@ -51,7 +46,7 @@ model UsageEvent {
    */
   @minLength(1)
   @example("1.0")
-  specversion: string = "1.0";
+  specversion?: string = "1.0";
 
   /**
    * Contains a value describing the type of event related to the originating occurrence.
@@ -87,7 +82,7 @@ model UsageEvent {
 
   /**
    * The event payload.
-   * Optional, if present it must be a flat JSON object with string, integer, or float values.
+   * Optional, if present it must be a JSON object.
    */
-  data?: Record<string | integer | float | null> | null;
+  data?: Record<unknown> | null;
 }
