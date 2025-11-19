@@ -1,13 +1,15 @@
 import { defineLinter } from '@typespec/compiler'
 import { casingAIPRule, casingRule } from './rules/casing.js'
 import { docDecoratorRule } from './rules/docs.js'
-import { friendlyNameRule } from './rules/friendlyName.js'
-import { operationSummaryRule } from './rules/operationSummary.js'
+import { friendlyNameRule } from './rules/friendly-name.js'
+import { operationSummaryRule } from './rules/operation-summary.js'
+import { operationIdKebabCaseRule } from './rules/operation-id.js'
 import { noNullableRule } from './rules/no-nullable.js'
 import { compositionOverInheritanceRule } from './rules/composition-over-inheritance.js'
 
 const packageName = '@openmeter/api-spec'
 
+// See example rules: https://github.com/Azure/typespec-azure/tree/main/packages/typespec-azure-core/src/rules
 const rules = [
   casingRule,
   casingAIPRule,
@@ -15,11 +17,10 @@ const rules = [
   friendlyNameRule,
   noNullableRule,
   operationSummaryRule,
+  operationIdKebabCaseRule,
   compositionOverInheritanceRule,
 ]
 
-// Linter experimentation
-// See: https://github.com/Azure/typespec-azure/tree/main/packages/typespec-azure-core/src/rules
 export const $linter = defineLinter({
   rules,
   ruleSets: {
@@ -40,6 +41,7 @@ export const $linter = defineLinter({
         [`${packageName}/${friendlyNameRule.name}`]: true,
         [`${packageName}/${noNullableRule.name}`]: true,
         [`${packageName}/${operationSummaryRule.name}`]: true,
+        [`${packageName}/${operationIdKebabCaseRule.name}`]: true,
         [`${packageName}/${compositionOverInheritanceRule.name}`]: true,
       },
     },

@@ -13,45 +13,45 @@ using TypeSpec.OpenAPI;
 
 namespace Events;
 
-interface UsageEventsOperations {
+interface MeteringEventsOperations {
   /**
    * Ingests an event or batch of events following the CloudEvents specification.
    */
   @post
-  @operationId("ingestUsageEvents")
-  @summary("Ingest usage events")
+  @operationId("ingest-metering-events")
+  @summary("Ingest metering events")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @sharedRoute
   ingestEvent(
     @header contentType: "application/cloudevents+json",
-    @body body: UsageEvent,
+    @body body: MeteringEvent,
   ): {
     @statusCode _: 204;
   } | Common.ErrorResponses;
 
   @post
-  @operationId("ingestUsageEvents")
+  @operationId("ingest-metering-events")
   @summary("")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @sharedRoute
   ingestEvents(
     @header contentType: "application/cloudevents-batch+json",
-    @body body: UsageEvent[],
+    @body body: MeteringEvent[],
   ): {
     @statusCode _: 204;
   } | Common.ErrorResponses;
 
   @post
-  @operationId("ingestUsageEvents")
+  @operationId("ingest-metering-events")
   @summary("")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @sharedRoute
   ingestEventsJson(
     @header contentType: "application/json",
-    @body body: UsageEvent | UsageEvent[],
+    @body body: MeteringEvent | MeteringEvent[],
   ): {
     @statusCode _: 204;
   } | Common.ErrorResponses;

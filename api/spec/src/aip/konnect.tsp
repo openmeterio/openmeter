@@ -24,12 +24,12 @@ using TypeSpec.OpenAPI;
 @server("https://global.api.konghq.com/v3", "Global Production region")
 @tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(
-  Shared.UsageEventsTag,
-  #{ description: Shared.UsageEventsDescription }
+  Shared.MeteringEventsTag,
+  #{ description: Shared.MeteringEventsDescription }
 )
 namespace MeteringAndBilling;
 
-@route("/events")
-@tag(Shared.UsageEventsTag)
-@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.UsageEventsTag}")
-interface UsageEventsEndpoints extends Events.UsageEventsOperations {}
+@route("/metering-events")
+@tag(Shared.MeteringEventsTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.MeteringEventsTag}")
+interface MeteringEventsEndpoints extends Events.MeteringEventsOperations {}
