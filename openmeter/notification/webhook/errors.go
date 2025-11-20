@@ -160,3 +160,9 @@ func NewUnrecoverableError(err error) error {
 		err: err,
 	}
 }
+
+var ErrMaxChannelsPerWebhookExceeded = fmt.Errorf("maximum number of channels (%d) per webhook exceeded", MaxChannelsPerWebhook)
+
+func IsMaxChannelsPerWebhookExceededError(err error) bool {
+	return errors.Is(err, ErrMaxChannelsPerWebhookExceeded)
+}

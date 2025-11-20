@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -116,6 +117,13 @@ func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleI
 					},
 				})
 				if err != nil {
+					if webhook.IsMaxChannelsPerWebhookExceededError(err) {
+						return nil, models.NewGenericValidationError(
+							fmt.Errorf("maximum number (%d) of rules for webhook channels exceeded [notification.channel.id=%s notification.channel.name=%s]",
+								webhook.MaxChannelsPerWebhook, channel.ID, channel.Name),
+						)
+					}
+
 					return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
 				}
 			default:
@@ -279,6 +287,13 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 
 				_, err = s.webhook.UpdateWebhookChannels(ctx, input)
 				if err != nil {
+					if webhook.IsMaxChannelsPerWebhookExceededError(err) {
+						return nil, models.NewGenericValidationError(
+							fmt.Errorf("maximum number (%d) of rules for webhook channels exceeded [notification.channel.id=%s notification.channel.name=%s]",
+								webhook.MaxChannelsPerWebhook, channel.ID, channel.Name),
+						)
+					}
+
 					return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
 				}
 			default:
