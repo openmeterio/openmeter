@@ -353,6 +353,10 @@ func (h svixHandler) UpdateWebhookChannels(ctx context.Context, params webhook.U
 			}
 		}
 
+		if len(channels) > webhook.MaxChannelsPerWebhook {
+			return nil, webhook.NewValidationError(webhook.ErrMaxChannelsPerWebhookExceeded)
+		}
+
 		wh, err = h.UpdateWebhook(ctx, webhook.UpdateWebhookInput{
 			Namespace:     wh.Namespace,
 			ID:            wh.ID,

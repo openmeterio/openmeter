@@ -345,4 +345,5 @@ type Handler interface {
 
 const (
 	DefaultRegistrationTimeout = 30 * time.Second
+	MaxChannelsPerWebhook      = 10
 )
