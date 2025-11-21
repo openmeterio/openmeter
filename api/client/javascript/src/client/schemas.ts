@@ -7531,6 +7531,11 @@ export interface components {
       groupBy?: {
         [key: string]: string
       }
+      /**
+       * Annotations
+       * @description Set of key-value pairs managed by the system. Cannot be modified by user.
+       */
+      readonly annotations?: components['schemas']['Annotations'] | null
     }
     /**
      * @description The aggregation type to use for the meter.

@@ -138,6 +138,8 @@ func (f OrderBy) Values() []OrderBy {
 // Meter is the meter model
 type Meter struct {
 	models.ManagedResource `mapstructure:",squash"`
+	models.Metadata
+	models.Annotations
 
 	Key           string `mapstructure:"slug"`
 	Aggregation   MeterAggregation
@@ -204,6 +206,14 @@ func (m1 Meter) Equal(m2 Meter) error {
 		if m2Value, ok := m2.GroupBy[key]; !ok || value != m2Value {
 			return errors.New("group by mismatch")
 		}
+	}
+
+	if !m1.Metadata.Equal(m2.Metadata) {
+		return errors.New("metadata mismatch")
+	}
+
+	if !m1.Annotations.Equal(m2.Annotations) {
+		return errors.New("annotations mismatch")
 	}
 
 	return nil

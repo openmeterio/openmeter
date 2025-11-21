@@ -114,6 +114,8 @@ type CreateMeterInput struct {
 	EventFrom     *time.Time
 	ValueProperty *string
 	GroupBy       map[string]string
+	Metadata      models.Metadata
+	Annotations   models.Annotations
 }
 
 // Validate validates the create meter input.
@@ -167,6 +169,8 @@ type UpdateMeterInput struct {
 	Name        string
 	Description *string
 	GroupBy     map[string]string
+	Metadata    models.Metadata
+	Annotations *models.Annotations
 }
 
 // Validate validates the create meter input.

@@ -9456,6 +9456,8 @@ class Meter(_Model):
 
      Keys must be unique and consist only alphanumeric and underscore characters.
     :vartype group_by: dict[str, str]
+    :ivar annotations: Annotations.
+    :vartype annotations: ~openmeter._generated.models.Annotations
     """
 
     id: str = rest_field(visibility=["read"])
@@ -9498,6 +9500,8 @@ class Meter(_Model):
     """Named JSONPath expressions to extract the group by values from the event data.
      
      Keys must be unique and consist only alphanumeric and underscore characters."""
+    annotations: Optional["_models.Annotations"] = rest_field(visibility=["read"])
+    """Annotations."""
 
     @overload
     def __init__(

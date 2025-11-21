@@ -97,12 +97,12 @@ func (a *Adapter) GetMeterByIDOrSlug(ctx context.Context, input meter.GetMeterIn
 		return meter.Meter{}, fmt.Errorf("failed to get meter by ID or slug: %w", err)
 	}
 
-	meter, err := MapFromEntityFactory(entity)
+	m, err := MapFromEntityFactory(entity)
 	if err != nil {
-		return meter, fmt.Errorf("failed to map meter: %w", err)
+		return m, fmt.Errorf("failed to map meter: %w", err)
 	}
 
-	return meter, nil
+	return m, nil
 }
 
 // MapFromEntityFactory creates a function that maps a meter db entity to a meter model.
@@ -131,5 +131,7 @@ func MapFromEntityFactory(entity *db.Meter) (meter.Meter, error) {
 		EventFrom:     entity.EventFrom,
 		ValueProperty: entity.ValueProperty,
 		GroupBy:       entity.GroupBy,
+		Metadata:      entity.Metadata,
+		Annotations:   entity.Annotations,
 	}, nil
 }

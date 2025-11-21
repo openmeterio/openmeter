@@ -525,6 +525,16 @@ func KeyContainsFold(v string) predicate.Meter {
 	return predicate.Meter(sql.FieldContainsFold(FieldKey, v))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.Meter {
+	return predicate.Meter(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.Meter {
+	return predicate.Meter(sql.FieldNotNull(FieldAnnotations))
+}
+
 // EventTypeEQ applies the EQ predicate on the "event_type" field.
 func EventTypeEQ(v string) predicate.Meter {
 	return predicate.Meter(sql.FieldEQ(FieldEventType, v))

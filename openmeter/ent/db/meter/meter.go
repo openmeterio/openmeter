@@ -31,6 +31,8 @@ const (
 	FieldDescription = "description"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// FieldEventType holds the string denoting the event_type field in the database.
 	FieldEventType = "event_type"
 	// FieldValueProperty holds the string denoting the value_property field in the database.
@@ -56,6 +58,7 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldKey,
+	FieldAnnotations,
 	FieldEventType,
 	FieldValueProperty,
 	FieldGroupBy,
