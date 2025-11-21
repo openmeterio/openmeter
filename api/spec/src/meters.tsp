@@ -267,7 +267,7 @@ model MeterUpdate is TypeSpec.Rest.Resource.ResourceReplaceModel<Meter>;
   updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
 })
 model Meter {
-  // We omit name from the global.Resource as name is optional in the Meter model to avoiud breaking changes for now.
+  // We omit name from the global.Resource as name is optional in the Meter model to avoid breaking changes for now.
   ...OmitProperties<global.Resource, "name">;
 
   /**
@@ -333,6 +333,13 @@ model Meter {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @example(#{ type: "$.type" })
   groupBy?: Record<string>;
+
+  /**
+   * Set of key-value pairs managed by the system. Cannot be modified by user.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Annotations")
+  annotations?: Annotations | null;
 }
 
 /**

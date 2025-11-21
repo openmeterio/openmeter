@@ -19776,6 +19776,14 @@ components:
             Keys must be unique and consist only alphanumeric and underscore characters.
           example:
             type: $.type
+        annotations:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          nullable: true
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
       description: A meter is a configuration that defines how to match and aggregate events.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
