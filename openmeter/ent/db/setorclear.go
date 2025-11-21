@@ -2325,6 +2325,20 @@ func (u *MeterUpdateOne) SetOrClearDescription(value *string) *MeterUpdateOne {
 	return u.SetDescription(*value)
 }
 
+func (u *MeterUpdate) SetOrClearAnnotations(value *models.Annotations) *MeterUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *MeterUpdateOne) SetOrClearAnnotations(value *models.Annotations) *MeterUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *MeterUpdate) SetOrClearValueProperty(value *string) *MeterUpdate {
 	if value == nil {
 		return u.ClearValueProperty()

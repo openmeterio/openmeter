@@ -19,6 +19,7 @@ type Meter struct {
 func (Meter) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.UniqueResourceMixin{},
+		entutils.AnnotationsMixin{},
 	}
 }
 

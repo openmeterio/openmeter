@@ -36964,6 +36964,7 @@ type MeterMutation struct {
 	name           *string
 	description    *string
 	key            *string
+	annotations    *models.Annotations
 	event_type     *string
 	value_property *string
 	group_by       *map[string]string
@@ -37406,6 +37407,55 @@ func (m *MeterMutation) ResetKey() {
 	m.key = nil
 }
 
+// SetAnnotations sets the "annotations" field.
+func (m *MeterMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *MeterMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *MeterMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[dbmeter.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *MeterMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[dbmeter.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *MeterMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, dbmeter.FieldAnnotations)
+}
+
 // SetEventType sets the "event_type" field.
 func (m *MeterMutation) SetEventType(s string) {
 	m.event_type = &s
@@ -37659,7 +37709,7 @@ func (m *MeterMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *MeterMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, dbmeter.FieldNamespace)
 	}
@@ -37683,6 +37733,9 @@ func (m *MeterMutation) Fields() []string {
 	}
 	if m.key != nil {
 		fields = append(fields, dbmeter.FieldKey)
+	}
+	if m.annotations != nil {
+		fields = append(fields, dbmeter.FieldAnnotations)
 	}
 	if m.event_type != nil {
 		fields = append(fields, dbmeter.FieldEventType)
@@ -37723,6 +37776,8 @@ func (m *MeterMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case dbmeter.FieldKey:
 		return m.Key()
+	case dbmeter.FieldAnnotations:
+		return m.Annotations()
 	case dbmeter.FieldEventType:
 		return m.EventType()
 	case dbmeter.FieldValueProperty:
@@ -37758,6 +37813,8 @@ func (m *MeterMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldDescription(ctx)
 	case dbmeter.FieldKey:
 		return m.OldKey(ctx)
+	case dbmeter.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case dbmeter.FieldEventType:
 		return m.OldEventType(ctx)
 	case dbmeter.FieldValueProperty:
@@ -37833,6 +37890,13 @@ func (m *MeterMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetKey(v)
 		return nil
+	case dbmeter.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
 	case dbmeter.FieldEventType:
 		v, ok := value.(string)
 		if !ok {
@@ -37907,6 +37971,9 @@ func (m *MeterMutation) ClearedFields() []string {
 	if m.FieldCleared(dbmeter.FieldDescription) {
 		fields = append(fields, dbmeter.FieldDescription)
 	}
+	if m.FieldCleared(dbmeter.FieldAnnotations) {
+		fields = append(fields, dbmeter.FieldAnnotations)
+	}
 	if m.FieldCleared(dbmeter.FieldValueProperty) {
 		fields = append(fields, dbmeter.FieldValueProperty)
 	}
@@ -37938,6 +38005,9 @@ func (m *MeterMutation) ClearField(name string) error {
 		return nil
 	case dbmeter.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case dbmeter.FieldAnnotations:
+		m.ClearAnnotations()
 		return nil
 	case dbmeter.FieldValueProperty:
 		m.ClearValueProperty()
@@ -37979,6 +38049,9 @@ func (m *MeterMutation) ResetField(name string) error {
 		return nil
 	case dbmeter.FieldKey:
 		m.ResetKey()
+		return nil
+	case dbmeter.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	case dbmeter.FieldEventType:
 		m.ResetEventType()

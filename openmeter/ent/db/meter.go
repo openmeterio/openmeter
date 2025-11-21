@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Meter is the model entity for the Meter schema.
@@ -35,6 +36,8 @@ type Meter struct {
 	Description *string `json:"description,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// EventType holds the value of the "event_type" field.
 	EventType string `json:"event_type,omitempty"`
 	// ValueProperty holds the value of the "value_property" field.
@@ -53,7 +56,7 @@ func (*Meter) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case dbmeter.FieldMetadata, dbmeter.FieldGroupBy:
+		case dbmeter.FieldMetadata, dbmeter.FieldAnnotations, dbmeter.FieldGroupBy:
 			values[i] = new([]byte)
 		case dbmeter.FieldID, dbmeter.FieldNamespace, dbmeter.FieldName, dbmeter.FieldDescription, dbmeter.FieldKey, dbmeter.FieldEventType, dbmeter.FieldValueProperty, dbmeter.FieldAggregation:
 			values[i] = new(sql.NullString)
@@ -131,6 +134,14 @@ func (_m *Meter) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
 				_m.Key = value.String
+			}
+		case dbmeter.FieldAnnotations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
+				}
 			}
 		case dbmeter.FieldEventType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -229,6 +240,9 @@ func (_m *Meter) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("key=")
 	builder.WriteString(_m.Key)
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
 	builder.WriteString("event_type=")
 	builder.WriteString(_m.EventType)

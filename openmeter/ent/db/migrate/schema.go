@@ -1649,6 +1649,7 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "key", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "event_type", Type: field.TypeString},
 		{Name: "value_property", Type: field.TypeString, Nullable: true},
 		{Name: "group_by", Type: field.TypeJSON, Nullable: true},
@@ -1680,6 +1681,16 @@ var (
 				Name:    "meter_namespace_key_deleted_at",
 				Unique:  true,
 				Columns: []*schema.Column{MetersColumns[1], MetersColumns[8], MetersColumns[5]},
+			},
+			{
+				Name:    "meter_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{MetersColumns[9]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
 			},
 			{
 				Name:    "meter_namespace_key",

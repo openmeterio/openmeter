@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // MeterCreate is the builder for creating a Meter entity.
@@ -101,6 +102,12 @@ func (_c *MeterCreate) SetNillableDescription(v *string) *MeterCreate {
 // SetKey sets the "key" field.
 func (_c *MeterCreate) SetKey(v string) *MeterCreate {
 	_c.mutation.SetKey(v)
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *MeterCreate) SetAnnotations(v models.Annotations) *MeterCreate {
+	_c.mutation.SetAnnotations(v)
 	return _c
 }
 
@@ -324,6 +331,10 @@ func (_c *MeterCreate) createSpec() (*Meter, *sqlgraph.CreateSpec) {
 		_spec.SetField(dbmeter.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(dbmeter.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.EventType(); ok {
 		_spec.SetField(dbmeter.FieldEventType, field.TypeString, value)
 		_node.EventType = value
@@ -471,6 +482,24 @@ func (u *MeterUpsert) UpdateDescription() *MeterUpsert {
 // ClearDescription clears the value of the "description" field.
 func (u *MeterUpsert) ClearDescription() *MeterUpsert {
 	u.SetNull(dbmeter.FieldDescription)
+	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *MeterUpsert) SetAnnotations(v models.Annotations) *MeterUpsert {
+	u.Set(dbmeter.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *MeterUpsert) UpdateAnnotations() *MeterUpsert {
+	u.SetExcluded(dbmeter.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *MeterUpsert) ClearAnnotations() *MeterUpsert {
+	u.SetNull(dbmeter.FieldAnnotations)
 	return u
 }
 
@@ -679,6 +708,27 @@ func (u *MeterUpsertOne) UpdateDescription() *MeterUpsertOne {
 func (u *MeterUpsertOne) ClearDescription() *MeterUpsertOne {
 	return u.Update(func(s *MeterUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *MeterUpsertOne) SetAnnotations(v models.Annotations) *MeterUpsertOne {
+	return u.Update(func(s *MeterUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *MeterUpsertOne) UpdateAnnotations() *MeterUpsertOne {
+	return u.Update(func(s *MeterUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *MeterUpsertOne) ClearAnnotations() *MeterUpsertOne {
+	return u.Update(func(s *MeterUpsert) {
+		s.ClearAnnotations()
 	})
 }
 
@@ -1063,6 +1113,27 @@ func (u *MeterUpsertBulk) UpdateDescription() *MeterUpsertBulk {
 func (u *MeterUpsertBulk) ClearDescription() *MeterUpsertBulk {
 	return u.Update(func(s *MeterUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *MeterUpsertBulk) SetAnnotations(v models.Annotations) *MeterUpsertBulk {
+	return u.Update(func(s *MeterUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *MeterUpsertBulk) UpdateAnnotations() *MeterUpsertBulk {
+	return u.Update(func(s *MeterUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *MeterUpsertBulk) ClearAnnotations() *MeterUpsertBulk {
+	return u.Update(func(s *MeterUpsert) {
+		s.ClearAnnotations()
 	})
 }
 

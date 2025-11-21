@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // MeterUpdate is the builder for updating Meter entities.
@@ -97,6 +98,18 @@ func (_u *MeterUpdate) SetNillableDescription(v *string) *MeterUpdate {
 // ClearDescription clears the value of the "description" field.
 func (_u *MeterUpdate) ClearDescription() *MeterUpdate {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *MeterUpdate) SetAnnotations(v models.Annotations) *MeterUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *MeterUpdate) ClearAnnotations() *MeterUpdate {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -226,6 +239,12 @@ func (_u *MeterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(dbmeter.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(dbmeter.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(dbmeter.FieldAnnotations, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.ValueProperty(); ok {
 		_spec.SetField(dbmeter.FieldValueProperty, field.TypeString, value)
 	}
@@ -333,6 +352,18 @@ func (_u *MeterUpdateOne) SetNillableDescription(v *string) *MeterUpdateOne {
 // ClearDescription clears the value of the "description" field.
 func (_u *MeterUpdateOne) ClearDescription() *MeterUpdateOne {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *MeterUpdateOne) SetAnnotations(v models.Annotations) *MeterUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *MeterUpdateOne) ClearAnnotations() *MeterUpdateOne {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -491,6 +522,12 @@ func (_u *MeterUpdateOne) sqlSave(ctx context.Context) (_node *Meter, err error)
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(dbmeter.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(dbmeter.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(dbmeter.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.ValueProperty(); ok {
 		_spec.SetField(dbmeter.FieldValueProperty, field.TypeString, value)
