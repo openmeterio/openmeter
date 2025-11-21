@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	modelshttp "github.com/openmeterio/openmeter/pkg/models/http"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -106,7 +107,7 @@ func (h *handler) GetMeter() GetMeterHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetMeterRequest) (GetMeterResponse, error) {
-			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+			m, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
 				Namespace: request.namespace,
 				IDOrSlug:  request.idOrSlug,
 			})
@@ -114,7 +115,7 @@ func (h *handler) GetMeter() GetMeterHandler {
 				return GetMeterResponse{}, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			return ToAPIMeter(meter), nil
+			return ToAPIMeter(m), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetMeterResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -171,14 +172,15 @@ func (h handler) CreateMeter() CreateMeterHandler {
 				Description:   request.MeterCreate.Description,
 				ValueProperty: request.MeterCreate.ValueProperty,
 				GroupBy:       lo.FromPtrOr(request.MeterCreate.GroupBy, map[string]string{}),
+				Metadata:      modelshttp.AsMetadata(request.MeterCreate.Metadata),
 			}
 
-			meter, err := h.meterService.CreateMeter(ctx, input)
+			m, err := h.meterService.CreateMeter(ctx, input)
 			if err != nil {
 				return CreateMeterResponse{}, fmt.Errorf("failed to create meter: %w", err)
 			}
 
-			return ToAPIMeter(meter), nil
+			return ToAPIMeter(m), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateMeterResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -243,14 +245,15 @@ func (h handler) UpdateMeter() UpdateMeterHandler {
 				Name:        lo.FromPtrOr(request.MeterUpdate.Name, currentMeter.Key),
 				Description: request.MeterUpdate.Description,
 				GroupBy:     lo.FromPtrOr(request.MeterUpdate.GroupBy, map[string]string{}),
+				Metadata:    modelshttp.AsMetadata(request.MeterUpdate.Metadata),
 			}
 
-			meter, err := h.meterService.UpdateMeter(ctx, input)
+			m, err := h.meterService.UpdateMeter(ctx, input)
 			if err != nil {
 				return UpdateMeterResponse{}, fmt.Errorf("failed to update meter: %w", err)
 			}
 
-			return ToAPIMeter(meter), nil
+			return ToAPIMeter(m), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateMeterResponse](http.StatusOK),
 		httptransport.AppendOptions(

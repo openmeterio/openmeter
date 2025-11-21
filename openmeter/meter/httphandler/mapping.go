@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
+	modelshttp "github.com/openmeterio/openmeter/pkg/models/http"
 )
 
 // ToAPIMeter converts a meter.Meter to an api.Meter.
@@ -32,6 +33,8 @@ func ToAPIMeter(m meter.Meter) api.Meter {
 		CreatedAt:     m.CreatedAt,
 		UpdatedAt:     m.UpdatedAt,
 		DeletedAt:     m.DeletedAt,
+		Metadata:      modelshttp.FromMetadata(m.Metadata),
+		Annotations:   modelshttp.FromAnnotations(m.Annotations),
 	}
 
 	if len(m.GroupBy) > 0 {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
@@ -174,6 +176,10 @@ func (s *ManageService) UpdateMeter(ctx context.Context, input meter.UpdateMeter
 		if err := hook(ctx, input); err != nil {
 			return meter.Meter{}, err
 		}
+	}
+
+	if input.Annotations == nil {
+		input.Annotations = lo.ToPtr(currentMeter.Annotations)
 	}
 
 	// Update the meter
