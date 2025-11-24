@@ -8,7 +8,6 @@ var ErrGrantAmountMustBePositive = models.NewValidationIssue(
 	ErrCodeGrantAmountMustBePositive,
 	"amount must be positive",
 	models.WithFieldString("amount"),
-	models.WithWarningSeverity(),
 )
 
 const ErrCodeEffectiveAtMustBeSet models.ErrorCode = "grant_effective_at_must_be_set"
@@ -16,6 +15,5 @@ const ErrCodeEffectiveAtMustBeSet models.ErrorCode = "grant_effective_at_must_be
 var ErrGrantEffectiveAtMustBeSet = models.NewValidationIssue(
 	ErrCodeEffectiveAtMustBeSet,
 	"effective at must be set",
-	models.WithFieldString("effective_at"),
-	models.WithWarningSeverity(),
+	models.WithFieldString("effectiveAt"),
 )
