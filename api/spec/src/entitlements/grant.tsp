@@ -84,6 +84,7 @@ interface GrantsEndpoints {
  */
 #deprecated "Use GrantV2 instead"
 #suppress "deprecated" "V1 Grants APIs will be removed on December 1st, 2025"
+@extension("x-internal", true)
 @friendlyName("EntitlementGrant")
 model Grant {
   ...ResourceTimestamps;

@@ -21,6 +21,7 @@ enum EntitlementOrderBy {
 @route("/api/v1/entitlements")
 @tag("Entitlements")
 @friendlyName("Entitlements")
+@extension("x-internal", true)
 interface EntitlementsEndpoints {
   /**
    * List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.

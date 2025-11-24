@@ -9,6 +9,7 @@ namespace OpenMeter;
 
 @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
 @tag("Entitlements")
+@extension("x-internal", true)
 @friendlyName("Subjects")
 interface SubjectEntitlementsEndpoints {
   /**

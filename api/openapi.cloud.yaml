@@ -16032,6 +16032,7 @@ components:
             issueAfterReset: true
       description: The grant.
       deprecated: true
+      x-internal: true
     EntitlementGrantCreateInput:
       type: object
       required:
