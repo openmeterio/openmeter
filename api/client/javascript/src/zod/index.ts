@@ -2289,6 +2289,8 @@ export const uninstallAppParams = zod.object({
 
 /**
  * Update the Stripe API key.
+
+⚠️ __Deprecated__: Use [`PUT /api/v1/apps/{id}`](#tag/apps/put/api/v1/apps/{id}) instead.
  * @deprecated
  * @summary Update Stripe API key
  */
@@ -7700,6 +7702,9 @@ export const listCustomerSubscriptionsQueryParams = zod.object({
  * List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.
 To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
 If page is provided that takes precedence and the paginated response is returned.
+
+⚠️ __Deprecated__: Use [`GET /api/v2/entitlements`](#tag/entitlements/get/api/v2/entitlements) instead.
+ * @deprecated
  * @summary List all entitlements
  */
 export const listEntitlementsQueryExcludeInactiveDefault = false as const
@@ -7770,8 +7775,11 @@ export const listEntitlementsQueryParams = zod.object({
 })
 
 /**
- * Get entitlement by id.
- * @summary Get entitlement by id
+ * Get entitlement by ID.
+
+⚠️ __Deprecated__: Use [`GET /api/v2/entitlements/{entitlementId}`](#tag/entitlements/get/api/v2/entitlements/{entitlementId}) instead.
+ * @deprecated
+ * @summary Get entitlement by ID
  */
 export const getEntitlementByIdPathEntitlementIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
@@ -8133,7 +8141,7 @@ export const createFeatureBody = zod
       .record(zod.string(), zod.coerce.string())
       .optional()
       .describe(
-        'Optional meter group by filters.\nUseful if the meter scope is broader than what feature tracks.\nExample scenario would be a meter tracking all token use with groupBy fields for the model,\nthen the feature could filter for model=gpt-4.',
+        'Optional meter group by filters.\nUseful if the meter scope is broader than what feature tracks.\nExample scenario would be a meter tracking all token use with groupBy fields for the model,\nthen the feature could filter for model=gpt-4.\n\n⚠️ __Deprecated__: Use advancedMeterGroupByFilters instead',
       ),
     meterSlug: zod.coerce
       .string()
@@ -8173,6 +8181,9 @@ export const deleteFeatureParams = zod.object({
  * List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only.
 To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
 If page is provided that takes precedence and the paginated response is returned.
+
+⚠️ __Deprecated__: Use [`GET /api/v2/grants`](#tag/entitlements/get/api/v2/grants) instead.
+ * @deprecated
  * @summary List grants
  */
 export const listGrantsQueryIncludeDeletedDefault = false as const
@@ -8230,6 +8241,9 @@ export const listGrantsQueryParams = zod.object({
 /**
  * Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
 For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
+
+⚠️ __Deprecated__: Use [`DELETE /api/v2/grants/{grantId}`](#tag/entitlements/delete/api/v2/grants/{grantId}) instead.
+ * @deprecated
  * @summary Void grant
  */
 export const voidGrantParams = zod.object({
@@ -8661,7 +8675,7 @@ export const queryMeterQueryParams = zod.object({
     .record(zod.string(), zod.coerce.string())
     .optional()
     .describe(
-      'Simple filter for group bys with exact match.\n\nFor example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo',
+      'Simple filter for group bys with exact match.\n\nFor example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo\n\n⚠️ __Deprecated__: Use `advancedMeterGroupByFilters` instead',
     ),
   from: zod.coerce
     .date()
@@ -12199,7 +12213,7 @@ export const queryPortalMeterQueryParams = zod.object({
     .record(zod.string(), zod.coerce.string())
     .optional()
     .describe(
-      'Simple filter for group bys with exact match.\n\nFor example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo',
+      'Simple filter for group bys with exact match.\n\nFor example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo\n\n⚠️ __Deprecated__: Use `advancedMeterGroupByFilters` instead',
     ),
   from: zod.coerce
     .date()
@@ -12726,6 +12740,9 @@ export const createStripeCheckoutSessionBody = zod
 
 If the subject doesn't exist, it will be created.
 If the subject exists, it will be partially updated with the provided fields.
+
+⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead.
+ * @deprecated
  * @summary Upsert subject
  */
 export const upsertSubjectBodyItem = zod
@@ -12756,11 +12773,16 @@ export const upsertSubjectBodyItem = zod
       .nullish()
       .describe('The Stripe customer ID for the subject.'),
   })
-  .describe('A subject is a unique identifier for a user or entity.')
+  .describe(
+    'A subject is a unique identifier for a user or entity.\n\n⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead.',
+  )
 export const upsertSubjectBody = zod.array(upsertSubjectBodyItem)
 
 /**
  * Get subject by ID or key.
+
+⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead.
+ * @deprecated
  * @summary Get subject
  */
 export const getSubjectParams = zod.object({
@@ -12769,6 +12791,9 @@ export const getSubjectParams = zod.object({
 
 /**
  * Delete subject by ID or key.
+
+⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead.
+ * @deprecated
  * @summary Delete subject
  */
 export const deleteSubjectParams = zod.object({
@@ -12785,6 +12810,9 @@ export const deleteSubjectParams = zod.object({
 A given subject can only have one active (non-deleted) entitlement per featureKey. If you try to create a new entitlement for a featureKey that already has an active entitlement, the request will fail with a 409 error.
 
 Once an entitlement is created you cannot modify it, only delete it.
+
+⚠️ __Deprecated__: Use [`POST /api/v2/customers/{customerIdOrKey}/entitlements`](#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements) instead.
+ * @deprecated
  * @summary Create a subject entitlement
  */
 export const createEntitlementParams = zod.object({
@@ -13033,6 +13061,9 @@ export const createEntitlementBody = zod
 
 /**
  * List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
+
+⚠️ __Deprecated__: Use [`GET /api/v2/customers/{customerIdOrKey}/entitlements`](#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements) instead.
+ * @deprecated
  * @summary List subject entitlements
  */
 export const listSubjectEntitlementsParams = zod.object({
@@ -13047,6 +13078,9 @@ export const listSubjectEntitlementsQueryParams = zod.object({
 
 /**
  * List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
+
+⚠️ __Deprecated__: Use [`GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants`](#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants) instead.
+ * @deprecated
  * @summary List subject entitlement grants
  */
 export const listEntitlementGrantsParams = zod.object({
@@ -13073,6 +13107,9 @@ Grants can have a recurrence setting intended to automate the manual reissuing o
 Rollover settings define what happens to the remaining balance of a grant at a reset. Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
 
 Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
+
+⚠️ __Deprecated__: Use [`POST /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants`](#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants) instead.
+ * @deprecated
  * @summary Create subject entitlement grant
  */
 export const createGrantParams = zod.object({
@@ -13170,6 +13207,9 @@ export const createGrantBody = zod
  * Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided subject-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
 
 This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
+
+⚠️ __Deprecated__: Use [`PUT /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override`](#tag/entitlements/put/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override) instead.
+ * @deprecated
  * @summary Override subject entitlement
  */
 export const overrideEntitlementParams = zod.object({
@@ -13424,6 +13464,9 @@ export const overrideEntitlementBody = zod
  * This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
 
 For convenience reasons, /value works with both entitlementId and featureKey.
+
+⚠️ __Deprecated__: Use [`GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value`](#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value) instead.
+ * @deprecated
  * @summary Get subject entitlement value
  */
 export const getEntitlementValueParams = zod.object({
@@ -13437,6 +13480,9 @@ export const getEntitlementValueQueryParams = zod.object({
 
 /**
  * Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
+
+⚠️ __Deprecated__: Use [`GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}`](#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}) instead.
+ * @deprecated
  * @summary Get subject entitlement
  */
 export const getEntitlementParams = zod.object({
@@ -13447,6 +13493,9 @@ export const getEntitlementParams = zod.object({
 /**
  * Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
 As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
+
+⚠️ __Deprecated__: Use [`DELETE /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}`](#tag/entitlements/delete/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}) instead.
+ * @deprecated
  * @summary Delete subject entitlement
  */
 export const deleteEntitlementParams = zod.object({
@@ -13460,6 +13509,9 @@ export const deleteEntitlementParams = zod.object({
 BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
 
 WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
+
+⚠️ __Deprecated__: Use [`GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history`](#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history) instead.
+ * @deprecated
  * @summary Get subject entitlement history
  */
 export const getEntitlementHistoryParams = zod.object({
@@ -13495,6 +13547,9 @@ export const getEntitlementHistoryQueryParams = zod.object({
  * Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the subjects billing period to enforce usage based on their subscription.
 
 Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
+
+⚠️ __Deprecated__: Use [`POST /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset`](#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset) instead.
+ * @deprecated
  * @summary Reset subject entitlement
  */
 export const resetEntitlementUsageParams = zod.object({
@@ -18819,8 +18874,8 @@ export const listEntitlementsV2QueryParams = zod.object({
 })
 
 /**
- * Get entitlement by id.
- * @summary Get entitlement by id
+ * Get entitlement by ID.
+ * @summary Get entitlement by ID
  */
 export const getEntitlementByIdV2PathEntitlementIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/

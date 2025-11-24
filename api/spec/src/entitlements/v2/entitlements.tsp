@@ -65,11 +65,11 @@ interface EntitlementsV2Endpoints {
   ): PaginatedResponse<EntitlementV2> | CommonErrors;
 
   /**
-   * Get entitlement by id.
+   * Get entitlement by ID.
    */
   @get
   @operationId("getEntitlementByIdV2")
-  @summary("Get entitlement by id")
+  @summary("Get entitlement by ID")
   get(
     @path
     entitlementId: ULID,

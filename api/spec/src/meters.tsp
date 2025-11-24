@@ -453,6 +453,8 @@ model MeterQuery {
    * Simple filter for group bys with exact match.
    *
    * For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
+   *
+   * ⚠️ __Deprecated__: Use `advancedMeterGroupByFilters` instead
    */
   #deprecated "Use advancedMeterGroupByFilters instead"
   @query(#{ explode: true, style: "deepObject" })

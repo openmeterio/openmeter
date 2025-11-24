@@ -26,10 +26,15 @@ interface EntitlementsEndpoints {
    * List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.
    * To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
    * If page is provided that takes precedence and the paginated response is returned.
+   *
+   * ⚠️ __Deprecated__: Use [`GET /api/v2/entitlements`](#tag/entitlements/get/api/v2/entitlements) instead.
    */
+  #deprecated "Use `GET /api/v2/entitlements` instead"
+  #suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
   @get
   @operationId("listEntitlements")
   @summary("List all entitlements")
+  @extension("x-internal", true)
   list(
     /**
      * Filtering by multiple features.
@@ -70,11 +75,15 @@ interface EntitlementsEndpoints {
   } | CommonErrors;
 
   /**
-   * Get entitlement by id.
+   * Get entitlement by ID.
+   *
+   * ⚠️ __Deprecated__: Use [`GET /api/v2/entitlements/{entitlementId}`](#tag/entitlements/get/api/v2/entitlements/{entitlementId}) instead.
    */
+  #deprecated "Use `GET /api/v2/entitlements/{entitlementId}` instead"
+  #suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
   @get
   @operationId("getEntitlementById")
-  @summary("Get entitlement by id")
+  @summary("Get entitlement by ID")
   get(
     @path
     entitlementId: ULID,
@@ -96,6 +105,8 @@ union ListEntitlementsResult {
 /**
  * Type of the entitlement.
  */
+#deprecated "Use EntitlementsV2 instead"
+#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
 @friendlyName("EntitlementType")
 @extension("x-go-type", "string")
 enum EntitlementType {
@@ -110,6 +121,8 @@ enum EntitlementType {
  * Entitlement templates are used to define the entitlements of a plan.
  * Features are omitted from the entitlement template, as they are defined in the rate card.
  */
+#deprecated "Use EntitlementV2 instead"
+#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 @friendlyName("Entitlement")
 union Entitlement {
@@ -151,6 +164,8 @@ model EntitlementCreateSharedFields {
 /**
  * Create inpurs for metered entitlement
  */
+#deprecated "Use EntitlementMeteredV2CreateInputs instead"
+#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
 @friendlyName("EntitlementMeteredCreateInputs")
 model EntitlementMeteredCreateInputs {
   ...OmitProperties<EntitlementCreateSharedFields, "usagePeriod">;
@@ -206,6 +221,8 @@ model EntitlementMeteredCreateInputs {
 /**
  * Create inputs for static entitlement
  */
+#deprecated "Use EntitlementStaticV2CreateInputs instead"
+#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
 @friendlyName("EntitlementStaticCreateInputs")
 model EntitlementStaticCreateInputs {
   ...EntitlementCreateSharedFields;
@@ -222,6 +239,8 @@ model EntitlementStaticCreateInputs {
 /**
  * Create inputs for boolean entitlement
  */
+#deprecated "Use EntitlementBooleanV2CreateInputs instead"
+#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
 @friendlyName("EntitlementBooleanCreateInputs")
 model EntitlementBooleanCreateInputs {
   ...EntitlementCreateSharedFields;
@@ -336,6 +355,8 @@ model EntitlementMeteredCalculatedFields {
  * Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
  * Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
  */
+#deprecated "Use EntitlementMeteredV2 instead"
+#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
 @friendlyName("EntitlementMetered")
 model EntitlementMetered {
   type: EntitlementType.metered;
@@ -360,6 +381,8 @@ model EntitlementMetered {
 /**
  * Entitlement template of a boolean entitlement.
  */
+#deprecated "Use EntitlementBooleanV2 instead"
+#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
 @friendlyName("EntitlementBoolean")
 model EntitlementBoolean {
   type: EntitlementType.boolean;
@@ -373,6 +396,8 @@ model EntitlementBoolean {
 /**
  * A static entitlement.
  */
+#deprecated "Use EntitlementStaticV2 instead"
+#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
 @friendlyName("EntitlementStatic")
 model EntitlementStatic {
   type: EntitlementType.static;

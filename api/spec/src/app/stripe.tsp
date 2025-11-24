@@ -35,8 +35,10 @@ interface AppStripeEndpoints {
 
   /**
    * Update the Stripe API key.
+   *
+   * ⚠️ __Deprecated__: Use [`PUT /api/v1/apps/{id}`](#tag/apps/put/api/v1/apps/{id}) instead.
    */
-  #deprecated "Use /api/v1/apps/{id} instead"
+  #deprecated "Use `PUT /api/v1/apps/{id}` instead"
   @put
   @route("/api/v1/apps/{id}/stripe/api-key")
   @operationId("updateStripeAPIKey")

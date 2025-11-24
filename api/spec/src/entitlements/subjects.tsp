@@ -21,7 +21,11 @@ interface SubjectEntitlementsEndpoints {
    * A given subject can only have one active (non-deleted) entitlement per featureKey. If you try to create a new entitlement for a featureKey that already has an active entitlement, the request will fail with a 409 error.
    *
    * Once an entitlement is created you cannot modify it, only delete it.
+   *
+   * ⚠️ __Deprecated__: Use [`POST /api/v2/customers/{customerIdOrKey}/entitlements`](#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements) instead.
    */
+  #deprecated "Use `POST /api/v1/customers/{customerIdOrKey}/entitlements` instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @post
   @summary("Create a subject entitlement")
   @operationId("createEntitlement")
@@ -35,7 +39,11 @@ interface SubjectEntitlementsEndpoints {
 
   /**
    * List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
+   *
+   * ⚠️ __Deprecated__: Use [`GET /api/v2/customers/{customerIdOrKey}/entitlements`](#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements) instead.
    */
+  #deprecated "Use `GET /api/v2/customers/{customerIdOrKey}/entitlements` instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("listSubjectEntitlements")
   @summary("List subject entitlements")
@@ -46,7 +54,11 @@ interface SubjectEntitlementsEndpoints {
 
   /**
    * Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
+   *
+   * ⚠️ __Deprecated__: Use [`GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}`](#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}) instead.
    */
+  #deprecated "Use `GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}` instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("getEntitlement")
   @summary("Get subject entitlement")
@@ -58,7 +70,11 @@ interface SubjectEntitlementsEndpoints {
   /**
    * Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
    * As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
+   *
+   * ⚠️ __Deprecated__: Use [`DELETE /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}`](#tag/entitlements/delete/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}) instead.
    */
+  #deprecated "Use `DELETE /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}` instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @delete
   @operationId("deleteEntitlement")
   @summary("Delete subject entitlement")
@@ -70,7 +86,11 @@ interface SubjectEntitlementsEndpoints {
    * Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided subject-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
    *
    * This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
+   *
+   * ⚠️ __Deprecated__: Use [`PUT /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override`](#tag/entitlements/put/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override) instead.
    */
+  #deprecated "Use `PUT /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override` instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @put
   @operationId("overrideEntitlement")
   @route("/{entitlementIdOrFeatureKey}/override")
@@ -90,7 +110,11 @@ interface SubjectEntitlementsEndpoints {
 
   /**
    * List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
+   *
+   * ⚠️ __Deprecated__: Use [`GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants`](#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants) instead.
    */
+  #deprecated "Use `GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants` instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("listEntitlementGrants")
   @route("/{entitlementIdOrFeatureKey}/grants")
@@ -114,7 +138,11 @@ interface SubjectEntitlementsEndpoints {
    * Rollover settings define what happens to the remaining balance of a grant at a reset. Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
    *
    * Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
+   *
+   * ⚠️ __Deprecated__: Use [`POST /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants`](#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants) instead.
    */
+  #deprecated "Use `POST /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants` instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @post
   @operationId("createGrant")
   @route("/{entitlementIdOrFeatureKey}/grants")
@@ -132,7 +160,11 @@ interface SubjectEntitlementsEndpoints {
    * This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
    *
    * For convenience reasons, /value works with both entitlementId and featureKey.
+   *
+   * ⚠️ __Deprecated__: Use [`GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value`](#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value) instead.
    */
+  #deprecated "Use `GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value` instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("getEntitlementValue")
   @route("/{entitlementIdOrFeatureKey}/value")
@@ -149,7 +181,11 @@ interface SubjectEntitlementsEndpoints {
    * BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
    *
    * WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
+   *
+   * ⚠️ __Deprecated__: Use [`GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history`](#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history) instead.
    */
+  #deprecated "Use `GET /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history` instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("getEntitlementHistory")
   @route("/{entitlementId}/history")
@@ -184,7 +220,11 @@ interface SubjectEntitlementsEndpoints {
    * Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the subjects billing period to enforce usage based on their subscription.
    *
    * Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
+   *
+   * ⚠️ __Deprecated__: Use [`POST /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset`](#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset) instead.
    */
+  #deprecated "Use `POST /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset` instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @post
   @operationId("resetEntitlementUsage")
   @route("/{entitlementId}/reset")
