@@ -9,7 +9,6 @@ namespace OpenMeter;
 
 @route("/api/v1/subjects")
 @tag("Subjects")
-@extension("x-internal", true)
 @friendlyName("Subjects")
 interface SubjectsEndpoints {
   /**
@@ -20,6 +19,7 @@ interface SubjectsEndpoints {
   @get
   @operationId("listSubjects")
   @summary("List subjects")
+  @extension("x-internal", true)
   list(): Subject[] | CommonErrors;
 
   /**
@@ -30,6 +30,7 @@ interface SubjectsEndpoints {
   @get
   @operationId("getSubject")
   @summary("Get subject")
+  @extension("x-internal", true)
   get(@path subjectIdOrKey: string): Subject | NotFoundError | CommonErrors;
 
   /**
@@ -43,6 +44,7 @@ interface SubjectsEndpoints {
   @post
   @operationId("upsertSubject")
   @summary("Upsert subject")
+  @extension("x-internal", true)
   upsert(@body subject: SubjectUpsert[]): Subject[] | CommonErrors;
 
   /**
@@ -53,6 +55,7 @@ interface SubjectsEndpoints {
   @delete
   @operationId("deleteSubject")
   @summary("Delete subject")
+  @extension("x-internal", true)
   delete(@path subjectIdOrKey: string): void | CommonErrors;
 }
 

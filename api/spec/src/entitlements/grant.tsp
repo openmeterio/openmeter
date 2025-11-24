@@ -34,6 +34,7 @@ interface GrantsEndpoints {
   @get
   @operationId("listGrants")
   @summary("List grants")
+  @extension("x-internal", true)
   list(
     /**
      * Filtering by multiple features.
@@ -70,6 +71,7 @@ interface GrantsEndpoints {
   @delete
   @operationId("voidGrant")
   @summary("Void grant")
+  @extension("x-internal", true)
   delete(@path grantId: string):
     | {
         @statusCode _: 204;
@@ -84,7 +86,6 @@ interface GrantsEndpoints {
  */
 #deprecated "Use GrantV2 instead"
 #suppress "deprecated" "V1 Grants APIs will be removed on December 1st, 2025"
-@extension("x-internal", true)
 @friendlyName("EntitlementGrant")
 model Grant {
   ...ResourceTimestamps;

@@ -9,7 +9,6 @@ namespace OpenMeter;
 
 @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
 @tag("Entitlements")
-@extension("x-internal", true)
 @friendlyName("Subjects")
 interface SubjectEntitlementsEndpoints {
   /**
@@ -28,6 +27,7 @@ interface SubjectEntitlementsEndpoints {
   @post
   @summary("Create a subject entitlement")
   @operationId("createEntitlement")
+  @extension("x-internal", true)
   post(
     @path subjectIdOrKey: string,
     @body entitlement: EntitlementCreateInputs,
@@ -44,6 +44,7 @@ interface SubjectEntitlementsEndpoints {
   @get
   @operationId("listSubjectEntitlements")
   @summary("List subject entitlements")
+  @extension("x-internal", true)
   list(
     @path subjectIdOrKey: string,
     @query includeDeleted?: boolean = false,
@@ -57,6 +58,7 @@ interface SubjectEntitlementsEndpoints {
   @get
   @operationId("getEntitlement")
   @summary("Get subject entitlement")
+  @extension("x-internal", true)
   get(
     @path subjectIdOrKey: string,
     @path entitlementId: string,
@@ -71,6 +73,7 @@ interface SubjectEntitlementsEndpoints {
   @delete
   @operationId("deleteEntitlement")
   @summary("Delete subject entitlement")
+  @extension("x-internal", true)
   delete(@path subjectIdOrKey: string, @path entitlementId: string): {
     @statusCode _: 204;
   } | CommonErrors | NotFoundError;
@@ -86,6 +89,7 @@ interface SubjectEntitlementsEndpoints {
   @operationId("overrideEntitlement")
   @route("/{entitlementIdOrFeatureKey}/override")
   @summary("Override subject entitlement")
+  @extension("x-internal", true)
   override(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -108,6 +112,7 @@ interface SubjectEntitlementsEndpoints {
   @operationId("listEntitlementGrants")
   @route("/{entitlementIdOrFeatureKey}/grants")
   @summary("List subject entitlement grants")
+  @extension("x-internal", true)
   getGrants(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -134,6 +139,7 @@ interface SubjectEntitlementsEndpoints {
   @operationId("createGrant")
   @route("/{entitlementIdOrFeatureKey}/grants")
   @summary("Create subject entitlement grant")
+  @extension("x-internal", true)
   createGrant(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -154,6 +160,7 @@ interface SubjectEntitlementsEndpoints {
   @operationId("getEntitlementValue")
   @route("/{entitlementIdOrFeatureKey}/value")
   @summary("Get subject entitlement value")
+  @extension("x-internal", true)
   getEntitlementValue(
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
@@ -173,6 +180,7 @@ interface SubjectEntitlementsEndpoints {
   @operationId("getEntitlementHistory")
   @route("/{entitlementId}/history")
   @summary("Get subject entitlement history")
+  @extension("x-internal", true)
   getEntitlementHistory(
     @path subjectIdOrKey: string,
     @path entitlementId: string,
@@ -210,6 +218,7 @@ interface SubjectEntitlementsEndpoints {
   @operationId("resetEntitlementUsage")
   @route("/{entitlementId}/reset")
   @summary("Reset subject entitlement")
+  @extension("x-internal", true)
   reset(
     @path subjectIdOrKey: string,
     @path entitlementId: string,

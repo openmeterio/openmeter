@@ -21,7 +21,6 @@ enum EntitlementOrderBy {
 @route("/api/v1/entitlements")
 @tag("Entitlements")
 @friendlyName("Entitlements")
-@extension("x-internal", true)
 interface EntitlementsEndpoints {
   /**
    * List all entitlements for all the subjects and features. This endpoint is intended for administrative purposes only.
@@ -33,6 +32,7 @@ interface EntitlementsEndpoints {
   @get
   @operationId("listEntitlements")
   @summary("List all entitlements")
+  @extension("x-internal", true)
   list(
     /**
      * Filtering by multiple features.
@@ -80,6 +80,7 @@ interface EntitlementsEndpoints {
   @get
   @operationId("getEntitlementById")
   @summary("Get entitlement by id")
+  @extension("x-internal", true)
   get(
     @path
     entitlementId: ULID,

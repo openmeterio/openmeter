@@ -4089,6 +4089,7 @@ paths:
       tags:
         - Entitlements
       deprecated: true
+      x-internal: true
   /api/v1/entitlements/{entitlementId}:
     get:
       operationId: getEntitlementById
@@ -4160,6 +4161,7 @@ paths:
       tags:
         - Entitlements
       deprecated: true
+      x-internal: true
   /api/v1/events:
     get:
       operationId: listEvents
@@ -4775,6 +4777,7 @@ paths:
       tags:
         - Entitlements
       deprecated: true
+      x-internal: true
   /api/v1/grants/{grantId}:
     delete:
       operationId: voidGrant
@@ -4848,6 +4851,7 @@ paths:
       tags:
         - Entitlements
       deprecated: true
+      x-internal: true
   /api/v1/info/currencies:
     get:
       operationId: listCurrencies
@@ -8638,6 +8642,7 @@ paths:
       tags:
         - Subjects
       deprecated: true
+      x-internal: true
     post:
       operationId: upsertSubject
       summary: Upsert subject
@@ -8709,6 +8714,7 @@ paths:
               items:
                 $ref: '#/components/schemas/SubjectUpsert'
       deprecated: true
+      x-internal: true
   /api/v1/subjects/{subjectIdOrKey}:
     get:
       operationId: getSubject
@@ -8778,6 +8784,7 @@ paths:
       tags:
         - Subjects
       deprecated: true
+      x-internal: true
     delete:
       operationId: deleteSubject
       summary: Delete subject
@@ -8836,6 +8843,7 @@ paths:
       tags:
         - Subjects
       deprecated: true
+      x-internal: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements:
     post:
       operationId: createEntitlement
@@ -8920,6 +8928,7 @@ paths:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
       deprecated: true
+      x-internal: true
     get:
       operationId: listSubjectEntitlements
       summary: List subject entitlements
@@ -8992,6 +9001,7 @@ paths:
       tags:
         - Entitlements
       deprecated: true
+      x-internal: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
     get:
       operationId: listEntitlementGrants
@@ -9078,6 +9088,7 @@ paths:
       tags:
         - Entitlements
       deprecated: true
+      x-internal: true
     post:
       operationId: createGrant
       summary: Create subject entitlement grant
@@ -9168,6 +9179,7 @@ paths:
             schema:
               $ref: '#/components/schemas/EntitlementGrantCreateInput'
       deprecated: true
+      x-internal: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override:
     put:
       operationId: overrideEntitlement
@@ -9257,6 +9269,7 @@ paths:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
       deprecated: true
+      x-internal: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
     get:
       operationId: getEntitlementValue
@@ -9342,6 +9355,7 @@ paths:
       tags:
         - Entitlements
       deprecated: true
+      x-internal: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}:
     get:
       operationId: getEntitlement
@@ -9416,6 +9430,7 @@ paths:
       tags:
         - Entitlements
       deprecated: true
+      x-internal: true
     delete:
       operationId: deleteEntitlement
       summary: Delete subject entitlement
@@ -9487,6 +9502,7 @@ paths:
       tags:
         - Entitlements
       deprecated: true
+      x-internal: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history:
     get:
       operationId: getEntitlementHistory
@@ -9603,6 +9619,7 @@ paths:
       tags:
         - Entitlements
       deprecated: true
+      x-internal: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset:
     post:
       operationId: resetEntitlementUsage
@@ -9682,6 +9699,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ResetEntitlementUsageInput'
       deprecated: true
+      x-internal: true
   /api/v1/subscriptions:
     post:
       operationId: createSubscription
@@ -16032,7 +16050,6 @@ components:
             issueAfterReset: true
       description: The grant.
       deprecated: true
-      x-internal: true
     EntitlementGrantCreateInput:
       type: object
       required:
