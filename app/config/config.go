@@ -43,6 +43,7 @@ type Configuration struct {
 	Billing         BillingConfiguration
 	Apps            AppsConfiguration
 	Svix            SvixConfig
+	COGS            COGSConfiguration
 }
 
 // Validate validates the configuration.
@@ -191,4 +192,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureTermination(v, "termination")
 	ConfigureProgressManager(v)
 	ConfigureCustomer(v, "customer")
+	ConfigureCOGS(v)
 }

@@ -63,6 +63,9 @@ func TestComplete(t *testing.T) {
 		Apps: AppsConfiguration{
 			BaseURL: "https://example.com",
 		},
+		COGS: COGSConfiguration{
+			PGPollingInterval: 10 * time.Second,
+		},
 		Environment: "local",
 		Telemetry: TelemetryConfig{
 			Address: "127.0.0.1:10000",

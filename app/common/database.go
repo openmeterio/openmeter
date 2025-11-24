@@ -13,8 +13,11 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/pkg/framework/cogs"
+	cogspgx "github.com/openmeterio/openmeter/pkg/framework/cogs/pgx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/pgxpoolobserver"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
@@ -83,12 +86,15 @@ func NewPostgresDriver(
 	meterProvider metric.MeterProvider,
 	meter metric.Meter,
 	tracerProvider trace.TracerProvider,
+	metrics *cogs.Metrics,
+	networkTimeObserver *cogspgx.NetworkTimeObserver,
 	logger *slog.Logger,
 ) (*pgdriver.Driver, func(), error) {
 	driver, err := pgdriver.NewPostgresDriver(
 		ctx,
 		conf.AsURL(),
-		pgdriver.WithMetricMeter(meter),
+		pgdriver.WithObserver(pgxpoolobserver.NewPGXPoolObserver(meter)),
+		pgdriver.WithObserver(networkTimeObserver),
 		pgdriver.WithTracerProvider(tracerProvider),
 		pgdriver.WithMeterProvider(meterProvider),
 		pgdriver.WithSpanOptions(otelsql.SpanOptions{
@@ -96,12 +102,15 @@ func NewPostgresDriver(
 			OmitRows:             true,
 			OmitConnectorConnect: true,
 		}),
+		pgdriver.WithInterceptor(cogspgx.NewPGXCOGSInterceptor(metrics)),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize postgres driver: %w", err)
 	}
 
 	return driver, func() {
+		networkTimeObserver.Stop()
+
 		err := driver.Close()
 		if err != nil {
 			logger.Error("failed to close postgres driver", "error", err)

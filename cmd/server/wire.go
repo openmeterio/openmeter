@@ -95,6 +95,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewCustomerSubjectServiceHook,
 		common.NewCustomerEntitlementValidatorServiceHook,
 		common.Database,
+		common.COGS,
 		common.Entitlement,
 		common.Framework,
 		common.FFX,

@@ -48,6 +48,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ClickHouse,
 		common.Config,
 		common.Database,
+		common.COGS,
 		common.Feature,
 		common.Framework,
 		common.Meter,

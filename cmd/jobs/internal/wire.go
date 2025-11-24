@@ -74,6 +74,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Customer,
 		common.Subject,
 		common.Database,
+		common.COGS,
 		common.Entitlement,
 		common.Framework,
 		common.Kafka,
