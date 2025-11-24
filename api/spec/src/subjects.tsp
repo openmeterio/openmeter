@@ -7,8 +7,6 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
-#deprecated "Subjects as entities are being depracated, use customers instead"
-#suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
 @route("/api/v1/subjects")
 @tag("Subjects")
 @friendlyName("Subjects")
@@ -16,6 +14,8 @@ interface SubjectsEndpoints {
   /**
    * List subjects.
    */
+  #deprecated "Subjects as entities are being depracated, use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("listSubjects")
   @summary("List subjects")
@@ -24,6 +24,8 @@ interface SubjectsEndpoints {
   /**
    * Get subject by ID or key.
    */
+  #deprecated "Subjects as entities are being depracated, use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("getSubject")
   @summary("Get subject")
@@ -35,6 +37,8 @@ interface SubjectsEndpoints {
    * If the subject doesn't exist, it will be created.
    * If the subject exists, it will be partially updated with the provided fields.
    */
+  #deprecated "Subjects as entities are being depracated, use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @post
   @operationId("upsertSubject")
   @summary("Upsert subject")
@@ -43,6 +47,8 @@ interface SubjectsEndpoints {
   /**
    * Delete subject by ID or key.
    */
+  #deprecated "Subjects as entities are being depracated, use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @delete
   @operationId("deleteSubject")
   @summary("Delete subject")

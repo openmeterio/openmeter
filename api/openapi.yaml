@@ -17384,6 +17384,7 @@ components:
         - boolean
         - static
       description: Type of the entitlement.
+      deprecated: true
       x-go-type: string
     EntitlementV2:
       type: object

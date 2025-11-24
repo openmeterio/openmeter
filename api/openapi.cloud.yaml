@@ -4088,6 +4088,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/entitlements/{entitlementId}:
     get:
       operationId: getEntitlementById
@@ -4158,6 +4159,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/events:
     get:
       operationId: listEvents
@@ -4772,6 +4774,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/grants/{grantId}:
     delete:
       operationId: voidGrant
@@ -4844,6 +4847,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/info/currencies:
     get:
       operationId: listCurrencies
@@ -8633,6 +8637,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subjects
+      deprecated: true
     post:
       operationId: upsertSubject
       summary: Upsert subject
@@ -8703,6 +8708,7 @@ paths:
               type: array
               items:
                 $ref: '#/components/schemas/SubjectUpsert'
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}:
     get:
       operationId: getSubject
@@ -8771,6 +8777,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subjects
+      deprecated: true
     delete:
       operationId: deleteSubject
       summary: Delete subject
@@ -8828,6 +8835,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subjects
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements:
     post:
       operationId: createEntitlement
@@ -8911,6 +8919,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
+      deprecated: true
     get:
       operationId: listSubjectEntitlements
       summary: List subject entitlements
@@ -8982,6 +8991,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
     get:
       operationId: listEntitlementGrants
@@ -9067,6 +9077,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
     post:
       operationId: createGrant
       summary: Create subject entitlement grant
@@ -9156,6 +9167,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementGrantCreateInput'
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override:
     put:
       operationId: overrideEntitlement
@@ -9244,6 +9256,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
     get:
       operationId: getEntitlementValue
@@ -9328,6 +9341,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}:
     get:
       operationId: getEntitlement
@@ -9401,6 +9415,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
     delete:
       operationId: deleteEntitlement
       summary: Delete subject entitlement
@@ -9471,6 +9486,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history:
     get:
       operationId: getEntitlementHistory
@@ -9586,6 +9602,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset:
     post:
       operationId: resetEntitlementUsage
@@ -9664,6 +9681,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResetEntitlementUsageInput'
+      deprecated: true
   /api/v1/subscriptions:
     post:
       operationId: createSubscription
@@ -16992,6 +17010,7 @@ components:
         - boolean
         - static
       description: Type of the entitlement.
+      deprecated: true
       x-go-type: string
     EntitlementV2:
       type: object

@@ -18,8 +18,6 @@ enum EntitlementOrderBy {
   UpdatedAt: "updatedAt",
 }
 
-#deprecated "Use EntitlementsV2 instead"
-#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
 @route("/api/v1/entitlements")
 @tag("Entitlements")
 @friendlyName("Entitlements")
@@ -29,6 +27,8 @@ interface EntitlementsEndpoints {
    * To fetch the entitlements of a specific subject please use the /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
    * If page is provided that takes precedence and the paginated response is returned.
    */
+  #deprecated "Use EntitlementsV2 instead"
+  #suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
   @get
   @operationId("listEntitlements")
   @summary("List all entitlements")
@@ -74,6 +74,8 @@ interface EntitlementsEndpoints {
   /**
    * Get entitlement by id.
    */
+  #deprecated "Use EntitlementsV2 instead"
+  #suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
   @get
   @operationId("getEntitlementById")
   @summary("Get entitlement by id")
@@ -98,6 +100,8 @@ union ListEntitlementsResult {
 /**
  * Type of the entitlement.
  */
+#deprecated "Use EntitlementsV2 instead"
+#suppress "deprecated" "V1 Entitlements APIs will be removed on December 1st, 2025"
 @friendlyName("EntitlementType")
 @extension("x-go-type", "string")
 enum EntitlementType {

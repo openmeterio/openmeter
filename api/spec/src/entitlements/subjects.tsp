@@ -7,8 +7,6 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
-#deprecated "Use customers instead"
-#suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
 @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
 @tag("Entitlements")
 @friendlyName("Subjects")
@@ -24,6 +22,8 @@ interface SubjectEntitlementsEndpoints {
    *
    * Once an entitlement is created you cannot modify it, only delete it.
    */
+  #deprecated "Use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @post
   @summary("Create a subject entitlement")
   @operationId("createEntitlement")
@@ -38,6 +38,8 @@ interface SubjectEntitlementsEndpoints {
   /**
    * List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
    */
+  #deprecated "Use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("listSubjectEntitlements")
   @summary("List subject entitlements")
@@ -49,6 +51,8 @@ interface SubjectEntitlementsEndpoints {
   /**
    * Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
    */
+  #deprecated "Use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("getEntitlement")
   @summary("Get subject entitlement")
@@ -61,6 +65,8 @@ interface SubjectEntitlementsEndpoints {
    * Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
    * As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
    */
+  #deprecated "Use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @delete
   @operationId("deleteEntitlement")
   @summary("Delete subject entitlement")
@@ -73,6 +79,8 @@ interface SubjectEntitlementsEndpoints {
    *
    * This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require a new entitlement to be created with zero downtime.
    */
+  #deprecated "Use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @put
   @operationId("overrideEntitlement")
   @route("/{entitlementIdOrFeatureKey}/override")
@@ -93,6 +101,8 @@ interface SubjectEntitlementsEndpoints {
   /**
    * List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
    */
+  #deprecated "Use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("listEntitlementGrants")
   @route("/{entitlementIdOrFeatureKey}/grants")
@@ -117,6 +127,8 @@ interface SubjectEntitlementsEndpoints {
    *
    * Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
    */
+  #deprecated "Use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @post
   @operationId("createGrant")
   @route("/{entitlementIdOrFeatureKey}/grants")
@@ -135,6 +147,8 @@ interface SubjectEntitlementsEndpoints {
    *
    * For convenience reasons, /value works with both entitlementId and featureKey.
    */
+  #deprecated "Use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("getEntitlementValue")
   @route("/{entitlementIdOrFeatureKey}/value")
@@ -152,6 +166,8 @@ interface SubjectEntitlementsEndpoints {
    *
    * WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
    */
+  #deprecated "Use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("getEntitlementHistory")
   @route("/{entitlementId}/history")
@@ -187,6 +203,8 @@ interface SubjectEntitlementsEndpoints {
    *
    * Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
    */
+  #deprecated "Use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @post
   @operationId("resetEntitlementUsage")
   @route("/{entitlementId}/reset")

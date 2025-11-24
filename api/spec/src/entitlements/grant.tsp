@@ -20,8 +20,6 @@ enum GrantOrderBy {
   UpdatedAt: "updatedAt",
 }
 
-#deprecated "Use GrantsV2 instead"
-#suppress "deprecated" "V1 Grants APIs will be removed on December 1st, 2025"
 @route("/api/v1/grants")
 @tag("Entitlements")
 @friendlyName("Grants")
@@ -31,6 +29,8 @@ interface GrantsEndpoints {
    * To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
    * If page is provided that takes precedence and the paginated response is returned.
    */
+  #deprecated "Use GrantsV2 instead"
+  #suppress "deprecated" "V1 Grants APIs will be removed on December 1st, 2025"
   @get
   @operationId("listGrants")
   @summary("List grants")
@@ -65,6 +65,8 @@ interface GrantsEndpoints {
    * Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
    * For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
    */
+  #deprecated "Use GrantsV2 instead"
+  #suppress "deprecated" "V1 Grants APIs will be removed on December 1st, 2025"
   @delete
   @operationId("voidGrant")
   @summary("Void grant")
