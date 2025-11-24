@@ -7,6 +7,8 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
+#deprecated "Use customers instead"
+#suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
 @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
 @tag("Entitlements")
 @friendlyName("Subjects")

@@ -20,6 +20,8 @@ enum GrantOrderBy {
   UpdatedAt: "updatedAt",
 }
 
+#deprecated "Use GrantsV2 instead"
+#suppress "deprecated" "V1 Grants APIs will be removed on December 1st, 2025"
 @route("/api/v1/grants")
 @tag("Entitlements")
 @friendlyName("Grants")
@@ -78,6 +80,8 @@ interface GrantsEndpoints {
 /**
  * The grant.
  */
+#deprecated "Use GrantV2 instead"
+#suppress "deprecated" "V1 Grants APIs will be removed on December 1st, 2025"
 @friendlyName("EntitlementGrant")
 model Grant {
   ...ResourceTimestamps;
@@ -131,6 +135,8 @@ model Grant {
 /**
  * The grant creation input.
  */
+#deprecated "Use GrantCreateInputV2 instead"
+#suppress "deprecated" "V1 Grants APIs will be removed on December 1st, 2025"
 @friendlyName("EntitlementGrantCreateInput")
 model GrantCreateInput {
   /**

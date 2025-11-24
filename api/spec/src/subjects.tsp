@@ -7,6 +7,8 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
+#deprecated "Subjects as entities are being depracated, use customers instead"
+#suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
 @route("/api/v1/subjects")
 @tag("Subjects")
 @friendlyName("Subjects")
@@ -54,6 +56,8 @@ interface SubjectsEndpoints {
  * Subjects are useful when you are reporting usage events with your own database ID but want to enrich the subject with a human-readable name or metadata.
  * For most use cases, a subject is equivalent to a customer.
  */
+#deprecated "Use customers instead"
+#suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
 @friendlyName("Subject")
 @example(#{
   createdAt: DateTime.fromISO("2025-01-01T01:01:01.001Z"),
@@ -122,6 +126,8 @@ model Subject {
 /**
  * A subject is a unique identifier for a user or entity.
  */
+#deprecated "Use customers instead"
+#suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
 @friendlyName("SubjectUpsert")
 @example(#{
   key: "customer-id",

@@ -4458,13 +4458,19 @@ export interface components {
        */
       op: 'unschedule_edit'
     }
-    /** @description Entitlement templates are used to define the entitlements of a plan.
-     *     Features are omitted from the entitlement template, as they are defined in the rate card. */
+    /**
+     * @deprecated
+     * @description Entitlement templates are used to define the entitlements of a plan.
+     *     Features are omitted from the entitlement template, as they are defined in the rate card.
+     */
     Entitlement:
       | components['schemas']['EntitlementMetered']
       | components['schemas']['EntitlementStatic']
       | components['schemas']['EntitlementBoolean']
-    /** @description Entitlement template of a boolean entitlement. */
+    /**
+     * @deprecated
+     * @description Entitlement template of a boolean entitlement.
+     */
     EntitlementBoolean: {
       /**
        * @description discriminator enum property added by openapi-typescript
@@ -4539,7 +4545,10 @@ export interface components {
       /** @description The defined usage period of the entitlement */
       usagePeriod?: components['schemas']['RecurringPeriod']
     }
-    /** @description Create inputs for boolean entitlement */
+    /**
+     * @deprecated
+     * @description Create inputs for boolean entitlement
+     */
     EntitlementBooleanCreateInputs: {
       /**
        * @description The feature the subject is entitled to use.
@@ -4647,7 +4656,10 @@ export interface components {
       | components['schemas']['EntitlementMeteredCreateInputs']
       | components['schemas']['EntitlementStaticCreateInputs']
       | components['schemas']['EntitlementBooleanCreateInputs']
-    /** @description The grant. */
+    /**
+     * @deprecated
+     * @description The grant.
+     */
     EntitlementGrant: {
       /**
        * Creation Time
@@ -4756,7 +4768,10 @@ export interface components {
        */
       annotations?: components['schemas']['Annotations']
     }
-    /** @description The grant creation input. */
+    /**
+     * @deprecated
+     * @description The grant creation input.
+     */
     EntitlementGrantCreateInput: {
       /**
        * Format: double
@@ -4976,8 +4991,11 @@ export interface components {
       /** @description The recurrence period of the grant. */
       recurrence?: components['schemas']['RecurringPeriod']
     }
-    /** @description Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
-     *     Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage). */
+    /**
+     * @deprecated
+     * @description Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
+     *     Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
+     */
     EntitlementMetered: {
       /**
        * @description discriminator enum property added by openapi-typescript
@@ -5098,7 +5116,10 @@ export interface components {
       /** @description THe usage period of the entitlement. */
       readonly usagePeriod: components['schemas']['RecurringPeriod']
     }
-    /** @description Create inpurs for metered entitlement */
+    /**
+     * @deprecated
+     * @description Create inpurs for metered entitlement
+     */
     EntitlementMeteredCreateInputs: {
       /**
        * @description The feature the subject is entitled to use.
@@ -5376,7 +5397,10 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['Entitlement'][]
     }
-    /** @description A static entitlement. */
+    /**
+     * @deprecated
+     * @description A static entitlement.
+     */
     EntitlementStatic: {
       /**
        * @description discriminator enum property added by openapi-typescript
@@ -5457,7 +5481,10 @@ export interface components {
       /** @description The defined usage period of the entitlement */
       usagePeriod?: components['schemas']['RecurringPeriod']
     }
-    /** @description Create inputs for static entitlement */
+    /**
+     * @deprecated
+     * @description Create inputs for static entitlement
+     */
     EntitlementStaticCreateInputs: {
       /**
        * @description The feature the subject is entitled to use.
@@ -10211,6 +10238,7 @@ export interface components {
       message?: string
     }
     /**
+     * @deprecated
      * @description A subject is a unique identifier for a usage attribution by its key.
      *     Subjects only exist in the concept of metering.
      *     Subjects are optional to create and work as an enrichment for the subject key like displayName, metadata, etc.
@@ -10298,6 +10326,7 @@ export interface components {
       stripeCustomerId?: string | null
     }
     /**
+     * @deprecated
      * @description A subject is a unique identifier for a user or entity.
      * @example {
      *       "key": "customer-id",

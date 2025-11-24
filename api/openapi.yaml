@@ -4090,6 +4090,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/entitlements/{entitlementId}:
     get:
       operationId: getEntitlementById
@@ -4160,6 +4161,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/events:
     get:
       operationId: listEvents
@@ -4774,6 +4776,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/grants/{grantId}:
     delete:
       operationId: voidGrant
@@ -4846,6 +4849,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/info/currencies:
     get:
       operationId: listCurrencies
@@ -8635,6 +8639,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subjects
+      deprecated: true
     post:
       operationId: upsertSubject
       summary: Upsert subject
@@ -8705,6 +8710,7 @@ paths:
               type: array
               items:
                 $ref: '#/components/schemas/SubjectUpsert'
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}:
     get:
       operationId: getSubject
@@ -8773,6 +8779,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subjects
+      deprecated: true
     delete:
       operationId: deleteSubject
       summary: Delete subject
@@ -8830,6 +8837,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subjects
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements:
     post:
       operationId: createEntitlement
@@ -8913,6 +8921,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
+      deprecated: true
     get:
       operationId: listSubjectEntitlements
       summary: List subject entitlements
@@ -8984,6 +8993,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
     get:
       operationId: listEntitlementGrants
@@ -9069,6 +9079,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
     post:
       operationId: createGrant
       summary: Create subject entitlement grant
@@ -9158,6 +9169,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementGrantCreateInput'
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override:
     put:
       operationId: overrideEntitlement
@@ -9246,6 +9258,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementCreateInputs'
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
     get:
       operationId: getEntitlementValue
@@ -9330,6 +9343,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}:
     get:
       operationId: getEntitlement
@@ -9403,6 +9417,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
     delete:
       operationId: deleteEntitlement
       summary: Delete subject entitlement
@@ -9473,6 +9488,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history:
     get:
       operationId: getEntitlementHistory
@@ -9588,6 +9604,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements
+      deprecated: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset:
     post:
       operationId: resetEntitlementUsage
@@ -9666,6 +9683,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResetEntitlementUsageInput'
+      deprecated: true
   /api/v1/subscriptions:
     post:
       operationId: createSubscription
@@ -15860,6 +15878,7 @@ components:
       description: |-
         Entitlement templates are used to define the entitlements of a plan.
         Features are omitted from the entitlement template, as they are defined in the rate card.
+      deprecated: true
     EntitlementBaseTemplate:
       type: object
       required:
@@ -16049,6 +16068,7 @@ components:
             - $ref: '#/components/schemas/RecurringPeriod'
           description: The defined usage period of the entitlement
       description: Entitlement template of a boolean entitlement.
+      deprecated: true
     EntitlementBooleanCreateInputs:
       type: object
       required:
@@ -16083,6 +16103,7 @@ components:
           enum:
             - boolean
       description: Create inputs for boolean entitlement
+      deprecated: true
     EntitlementBooleanV2:
       type: object
       required:
@@ -16353,6 +16374,7 @@ components:
           example:
             issueAfterReset: true
       description: The grant.
+      deprecated: true
     EntitlementGrantCreateInput:
       type: object
       required:
@@ -16415,6 +16437,7 @@ components:
             - $ref: '#/components/schemas/RecurringPeriodCreateInput'
           description: The subject of the grant.
       description: The grant creation input.
+      deprecated: true
     EntitlementGrantCreateInputV2:
       type: object
       required:
@@ -16746,6 +16769,7 @@ components:
       description: |-
         Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
         Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
+      deprecated: true
     EntitlementMeteredCalculatedFields:
       type: object
       required:
@@ -16849,6 +16873,7 @@ components:
           title: Preserve overage at reset
           default: false
       description: Create inpurs for metered entitlement
+      deprecated: true
     EntitlementMeteredV2:
       type: object
       required:
@@ -17210,6 +17235,7 @@ components:
             - $ref: '#/components/schemas/RecurringPeriod'
           description: The defined usage period of the entitlement
       description: A static entitlement.
+      deprecated: true
     EntitlementStaticCreateInputs:
       type: object
       required:
@@ -17250,6 +17276,7 @@ components:
           description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
           example: '{ "integrations": ["github"] }'
       description: Create inputs for static entitlement
+      deprecated: true
     EntitlementStaticV2:
       type: object
       required:
@@ -24345,6 +24372,7 @@ components:
         Subjects are optional to create and work as an enrichment for the subject key like displayName, metadata, etc.
         Subjects are useful when you are reporting usage events with your own database ID but want to enrich the subject with a human-readable name or metadata.
         For most use cases, a subject is equivalent to a customer.
+      deprecated: true
       example:
         createdAt: '2025-01-01T01:01:01.001Z'
         updatedAt: '2025-02-01T01:01:01.001Z'
@@ -24397,6 +24425,7 @@ components:
           deprecated: true
           example: cus_JMOlctsKV8
       description: A subject is a unique identifier for a user or entity.
+      deprecated: true
       example:
         key: customer-id
         displayName: Customer Name
