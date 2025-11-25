@@ -71,14 +71,8 @@ func (c Timing) ResolveForSpec(spec SubscriptionSpec) (time.Time, error) {
 		case TimingImmediate:
 			return clock.Now(), nil
 		case TimingNextBillingCycle:
-			currentPhase, exists := spec.GetCurrentPhaseAt(clock.Now())
-			if !exists {
-				// If there isn't a current phase, the subscription hasn't started or has already ended
-				return def, models.NewGenericValidationError(fmt.Errorf("billing isn't active for the subscription, there isn't a next_billing_cycle"))
-			}
-
-			if !currentPhase.HasBillables() {
-				return def, models.NewGenericValidationError(fmt.Errorf("current phase has no billables, there isn't a next_billing_cycle"))
+			if spec.BillingCadence.IsZero() {
+				return def, models.NewGenericValidationError(fmt.Errorf("subscription does not have a billing cadence, there isn't a next_billing_cycle"))
 			}
 
 			period, err := spec.GetAlignedBillingPeriodAt(clock.Now())
