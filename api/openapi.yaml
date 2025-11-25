@@ -177,7 +177,6 @@ paths:
       operationId: createAddon
       summary: Create an add-on
       description: Create a new add-on.
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -1766,7 +1765,6 @@ paths:
         New pending line items will be created for the period between now() and the next billing cycle's begining date for any metered item.
 
         The call can return multiple invoices if the pending line items are in different currencies.
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -2610,7 +2608,6 @@ paths:
 
         Billing profiles are representations of a customer's billing information. Customer overrides
         can be applied to a billing profile to customize the billing behavior for a specific customer.
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -2906,7 +2903,6 @@ paths:
       operationId: createCustomer
       summary: Create customer
       description: Create a new customer.
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -3927,7 +3923,6 @@ paths:
         Returns debug metrics (in OpenMetrics format) like the number of ingested events since mindnight UTC.
 
         The OpenMetrics Counter(s) reset every day at midnight UTC.
-      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -4325,9 +4320,8 @@ paths:
         - Events
     post:
       operationId: ingestEvents
-      parameters: []
       description: Ingests an event or batch of events following the CloudEvents specification.
-      summary: 'Ingest events  '
+      summary: Ingest events
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -4478,7 +4472,6 @@ paths:
         For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
         Only meters with SUM and COUNT aggregation are supported for features.
         Features cannot be updated later, only archived.
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -4851,7 +4844,6 @@ paths:
       operationId: listCurrencies
       summary: List supported currencies
       description: List all supported currencies.
-      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -5435,7 +5427,6 @@ paths:
       operationId: createMeter
       summary: Create meter
       description: Create a meter.
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -6137,7 +6128,6 @@ paths:
       operationId: createNotificationChannel
       summary: Create a notification channel
       description: Create a new notification channel.
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -6805,7 +6795,6 @@ paths:
       operationId: createNotificationRule
       summary: Create a notification rule
       description: Create a new notification rule.
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -7283,7 +7272,6 @@ paths:
       operationId: createPlan
       summary: Create a plan
       description: Create a new plan.
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -8315,7 +8303,6 @@ paths:
       operationId: createPortalToken
       summary: Create consumer portal token
       description: Create a consumer portal token.
-      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -8446,7 +8433,6 @@ paths:
       operationId: invalidatePortalTokens
       summary: Invalidate portal tokens
       description: Invalidates consumer portal tokens by ID or subject.
-      parameters: []
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -8512,7 +8498,6 @@ paths:
       operationId: createStripeCheckoutSession
       summary: Create checkout session
       description: Create checkout session.
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -8581,7 +8566,6 @@ paths:
       operationId: listSubjects
       summary: List subjects
       description: List subjects.
-      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -8643,7 +8627,6 @@ paths:
 
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
-      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -9670,7 +9653,6 @@ paths:
     post:
       operationId: createSubscription
       summary: Create subscription
-      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.

@@ -23,14 +23,13 @@ using TypeSpec.OpenAPI;
 })
 @server("https://127.0.0.1/api/v3", "Local")
 @server("https://openmeter.cloud/api/v3", "Cloud")
-@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(
-  Shared.UsageEventsTag,
-  #{ description: Shared.UsageEventsDescription }
+  Shared.MeteringEventsTag,
+  #{ description: Shared.MeteringEventsDescription }
 )
 namespace OpenMeter;
 
-@route("/events")
-@tag(Shared.UsageEventsTag)
-@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.UsageEventsTag}")
-interface UsageEventsEndpoints extends Events.UsageEventsOperations {}
+@route("/metering-events")
+@tag(Shared.MeteringEventsTag)
+@friendlyName("OpenMeter: ${Shared.MeteringEventsTag}")
+interface MeteringEventsEndpoints extends Events.MeteringEventsOperations {}
