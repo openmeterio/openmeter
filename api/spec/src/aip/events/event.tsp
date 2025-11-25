@@ -46,7 +46,7 @@ model MeteringEvent {
    */
   @minLength(1)
   @example("1.0")
-  specversion?: string = "1.0";
+  specversion: string = "1.0";
 
   /**
    * Contains a value describing the type of event related to the originating occurrence.

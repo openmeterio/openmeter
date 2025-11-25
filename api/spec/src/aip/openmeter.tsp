@@ -23,7 +23,6 @@ using TypeSpec.OpenAPI;
 })
 @server("https://127.0.0.1/api/v3", "Local")
 @server("https://openmeter.cloud/api/v3", "Cloud")
-@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(
   Shared.MeteringEventsTag,
   #{ description: Shared.MeteringEventsDescription }

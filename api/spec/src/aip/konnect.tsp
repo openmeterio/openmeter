@@ -21,8 +21,9 @@ using TypeSpec.OpenAPI;
 @server("https://au.api.konghq.com/v3", "Australia Production region")
 @server("https://me.api.konghq.com/v3", "Middle-East Production region")
 @server("https://in.api.konghq.com/v3", "India Production region")
+// TODO: Uncomment this when the Singapore production region is available
+// @server("https://sg.api.konghq.com/v3", "Singapore Production region")
 @server("https://global.api.konghq.com/v3", "Global Production region")
-@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(
   Shared.MeteringEventsTag,
   #{ description: Shared.MeteringEventsDescription }

@@ -18,7 +18,7 @@ patchedDependencies:
     hash: f80f431dbdcb494311d14ba1d85c661933835819e14b51637b195e51b4ffd9c8
     path: patches/@typespec__openapi.patch
   '@typespec/openapi3':
-    hash: 42504e2bec773e72e11c426e8b078e9cc08dac1e976c0e131d49fca1800c4549
+    hash: e08449ede30fbf4b42ed1d0f5efa38889091d7e411f19135d14ce8b67136cb35
     path: patches/@typespec__openapi3.patch
 
 importers:
@@ -42,7 +42,7 @@ importers:
         version: 1.6.0(patch_hash=f80f431dbdcb494311d14ba1d85c661933835819e14b51637b195e51b4ffd9c8)(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))(@typespec/http@1.6.0(patch_hash=acfe25ef574a4092a60a38d45b3898ad4a4021f59889043f154ed68472a2c91d)(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))(@typespec/streams@0.75.0(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))))
       '@typespec/openapi3':
         specifier: 1.6.0
-        version: 1.6.0(patch_hash=42504e2bec773e72e11c426e8b078e9cc08dac1e976c0e131d49fca1800c4549)(994fcebd56f5aa57903b84e31693ee65)
+        version: 1.6.0(patch_hash=e08449ede30fbf4b42ed1d0f5efa38889091d7e411f19135d14ce8b67136cb35)(994fcebd56f5aa57903b84e31693ee65)
       '@typespec/prettier-plugin-typespec':
         specifier: 1.6.0
         version: 1.6.0
@@ -1337,7 +1337,7 @@ snapshots:
     optionalDependencies:
       '@typespec/streams': 0.75.0(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))
 
-  '@typespec/openapi3@1.6.0(patch_hash=42504e2bec773e72e11c426e8b078e9cc08dac1e976c0e131d49fca1800c4549)(994fcebd56f5aa57903b84e31693ee65)':
+  '@typespec/openapi3@1.6.0(patch_hash=e08449ede30fbf4b42ed1d0f5efa38889091d7e411f19135d14ce8b67136cb35)(994fcebd56f5aa57903b84e31693ee65)':
     dependencies:
       '@scalar/json-magic': 0.6.1
       '@scalar/openapi-parser': 0.22.3
