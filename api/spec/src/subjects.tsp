@@ -13,7 +13,11 @@ namespace OpenMeter;
 interface SubjectsEndpoints {
   /**
    * List subjects.
+   *
+   * ⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead.
    */
+  #deprecated "Subjects as entities are being depracated, use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("listSubjects")
   @summary("List subjects")
@@ -21,7 +25,11 @@ interface SubjectsEndpoints {
 
   /**
    * Get subject by ID or key.
+   *
+   * ⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead.
    */
+  #deprecated "Subjects as entities are being depracated, use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @get
   @operationId("getSubject")
   @summary("Get subject")
@@ -32,7 +40,11 @@ interface SubjectsEndpoints {
    *
    * If the subject doesn't exist, it will be created.
    * If the subject exists, it will be partially updated with the provided fields.
+   *
+   * ⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead.
    */
+  #deprecated "Subjects as entities are being depracated, use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @post
   @operationId("upsertSubject")
   @summary("Upsert subject")
@@ -40,7 +52,11 @@ interface SubjectsEndpoints {
 
   /**
    * Delete subject by ID or key.
+   *
+   * ⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead.
    */
+  #deprecated "Subjects as entities are being depracated, use customers instead"
+  #suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
   @delete
   @operationId("deleteSubject")
   @summary("Delete subject")
@@ -53,7 +69,11 @@ interface SubjectsEndpoints {
  * Subjects are optional to create and work as an enrichment for the subject key like displayName, metadata, etc.
  * Subjects are useful when you are reporting usage events with your own database ID but want to enrich the subject with a human-readable name or metadata.
  * For most use cases, a subject is equivalent to a customer.
+ *
+ * ⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead.
  */
+#deprecated "Use customers instead"
+#suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
 @friendlyName("Subject")
 @example(#{
   createdAt: DateTime.fromISO("2025-01-01T01:01:01.001Z"),
@@ -121,7 +141,11 @@ model Subject {
 
 /**
  * A subject is a unique identifier for a user or entity.
+ *
+ * ⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead.
  */
+#deprecated "Use customers instead"
+#suppress "deprecated" "Subjects APIs will be removed on December 1st, 2025"
 @friendlyName("SubjectUpsert")
 @example(#{
   key: "customer-id",

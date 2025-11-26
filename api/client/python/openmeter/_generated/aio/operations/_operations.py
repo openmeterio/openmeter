@@ -806,6 +806,8 @@ class AppStripeOperations:
 
         Update the Stripe API key.
 
+        ⚠️ **Deprecated**: Use ``PUT /api/v1/apps/{id}` <#tag/apps/put/api/v1/apps/{id}>`_ instead.
+
         :param id: Required.
         :type id: str
         :param request: Required.
@@ -825,6 +827,8 @@ class AppStripeOperations:
         """Update Stripe API key.
 
         Update the Stripe API key.
+
+        ⚠️ **Deprecated**: Use ``PUT /api/v1/apps/{id}` <#tag/apps/put/api/v1/apps/{id}>`_ instead.
 
         :param id: Required.
         :type id: str
@@ -846,6 +850,8 @@ class AppStripeOperations:
 
         Update the Stripe API key.
 
+        ⚠️ **Deprecated**: Use ``PUT /api/v1/apps/{id}` <#tag/apps/put/api/v1/apps/{id}>`_ instead.
+
         :param id: Required.
         :type id: str
         :param request: Required.
@@ -864,6 +870,8 @@ class AppStripeOperations:
         """Update Stripe API key.
 
         Update the Stripe API key.
+
+        ⚠️ **Deprecated**: Use ``PUT /api/v1/apps/{id}` <#tag/apps/put/api/v1/apps/{id}>`_ instead.
 
         :param id: Required.
         :type id: str
@@ -6498,6 +6506,9 @@ class EntitlementsOperations:
         /api/v1/subjects/{subjectKeyOrID}/entitlements endpoint.
         If page is provided that takes precedence and the paginated response is returned.
 
+        ⚠️ **Deprecated**: Use ``GET /api/v2/entitlements`
+        <#tag/entitlements/get/api/v2/entitlements>`_ instead.
+
         :keyword feature: Filtering by multiple features.
 
          Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
@@ -6617,9 +6628,12 @@ class EntitlementsOperations:
         return deserialized  # type: ignore
 
     async def get(self, entitlement_id: str, **kwargs: Any) -> "_types.Entitlement":
-        """Get entitlement by id.
+        """Get entitlement by ID.
 
-        Get entitlement by id.
+        Get entitlement by ID.
+
+        ⚠️ **Deprecated**: Use ``GET /api/v2/entitlements/{entitlementId}`
+        <#tag/entitlements/get/api/v2/entitlements/{entitlementId}>`_ instead.
 
         :param entitlement_id: Required.
         :type entitlement_id: str
@@ -6735,6 +6749,8 @@ class GrantsOperations:
         To fetch the grants of a specific entitlement please use the
         /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
         If page is provided that takes precedence and the paginated response is returned.
+
+        ⚠️ **Deprecated**: Use ``GET /api/v2/grants` <#tag/entitlements/get/api/v2/grants>`_ instead.
 
         :keyword feature: Filtering by multiple features.
 
@@ -6859,6 +6875,9 @@ class GrantsOperations:
         balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will
         not be affected.
 
+        ⚠️ **Deprecated**: Use ``DELETE /api/v2/grants/{grantId}`
+        <#tag/entitlements/delete/api/v2/grants/{grantId}>`_ instead.
+
         :param grant_id: Required.
         :type grant_id: str
         :return: None
@@ -6971,6 +6990,9 @@ class SubjectsOperations:
 
         Once an entitlement is created you cannot modify it, only delete it.
 
+        ⚠️ **Deprecated**: Use ``POST /api/v2/customers/{customerIdOrKey}/entitlements`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements>`_ instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :param entitlement: Required.
@@ -7015,6 +7037,9 @@ class SubjectsOperations:
         request will fail with a 409 error.
 
         Once an entitlement is created you cannot modify it, only delete it.
+
+        ⚠️ **Deprecated**: Use ``POST /api/v2/customers/{customerIdOrKey}/entitlements`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements>`_ instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -7061,6 +7086,9 @@ class SubjectsOperations:
 
         Once an entitlement is created you cannot modify it, only delete it.
 
+        ⚠️ **Deprecated**: Use ``POST /api/v2/customers/{customerIdOrKey}/entitlements`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements>`_ instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :param entitlement: Required.
@@ -7099,6 +7127,9 @@ class SubjectsOperations:
         request will fail with a 409 error.
 
         Once an entitlement is created you cannot modify it, only delete it.
+
+        ⚠️ **Deprecated**: Use ``POST /api/v2/customers/{customerIdOrKey}/entitlements`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements>`_ instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -7200,6 +7231,9 @@ class SubjectsOperations:
         List all entitlements for a subject. For checking entitlement access, use the /value endpoint
         instead.
 
+        ⚠️ **Deprecated**: Use ``GET /api/v2/customers/{customerIdOrKey}/entitlements`
+        <#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements>`_ instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :keyword include_deleted: Default value is None.
@@ -7280,6 +7314,11 @@ class SubjectsOperations:
         """Get subject entitlement.
 
         Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
+
+        ⚠️ **Deprecated**: Use ``GET
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}`
+        <#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}>`_
+        instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -7370,6 +7409,11 @@ class SubjectsOperations:
         active, you cannot have retroactive changes to access, which is important for, among other
         things, auditing.
 
+        ⚠️ **Deprecated**: Use ``DELETE
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}`
+        <#tag/entitlements/delete/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}>`_
+        instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :param entitlement_id: Required.
@@ -7453,6 +7497,11 @@ class SubjectsOperations:
         This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require
         a new entitlement to be created with zero downtime.
 
+        ⚠️ **Deprecated**: Use ``PUT
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override`
+        <#tag/entitlements/put/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override>`_
+        instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :param entitlement_id_or_feature_key: Required.
@@ -7487,6 +7536,11 @@ class SubjectsOperations:
 
         This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require
         a new entitlement to be created with zero downtime.
+
+        ⚠️ **Deprecated**: Use ``PUT
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override`
+        <#tag/entitlements/put/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override>`_
+        instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -7523,6 +7577,11 @@ class SubjectsOperations:
         This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require
         a new entitlement to be created with zero downtime.
 
+        ⚠️ **Deprecated**: Use ``PUT
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override`
+        <#tag/entitlements/put/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override>`_
+        instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :param entitlement_id_or_feature_key: Required.
@@ -7554,6 +7613,11 @@ class SubjectsOperations:
 
         This endpoint is useful for upgrades, downgrades, or other changes to entitlements that require
         a new entitlement to be created with zero downtime.
+
+        ⚠️ **Deprecated**: Use ``PUT
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override`
+        <#tag/entitlements/put/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override>`_
+        instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -7665,6 +7729,11 @@ class SubjectsOperations:
 
         List all grants issued for an entitlement. The entitlement can be defined either by its id or
         featureKey.
+
+        ⚠️ **Deprecated**: Use ``GET
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants`
+        <#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants>`_
+        instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -7780,6 +7849,11 @@ class SubjectsOperations:
         Grants cannot be changed once created, only deleted. This is to ensure that balance is
         deterministic regardless of when it is queried.
 
+        ⚠️ **Deprecated**: Use ``POST
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants>`_
+        instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :param entitlement_id_or_feature_key: Required.
@@ -7827,6 +7901,11 @@ class SubjectsOperations:
 
         Grants cannot be changed once created, only deleted. This is to ensure that balance is
         deterministic regardless of when it is queried.
+
+        ⚠️ **Deprecated**: Use ``POST
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants>`_
+        instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -7876,6 +7955,11 @@ class SubjectsOperations:
         Grants cannot be changed once created, only deleted. This is to ensure that balance is
         deterministic regardless of when it is queried.
 
+        ⚠️ **Deprecated**: Use ``POST
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants>`_
+        instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :param entitlement_id_or_feature_key: Required.
@@ -7920,6 +8004,11 @@ class SubjectsOperations:
 
         Grants cannot be changed once created, only deleted. This is to ensure that balance is
         deterministic regardless of when it is queried.
+
+        ⚠️ **Deprecated**: Use ``POST
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants>`_
+        instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -8026,6 +8115,11 @@ class SubjectsOperations:
 
         For convenience reasons, /value works with both entitlementId and featureKey.
 
+        ⚠️ **Deprecated**: Use ``GET
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value`
+        <#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value>`_
+        instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :param entitlement_id_or_feature_key: Required.
@@ -8126,6 +8220,11 @@ class SubjectsOperations:
 
         WindowedHistory returns windowed usage data for the period enriched with balance information
         and the list of grants that were being burnt down in that window.
+
+        ⚠️ **Deprecated**: Use ``GET
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history`
+        <#tag/entitlements/get/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/history>`_
+        instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -8243,6 +8342,11 @@ class SubjectsOperations:
         endpoint allows to manually reset it at any time. When doing so the period anchor of the
         entitlement can be changed if needed.
 
+        ⚠️ **Deprecated**: Use ``POST
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset>`_
+        instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :param entitlement_id: Required.
@@ -8277,6 +8381,11 @@ class SubjectsOperations:
         Usage is automatically reset for metered entitlements based on their usage period, but this
         endpoint allows to manually reset it at any time. When doing so the period anchor of the
         entitlement can be changed if needed.
+
+        ⚠️ **Deprecated**: Use ``POST
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset>`_
+        instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -8313,6 +8422,11 @@ class SubjectsOperations:
         endpoint allows to manually reset it at any time. When doing so the period anchor of the
         entitlement can be changed if needed.
 
+        ⚠️ **Deprecated**: Use ``POST
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset>`_
+        instead.
+
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
         :param entitlement_id: Required.
@@ -8344,6 +8458,11 @@ class SubjectsOperations:
         Usage is automatically reset for metered entitlements based on their usage period, but this
         endpoint allows to manually reset it at any time. When doing so the period anchor of the
         entitlement can be changed if needed.
+
+        ⚠️ **Deprecated**: Use ``POST
+        /api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset`
+        <#tag/entitlements/post/api/v2/customers/{customerIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/reset>`_
+        instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -11482,8 +11601,9 @@ class MetersOperations:
         :paramtype filter_customer_id: list[str]
         :keyword filter_group_by: Simple filter for group bys with exact match.
 
-         For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo. Default value is
-         None.
+         For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
+
+         ⚠️ **Deprecated**: Use ``advancedMeterGroupByFilters`` instead. Default value is None.
         :paramtype filter_group_by: dict[str, str]
         :keyword advanced_meter_group_by_filters: Advanced meter group by filters. Default value is
          None.
@@ -11636,8 +11756,9 @@ class MetersOperations:
         :paramtype filter_customer_id: list[str]
         :keyword filter_group_by: Simple filter for group bys with exact match.
 
-         For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo. Default value is
-         None.
+         For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
+
+         ⚠️ **Deprecated**: Use ``advancedMeterGroupByFilters`` instead. Default value is None.
         :paramtype filter_group_by: dict[str, str]
         :keyword advanced_meter_group_by_filters: Advanced meter group by filters. Default value is
          None.
@@ -12114,6 +12235,9 @@ class SubjectsOperations:
 
         List subjects.
 
+        ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
+        subject key usage attribution instead.
+
         :return: list of Subject
         :rtype: list[~openmeter._generated.models.Subject]
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -12186,6 +12310,9 @@ class SubjectsOperations:
         """Get subject.
 
         Get subject by ID or key.
+
+        ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
+        subject key usage attribution instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -12271,6 +12398,9 @@ class SubjectsOperations:
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
 
+        ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
+        subject key usage attribution instead.
+
         :param subject: Required.
         :type subject: list[~openmeter._generated.models.SubjectUpsert]
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
@@ -12291,6 +12421,9 @@ class SubjectsOperations:
 
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
+
+        ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
+        subject key usage attribution instead.
 
         :param subject: Required.
         :type subject: list[JSON]
@@ -12313,6 +12446,9 @@ class SubjectsOperations:
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
 
+        ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
+        subject key usage attribution instead.
+
         :param subject: Required.
         :type subject: IO[bytes]
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
@@ -12332,6 +12468,9 @@ class SubjectsOperations:
 
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
+
+        ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
+        subject key usage attribution instead.
 
         :param subject: Is one of the following types: [SubjectUpsert], [JSON], IO[bytes] Required.
         :type subject: list[~openmeter._generated.models.SubjectUpsert] or list[JSON] or IO[bytes]
@@ -12417,6 +12556,9 @@ class SubjectsOperations:
         """Delete subject.
 
         Delete subject by ID or key.
+
+        ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
+        subject key usage attribution instead.
 
         :param subject_id_or_key: Required.
         :type subject_id_or_key: str
@@ -14406,9 +14548,9 @@ class EntitlementsV2Operations:
         return deserialized  # type: ignore
 
     async def get(self, entitlement_id: str, **kwargs: Any) -> "_types.EntitlementV2":
-        """Get entitlement by id.
+        """Get entitlement by ID.
 
-        Get entitlement by id.
+        Get entitlement by ID.
 
         :param entitlement_id: Required.
         :type entitlement_id: str
@@ -19656,8 +19798,9 @@ class PortalPortalMetersOperations:
         :paramtype filter_customer_id: list[str]
         :keyword filter_group_by: Simple filter for group bys with exact match.
 
-         For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo. Default value is
-         None.
+         For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
+
+         ⚠️ **Deprecated**: Use ``advancedMeterGroupByFilters`` instead. Default value is None.
         :paramtype filter_group_by: dict[str, str]
         :keyword advanced_meter_group_by_filters: Advanced meter group by filters. Default value is
          None.
@@ -19806,8 +19949,9 @@ class PortalPortalMetersOperations:
         :paramtype filter_customer_id: list[str]
         :keyword filter_group_by: Simple filter for group bys with exact match.
 
-         For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo. Default value is
-         None.
+         For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
+
+         ⚠️ **Deprecated**: Use ``advancedMeterGroupByFilters`` instead. Default value is None.
         :paramtype filter_group_by: dict[str, str]
         :keyword advanced_meter_group_by_filters: Advanced meter group by filters. Default value is
          None.

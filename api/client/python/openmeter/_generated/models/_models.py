@@ -13535,6 +13535,9 @@ class Subject(_Model):
     enrich the subject with a human-readable name or metadata.
     For most use cases, a subject is equivalent to a customer.
 
+    ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
+    subject key usage attribution instead.
+
     :ivar created_at: Creation Time. Required.
     :vartype created_at: ~datetime.datetime
     :ivar updated_at: Last Update Time. Required.
@@ -13613,6 +13616,9 @@ class Subject(_Model):
 
 class SubjectUpsert(_Model):
     """A subject is a unique identifier for a user or entity.
+
+    ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
+    subject key usage attribution instead.
 
     :ivar key: A unique, human-readable identifier for the subject.
      This is typically a database ID or a customer key. Required.

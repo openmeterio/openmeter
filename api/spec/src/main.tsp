@@ -100,7 +100,7 @@ using TypeSpec.OpenAPI;
 @tagMetadata(
   "Subjects",
   #{
-    description: "Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. Meters are aggregating events for each subject.",
+    description: "⚠️ __Deprecated__: Subjects as managable entities are being depracated, use customers with subject key usage attribution instead. \n\n Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. Meters are aggregating events for each subject.",
   }
 )
 @tagMetadata(

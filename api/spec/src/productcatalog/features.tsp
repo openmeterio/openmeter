@@ -53,6 +53,8 @@ model FeatureCreateInputs {
    * Useful if the meter scope is broader than what feature tracks.
    * Example scenario would be a meter tracking all token use with groupBy fields for the model,
    * then the feature could filter for model=gpt-4.
+   *
+   * ⚠️ __Deprecated__: Use advancedMeterGroupByFilters instead
    */
   #deprecated "Use advancedMeterGroupByFilters instead"
   @summary("Meter group by filters")
