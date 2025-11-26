@@ -317,4 +317,33 @@ export class NotificationEvents {
 
     return transformResponse(resp)
   }
+
+  /**
+   * Resend a notification event
+   * @description Resend a notification event that has already been sent.
+   * @param id - The ID of the notification event
+   * @param channels - The channels to resend the notification event to, if not provided it will resend to all channels
+   * @param signal - An optional abort signal
+   * @returns The resent notification event
+   */
+  public async resend(
+    id: operations['resendNotificationEvent']['parameters']['path']['eventId'],
+    body: operations['resendNotificationEvent']['requestBody']['content']['application/json'] = {},
+    options?: RequestOptions,
+  ) {
+    const resp = await this.client.POST(
+      '/api/v1/notification/events/{eventId}/resend',
+      {
+        body,
+        params: {
+          path: {
+            eventId: id,
+          },
+        },
+        ...options,
+      },
+    )
+
+    return transformResponse(resp)
+  }
 }

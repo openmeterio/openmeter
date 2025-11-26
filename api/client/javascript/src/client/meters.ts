@@ -136,4 +136,68 @@ export class Meters {
 
     return transformResponse(resp)
   }
+
+  /**
+   * List meter group-by values
+   * @description List all values for a specific group-by key in a meter.
+   * @param idOrSlug - The ID or slug of the meter
+   * @param groupByKey - The group-by key to list values for
+   * @param query - The query parameters
+   * @param options - Optional request options
+   * @returns The list of group-by values
+   */
+  public async listGroupByValues(
+    idOrSlug: operations['listMeterGroupByValues']['parameters']['path']['meterIdOrSlug'],
+    groupByKey: operations['listMeterGroupByValues']['parameters']['path']['groupByKey'],
+    query?: operations['listMeterGroupByValues']['parameters']['query'],
+    options?: RequestOptions,
+  ) {
+    const resp = await this.client.GET(
+      '/api/v1/meters/{meterIdOrSlug}/group-by/{groupByKey}/values',
+      {
+        params: {
+          path: {
+            groupByKey,
+            meterIdOrSlug: idOrSlug,
+          },
+          query,
+        },
+        ...options,
+      },
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
+   * Query usage data for a meter by ID or slug using POST
+   * @description Query meter using POST method. This is useful for complex queries that exceed URL length limits.
+   * @param idOrSlug - The ID or slug of the meter
+   * @param body - The query body parameters
+   * @param options - Optional request options
+   * @returns The meter data
+   */
+  public async queryPost(
+    idOrSlug: operations['queryMeterPost']['parameters']['path']['meterIdOrSlug'],
+    body: operations['queryMeterPost']['requestBody']['content']['application/json'],
+    options?: RequestOptions,
+  ) {
+    const resp = await this.client.POST(
+      '/api/v1/meters/{meterIdOrSlug}/query',
+      {
+        body,
+        headers: {
+          Accept: 'application/json',
+        },
+        params: {
+          path: {
+            meterIdOrSlug: idOrSlug,
+          },
+        },
+        ...options,
+      },
+    )
+
+    return transformResponse(resp)
+  }
 }
