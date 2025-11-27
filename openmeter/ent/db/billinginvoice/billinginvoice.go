@@ -126,6 +126,8 @@ const (
 	FieldPeriodEnd = "period_end"
 	// FieldCollectionAt holds the string denoting the collection_at field in the database.
 	FieldCollectionAt = "collection_at"
+	// FieldPaymentProcessingEnteredAt holds the string denoting the payment_processing_entered_at field in the database.
+	FieldPaymentProcessingEnteredAt = "payment_processing_entered_at"
 	// EdgeSourceBillingProfile holds the string denoting the source_billing_profile edge name in mutations.
 	EdgeSourceBillingProfile = "source_billing_profile"
 	// EdgeBillingWorkflowConfig holds the string denoting the billing_workflow_config edge name in mutations.
@@ -260,6 +262,7 @@ var Columns = []string{
 	FieldPeriodStart,
 	FieldPeriodEnd,
 	FieldCollectionAt,
+	FieldPaymentProcessingEnteredAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -587,6 +590,11 @@ func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
 // ByCollectionAt orders the results by the collection_at field.
 func ByCollectionAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCollectionAt, opts...).ToFunc()
+}
+
+// ByPaymentProcessingEnteredAt orders the results by the payment_processing_entered_at field.
+func ByPaymentProcessingEnteredAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentProcessingEnteredAt, opts...).ToFunc()
 }
 
 // BySourceBillingProfileField orders the results by source_billing_profile field.

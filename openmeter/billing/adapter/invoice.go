@@ -457,6 +457,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			SetOrClearDescription(in.Description).
 			SetOrClearDueAt(convert.SafeToUTC(in.DueAt)).
 			SetOrClearCollectionAt(convert.SafeToUTC(in.CollectionAt)).
+			SetOrClearPaymentProcessingEnteredAt(convert.SafeToUTC(in.PaymentProcessingEnteredAt)).
 			SetOrClearDraftUntil(convert.SafeToUTC(in.DraftUntil)).
 			SetOrClearIssuedAt(convert.SafeToUTC(in.IssuedAt)).
 			SetOrClearDeletedAt(convert.SafeToUTC(in.DeletedAt)).
@@ -679,7 +680,8 @@ func (a *adapter) mapInvoiceBaseFromDB(ctx context.Context, invoice *db.BillingI
 		UpdatedAt: invoice.UpdatedAt.In(time.UTC),
 		DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
 
-		CollectionAt: lo.ToPtr(invoice.CollectionAt.In(time.UTC)),
+		CollectionAt:               lo.ToPtr(invoice.CollectionAt.In(time.UTC)),
+		PaymentProcessingEnteredAt: convert.TimePtrIn(invoice.PaymentProcessingEnteredAt, time.UTC),
 
 		ExternalIDs: billing.InvoiceExternalIDs{
 			Invoicing: lo.FromPtr(invoice.InvoicingAppExternalID),

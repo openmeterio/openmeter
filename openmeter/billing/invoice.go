@@ -282,6 +282,8 @@ type InvoiceBase struct {
 	QuantitySnapshotedAt *time.Time `json:"quantitySnapshotedAt,omitempty"`
 
 	CollectionAt *time.Time `json:"collectionAt,omitempty"`
+	// PaymentProcessingEnteredAt stores when the invoice first entered payment processing
+	PaymentProcessingEnteredAt *time.Time `json:"paymentProcessingEnteredAt,omitempty"`
 
 	// Customer is either a snapshot of the contact information of the customer at the time of invoice being sent
 	// or the data from the customer entity (draft state)

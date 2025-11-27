@@ -883,6 +883,62 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 	}
 }
 
+func (s *InvoicingTestSuite) TestPaymentProcessingEnteredAt() {
+	ctx := context.Background()
+	namespace := s.GetUniqueNamespace("ns-payment-processing-entered-at")
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+
+	clockBase := testutils.GetRFC3339Time(s.T(), "2024-11-27T10:00:00Z")
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+
+	// Use the sandbox mock to disable automatic payment simulation so we can drive the
+	// state machine manually and assert the timestamp semantics in a deterministic way.
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	mockApp.OnValidateInvoice(nil)
+	mockApp.OnFinalizeInvoice(billing.NewFinalizeInvoiceResult())
+	defer s.SandboxApp.DisableMock()
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customer.CustomerMutate{
+			Name:         "Test Customer",
+			PrimaryEmail: lo.ToPtr("test@example.com"),
+			BillingAddress: &models.Address{
+				Country: lo.ToPtr(models.CountryCode("US")),
+			},
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(customerEntity)
+
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
+		Namespace: namespace,
+		Customer:  customerEntity,
+	})
+
+	invoice, err = s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput(invoice.InvoiceID()))
+	s.Require().NoError(err)
+
+	s.Require().Equal(billing.InvoiceStatusPaymentProcessingPending, invoice.Status)
+	s.Require().NotNil(invoice.PaymentProcessingEnteredAt)
+	s.WithinDuration(clockBase, invoice.PaymentProcessingEnteredAt.UTC(), time.Second)
+
+	// Reload to be sure the timestamp persisted and isn’t recalculated on read.
+	reloadedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		Invoice: invoice.InvoiceID(),
+	})
+	s.Require().NoError(err)
+	s.Require().Equal(billing.InvoiceStatusPaymentProcessingPending, reloadedInvoice.Status)
+	s.Require().NotNil(reloadedInvoice.PaymentProcessingEnteredAt)
+	s.WithinDuration(invoice.PaymentProcessingEnteredAt.UTC(), reloadedInvoice.PaymentProcessingEnteredAt.UTC(), time.Second)
+}
+
 type ValidationIssueIntrospector interface {
 	IntrospectValidationIssues(ctx context.Context, invoice billing.InvoiceID) ([]billingadapter.ValidationIssueWithDBMeta, error)
 }
