@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	credittrace "github.com/openmeterio/openmeter/openmeter/credit/trace"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -45,7 +46,7 @@ func (i CreateGrantInput) Validate() error {
 }
 
 func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID, input CreateGrantInput) (*grant.Grant, error) {
-	ctx, span := m.Tracer.Start(ctx, "credit.CreateGrant", cTrace.WithOwner(ownerID))
+	ctx, span := m.Tracer.Start(ctx, "credit.CreateGrant", credittrace.WithOwner(ownerID))
 	defer span.End()
 
 	if err := input.Validate(); err != nil {
@@ -123,7 +124,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 }
 
 func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
-	ctx, span := m.Tracer.Start(ctx, "credit.VoidGrant", cTrace.WithOwner(grantID))
+	ctx, span := m.Tracer.Start(ctx, "credit.VoidGrant", credittrace.WithOwner(grantID))
 	defer span.End()
 
 	// can we void grants that have been used?
