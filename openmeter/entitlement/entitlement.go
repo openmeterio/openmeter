@@ -194,12 +194,8 @@ func (c CreateEntitlementInputs) Validate() error {
 		return fmt.Errorf("feature id or key must be set")
 	}
 
-	if c.UsageAttribution.ID == "" {
-		return fmt.Errorf("usage attribution must have an id")
-	}
-
-	if len(c.UsageAttribution.SubjectKeys) == 0 {
-		return fmt.Errorf("usage attribution must have at least one subject key")
+	if err := c.UsageAttribution.Validate(); err != nil {
+		return err
 	}
 
 	// Let's validate the Scheduling Params
