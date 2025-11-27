@@ -11,6 +11,20 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type testCustomer struct {
+	ID          string
+	Key         *string
+	SubjectKeys []string
+}
+
+func (c testCustomer) GetUsageAttribution() CustomerUsageAttribution {
+	return CustomerUsageAttribution{
+		ID:          c.ID,
+		Key:         c.Key,
+		SubjectKeys: c.SubjectKeys,
+	}
+}
+
 func TestQueryParamsValidate(t *testing.T) {
 	queryWindowSizeMinute := meter.WindowSizeMinute
 
@@ -20,6 +34,7 @@ func TestQueryParamsValidate(t *testing.T) {
 		paramTo             string
 		paramWindowTimeZone string
 		paramWindowSize     *meter.WindowSize
+		paramFilterCustomer []Customer
 		want                error
 	}{
 		{
@@ -35,6 +50,18 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramTo:         "2023-01-01T00:00:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
 			want:            models.NewGenericValidationError(fmt.Errorf("from must be before to")),
+		},
+		{
+			name:            "should fail when filter customer has no id",
+			paramFrom:       "2023-01-01T00:00:00Z",
+			paramTo:         "2023-01-02T00:00:00Z",
+			paramWindowSize: &queryWindowSizeMinute,
+			paramFilterCustomer: []Customer{
+				testCustomer{
+					ID: "",
+				},
+			},
+			want: models.NewGenericValidationError(fmt.Errorf("usage attribution must have an id")),
 		},
 	}
 
@@ -58,16 +85,17 @@ func TestQueryParamsValidate(t *testing.T) {
 			}
 
 			p := QueryParams{
-				From:       &from,
-				To:         &to,
-				WindowSize: tt.paramWindowSize,
+				From:           &from,
+				To:             &to,
+				WindowSize:     tt.paramWindowSize,
+				FilterCustomer: tt.paramFilterCustomer,
 			}
 
 			got := p.Validate()
 			if tt.want == nil {
 				assert.NoError(t, got)
 			} else {
-				assert.EqualError(t, got, tt.want.Error())
+				assert.ErrorAs(t, got, &tt.want)
 			}
 		})
 	}

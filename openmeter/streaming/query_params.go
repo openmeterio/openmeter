@@ -5,6 +5,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -56,6 +58,12 @@ func (p *QueryParams) Validate() error {
 	// To support this we need to map all subjects to customer_ids
 	if slices.Contains(p.GroupBy, "customer_id") && len(p.FilterCustomer) == 0 {
 		errs = append(errs, errors.New("customer filter is required with customer_id group by"))
+	}
+
+	if err := errors.Join(lo.Map(p.FilterCustomer, func(c Customer, _ int) error {
+		return c.GetUsageAttribution().Validate()
+	})...); err != nil {
+		errs = append(errs, err)
 	}
 
 	// Validate the group by filters
