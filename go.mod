@@ -57,7 +57,7 @@ require (
 	github.com/redis/go-redis/v9 v9.17.0
 	github.com/redpanda-data/benthos/v4 v4.55.0
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.61.0
-	github.com/rickb777/period v1.0.19
+	github.com/rickb777/period v1.0.21
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/samber/lo v1.52.0
 	github.com/samber/mo v1.16.0
@@ -451,7 +451,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.17.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rickb777/plural v1.4.6 // indirect
+	github.com/rickb777/plural v1.4.7 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
