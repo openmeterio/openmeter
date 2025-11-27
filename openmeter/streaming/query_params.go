@@ -84,6 +84,14 @@ type CustomerUsageAttribution struct {
 	SubjectKeys []string
 }
 
+func (ua CustomerUsageAttribution) Validate() error {
+	if ua.ID == "" {
+		return models.NewGenericValidationError(errors.New("usage attribution must have an id"))
+	}
+
+	return nil
+}
+
 // GetValues returns the values by which the usage is attributed to the customer
 func (ua CustomerUsageAttribution) GetValues() []string {
 	attributions := []string{}
