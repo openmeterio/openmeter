@@ -89,6 +89,10 @@ func (ua CustomerUsageAttribution) Validate() error {
 		return models.NewGenericValidationError(errors.New("usage attribution must have an id"))
 	}
 
+	if ua.Key == nil && len(ua.SubjectKeys) == 0 {
+		return models.NewGenericValidationError(errors.New("usage attribution must have a key or subject keys"))
+	}
+
 	return nil
 }
 

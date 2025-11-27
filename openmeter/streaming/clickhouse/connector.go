@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/samber/lo"
 	"golang.org/x/exp/constraints"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
@@ -142,6 +144,12 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	// It helps testing the SQL queries.
 	groupBy := append([]string(nil), params.GroupBy...)
 	sort.Strings(groupBy)
+
+	if err := errors.Join(lo.Map(params.FilterCustomer, func(c streaming.Customer, _ int) error {
+		return c.GetUsageAttribution().Validate()
+	})...); err != nil {
+		return nil, fmt.Errorf("validate filter customer: %w", err)
+	}
 
 	query := queryMeter{
 		Database:        c.config.Database,

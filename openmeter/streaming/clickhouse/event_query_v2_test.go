@@ -128,10 +128,11 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 								NamespacedModel: models.NamespacedModel{
 									Namespace: "my_namespace",
 								},
-								ID: "customer1",
+								ID: "customer1-id",
 							},
+							Key: lo.ToPtr("customer1-key"),
 							UsageAttribution: customer.CustomerUsageAttribution{
-								SubjectKeys: []string{"subject1", "subject2"},
+								SubjectKeys: []string{"customer1-subject1", "customer1-subject2"},
 							},
 						},
 						customer.Customer{
@@ -139,17 +140,18 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 								NamespacedModel: models.NamespacedModel{
 									Namespace: "my_namespace",
 								},
-								ID: "customer2",
+								ID: "customer2-id",
 							},
+							Key: lo.ToPtr("customer2-key"),
 							UsageAttribution: customer.CustomerUsageAttribution{
-								SubjectKeys: []string{"subject3"},
+								SubjectKeys: []string{"customer2-subject1", "customer2-subject2"},
 							},
 						},
 					},
 				},
 			},
-			wantSQL:  "WITH map('subject1', 'customer1', 'subject2', 'customer1', 'subject3', 'customer2') as subject_to_customer_id SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id, subject_to_customer_id[om_events.subject] AS customer_id FROM openmeter.om_events WHERE namespace = ? AND openmeter.om_events.subject IN (?) ORDER BY time DESC, id DESC LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", []string{"subject1", "subject2", "subject3"}, 100},
+			wantSQL:  "WITH map('customer1-key', 'customer1-id', 'customer1-subject1', 'customer1-id', 'customer1-subject2', 'customer1-id', 'customer2-key', 'customer2-id', 'customer2-subject1', 'customer2-id', 'customer2-subject2', 'customer2-id') as subject_to_customer_id SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id, subject_to_customer_id[om_events.subject] AS customer_id FROM openmeter.om_events WHERE namespace = ? AND openmeter.om_events.subject IN (?) ORDER BY time DESC, id DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", []string{"customer1-key", "customer1-subject1", "customer1-subject2", "customer2-key", "customer2-subject1", "customer2-subject2"}, 100},
 		},
 	}
 
