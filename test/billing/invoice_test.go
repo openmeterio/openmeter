@@ -922,7 +922,7 @@ func (s *InvoicingTestSuite) TestPaymentProcessingEnteredAt() {
 		Customer:  customerEntity,
 	})
 
-	invoice, err = s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput(invoice.InvoiceID()))
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.InvoiceID())
 	s.Require().NoError(err)
 
 	s.Require().Equal(billing.InvoiceStatusPaymentProcessingPending, invoice.Status)
@@ -937,6 +937,66 @@ func (s *InvoicingTestSuite) TestPaymentProcessingEnteredAt() {
 	s.Require().Equal(billing.InvoiceStatusPaymentProcessingPending, reloadedInvoice.Status)
 	s.Require().NotNil(reloadedInvoice.PaymentProcessingEnteredAt)
 	s.WithinDuration(invoice.PaymentProcessingEnteredAt.UTC(), reloadedInvoice.PaymentProcessingEnteredAt.UTC(), time.Second)
+}
+
+func (s *InvoicingTestSuite) TestStatusDetailsSimulationDoesNotMutatePaymentProcessingTimestamp() {
+	ctx := context.Background()
+	namespace := s.GetUniqueNamespace("ns-status-details-pp-entered-at")
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customer.CustomerMutate{
+			Name:         "Test Customer",
+			PrimaryEmail: lo.ToPtr("status-details@example.com"),
+			BillingAddress: &models.Address{
+				Country: lo.ToPtr(models.CountryCode("US")),
+			},
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(customerEntity)
+
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+		profile.WorkflowConfig = billing.WorkflowConfig{
+			Collection: billing.CollectionConfig{
+				Alignment: billing.AlignmentKindSubscription,
+			},
+			Invoicing: billing.InvoicingConfig{
+				AutoAdvance: false,
+				DraftPeriod: lo.Must(datetime.ISODurationString("PT0S").Parse()),
+				DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+			},
+			Payment: billing.PaymentConfig{
+				CollectionMethod: billing.CollectionMethodChargeAutomatically,
+			},
+		}
+	}))
+
+	invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
+		Namespace: namespace,
+		Customer:  customerEntity,
+	})
+
+	s.Require().Equal(billing.InvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+	s.Require().Nil(invoice.PaymentProcessingEnteredAt)
+
+	reloadedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		Invoice: invoice.InvoiceID(),
+		Expand:  billing.InvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+
+	s.Require().Equal(billing.InvoiceStatusDraftManualApprovalNeeded, reloadedInvoice.Status)
+
+	approveAction := reloadedInvoice.StatusDetails.AvailableActions.Approve
+	s.Require().NotNil(approveAction)
+	s.Require().Equal(billing.InvoiceStatusPaymentProcessingPending, approveAction.ResultingState)
+
+	s.Require().Nil(reloadedInvoice.PaymentProcessingEnteredAt)
 }
 
 type ValidationIssueIntrospector interface {
