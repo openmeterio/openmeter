@@ -171,7 +171,7 @@ lint-api-spec: ## Lint OpenAPI spec
 .PHONY: lint-openapi
 lint-openapi: ## Lint OpenAPI spec
 	$(call print-target)
-	spectral lint api/openapi.yaml api/openapi.cloud.yaml api/openapi.aip.yaml
+	spectral lint api/openapi.yaml api/openapi.cloud.yaml api/v3/openapi.yaml
 
 .PHONY: lint-helm
 lint-helm: ## Lint Helm charts

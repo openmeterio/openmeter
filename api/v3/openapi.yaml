@@ -20,7 +20,7 @@ tags:
   - name: Metering Events
     description: Metering events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.
 paths:
-  /metering-events:
+  /metering/events:
     post:
       operationId: ingest-metering-events
       description: Ingests an event or batch of events following the CloudEvents specification.

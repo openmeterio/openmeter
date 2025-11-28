@@ -29,7 +29,7 @@ using TypeSpec.OpenAPI;
 )
 namespace OpenMeter;
 
-@route("/metering-events")
+@route("/metering/events")
 @tag(Shared.MeteringEventsTag)
 @friendlyName("OpenMeter: ${Shared.MeteringEventsTag}")
 interface MeteringEventsEndpoints extends Events.MeteringEventsOperations {}

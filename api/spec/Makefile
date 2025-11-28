@@ -5,7 +5,7 @@ generate: ## Generate OpenAPI spec
 	$(call print-target)
 	pnpm --frozen-lockfile install
 	pnpm compile
-	pnpm run bundle:aip -o ../openapi.aip.yaml
+	pnpm run bundle:v3 -o ../v3/openapi.yaml
 	cp output/openapi.OpenMeter.yaml ../openapi.yaml
 	cp output/openapi.OpenMeterCloud.yaml ../openapi.cloud.yaml
 

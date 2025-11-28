@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+package: v3
+generate:
+  chi-server: true
+  models: true
+  embedded-spec: true
+compatibility:
+  apply-chi-middleware-first-to-last: true
+  # See: https://github.com/oapi-codegen/oapi-codegen/issues/778
+  disable-required-readonly-as-pointer: true
+  always-prefix-enum-values: true
+  preserve-original-operation-id-casing-in-embedded-spec: true
+output: ./api.gen.go
+output-options:
+  nullable-type: true
+  skip-prune: true
