@@ -1,0 +1,474 @@
+openapi: 3.0.0
+info:
+  title: OpenMeter API
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: https://openmeter.cloud/terms-of-service
+  description: |-
+    OpenMeter is a cloud native usage metering and billing service.
+    The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
+servers:
+  - url: https://openmeter.cloud/api/v3
+    description: Cloud
+    variables: {}
+  - url: https://127.0.0.1/api/v3
+    description: Local
+    variables: {}
+tags:
+  - name: Metering Events
+    description: Metering events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.
+paths:
+  /metering-events:
+    post:
+      operationId: ingest-metering-events
+      description: Ingests an event or batch of events following the CloudEvents specification.
+      summary: Ingest metering events
+      responses:
+        '204':
+          description: The events have been ingested and are being processed asynchronously.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      x-internal: true
+      x-unstable: true
+      tags:
+        - Metering Events
+      requestBody:
+        required: true
+        content:
+          application/cloudevents+json:
+            schema:
+              $ref: '#/components/schemas/MeteringEvent'
+          application/cloudevents-batch+json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/MeteringEvent'
+          application/json:
+            schema:
+              anyOf:
+                - $ref: '#/components/schemas/MeteringEvent'
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/MeteringEvent'
+components:
+  schemas:
+    DateTime:
+      type: string
+      format: date-time
+      description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+      title: RFC3339 Date-Time
+      example: '2023-01-01T01:01:01.001Z'
+    MeteringEvent:
+      type: object
+      required:
+        - id
+        - source
+        - specversion
+        - type
+        - subject
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: Identifies the event.
+          example: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
+        source:
+          type: string
+          minLength: 1
+          format: uri-reference
+          description: Identifies the context in which an event happened.
+          example: service-name
+        specversion:
+          type: string
+          minLength: 1
+          description: The version of the CloudEvents specification which the event uses.
+          example: '1.0'
+          default: '1.0'
+        type:
+          type: string
+          minLength: 1
+          description: Contains a value describing the type of event related to the originating occurrence.
+          example: com.example.someevent
+        datacontenttype:
+          type: string
+          enum:
+            - application/json
+          nullable: true
+          description: Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
+          example: application/json
+        dataschema:
+          type: string
+          format: uri
+          nullable: true
+          minLength: 1
+          description: Identifies the schema that data adheres to.
+        subject:
+          type: string
+          minLength: 1
+          description: Describes the subject of the event in the context of the event producer (identified by source).
+          example: customer-id
+        time:
+          type: string
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+          description: Timestamp of when the occurrence happened. Must adhere to RFC 3339.
+          example: '2023-01-01T01:01:01.001Z'
+        data:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description: |-
+            The event payload.
+            Optional, if present it must be a JSON object.
+      description: Metering event following the CloudEvents specification.
+      title: Metering Event
+      example:
+        specversion: '1.0'
+        id: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
+        source: service-name
+        type: prompt
+        subject: customer-id
+        time: '2023-01-01T01:01:01.001Z'
+        data:
+          prompt: Hello, world!
+          tokens: 100
+          model: gpt-4o
+          type: input
+    BaseError:
+      type: object
+      title: Error
+      description: standard error
+      required:
+        - status
+        - title
+        - instance
+        - detail
+      properties:
+        status:
+          type: integer
+          description: |
+            The HTTP status code of the error. Useful when passing the response
+            body to child properties in a frontend UI. Must be returned as an integer.
+          readOnly: true
+        title:
+          type: string
+          description: |
+            A short, human-readable summary of the problem. It should not
+            change between occurences of a problem, except for localization.
+            Should be provided as "Sentence case" for direct use in the UI.
+          readOnly: true
+        type:
+          type: string
+          description: The error type.
+          readOnly: true
+        instance:
+          type: string
+          description: |
+            Used to return the correlation ID back to the user, in the format
+            kong:trace:<correlation_id>. This helps us find the relevant logs
+            when a customer reports an issue.
+          readOnly: true
+        detail:
+          type: string
+          description: |
+            A human readable explanation specific to this occurence of the problem.
+            This field may contain request/entity data to help the user understand
+            what went wrong. Enclose variable values in square brackets. Should be
+            provided as "Sentence case" for direct use in the UI.
+          readOnly: true
+    InvalidRules:
+      description: invalid parameters rules
+      type: string
+      readOnly: true
+      nullable: true
+      enum:
+        - required
+        - is_array
+        - is_base64
+        - is_boolean
+        - is_date_time
+        - is_integer
+        - is_null
+        - is_number
+        - is_object
+        - is_string
+        - is_uuid
+        - is_fqdn
+        - is_arn
+        - unknown_property
+        - missing_reference
+        - is_label
+        - matches_regex
+        - invalid
+        - is_supported_network_availability_zone_list
+        - is_supported_network_cidr_block
+        - is_supported_provider_region
+        - type
+    InvalidParameterStandard:
+      type: object
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+          example: name
+          readOnly: true
+        rule:
+          $ref: '#/components/schemas/InvalidRules'
+        source:
+          type: string
+          example: body
+        reason:
+          type: string
+          example: is a required field
+          readOnly: true
+      required:
+        - field
+        - reason
+    InvalidParameterMinimumLength:
+      type: object
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+          example: name
+          readOnly: true
+        rule:
+          description: invalid parameters rules
+          type: string
+          readOnly: true
+          nullable: false
+          enum:
+            - min_length
+            - min_digits
+            - min_lowercase
+            - min_uppercase
+            - min_symbols
+            - min_items
+            - min
+        minimum:
+          type: integer
+          example: 8
+        source:
+          type: string
+          example: body
+        reason:
+          type: string
+          example: must have at least 8 characters
+          readOnly: true
+      required:
+        - field
+        - reason
+        - rule
+        - minimum
+    InvalidParameterMaximumLength:
+      type: object
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+          example: name
+          readOnly: true
+        rule:
+          description: invalid parameters rules
+          type: string
+          readOnly: true
+          nullable: false
+          enum:
+            - max_length
+            - max_items
+            - max
+        maximum:
+          type: integer
+          example: 8
+        source:
+          type: string
+          example: body
+        reason:
+          type: string
+          example: must not have more than 8 characters
+          readOnly: true
+      required:
+        - field
+        - reason
+        - rule
+        - maximum
+    InvalidParameterChoiceItem:
+      type: object
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+          example: name
+          readOnly: true
+        rule:
+          description: invalid parameters rules
+          type: string
+          readOnly: true
+          nullable: false
+          enum:
+            - enum
+        reason:
+          type: string
+          example: is a required field
+          readOnly: true
+        choices:
+          type: array
+          uniqueItems: true
+          readOnly: true
+          nullable: false
+          minItems: 1
+          items: {}
+        source:
+          type: string
+          example: body
+      required:
+        - field
+        - reason
+        - rule
+        - choices
+    InvalidParameterDependentItem:
+      type: object
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+          example: name
+          readOnly: true
+        rule:
+          description: invalid parameters rules
+          type: string
+          readOnly: true
+          nullable: true
+          enum:
+            - dependent_fields
+        reason:
+          type: string
+          example: is a required field
+          readOnly: true
+        dependents:
+          type: array
+          uniqueItems: true
+          nullable: true
+          items: {}
+          readOnly: true
+        source:
+          type: string
+          example: body
+      required:
+        - field
+        - rule
+        - reason
+        - dependents
+    InvalidParameters:
+      type: array
+      nullable: false
+      uniqueItems: true
+      minItems: 1
+      description: invalid parameters
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/InvalidParameterStandard'
+          - $ref: '#/components/schemas/InvalidParameterMinimumLength'
+          - $ref: '#/components/schemas/InvalidParameterMaximumLength'
+          - $ref: '#/components/schemas/InvalidParameterChoiceItem'
+          - $ref: '#/components/schemas/InvalidParameterDependentItem'
+    BadRequestError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          required:
+            - invalid_parameters
+          properties:
+            invalid_parameters:
+              $ref: '#/components/schemas/InvalidParameters'
+    UnauthorizedError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 401
+            title:
+              example: Unauthorized
+            type:
+              example: https://httpstatuses.com/401
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Invalid credentials
+    ForbiddenError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 403
+            title:
+              example: Forbidden
+            type:
+              example: https://httpstatuses.com/403
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Forbidden
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/BadRequestError'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/UnauthorizedError'
+          examples:
+            UnauthorizedExample:
+              $ref: '#/components/examples/UnauthorizedExample'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ForbiddenError'
+          examples:
+            UnauthorizedExample:
+              $ref: '#/components/examples/ForbiddenExample'
+    Internal:
+      description: Internal
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/BaseError'
+    NotAvailable:
+      description: Service not available
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/BaseError'
+  examples:
+    UnauthorizedExample:
+      value:
+        status: 401
+        title: Unauthorized
+        instance: kong:trace:8347343766220159418
+        detail: Unauthorized
+    ForbiddenExample:
+      value:
+        status: 403
+        title: Forbidden
+        instance: kong:trace:2723154947768991354
+        detail: You do not have permission to perform this action

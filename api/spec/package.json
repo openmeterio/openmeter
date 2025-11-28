@@ -7,6 +7,7 @@
     "compile:openapi": "tsp compile --config tspconfig.yaml ./src/cloud",
     "compile:aip": "tsp compile --config tspconfig.aip.yaml ./src/aip",
     "compile:client": "tsp compile --config tspconfig.client.yaml ./src",
+    "bundle:aip": "openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml",
     "watch:openapi": "tsp compile --watch --config tspconfig.yaml ./src/cloud",
     "watch:aip": "tsp compile --watch --config tspconfig.aip.yaml ./src/aip",
     "watch:client": "tsp compile --watch --config tspconfig.client.yaml ./src",
@@ -21,10 +22,10 @@
     },
     "./aip": {
       "typespec": "./src/aip/main.tsp"
-    },
-    "./openapi.yaml": "./output/openapi.OpenMeterCloud.yaml"
+    }
   },
   "devDependencies": {
+    "@redocly/cli": "2.12.0",
     "@types/node": "24.10.1",
     "@typespec/compiler": "1.6.0",
     "@typespec/http": "1.6.0",
