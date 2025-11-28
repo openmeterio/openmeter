@@ -338,6 +338,28 @@ export class BillingInvoices {
   }
 
   /**
+   * Snapshot invoice line item quantities
+   * @description Snapshot the quantities of the invoice line items. This is useful for invoices that have usage-based line items.
+   * @param id - The ID of the invoice to snapshot
+   * @param signal - An optional abort signal
+   * @returns The invoice with snapshotted quantities
+   */
+  public async snapshotQuantities(
+    id: operations['snapshotQuantitiesInvoiceAction']['parameters']['path']['invoiceId'],
+    options?: RequestOptions,
+  ) {
+    const resp = await this.client.POST(
+      '/api/v1/billing/invoices/{invoiceId}/snapshot-quantities',
+      {
+        params: { path: { invoiceId: id } },
+        ...options,
+      },
+    )
+
+    return transformResponse(resp)
+  }
+
+  /**
    * Simulate an invoice for a customer
    * @param id - The ID of the customer to simulate the invoice for
    * @param signal - An optional abort signal
