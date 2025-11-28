@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/sink"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
@@ -37,6 +38,7 @@ type Application struct {
 	TopicResolver    *topicresolver.NamespacedTopicResolver
 	Tracer           trace.Tracer
 	MeterService     meter.Service
+	Sink             *sink.Sink
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
@@ -53,11 +55,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Meter,
 		common.Namespace,
 		common.NewDefaultTextMapPropagator,
-		common.NewFlushHandler,
-		common.NewSinkWorkerPublisher,
 		common.ProgressManager,
 		common.SinkWorkerProvisionTopics,
 		common.Streaming,
+		common.Sink,
 		common.Telemetry,
 		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.WatermillNoPublisher,

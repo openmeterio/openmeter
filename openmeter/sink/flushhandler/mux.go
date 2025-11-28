@@ -29,15 +29,15 @@ func (f *FlushEventHandlers) OnDrainComplete(fn DrainCompleteFunc) {
 }
 
 func (f *FlushEventHandlers) OnFlushSuccess(ctx context.Context, events []models.SinkMessage) error {
-	var finalError error
+	var errs []error
 
 	for _, handler := range f.handlers {
 		if err := handler.OnFlushSuccess(ctx, events); err != nil {
-			finalError = errors.Join(finalError, err)
+			errs = append(errs, err)
 		}
 	}
 
-	return finalError
+	return errors.Join(errs...)
 }
 
 func (f *FlushEventHandlers) Close() error {

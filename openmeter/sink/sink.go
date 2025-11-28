@@ -962,33 +962,6 @@ func (s *Sink) Close() error {
 		s.flushTimer.Stop()
 	}
 
-	if s.config.Consumer != nil {
-		logger.Info("closing Kafka consumer")
-		if err := s.config.Consumer.Close(); err != nil {
-			logger.Error("failed to close consumer client", slog.String("err", err.Error()))
-		}
-	}
-
-	if s.config.FlushEventHandler != nil {
-		logger.Info("shutting down flush success handlers")
-		if err := s.config.FlushEventHandler.Close(); err != nil {
-			logger.Error("failed to close flush success handler", slog.String("err", err.Error()))
-		}
-
-		drainTimeoutContext, cancel := context.WithTimeout(context.Background(), s.config.DrainTimeout)
-		defer cancel()
-		if err := s.config.FlushEventHandler.WaitForDrain(drainTimeoutContext); err != nil {
-			logger.Error("failed to drain flush success handlers", slog.String("err", err.Error()))
-		}
-	}
-
-	if s.config.Deduplicator != nil {
-		logger.Info("closing deduplicator")
-		if err := s.config.Deduplicator.Close(); err != nil {
-			logger.Error("failed to close deduplicator", "error", err)
-		}
-	}
-
 	return nil
 }
 

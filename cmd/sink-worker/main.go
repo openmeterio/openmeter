@@ -9,21 +9,12 @@ import (
 	"os"
 	"syscall"
 
-	confluentkafka "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/oklog/run"
+	"github.com/samber/lo"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/dedupe"
-	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
-	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/sink"
-	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
-	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/log"
 )
 
@@ -101,154 +92,36 @@ func main() {
 
 	var group run.Group
 
-	// Initialize sink worker
-	sink, err := initSink(
-		conf,
-		logger,
-		app.Meter,
-		app.Streaming,
-		app.Tracer,
-		app.TopicResolver,
-		app.FlushHandler,
-		app.MeterService,
-	)
-	if err != nil {
-		logger.Error("failed to initialize sink worker", "error", err)
-		os.Exit(1)
-	}
-	defer func() {
-		_ = sink.Close()
-	}()
-
 	// Add sink worker to run group
 	group.Add(
-		func() error { return sink.Run(ctx) },
-		func(err error) { _ = sink.Close() },
+		func() error { return app.Sink.Run(ctx) },
+		func(err error) { _ = app.Sink.Close() },
 	)
 
 	// Set up telemetry server
-	{
-		server := app.TelemetryServer
-
-		group.Add(
-			func() error { return server.ListenAndServe() },
-			func(err error) { _ = server.Shutdown(ctx) },
-		)
-	}
+	group.Add(
+		func() error { return app.TelemetryServer.ListenAndServe() },
+		func(err error) { _ = app.TelemetryServer.Shutdown(ctx) },
+	)
 
 	// Setup signal handler
 	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
 
 	// Run actors
 	err = group.Run(run.WithReverseShutdownOrder())
+	if err != nil {
+		// Ignore HTTP server shutdown error
+		if errors.Is(err, http.ErrServerClosed) {
+			return
+		}
 
-	if e := &(run.SignalError{}); errors.As(err, &e) {
-		logger.Info("received signal: shutting down", slog.String("signal", e.Signal.String()))
-	} else if !errors.Is(err, http.ErrServerClosed) {
+		if e, ok := lo.ErrorsAs[*run.SignalError](err); ok {
+			logger.Info("received signal: shutting down", slog.String("signal", e.Signal.String()))
+
+			return
+		}
+
 		logger.Error("application stopped due to error", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-}
-
-func initSink(
-	conf config.Configuration,
-	logger *slog.Logger,
-	metricMeter metric.Meter,
-	streaming streaming.Connector,
-	tracer trace.Tracer,
-	topicResolver *topicresolver.NamespacedTopicResolver,
-	flushHandler flushhandler.FlushEventHandler,
-	meterService meter.Service,
-) (*sink.Sink, error) {
-	var err error
-
-	// Temporary: copy over sink storage settings
-	// TODO: remove after config migration is over
-	if conf.Sink.Storage.AsyncInsert {
-		conf.Aggregation.AsyncInsert = conf.Sink.Storage.AsyncInsert
-	}
-	if conf.Sink.Storage.AsyncInsertWait {
-		conf.Aggregation.AsyncInsertWait = conf.Sink.Storage.AsyncInsertWait
-	}
-	if conf.Sink.Storage.QuerySettings != nil {
-		conf.Aggregation.InsertQuerySettings = conf.Sink.Storage.QuerySettings
-	}
-
-	// Initialize deduplicator if enabled
-	var deduplicator dedupe.Deduplicator
-	if conf.Sink.Dedupe.Enabled {
-		deduplicator, err = conf.Sink.Dedupe.NewDeduplicator()
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize deduplicator: %w", err)
-		}
-	}
-
-	// Initialize storage
-	storage, err := sink.NewClickhouseStorage(sink.ClickHouseStorageConfig{
-		Streaming: streaming,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize storage: %w", err)
-	}
-
-	// Initialize Kafka consumer
-
-	consumerConfig := conf.Sink.Kafka.AsConsumerConfig()
-
-	// Override following Kafka consumer configuration parameters with hardcoded values as the Sink implementation relies on
-	// these to be set to a specific value.
-	consumerConfig.EnableAutoCommit = true
-	consumerConfig.EnableAutoOffsetStore = false
-	// Used when offset retention resets the offset. In this case we want to consume from the latest offset
-	// as everything before should be already processed.
-	consumerConfig.AutoOffsetReset = "latest"
-
-	if err = consumerConfig.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid Kafka consumer configuration: %w", err)
-	}
-
-	logger.WithGroup("kafka").
-		Debug("initializing Kafka consumer with group configuration",
-			"group.id", consumerConfig.ConsumerGroupID,
-			"group.instance.id", consumerConfig.ConsumerGroupInstanceID,
-			"client.id", consumerConfig.ClientID,
-			"session.timeout", consumerConfig.SessionTimeout.Duration().String(),
-		)
-
-	consumerConfigMap, err := consumerConfig.AsConfigMap()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate Kafka configuration map: %w", err)
-	}
-
-	consumer, err := confluentkafka.NewConsumer(&consumerConfigMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kafka consumer: %s", err)
-	}
-
-	// Enable Kafka client logging
-	go pkgkafka.ConsumeLogChannel(consumer, logger.WithGroup("kafka").WithGroup("consumer"))
-
-	sinkConfig := sink.SinkConfig{
-		Logger:                  logger,
-		Tracer:                  tracer,
-		MetricMeter:             metricMeter,
-		Storage:                 storage,
-		Deduplicator:            deduplicator,
-		Consumer:                consumer,
-		MinCommitCount:          conf.Sink.MinCommitCount,
-		MaxCommitWait:           conf.Sink.MaxCommitWait,
-		MaxPollTimeout:          conf.Sink.MaxPollTimeout,
-		FlushSuccessTimeout:     conf.Sink.FlushSuccessTimeout,
-		DrainTimeout:            conf.Sink.DrainTimeout,
-		NamespaceRefetch:        conf.Sink.NamespaceRefetch,
-		FlushEventHandler:       flushHandler,
-		TopicResolver:           topicResolver,
-		NamespaceRefetchTimeout: conf.Sink.NamespaceRefetchTimeout,
-		NamespaceTopicRegexp:    conf.Sink.NamespaceTopicRegexp,
-		MeterRefetchInterval:    conf.Sink.MeterRefetchInterval,
-		MeterService:            meterService,
-		LogDroppedEvents:        conf.Sink.LogDroppedEvents,
-	}
-
-	return sink.NewSink(sinkConfig)
 }
