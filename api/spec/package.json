@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "compile": "pnpm compile:openapi && pnpm compile:aip && pnpm compile:client",
+    "compile": "pnpm compile:openapi && pnpm compile:v3 && pnpm compile:client",
     "compile:openapi": "tsp compile --config tspconfig.yaml ./src/cloud",
-    "compile:aip": "tsp compile --config tspconfig.aip.yaml ./src/aip",
+    "compile:v3": "tsp compile --config tspconfig.v3.yaml ./src/v3",
     "compile:client": "tsp compile --config tspconfig.client.yaml ./src",
+    "bundle:v3": "openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml",
     "watch:openapi": "tsp compile --watch --config tspconfig.yaml ./src/cloud",
-    "watch:aip": "tsp compile --watch --config tspconfig.aip.yaml ./src/aip",
+    "watch:v3": "tsp compile --watch --config tspconfig.v3.yaml ./src/v3",
     "watch:client": "tsp compile --watch --config tspconfig.client.yaml ./src",
     "format": "prettier --list-different --find-config-path --write .",
     "lint": "prettier --check .",
@@ -19,12 +20,12 @@
     ".": {
       "typespec": "./src/cloud/main.tsp"
     },
-    "./aip": {
-      "typespec": "./src/aip/main.tsp"
-    },
-    "./openapi.yaml": "./output/openapi.OpenMeterCloud.yaml"
+    "./v3": {
+      "typespec": "./src/v3/main.tsp"
+    }
   },
   "devDependencies": {
+    "@redocly/cli": "2.12.0",
     "@types/node": "24.10.1",
     "@typespec/compiler": "1.6.0",
     "@typespec/http": "1.6.0",
