@@ -43,7 +43,7 @@ interface MeteringEventsEndpoints extends Events.MeteringEventsOperations {}
 @friendlyName("systemAccountAccessToken")
 @useRef("../../../../common/definitions/security.yaml#/components/securitySchemes/systemAccountAccessToken")
 model systemAccountAccessToken {
-  ...Http.BearerAuth
+  ...Http.BearerAuth;
 }
 
 /**
@@ -53,7 +53,7 @@ model systemAccountAccessToken {
 @friendlyName("personalAccessToken")
 @useRef("../../../../common/definitions/security.yaml#/components/securitySchemes/personalAccessToken")
 model personalAccessToken {
-...Http.BearerAuth
+  ...Http.BearerAuth;
 }
 
 /**
@@ -63,5 +63,5 @@ model personalAccessToken {
 @friendlyName("konnectAccessToken")
 @useRef("../../../../common/definitions/security.yaml#/components/securitySchemes/konnectAccessToken")
 model konnectAccessToken {
-...Http.BearerAuth
+  ...Http.BearerAuth;
 }
