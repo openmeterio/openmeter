@@ -25,7 +25,9 @@ import (
 )
 
 var Sink = wire.NewSet(
-	NewFlushHandler,
+	NewIngestNotificationHandler,
+	NewFlushHandlers,
+	NewFlushHandlerManager,
 	NewSinkWorkerPublisher,
 	NewSinkKafkaConsumer,
 	NewSinkDeduplicator,
@@ -44,12 +46,35 @@ func NewSinkWorkerPublisher(
 	return publisher, func() {}, err
 }
 
-func NewFlushHandler(
+type IngestNotificationHandler flushhandler.FlushEventHandler
+
+func NewIngestNotificationHandler(
+	sinkConfig config.SinkConfiguration,
+	eventPublisher eventbus.Publisher,
+	meter metric.Meter,
+	logger *slog.Logger,
+) (IngestNotificationHandler, error) {
+	handler, err := ingestnotification.NewHandler(logger, meter, eventPublisher, ingestnotification.HandlerConfig{
+		MaxEventsInBatch: sinkConfig.IngestNotifications.MaxEventsInBatch,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize ingest notification handler: %w", err)
+	}
+
+	return handler, nil
+}
+
+func NewFlushHandlers(
+	ingest IngestNotificationHandler,
+) []flushhandler.FlushEventHandler {
+	return []flushhandler.FlushEventHandler{ingest}
+}
+
+func NewFlushHandlerManager(
 	sinkConfig config.SinkConfiguration,
 	messagePublisher message.Publisher,
-	eventPublisher eventbus.Publisher,
 	logger *slog.Logger,
-	meter metric.Meter,
+	handlers []flushhandler.FlushEventHandler,
 ) (flushhandler.FlushEventHandler, func(), error) {
 	flushHandlerMux := flushhandler.NewFlushEventHandlers()
 
@@ -61,26 +86,23 @@ func NewFlushHandler(
 		}
 	})
 
-	ingestNotificationHandler, err := ingestnotification.NewHandler(logger, meter, eventPublisher, ingestnotification.HandlerConfig{
-		MaxEventsInBatch: sinkConfig.IngestNotifications.MaxEventsInBatch,
-	})
-	if err != nil {
-		return nil, nil, err
+	for _, handler := range handlers {
+		if handler != nil {
+			flushHandlerMux.AddHandler(handler)
+		}
 	}
-
-	flushHandlerMux.AddHandler(ingestNotificationHandler)
 
 	closer := func() {
 		logger.Info("shutting down flush success handlers")
 
-		if err = flushHandlerMux.Close(); err != nil {
+		if err := flushHandlerMux.Close(); err != nil {
 			logger.Error("failed to close flush success handler", slog.String("err", err.Error()))
 		}
 
 		drainCtx, cancel := context.WithTimeout(context.Background(), sinkConfig.DrainTimeout)
 		defer cancel()
 
-		if err = flushHandlerMux.WaitForDrain(drainCtx); err != nil {
+		if err := flushHandlerMux.WaitForDrain(drainCtx); err != nil {
 			logger.Error("failed to drain flush success handlers", slog.String("err", err.Error()))
 		}
 	}
@@ -138,7 +160,7 @@ func NewSinkKafkaConsumer(conf config.SinkConfiguration, logger *slog.Logger) (*
 	consumerConfig.EnableAutoOffsetStore = false
 	// Used when offset retention resets the offset. In this case we want to consume from the latest offset
 	// as everything before should be already processed.
-	consumerConfig.AutoOffsetReset = "latest"
+	consumerConfig.AutoOffsetReset = pkgkafka.AutoOffsetResetLatest
 
 	return NewKafkaConsumer(consumerConfig, logger)
 }
