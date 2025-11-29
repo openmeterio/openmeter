@@ -995,6 +995,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearCollectionAt(value *time.Time) *Bill
 	return u.SetCollectionAt(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearPaymentProcessingEnteredAt(value *time.Time) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearPaymentProcessingEnteredAt()
+	}
+	return u.SetPaymentProcessingEnteredAt(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearPaymentProcessingEnteredAt(value *time.Time) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearPaymentProcessingEnteredAt()
+	}
+	return u.SetPaymentProcessingEnteredAt(*value)
+}
+
 func (u *BillingInvoiceFlatFeeLineConfigUpdate) SetOrClearIndex(value *int) *BillingInvoiceFlatFeeLineConfigUpdate {
 	if value == nil {
 		return u.ClearIndex()

@@ -322,6 +322,11 @@ func CollectionAt(v time.Time) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldCollectionAt, v))
 }
 
+// PaymentProcessingEnteredAt applies equality check predicate on the "payment_processing_entered_at" field. It's identical to PaymentProcessingEnteredAtEQ.
+func PaymentProcessingEnteredAt(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldPaymentProcessingEnteredAt, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldNamespace, v))
@@ -3532,6 +3537,56 @@ func CollectionAtIsNil() predicate.BillingInvoice {
 // CollectionAtNotNil applies the NotNil predicate on the "collection_at" field.
 func CollectionAtNotNil() predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldNotNull(FieldCollectionAt))
+}
+
+// PaymentProcessingEnteredAtEQ applies the EQ predicate on the "payment_processing_entered_at" field.
+func PaymentProcessingEnteredAtEQ(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldPaymentProcessingEnteredAt, v))
+}
+
+// PaymentProcessingEnteredAtNEQ applies the NEQ predicate on the "payment_processing_entered_at" field.
+func PaymentProcessingEnteredAtNEQ(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldPaymentProcessingEnteredAt, v))
+}
+
+// PaymentProcessingEnteredAtIn applies the In predicate on the "payment_processing_entered_at" field.
+func PaymentProcessingEnteredAtIn(vs ...time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIn(FieldPaymentProcessingEnteredAt, vs...))
+}
+
+// PaymentProcessingEnteredAtNotIn applies the NotIn predicate on the "payment_processing_entered_at" field.
+func PaymentProcessingEnteredAtNotIn(vs ...time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldPaymentProcessingEnteredAt, vs...))
+}
+
+// PaymentProcessingEnteredAtGT applies the GT predicate on the "payment_processing_entered_at" field.
+func PaymentProcessingEnteredAtGT(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGT(FieldPaymentProcessingEnteredAt, v))
+}
+
+// PaymentProcessingEnteredAtGTE applies the GTE predicate on the "payment_processing_entered_at" field.
+func PaymentProcessingEnteredAtGTE(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGTE(FieldPaymentProcessingEnteredAt, v))
+}
+
+// PaymentProcessingEnteredAtLT applies the LT predicate on the "payment_processing_entered_at" field.
+func PaymentProcessingEnteredAtLT(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLT(FieldPaymentProcessingEnteredAt, v))
+}
+
+// PaymentProcessingEnteredAtLTE applies the LTE predicate on the "payment_processing_entered_at" field.
+func PaymentProcessingEnteredAtLTE(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLTE(FieldPaymentProcessingEnteredAt, v))
+}
+
+// PaymentProcessingEnteredAtIsNil applies the IsNil predicate on the "payment_processing_entered_at" field.
+func PaymentProcessingEnteredAtIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldPaymentProcessingEnteredAt))
+}
+
+// PaymentProcessingEnteredAtNotNil applies the NotNil predicate on the "payment_processing_entered_at" field.
+func PaymentProcessingEnteredAtNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldPaymentProcessingEnteredAt))
 }
 
 // HasSourceBillingProfile applies the HasEdge predicate on the "source_billing_profile" edge.

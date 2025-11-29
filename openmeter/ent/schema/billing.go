@@ -997,6 +997,12 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.Time("collection_at").
 			Optional().
 			Default(clock.Now),
+
+		// This is the timestamp the invoice first entered the Payment Processing State (InvoiceStatusPaymentProcessingPending).
+		// This is relevant as we later use this to determine stale-ness and guard against fraud.
+		field.Time("payment_processing_entered_at").
+			Optional().
+			Nillable(),
 	}
 }
 

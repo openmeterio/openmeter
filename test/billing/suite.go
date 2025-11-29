@@ -45,6 +45,7 @@ import (
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -362,7 +363,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 
 	namespace := in.Customer.Namespace
 
-	now := time.Now()
+	now := clock.Now()
 	invoiceAt := now.Add(-time.Second)
 	periodEnd := now.Add(-24 * time.Hour)
 	periodStart := periodEnd.Add(-24 * 30 * time.Hour)
@@ -419,7 +420,7 @@ func (s *BaseSuite) CreateDraftInvoice(t *testing.T, ctx context.Context, in Dra
 
 	s.CreateGatheringInvoice(t, ctx, in)
 
-	now := time.Now()
+	now := clock.Now()
 	invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customer.CustomerID{
 			ID:        in.Customer.ID,
