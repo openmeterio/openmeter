@@ -152,7 +152,7 @@ func NewSink(
 	sinkStorage sink.Storage,
 	deduplicator dedupe.Deduplicator,
 	meterService meter.Service,
-	topicResolver *topicresolver.NamespacedTopicResolver,
+	topicResolver topicresolver.Resolver,
 	flushHandler flushhandler.FlushEventHandler,
 ) (*sink.Sink, func(), error) {
 	s, err := sink.NewSink(sink.SinkConfig{
