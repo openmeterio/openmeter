@@ -367,7 +367,7 @@ func (a *adapter) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePl
 		if !params.Equal(*planAddon) {
 			query := a.db.PlanAddon.UpdateOneID(planAddon.ID).
 				Where(planaddondb.Namespace(params.Namespace)).
-				SetNillableMaxQuantity(params.MaxQuantity)
+				SetOrClearMaxQuantity(params.MaxQuantity)
 
 			if params.FromPlanPhase != nil {
 				query = query.SetFromPlanPhase(*params.FromPlanPhase)
