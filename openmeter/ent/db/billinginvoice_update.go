@@ -860,6 +860,26 @@ func (_u *BillingInvoiceUpdate) ClearCollectionAt() *BillingInvoiceUpdate {
 	return _u
 }
 
+// SetPaymentProcessingEnteredAt sets the "payment_processing_entered_at" field.
+func (_u *BillingInvoiceUpdate) SetPaymentProcessingEnteredAt(v time.Time) *BillingInvoiceUpdate {
+	_u.mutation.SetPaymentProcessingEnteredAt(v)
+	return _u
+}
+
+// SetNillablePaymentProcessingEnteredAt sets the "payment_processing_entered_at" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillablePaymentProcessingEnteredAt(v *time.Time) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetPaymentProcessingEnteredAt(*v)
+	}
+	return _u
+}
+
+// ClearPaymentProcessingEnteredAt clears the value of the "payment_processing_entered_at" field.
+func (_u *BillingInvoiceUpdate) ClearPaymentProcessingEnteredAt() *BillingInvoiceUpdate {
+	_u.mutation.ClearPaymentProcessingEnteredAt()
+	return _u
+}
+
 // SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
 func (_u *BillingInvoiceUpdate) SetBillingWorkflowConfigID(id string) *BillingInvoiceUpdate {
 	_u.mutation.SetBillingWorkflowConfigID(id)
@@ -1293,6 +1313,12 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.CollectionAtCleared() {
 		_spec.ClearField(billinginvoice.FieldCollectionAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PaymentProcessingEnteredAt(); ok {
+		_spec.SetField(billinginvoice.FieldPaymentProcessingEnteredAt, field.TypeTime, value)
+	}
+	if _u.mutation.PaymentProcessingEnteredAtCleared() {
+		_spec.ClearField(billinginvoice.FieldPaymentProcessingEnteredAt, field.TypeTime)
 	}
 	if _u.mutation.BillingWorkflowConfigCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -2259,6 +2285,26 @@ func (_u *BillingInvoiceUpdateOne) ClearCollectionAt() *BillingInvoiceUpdateOne 
 	return _u
 }
 
+// SetPaymentProcessingEnteredAt sets the "payment_processing_entered_at" field.
+func (_u *BillingInvoiceUpdateOne) SetPaymentProcessingEnteredAt(v time.Time) *BillingInvoiceUpdateOne {
+	_u.mutation.SetPaymentProcessingEnteredAt(v)
+	return _u
+}
+
+// SetNillablePaymentProcessingEnteredAt sets the "payment_processing_entered_at" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillablePaymentProcessingEnteredAt(v *time.Time) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetPaymentProcessingEnteredAt(*v)
+	}
+	return _u
+}
+
+// ClearPaymentProcessingEnteredAt clears the value of the "payment_processing_entered_at" field.
+func (_u *BillingInvoiceUpdateOne) ClearPaymentProcessingEnteredAt() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearPaymentProcessingEnteredAt()
+	return _u
+}
+
 // SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
 func (_u *BillingInvoiceUpdateOne) SetBillingWorkflowConfigID(id string) *BillingInvoiceUpdateOne {
 	_u.mutation.SetBillingWorkflowConfigID(id)
@@ -2722,6 +2768,12 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 	}
 	if _u.mutation.CollectionAtCleared() {
 		_spec.ClearField(billinginvoice.FieldCollectionAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PaymentProcessingEnteredAt(); ok {
+		_spec.SetField(billinginvoice.FieldPaymentProcessingEnteredAt, field.TypeTime, value)
+	}
+	if _u.mutation.PaymentProcessingEnteredAtCleared() {
+		_spec.ClearField(billinginvoice.FieldPaymentProcessingEnteredAt, field.TypeTime)
 	}
 	if _u.mutation.BillingWorkflowConfigCleared() {
 		edge := &sqlgraph.EdgeSpec{

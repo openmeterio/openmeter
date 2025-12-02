@@ -52,7 +52,15 @@ func allocateStateMachine() *InvoiceStateMachine {
 				return fmt.Errorf("invalid state type: %v", state)
 			}
 
+			previousStatus := out.Invoice.Status
 			out.Invoice.Status = invState
+
+			if invState == billing.InvoiceStatusPaymentProcessingPending &&
+				previousStatus != billing.InvoiceStatusPaymentProcessingPending &&
+				out.Invoice.PaymentProcessingEnteredAt == nil {
+				now := clock.Now().UTC()
+				out.Invoice.PaymentProcessingEnteredAt = &now
+			}
 
 			sd, err := out.StatusDetails(ctx)
 			if err != nil {
@@ -366,6 +374,7 @@ func (m *InvoiceStateMachine) calculateAvailableActionDetails(ctx context.Contex
 
 	originalState := m.Invoice.Status
 	originalValidationErrors := m.Invoice.ValidationIssues
+	originalPaymentProcessingEnteredAt := m.Invoice.PaymentProcessingEnteredAt
 	m.Invoice.ValidationIssues = nil
 
 	if err := m.StateMachine.FireCtx(ctx, baseTrigger); err != nil {
@@ -389,6 +398,7 @@ func (m *InvoiceStateMachine) calculateAvailableActionDetails(ctx context.Contex
 
 	resultingState := m.Invoice.Status
 	m.Invoice.Status = originalState
+	m.Invoice.PaymentProcessingEnteredAt = originalPaymentProcessingEnteredAt
 	m.Invoice.ValidationIssues = originalValidationErrors
 
 	return &billing.InvoiceAvailableActionDetails{

@@ -11464,6 +11464,7 @@ type BillingInvoiceMutation struct {
 	period_start                             *time.Time
 	period_end                               *time.Time
 	collection_at                            *time.Time
+	payment_processing_entered_at            *time.Time
 	clearedFields                            map[string]struct{}
 	source_billing_profile                   *string
 	clearedsource_billing_profile            bool
@@ -13988,6 +13989,55 @@ func (m *BillingInvoiceMutation) ResetCollectionAt() {
 	delete(m.clearedFields, billinginvoice.FieldCollectionAt)
 }
 
+// SetPaymentProcessingEnteredAt sets the "payment_processing_entered_at" field.
+func (m *BillingInvoiceMutation) SetPaymentProcessingEnteredAt(t time.Time) {
+	m.payment_processing_entered_at = &t
+}
+
+// PaymentProcessingEnteredAt returns the value of the "payment_processing_entered_at" field in the mutation.
+func (m *BillingInvoiceMutation) PaymentProcessingEnteredAt() (r time.Time, exists bool) {
+	v := m.payment_processing_entered_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentProcessingEnteredAt returns the old "payment_processing_entered_at" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldPaymentProcessingEnteredAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentProcessingEnteredAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentProcessingEnteredAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentProcessingEnteredAt: %w", err)
+	}
+	return oldValue.PaymentProcessingEnteredAt, nil
+}
+
+// ClearPaymentProcessingEnteredAt clears the value of the "payment_processing_entered_at" field.
+func (m *BillingInvoiceMutation) ClearPaymentProcessingEnteredAt() {
+	m.payment_processing_entered_at = nil
+	m.clearedFields[billinginvoice.FieldPaymentProcessingEnteredAt] = struct{}{}
+}
+
+// PaymentProcessingEnteredAtCleared returns if the "payment_processing_entered_at" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) PaymentProcessingEnteredAtCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldPaymentProcessingEnteredAt]
+	return ok
+}
+
+// ResetPaymentProcessingEnteredAt resets all changes to the "payment_processing_entered_at" field.
+func (m *BillingInvoiceMutation) ResetPaymentProcessingEnteredAt() {
+	m.payment_processing_entered_at = nil
+	delete(m.clearedFields, billinginvoice.FieldPaymentProcessingEnteredAt)
+}
+
 // ClearSourceBillingProfile clears the "source_billing_profile" edge to the BillingProfile entity.
 func (m *BillingInvoiceMutation) ClearSourceBillingProfile() {
 	m.clearedsource_billing_profile = true
@@ -14318,7 +14368,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 55)
+	fields := make([]string, 0, 56)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -14484,6 +14534,9 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	if m.collection_at != nil {
 		fields = append(fields, billinginvoice.FieldCollectionAt)
 	}
+	if m.payment_processing_entered_at != nil {
+		fields = append(fields, billinginvoice.FieldPaymentProcessingEnteredAt)
+	}
 	return fields
 }
 
@@ -14602,6 +14655,8 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.PeriodEnd()
 	case billinginvoice.FieldCollectionAt:
 		return m.CollectionAt()
+	case billinginvoice.FieldPaymentProcessingEnteredAt:
+		return m.PaymentProcessingEnteredAt()
 	}
 	return nil, false
 }
@@ -14721,6 +14776,8 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldPeriodEnd(ctx)
 	case billinginvoice.FieldCollectionAt:
 		return m.OldCollectionAt(ctx)
+	case billinginvoice.FieldPaymentProcessingEnteredAt:
+		return m.OldPaymentProcessingEnteredAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoice field %s", name)
 }
@@ -15115,6 +15172,13 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCollectionAt(v)
 		return nil
+	case billinginvoice.FieldPaymentProcessingEnteredAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentProcessingEnteredAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoice field %s", name)
 }
@@ -15241,6 +15305,9 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldCollectionAt) {
 		fields = append(fields, billinginvoice.FieldCollectionAt)
 	}
+	if m.FieldCleared(billinginvoice.FieldPaymentProcessingEnteredAt) {
+		fields = append(fields, billinginvoice.FieldPaymentProcessingEnteredAt)
+	}
 	return fields
 }
 
@@ -15350,6 +15417,9 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldCollectionAt:
 		m.ClearCollectionAt()
+		return nil
+	case billinginvoice.FieldPaymentProcessingEnteredAt:
+		m.ClearPaymentProcessingEnteredAt()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoice nullable field %s", name)
@@ -15523,6 +15593,9 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldCollectionAt:
 		m.ResetCollectionAt()
+		return nil
+	case billinginvoice.FieldPaymentProcessingEnteredAt:
+		m.ResetPaymentProcessingEnteredAt()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoice field %s", name)
