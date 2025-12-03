@@ -56,8 +56,8 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				ExcludeInactive: defaultx.WithDefault(params.ExcludeInactive, false),
 				Namespaces:      []string{ns},
 				Page: pagination.Page{
-					PageSize:   defaultx.WithDefault(params.PageSize, 0),
-					PageNumber: defaultx.WithDefault(params.Page, 0),
+					PageSize:   defaultx.WithDefault(params.PageSize, commonhttp.DefaultPageSize),
+					PageNumber: defaultx.WithDefault(params.Page, 1),
 				},
 				Limit:  defaultx.WithDefault(params.Limit, commonhttp.DefaultPageSize),
 				Offset: defaultx.WithDefault(params.Offset, 0),
