@@ -1,6 +1,7 @@
 package productcatalog
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -841,3 +843,44 @@ var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWith
 
 	return nil
 })
+
+func ValidateRateCardsWithFeatures(ctx context.Context, resolver NamespacedFeatureResolver) func(cards RateCards) error {
+	return func(rateCards RateCards) error {
+		var errs []error
+
+		for _, rateCard := range rateCards {
+			rc := rateCard.AsMeta()
+
+			rateCardFieldSelector := models.NewFieldSelectorGroup(
+				models.NewFieldSelector("rateCards").
+					WithExpression(
+						models.NewFieldAttrValue("key", rateCard.Key()),
+					),
+			)
+
+			if rc.FeatureID == nil && rc.FeatureKey == nil {
+				continue
+			}
+
+			feat, err := resolver.Resolve(ctx, rc.FeatureID, rc.FeatureKey)
+			if err != nil {
+				switch {
+				case models.IsGenericNotFoundError(err):
+					errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardFeatureNotFound))
+				case models.IsGenericConflictError(err):
+					errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardFeatureMismatch))
+				default:
+					errs = append(errs, fmt.Errorf("failed to resolve feature for ratecard: %w", err))
+				}
+
+				continue
+			}
+
+			if feat.ArchivedAt != nil && clock.Now().UTC().After(feat.ArchivedAt.UTC()) {
+				errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardFeatureArchived))
+			}
+		}
+
+		return errors.Join(errs...)
+	}
+}

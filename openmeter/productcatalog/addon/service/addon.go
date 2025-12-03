@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -510,9 +511,29 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			)
 		}
 
+		pa := add.AsProductCatalogAddon()
+
 		// Run validations prior publishing add-on.
-		if err = add.AsProductCatalogAddon().Publishable(); err != nil {
-			return nil, err
+
+		var errs []error
+
+		if err = pa.Publishable(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid add-on [id=%s key=%s version=%d]: %w",
+				add.ID, add.Key, add.Version, err),
+			)
+		}
+
+		// Validate plan with features
+		resolver := productcatalog.NewNamespacedFeatureResolver(s.feature, params.Namespace)
+
+		if err = pa.ValidateWith(productcatalog.ValidateAddonWithFeatures(ctx, resolver)); err != nil {
+			errs = append(errs, fmt.Errorf("invalid add-on [id=%s key=%s version=%d]: %w",
+				add.ID, add.Key, add.Version, err),
+			)
+		}
+
+		if err = errors.Join(errs...); err != nil {
+			return nil, models.NewGenericValidationError(err)
 		}
 
 		// Find and archive add-on version with addon.AddonStatusActive if there is one. Only perform lookup if

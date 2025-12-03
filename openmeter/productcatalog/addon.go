@@ -1,6 +1,7 @@
 package productcatalog
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -315,5 +316,11 @@ func ValidateAddonHasCompatiblePrices() models.ValidatorFunc[Addon] {
 func AddonRateCardMatcherForAGivenPlanRateCard(planRateCard RateCard) func(addonRateCard RateCard) bool {
 	return func(addonRateCard RateCard) bool {
 		return addonRateCard.Key() == planRateCard.Key()
+	}
+}
+
+func ValidateAddonWithFeatures(ctx context.Context, resolver NamespacedFeatureResolver) models.ValidatorFunc[Addon] {
+	return func(a Addon) error {
+		return ValidateRateCardsWithFeatures(ctx, resolver)(a.RateCards)
 	}
 }

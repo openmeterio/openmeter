@@ -101,6 +101,36 @@ var ErrRateCardOnlyFlatPriceAllowed = models.NewValidationIssue(
 	models.WithWarningSeverity(),
 )
 
+const ErrCodeRateCardFeatureNotFound models.ErrorCode = "rate_card_feature_not_found"
+
+var ErrRateCardFeatureNotFound = models.NewValidationIssue(
+	ErrCodeRateCardFeatureNotFound,
+	"feature not found",
+	models.WithFieldString("featureKey"),
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeRateCardFeatureArchived models.ErrorCode = "rate_card_feature_archived"
+
+var ErrRateCardFeatureArchived = models.NewValidationIssue(
+	ErrCodeRateCardFeatureArchived,
+	"feature archived",
+	models.WithFieldString("featureKey"),
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeRateCardFeatureMismatch models.ErrorCode = "rate_card_feature_mismatch"
+
+var ErrRateCardFeatureMismatch = models.NewValidationIssue(
+	ErrCodeRateCardFeatureMismatch,
+	"feature id and key must reference the same feature",
+	models.WithFieldString("featureKey"),
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeRateCardFeatureIDMismatch models.ErrorCode = "rate_card_feature_id_mismatch"
 
 var ErrRateCardFeatureIDMismatch = models.NewValidationIssue(
