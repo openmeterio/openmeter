@@ -18,10 +18,10 @@ namespace Events;
  */
 @friendlyName("IngestEventsResponse")
 model IngestEventsResponse {
-  @statusCode _: 204;
+  @statusCode _: 202;
 }
 
-interface MeteringEventsOperations {
+interface EventsOperations {
   /**
    * Ingests an event or batch of events following the CloudEvents specification.
    */

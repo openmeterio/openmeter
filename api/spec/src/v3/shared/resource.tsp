@@ -32,24 +32,26 @@ model Resource {
   description?: string;
 
   #suppress "@openmeter/api-spec/doc-decorator" "shared model"
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   labels?: Common.Labels;
 
-  #suppress "@openmeter/api-spec/doc-decorator" "shared model"
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  public_labels?: Common.Labels;
-
-  #suppress "@openmeter/api-spec/doc-decorator" "shared model"
+  /**
+   * An ISO-8601 timestamp representation of entity creation date.
+   */
   @visibility(Lifecycle.Read)
-  created_at?: Common.CreatedAt;
+  created_at?: DateTime;
 
-  #suppress "@openmeter/api-spec/doc-decorator" "shared model"
+  /**
+   * An ISO-8601 timestamp representation of entity last update date.
+   */
   @visibility(Lifecycle.Read)
-  updated_at?: Common.UpdatedAt;
+  updated_at?: DateTime;
 
-  #suppress "@openmeter/api-spec/doc-decorator" "shared model"
+  /**
+   * An ISO-8601 timestamp representation of entity deletion date.
+   */
   @visibility(Lifecycle.Read)
-  deleted_at?: Common.DeletedAt;
+  deleted_at?: DateTime;
 }
 
 /**
