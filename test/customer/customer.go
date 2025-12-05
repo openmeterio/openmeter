@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -552,7 +553,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		Key:       lo.ToPtr("customer-1"),
+		Key:       lo.ToPtr(filter.FilterString{Ilike: lo.ToPtr("customer-1")}),
 	})
 
 	require.NoError(t, err, "Listing customers with key filter must not return error")

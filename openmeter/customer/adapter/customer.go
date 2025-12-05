@@ -49,9 +49,8 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			))
 		}
 
-		// Filters
-		if input.Key != nil {
-			query = query.Where(customerdb.KeyContainsFold(*input.Key))
+		if input.Key != nil && !input.Key.IsEmpty() {
+			query = query.Where(input.Key.Where(customerdb.FieldKey))
 		}
 
 		if input.Name != nil {

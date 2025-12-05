@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -52,7 +53,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
 
 				// Filters
-				Key:          params.Key,
+				Key:          lo.ToPtr(filter.FilterString{Ilike: params.Key}),
 				Name:         params.Name,
 				PrimaryEmail: params.PrimaryEmail,
 				Subject:      params.Subject,

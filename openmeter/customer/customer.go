@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -268,7 +269,7 @@ type ListCustomersInput struct {
 	Order   sortx.Order
 
 	// Filters
-	Key          *string
+	Key          *filter.FilterString
 	Name         *string
 	PrimaryEmail *string
 	Subject      *string
