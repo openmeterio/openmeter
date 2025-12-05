@@ -175,7 +175,11 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 }
 
 type (
-	UpdateCustomerRequest  = customer.UpdateCustomerInput
+	UpdateCustomerRequest struct {
+		Namespace       string
+		CustomerIDOrKey string
+		CustomerMutate  customer.CustomerMutate
+	}
 	UpdateCustomerResponse = api.Customer
 	UpdateCustomerHandler  httptransport.HandlerWithArgs[UpdateCustomerRequest, UpdateCustomerResponse, string]
 )
@@ -194,34 +198,38 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 				return UpdateCustomerRequest{}, err
 			}
 
-			// TODO: we should not allow key identifier for mutable operations
-			// Get the customer
-			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
-				CustomerIDOrKey: &customer.CustomerIDOrKey{
-					IDOrKey:   customerIDOrKey,
-					Namespace: ns,
-				},
-			})
-			if err != nil {
-				return UpdateCustomerRequest{}, err
-			}
-
-			if cus != nil && cus.IsDeleted() {
-				return UpdateCustomerRequest{},
-					models.NewGenericPreConditionFailedError(
-						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
-					)
-			}
-
 			req := UpdateCustomerRequest{
-				CustomerID:     cus.GetID(),
-				CustomerMutate: MapCustomerReplaceUpdate(body),
+				Namespace:       ns,
+				CustomerIDOrKey: customerIDOrKey,
+				CustomerMutate:  MapCustomerReplaceUpdate(body),
 			}
 
 			return req, nil
 		},
 		func(ctx context.Context, request UpdateCustomerRequest) (UpdateCustomerResponse, error) {
-			customer, err := h.service.UpdateCustomer(ctx, request)
+			// TODO: we should not allow key identifier for mutable operations
+			// Get the customer
+			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   request.CustomerIDOrKey,
+					Namespace: request.Namespace,
+				},
+			})
+			if err != nil {
+				return UpdateCustomerResponse{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return UpdateCustomerResponse{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
+			}
+
+			customer, err := h.service.UpdateCustomer(ctx, customer.UpdateCustomerInput{
+				CustomerID:     cus.GetID(),
+				CustomerMutate: request.CustomerMutate,
+			})
 			if err != nil {
 				return UpdateCustomerResponse{}, err
 			}
@@ -241,7 +249,10 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 }
 
 type (
-	DeleteCustomerRequest  = customer.DeleteCustomerInput
+	DeleteCustomerRequest struct {
+		Namespace       string
+		CustomerIDOrKey string
+	}
 	DeleteCustomerResponse = interface{}
 	DeleteCustomerHandler  httptransport.HandlerWithArgs[DeleteCustomerRequest, DeleteCustomerResponse, string]
 )
@@ -255,12 +266,18 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 				return DeleteCustomerRequest{}, err
 			}
 
+			return DeleteCustomerRequest{
+				Namespace:       ns,
+				CustomerIDOrKey: customerIDOrKey,
+			}, nil
+		},
+		func(ctx context.Context, request DeleteCustomerRequest) (DeleteCustomerResponse, error) {
 			// TODO: we should not allow key identifier for mutable operations
 			// Get the customer
 			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
 				CustomerIDOrKey: &customer.CustomerIDOrKey{
-					IDOrKey:   customerIDOrKey,
-					Namespace: ns,
+					IDOrKey:   request.CustomerIDOrKey,
+					Namespace: request.Namespace,
 				},
 			})
 			if err != nil {
@@ -274,10 +291,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 					)
 			}
 
-			return cus.GetID(), nil
-		},
-		func(ctx context.Context, request DeleteCustomerRequest) (DeleteCustomerResponse, error) {
-			err := h.service.DeleteCustomer(ctx, request)
+			err = h.service.DeleteCustomer(ctx, cus.GetID())
 			if err != nil {
 				return nil, err
 			}
