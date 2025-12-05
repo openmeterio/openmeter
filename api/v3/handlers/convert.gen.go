@@ -4,10 +4,12 @@
 package handlers
 
 import (
+	"fmt"
 	nullable "github.com/oapi-codegen/nullable"
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	response "github.com/openmeterio/openmeter/api/v3/response"
 	customer "github.com/openmeterio/openmeter/openmeter/customer"
+	meter "github.com/openmeterio/openmeter/openmeter/meter"
 	currencyx "github.com/openmeterio/openmeter/pkg/currencyx"
 	models "github.com/openmeterio/openmeter/pkg/models"
 	"time"
@@ -68,11 +70,73 @@ func init() {
 		v3CustomerPaginatedResponse.Meta = responseCursorMetaToV3CursorMeta(source.Meta)
 		return v3CustomerPaginatedResponse
 	}
+	ConvertMeter = func(source meter.Meter) (v3.Meter, error) {
+		var v3Meter v3.Meter
+		v3MeterAggregation, err := ConvertMeterAggregation(source.Aggregation)
+		if err != nil {
+			return v3Meter, err
+		}
+		v3Meter.Aggregation = v3MeterAggregation
+		v3Meter.CreatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
+		v3Meter.DeletedAt = source.ManagedResource.ManagedModel.DeletedAt
+		v3Meter.Description = source.ManagedResource.Description
+		v3Meter.Dimensions = &source.GroupBy
+		v3Meter.EventFrom = source.EventFrom
+		v3Meter.EventTypeFilter = source.EventType
+		v3Meter.Id = source.ManagedResource.ID
+		v3Meter.Key = source.Key
+		v3Meter.Labels = modelsMetadataToPV3Labels(source.Metadata)
+		v3Meter.Name = source.ManagedResource.Name
+		v3Meter.UpdatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
+		v3Meter.ValueProperty = source.ValueProperty
+		return v3Meter, nil
+	}
+	ConvertMeterAggregation = func(source meter.MeterAggregation) (v3.MeterAggregation, error) {
+		var v3MeterAggregation v3.MeterAggregation
+		switch source {
+		case meter.MeterAggregationAvg:
+			v3MeterAggregation = v3.MeterAggregationAvg
+		case meter.MeterAggregationCount:
+			v3MeterAggregation = v3.MeterAggregationCount
+		case meter.MeterAggregationLatest:
+			v3MeterAggregation = v3.MeterAggregationLatest
+		case meter.MeterAggregationMax:
+			v3MeterAggregation = v3.MeterAggregationMax
+		case meter.MeterAggregationMin:
+			v3MeterAggregation = v3.MeterAggregationMin
+		case meter.MeterAggregationSum:
+			v3MeterAggregation = v3.MeterAggregationSum
+		case meter.MeterAggregationUniqueCount:
+			v3MeterAggregation = v3.MeterAggregationUniqueCount
+		default:
+			return v3MeterAggregation, fmt.Errorf("unexpected enum element: %v", source)
+		}
+		return v3MeterAggregation, nil
+	}
+	ConvertMetersListResponse = func(source response.CursorPaginationResponse[meter.Meter]) (v3.MeterPaginatedResponse, error) {
+		var v3MeterPaginatedResponse v3.MeterPaginatedResponse
+		if source.Data != nil {
+			v3MeterPaginatedResponse.Data = make([]v3.Meter, len(source.Data))
+			for i := 0; i < len(source.Data); i++ {
+				v3Meter, err := ConvertMeter(source.Data[i])
+				if err != nil {
+					return v3MeterPaginatedResponse, err
+				}
+				v3MeterPaginatedResponse.Data[i] = v3Meter
+			}
+		}
+		v3MeterPaginatedResponse.Meta = responseCursorMetaToV3CursorMeta(source.Meta)
+		return v3MeterPaginatedResponse, nil
+	}
 }
 func customerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source customer.CustomerUsageAttribution) *v3.BillingCustomerUsageAttribution {
 	var v3BillingCustomerUsageAttribution v3.BillingCustomerUsageAttribution
 	v3BillingCustomerUsageAttribution.SubjectKeys = source.SubjectKeys
 	return &v3BillingCustomerUsageAttribution
+}
+func modelsMetadataToPV3Labels(source models.Metadata) *v3.Labels {
+	v3Labels := modelsMetadataToV3Labels(source)
+	return &v3Labels
 }
 func modelsMetadataToV3Labels(source models.Metadata) v3.Labels {
 	var v3Labels v3.Labels

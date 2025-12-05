@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/handlers"
 	"github.com/openmeterio/openmeter/api/v3/render"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 )
 
@@ -24,6 +25,7 @@ type Config struct {
 
 	// services
 	CustomerService customer.Service
+	MeterService    meter.Service
 }
 
 type Server struct {
@@ -31,6 +33,7 @@ type Server struct {
 
 	swagger         *openapi3.T
 	customerHandler handlers.CustomerHandler
+	meterHandler    handlers.MeterHandler
 	middlewares     []api.MiddlewareFunc
 }
 
@@ -77,12 +80,14 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	customerHandler := handlers.NewCustomerHandler(resolveNamespace, config.CustomerService)
+	meterHandler := handlers.NewMeterHandler(resolveNamespace, config.MeterService)
 
 	return &Server{
 		Config:          config,
 		swagger:         swagger,
 		middlewares:     middlewares,
 		customerHandler: customerHandler,
+		meterHandler:    meterHandler,
 	}, nil
 }
 

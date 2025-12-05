@@ -44,7 +44,6 @@ func NewCursorPaginationResponse[T pagination.Item](items []T) CursorPaginationR
 		Data: items,
 		Meta: CursorMeta{
 			Page: CursorMetaPage{
-				Size:     float32(len(items)),
 				Next:     nullable.NewNullNullable[string](),
 				Previous: nullable.NewNullNullable[string](),
 			},

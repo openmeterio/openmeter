@@ -77,7 +77,10 @@ func (h *customerHandler) ListCustomers() ListCustomersHandler {
 			})
 
 			// Map the customers to the API
-			return response.NewCursorPaginationResponse(customers), nil
+			r := response.NewCursorPaginationResponse(customers)
+			// TODO: set the size of the page from the request params
+			// r.Meta.Page.Size = request.Page.Size
+			return r, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ListCustomersResponse](http.StatusOK),
 		httptransport.AppendOptions(

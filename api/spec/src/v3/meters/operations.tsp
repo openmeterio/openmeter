@@ -26,7 +26,7 @@ interface MetersOperations {
   @summary("Get meter")
   get(
     @path meterId: Shared.ULID,
-  ): Shared.GetResponse<Meter> | Common.ErrorResponses;
+  ): Shared.GetResponse<Meter> | Common.NotFound | Common.ErrorResponses;
 
   @get
   @operationId("list-meters")

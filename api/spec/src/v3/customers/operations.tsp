@@ -41,4 +41,35 @@ interface CustomersOperations {
   list(
     ...Common.CursorPageQuery,
   ): Shared.CursorPaginatedResponse<Customer> | Common.ErrorResponses;
+
+  @put
+  @operationId("upsert-customer")
+  @summary("Upsert customer")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  upsert(
+    @path customerId: Shared.ULID,
+    @body
+    customer: Shared.UpsertRequest<Customer>,
+  ): Shared.UpsertResponse<Customer> | Common.NotFound | Common.ErrorResponses;
+
+  @patch
+  @operationId("update-customer")
+  @summary("Update customer")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  update(
+    @path customerId: Shared.ULID,
+    @body
+    customer: Shared.UpdateRequest<Customer>,
+  ): Shared.UpdateResponse<Customer> | Common.NotFound | Common.ErrorResponses;
+
+  @delete
+  @operationId("delete-customer")
+  @summary("Delete customer")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  delete(
+    @path customerId: Shared.ULID,
+  ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
 }

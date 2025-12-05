@@ -28,6 +28,7 @@ using TypeSpec.OpenAPI;
 @server("https://global.api.konghq.com/v3", "Global Production region")
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
+@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
 
@@ -40,6 +41,11 @@ interface EventsEndpoints extends Events.EventsOperations {}
 @tag(Shared.CustomersTag)
 @friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.CustomersTag}")
 interface CustomersEndpoints extends Customers.CustomersOperations {}
+
+@route("/openmeter/meters")
+@tag(Shared.MetersTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.MetersTag}")
+interface MetersEndpoints extends Meters.MetersOperations {}
 
 // @route("/openmeter/customers/{customerId}/subscriptions")
 // @tag(Shared.CustomersTag)

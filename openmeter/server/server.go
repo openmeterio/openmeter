@@ -99,6 +99,7 @@ func NewServer(config *Config) (*Server, error) {
 	v3API, err := v3server.NewServer(&v3server.Config{
 		BaseURL:          "/api/v3",
 		CustomerService:  config.RouterConfig.Customer,
+		MeterService:     config.RouterConfig.MeterManageService,
 		NamespaceDecoder: staticNamespaceDecoder,
 	})
 	if err != nil {

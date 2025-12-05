@@ -18,6 +18,26 @@ model CreateResponse<T extends {}> {
   @Http.body body: T;
 }
 
+@doc("{name} upsert response.", T)
+@friendlyName("Upsert{name}Response", T)
+model UpsertResponse<T extends {}> {
+  @Http.statusCode _: 200;
+  @Http.body body: T;
+}
+
+@doc("{name} updated response.", T)
+@friendlyName("Update{name}Response", T)
+model UpdateResponse<T extends {}> {
+  @Http.statusCode _: 200;
+  @Http.body body: T;
+}
+
+@doc("Deleted response.")
+@friendlyName("DeleteResponse")
+model DeleteResponse {
+  @Http.statusCode _: 204;
+}
+
 @doc("Cursor paginated response.")
 @friendlyName("{name}PaginatedResponse", T)
 model CursorPaginatedResponse<T> {

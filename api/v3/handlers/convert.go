@@ -8,6 +8,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/samber/lo"
 )
@@ -35,6 +36,19 @@ var (
 	// goverter:ignore Annotation
 	ConvertCreateCustomerToCustomerMutate func(createCustomerRequest api.CreateCustomerRequest) customer.CustomerMutate
 	ConvertCustomerListResponse           func(customers response.CursorPaginationResponse[customer.Customer]) api.CustomerPaginatedResponse
+	// goverter:map Metadata Labels
+	// goverter:map GroupBy Dimensions
+	// goverter:map EventType EventTypeFilter
+	// goverter:map ManagedResource.ID Id
+	// goverter:map ManagedResource.Description Description
+	// goverter:map ManagedResource.Name Name
+	// goverter:map ManagedResource.ManagedModel.CreatedAt CreatedAt
+	// goverter:map ManagedResource.ManagedModel.UpdatedAt UpdatedAt
+	// goverter:map ManagedResource.ManagedModel.DeletedAt DeletedAt
+	ConvertMeter func(meter.Meter) (api.Meter, error)
+	// goverter:enum:unknown @error
+	ConvertMeterAggregation   func(aggregation meter.MeterAggregation) (api.MeterAggregation, error)
+	ConvertMetersListResponse func(meters response.CursorPaginationResponse[meter.Meter]) (api.MeterPaginatedResponse, error)
 )
 
 //goverter:context namespace
@@ -48,4 +62,12 @@ type Customer struct {
 
 func (c Customer) Cursor() pagination.Cursor {
 	return pagination.NewCursor(lo.FromPtrOr(c.CreatedAt, time.Now()), c.Id)
+}
+
+type Meter struct {
+	api.Meter
+}
+
+func (m Meter) Cursor() pagination.Cursor {
+	return pagination.NewCursor(lo.FromPtrOr(m.CreatedAt, time.Now()), m.Id)
 }

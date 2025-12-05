@@ -1,6 +1,7 @@
 namespace Shared;
 
 const MeteringAndBillingTitle = "Metering & Billing";
+const OpenMeterTitle = "OpenMeter";
 const MetersTag = "Meters";
 const MetersDescription = "Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.";
 
