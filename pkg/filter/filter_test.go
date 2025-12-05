@@ -1,9 +1,12 @@
 package filter_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -1893,6 +1896,850 @@ func TestFilterTime_IsEmpty(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.filter.IsEmpty()
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// buildSQLFromPredicate builds a SQL query from a predicate and returns only the WHERE clause and arguments
+func buildSQLFromPredicate(pred *sql.Predicate) (string, []interface{}) {
+	if pred == nil {
+		return "", nil
+	}
+	builder := sql.Dialect(dialect.Postgres)
+	selector := builder.Select("*").From(sql.Table("test_table"))
+	selector.Where(pred)
+	query, args := selector.Query()
+
+	// Extract only the WHERE clause (everything after "WHERE ")
+	wherePrefix := "WHERE "
+	whereIdx := strings.Index(query, wherePrefix)
+	if whereIdx == -1 {
+		return "", args
+	}
+	return query[whereIdx+len(wherePrefix):], args
+}
+
+func TestFilterString_SelectWherePredicate(t *testing.T) {
+	tests := []struct {
+		name     string
+		filter   filter.FilterString
+		field    string
+		wantNil  bool
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			name:     "empty filter",
+			filter:   filter.FilterString{},
+			field:    "test_field",
+			wantNil:  true,
+			wantSQL:  "",
+			wantArgs: nil,
+		},
+		{
+			name: "eq filter",
+			filter: filter.FilterString{
+				Eq: lo.ToPtr("test"),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1",
+			wantArgs: []interface{}{"test"},
+		},
+		{
+			name: "ne filter",
+			filter: filter.FilterString{
+				Ne: lo.ToPtr("test"),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" <> $1",
+			wantArgs: []interface{}{"test"},
+		},
+		{
+			name: "in filter",
+			filter: filter.FilterString{
+				In: &[]string{"test1", "test2"},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" IN ($1, $2)",
+			wantArgs: []interface{}{"test1", "test2"},
+		},
+		{
+			name: "nin filter",
+			filter: filter.FilterString{
+				Nin: &[]string{"test1", "test2"},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" NOT IN ($1, $2)",
+			wantArgs: []interface{}{"test1", "test2"},
+		},
+		{
+			name: "like filter",
+			filter: filter.FilterString{
+				Like: lo.ToPtr("%test%"),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" LIKE $1",
+			wantArgs: []interface{}{"%test%"},
+		},
+		{
+			name: "nlike filter",
+			filter: filter.FilterString{
+				Nlike: lo.ToPtr("%test%"),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "NOT (\"test_field\" LIKE $1)",
+			wantArgs: []interface{}{"%test%"},
+		},
+		{
+			name: "ilike filter",
+			filter: filter.FilterString{
+				Ilike: lo.ToPtr("%test%"),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" ILIKE $1",
+			wantArgs: []interface{}{"%test%"},
+		},
+		{
+			name: "nilike filter",
+			filter: filter.FilterString{
+				Nilike: lo.ToPtr("%test%"),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" NOT ILIKE $1",
+			wantArgs: []interface{}{"%test%"},
+		},
+		{
+			name: "gt filter",
+			filter: filter.FilterString{
+				Gt: lo.ToPtr("test"),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" > $1",
+			wantArgs: []interface{}{"test"},
+		},
+		{
+			name: "gte filter",
+			filter: filter.FilterString{
+				Gte: lo.ToPtr("test"),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" >= $1",
+			wantArgs: []interface{}{"test"},
+		},
+		{
+			name: "lt filter",
+			filter: filter.FilterString{
+				Lt: lo.ToPtr("test"),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" < $1",
+			wantArgs: []interface{}{"test"},
+		},
+		{
+			name: "lte filter",
+			filter: filter.FilterString{
+				Lte: lo.ToPtr("test"),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" <= $1",
+			wantArgs: []interface{}{"test"},
+		},
+		{
+			name: "and filter",
+			filter: filter.FilterString{
+				And: &[]filter.FilterString{
+					{Eq: lo.ToPtr("test1")},
+					{Eq: lo.ToPtr("test2")},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 AND \"test_field\" = $2",
+			wantArgs: []interface{}{"test1", "test2"},
+		},
+		{
+			name: "or filter",
+			filter: filter.FilterString{
+				Or: &[]filter.FilterString{
+					{Eq: lo.ToPtr("test1")},
+					{Eq: lo.ToPtr("test2")},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 OR \"test_field\" = $2",
+			wantArgs: []interface{}{"test1", "test2"},
+		},
+		{
+			name: "nested and filter",
+			filter: filter.FilterString{
+				And: &[]filter.FilterString{
+					{
+						And: &[]filter.FilterString{
+							{Eq: lo.ToPtr("test1")},
+							{Ne: lo.ToPtr("test2")},
+						},
+					},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 AND \"test_field\" <> $2",
+			wantArgs: []interface{}{"test1", "test2"},
+		},
+		{
+			name: "nested or filter",
+			filter: filter.FilterString{
+				Or: &[]filter.FilterString{
+					{
+						Or: &[]filter.FilterString{
+							{Eq: lo.ToPtr("test1")},
+							{Ne: lo.ToPtr("test2")},
+						},
+					},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 OR \"test_field\" <> $2",
+			wantArgs: []interface{}{"test1", "test2"},
+		},
+		{
+			name: "mixed nested and/or filter",
+			filter: filter.FilterString{
+				And: &[]filter.FilterString{
+					{
+						Or: &[]filter.FilterString{
+							{Eq: lo.ToPtr("test1")},
+							{Like: lo.ToPtr("%test%")},
+						},
+					},
+					{
+						And: &[]filter.FilterString{
+							{Ne: lo.ToPtr("test2")},
+						},
+					},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "(\"test_field\" = $1 OR \"test_field\" LIKE $2) AND \"test_field\" <> $3",
+			wantArgs: []interface{}{"test1", "%test%", "test2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pred := tt.filter.SelectWherePredicate(tt.field)
+			if tt.wantNil {
+				assert.Nil(t, pred, "predicate should be nil for empty filter")
+				return
+			}
+			assert.NotNil(t, pred, "predicate should not be nil")
+
+			// Verify the actual SQL and arguments
+			sqlStr, args := buildSQLFromPredicate(pred)
+			if tt.wantSQL != "" {
+				assert.Equal(t, tt.wantSQL, sqlStr, "SQL should match expected value")
+				assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+			}
+		})
+	}
+}
+
+func TestFilterInteger_SelectWherePredicate(t *testing.T) {
+	tests := []struct {
+		name     string
+		filter   filter.FilterInteger
+		field    string
+		wantNil  bool
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			name:     "empty filter",
+			filter:   filter.FilterInteger{},
+			field:    "test_field",
+			wantNil:  true,
+			wantSQL:  "",
+			wantArgs: nil,
+		},
+		{
+			name: "eq filter",
+			filter: filter.FilterInteger{
+				Eq: lo.ToPtr(42),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1",
+			wantArgs: []interface{}{42},
+		},
+		{
+			name: "ne filter",
+			filter: filter.FilterInteger{
+				Ne: lo.ToPtr(42),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" <> $1",
+			wantArgs: []interface{}{42},
+		},
+		{
+			name: "gt filter",
+			filter: filter.FilterInteger{
+				Gt: lo.ToPtr(42),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" > $1",
+			wantArgs: []interface{}{42},
+		},
+		{
+			name: "gte filter",
+			filter: filter.FilterInteger{
+				Gte: lo.ToPtr(42),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" >= $1",
+			wantArgs: []interface{}{42},
+		},
+		{
+			name: "lt filter",
+			filter: filter.FilterInteger{
+				Lt: lo.ToPtr(42),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" < $1",
+			wantArgs: []interface{}{42},
+		},
+		{
+			name: "lte filter",
+			filter: filter.FilterInteger{
+				Lte: lo.ToPtr(42),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" <= $1",
+			wantArgs: []interface{}{42},
+		},
+		{
+			name: "and filter",
+			filter: filter.FilterInteger{
+				And: &[]filter.FilterInteger{
+					{Eq: lo.ToPtr(42)},
+					{Gt: lo.ToPtr(10)},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 AND \"test_field\" > $2",
+			wantArgs: []interface{}{42, 10},
+		},
+		{
+			name: "or filter",
+			filter: filter.FilterInteger{
+				Or: &[]filter.FilterInteger{
+					{Eq: lo.ToPtr(42)},
+					{Lt: lo.ToPtr(100)},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 OR \"test_field\" < $2",
+			wantArgs: []interface{}{42, 100},
+		},
+		{
+			name: "nested and filter",
+			filter: filter.FilterInteger{
+				And: &[]filter.FilterInteger{
+					{
+						And: &[]filter.FilterInteger{
+							{Eq: lo.ToPtr(42)},
+							{Gt: lo.ToPtr(10)},
+						},
+					},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 AND \"test_field\" > $2",
+			wantArgs: []interface{}{42, 10},
+		},
+		{
+			name: "nested or filter",
+			filter: filter.FilterInteger{
+				Or: &[]filter.FilterInteger{
+					{
+						Or: &[]filter.FilterInteger{
+							{Eq: lo.ToPtr(42)},
+							{Lt: lo.ToPtr(100)},
+						},
+					},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 OR \"test_field\" < $2",
+			wantArgs: []interface{}{42, 100},
+		},
+		{
+			name: "mixed nested and/or filter",
+			filter: filter.FilterInteger{
+				And: &[]filter.FilterInteger{
+					{
+						Or: &[]filter.FilterInteger{
+							{Eq: lo.ToPtr(42)},
+							{Gt: lo.ToPtr(10)},
+						},
+					},
+					{
+						And: &[]filter.FilterInteger{
+							{Lt: lo.ToPtr(100)},
+						},
+					},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "(\"test_field\" = $1 OR \"test_field\" > $2) AND \"test_field\" < $3",
+			wantArgs: []interface{}{42, 10, 100},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pred := tt.filter.SelectWherePredicate(tt.field)
+			if tt.wantNil {
+				assert.Nil(t, pred, "predicate should be nil for empty filter")
+				return
+			}
+			assert.NotNil(t, pred, "predicate should not be nil")
+
+			// Verify the actual SQL and arguments
+			sqlStr, args := buildSQLFromPredicate(pred)
+			if tt.wantSQL != "" {
+				assert.Equal(t, tt.wantSQL, sqlStr, "SQL should match expected value")
+				assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+			}
+		})
+	}
+}
+
+func TestFilterFloat_SelectWherePredicate(t *testing.T) {
+	tests := []struct {
+		name     string
+		filter   filter.FilterFloat
+		field    string
+		wantNil  bool
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			name:     "empty filter",
+			filter:   filter.FilterFloat{},
+			field:    "test_field",
+			wantNil:  true,
+			wantSQL:  "",
+			wantArgs: nil,
+		},
+		{
+			name: "eq filter",
+			filter: filter.FilterFloat{
+				Eq: lo.ToPtr(42.5),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1",
+			wantArgs: []interface{}{42.5},
+		},
+		{
+			name: "ne filter",
+			filter: filter.FilterFloat{
+				Ne: lo.ToPtr(42.5),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" <> $1",
+			wantArgs: []interface{}{42.5},
+		},
+		{
+			name: "gt filter",
+			filter: filter.FilterFloat{
+				Gt: lo.ToPtr(42.5),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" > $1",
+			wantArgs: []interface{}{42.5},
+		},
+		{
+			name: "gte filter",
+			filter: filter.FilterFloat{
+				Gte: lo.ToPtr(42.5),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" >= $1",
+			wantArgs: []interface{}{42.5},
+		},
+		{
+			name: "lt filter",
+			filter: filter.FilterFloat{
+				Lt: lo.ToPtr(42.5),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" < $1",
+			wantArgs: []interface{}{42.5},
+		},
+		{
+			name: "lte filter",
+			filter: filter.FilterFloat{
+				Lte: lo.ToPtr(42.5),
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" <= $1",
+			wantArgs: []interface{}{42.5},
+		},
+		{
+			name: "and filter",
+			filter: filter.FilterFloat{
+				And: &[]filter.FilterFloat{
+					{Eq: lo.ToPtr(42.5)},
+					{Gt: lo.ToPtr(10.5)},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 AND \"test_field\" > $2",
+			wantArgs: []interface{}{42.5, 10.5},
+		},
+		{
+			name: "or filter",
+			filter: filter.FilterFloat{
+				Or: &[]filter.FilterFloat{
+					{Eq: lo.ToPtr(42.5)},
+					{Lt: lo.ToPtr(100.5)},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 OR \"test_field\" < $2",
+			wantArgs: []interface{}{42.5, 100.5},
+		},
+		{
+			name: "nested and filter",
+			filter: filter.FilterFloat{
+				And: &[]filter.FilterFloat{
+					{
+						And: &[]filter.FilterFloat{
+							{Eq: lo.ToPtr(42.5)},
+							{Gt: lo.ToPtr(10.5)},
+						},
+					},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 AND \"test_field\" > $2",
+			wantArgs: []interface{}{42.5, 10.5},
+		},
+		{
+			name: "nested or filter",
+			filter: filter.FilterFloat{
+				Or: &[]filter.FilterFloat{
+					{
+						Or: &[]filter.FilterFloat{
+							{Eq: lo.ToPtr(42.5)},
+							{Lt: lo.ToPtr(100.5)},
+						},
+					},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "\"test_field\" = $1 OR \"test_field\" < $2",
+			wantArgs: []interface{}{42.5, 100.5},
+		},
+		{
+			name: "mixed nested and/or filter",
+			filter: filter.FilterFloat{
+				And: &[]filter.FilterFloat{
+					{
+						Or: &[]filter.FilterFloat{
+							{Eq: lo.ToPtr(42.5)},
+							{Gt: lo.ToPtr(10.5)},
+						},
+					},
+					{
+						And: &[]filter.FilterFloat{
+							{Lt: lo.ToPtr(100.5)},
+						},
+					},
+				},
+			},
+			field:    "test_field",
+			wantNil:  false,
+			wantSQL:  "(\"test_field\" = $1 OR \"test_field\" > $2) AND \"test_field\" < $3",
+			wantArgs: []interface{}{42.5, 10.5, 100.5},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pred := tt.filter.SelectWherePredicate(tt.field)
+			if tt.wantNil {
+				assert.Nil(t, pred, "predicate should be nil for empty filter")
+				return
+			}
+			assert.NotNil(t, pred, "predicate should not be nil")
+
+			// Verify the actual SQL and arguments
+			sqlStr, args := buildSQLFromPredicate(pred)
+			if tt.wantSQL != "" {
+				assert.Equal(t, tt.wantSQL, sqlStr, "SQL should match expected value")
+				assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+			}
+		})
+	}
+}
+
+func TestFilterTime_SelectWherePredicate(t *testing.T) {
+	// Use fixed times for predictable test results
+	now := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+	nowPlus24h := now.Add(24 * time.Hour)
+	nowPlus48h := now.Add(48 * time.Hour)
+
+	tests := []struct {
+		name     string
+		filter   filter.FilterTime
+		field    string
+		wantNil  bool
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			name:     "empty filter",
+			filter:   filter.FilterTime{},
+			field:    "created_at",
+			wantNil:  true,
+			wantSQL:  "",
+			wantArgs: nil,
+		},
+		{
+			name: "gt filter",
+			filter: filter.FilterTime{
+				Gt: lo.ToPtr(now),
+			},
+			field:    "created_at",
+			wantNil:  false,
+			wantSQL:  "\"created_at\" > $1",
+			wantArgs: []interface{}{now},
+		},
+		{
+			name: "gte filter",
+			filter: filter.FilterTime{
+				Gte: lo.ToPtr(now),
+			},
+			field:    "created_at",
+			wantNil:  false,
+			wantSQL:  "\"created_at\" >= $1",
+			wantArgs: []interface{}{now},
+		},
+		{
+			name: "lt filter",
+			filter: filter.FilterTime{
+				Lt: lo.ToPtr(now),
+			},
+			field:    "created_at",
+			wantNil:  false,
+			wantSQL:  "\"created_at\" < $1",
+			wantArgs: []interface{}{now},
+		},
+		{
+			name: "lte filter",
+			filter: filter.FilterTime{
+				Lte: lo.ToPtr(now),
+			},
+			field:    "created_at",
+			wantNil:  false,
+			wantSQL:  "\"created_at\" <= $1",
+			wantArgs: []interface{}{now},
+		},
+		{
+			name: "and filter",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{Gt: lo.ToPtr(now)},
+					{Lt: lo.ToPtr(nowPlus24h)},
+				},
+			},
+			field:    "created_at",
+			wantNil:  false,
+			wantSQL:  "\"created_at\" > $1 AND \"created_at\" < $2",
+			wantArgs: []interface{}{now, nowPlus24h},
+		},
+		{
+			name: "or filter",
+			filter: filter.FilterTime{
+				Or: &[]filter.FilterTime{
+					{Gt: lo.ToPtr(now)},
+					{Lt: lo.ToPtr(nowPlus24h)},
+				},
+			},
+			field:    "created_at",
+			wantNil:  false,
+			wantSQL:  "\"created_at\" > $1 OR \"created_at\" < $2",
+			wantArgs: []interface{}{now, nowPlus24h},
+		},
+		{
+			name: "nested and filter",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{
+						And: &[]filter.FilterTime{
+							{Gt: lo.ToPtr(now)},
+							{Lt: lo.ToPtr(nowPlus24h)},
+						},
+					},
+				},
+			},
+			field:    "created_at",
+			wantNil:  false,
+			wantSQL:  "\"created_at\" > $1 AND \"created_at\" < $2",
+			wantArgs: []interface{}{now, nowPlus24h},
+		},
+		{
+			name: "nested or filter",
+			filter: filter.FilterTime{
+				Or: &[]filter.FilterTime{
+					{
+						Or: &[]filter.FilterTime{
+							{Gt: lo.ToPtr(now)},
+							{Lt: lo.ToPtr(nowPlus24h)},
+						},
+					},
+				},
+			},
+			field:    "created_at",
+			wantNil:  false,
+			wantSQL:  "\"created_at\" > $1 OR \"created_at\" < $2",
+			wantArgs: []interface{}{now, nowPlus24h},
+		},
+		{
+			name: "mixed nested and/or filter",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{
+						Or: &[]filter.FilterTime{
+							{Gt: lo.ToPtr(now)},
+							{Lte: lo.ToPtr(nowPlus24h)},
+						},
+					},
+					{
+						And: &[]filter.FilterTime{
+							{Lt: lo.ToPtr(nowPlus48h)},
+						},
+					},
+				},
+			},
+			field:    "created_at",
+			wantNil:  false,
+			wantSQL:  "(\"created_at\" > $1 OR \"created_at\" <= $2) AND \"created_at\" < $3",
+			wantArgs: []interface{}{now, nowPlus24h, nowPlus48h},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pred := tt.filter.SelectWherePredicate(tt.field)
+			if tt.wantNil {
+				assert.Nil(t, pred, "predicate should be nil for empty filter")
+				return
+			}
+			assert.NotNil(t, pred, "predicate should not be nil")
+
+			// Verify the actual SQL and arguments
+			sqlStr, args := buildSQLFromPredicate(pred)
+			if tt.wantSQL != "" {
+				assert.Equal(t, tt.wantSQL, sqlStr, "SQL should match expected value")
+				assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+			}
+		})
+	}
+}
+
+func TestFilterBoolean_SelectWherePredicate(t *testing.T) {
+	tests := []struct {
+		name     string
+		filter   filter.FilterBoolean
+		field    string
+		wantNil  bool
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			name:     "empty filter",
+			filter:   filter.FilterBoolean{},
+			field:    "test_field",
+			wantNil:  true,
+			wantSQL:  "",
+			wantArgs: nil,
+		},
+		{
+			name: "eq filter true",
+			filter: filter.FilterBoolean{
+				Eq: lo.ToPtr(true),
+			},
+			field:   "test_field",
+			wantNil: false,
+			// PostgreSQL optimizes "field = true" to just "field"
+			wantSQL:  "\"test_field\"",
+			wantArgs: []interface{}(nil),
+		},
+		{
+			name: "eq filter false",
+			filter: filter.FilterBoolean{
+				Eq: lo.ToPtr(false),
+			},
+			field:   "test_field",
+			wantNil: false,
+			// PostgreSQL optimizes "field = false" to "NOT field"
+			wantSQL:  "NOT \"test_field\"",
+			wantArgs: []interface{}(nil),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pred := tt.filter.SelectWherePredicate(tt.field)
+			if tt.wantNil {
+				assert.Nil(t, pred, "predicate should be nil for empty filter")
+				return
+			}
+			assert.NotNil(t, pred, "predicate should not be nil")
+
+			// Verify the actual SQL and arguments
+			sqlStr, args := buildSQLFromPredicate(pred)
+			if tt.wantSQL != "" {
+				assert.Equal(t, tt.wantSQL, sqlStr, "SQL should match expected value")
+				assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+			}
 		})
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
 )
@@ -16,6 +17,8 @@ type Filter interface {
 	ValidateWithComplexity(maxDepth int) error
 	// SelectWhereExpr converts the filter to a SQL WHERE expression.
 	SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string
+	// SelectWherePredicate converts the filter to a predicate for ent.Query.Where.
+	SelectWherePredicate(field string) *sql.Predicate
 	// IsEmpty returns true if the filter is empty.
 	IsEmpty() bool
 }
@@ -157,6 +160,65 @@ func (f FilterString) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder)
 	}
 }
 
+// SelectWherePredicate converts the filter to an ent *sql.Predicate.
+func (f FilterString) SelectWherePredicate(field string) *sql.Predicate {
+	switch {
+	case f.Eq != nil:
+		return sql.EQ(field, *f.Eq)
+	case f.Ne != nil:
+		return sql.NEQ(field, *f.Ne)
+	case f.In != nil:
+		// We must cast *[]string to []interface{} for sql.In
+		vals := lo.ToAnySlice(*f.In)
+		return sql.In(field, vals...)
+	case f.Nin != nil:
+		vals := lo.ToAnySlice(*f.Nin)
+		return sql.NotIn(field, vals...)
+	case f.Like != nil:
+		return sql.Like(field, *f.Like)
+	case f.Nlike != nil:
+		return sql.Not(sql.Like(field, *f.Nlike))
+	case f.Ilike != nil:
+		// ILike is technically PostgreSQL specific, but ent/sql handles it
+		// TODO: use ILIKE somehow
+		return sql.EqualFold(field, *f.Ilike) // or sql.Expr("? ILIKE ?", ...)
+	case f.Nilike != nil:
+		// TODO: use ILIKE somehow
+		return sql.Not(sql.EqualFold(field, *f.Nilike))
+	case f.Gt != nil:
+		return sql.GT(field, *f.Gt)
+	case f.Gte != nil:
+		return sql.GTE(field, *f.Gte)
+	case f.Lt != nil:
+		return sql.LT(field, *f.Lt)
+	case f.Lte != nil:
+		return sql.LTE(field, *f.Lte)
+	case f.And != nil:
+		// Recursively map the children
+		preds := lo.Map(*f.And, func(sub FilterString, _ int) *sql.Predicate {
+			return sub.SelectWherePredicate(field)
+		})
+		return sql.And(preds...)
+	case f.Or != nil:
+		preds := lo.Map(*f.Or, func(sub FilterString, _ int) *sql.Predicate {
+			return sub.SelectWherePredicate(field)
+		})
+		return sql.Or(preds...)
+	default:
+		// No filter applied, return "always true" or nil
+		return nil
+	}
+}
+
+func (f FilterString) Where(colName string) func(*sql.Selector) {
+	return func(s *sql.Selector) {
+		p := f.SelectWherePredicate(s.C(colName))
+		if p != nil {
+			s.Where(p)
+		}
+	}
+}
+
 // FilterInteger is a filter for an integer field.
 type FilterInteger struct {
 	Eq  *int             `json:"$eq,omitempty"`
@@ -263,6 +325,33 @@ func (f FilterInteger) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder
 		})...)
 	default:
 		return ""
+	}
+}
+
+func (f FilterInteger) SelectWherePredicate(field string) *sql.Predicate {
+	switch {
+	case f.Eq != nil:
+		return sql.EQ(field, *f.Eq)
+	case f.Ne != nil:
+		return sql.NEQ(field, *f.Ne)
+	case f.Gt != nil:
+		return sql.GT(field, *f.Gt)
+	case f.Gte != nil:
+		return sql.GTE(field, *f.Gte)
+	case f.Lt != nil:
+		return sql.LT(field, *f.Lt)
+	case f.Lte != nil:
+		return sql.LTE(field, *f.Lte)
+	case f.And != nil:
+		return sql.And(lo.Map(*f.And, func(filter FilterInteger, _ int) *sql.Predicate {
+			return filter.SelectWherePredicate(field)
+		})...)
+	case f.Or != nil:
+		return sql.Or(lo.Map(*f.Or, func(filter FilterInteger, _ int) *sql.Predicate {
+			return filter.SelectWherePredicate(field)
+		})...)
+	default:
+		return nil
 	}
 }
 
@@ -374,6 +463,33 @@ func (f FilterFloat) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) 
 	}
 }
 
+func (f FilterFloat) SelectWherePredicate(field string) *sql.Predicate {
+	switch {
+	case f.Eq != nil:
+		return sql.EQ(field, *f.Eq)
+	case f.Ne != nil:
+		return sql.NEQ(field, *f.Ne)
+	case f.Gt != nil:
+		return sql.GT(field, *f.Gt)
+	case f.Gte != nil:
+		return sql.GTE(field, *f.Gte)
+	case f.Lt != nil:
+		return sql.LT(field, *f.Lt)
+	case f.Lte != nil:
+		return sql.LTE(field, *f.Lte)
+	case f.And != nil:
+		return sql.And(lo.Map(*f.And, func(filter FilterFloat, _ int) *sql.Predicate {
+			return filter.SelectWherePredicate(field)
+		})...)
+	case f.Or != nil:
+		return sql.Or(lo.Map(*f.Or, func(filter FilterFloat, _ int) *sql.Predicate {
+			return filter.SelectWherePredicate(field)
+		})...)
+	default:
+		return nil
+	}
+}
+
 // FilterTime is a filter for a time field.
 type FilterTime struct {
 	Gt  *time.Time    `json:"$gt,omitempty"`
@@ -477,6 +593,29 @@ func (f FilterTime) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) s
 	}
 }
 
+func (f FilterTime) SelectWherePredicate(field string) *sql.Predicate {
+	switch {
+	case f.Gt != nil:
+		return sql.GT(field, *f.Gt)
+	case f.Gte != nil:
+		return sql.GTE(field, *f.Gte)
+	case f.Lt != nil:
+		return sql.LT(field, *f.Lt)
+	case f.Lte != nil:
+		return sql.LTE(field, *f.Lte)
+	case f.And != nil:
+		return sql.And(lo.Map(*f.And, func(filter FilterTime, _ int) *sql.Predicate {
+			return filter.SelectWherePredicate(field)
+		})...)
+	case f.Or != nil:
+		return sql.Or(lo.Map(*f.Or, func(filter FilterTime, _ int) *sql.Predicate {
+			return filter.SelectWherePredicate(field)
+		})...)
+	default:
+		return nil
+	}
+}
+
 // FilterBoolean is a filter for a boolean field.
 type FilterBoolean struct {
 	Eq *bool `json:"$eq,omitempty"`
@@ -505,6 +644,15 @@ func (f FilterBoolean) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder
 		return q.EQ(field, *f.Eq)
 	default:
 		return ""
+	}
+}
+
+func (f FilterBoolean) SelectWherePredicate(field string) *sql.Predicate {
+	switch {
+	case f.Eq != nil:
+		return sql.EQ(field, *f.Eq)
+	default:
+		return nil
 	}
 }
 

@@ -2,8 +2,6 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "../shared/index.tsp";
 
-using TypeSpec.OpenAPI;
-
 namespace Events;
 
 /**
