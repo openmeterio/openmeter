@@ -43,7 +43,7 @@ type BaseAPIError struct {
 	Detail string `json:"detail"`
 
 	// Used to indicate which fields have invalid values when validated. Both a
-	// human-readable value (reason) and a type that can be used for localised
+	// human-readable value (reason) and a type that can be used for localized
 	// results (rule) are provided.
 	InvalidParameters InvalidParameters `json:"invalid_parameters,omitempty"`
 

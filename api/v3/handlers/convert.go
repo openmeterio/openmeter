@@ -5,12 +5,13 @@ package handlers
 import (
 	"time"
 
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
-	"github.com/samber/lo"
 )
 
 // goverter:variables

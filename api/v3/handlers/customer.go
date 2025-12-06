@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
-	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/samber/lo"
 )
 
 type CustomerHandler interface {
@@ -42,7 +42,7 @@ func NewCustomerHandler(
 }
 
 type (
-	ListCustomersParams   = v3.ListCustomersParams
+	ListCustomersParams   = api.ListCustomersParams
 	ListCustomersRequest  = customer.ListCustomersInput
 	ListCustomersResponse = response.CursorPaginationResponse[Customer]
 	ListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]

@@ -15,4 +15,8 @@ model UpsertRequest<T extends {}> is DefaultKeyVisibility<T, Lifecycle.Read>;
 @doc("{name} update request.", T)
 @friendlyName("Update{name}Request", T)
 @withVisibility(Lifecycle.Update)
-model UpdateRequest<T extends {}> is OptionalProperties<UpdateableProperties<DefaultKeyVisibility<T, Lifecycle.Read>>>;
+model UpdateRequest<T extends {}>
+  is OptionalProperties<UpdateableProperties<DefaultKeyVisibility<
+    T,
+    Lifecycle.Read
+  >>>;

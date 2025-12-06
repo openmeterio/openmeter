@@ -7,12 +7,12 @@ type configOption func(*config)
 var ContextCanceledError = &BaseAPIError{
 	Status: 499,
 	Title:  "Client Closed Request",
-	Detail: "context cancelled",
+	Detail: "context canceled",
 }
 
 // WithRecastContextCancelled sets the BaseAPIError that would be recasted into
 // if an APIError is a context.Canceled. This is to avoid false 500 errors
-func WithRecastContextCancelled(e BaseAPIError) configOption { // nolint:gocritic
+func WithRecastContextCancelled(e BaseAPIError) configOption { //nolint:gocritic
 	return func(c *config) {
 		c.recastContextCanceled = e
 	}

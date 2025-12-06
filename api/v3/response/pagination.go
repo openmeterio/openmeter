@@ -2,8 +2,9 @@ package response
 
 import (
 	"github.com/oapi-codegen/nullable"
-	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 // CursorMeta Pagination metadata.

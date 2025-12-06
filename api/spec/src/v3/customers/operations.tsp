@@ -39,17 +39,17 @@ model ListCustomersParams {
   /**
    * Filter customers returned in the response.
    */
-  @query(#{style: "deepObject"})
+  @query(#{ style: "deepObject" })
   filter?: {
-    id: Common.StringFieldFilter,
-    key: Common.StringFieldFilter,
-    name: Common.StringFieldFilter,
-    `usage_attribution.subject_keys`: Common.StringFieldFilter,
-    primary_email: Common.StringFieldFilter,
-    created_at: Common.DateTimeFieldFilter,
-    updated_at: Common.DateTimeFieldFilter,
-    deleted_at: Common.DateTimeFieldFilter,
-  }
+    id: Common.StringFieldFilter;
+    key: Common.StringFieldFilter;
+    name: Common.StringFieldFilter;
+    `usage_attribution.subject_keys`: Common.StringFieldFilter;
+    primary_email: Common.StringFieldFilter;
+    created_at: Common.DateTimeFieldFilter;
+    updated_at: Common.DateTimeFieldFilter;
+    deleted_at: Common.DateTimeFieldFilter;
+  };
 }
 
 interface CustomersOperations {
@@ -89,6 +89,7 @@ interface CustomersOperations {
   @extension(Shared.InternalExtension, true)
   upsert(
     @path customerId: Shared.ULID,
+
     @body
     customer: Shared.UpsertRequest<Customer>,
   ): Shared.UpsertResponse<Customer> | Common.NotFound | Common.ErrorResponses;
@@ -100,6 +101,7 @@ interface CustomersOperations {
   @extension(Shared.InternalExtension, true)
   update(
     @path customerId: Shared.ULID,
+
     @body
     customer: Shared.UpdateRequest<Customer>,
   ): Shared.UpdateResponse<Customer> | Common.NotFound | Common.ErrorResponses;

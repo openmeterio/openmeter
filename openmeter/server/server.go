@@ -12,8 +12,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
-
 	oapimiddleware "github.com/oapi-codegen/nethttp-middleware"
+
 	"github.com/openmeterio/openmeter/api"
 	v3server "github.com/openmeterio/openmeter/api/v3/server"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"

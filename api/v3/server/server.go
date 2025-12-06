@@ -10,6 +10,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	oapimiddleware "github.com/oapi-codegen/nethttp-middleware"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers"
@@ -95,11 +96,11 @@ func (s *Server) RegisterRoutes(r chi.Router) {
 	r.Route(s.BaseURL, func(r chi.Router) {
 		// Serve the OpenAPI spec
 		r.Get("/swagger.json", func(w http.ResponseWriter, r *http.Request) {
-			render.RenderJSON(w, s.swagger)
+			_ = render.RenderJSON(w, s.swagger)
 		})
 
 		r.Get("/swagger.yaml", func(w http.ResponseWriter, r *http.Request) {
-			render.RenderYAML(w, s.swagger)
+			_ = render.RenderYAML(w, s.swagger)
 		})
 
 		_ = api.HandlerWithOptions(s, api.ChiServerOptions{
