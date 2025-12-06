@@ -1999,7 +1999,7 @@ func TestFilterString_SelectWherePredicate(t *testing.T) {
 		{
 			name: "ilike filter",
 			filter: filter.FilterString{
-				Ilike: lo.ToPtr("%test%"),
+				Ilike: lo.ToPtr("test"),
 			},
 			field:    "test_field",
 			wantNil:  false,
@@ -2009,11 +2009,11 @@ func TestFilterString_SelectWherePredicate(t *testing.T) {
 		{
 			name: "nilike filter",
 			filter: filter.FilterString{
-				Nilike: lo.ToPtr("%test%"),
+				Nilike: lo.ToPtr("test"),
 			},
 			field:    "test_field",
 			wantNil:  false,
-			wantSQL:  "\"test_field\" NOT ILIKE $1",
+			wantSQL:  "NOT (\"test_field\" ILIKE $1)",
 			wantArgs: []interface{}{"%test%"},
 		},
 		{

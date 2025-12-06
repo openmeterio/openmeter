@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -268,12 +269,12 @@ type ListCustomersInput struct {
 	Order   sortx.Order
 
 	// Filters
-	Key          *string
-	Name         *string
-	PrimaryEmail *string
-	Subject      *string
+	Key          *filter.FilterString
+	Name         *filter.FilterString
+	PrimaryEmail *filter.FilterString
+	Subject      *filter.FilterString
 	PlanKey      *string
-	CustomerIDs  []string
+	CustomerIDs  *filter.FilterString
 
 	// Expand
 	Expands Expands
@@ -286,6 +287,38 @@ func (i ListCustomersInput) Validate() error {
 
 	if err := i.Expands.Validate(); err != nil {
 		return models.NewGenericValidationError(err)
+	}
+
+	// Validate filters
+	// Only non-nested filters are supported for now
+	if i.Key != nil {
+		if err := i.Key.ValidateWithComplexity(1); err != nil {
+			return models.NewGenericValidationError(fmt.Errorf("invalid key filter: %w", err))
+		}
+	}
+
+	if i.Name != nil {
+		if err := i.Name.ValidateWithComplexity(1); err != nil {
+			return models.NewGenericValidationError(fmt.Errorf("invalid name filter: %w", err))
+		}
+	}
+
+	if i.PrimaryEmail != nil {
+		if err := i.PrimaryEmail.ValidateWithComplexity(1); err != nil {
+			return models.NewGenericValidationError(fmt.Errorf("invalid primaryEmail filter: %w", err))
+		}
+	}
+
+	if i.Subject != nil {
+		if err := i.Subject.ValidateWithComplexity(1); err != nil {
+			return models.NewGenericValidationError(fmt.Errorf("invalid subject filter: %w", err))
+		}
+	}
+
+	if i.CustomerIDs != nil {
+		if err := i.CustomerIDs.ValidateWithComplexity(1); err != nil {
+			return models.NewGenericValidationError(fmt.Errorf("invalid customerIDs filter: %w", err))
+		}
 	}
 
 	return nil

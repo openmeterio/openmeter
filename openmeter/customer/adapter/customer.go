@@ -49,22 +49,23 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			))
 		}
 
-		// Filters
-		if input.Key != nil {
-			query = query.Where(customerdb.KeyContainsFold(*input.Key))
+		// Filters using FilterString predicates
+		if input.Key != nil && !input.Key.IsEmpty() {
+			query = query.Where(predicate.Customer(input.Key.Where(customerdb.FieldKey)))
 		}
 
-		if input.Name != nil {
-			query = query.Where(customerdb.NameContainsFold(*input.Name))
+		if input.Name != nil && !input.Name.IsEmpty() {
+			query = query.Where(predicate.Customer(input.Name.Where(customerdb.FieldName)))
 		}
 
-		if input.PrimaryEmail != nil {
-			query = query.Where(customerdb.PrimaryEmailContainsFold(*input.PrimaryEmail))
+		if input.PrimaryEmail != nil && !input.PrimaryEmail.IsEmpty() {
+			query = query.Where(predicate.Customer(input.PrimaryEmail.Where(customerdb.FieldPrimaryEmail)))
 		}
 
-		if input.Subject != nil {
+		if input.Subject != nil && !input.Subject.IsEmpty() {
+			// Subject filter applies to the subjects table
 			query = query.Where(customerdb.HasSubjectsWith(
-				customersubjectsdb.SubjectKeyContainsFold(*input.Subject),
+				predicate.CustomerSubjects(input.Subject.Where(customersubjectsdb.FieldSubjectKey)),
 				customersubjectsdb.Or(
 					customersubjectsdb.DeletedAtIsNil(),
 					customersubjectsdb.DeletedAtGTE(now),
@@ -76,8 +77,8 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			applyActiveSubscriptionFilterWithPlanKey(query, now, *input.PlanKey)
 		}
 
-		if len(input.CustomerIDs) > 0 {
-			query = query.Where(customerdb.IDIn(input.CustomerIDs...))
+		if input.CustomerIDs != nil && !input.CustomerIDs.IsEmpty() {
+			query = query.Where(predicate.Customer(input.CustomerIDs.Where(customerdb.FieldID)))
 		}
 
 		// Order

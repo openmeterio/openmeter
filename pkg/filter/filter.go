@@ -179,12 +179,12 @@ func (f FilterString) SelectWherePredicate(field string) *sql.Predicate {
 	case f.Nlike != nil:
 		return sql.Not(sql.Like(field, *f.Nlike))
 	case f.Ilike != nil:
-		// ILike is technically PostgreSQL specific, but ent/sql handles it
-		// TODO: use ILIKE somehow
-		return sql.EqualFold(field, *f.Ilike) // or sql.Expr("? ILIKE ?", ...)
+		// Use ContainsFold for case-insensitive substring matching
+		// This generates ILIKE with % wildcards automatically
+		return sql.ContainsFold(field, *f.Ilike)
 	case f.Nilike != nil:
-		// TODO: use ILIKE somehow
-		return sql.Not(sql.EqualFold(field, *f.Nilike))
+		// Use NOT ContainsFold for negated case-insensitive substring matching
+		return sql.Not(sql.ContainsFold(field, *f.Nilike))
 	case f.Gt != nil:
 		return sql.GT(field, *f.Gt)
 	case f.Gte != nil:

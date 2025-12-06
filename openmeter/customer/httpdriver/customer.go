@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -51,13 +52,6 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				OrderBy: defaultx.WithDefault(params.OrderBy, api.CustomerOrderByName),
 				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
 
-				// Filters
-				Key:          params.Key,
-				Name:         params.Name,
-				PrimaryEmail: params.PrimaryEmail,
-				Subject:      params.Subject,
-				PlanKey:      params.PlanKey,
-
 				// Modifiers
 				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, customer.IncludeDeleted),
 
@@ -67,6 +61,13 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 					return customer.Expand(item)
 				}),
 			}
+
+			// Filters
+			req.PlanKey = params.PlanKey
+			req.Key = lo.Ternary(params.Key != nil, &filter.FilterString{Ilike: params.Key}, nil)
+			req.Name = lo.Ternary(params.Name != nil, &filter.FilterString{Ilike: params.Name}, nil)
+			req.PrimaryEmail = lo.Ternary(params.PrimaryEmail != nil, &filter.FilterString{Ilike: params.PrimaryEmail}, nil)
+			req.Subject = lo.Ternary(params.Subject != nil, &filter.FilterString{Ilike: params.Subject}, nil)
 
 			if err := req.Page.Validate(); err != nil {
 				return ListCustomersRequest{}, err
