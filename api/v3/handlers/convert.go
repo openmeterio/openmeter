@@ -23,7 +23,7 @@ var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map . CustomerMutate
-	ConvertCreateCustomerRequest func(namespace string, createCustomerRequest api.CreateCustomerRequest) customer.CreateCustomerInput
+	ConvertFromCreateCustomerRequestToCreateCustomerInput func(namespace string, createCustomerRequest api.CreateCustomerRequest) customer.CreateCustomerInput
 	// goverter:map Metadata Labels
 	// goverter:map ManagedResource.ID Id
 	// goverter:map ManagedResource.Description Description
@@ -31,11 +31,11 @@ var (
 	// goverter:map ManagedResource.ManagedModel.CreatedAt CreatedAt
 	// goverter:map ManagedResource.ManagedModel.UpdatedAt UpdatedAt
 	// goverter:map ManagedResource.ManagedModel.DeletedAt DeletedAt
-	ConvertCustomer func(customer.Customer) api.BillingCustomer
+	ConvertCustomerRequestToBillingCustomer func(customer.Customer) api.BillingCustomer
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotation
-	ConvertCreateCustomerToCustomerMutate func(createCustomerRequest api.CreateCustomerRequest) customer.CustomerMutate
-	ConvertCustomerListResponse           func(customers response.CursorPaginationResponse[customer.Customer]) api.CustomerPaginatedResponse
+	ConvertCreateCustomerRequestToCustomerMutate func(createCustomerRequest api.CreateCustomerRequest) customer.CustomerMutate
+	ConvertCustomerListResponse                  func(customers response.CursorPaginationResponse[customer.Customer]) api.CustomerPaginatedResponse
 	// goverter:map Metadata Labels
 	// goverter:map GroupBy Dimensions
 	// goverter:map EventType EventTypeFilter
@@ -47,8 +47,8 @@ var (
 	// goverter:map ManagedResource.ManagedModel.DeletedAt DeletedAt
 	ConvertMeter func(meter.Meter) (api.Meter, error)
 	// goverter:enum:unknown @error
-	ConvertMeterAggregation   func(aggregation meter.MeterAggregation) (api.MeterAggregation, error)
-	ConvertMetersListResponse func(meters response.CursorPaginationResponse[meter.Meter]) (api.MeterPaginatedResponse, error)
+	ConvertMeterAggregation  func(aggregation meter.MeterAggregation) (api.MeterAggregation, error)
+	ConvertMeterListResponse func(meters response.CursorPaginationResponse[meter.Meter]) (api.MeterPaginatedResponse, error)
 )
 
 //goverter:context namespace

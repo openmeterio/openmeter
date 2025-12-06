@@ -72,7 +72,7 @@ func (h *customerHandler) ListCustomers() ListCustomersHandler {
 
 			customers := lo.Map(resp.Items, func(item customer.Customer, _ int) Customer {
 				return Customer{
-					BillingCustomer: ConvertCustomer(item),
+					BillingCustomer: ConvertCustomerRequestToBillingCustomer(item),
 				}
 			})
 
@@ -110,7 +110,7 @@ func (h *customerHandler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerRequest{}, err
 			}
 
-			req := ConvertCreateCustomerRequest(ns, body)
+			req := ConvertFromCreateCustomerRequestToCreateCustomerInput(ns, body)
 
 			return req, nil
 		},
@@ -124,7 +124,7 @@ func (h *customerHandler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerResponse{}, fmt.Errorf("failed to create customer")
 			}
 
-			return ConvertCustomer(*customer), nil
+			return ConvertCustomerRequestToBillingCustomer(*customer), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -168,7 +168,7 @@ func (h *customerHandler) GetCustomer() GetCustomerHandler {
 				return GetCustomerResponse{}, fmt.Errorf("failed to get customer")
 			}
 
-			return ConvertCustomer(*cus), nil
+			return ConvertCustomerRequestToBillingCustomer(*cus), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(

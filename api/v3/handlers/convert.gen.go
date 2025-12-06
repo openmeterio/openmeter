@@ -16,13 +16,7 @@ import (
 )
 
 func init() {
-	ConvertCreateCustomerRequest = func(context string, source v3.CreateCustomerRequest) customer.CreateCustomerInput {
-		var customerCreateCustomerInput customer.CreateCustomerInput
-		customerCreateCustomerInput.Namespace = NamespaceFromContext(context)
-		customerCreateCustomerInput.CustomerMutate = ConvertCreateCustomerToCustomerMutate(source)
-		return customerCreateCustomerInput
-	}
-	ConvertCreateCustomerToCustomerMutate = func(source v3.CreateCustomerRequest) customer.CustomerMutate {
+	ConvertCreateCustomerRequestToCustomerMutate = func(source v3.CreateCustomerRequest) customer.CustomerMutate {
 		var customerCustomerMutate customer.CustomerMutate
 		pString := source.Key
 		customerCustomerMutate.Key = &pString
@@ -38,7 +32,18 @@ func init() {
 		customerCustomerMutate.Metadata = pV3LabelsToPModelsMetadata(source.Labels)
 		return customerCustomerMutate
 	}
-	ConvertCustomer = func(source customer.Customer) v3.BillingCustomer {
+	ConvertCustomerListResponse = func(source response.CursorPaginationResponse[customer.Customer]) v3.CustomerPaginatedResponse {
+		var v3CustomerPaginatedResponse v3.CustomerPaginatedResponse
+		if source.Data != nil {
+			v3CustomerPaginatedResponse.Data = make([]v3.BillingCustomer, len(source.Data))
+			for i := 0; i < len(source.Data); i++ {
+				v3CustomerPaginatedResponse.Data[i] = ConvertCustomerRequestToBillingCustomer(source.Data[i])
+			}
+		}
+		v3CustomerPaginatedResponse.Meta = responseCursorMetaToV3CursorMeta(source.Meta)
+		return v3CustomerPaginatedResponse
+	}
+	ConvertCustomerRequestToBillingCustomer = func(source customer.Customer) v3.BillingCustomer {
 		var v3BillingCustomer v3.BillingCustomer
 		v3BillingCustomer.BillingAddress = pModelsAddressToPV3BillingAddress(source.BillingAddress)
 		v3BillingCustomer.CreatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
@@ -59,16 +64,11 @@ func init() {
 		v3BillingCustomer.UsageAttribution = customerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source.UsageAttribution)
 		return v3BillingCustomer
 	}
-	ConvertCustomerListResponse = func(source response.CursorPaginationResponse[customer.Customer]) v3.CustomerPaginatedResponse {
-		var v3CustomerPaginatedResponse v3.CustomerPaginatedResponse
-		if source.Data != nil {
-			v3CustomerPaginatedResponse.Data = make([]v3.BillingCustomer, len(source.Data))
-			for i := 0; i < len(source.Data); i++ {
-				v3CustomerPaginatedResponse.Data[i] = ConvertCustomer(source.Data[i])
-			}
-		}
-		v3CustomerPaginatedResponse.Meta = responseCursorMetaToV3CursorMeta(source.Meta)
-		return v3CustomerPaginatedResponse
+	ConvertFromCreateCustomerRequestToCreateCustomerInput = func(context string, source v3.CreateCustomerRequest) customer.CreateCustomerInput {
+		var customerCreateCustomerInput customer.CreateCustomerInput
+		customerCreateCustomerInput.Namespace = NamespaceFromContext(context)
+		customerCreateCustomerInput.CustomerMutate = ConvertCreateCustomerRequestToCustomerMutate(source)
+		return customerCreateCustomerInput
 	}
 	ConvertMeter = func(source meter.Meter) (v3.Meter, error) {
 		var v3Meter v3.Meter
@@ -113,7 +113,7 @@ func init() {
 		}
 		return v3MeterAggregation, nil
 	}
-	ConvertMetersListResponse = func(source response.CursorPaginationResponse[meter.Meter]) (v3.MeterPaginatedResponse, error) {
+	ConvertMeterListResponse = func(source response.CursorPaginationResponse[meter.Meter]) (v3.MeterPaginatedResponse, error) {
 		var v3MeterPaginatedResponse v3.MeterPaginatedResponse
 		if source.Data != nil {
 			v3MeterPaginatedResponse.Data = make([]v3.Meter, len(source.Data))

@@ -13,6 +13,45 @@ using TypeSpec.OpenAPI;
 
 namespace Customers;
 
+/**
+ * Query params for listing customers.
+ */
+@friendlyName("ListCustomersParams")
+model ListCustomersParams {
+  /**
+   * Sort customers returned in the response.
+   * Supported sort attributes are:
+   * - `key`
+   * - `id`
+   * - `name`
+   * - `primary_email`
+   * - `created_at` (default)
+   * - `updated_at`
+   * - `deleted_at`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending.
+   * The `desc` suffix is used to specify a descending order.
+   * Multiple sort attributes may be provided via a comma separated list.
+   */
+  @query
+  sort?: Common.SortQuery;
+
+  /**
+   * Filter customers returned in the response.
+   */
+  @query(#{style: "deepObject"})
+  filter?: {
+    id: Common.StringFieldFilter,
+    key: Common.StringFieldFilter,
+    name: Common.StringFieldFilter,
+    `usage_attribution.subject_keys`: Common.StringFieldFilter,
+    primary_email: Common.StringFieldFilter,
+    created_at: Common.DateTimeFieldFilter,
+    updated_at: Common.DateTimeFieldFilter,
+    deleted_at: Common.DateTimeFieldFilter,
+  }
+}
+
 interface CustomersOperations {
   @post
   @operationId("create-customer")
@@ -40,6 +79,7 @@ interface CustomersOperations {
   @extension(Shared.InternalExtension, true)
   list(
     ...Common.CursorPageQuery,
+    ...ListCustomersParams,
   ): Shared.CursorPaginatedResponse<Customer> | Common.ErrorResponses;
 
   @put

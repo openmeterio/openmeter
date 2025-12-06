@@ -60,6 +60,8 @@ paths:
       summary: List customers
       parameters:
         - $ref: '#/components/parameters/CursorPageQuery'
+        - $ref: '#/components/parameters/ListCustomersParams.sort'
+        - $ref: '#/components/parameters/ListCustomersParams.filter'
       responses:
         '200':
           description: Cursor paginated response.
@@ -343,6 +345,71 @@ paths:
       tags:
         - Meters
 components:
+  parameters:
+    ListCustomersParams.filter:
+      name: filter
+      in: query
+      required: false
+      description: Filter customers returned in the response.
+      schema:
+        type: object
+        properties:
+          id:
+            $ref: '#/components/schemas/StringFieldFilter'
+          key:
+            $ref: '#/components/schemas/StringFieldFilter'
+          name:
+            $ref: '#/components/schemas/StringFieldFilter'
+          usage_attribution.subject_keys:
+            $ref: '#/components/schemas/StringFieldFilter'
+          primary_email:
+            $ref: '#/components/schemas/StringFieldFilter'
+          created_at:
+            $ref: '#/components/schemas/DateTimeFieldFilter'
+          updated_at:
+            $ref: '#/components/schemas/DateTimeFieldFilter'
+          deleted_at:
+            $ref: '#/components/schemas/DateTimeFieldFilter'
+        required:
+          - id
+          - key
+          - name
+          - usage_attribution.subject_keys
+          - primary_email
+          - created_at
+          - updated_at
+          - deleted_at
+      explode: false
+      style: deepObject
+    ListCustomersParams.sort:
+      name: sort
+      in: query
+      required: false
+      description: |-
+        Sort customers returned in the response.
+        Supported sort attributes are:
+        - `key`
+        - `id`
+        - `name`
+        - `primary_email`
+        - `created_at` (default)
+        - `updated_at`
+        - `deleted_at`
+
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+        Multiple sort attributes may be provided via a comma separated list.
+      schema:
+        $ref: '#/components/schemas/SortQuery'
+      explode: false
+      style: form
+    CursorPageQuery:
+      name: page
+      description: Determines which page of the collection to retrieve.
+      required: false
+      in: query
+      schema:
+        $ref: '#/components/schemas/CursorPageParameters'
   schemas:
     BillingAddress:
       type: object
@@ -934,6 +1001,181 @@ components:
           type: string
           description: Cursor param specifying the page (i.e. the previous page) of data returned.
           example: ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ
+    SortQuery:
+      title: SortQuery
+      type: string
+      example: created_at desc
+      description: |
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+        Multiple sort attributes may be provided via a comma separated list.
+        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
+    StringFieldEqualsFilter:
+      title: StringFieldEqualsFilter
+      description: Filters on the given string field value by exact match.
+      oneOf:
+        - type: string
+        - type: object
+          title: StringFieldEqualsComparison
+          additionalProperties: false
+          properties:
+            eq:
+              type: string
+          required:
+            - eq
+      x-examples:
+        example-1: equals-some-value
+        example-2:
+          eq: some-value
+    StringFieldContainsFilter:
+      title: StringFieldContainsFilter
+      description: Filters on the given string field value by fuzzy match.
+      type: object
+      additionalProperties: false
+      properties:
+        contains:
+          type: string
+      required:
+        - contains
+      x-examples:
+        example-1:
+          contains: some-value
+    StringFieldOContainsFilter:
+      title: StringFieldOContainsFilter
+      description: Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string.
+      type: object
+      additionalProperties: false
+      properties:
+        ocontains:
+          type: string
+      required:
+        - ocontains
+      x-examples:
+        example-1:
+          ocontains: this-value,or-that-value
+    StringFieldOEQFilter:
+      title: StringFieldOEQFilter
+      description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
+      type: object
+      additionalProperties: false
+      properties:
+        oeq:
+          type: string
+      required:
+        - oeq
+      x-examples:
+        example-1:
+          oeq: some-value,some-other-value
+    StringFieldNEQFilter:
+      title: StringFieldNEQFilter
+      description: Filters on the given string field value by exact match inequality.
+      type: object
+      additionalProperties: false
+      properties:
+        neq:
+          type: string
+      required:
+        - neq
+      x-examples:
+        example-1:
+          neq: not-this-value
+    StringFieldFilter:
+      title: StringFieldFilter
+      description: Filters on the given string field value by either exact or fuzzy match.
+      oneOf:
+        - $ref: '#/components/schemas/StringFieldEqualsFilter'
+        - $ref: '#/components/schemas/StringFieldContainsFilter'
+        - $ref: '#/components/schemas/StringFieldOContainsFilter'
+        - $ref: '#/components/schemas/StringFieldOEQFilter'
+        - $ref: '#/components/schemas/StringFieldNEQFilter'
+      x-examples:
+        example-1: equals-some-value
+        example-2:
+          eq: some-value
+        example-3:
+          contains: some-value
+        example-4:
+          ocontains: some-potential,value
+        example-5:
+          oeq: some-potential,value
+        example-6:
+          neq: not-this-value
+    DateTimeFieldFilter:
+      title: DateTimeFieldFilter
+      description: Filters on the given datetime (RFC-3339) field value.
+      oneOf:
+        - type: string
+          title: DateTimeFieldImplicitEqualsFilter
+          format: date-time
+          description: Value strictly equals given RFC-3339 formatted timestamp in UTC
+          example: '2022-03-30T07:20:50Z'
+        - type: object
+          title: DateTimeFieldEqualsFilter
+          additionalProperties: false
+          properties:
+            eq:
+              type: string
+              format: date-time
+              description: Value strictly equals given RFC-3339 formatted timestamp in UTC
+              example: '2022-03-30T07:20:50Z'
+          required:
+            - eq
+        - type: object
+          title: DateTimeFieldLTFilter
+          additionalProperties: false
+          properties:
+            lt:
+              type: string
+              format: date-time
+              description: Value is less than the given RFC-3339 formatted timestamp in UTC
+              example: '2022-03-30T07:20:50Z'
+          required:
+            - lt
+        - type: object
+          title: DateTimeFieldLTEFilter
+          additionalProperties: false
+          properties:
+            lte:
+              type: string
+              format: date-time
+              description: Value is less than or equal to the given RFC-3339 formatted timestamp in UTC
+              example: '2022-03-30T07:20:50Z'
+          required:
+            - lte
+        - type: object
+          title: DateTimeFieldGTFilter
+          additionalProperties: false
+          properties:
+            lt:
+              type: string
+              format: date-time
+              description: Value is greater than the given RFC-3339 formatted timestamp in UTC
+              example: '2022-03-30T07:20:50Z'
+          required:
+            - gt
+        - type: object
+          title: DateTimeFieldGTEFilter
+          additionalProperties: false
+          properties:
+            lte:
+              type: string
+              format: date-time
+              description: Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC
+              example: '2022-03-30T07:20:50Z'
+          required:
+            - gte
+      x-examples:
+        datetime_field_1: '2022-03-30T07:20:50Z'
+        datetime_field_2:
+          eq: '2022-03-30T07:20:50Z'
+        datetime_field_3:
+          lt: '2022-03-30T07:20:50Z'
+        datetime_field_4:
+          lte: '2022-03-30T07:20:50Z'
+        datetime_field_5:
+          gt: '2022-03-30T07:20:50Z'
+        datetime_field_6:
+          gte: '2022-03-30T07:20:50Z'
     Labels:
       title: Labels
       type: object
@@ -1278,14 +1520,6 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Not found
-  parameters:
-    CursorPageQuery:
-      name: page
-      description: Determines which page of the collection to retrieve.
-      required: false
-      in: query
-      schema:
-        $ref: '#/components/schemas/CursorPageParameters'
   responses:
     BadRequest:
       description: Bad Request
