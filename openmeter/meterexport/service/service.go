@@ -11,6 +11,7 @@ import (
 type Config struct {
 	// Configuration
 	EventSourceGroup string
+	ExportSubject    string
 
 	// Dependencies
 	StreamingConnector streaming.Connector
@@ -19,6 +20,14 @@ type Config struct {
 
 func (c Config) validate() error {
 	var errs []error
+
+	if c.ExportSubject == "" {
+		errs = append(errs, errors.New("export subject is required"))
+	}
+
+	if c.EventSourceGroup == "" {
+		errs = append(errs, errors.New("event source group is required"))
+	}
 
 	if c.StreamingConnector == nil {
 		errs = append(errs, errors.New("streaming connector is required"))

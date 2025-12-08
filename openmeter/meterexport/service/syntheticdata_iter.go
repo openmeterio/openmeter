@@ -38,12 +38,14 @@ func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, config meter
 		// Interleave results and errors
 		for {
 			select {
-			case err := <-startupErrCh:
+			case err, ok := <-startupErrCh:
 				// Startup error from ExportSyntheticMeterData (should be rare given upfront validation)
-				if err != nil {
+				if ok && err != nil {
 					yield(streaming.RawEvent{}, err)
+					return
 				}
-				return
+				// Channel closed without error - nil it out so we don't keep selecting it
+				startupErrCh = nil
 			case event, ok := <-resultCh:
 				if !ok {
 					// Results channel closed, drain remaining errors

@@ -209,6 +209,7 @@ func TestExportSyntheticMeterData(t *testing.T) {
 
 			// Create service
 			svc, err := New(Config{
+				ExportSubject:      "test-subject",
 				EventSourceGroup:   "test-source",
 				StreamingConnector: mockStreaming,
 				MeterService:       mockMeterService,
@@ -307,6 +308,7 @@ func TestExportSyntheticMeterData_ContextCancellation(t *testing.T) {
 		}
 
 		svc, err := New(Config{
+			ExportSubject:      "test-subject",
 			EventSourceGroup:   "test-source",
 			StreamingConnector: mockStreaming,
 			MeterService:       mockMeterService,
@@ -382,6 +384,7 @@ func TestExportSyntheticMeterData_ContextCancellation(t *testing.T) {
 		mockStreaming.AddSimpleEvent("test-meter", 10.0, now.Add(-5*time.Minute))
 
 		svc, err := New(Config{
+			ExportSubject:      "test-subject",
 			EventSourceGroup:   "test-source",
 			StreamingConnector: mockStreaming,
 			MeterService:       mockMeterService,
@@ -450,10 +453,30 @@ func TestServiceNew(t *testing.T) {
 		assert.Contains(t, err.Error(), "meter service is required")
 	})
 
+	t.Run("should fail without export subject", func(t *testing.T) {
+		_, err := New(Config{
+			StreamingConnector: testutils.NewMockStreamingConnector(t),
+			MeterService:       NewMockMeterService(),
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "export subject is required")
+	})
+
+	t.Run("should fail without event source group", func(t *testing.T) {
+		_, err := New(Config{
+			StreamingConnector: testutils.NewMockStreamingConnector(t),
+			MeterService:       NewMockMeterService(),
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "event source group is required")
+	})
+
 	t.Run("should succeed with valid config", func(t *testing.T) {
 		svc, err := New(Config{
 			StreamingConnector: testutils.NewMockStreamingConnector(t),
 			MeterService:       NewMockMeterService(),
+			ExportSubject:      "test-subject",
+			EventSourceGroup:   "test-source",
 		})
 		require.NoError(t, err)
 		assert.NotNil(t, svc)
@@ -489,6 +512,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 		mockStreaming.AddSimpleEvent("test-meter", 30.0, now.Add(-2*time.Minute))
 
 		svc, err := New(Config{
+			ExportSubject:      "test-subject",
 			EventSourceGroup:   "test-source",
 			StreamingConnector: mockStreaming,
 			MeterService:       mockMeterService,
@@ -552,6 +576,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 		}
 
 		svc, err := New(Config{
+			ExportSubject:      "test-subject",
 			EventSourceGroup:   "test-source",
 			StreamingConnector: mockStreaming,
 			MeterService:       mockMeterService,
@@ -596,6 +621,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 		mockStreaming := testutils.NewMockStreamingConnector(t)
 
 		svc, err := New(Config{
+			ExportSubject:      "test-subject",
 			EventSourceGroup:   "test-source",
 			StreamingConnector: mockStreaming,
 			MeterService:       mockMeterService,
@@ -642,6 +668,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 		mockStreaming := testutils.NewMockStreamingConnector(t)
 
 		svc, err := New(Config{
+			ExportSubject:      "test-subject",
 			EventSourceGroup:   "test-source",
 			StreamingConnector: mockStreaming,
 			MeterService:       mockMeterService,

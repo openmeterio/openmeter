@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterexport"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 // GetTargetMeterDescriptor validates the export config and returns the descriptor for the target meter.
@@ -145,9 +146,10 @@ func (s *service) createEventFromMeterRow(m meter.Meter, row meter.MeterQueryRow
 		ID:         ulid.Make().String(),
 		Type:       m.EventType, // We reuse the same type as the source meter
 		Source:     fmt.Sprintf("%s:%s/%s", s.EventSourceGroup, m.Namespace, m.ID),
-		Subject:    lo.FromPtr(row.Subject),
+		Subject:    s.ExportSubject,
+		IngestedAt: clock.Now(),
 		Time:       row.WindowStart,
-		CustomerID: row.CustomerID,
+		CustomerID: nil,
 	}
 
 	// Let's add the value data to the event
