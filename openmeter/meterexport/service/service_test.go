@@ -455,3 +455,205 @@ func TestServiceNew(t *testing.T) {
 		assert.NotNil(t, svc)
 	})
 }
+
+func TestExportSyntheticMeterDataIter(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Minute)
+
+	testMeter := meter.Meter{
+		ManagedResource: models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{Namespace: "test-ns"},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: now.Add(-time.Hour),
+				UpdatedAt: now.Add(-time.Hour),
+			},
+			ID:   "meter-1",
+			Name: "Test Meter",
+		},
+		Key:           "test-meter",
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test-event",
+		ValueProperty: lo.ToPtr("$.value"),
+	}
+
+	t.Run("should iterate over exported events", func(t *testing.T) {
+		mockMeterService := NewMockMeterService()
+		mockMeterService.AddMeter(testMeter)
+
+		mockStreaming := testutils.NewMockStreamingConnector(t)
+		mockStreaming.AddSimpleEvent("test-meter", 10.0, now.Add(-9*time.Minute))
+		mockStreaming.AddSimpleEvent("test-meter", 20.0, now.Add(-5*time.Minute))
+		mockStreaming.AddSimpleEvent("test-meter", 30.0, now.Add(-2*time.Minute))
+
+		svc, err := New(Config{
+			EventSourceGroup:   "test-source",
+			StreamingConnector: mockStreaming,
+			MeterService:       mockMeterService,
+		})
+		require.NoError(t, err)
+
+		config := meterexport.DataExportConfig{
+			ExportWindowSize: meter.WindowSizeMinute,
+			MeterID: models.NamespacedID{
+				Namespace: "test-ns",
+				ID:        "meter-1",
+			},
+			Period: timeutil.StartBoundedPeriod{
+				From: now.Add(-10 * time.Minute),
+				To:   lo.ToPtr(now),
+			},
+		}
+
+		descriptor, seq, err := svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		require.NoError(t, err)
+
+		// Verify descriptor
+		assert.Equal(t, meter.MeterAggregationSum, descriptor.Aggregation)
+		assert.Equal(t, testMeter.EventType, descriptor.EventType)
+		assert.NotNil(t, descriptor.ValueProperty)
+
+		// Collect events from iterator
+		var events []streaming.RawEvent
+		var errs []error
+		for event, err := range seq {
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			events = append(events, event)
+		}
+
+		assert.Empty(t, errs)
+		assert.Len(t, events, 3)
+
+		// Verify event structure
+		for _, e := range events {
+			assert.Equal(t, testMeter.Namespace, e.Namespace)
+			assert.Equal(t, testMeter.EventType, e.Type)
+			assert.NotEmpty(t, e.ID)
+		}
+	})
+
+	t.Run("should stop operation when caller breaks early", func(t *testing.T) {
+		mockMeterService := NewMockMeterService()
+		mockMeterService.AddMeter(testMeter)
+
+		mockStreaming := testutils.NewMockStreamingConnector(t)
+		// Add many events
+		for i := 0; i < 100; i++ {
+			mockStreaming.AddSimpleEvent("test-meter", float64(i+1), now.Add(-time.Duration(i)*time.Minute))
+		}
+
+		svc, err := New(Config{
+			EventSourceGroup:   "test-source",
+			StreamingConnector: mockStreaming,
+			MeterService:       mockMeterService,
+		})
+		require.NoError(t, err)
+
+		config := meterexport.DataExportConfig{
+			ExportWindowSize: meter.WindowSizeMinute,
+			MeterID: models.NamespacedID{
+				Namespace: "test-ns",
+				ID:        "meter-1",
+			},
+			Period: timeutil.StartBoundedPeriod{
+				From: now.Add(-100 * time.Minute),
+				To:   lo.ToPtr(now),
+			},
+		}
+
+		_, seq, err := svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		require.NoError(t, err)
+
+		// Only consume first 3 events then break
+		count := 0
+		for event, err := range seq {
+			if err != nil {
+				continue
+			}
+			count++
+			_ = event
+			if count >= 3 {
+				break // This should trigger context cancellation
+			}
+		}
+
+		assert.Equal(t, 3, count)
+		// The operation should have been canceled - we can't easily verify this
+		// but the test completing without hanging proves the cancellation worked
+	})
+
+	t.Run("should return error for invalid config", func(t *testing.T) {
+		mockMeterService := NewMockMeterService()
+		mockStreaming := testutils.NewMockStreamingConnector(t)
+
+		svc, err := New(Config{
+			EventSourceGroup:   "test-source",
+			StreamingConnector: mockStreaming,
+			MeterService:       mockMeterService,
+		})
+		require.NoError(t, err)
+
+		config := meterexport.DataExportConfig{
+			ExportWindowSize: meter.WindowSizeMinute,
+			MeterID: models.NamespacedID{
+				Namespace: "test-ns",
+				ID:        "", // Missing ID
+			},
+			Period: timeutil.StartBoundedPeriod{
+				From: now.Add(-10 * time.Minute),
+				To:   lo.ToPtr(now),
+			},
+		}
+
+		_, _, err = svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "meter id is required")
+	})
+
+	t.Run("should return error for unsupported aggregation", func(t *testing.T) {
+		avgMeter := meter.Meter{
+			ManagedResource: models.ManagedResource{
+				NamespacedModel: models.NamespacedModel{Namespace: "test-ns"},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: now.Add(-time.Hour),
+					UpdatedAt: now.Add(-time.Hour),
+				},
+				ID:   "meter-avg",
+				Name: "Avg Meter",
+			},
+			Key:           "avg-meter",
+			Aggregation:   meter.MeterAggregationAvg,
+			EventType:     "avg-event",
+			ValueProperty: lo.ToPtr("$.value"),
+		}
+
+		mockMeterService := NewMockMeterService()
+		mockMeterService.AddMeter(avgMeter)
+
+		mockStreaming := testutils.NewMockStreamingConnector(t)
+
+		svc, err := New(Config{
+			EventSourceGroup:   "test-source",
+			StreamingConnector: mockStreaming,
+			MeterService:       mockMeterService,
+		})
+		require.NoError(t, err)
+
+		config := meterexport.DataExportConfig{
+			ExportWindowSize: meter.WindowSizeMinute,
+			MeterID: models.NamespacedID{
+				Namespace: "test-ns",
+				ID:        "meter-avg",
+			},
+			Period: timeutil.StartBoundedPeriod{
+				From: now.Add(-10 * time.Minute),
+				To:   lo.ToPtr(now),
+			},
+		}
+
+		_, _, err = svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported meter aggregation")
+	})
+}

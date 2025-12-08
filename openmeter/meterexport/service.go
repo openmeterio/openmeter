@@ -3,6 +3,7 @@ package meterexport
 import (
 	"context"
 	"errors"
+	"iter"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -21,6 +22,20 @@ type Service interface {
 	// NOTE: Currently only SUM and COUNT meters are supported.
 	// NOTE: GroupBy values are not yet supported.
 	ExportSyntheticMeterData(ctx context.Context, config DataExportConfig, result chan<- streaming.RawEvent, err chan<- error) (TargetMeterDescriptor, error)
+
+	// ExportSyntheticMeterDataIter is an iterator-based wrapper around ExportSyntheticMeterData.
+	// It returns an iter.Seq2 that yields events and errors. The iterator handles channel management internally.
+	// If the caller stops iterating early (breaks out of the loop), the operation is automatically canceled.
+	// Errors are yielded inline with events - when an error is yielded, the event will be zero-valued.
+	//
+	// Example usage:
+	//   descriptor, seq, err := svc.ExportSyntheticMeterDataIter(ctx, config)
+	//   if err != nil { return err }
+	//   for event, err := range seq {
+	//       if err != nil { handle error }
+	//       process(event)
+	//   }
+	ExportSyntheticMeterDataIter(ctx context.Context, config DataExportConfig) (TargetMeterDescriptor, iter.Seq2[streaming.RawEvent, error], error)
 }
 
 // TargetMeterDescriptor is a minimal MeterCreateInput which can accurately represent the exported data.
