@@ -45,13 +45,11 @@ func NewMeterService(
 
 func NewMeterManageService(
 	meterAdapter *adapter.Adapter,
-	namespaceManager *namespace.Manager,
 	publisher eventbus.Publisher,
 ) meter.ManageService {
 	return service.NewManage(
 		meterAdapter,
 		publisher,
-		namespaceManager,
 	)
 }
 

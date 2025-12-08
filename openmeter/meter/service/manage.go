@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter/adapter"
-	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -17,22 +16,19 @@ var _ meter.ManageService = (*ManageService)(nil)
 
 type ManageService struct {
 	meter.Service
-	preUpdateHooks   []meter.PreUpdateMeterHook
-	adapter          *adapter.Adapter
-	publisher        eventbus.Publisher
-	namespaceManager *namespace.Manager
+	preUpdateHooks []meter.PreUpdateMeterHook
+	adapter        *adapter.Adapter
+	publisher      eventbus.Publisher
 }
 
 func NewManage(
 	adapter *adapter.Adapter,
 	publisher eventbus.Publisher,
-	namespaceManager *namespace.Manager,
 ) *ManageService {
 	return &ManageService{
-		Service:          New(adapter),
-		adapter:          adapter,
-		publisher:        publisher,
-		namespaceManager: namespaceManager,
+		Service:   New(adapter),
+		adapter:   adapter,
+		publisher: publisher,
 	}
 }
 
@@ -48,12 +44,6 @@ func (s *ManageService) CreateMeter(ctx context.Context, input meter.CreateMeter
 	createdMeter, err := s.adapter.CreateMeter(ctx, input)
 	if err != nil {
 		return createdMeter, err
-	}
-
-	// TODO: remove this once we are sure that the namespace is created at signup
-	err = s.namespaceManager.CreateNamespace(ctx, input.Namespace)
-	if err != nil {
-		return createdMeter, fmt.Errorf("failed to create namespace: %w", err)
 	}
 
 	// Publish the meter created event
