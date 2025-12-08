@@ -6,33 +6,55 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
+type paginationKind string
+
 const (
-	DefaultPaginationSize = 20
+	paginationKindOffset paginationKind = "offset"
+	paginationKindCursor paginationKind = "cursor"
+)
+
+const (
+	DefaultPaginationSize    = 20
+	DefaultPaginationMaxSize = 100
+	DefaultPaginationKind    = paginationKindCursor
 )
 
 var (
-	ErrCursorPaginationSizeInvalid = errors.New("size must be greater than 0")
-	ErrCursorPaginationUndefined   = errors.New("at least before or after cursor need to be defined")
-	ErrCursorPaginationRange       = errors.New("range pagination not supported, both before and after cursor were defined")
+	ErrCursorPaginationSizeInvalid   = errors.New("size must be greater than 0")
+	ErrCursorPaginationRange         = errors.New("range pagination not supported, both before and after cursor were defined")
+	ErrCursorPaginationAfterInvalid  = errors.New("after cursor is invalid")
+	ErrCursorPaginationBeforeInvalid = errors.New("before cursor is invalid")
 )
 
-type CursorPagination struct {
+type Pagination struct {
+	kind paginationKind
+
+	// Cursor pagination
 	Size   int                `query:"size"`
 	After  *pagination.Cursor `query:"after"`
 	Before *pagination.Cursor `query:"before"`
+
+	// Offset pagination
+	Number int `query:"number"`
 }
 
-func (p *CursorPagination) Validate() error {
+func (p *Pagination) Validate() error {
 	if p.Size < 1 {
 		return ErrCursorPaginationSizeInvalid
 	}
 
-	if p.After == nil && p.Before == nil {
-		return ErrCursorPaginationUndefined
-	}
+	if p.kind == paginationKindCursor {
+		if p.After != nil && p.Before != nil {
+			return ErrCursorPaginationRange
+		}
 
-	if p.After != nil && p.Before != nil {
-		return ErrCursorPaginationRange
+		if p.After != nil && p.After.Validate() != nil {
+			return ErrCursorPaginationAfterInvalid
+		}
+
+		if p.Before != nil && p.Before.Validate() != nil {
+			return ErrCursorPaginationBeforeInvalid
+		}
 	}
 
 	return nil

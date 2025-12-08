@@ -14,7 +14,7 @@ const (
 
 var (
 	ErrSortByInvalid     = errors.New("invalid sort by")
-	ErrSortFieldRequired = errors.New("field is required")
+	ErrSortFieldRequired = errors.New("sort field is required")
 	ErrSortOrderInvalid  = errors.New("sort order must be either asc or desc")
 	defaultOrder         = SortOrderAsc
 )
@@ -23,6 +23,7 @@ func (s SortOrder) Validate() error {
 	if s != SortOrderAsc && s != SortOrderDesc {
 		return ErrSortOrderInvalid
 	}
+
 	return nil
 }
 

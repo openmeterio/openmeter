@@ -1,7 +1,8 @@
-package request
+package query
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -409,6 +410,27 @@ type Product struct {
 	Variants []ProductVariant `query:"variants"`
 }
 
+type TextUnmarshalStruct struct {
+	Value string
+}
+
+func (t *TextUnmarshalStruct) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		return errors.New("empty text")
+	}
+
+	t.Value = strings.ToUpper(string(text))
+	return nil
+}
+
+type WrapperWithTextUnmarshaler struct {
+	Custom TextUnmarshalStruct `query:"custom"`
+}
+
+type WrapperWithPointerTextUnmarshaler struct {
+	Custom *TextUnmarshalStruct `query:"custom"`
+}
+
 func TestParseToStruct(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -458,6 +480,22 @@ func TestParseToStruct(t *testing.T) {
 					"lang":  "en",
 				},
 				Enabled: true,
+			},
+		},
+		{
+			name:  "struct field using UnmarshalText",
+			input: "custom=hello world",
+			dest:  &WrapperWithTextUnmarshaler{},
+			expected: &WrapperWithTextUnmarshaler{
+				Custom: TextUnmarshalStruct{Value: "HELLO WORLD"},
+			},
+		},
+		{
+			name:  "pointer field using UnmarshalText",
+			input: "custom=go test",
+			dest:  &WrapperWithPointerTextUnmarshaler{},
+			expected: &WrapperWithPointerTextUnmarshaler{
+				Custom: &TextUnmarshalStruct{Value: "GO TEST"},
 			},
 		},
 	}

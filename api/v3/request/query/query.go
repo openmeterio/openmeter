@@ -1,7 +1,8 @@
-package request
+package query
 
 import (
 	"context"
+	"encoding"
 	"errors"
 	"fmt"
 	"net/url"
@@ -370,6 +371,17 @@ func Parse(ctx context.Context, str string, opts ...*ParseOptions) (map[string]i
 			val, err = options.Decoder(valuePart)
 			if err != nil {
 				return nil, newQueryAPIError(ctx, err, getCleanKey(key))
+			}
+		}
+
+		if options.Comma {
+			if s, ok := val.(string); ok && strings.Contains(s, ",") {
+				parts := strings.Split(s, ",")
+				vals := make([]interface{}, len(parts))
+				for i, p := range parts {
+					vals[i] = p
+				}
+				val = vals
 			}
 		}
 
@@ -1180,10 +1192,45 @@ func ruleFromKind(k reflect.Kind) string {
 	}
 }
 
+var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+
+// tryUnmarshalText attempts to use encoding.TextUnmarshaler on the field when the source is a string.
+// It returns true when the field implements the interface and the value was handled.
+func tryUnmarshalText(field reflect.Value, text string) (bool, error) {
+	fieldType := field.Type()
+
+	// Direct implementation (covers pointer-typed fields too)
+	if fieldType.Implements(textUnmarshalerType) {
+		if field.Kind() == reflect.Ptr && field.IsNil() {
+			field.Set(reflect.New(fieldType.Elem()))
+		}
+		unmarshaler := field.Interface().(encoding.TextUnmarshaler)
+		return true, unmarshaler.UnmarshalText([]byte(text))
+	}
+
+	// Value types with pointer receivers
+	if field.CanAddr() {
+		addrType := field.Addr().Type()
+		if addrType.Implements(textUnmarshalerType) {
+			unmarshaler := field.Addr().Interface().(encoding.TextUnmarshaler)
+			return true, unmarshaler.UnmarshalText([]byte(text))
+		}
+	}
+
+	return false, nil
+}
+
 // setFieldValue sets a struct field value from interface{} data
 func setFieldValue(field reflect.Value, value interface{}) error {
 	if value == nil {
 		return nil
+	}
+
+	// Prefer TextUnmarshaler when the input is a string
+	if str, ok := value.(string); ok {
+		if handled, err := tryUnmarshalText(field, str); handled {
+			return err
+		}
 	}
 
 	fieldType := field.Type()
@@ -1202,6 +1249,12 @@ func setFieldValue(field reflect.Value, value interface{}) error {
 	case reflect.String:
 		if str, ok := value.(string); ok {
 			field.SetString(str)
+		} else if slice, ok := value.([]interface{}); ok {
+			parts := make([]string, 0, len(slice))
+			for _, item := range slice {
+				parts = append(parts, fmt.Sprint(item))
+			}
+			field.SetString(strings.Join(parts, ","))
 		} else {
 			field.SetString(fmt.Sprintf("%v", value))
 		}
