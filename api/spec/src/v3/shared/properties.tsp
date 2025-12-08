@@ -27,6 +27,16 @@ scalar ULID extends string;
 scalar ResourceKey extends string;
 
 /**
+ * ULID ID or Resource Key.
+ */
+@friendlyName("ULIDOrResourceKey")
+@summary("ULID ID or Resource Key")
+union ULIDOrResourceKey {
+  id: ULID,
+  key: ResourceKey,
+}
+
+/**
  * ExternalResourceKey is a unique string that is used to identify a resource in an external system.
  */
 @maxLength(256)

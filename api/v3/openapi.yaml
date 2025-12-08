@@ -264,6 +264,7 @@ paths:
     post:
       operationId: create-meter
       summary: Create meter
+      description: Create a meter.
       responses:
         '201':
           description: Meter created response.
@@ -292,6 +293,7 @@ paths:
     get:
       operationId: list-meters
       summary: List meters
+      description: List meters.
       parameters:
         - $ref: '#/components/parameters/CursorPageQuery'
       responses:
@@ -313,16 +315,17 @@ paths:
           $ref: '#/components/responses/NotAvailable'
       tags:
         - Meters
-  /openmeter/meters/{meterId}:
+  /openmeter/meters/{meterIdOrKey}:
     get:
       operationId: get-meter
       summary: Get meter
+      description: Get a meter by ID or key.
       parameters:
-        - name: meterId
+        - name: meterIdOrKey
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/ULID'
+            $ref: '#/components/schemas/ULIDOrResourceKey'
       responses:
         '200':
           description: Meter response.
@@ -896,6 +899,12 @@ components:
       description: ULID (Universally Unique Lexicographically Sortable Identifier).
       title: ULID
       example: 01G65Z755AFWAKHE12NY0CQ9FH
+    ULIDOrResourceKey:
+      anyOf:
+        - $ref: '#/components/schemas/ULID'
+        - $ref: '#/components/schemas/ResourceKey'
+      description: ULID ID or Resource Key.
+      title: ULID ID or Resource Key
     UpdateCustomerRequest:
       type: object
       properties:

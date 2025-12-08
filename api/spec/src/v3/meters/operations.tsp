@@ -14,6 +14,9 @@ using TypeSpec.OpenAPI;
 namespace Meters;
 
 interface MetersOperations {
+  /**
+   * Create a meter.
+   */
   @post
   @operationId("create-meter")
   @summary("Create meter")
@@ -21,13 +24,19 @@ interface MetersOperations {
     @body meter: Shared.CreateRequest<Meter>,
   ): Shared.CreateResponse<Meter> | Common.ErrorResponses;
 
+  /**
+   * Get a meter by ID or key.
+   */
   @get
   @operationId("get-meter")
   @summary("Get meter")
   get(
-    @path meterId: Shared.ULID,
+    @path meterIdOrKey: Shared.ULIDOrResourceKey,
   ): Shared.GetResponse<Meter> | Common.NotFound | Common.ErrorResponses;
 
+  /**
+   * List meters.
+   */
   @get
   @operationId("list-meters")
   @summary("List meters")

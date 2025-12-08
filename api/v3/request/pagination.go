@@ -8,8 +8,6 @@ import (
 
 const (
 	DefaultPaginationSize = 20
-	PageBeforeQuery       = "page[before]"
-	PageAfterQuery        = "page[after]"
 )
 
 var (
@@ -19,9 +17,9 @@ var (
 )
 
 type CursorPagination struct {
-	Size   int
-	After  *pagination.Cursor
-	Before *pagination.Cursor
+	Size   int                `query:"size"`
+	After  *pagination.Cursor `query:"after"`
+	Before *pagination.Cursor `query:"before"`
 }
 
 func (p *CursorPagination) Validate() error {

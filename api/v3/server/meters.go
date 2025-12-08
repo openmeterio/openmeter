@@ -12,7 +12,7 @@ func (s *Server) ListMeters(w http.ResponseWriter, r *http.Request, params api.L
 	s.meterHandler.ListMeters().With(params).ServeHTTP(w, r)
 }
 
-func (s *Server) GetMeter(w http.ResponseWriter, r *http.Request, meterId api.ULID) {
+func (s *Server) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrKey api.ULIDOrResourceKey) {
 	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
 }
 
