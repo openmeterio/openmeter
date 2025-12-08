@@ -3,7 +3,10 @@ package meterexportservice
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -45,17 +48,34 @@ func (s *service) ExportSyntheticMeterData(ctx context.Context, config meterexpo
 
 	g, ctx := errgroup.WithContext(ctx)
 
+	// Ensure context cancellation error is only sent once
+	// (both funnel and consumer can detect context cancellation)
+	var sendCtxErrOnce sync.Once
+	sendCtxErr := func() {
+		sendCtxErrOnce.Do(func() {
+			if err := ctx.Err(); err != nil {
+				errCh <- err
+			}
+		})
+	}
+
 	// Let's start consuming the rows
 	g.Go(func() error {
 		for {
 			select {
 			case <-ctx.Done():
-				errCh <- ctx.Err()
+				sendCtxErr()
 				return nil
-			case err := <-meterRowErrCh:
-				errCh <- err
+			case err, ok := <-meterRowErrCh:
+				// Filter out context errors as they're handled via sendCtxErr
+				if ok && err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+					errCh <- err
+				}
 			case row, ok := <-meterRowCh:
 				if !ok {
+					// Before returning, check if context was canceled
+					// This ensures we always report context cancellation to the caller
+					sendCtxErr()
 					return nil
 				}
 
@@ -77,7 +97,13 @@ func (s *service) ExportSyntheticMeterData(ctx context.Context, config meterexpo
 	g.Go(func() error {
 		return s.funnel(ctx, funnelParams{
 			meter: m,
-		}, meterRowCh, errCh)
+			queryParams: streaming.QueryParams{
+				From:           &config.Period.From,
+				To:             config.Period.To,
+				WindowSize:     &config.ExportWindowSize,
+				WindowTimeZone: time.UTC,
+			},
+		}, meterRowCh, meterRowErrCh)
 	})
 
 	if err := g.Wait(); err != nil {
