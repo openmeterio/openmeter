@@ -13,6 +13,13 @@ import (
 
 // Service manages exporting data from OpenMeter meters
 type Service interface {
+	// GetTargetMeterDescriptor validates the export config and returns the descriptor for the target meter.
+	// This can be called independently to get the descriptor before starting an export operation.
+	// The descriptor describes what meter configuration can accurately represent the exported data.
+	//
+	// NOTE: Currently only SUM and COUNT meters are supported.
+	GetTargetMeterDescriptor(ctx context.Context, config DataExportConfig) (TargetMeterDescriptor, error)
+
 	// ExportSyntheticMeterData exports synthetic pre-aggregated events from OpenMeter. When ingested into a meter matching the descriptor, the resulted events will accurately reconstruct the meter histogram with WindowSize precision.
 	// ExportSyntheticMeterData produces one event per WindowSize using the same event format as the storage layer.
 	// This pre-aggregation is useful because while OpenMeter is designed to handle large event volumes, downstream systems usually don't care about the full granularity of all stored events.
@@ -21,7 +28,7 @@ type Service interface {
 	//
 	// NOTE: Currently only SUM and COUNT meters are supported.
 	// NOTE: GroupBy values are not yet supported.
-	ExportSyntheticMeterData(ctx context.Context, config DataExportConfig, result chan<- streaming.RawEvent, err chan<- error) (TargetMeterDescriptor, error)
+	ExportSyntheticMeterData(ctx context.Context, config DataExportConfig, result chan<- streaming.RawEvent, err chan<- error) error
 
 	// ExportSyntheticMeterDataIter is an iterator-based wrapper around ExportSyntheticMeterData.
 	// It returns an iter.Seq2 that yields events and errors. The iterator handles channel management internally.
@@ -29,13 +36,13 @@ type Service interface {
 	// Errors are yielded inline with events - when an error is yielded, the event will be zero-valued.
 	//
 	// Example usage:
-	//   descriptor, seq, err := svc.ExportSyntheticMeterDataIter(ctx, config)
+	//   seq, err := svc.ExportSyntheticMeterDataIter(ctx, config)
 	//   if err != nil { return err }
 	//   for event, err := range seq {
 	//       if err != nil { handle error }
 	//       process(event)
 	//   }
-	ExportSyntheticMeterDataIter(ctx context.Context, config DataExportConfig) (TargetMeterDescriptor, iter.Seq2[streaming.RawEvent, error], error)
+	ExportSyntheticMeterDataIter(ctx context.Context, config DataExportConfig) (iter.Seq2[streaming.RawEvent, error], error)
 }
 
 // TargetMeterDescriptor is a minimal MeterCreateInput which can accurately represent the exported data.

@@ -221,7 +221,7 @@ func TestExportSyntheticMeterData(t *testing.T) {
 
 			// Execute
 			ctx := context.Background()
-			descriptor, err := svc.ExportSyntheticMeterData(ctx, tt.config, resultCh, errCh)
+			err = svc.ExportSyntheticMeterData(ctx, tt.config, resultCh, errCh)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -229,6 +229,10 @@ func TestExportSyntheticMeterData(t *testing.T) {
 				return
 			}
 
+			require.NoError(t, err)
+
+			// Get descriptor separately
+			descriptor, err := svc.GetTargetMeterDescriptor(ctx, tt.config)
 			require.NoError(t, err)
 
 			// Collect results
@@ -331,7 +335,7 @@ func TestExportSyntheticMeterData_ContextCancellation(t *testing.T) {
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			_, _ = svc.ExportSyntheticMeterData(ctx, config, resultCh, errCh)
+			_ = svc.ExportSyntheticMeterData(ctx, config, resultCh, errCh)
 		}()
 
 		// Receive first event to confirm operation started
@@ -403,7 +407,7 @@ func TestExportSyntheticMeterData_ContextCancellation(t *testing.T) {
 			},
 		}
 
-		_, exportErr := svc.ExportSyntheticMeterData(ctx, config, resultCh, errCh)
+		exportErr := svc.ExportSyntheticMeterData(ctx, config, resultCh, errCh)
 
 		// The function itself doesn't return an error for context cancellation
 		// (it's a streaming operation - errors go to channel)
@@ -503,13 +507,17 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 			},
 		}
 
-		descriptor, seq, err := svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		// Get descriptor first
+		descriptor, err := svc.GetTargetMeterDescriptor(context.Background(), config)
 		require.NoError(t, err)
 
 		// Verify descriptor
 		assert.Equal(t, meter.MeterAggregationSum, descriptor.Aggregation)
 		assert.Equal(t, testMeter.EventType, descriptor.EventType)
 		assert.NotNil(t, descriptor.ValueProperty)
+
+		seq, err := svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		require.NoError(t, err)
 
 		// Collect events from iterator
 		var events []streaming.RawEvent
@@ -562,7 +570,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 			},
 		}
 
-		_, seq, err := svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		seq, err := svc.ExportSyntheticMeterDataIter(context.Background(), config)
 		require.NoError(t, err)
 
 		// Only consume first 3 events then break
@@ -606,7 +614,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 			},
 		}
 
-		_, _, err = svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		_, err = svc.ExportSyntheticMeterDataIter(context.Background(), config)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "meter id is required")
 	})
@@ -652,7 +660,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 			},
 		}
 
-		_, _, err = svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		_, err = svc.ExportSyntheticMeterDataIter(context.Background(), config)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported meter aggregation")
 	})

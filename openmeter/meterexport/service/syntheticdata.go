@@ -17,14 +17,17 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
-func (s *service) ExportSyntheticMeterData(ctx context.Context, config meterexport.DataExportConfig, resultCh chan<- streaming.RawEvent, errCh chan<- error) (meterexport.TargetMeterDescriptor, error) {
-	defer func() {
-		close(resultCh)
-		close(errCh)
-	}()
+// GetTargetMeterDescriptor validates the export config and returns the descriptor for the target meter.
+func (s *service) GetTargetMeterDescriptor(ctx context.Context, config meterexport.DataExportConfig) (meterexport.TargetMeterDescriptor, error) {
+	_, descriptor, err := s.validateAndGetMeter(ctx, config)
+	return descriptor, err
+}
 
+// validateAndGetMeter validates the config, fetches the meter, and returns both the meter and descriptor.
+// This is used internally by export methods to avoid duplicating validation logic.
+func (s *service) validateAndGetMeter(ctx context.Context, config meterexport.DataExportConfig) (meter.Meter, meterexport.TargetMeterDescriptor, error) {
 	if err := config.Validate(); err != nil {
-		return meterexport.TargetMeterDescriptor{}, fmt.Errorf("validate config: %w", err)
+		return meter.Meter{}, meterexport.TargetMeterDescriptor{}, fmt.Errorf("validate config: %w", err)
 	}
 
 	m, err := s.MeterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
@@ -32,14 +35,34 @@ func (s *service) ExportSyntheticMeterData(ctx context.Context, config meterexpo
 		Namespace: config.MeterID.Namespace,
 	})
 	if err != nil {
-		return meterexport.TargetMeterDescriptor{}, fmt.Errorf("get meter: %w", err)
+		return meter.Meter{}, meterexport.TargetMeterDescriptor{}, fmt.Errorf("get meter: %w", err)
 	}
 
-	// Let's validate the meter aggregation upfront
+	// Validate the meter aggregation
 	switch m.Aggregation {
 	case meter.MeterAggregationSum, meter.MeterAggregationCount:
 	default:
-		return meterexport.TargetMeterDescriptor{}, fmt.Errorf("unsupported meter aggregation: %s", m.Aggregation)
+		return meter.Meter{}, meterexport.TargetMeterDescriptor{}, fmt.Errorf("unsupported meter aggregation: %s", m.Aggregation)
+	}
+
+	descriptor := meterexport.TargetMeterDescriptor{
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     m.EventType,
+		ValueProperty: lo.ToPtr(SUM_VALUE_PROPERTY_KEY),
+	}
+
+	return m, descriptor, nil
+}
+
+func (s *service) ExportSyntheticMeterData(ctx context.Context, config meterexport.DataExportConfig, resultCh chan<- streaming.RawEvent, errCh chan<- error) error {
+	defer func() {
+		close(resultCh)
+		close(errCh)
+	}()
+
+	m, _, err := s.validateAndGetMeter(ctx, config)
+	if err != nil {
+		return err
 	}
 
 	// We're gonna do some things in parallel here
@@ -107,14 +130,10 @@ func (s *service) ExportSyntheticMeterData(ctx context.Context, config meterexpo
 	})
 
 	if err := g.Wait(); err != nil {
-		return meterexport.TargetMeterDescriptor{}, fmt.Errorf("export synthetic meter data: %w", err)
+		return fmt.Errorf("export synthetic meter data: %w", err)
 	}
 
-	return meterexport.TargetMeterDescriptor{
-		Aggregation:   meter.MeterAggregationSum,
-		EventType:     m.EventType,
-		ValueProperty: lo.ToPtr(SUM_VALUE_PROPERTY_KEY),
-	}, nil
+	return nil
 }
 
 const SUM_VALUE_PROPERTY_KEY = "value"

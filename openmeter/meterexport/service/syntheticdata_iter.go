@@ -2,44 +2,18 @@ package meterexportservice
 
 import (
 	"context"
-	"fmt"
 	"iter"
 
-	"github.com/samber/lo"
-
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterexport"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 // ExportSyntheticMeterDataIter wraps ExportSyntheticMeterData with an iterator interface.
 // If the caller stops iterating early, the underlying operation is canceled.
-func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, config meterexport.DataExportConfig) (meterexport.TargetMeterDescriptor, iter.Seq2[streaming.RawEvent, error], error) {
-	// Validate config upfront so we can return an error before creating the iterator
-	if err := config.Validate(); err != nil {
-		return meterexport.TargetMeterDescriptor{}, nil, fmt.Errorf("validate config: %w", err)
-	}
-
-	// Get meter upfront to validate and return descriptor synchronously
-	m, err := s.MeterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-		IDOrSlug:  config.MeterID.ID,
-		Namespace: config.MeterID.Namespace,
-	})
-	if err != nil {
-		return meterexport.TargetMeterDescriptor{}, nil, fmt.Errorf("get meter: %w", err)
-	}
-
-	// Validate meter aggregation upfront
-	switch m.Aggregation {
-	case meter.MeterAggregationSum, meter.MeterAggregationCount:
-	default:
-		return meterexport.TargetMeterDescriptor{}, nil, fmt.Errorf("unsupported meter aggregation: %s", m.Aggregation)
-	}
-
-	descriptor := meterexport.TargetMeterDescriptor{
-		Aggregation:   meter.MeterAggregationSum,
-		EventType:     m.EventType,
-		ValueProperty: lo.ToPtr(SUM_VALUE_PROPERTY_KEY),
+func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, config meterexport.DataExportConfig) (iter.Seq2[streaming.RawEvent, error], error) {
+	// Validate upfront so we can return an error before creating the iterator
+	if _, _, err := s.validateAndGetMeter(ctx, config); err != nil {
+		return nil, err
 	}
 
 	seq := func(yield func(streaming.RawEvent, error) bool) {
@@ -52,8 +26,7 @@ func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, config meter
 
 		// Start the export in a goroutine
 		go func() {
-			// We ignore the returned descriptor since we already have it
-			_, _ = s.ExportSyntheticMeterData(ctx, config, resultCh, errCh)
+			_ = s.ExportSyntheticMeterData(ctx, config, resultCh, errCh)
 		}()
 
 		// Interleave results and errors
@@ -89,5 +62,5 @@ func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, config meter
 		}
 	}
 
-	return descriptor, seq, nil
+	return seq, nil
 }
