@@ -4,24 +4,19 @@ package request
 // ?filter[field][operator][quantifier]
 
 type FilterOperator struct {
-	eq        *string   `query:"eq"`
-	neq       *string   `query:"neq"`
-	gt        *string   `query:"gt"`
-	gte       *string   `query:"gte"`
-	lt        *string   `query:"lt"`
-	lte       *string   `query:"lte"`
-	contains  *string   `query:"contains"`
-	ocontains *[]string `query:"ocontains"`
-	exists    *bool     `query:"exists"`
-	oeq       *[]string `query:"oeq"`
+	Eq        *string   `query:"eq"`
+	Neq       *string   `query:"neq"`
+	Gt        *string   `query:"gt"`
+	Gte       *string   `query:"gte"`
+	Lt        *string   `query:"lt"`
+	Lte       *string   `query:"lte"`
+	Contains  *string   `query:"contains"`
+	Ocontains *[]string `query:"ocontains"`
+	Exists    *bool     `query:"exists"`
+	Oeq       *[]string `query:"oeq"`
 }
 
 //type FilterQuantifier struct {
 //	any *string `query:"any"`
 //	all *string `query:"all"`
-//}
-//
-//type QueryFilter struct {
-//	Field  string
-//	Filter FilterOperator
 //}

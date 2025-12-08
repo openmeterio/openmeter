@@ -28,10 +28,7 @@ type QueryAttributes struct {
 
 // GetAttributes return the Attributes found in the request query string
 func GetAttributes(r *http.Request) (*QueryAttributes, error) {
-	// This does not work:
 	attributes := &QueryAttributes{}
-	// This works:
-	//attributes := &map[string]interface{}{}
 
 	err := Unmarshal(r.Context(), r.URL.RawQuery, &attributes)
 	if err != nil {

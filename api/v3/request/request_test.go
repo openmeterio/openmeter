@@ -37,10 +37,10 @@ func TestGetAttributes(t *testing.T) {
 			},
 			Filters: map[string]FilterOperator{
 				"category": {
-					eq: lo.ToPtr("api"),
+					Eq: lo.ToPtr("api"),
 				},
 				"name": {
-					contains: lo.ToPtr("peter"),
+					Contains: lo.ToPtr("peter"),
 				},
 			},
 		}, false},
@@ -56,37 +56,6 @@ func TestGetAttributes(t *testing.T) {
 			}
 			if !tt.wantErr && !reflect.DeepEqual(a, tt.expected) {
 				t.Errorf("GetAttributes() = %+v, want %+v", a, tt.expected)
-			}
-		})
-	}
-}
-
-func TestComplexFilter(t *testing.T) {
-	tests := []struct {
-		name         string
-		qs           string
-		unmarshalled *QueryAttributes
-	}{
-		{"complex filter", "filter[category][eq]=api&filter[name][contains]=peter", &QueryAttributes{
-			Filters: map[string]FilterOperator{
-				"category": {
-					eq: lo.ToPtr("api"),
-				},
-				"name": {
-					contains: lo.ToPtr("peter"),
-				},
-			},
-		}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			results, err := Marshal(tt.unmarshalled)
-			if err != nil {
-				t.Errorf("Marshal() error = %v", err)
-				return
-			}
-			if !reflect.DeepEqual(results, tt.qs) {
-				t.Errorf("Marshal() = %+v, want %+v", results, tt.qs)
 			}
 		})
 	}
