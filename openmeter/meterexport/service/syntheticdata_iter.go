@@ -24,14 +24,26 @@ func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, config meter
 		resultCh := make(chan streaming.RawEvent, 100)
 		errCh := make(chan error, 10)
 
+		// Channel to capture any startup error from ExportSyntheticMeterData
+		startupErrCh := make(chan error, 1)
+
 		// Start the export in a goroutine
 		go func() {
-			_ = s.ExportSyntheticMeterData(ctx, config, resultCh, errCh)
+			if err := s.ExportSyntheticMeterData(ctx, config, resultCh, errCh); err != nil {
+				startupErrCh <- err
+			}
+			close(startupErrCh)
 		}()
 
 		// Interleave results and errors
 		for {
 			select {
+			case err := <-startupErrCh:
+				// Startup error from ExportSyntheticMeterData (should be rare given upfront validation)
+				if err != nil {
+					yield(streaming.RawEvent{}, err)
+				}
+				return
 			case event, ok := <-resultCh:
 				if !ok {
 					// Results channel closed, drain remaining errors
