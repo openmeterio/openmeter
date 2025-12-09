@@ -38,6 +38,22 @@ type CursorPaginationResponse[T any] struct {
 	Meta CursorMeta `json:"meta"`
 }
 
+type OffsetPaginationResponse[T any] struct {
+	Data []T        `json:"data"`
+	Meta OffsetMeta `json:"meta"`
+}
+
+type OffsetMeta struct {
+	Page OffsetMetaPage `json:"page"`
+}
+
+type OffsetMetaPage struct {
+	Size           int  `json:"size"`
+	Number         int  `json:"number"`
+	Total          *int `json:"total,omitempty"`
+	EstimatedTotal *int `json:"estimatedTotal,omitempty"`
+}
+
 // NewCursorPaginationResponse creates a new pagination response from an ordered list of items.
 // T must implement the Item interface for cursor generation.
 func NewCursorPaginationResponse[T pagination.Item](items []T) CursorPaginationResponse[T] {
@@ -86,3 +102,12 @@ func NewCursorPaginationResponse[T pagination.Item](items []T) CursorPaginationR
 
 // 	return fmt.Sprintf("%s?%s", rr.URL.Path, rr.URL.RawQuery), nil
 // }
+
+func NewOffsetPaginationResponse[T any](items []T, page OffsetMetaPage) OffsetPaginationResponse[T] {
+	return OffsetPaginationResponse[T]{
+		Data: items,
+		Meta: OffsetMeta{
+			Page: page,
+		},
+	}
+}

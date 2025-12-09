@@ -45,7 +45,7 @@ func NewCustomerHandler(
 
 type (
 	ListCustomersRequest  = customer.ListCustomersInput
-	ListCustomersResponse = response.CursorPaginationResponse[Customer]
+	ListCustomersResponse = response.OffsetPaginationResponse[Customer]
 	ListCustomersHandler  httptransport.Handler[ListCustomersRequest, ListCustomersResponse]
 )
 
@@ -111,9 +111,12 @@ func (h *customerHandler) ListCustomers() ListCustomersHandler {
 			})
 
 			// Map the customers to the API
-			r := response.NewCursorPaginationResponse(customers)
-			// TODO: set the size of the page from the request params
-			// r.Meta.Page.Size = request.Page.Size
+			r := response.NewOffsetPaginationResponse(customers, response.OffsetMetaPage{
+				Size:   request.Page.PageSize,
+				Number: request.Page.PageNumber,
+				Total:  lo.ToPtr(resp.TotalCount),
+			})
+
 			return r, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ListCustomersResponse](http.StatusOK),

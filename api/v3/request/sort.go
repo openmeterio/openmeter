@@ -30,8 +30,8 @@ func (s SortOrder) Validate() error {
 }
 
 type SortBy struct {
-	Field string    `query:"field"`
-	Order SortOrder `query:"order"`
+	Field string
+	Order SortOrder
 }
 
 func (s SortBy) Validate() error {
