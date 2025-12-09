@@ -109,10 +109,9 @@ func (s *Server) RegisterRoutes(r chi.Router) {
 		_ = api.HandlerWithOptions(s, api.ChiServerOptions{
 			BaseRouter:  r,
 			Middlewares: s.middlewares,
-			// ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-			// config.RouterConfig.ErrorHandler.HandleContext(r.Context(), err)
-			// errorHandlerReply(w, r, err)
-			// },
+			ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+				s.ErrorHandler.HandleContext(r.Context(), err)
+			},
 		})
 	})
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -123,6 +124,7 @@ func (h *customerHandler) ListCustomers() ListCustomersHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("list-customers"),
+			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
 }
@@ -167,6 +169,7 @@ func (h *customerHandler) CreateCustomer() CreateCustomerHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("create-customer"),
+			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
 }
@@ -211,6 +214,7 @@ func (h *customerHandler) GetCustomer() GetCustomerHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("get-customer"),
+			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
 }
@@ -269,6 +273,7 @@ func (h *customerHandler) DeleteCustomer() DeleteCustomerHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("delete-customer"),
+			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
 }

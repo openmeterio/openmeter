@@ -9,6 +9,9 @@ import (
 	"strings"
 
 	"github.com/openmeterio/openmeter/api/v3/render"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
+	"github.com/samber/lo"
 )
 
 type config struct {
@@ -186,35 +189,17 @@ func (bae *BaseAPIError) HandleAPIError(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	// handle: write the response to the caller
-	w.Header().Set(ContentTypeKey, ContentTypeProblemValue)
-	_ = render.RenderJSON(w, bae, render.WithStatus(bae.Status))
+	_ = render.RenderJSON(w, bae, render.WithHeader(ContentTypeKey, ContentTypeProblemValue), render.WithStatus(bae.Status))
 }
 
-// handleEmptySet returns a 200 with an empty meta/data list.
-func (bae *BaseAPIError) handleEmptySet(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusOK)
-	if bae.Type == EmptySetType {
-		_ = render.RenderJSON(w, struct {
-			Meta struct {
-				Page struct {
-					Size   int `json:"size"`
-					Total  int `json:"total"`
-					Number int `json:"number"`
-				} `json:"page"`
-			} `json:"meta"`
-			Data []any `json:"data"`
-		}{})
-	} else {
-		_ = render.RenderJSON(w, struct {
-			Meta struct {
-				Page struct {
-					Size     int     `json:"size"`
-					Previous *string `json:"previous"`
-					Next     *string `json:"next"`
-				} `json:"page"`
-			} `json:"meta"`
-			Data []any `json:"data"`
-		}{})
+// GenericErrorEncoder is an error encoder that encodes the error as a generic error.
+func GenericErrorEncoder() encoder.ErrorEncoder {
+	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
+		if err, ok := lo.ErrorsAs[*BaseAPIError](err); ok {
+			err.HandleAPIError(w, r)
+			return true
+		}
+
+		return commonhttp.HandleIssueIfHTTPStatusKnown(ctx, err, w)
 	}
 }
