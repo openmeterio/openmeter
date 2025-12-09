@@ -139,6 +139,11 @@ meters:
       method: $.method
       path: $.path
 
+reservedEventTypes:
+  - ^reserved\..*$
+  - ^_\..*$
+  - ^openmeter\..*$
+
 notification:
   enabled: true
   reconcileInterval: 1m

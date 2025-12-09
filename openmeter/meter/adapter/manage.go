@@ -21,7 +21,7 @@ import (
 // CreateMeter creates a new meter.
 func (a *Adapter) CreateMeter(ctx context.Context, input meterpkg.CreateMeterInput) (meterpkg.Meter, error) {
 	if err := input.Validate(); err != nil {
-		return meterpkg.Meter{}, models.NewGenericValidationError(err)
+		return meterpkg.Meter{}, err
 	}
 
 	return transaction.Run(ctx, a, func(ctx context.Context) (meterpkg.Meter, error) {

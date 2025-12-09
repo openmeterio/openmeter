@@ -103,6 +103,15 @@ func (p ListMetersParams) Validate() error {
 	return errors.Join(errs...)
 }
 
+type inputOptions struct {
+	AllowReservedEventTypes bool
+}
+
+var (
+	_ models.Validator                         = (*CreateMeterInput)(nil)
+	_ models.CustomValidator[CreateMeterInput] = (*CreateMeterInput)(nil)
+)
+
 // CreateMeterInput is a parameter object for creating a meter.
 type CreateMeterInput struct {
 	Namespace     string
@@ -116,6 +125,32 @@ type CreateMeterInput struct {
 	GroupBy       map[string]string
 	Metadata      models.Metadata
 	Annotations   models.Annotations
+
+	inputOptions
+}
+
+func (i CreateMeterInput) ValidateWith(validators ...models.ValidatorFunc[CreateMeterInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func ValidateCreateMeterInputWithReservedEventTypes(reserved []*EventTypePattern) models.ValidatorFunc[CreateMeterInput] {
+	return func(input CreateMeterInput) error {
+		if input.AllowReservedEventTypes {
+			return nil
+		}
+
+		for _, pattern := range reserved {
+			if pattern == nil {
+				continue
+			}
+
+			if ok := pattern.MatchString(input.EventType); ok {
+				return fmt.Errorf("event type '%s' is reserved: matched pattern '%s'", input.EventType, pattern.String())
+			}
+		}
+
+		return nil
+	}
 }
 
 // Validate validates the create meter input.
@@ -160,7 +195,7 @@ func (i CreateMeterInput) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid meter group by: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // UpdateMeterInput is a parameter object for creating a meter.

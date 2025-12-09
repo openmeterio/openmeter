@@ -451,8 +451,20 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v4 := conf.Meters
-	manageService := common.NewMeterManageService(adapter, manager, eventbusPublisher)
-	v5 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
+	v5 := conf.ReservedEventTypes
+	v6, err := common.NewReservedEventTypePatterns(v5)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	manageService := common.NewMeterManageService(adapter, manager, eventbusPublisher, v6)
+	v7 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
 	metereventService := common.NewMeterEventService(connector, customerService, service)
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
@@ -467,8 +479,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	notificationConfiguration := conf.Notification
 	webhookConfiguration := notificationConfiguration.Webhook
-	v6 := conf.Svix
-	svix, err := common.NewSvixAPIClient(v6, meterProvider, tracerProvider)
+	v8 := conf.Svix
+	svix, err := common.NewSvixAPIClient(v8, meterProvider, tracerProvider)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -532,7 +544,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	namespaceDecoder := common.NewStaticNamespaceDecoder(namespaceConfiguration)
 	ffxConfigContextMiddleware := common.NewFFXConfigContextMiddleware(subscriptionConfiguration, namespaceDecoder, logger)
 	postAuthMiddlewares := common.NewPostAuthMiddlewares(ffxConfigContextMiddleware)
-	v7, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
+	v9, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -558,7 +570,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v8, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v10, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -594,7 +606,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaIngestNamespaceHandler:      namespaceHandler,
 		Logger:                           logger,
 		MetricMeter:                      meter,
-		MeterConfigInitializer:           v5,
+		MeterConfigInitializer:           v7,
 		MeterManageService:               manageService,
 		MeterEventService:                metereventService,
 		NamespaceManager:                 manager,
@@ -607,10 +619,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		PostAuthMiddlewares:              postAuthMiddlewares,
 		Secret:                           secretserviceService,
 		SubjectService:                   subjectService,
-		SubjectCustomerHook:              v7,
+		SubjectCustomerHook:              v9,
 		Subscription:                     subscriptionServiceWithWorkflow,
 		StreamingConnector:               connector,
-		TelemetryServer:                  v8,
+		TelemetryServer:                  v10,
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,

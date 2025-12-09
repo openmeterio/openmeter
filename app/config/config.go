@@ -3,6 +3,8 @@ package config
 
 import (
 	"errors"
+	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -15,6 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type ReservedEventTypePattern = string
+
 // Configuration holds any kind of Configuration that comes from the outside world and
 // is necessary for running the application.
 type Configuration struct {
@@ -25,24 +29,25 @@ type Configuration struct {
 
 	Termination TerminationConfig
 
-	Aggregation     AggregationConfiguration
-	Entitlements    EntitlementsConfiguration
-	Customer        CustomerConfiguration
-	Dedupe          DedupeConfiguration
-	Events          EventsConfiguration
-	Ingest          IngestConfiguration
-	Meters          []*meter.Meter
-	Namespace       NamespaceConfiguration
-	Portal          PortalConfiguration
-	Postgres        PostgresConfig
-	Sink            SinkConfiguration
-	BalanceWorker   BalanceWorkerConfiguration
-	Notification    NotificationConfiguration
-	ProductCatalog  ProductCatalogConfiguration
-	ProgressManager ProgressManagerConfiguration
-	Billing         BillingConfiguration
-	Apps            AppsConfiguration
-	Svix            SvixConfig
+	Aggregation        AggregationConfiguration
+	Entitlements       EntitlementsConfiguration
+	Customer           CustomerConfiguration
+	Dedupe             DedupeConfiguration
+	Events             EventsConfiguration
+	Ingest             IngestConfiguration
+	Meters             []*meter.Meter
+	ReservedEventTypes []ReservedEventTypePattern
+	Namespace          NamespaceConfiguration
+	Portal             PortalConfiguration
+	Postgres           PostgresConfig
+	Sink               SinkConfiguration
+	BalanceWorker      BalanceWorkerConfiguration
+	Notification       NotificationConfiguration
+	ProductCatalog     ProductCatalogConfiguration
+	ProgressManager    ProgressManagerConfiguration
+	Billing            BillingConfiguration
+	Apps               AppsConfiguration
+	Svix               SvixConfig
 }
 
 // Validate validates the configuration.
@@ -104,6 +109,12 @@ func (c Configuration) Validate() error {
 
 		if err := c.Meters[idx].Validate(); err != nil {
 			errs = append(errs, err)
+		}
+	}
+
+	for _, pattern := range c.ReservedEventTypes {
+		if _, err := regexp.Compile(pattern); err != nil {
+			errs = append(errs, fmt.Errorf("reserved event type pattern %q: invalid regular expression", pattern))
 		}
 	}
 

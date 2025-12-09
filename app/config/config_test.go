@@ -411,6 +411,11 @@ func TestComplete(t *testing.T) {
 			EnableSubjectHook: true,
 			IgnoreErrors:      true,
 		},
+		ReservedEventTypes: []string{
+			`^reserved\..*$`,
+			`^_\..*$`,
+			`^openmeter\..*$`,
+		},
 	}
 
 	assert.Equal(t, expected, actual)

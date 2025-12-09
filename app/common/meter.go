@@ -2,8 +2,10 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"regexp"
 
 	"github.com/google/wire"
 	"github.com/samber/lo"
@@ -27,6 +29,7 @@ var Meter = wire.NewSet(
 var MeterManage = wire.NewSet(
 	Meter,
 	NewMeterManageService,
+	NewReservedEventTypePatterns,
 )
 
 var MeterManageWithConfigMeters = wire.NewSet(
@@ -34,6 +37,7 @@ var MeterManageWithConfigMeters = wire.NewSet(
 
 	Meter,
 	NewMeterManageService,
+	NewReservedEventTypePatterns,
 	NewMeterConfigInitializer,
 )
 
@@ -43,15 +47,36 @@ func NewMeterService(
 	return service.New(meterAdapter)
 }
 
+func NewReservedEventTypePatterns(reserved []config.ReservedEventTypePattern) ([]*meter.EventTypePattern, error) {
+	var errs []error
+
+	patterns := make([]*meter.EventTypePattern, 0, len(reserved))
+
+	for _, r := range reserved {
+		pattern, err := regexp.Compile(r)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("invalid reserved event type pattern %q: %w", r, err))
+
+			continue
+		}
+
+		patterns = append(patterns, pattern)
+	}
+
+	return patterns, errors.Join(errs...)
+}
+
 func NewMeterManageService(
 	meterAdapter *adapter.Adapter,
 	namespaceManager *namespace.Manager,
 	publisher eventbus.Publisher,
+	reservedEventTypes []*meter.EventTypePattern,
 ) meter.ManageService {
 	return service.NewManage(
 		meterAdapter,
 		publisher,
 		namespaceManager,
+		reservedEventTypes,
 	)
 }
 

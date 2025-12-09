@@ -17,22 +17,25 @@ var _ meter.ManageService = (*ManageService)(nil)
 
 type ManageService struct {
 	meter.Service
-	preUpdateHooks   []meter.PreUpdateMeterHook
-	adapter          *adapter.Adapter
-	publisher        eventbus.Publisher
-	namespaceManager *namespace.Manager
+	preUpdateHooks     []meter.PreUpdateMeterHook
+	adapter            *adapter.Adapter
+	publisher          eventbus.Publisher
+	namespaceManager   *namespace.Manager
+	reservedEventTypes []*meter.EventTypePattern
 }
 
 func NewManage(
 	adapter *adapter.Adapter,
 	publisher eventbus.Publisher,
 	namespaceManager *namespace.Manager,
+	reservedEventTypes []*meter.EventTypePattern,
 ) *ManageService {
 	return &ManageService{
-		Service:          New(adapter),
-		adapter:          adapter,
-		publisher:        publisher,
-		namespaceManager: namespaceManager,
+		Service:            New(adapter),
+		adapter:            adapter,
+		publisher:          publisher,
+		namespaceManager:   namespaceManager,
+		reservedEventTypes: reservedEventTypes,
 	}
 }
 
@@ -44,6 +47,17 @@ func (s *ManageService) RegisterPreUpdateMeterHook(hook meter.PreUpdateMeterHook
 
 // CreateMeter creates a meter
 func (s *ManageService) CreateMeter(ctx context.Context, input meter.CreateMeterInput) (meter.Meter, error) {
+	if err := input.Validate(); err != nil {
+		return meter.Meter{}, fmt.Errorf("invalid create meter params: %w", err)
+	}
+
+	if err := input.ValidateWith(
+		// Validate with reserved event types
+		meter.ValidateCreateMeterInputWithReservedEventTypes(s.reservedEventTypes),
+	); err != nil {
+		return meter.Meter{}, fmt.Errorf("invalid create meter params: %w", err)
+	}
+
 	// Create the meter
 	createdMeter, err := s.adapter.CreateMeter(ctx, input)
 	if err != nil {
