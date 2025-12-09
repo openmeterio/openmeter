@@ -7,7 +7,7 @@ updates:
     schedule:
       interval: daily
     cooldown:
-      default-days: 4
+      default-days: 7
     labels:
       - area/dependencies
       - dependency/go
@@ -60,7 +60,7 @@ updates:
       day: monday
       time: "05:00"
     cooldown:
-      default-days: 4
+      default-days: 7
     labels:
       - area/dependencies
       - dependency/github_actions
@@ -73,7 +73,7 @@ updates:
       day: monday
       time: "05:00"
     cooldown:
-      default-days: 4
+      default-days: 7
     labels:
       - area/dependencies
       - dependency/docker
@@ -84,7 +84,7 @@ updates:
     schedule:
       interval: weekly
     cooldown:
-      default-days: 4
+      default-days: 7
     labels:
       - area/dependencies
       - dependency/javascript
@@ -103,7 +103,7 @@ updates:
     schedule:
       interval: weekly
     cooldown:
-      default-days: 4
+      default-days: 7
     labels:
       - area/dependencies
       - dependency/python
