@@ -8,7 +8,7 @@ import (
 
 // POST /api/v1/events
 func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request) {
-	a.config.IngestHandler.ServeHTTP(w, r)
+	a.ingestHandler.IngestEvents().ServeHTTP(w, r)
 }
 
 // GET /api/v1/events

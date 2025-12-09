@@ -31,13 +31,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
-	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	metereventadapter "github.com/openmeterio/openmeter/openmeter/meterevent/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	portaladapter "github.com/openmeterio/openmeter/openmeter/portal/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -520,10 +518,8 @@ func getTestServer(t *testing.T) *Server {
 			FeatureConnector:            featureService,
 			GrantConnector:              &NoopGrantConnector{},
 			// Use the grant repo
-			GrantRepo: grantRepo,
-			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
-				return true, nil
-			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
+			GrantRepo:          grantRepo,
+			IngestService:      &NoopIngestService{},
 			Logger:             logger,
 			MeterManageService: meterManageService,
 			MeterEventService:  meterEventService,
@@ -1594,4 +1590,15 @@ func (n NoopSubjectService) List(ctx context.Context, orgId string, params subje
 
 func (n NoopSubjectService) Delete(ctx context.Context, id models.NamespacedID) error {
 	return nil
+}
+
+// IngestService methods
+var _ ingest.Service = (*NoopIngestService)(nil)
+
+// NoopIngestService implements ingest.Service with no-op operations
+// for use in testing
+type NoopIngestService struct{}
+
+func (n NoopIngestService) IngestEvents(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
+	return true, nil
 }

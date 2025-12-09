@@ -646,7 +646,7 @@ type Application struct {
 	FeatureConnector                 feature.FeatureConnector
 	FeatureFlags                     ffx.Service
 	IngestCollector                  ingest.Collector
-	IngestService                    *ingest.Service
+	IngestService                    ingest.Service
 	KafkaProducer                    *kafka2.Producer
 	KafkaMetrics                     *metrics.Metrics
 	KafkaIngestNamespaceHandler      *kafkaingest.NamespaceHandler
