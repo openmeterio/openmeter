@@ -14,13 +14,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type CustomerHandler interface {
 	ListCustomers() ListCustomersHandler
 	CreateCustomer() CreateCustomerHandler
-	// DeleteCustomer() DeleteCustomerHandler
+	DeleteCustomer() DeleteCustomerHandler
 	GetCustomer() GetCustomerHandler
 	// UpdateCustomer() UpdateCustomerHandler
 }
@@ -211,6 +212,65 @@ func (h *customerHandler) GetCustomer() GetCustomerHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("get-customer"),
+		)...,
+	)
+}
+
+type (
+	DeleteCustomerRequest struct {
+		Namespace       string
+		CustomerIDOrKey string
+	}
+	DeleteCustomerResponse = interface{}
+	DeleteCustomerParams   = string
+	DeleteCustomerHandler  httptransport.HandlerWithArgs[DeleteCustomerRequest, DeleteCustomerResponse, DeleteCustomerParams]
+)
+
+// DeleteCustomer returns a handler for deleting a customer.
+func (h *customerHandler) DeleteCustomer() DeleteCustomerHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, customerIDOrKey DeleteCustomerParams) (DeleteCustomerRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return DeleteCustomerRequest{}, err
+			}
+
+			return DeleteCustomerRequest{
+				Namespace:       ns,
+				CustomerIDOrKey: customerIDOrKey,
+			}, nil
+		},
+		func(ctx context.Context, request DeleteCustomerRequest) (DeleteCustomerResponse, error) {
+			// TODO: we should not allow key identifier for mutable operations
+			// Get the customer
+			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   request.CustomerIDOrKey,
+					Namespace: request.Namespace,
+				},
+			})
+			if err != nil {
+				return DeleteCustomerRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return DeleteCustomerRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
+			}
+
+			err = h.service.DeleteCustomer(ctx, cus.GetID())
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[DeleteCustomerResponse](http.StatusNoContent),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("delete-customer"),
 		)...,
 	)
 }
