@@ -12,6 +12,8 @@ import (
 
 var groupByKeyRegExp = regexp.MustCompile(`^[a-zA-Z_][0-9a-zA-Z_]*$`)
 
+type EventTypePattern = regexp.Regexp
+
 type MeterAggregation string
 
 // Note: keep values up to date in the meter package
