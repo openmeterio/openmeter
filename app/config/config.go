@@ -114,7 +114,10 @@ func (c Configuration) Validate() error {
 
 	for _, pattern := range c.ReservedEventTypes {
 		if _, err := regexp.Compile(pattern); err != nil {
-			errs = append(errs, fmt.Errorf("reserved event type pattern %q: invalid regular expression", pattern))
+			errs = append(errs, errorsx.WithPrefix(
+				fmt.Errorf("reserved event type pattern %q: invalid regular expression", pattern),
+				"reserved event types",
+			))
 		}
 	}
 

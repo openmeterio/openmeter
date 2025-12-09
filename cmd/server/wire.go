@@ -86,8 +86,6 @@ type Application struct {
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	wire.Build(
-		wire.FieldsOf(new(config.Configuration), "ReservedEventTypes"),
-
 		metadata,
 		common.App,
 		common.Billing,
