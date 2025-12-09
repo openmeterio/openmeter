@@ -169,7 +169,7 @@ func TestGetAttributes(t *testing.T) {
 		},
 		{
 			name:  "multiple filters",
-			input: "filter[a][gt]=10&filter[b][gte]=11&filter[c][contains]=foo,bar",
+			input: "filter[a][gt]=10&filter[b][gte]=11&filter[c][oeq]=foo,bar",
 			want: &QueryAttributes{
 				Pagination: Pagination{
 					kind: paginationKindOffset,
@@ -183,7 +183,7 @@ func TestGetAttributes(t *testing.T) {
 						Gte: lo.ToPtr("11"),
 					},
 					"c": {
-						Contains: lo.ToPtr([]string{"foo", "bar"}),
+						OrEq: lo.ToPtr([]string{"foo", "bar"}),
 					},
 				},
 			},
@@ -213,7 +213,7 @@ func TestGetAttributes(t *testing.T) {
 				},
 				Filters: map[string]Filter{
 					"id": {
-						OrEq: lo.ToPtr("foo,bar"),
+						OrEq: lo.ToPtr([]string{"foo", "bar"}),
 					},
 				},
 			},

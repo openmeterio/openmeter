@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestParse(t *testing.T) {
@@ -54,13 +56,12 @@ func TestParse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := Parse(t.Context(), tt.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.NotNil(t, err)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Parse() = %v, want %v", got, tt.want)
-			}
+			require.Nil(t, err)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -185,13 +186,12 @@ func TestParseComplex(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := Parse(t.Context(), tt.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.NotNil(t, err)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Parse() = %v, want %v", got, tt.want)
-			}
+			require.Nil(t, err)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -202,9 +202,7 @@ func TestParseWithOptions(t *testing.T) {
 	result, err := Parse(ctx, "name=John;age=30;city=NYC", &ParseOptions{
 		Delimiter: ";",
 	})
-	if err != nil {
-		t.Errorf("Parse with custom delimiter failed: %v", err)
-	}
+	require.Nil(t, err)
 
 	expected := map[string]interface{}{
 		"name": "John",
@@ -212,9 +210,7 @@ func TestParseWithOptions(t *testing.T) {
 		"city": "NYC",
 	}
 
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("Parse with custom delimiter = %v, want %v", result, expected)
-	}
+	require.Equal(t, expected, result)
 
 	// Test with parameter limit
 	longQuery := strings.Repeat("param=value&", 1001)
@@ -224,21 +220,15 @@ func TestParseWithOptions(t *testing.T) {
 		ParameterLimit:       100,
 		ThrowOnLimitExceeded: true,
 	})
-	if err == nil {
-		t.Error("Expected error when exceeding parameter limit")
-	}
+	require.NotNil(t, err)
 
 	// Test without throwing on limit exceeded
 	result2, err := Parse(ctx, longQuery, &ParseOptions{
 		ParameterLimit:       100,
 		ThrowOnLimitExceeded: false,
 	})
-	if err != nil {
-		t.Errorf("Parse without throwing on limit exceeded failed: %v", err)
-	}
-	if len(result2) != 1 { // Should only have one key "param" with last value
-		t.Errorf("Expected 1 key in result, got %d", len(result2))
-	}
+	require.Nil(t, err)
+	require.Len(t, result2, 1) // Should only have one key "param" with last value
 }
 
 func TestStringify(t *testing.T) {
@@ -277,18 +267,15 @@ func TestStringify(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := Stringify(tt.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Stringify() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.Error(t, err)
 				return
 			}
+			require.NoError(t, err)
 			// Since order is not guaranteed in maps, we check if all expected parts are present
-			if !tt.wantErr {
-				parts := strings.Split(tt.want, "&")
-				for _, part := range parts {
-					if !strings.Contains(got, part) {
-						t.Errorf("Stringify() = %v, should contain %v", got, part)
-					}
-				}
+			parts := strings.Split(tt.want, "&")
+			for _, part := range parts {
+				require.Contains(t, got, part)
 			}
 		})
 	}
@@ -330,16 +317,13 @@ func TestStringifyComplex(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := Stringify(tt.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Stringify() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.Error(t, err)
 				return
 			}
-			if !tt.wantErr {
-				for _, want := range tt.want {
-					if !strings.Contains(got, want) {
-						t.Errorf("Stringify() = %v, should contain %v", got, want)
-					}
-				}
+			require.NoError(t, err)
+			for _, want := range tt.want {
+				require.Contains(t, got, want)
 			}
 		})
 	}
@@ -355,23 +339,15 @@ func TestStringifyWithOptionsSimple(t *testing.T) {
 	result, err := Stringify(input, &StringifyOptions{
 		AddQueryPrefix: true,
 	})
-	if err != nil {
-		t.Errorf("Stringify with AddQueryPrefix failed: %v", err)
-	}
-	if !strings.HasPrefix(result, "?") {
-		t.Errorf("Expected result to start with '?', got %s", result)
-	}
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(result, "?"))
 
 	// Test with custom delimiter
 	result2, err := Stringify(input, &StringifyOptions{
 		Delimiter: ";",
 	})
-	if err != nil {
-		t.Errorf("Stringify with custom delimiter failed: %v", err)
-	}
-	if !strings.Contains(result2, ";") {
-		t.Errorf("Expected result to contain ';', got %s", result2)
-	}
+	require.NoError(t, err)
+	require.Contains(t, result2, ";")
 }
 
 // Test structures for struct parsing
@@ -503,13 +479,12 @@ func TestParseToStruct(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ParseToStruct(t.Context(), tt.input, tt.dest)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseToStruct() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.NotNil(t, err)
 				return
 			}
-			if !tt.wantErr && !reflect.DeepEqual(tt.dest, tt.expected) {
-				t.Errorf("ParseToStruct() = %+v, want %+v", tt.dest, tt.expected)
-			}
+			require.Nil(t, err)
+			require.Equal(t, tt.expected, tt.dest)
 		})
 	}
 }
@@ -551,16 +526,13 @@ func TestStructToQueryString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := StructToQueryString(tt.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("StructToQueryString() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.Error(t, err)
 				return
 			}
-			if !tt.wantErr {
-				for _, substr := range tt.contains {
-					if !strings.Contains(got, substr) {
-						t.Errorf("StructToQueryString() = %v, expected to contain %v", got, substr)
-					}
-				}
+			require.NoError(t, err)
+			for _, substr := range tt.contains {
+				require.Contains(t, got, substr)
 			}
 		})
 	}
@@ -577,9 +549,7 @@ func TestMapToStruct(t *testing.T) {
 
 	var user User
 	err := MapToStruct(t.Context(), data, &user)
-	if err != nil {
-		t.Fatalf("MapToStruct() error = %v", err)
-	}
+	require.Nil(t, err)
 
 	expected := User{
 		Name:     "Bob",
@@ -589,9 +559,7 @@ func TestMapToStruct(t *testing.T) {
 		Score:    92.3,
 	}
 
-	if !reflect.DeepEqual(user, expected) {
-		t.Errorf("MapToStruct() = %+v, want %+v", user, expected)
-	}
+	require.Equal(t, expected, user)
 }
 
 func TestStructToMap(t *testing.T) {
@@ -604,9 +572,7 @@ func TestStructToMap(t *testing.T) {
 	}
 
 	got, err := StructToMap(user)
-	if err != nil {
-		t.Fatalf("StructToMap() error = %v", err)
-	}
+	require.NoError(t, err)
 
 	expected := map[string]interface{}{
 		"name":   "Charlie",
@@ -616,9 +582,7 @@ func TestStructToMap(t *testing.T) {
 		"score":  78.9,
 	}
 
-	if !reflect.DeepEqual(got, expected) {
-		t.Errorf("StructToMap() = %+v, want %+v", got, expected)
-	}
+	require.Equal(t, expected, got)
 }
 
 func BenchmarkParseSimple(b *testing.B) {
@@ -791,13 +755,12 @@ func TestUnmarshal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := Unmarshal(t.Context(), tt.query, tt.target)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.NotNil(t, err)
 				return
 			}
-			if !tt.wantErr && !reflect.DeepEqual(tt.target, tt.expected) {
-				t.Errorf("Unmarshal() = %+v, want %+v", tt.target, tt.expected)
-			}
+			require.Nil(t, err)
+			require.Equal(t, tt.expected, tt.target)
 		})
 	}
 }
@@ -860,16 +823,13 @@ func TestMarshal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := Marshal(tt.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Marshal() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.Error(t, err)
 				return
 			}
-			if !tt.wantErr {
-				for _, substr := range tt.contains {
-					if !strings.Contains(got, substr) {
-						t.Errorf("Marshal() = %v, expected to contain %v", got, substr)
-					}
-				}
+			require.NoError(t, err)
+			for _, substr := range tt.contains {
+				require.Contains(t, got, substr)
 			}
 		})
 	}
@@ -924,9 +884,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			ctx := t.Context()
 			// Marshal to query string
 			queryString, err := Marshal(tt.input)
-			if err != nil {
-				t.Fatalf("Marshal() error = %v", err)
-			}
+			require.NoError(t, err)
 
 			// Create a new instance of the same type
 			targetType := reflect.TypeOf(tt.input)
@@ -939,9 +897,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 
 			// Compare (dereference pointer)
 			targetValue := reflect.ValueOf(target).Elem().Interface()
-			if !reflect.DeepEqual(tt.input, targetValue) {
-				t.Errorf("Round trip failed: original = %+v, result = %+v", tt.input, targetValue)
-			}
+			require.Equal(t, tt.input, targetValue)
 		})
 	}
 }
@@ -976,9 +932,11 @@ func TestUnmarshalErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := Unmarshal(t.Context(), tt.query, tt.target)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.NotNil(t, err)
+				return
 			}
+			require.Nil(t, err)
 		})
 	}
 }

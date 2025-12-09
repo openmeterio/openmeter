@@ -98,7 +98,11 @@ func GetAttributes(r *http.Request, opts ...AttributesOption) (*QueryAttributes,
 		},
 	}
 
-	err := query.ParseToStruct(r.Context(), r.URL.RawQuery, a, conf.parseOptions)
+	if conf.defaultSort != nil {
+		a.Sorts = []SortBy{*conf.defaultSort}
+	}
+
+	err := query.Unmarshal(r.Context(), r.URL.RawQuery, a, conf.parseOptions)
 	if err != nil {
 		return nil, err
 	}

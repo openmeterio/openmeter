@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type CustomerHandler interface {
@@ -56,10 +57,41 @@ func (h *customerHandler) ListCustomers() ListCustomersHandler {
 				return ListCustomersRequest{}, err
 			}
 
+			attributes, err := request.GetAttributes(r,
+				request.WithOffsetPagination(),
+				request.WithDefaultSort(&request.SortBy{Field: "name", Order: request.SortOrderAsc}),
+			)
+			if err != nil {
+				return ListCustomersRequest{}, err
+			}
+
 			req := ListCustomersRequest{
 				Namespace: ns,
+				Page:      pagination.NewPage(attributes.Pagination.Number, attributes.Pagination.Size),
+			}
 
-				// TODO cursor pagination
+			// Pick the first sort if there are multiple
+			if len(attributes.Sorts) > 0 {
+				req.OrderBy = attributes.Sorts[0].Field
+				req.Order = attributes.Sorts[0].Order.ToSortxOrder()
+			}
+
+			// Filters
+			if attributes.Filters != nil {
+				for field, f := range attributes.Filters {
+					switch field {
+					case "key":
+						req.Key = f.ToFilterString()
+					case "name":
+						req.Name = f.ToFilterString()
+					case "primary_email":
+						req.PrimaryEmail = f.ToFilterString()
+					case "subject":
+						req.Subject = f.ToFilterString()
+					case "customer_ids":
+						req.CustomerIDs = f.ToFilterString()
+					}
+				}
 			}
 
 			return req, nil

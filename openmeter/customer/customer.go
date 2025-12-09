@@ -7,7 +7,6 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -265,7 +264,7 @@ type ListCustomersInput struct {
 	IncludeDeleted bool
 
 	// Order
-	OrderBy api.CustomerOrderBy
+	OrderBy string
 	Order   sortx.Order
 
 	// Filters

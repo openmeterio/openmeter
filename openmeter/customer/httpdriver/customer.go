@@ -49,7 +49,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				},
 
 				// Order
-				OrderBy: defaultx.WithDefault(params.OrderBy, api.CustomerOrderByName),
+				OrderBy: string(defaultx.WithDefault(params.OrderBy, api.CustomerOrderByName)),
 				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
 
 				// Modifiers

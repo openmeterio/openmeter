@@ -3,6 +3,8 @@ package request
 import (
 	"errors"
 	"strings"
+
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type SortOrder string
@@ -58,4 +60,12 @@ func (s *SortBy) UnmarshalText(text []byte) error {
 	}
 
 	return s.Validate()
+}
+
+func (s SortOrder) ToSortxOrder() sortx.Order {
+	if s == SortOrderAsc {
+		return sortx.OrderAsc
+	}
+
+	return sortx.OrderDesc
 }
