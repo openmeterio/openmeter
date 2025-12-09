@@ -39,16 +39,16 @@ model ListCustomersParams {
   /**
    * Filter customers returned in the response.
    */
-  @query(#{ style: "deepObject" })
+  @query(#{ style: "deepObject", explode: true })
   filter?: {
-    id: Common.StringFieldFilter;
-    key: Common.StringFieldFilter;
-    name: Common.StringFieldFilter;
-    `usage_attribution.subject_keys`: Common.StringFieldFilter;
-    primary_email: Common.StringFieldFilter;
-    created_at: Common.DateTimeFieldFilter;
-    updated_at: Common.DateTimeFieldFilter;
-    deleted_at: Common.DateTimeFieldFilter;
+    id?: Common.StringFieldFilter;
+    key?: Common.StringFieldFilter;
+    name?: Common.StringFieldFilter;
+    `usage_attribution.subject_keys`?: Common.StringFieldFilter;
+    primary_email?: Common.StringFieldFilter;
+    created_at?: Common.DateTimeFieldFilter;
+    updated_at?: Common.DateTimeFieldFilter;
+    deleted_at?: Common.DateTimeFieldFilter;
   };
 }
 

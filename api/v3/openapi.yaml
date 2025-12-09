@@ -373,16 +373,6 @@ components:
             $ref: '#/components/schemas/DateTimeFieldFilter'
           deleted_at:
             $ref: '#/components/schemas/DateTimeFieldFilter'
-        required:
-          - id
-          - key
-          - name
-          - usage_attribution.subject_keys
-          - primary_email
-          - created_at
-          - updated_at
-          - deleted_at
-      explode: false
       style: deepObject
     ListCustomersParams.sort:
       name: sort
