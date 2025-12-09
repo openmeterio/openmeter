@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -253,11 +252,10 @@ func (h *customerHandler) DeleteCustomer() DeleteCustomerHandler {
 				return DeleteCustomerRequest{}, err
 			}
 
+			// Idempotent operation, we return 204 when a customer is already deleted.
+			// Rationale: https://kong-aip.netlify.app/aip/135/
 			if cus != nil && cus.IsDeleted() {
-				return DeleteCustomerRequest{},
-					models.NewGenericPreConditionFailedError(
-						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
-					)
+				return nil, nil
 			}
 
 			err = h.service.DeleteCustomer(ctx, cus.GetID())
