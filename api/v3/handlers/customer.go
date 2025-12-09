@@ -43,15 +43,14 @@ func NewCustomerHandler(
 }
 
 type (
-	ListCustomersParams   = api.ListCustomersParams
 	ListCustomersRequest  = customer.ListCustomersInput
 	ListCustomersResponse = response.CursorPaginationResponse[Customer]
-	ListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]
+	ListCustomersHandler  httptransport.Handler[ListCustomersRequest, ListCustomersResponse]
 )
 
 func (h *customerHandler) ListCustomers() ListCustomersHandler {
-	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params ListCustomersParams) (ListCustomersRequest, error) {
+	return httptransport.NewHandler(
+		func(ctx context.Context, r *http.Request) (ListCustomersRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return ListCustomersRequest{}, err

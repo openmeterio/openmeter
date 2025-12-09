@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	response "github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -38,16 +37,15 @@ func NewMeterHandler(
 }
 
 type (
-	ListMetersParams   = api.ListMetersParams
 	ListMetersRequest  = meter.ListMetersParams
 	ListMetersResponse = response.CursorPaginationResponse[Meter]
-	ListMetersHandler  httptransport.HandlerWithArgs[ListMetersRequest, ListMetersResponse, ListMetersParams]
+	ListMetersHandler  httptransport.Handler[ListMetersRequest, ListMetersResponse]
 )
 
 // ListMeters returns a handler for listing meters.
 func (h *meterHandler) ListMeters() ListMetersHandler {
-	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params ListMetersParams) (ListMetersRequest, error) {
+	return httptransport.NewHandler(
+		func(ctx context.Context, r *http.Request) (ListMetersRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return ListMetersRequest{}, err

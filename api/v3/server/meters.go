@@ -8,8 +8,8 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 )
 
-func (s *Server) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
-	s.meterHandler.ListMeters().With(params).ServeHTTP(w, r)
+func (s *Server) ListMeters(w http.ResponseWriter, r *http.Request) {
+	s.meterHandler.ListMeters().ServeHTTP(w, r)
 }
 
 func (s *Server) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrKey api.ULIDOrResourceKey) {

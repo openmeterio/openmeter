@@ -892,7 +892,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 
 			// Unmarshal back
 			if apiErr := Unmarshal(ctx, queryString, target); apiErr != nil {
-				t.Fatalf("Unmarshal() error = %v (%T) underlying=%#v invalid=%#v", apiErr, apiErr, apiErr.Unwrap(), apiErr.InvalidParameters)
+				require.Error(t, apiErr)
 			}
 
 			// Compare (dereference pointer)

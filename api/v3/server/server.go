@@ -64,10 +64,10 @@ func NewServer(config *Config) (*Server, error) {
 		Options: openapi3filter.Options{
 			// NoOp authenticationFunc as it's handled in another middleware
 			// this is based on `security` property on OpenAPI Spec
-			AuthenticationFunc:  openapi3filter.NoopAuthenticationFunc,
-			MultiError:          true,
-			SkipSettingDefaults: false,
-			// ExcludeRequestQueryParams: true,
+			AuthenticationFunc:        openapi3filter.NoopAuthenticationFunc,
+			MultiError:                true,
+			SkipSettingDefaults:       false,
+			ExcludeRequestQueryParams: true,
 		},
 	})}
 

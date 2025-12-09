@@ -1546,7 +1546,7 @@ func StructToMap(obj interface{}) (map[string]interface{}, error) {
 //
 // This function provides excellent performance with automatic type detection,
 // making it suitable for high-throughput applications.
-func Unmarshal(ctx context.Context, queryString string, v interface{}, opts ...*ParseOptions) *apierrors.BaseAPIError {
+func Unmarshal(ctx context.Context, queryString string, v interface{}, opts ...*ParseOptions) error {
 	if v == nil {
 		return newQueryAPIError(ctx, fmt.Errorf("unmarshal target cannot be nil"), "")
 	}

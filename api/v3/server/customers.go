@@ -16,8 +16,8 @@ func (s *Server) GetCustomer(w http.ResponseWriter, r *http.Request, customerId 
 	s.customerHandler.GetCustomer().With(customerId).ServeHTTP(w, r)
 }
 
-func (s *Server) ListCustomers(w http.ResponseWriter, r *http.Request, params api.ListCustomersParams) {
-	s.customerHandler.ListCustomers().With(params).ServeHTTP(w, r)
+func (s *Server) ListCustomers(w http.ResponseWriter, r *http.Request) {
+	s.customerHandler.ListCustomers().ServeHTTP(w, r)
 }
 
 func (s *Server) UpsertCustomer(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
