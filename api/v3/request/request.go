@@ -93,8 +93,9 @@ func GetAttributes(r *http.Request, opts ...AttributesOption) (*QueryAttributes,
 
 	a := &QueryAttributes{
 		Pagination: Pagination{
-			kind: conf.paginationKind,
-			Size: conf.defaultPageSize,
+			kind:   conf.paginationKind,
+			Size:   conf.defaultPageSize,
+			Number: 1,
 		},
 	}
 

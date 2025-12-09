@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -92,6 +93,8 @@ func (h *customerHandler) ListCustomers() ListCustomersHandler {
 					}
 				}
 			}
+
+			slog.Info("request", "request", req)
 
 			return req, nil
 		},

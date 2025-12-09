@@ -18,11 +18,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
 type Config struct {
 	BaseURL          string
 	NamespaceDecoder namespacedriver.NamespaceDecoder
+	ErrorHandler     errorsx.Handler
 
 	// services
 	CustomerService customer.Service
@@ -80,8 +83,8 @@ func NewServer(config *Config) (*Server, error) {
 		return ns, nil
 	}
 
-	customerHandler := handlers.NewCustomerHandler(resolveNamespace, config.CustomerService)
-	meterHandler := handlers.NewMeterHandler(resolveNamespace, config.MeterService)
+	customerHandler := handlers.NewCustomerHandler(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
+	meterHandler := handlers.NewMeterHandler(resolveNamespace, config.MeterService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	return &Server{
 		Config:          config,
