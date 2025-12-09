@@ -107,9 +107,9 @@ func ServerProvisionTopics(conf config.EventsConfiguration) []pkgkafka.TopicConf
 func NewIngestService(
 	collector ingest.Collector,
 	logger *slog.Logger,
-) (*ingest.Service, error) {
-	return &ingest.Service{
+) (ingest.Service, error) {
+	return ingest.NewService(ingest.Config{
 		Collector: collector,
 		Logger:    logger,
-	}, nil
+	})
 }

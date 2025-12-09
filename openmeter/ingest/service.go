@@ -2,6 +2,7 @@ package ingest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -9,10 +10,44 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 )
 
-// Service implements the ingestion service.
-type Service struct {
+type Service interface {
+	IngestEvents(ctx context.Context, request IngestEventsRequest) (bool, error)
+}
+
+type Config struct {
 	Collector Collector
 	Logger    *slog.Logger
+}
+
+func (c Config) Validate() error {
+	var errs []error
+
+	if c.Collector == nil {
+		errs = append(errs, errors.New("collector is required"))
+	}
+
+	if c.Logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+// service implements the ingestion service.
+type service struct {
+	collector Collector
+	logger    *slog.Logger
+}
+
+func NewService(config Config) (Service, error) {
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &service{
+		collector: config.Collector,
+		logger:    config.Logger,
+	}, nil
 }
 
 type IngestEventsRequest struct {
@@ -20,7 +55,7 @@ type IngestEventsRequest struct {
 	Events    []event.Event
 }
 
-func (s Service) IngestEvents(ctx context.Context, request IngestEventsRequest) (bool, error) {
+func (s service) IngestEvents(ctx context.Context, request IngestEventsRequest) (bool, error) {
 	for _, ev := range request.Events {
 		err := s.processEvent(ctx, ev, request.Namespace)
 		if err != nil {
@@ -31,8 +66,8 @@ func (s Service) IngestEvents(ctx context.Context, request IngestEventsRequest) 
 	return true, nil
 }
 
-func (s Service) processEvent(ctx context.Context, event event.Event, namespace string) error {
-	logger := s.Logger.With(
+func (s service) processEvent(ctx context.Context, event event.Event, namespace string) error {
+	logger := s.logger.With(
 		slog.String("event_id", event.ID()),
 		slog.String("event_subject", event.Subject()),
 		slog.String("event_source", event.Source()),
@@ -47,7 +82,7 @@ func (s Service) processEvent(ctx context.Context, event event.Event, namespace 
 		event.SetTime(event.Time().UTC())
 	}
 
-	err := s.Collector.Ingest(ctx, namespace, event)
+	err := s.collector.Ingest(ctx, namespace, event)
 	if err != nil {
 		// TODO: attach context to error and log at a higher level
 		logger.ErrorContext(ctx, "unable to forward event to collector", "error", err)

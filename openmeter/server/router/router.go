@@ -33,6 +33,8 @@ import (
 	entitlementdriverv2 "github.com/openmeterio/openmeter/openmeter/entitlement/driver/v2"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	infohttpdriver "github.com/openmeterio/openmeter/openmeter/info/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/ingest"
+	ingesthttpdriver "github.com/openmeterio/openmeter/openmeter/ingest/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
@@ -99,7 +101,7 @@ type Config struct {
 	FeatureConnector            feature.FeatureConnector
 	GrantConnector              credit.GrantConnector
 	GrantRepo                   grant.Repo
-	IngestHandler               http.Handler
+	IngestService               ingest.Service
 	Logger                      *slog.Logger
 	MeterManageService          meter.ManageService
 	MeterEventService           meterevent.Service
@@ -127,8 +129,8 @@ func (c Config) Validate() error {
 		return errors.New("error handler is required")
 	}
 
-	if c.IngestHandler == nil {
-		return errors.New("ingest handler is required")
+	if c.IngestService == nil {
+		return errors.New("ingest service is required")
 	}
 
 	// Validate connectors
@@ -234,6 +236,7 @@ type Router struct {
 	entitlementHandler        entitlementdriver.EntitlementHandler
 	entitlementV2Handler      entitlementdriverv2.EntitlementHandler
 	meterHandler              meterhttphandler.Handler
+	ingestHandler             ingesthttpdriver.Handler
 	meterEventHandler         metereventhttphandler.Handler
 	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
 	portalHandler             portalhttphandler.Handler
@@ -292,6 +295,12 @@ func NewRouter(config Config) (*Router, error) {
 		config.MeterManageService,
 		config.StreamingConnector,
 		config.SubjectService,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	router.ingestHandler = ingesthttpdriver.New(
+		staticNamespaceDecoder,
+		config.IngestService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

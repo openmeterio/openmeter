@@ -19,10 +19,8 @@ import (
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/debug"
-	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -112,14 +110,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize HTTP Ingest handler
-	ingestHandler := ingestdriver.NewIngestEventsHandler(
-		app.IngestService.IngestEvents,
-		namespacedriver.StaticNamespaceDecoder(app.NamespaceManager.GetDefaultNamespace()),
-		nil,
-		errorsx.NewSlogHandler(logger),
-	)
-
 	// Initialize debug connector
 	debugConnector := debug.NewDebugConnector(app.StreamingConnector)
 
@@ -165,7 +155,7 @@ func main() {
 			FeatureConnector:            app.EntitlementRegistry.Feature,
 			GrantConnector:              app.EntitlementRegistry.Grant,
 			GrantRepo:                   app.EntitlementRegistry.GrantRepo,
-			IngestHandler:               ingestHandler,
+			IngestService:               app.IngestService,
 			Logger:                      logger,
 			MeterManageService:          app.MeterManageService,
 			MeterEventService:           app.MeterEventService,

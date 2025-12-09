@@ -1,4 +1,4 @@
-package ingestdriver_test
+package httpdriver_test
 
 import (
 	"bytes"
@@ -16,27 +16,25 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest"
-	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
+	"github.com/openmeterio/openmeter/openmeter/ingest/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
-	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 func TestIngestEvents(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
-	service := ingest.Service{
+	ingestSvc, err := ingest.NewService(ingest.Config{
 		Collector: collector,
 		Logger:    slog.Default(),
-	}
+	})
+	require.NoError(t, err)
 
-	handler := ingestdriver.NewIngestEventsHandler(
-		service.IngestEvents,
+	handler := httpdriver.New(
 		namespacedriver.StaticNamespaceDecoder("test"),
-		nil,
-		errorsx.NewNopHandler(),
+		ingestSvc,
 	)
 
-	server := httptest.NewServer(handler)
+	server := httptest.NewServer(handler.IngestEvents())
 	client := server.Client()
 
 	now := time.Date(2023, 0o6, 15, 14, 33, 0o0, 0o0, time.UTC)
@@ -49,7 +47,7 @@ func TestIngestEvents(t *testing.T) {
 
 	var buf bytes.Buffer
 
-	err := json.NewEncoder(&buf).Encode(ev)
+	err = json.NewEncoder(&buf).Encode(ev)
 	require.NoError(t, err)
 
 	resp, err := client.Post(server.URL, "application/cloudevents+json", &buf)
@@ -74,19 +72,18 @@ func TestIngestEvents(t *testing.T) {
 func TestIngestEvents_InvalidEvent(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
-	service := ingest.Service{
+	ingestSvc, err := ingest.NewService(ingest.Config{
 		Collector: collector,
 		Logger:    slog.Default(),
-	}
+	})
+	require.NoError(t, err)
 
-	handler := ingestdriver.NewIngestEventsHandler(
-		service.IngestEvents,
+	handler := httpdriver.New(
 		namespacedriver.StaticNamespaceDecoder("test"),
-		nil,
-		errorsx.NewNopHandler(),
+		ingestSvc,
 	)
 
-	server := httptest.NewServer(handler)
+	server := httptest.NewServer(handler.IngestEvents())
 	client := server.Client()
 
 	resp, err := client.Post(server.URL, "application/cloudevents+json", bytes.NewBuffer([]byte(`invalid`)))
@@ -100,19 +97,18 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 func TestBatchHandler(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
-	service := ingest.Service{
+	ingestSvc, err := ingest.NewService(ingest.Config{
 		Collector: collector,
 		Logger:    slog.Default(),
-	}
+	})
+	require.NoError(t, err)
 
-	handler := ingestdriver.NewIngestEventsHandler(
-		service.IngestEvents,
+	handler := httpdriver.New(
 		namespacedriver.StaticNamespaceDecoder("test"),
-		nil,
-		errorsx.NewNopHandler(),
+		ingestSvc,
 	)
 
-	server := httptest.NewServer(handler)
+	server := httptest.NewServer(handler.IngestEvents())
 	client := server.Client()
 
 	now := time.Date(2023, 0o6, 15, 14, 33, 0o0, 0o0, time.UTC)
@@ -130,7 +126,7 @@ func TestBatchHandler(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(events)
+	err = json.NewEncoder(&buf).Encode(events)
 	require.NoError(t, err)
 
 	resp, err := client.Post(server.URL, "application/cloudevents-batch+json", &buf)
