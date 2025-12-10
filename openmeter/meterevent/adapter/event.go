@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
@@ -123,7 +124,7 @@ func (a *adapter) ListEventsV2(ctx context.Context, params meterevent.ListEvents
 func (a *adapter) listCustomers(ctx context.Context, namespace string, customerIDs []string) ([]streaming.Customer, error) {
 	customerList, err := a.customerService.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace:   namespace,
-		CustomerIDs: customerIDs,
+		CustomerIDs: &filter.FilterString{In: &customerIDs},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("list customers: %w", err)

@@ -27,6 +27,26 @@ scalar ULID extends string;
 scalar ResourceKey extends string;
 
 /**
+ * ULID ID or Resource Key.
+ */
+@friendlyName("ULIDOrResourceKey")
+@summary("ULID ID or Resource Key")
+union ULIDOrResourceKey {
+  id: ULID,
+  key: ResourceKey,
+}
+
+/**
+ * ExternalResourceKey is a unique string that is used to identify a resource in an external system.
+ */
+@maxLength(256)
+@minLength(1)
+@friendlyName("ExternalResourceKey")
+@summary("External Resource Key")
+@example("019ae40f-4258-7f15-9491-842f42a7d6ac")
+scalar ExternalResourceKey extends string;
+
+/**
  * [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
  */
 @encode(DateTimeKnownEncoding.rfc3339)

@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -212,9 +213,11 @@ func (s *Service) ListCustomerOverrides(ctx context.Context, input billing.ListC
 		if input.Expand.Customer {
 			customers, err := s.customerService.ListCustomers(ctx, customer.ListCustomersInput{
 				Namespace: input.Namespace,
-				CustomerIDs: lo.Map(res.Items, func(override billing.CustomerOverrideWithCustomerID, _ int) string {
-					return override.CustomerID.ID
-				}),
+				CustomerIDs: &filter.FilterString{
+					In: lo.ToPtr(lo.Map(res.Items, func(override billing.CustomerOverrideWithCustomerID, _ int) string {
+						return override.CustomerID.ID
+					})),
+				},
 			})
 			if err != nil {
 				return billing.ListCustomerOverridesResult{}, err

@@ -1,0 +1,15 @@
+overlay: 1.0.0
+info:
+  title: Remove list query params
+  version: 0.1.0
+  description: Remove cursor, sort, and filter query parameters from list endpoints.
+actions:
+  - description: Drop the shared cursor pagination query parameter from list operations.
+    target: $.paths.*.*.parameters[?(@["$ref"]=="#/components/parameters/CursorPageQuery")]
+    remove: true
+  - description: Drop the customer sort parameter wherever it is referenced by list operations.
+    target: $.paths.*.*.parameters[?(@["$ref"]=="#/components/parameters/ListCustomersParams.sort")]
+    remove: true
+  - description: Drop the customer filter parameter wherever it is referenced by list operations.
+    target: $.paths.*.*.parameters[?(@["$ref"]=="#/components/parameters/ListCustomersParams.filter")]
+    remove: true

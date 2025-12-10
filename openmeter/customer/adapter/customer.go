@@ -9,7 +9,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -49,22 +48,23 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			))
 		}
 
-		// Filters
-		if input.Key != nil {
-			query = query.Where(customerdb.KeyContainsFold(*input.Key))
+		// Filters using FilterString predicates
+		if input.Key != nil && !input.Key.IsEmpty() {
+			query = query.Where(predicate.Customer(input.Key.Where(customerdb.FieldKey)))
 		}
 
-		if input.Name != nil {
-			query = query.Where(customerdb.NameContainsFold(*input.Name))
+		if input.Name != nil && !input.Name.IsEmpty() {
+			query = query.Where(predicate.Customer(input.Name.Where(customerdb.FieldName)))
 		}
 
-		if input.PrimaryEmail != nil {
-			query = query.Where(customerdb.PrimaryEmailContainsFold(*input.PrimaryEmail))
+		if input.PrimaryEmail != nil && !input.PrimaryEmail.IsEmpty() {
+			query = query.Where(predicate.Customer(input.PrimaryEmail.Where(customerdb.FieldPrimaryEmail)))
 		}
 
-		if input.Subject != nil {
+		if input.Subject != nil && !input.Subject.IsEmpty() {
+			// Subject filter applies to the subjects table
 			query = query.Where(customerdb.HasSubjectsWith(
-				customersubjectsdb.SubjectKeyContainsFold(*input.Subject),
+				predicate.CustomerSubjects(input.Subject.Where(customersubjectsdb.FieldSubjectKey)),
 				customersubjectsdb.Or(
 					customersubjectsdb.DeletedAtIsNil(),
 					customersubjectsdb.DeletedAtGTE(now),
@@ -76,8 +76,8 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			applyActiveSubscriptionFilterWithPlanKey(query, now, *input.PlanKey)
 		}
 
-		if len(input.CustomerIDs) > 0 {
-			query = query.Where(customerdb.IDIn(input.CustomerIDs...))
+		if input.CustomerIDs != nil && !input.CustomerIDs.IsEmpty() {
+			query = query.Where(predicate.Customer(input.CustomerIDs.Where(customerdb.FieldID)))
 		}
 
 		// Order
@@ -87,11 +87,11 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		}
 
 		switch input.OrderBy {
-		case api.CustomerOrderById:
+		case "id":
 			query = query.Order(customerdb.ByID(order...))
-		case api.CustomerOrderByCreatedAt:
+		case "created_at":
 			query = query.Order(customerdb.ByCreatedAt(order...))
-		case api.CustomerOrderByName:
+		case "name":
 			fallthrough
 		default:
 			query = query.Order(customerdb.ByName(order...))

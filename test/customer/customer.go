@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -552,7 +553,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		Key:       lo.ToPtr("customer-1"),
+		Key:       &filter.FilterString{Ilike: lo.ToPtr("customer-1")},
 	})
 
 	require.NoError(t, err, "Listing customers with key filter must not return error")
@@ -563,7 +564,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		Name:      &createCustomer2.Name,
+		Name:      &filter.FilterString{Ilike: lo.ToPtr(createCustomer2.Name)},
 	})
 
 	require.NoError(t, err, "Listing customers with name filter must not return error")
@@ -574,7 +575,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		Name:      lo.ToPtr("2"),
+		Name:      &filter.FilterString{Ilike: lo.ToPtr("2")},
 	})
 
 	require.NoError(t, err, "Listing customers with partial name filter must not return error")
@@ -585,7 +586,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace:    s.namespace,
 		Page:         page,
-		PrimaryEmail: createCustomer2.PrimaryEmail,
+		PrimaryEmail: &filter.FilterString{Ilike: lo.ToPtr(*createCustomer2.PrimaryEmail)},
 	})
 
 	require.NoError(t, err, "Listing customers with primary email filter must not return error")

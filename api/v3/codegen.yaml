@@ -14,3 +14,8 @@ output: ./api.gen.go
 output-options:
   nullable-type: true
   skip-prune: true
+  overlay:
+    path: ./overlay.yaml
+  # strict: true
+  # user-templates: 
+  #   chi/chi-middleware.tmpl: ./templates/chi/chi-middleware.tmpl

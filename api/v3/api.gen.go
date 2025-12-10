@@ -75,6 +75,17 @@ const (
 	InvalidRulesUnknownProperty                        InvalidRules = "unknown_property"
 )
 
+// Defines values for MeterAggregation.
+const (
+	MeterAggregationAvg         MeterAggregation = "avg"
+	MeterAggregationCount       MeterAggregation = "count"
+	MeterAggregationLatest      MeterAggregation = "latest"
+	MeterAggregationMax         MeterAggregation = "max"
+	MeterAggregationMin         MeterAggregation = "min"
+	MeterAggregationSum         MeterAggregation = "sum"
+	MeterAggregationUniqueCount MeterAggregation = "unique_count"
+)
+
 // Defines values for MeteringEventDatacontenttype.
 const (
 	MeteringEventDatacontenttypeApplicationjson MeteringEventDatacontenttype = "application/json"
@@ -135,8 +146,257 @@ type BaseError struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// BillingAddress Address
+type BillingAddress struct {
+	// City City.
+	City *string `json:"city,omitempty"`
+
+	// Country Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+	Country *CountryCode `json:"country,omitempty"`
+
+	// Line1 First line of the address.
+	Line1 *string `json:"line1,omitempty"`
+
+	// Line2 Second line of the address.
+	Line2 *string `json:"line2,omitempty"`
+
+	// PhoneNumber Phone number.
+	PhoneNumber *string `json:"phone_number,omitempty"`
+
+	// PostalCode Postal code.
+	PostalCode *string `json:"postal_code,omitempty"`
+
+	// State State or province.
+	State *string `json:"state,omitempty"`
+}
+
+// BillingCustomer Customers can be individuals or organizations that can subscribe to plans and have access to features.
+type BillingCustomer struct {
+	// BillingAddress The billing address of the customer.
+	// Used for tax and invoicing.
+	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
+
+	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt *DateTime `json:"created_at,omitempty"`
+
+	// Currency Currency of the customer.
+	// Used for billing, tax and invoicing.
+	Currency *CurrencyCode `json:"currency,omitempty"`
+
+	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *DateTime `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+	Id          ULID    `json:"id"`
+
+	// Key A key is a unique string that is used to identify a resource.
+	Key ResourceKey `json:"key"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// PrimaryEmail The primary email address of the customer.
+	PrimaryEmail *string `json:"primary_email,omitempty"`
+
+	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+
+	// UsageAttribution Mapping to attribute metered usage to the customer by the event subject.
+	UsageAttribution *BillingCustomerUsageAttribution `json:"usage_attribution,omitempty"`
+}
+
+// BillingCustomerUsageAttribution Mapping to attribute metered usage to the customer.
+// One customer can have zero or more subjects,
+// but one subject can only belong to one customer.
+type BillingCustomerUsageAttribution struct {
+	// SubjectKeys The subjects that are attributed to the customer.
+	// Can be empty when no usage event subjects are associated with the customer.
+	SubjectKeys []CustomersUsageAttributionKey `json:"subject_keys"`
+}
+
+// CountryCode [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
+// Custom two-letter country codes are also supported for convenience.
+type CountryCode = string
+
+// CreateCustomerRequest Customer create request.
+type CreateCustomerRequest struct {
+	// BillingAddress The billing address of the customer.
+	// Used for tax and invoicing.
+	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
+
+	// Currency Currency of the customer.
+	// Used for billing, tax and invoicing.
+	Currency *CurrencyCode `json:"currency,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Key A key is a unique string that is used to identify a resource.
+	Key ResourceKey `json:"key"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// PrimaryEmail The primary email address of the customer.
+	PrimaryEmail *string `json:"primary_email,omitempty"`
+
+	// UsageAttribution Mapping to attribute metered usage to the customer by the event subject.
+	UsageAttribution *BillingCustomerUsageAttribution `json:"usage_attribution,omitempty"`
+}
+
+// CreateMeterRequest Meter create request.
+type CreateMeterRequest struct {
+	// Aggregation The aggregation type to use for the meter.
+	Aggregation MeterAggregation `json:"aggregation"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Dimensions Named JSONPath expressions to extract the group by values from the event data.
+	//
+	// Keys must be unique and consist only alphanumeric and underscore characters.
+	Dimensions *map[string]string `json:"dimensions,omitempty"`
+
+	// EventFrom The date since the meter should include events.
+	// Useful to skip old events.
+	// If not specified, all historical events are included.
+	EventFrom *DateTime `json:"event_from,omitempty"`
+
+	// EventTypeFilter The event type to include in the aggregation.
+	EventTypeFilter string `json:"event_type_filter"`
+
+	// Key A key is a unique string that is used to identify a resource.
+	Key ResourceKey `json:"key"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// ValueProperty JSONPath expression to extract the value from the ingested event's data property.
+	//
+	// The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+	//
+	// For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+	ValueProperty *string `json:"value_property,omitempty"`
+}
+
+// CurrencyCode Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
+// Custom three-letter currency codes are also supported for convenience.
+type CurrencyCode = string
+
+// CursorMeta Pagination metadata.
+type CursorMeta struct {
+	Page CursorMetaPage `json:"page"`
+}
+
+// CursorMetaPage defines model for CursorMetaPage.
+type CursorMetaPage struct {
+	// First URI to the first page
+	First *string `json:"first,omitempty"`
+
+	// Last URI to the last page
+	Last *string `json:"last,omitempty"`
+
+	// Next URI to the next page
+	Next nullable.Nullable[string] `json:"next"`
+
+	// Previous URI to the previous page
+	Previous nullable.Nullable[string] `json:"previous"`
+
+	// Size Requested page size
+	Size float32 `json:"size"`
+}
+
+// CursorPageParameters defines model for CursorPageParameters.
+type CursorPageParameters struct {
+	// After Cursor param specifying the page (i.e. the next page) of data returned.
+	After *string `json:"after,omitempty"`
+
+	// Before Cursor param specifying the page (i.e. the previous page) of data returned.
+	Before *string `json:"before,omitempty"`
+
+	// Size The number of items included per page.
+	Size *int `json:"size,omitempty"`
+}
+
+// CustomerPaginatedResponse Cursor paginated response.
+type CustomerPaginatedResponse struct {
+	Data []BillingCustomer `json:"data"`
+
+	// Meta Pagination metadata.
+	Meta CursorMeta `json:"meta"`
+}
+
+// CustomersUsageAttributionKey defines model for Customers.UsageAttributionKey.
+type CustomersUsageAttributionKey = string
+
 // DateTime [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
 type DateTime = time.Time
+
+// DateTimeFieldFilter Filters on the given datetime (RFC-3339) field value.
+type DateTimeFieldFilter struct {
+	union json.RawMessage
+}
+
+// DateTimeFieldFilter0 Value strictly equals given RFC-3339 formatted timestamp in UTC
+type DateTimeFieldFilter0 = time.Time
+
+// DateTimeFieldFilter1 defines model for .
+type DateTimeFieldFilter1 struct {
+	// Eq Value strictly equals given RFC-3339 formatted timestamp in UTC
+	Eq time.Time `json:"eq"`
+}
+
+// DateTimeFieldFilter2 defines model for .
+type DateTimeFieldFilter2 struct {
+	// Lt Value is less than the given RFC-3339 formatted timestamp in UTC
+	Lt time.Time `json:"lt"`
+}
+
+// DateTimeFieldFilter3 defines model for .
+type DateTimeFieldFilter3 struct {
+	// Lte Value is less than or equal to the given RFC-3339 formatted timestamp in UTC
+	Lte time.Time `json:"lte"`
+}
+
+// DateTimeFieldFilter4 defines model for .
+type DateTimeFieldFilter4 struct {
+	// Lt Value is greater than the given RFC-3339 formatted timestamp in UTC
+	Lt *time.Time `json:"lt,omitempty"`
+}
+
+// DateTimeFieldFilter5 defines model for .
+type DateTimeFieldFilter5 struct {
+	// Lte Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC
+	Lte *time.Time `json:"lte,omitempty"`
+}
 
 // ForbiddenError defines model for ForbiddenError.
 type ForbiddenError struct {
@@ -224,6 +484,76 @@ type InvalidParameters_Item struct {
 // InvalidRules invalid parameters rules
 type InvalidRules string
 
+// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+//
+// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+type Labels map[string]string
+
+// Meter A meter is a configuration that defines how to match and aggregate events.
+type Meter struct {
+	// Aggregation The aggregation type to use for the meter.
+	Aggregation MeterAggregation `json:"aggregation"`
+
+	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt *DateTime `json:"created_at,omitempty"`
+
+	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *DateTime `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Dimensions Named JSONPath expressions to extract the group by values from the event data.
+	//
+	// Keys must be unique and consist only alphanumeric and underscore characters.
+	Dimensions *map[string]string `json:"dimensions,omitempty"`
+
+	// EventFrom The date since the meter should include events.
+	// Useful to skip old events.
+	// If not specified, all historical events are included.
+	EventFrom *DateTime `json:"event_from,omitempty"`
+
+	// EventTypeFilter The event type to include in the aggregation.
+	EventTypeFilter string `json:"event_type_filter"`
+	Id              ULID   `json:"id"`
+
+	// Key A key is a unique string that is used to identify a resource.
+	Key ResourceKey `json:"key"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+
+	// ValueProperty JSONPath expression to extract the value from the ingested event's data property.
+	//
+	// The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+	//
+	// For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+	ValueProperty *string `json:"value_property,omitempty"`
+}
+
+// MeterAggregation The aggregation type to use for the meter.
+type MeterAggregation string
+
+// MeterPaginatedResponse Cursor paginated response.
+type MeterPaginatedResponse struct {
+	Data []Meter `json:"data"`
+
+	// Meta Pagination metadata.
+	Meta CursorMeta `json:"meta"`
+}
+
 // MeteringEvent Metering event following the CloudEvents specification.
 type MeteringEvent struct {
 	// Data The event payload.
@@ -258,6 +588,70 @@ type MeteringEvent struct {
 // MeteringEventDatacontenttype Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
 type MeteringEventDatacontenttype string
 
+// NotFoundError defines model for NotFoundError.
+type NotFoundError struct {
+	Detail   interface{} `json:"detail"`
+	Instance interface{} `json:"instance"`
+	Status   interface{} `json:"status"`
+	Title    interface{} `json:"title"`
+	Type     interface{} `json:"type,omitempty"`
+}
+
+// ResourceKey A key is a unique string that is used to identify a resource.
+type ResourceKey = string
+
+// SortQuery The `asc` suffix is optional as the default sort order is ascending.
+// The `desc` suffix is used to specify a descending order.
+// Multiple sort attributes may be provided via a comma separated list.
+// JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
+type SortQuery = string
+
+// StringFieldContainsFilter Filters on the given string field value by fuzzy match.
+type StringFieldContainsFilter struct {
+	Contains string `json:"contains"`
+}
+
+// StringFieldEqualsFilter Filters on the given string field value by exact match.
+type StringFieldEqualsFilter struct {
+	union json.RawMessage
+}
+
+// StringFieldEqualsFilter0 defines model for .
+type StringFieldEqualsFilter0 = string
+
+// StringFieldEqualsFilter1 defines model for .
+type StringFieldEqualsFilter1 struct {
+	Eq string `json:"eq"`
+}
+
+// StringFieldFilter Filters on the given string field value by either exact or fuzzy match.
+type StringFieldFilter struct {
+	union json.RawMessage
+}
+
+// StringFieldNEQFilter Filters on the given string field value by exact match inequality.
+type StringFieldNEQFilter struct {
+	Neq string `json:"neq"`
+}
+
+// StringFieldOContainsFilter Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string.
+type StringFieldOContainsFilter struct {
+	Ocontains string `json:"ocontains"`
+}
+
+// StringFieldOEQFilter Returns entities that exact match any of the comma-delimited phrases in the filter string.
+type StringFieldOEQFilter struct {
+	Oeq string `json:"oeq"`
+}
+
+// ULID ULID (Universally Unique Lexicographically Sortable Identifier).
+type ULID = string
+
+// ULIDOrResourceKey ULID ID or Resource Key.
+type ULIDOrResourceKey struct {
+	union json.RawMessage
+}
+
 // UnauthorizedError defines model for UnauthorizedError.
 type UnauthorizedError struct {
 	Detail   interface{} `json:"detail"`
@@ -266,6 +660,106 @@ type UnauthorizedError struct {
 	Title    interface{} `json:"title"`
 	Type     interface{} `json:"type,omitempty"`
 }
+
+// UpdateCustomerRequest Customer update request.
+type UpdateCustomerRequest struct {
+	// BillingAddress The billing address of the customer.
+	// Used for tax and invoicing.
+	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
+
+	// Currency Currency of the customer.
+	// Used for billing, tax and invoicing.
+	Currency *CurrencyCode `json:"currency,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name *string `json:"name,omitempty"`
+
+	// PrimaryEmail The primary email address of the customer.
+	PrimaryEmail *string `json:"primary_email,omitempty"`
+
+	// UsageAttribution Mapping to attribute metered usage to the customer by the event subject.
+	UsageAttribution *BillingCustomerUsageAttribution `json:"usage_attribution,omitempty"`
+}
+
+// UpsertCustomerRequest Customer upsert request.
+type UpsertCustomerRequest struct {
+	// BillingAddress The billing address of the customer.
+	// Used for tax and invoicing.
+	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
+
+	// Currency Currency of the customer.
+	// Used for billing, tax and invoicing.
+	Currency *CurrencyCode `json:"currency,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// PrimaryEmail The primary email address of the customer.
+	PrimaryEmail *string `json:"primary_email,omitempty"`
+
+	// UsageAttribution Mapping to attribute metered usage to the customer by the event subject.
+	UsageAttribution *BillingCustomerUsageAttribution `json:"usage_attribution,omitempty"`
+}
+
+// CursorPageQuery defines model for CursorPageQuery.
+type CursorPageQuery = CursorPageParameters
+
+// ListCustomersParamsFilter defines model for ListCustomersParams.filter.
+type ListCustomersParamsFilter struct {
+	// CreatedAt Filters on the given datetime (RFC-3339) field value.
+	CreatedAt *DateTimeFieldFilter `json:"created_at,omitempty"`
+
+	// DeletedAt Filters on the given datetime (RFC-3339) field value.
+	DeletedAt *DateTimeFieldFilter `json:"deleted_at,omitempty"`
+
+	// Id Filters on the given string field value by either exact or fuzzy match.
+	Id *StringFieldFilter `json:"id,omitempty"`
+
+	// Key Filters on the given string field value by either exact or fuzzy match.
+	Key *StringFieldFilter `json:"key,omitempty"`
+
+	// Name Filters on the given string field value by either exact or fuzzy match.
+	Name *StringFieldFilter `json:"name,omitempty"`
+
+	// PrimaryEmail Filters on the given string field value by either exact or fuzzy match.
+	PrimaryEmail *StringFieldFilter `json:"primary_email,omitempty"`
+
+	// UpdatedAt Filters on the given datetime (RFC-3339) field value.
+	UpdatedAt *DateTimeFieldFilter `json:"updated_at,omitempty"`
+
+	// UsageAttributionSubjectKeys Filters on the given string field value by either exact or fuzzy match.
+	UsageAttributionSubjectKeys *StringFieldFilter `json:"usage_attribution.subject_keys,omitempty"`
+}
+
+// ListCustomersParamsSort The `asc` suffix is optional as the default sort order is ascending.
+// The `desc` suffix is used to specify a descending order.
+// Multiple sort attributes may be provided via a comma separated list.
+// JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
+type ListCustomersParamsSort = SortQuery
 
 // BadRequest defines model for BadRequest.
 type BadRequest = BadRequestError
@@ -278,6 +772,9 @@ type Internal = BaseError
 
 // NotAvailable standard error
 type NotAvailable = BaseError
+
+// NotFound defines model for NotFound.
+type NotFound = NotFoundError
 
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = UnauthorizedError
@@ -293,6 +790,15 @@ type IngestMeteringEventsJSONBody struct {
 // IngestMeteringEventsJSONBody1 defines parameters for IngestMeteringEvents.
 type IngestMeteringEventsJSONBody1 = []MeteringEvent
 
+// CreateCustomerJSONRequestBody defines body for CreateCustomer for application/json ContentType.
+type CreateCustomerJSONRequestBody = CreateCustomerRequest
+
+// UpdateCustomerJSONRequestBody defines body for UpdateCustomer for application/json ContentType.
+type UpdateCustomerJSONRequestBody = UpdateCustomerRequest
+
+// UpsertCustomerJSONRequestBody defines body for UpsertCustomer for application/json ContentType.
+type UpsertCustomerJSONRequestBody = UpsertCustomerRequest
+
 // IngestMeteringEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestMeteringEvents for application/cloudevents+json ContentType.
 type IngestMeteringEventsApplicationCloudeventsPlusJSONRequestBody = MeteringEvent
 
@@ -301,6 +807,175 @@ type IngestMeteringEventsApplicationCloudeventsBatchPlusJSONRequestBody = Ingest
 
 // IngestMeteringEventsJSONRequestBody defines body for IngestMeteringEvents for application/json ContentType.
 type IngestMeteringEventsJSONRequestBody IngestMeteringEventsJSONBody
+
+// CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
+type CreateMeterJSONRequestBody = CreateMeterRequest
+
+// AsDateTimeFieldFilter0 returns the union data inside the DateTimeFieldFilter as a DateTimeFieldFilter0
+func (t DateTimeFieldFilter) AsDateTimeFieldFilter0() (DateTimeFieldFilter0, error) {
+	var body DateTimeFieldFilter0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDateTimeFieldFilter0 overwrites any union data inside the DateTimeFieldFilter as the provided DateTimeFieldFilter0
+func (t *DateTimeFieldFilter) FromDateTimeFieldFilter0(v DateTimeFieldFilter0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDateTimeFieldFilter0 performs a merge with any union data inside the DateTimeFieldFilter, using the provided DateTimeFieldFilter0
+func (t *DateTimeFieldFilter) MergeDateTimeFieldFilter0(v DateTimeFieldFilter0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDateTimeFieldFilter1 returns the union data inside the DateTimeFieldFilter as a DateTimeFieldFilter1
+func (t DateTimeFieldFilter) AsDateTimeFieldFilter1() (DateTimeFieldFilter1, error) {
+	var body DateTimeFieldFilter1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDateTimeFieldFilter1 overwrites any union data inside the DateTimeFieldFilter as the provided DateTimeFieldFilter1
+func (t *DateTimeFieldFilter) FromDateTimeFieldFilter1(v DateTimeFieldFilter1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDateTimeFieldFilter1 performs a merge with any union data inside the DateTimeFieldFilter, using the provided DateTimeFieldFilter1
+func (t *DateTimeFieldFilter) MergeDateTimeFieldFilter1(v DateTimeFieldFilter1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDateTimeFieldFilter2 returns the union data inside the DateTimeFieldFilter as a DateTimeFieldFilter2
+func (t DateTimeFieldFilter) AsDateTimeFieldFilter2() (DateTimeFieldFilter2, error) {
+	var body DateTimeFieldFilter2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDateTimeFieldFilter2 overwrites any union data inside the DateTimeFieldFilter as the provided DateTimeFieldFilter2
+func (t *DateTimeFieldFilter) FromDateTimeFieldFilter2(v DateTimeFieldFilter2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDateTimeFieldFilter2 performs a merge with any union data inside the DateTimeFieldFilter, using the provided DateTimeFieldFilter2
+func (t *DateTimeFieldFilter) MergeDateTimeFieldFilter2(v DateTimeFieldFilter2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDateTimeFieldFilter3 returns the union data inside the DateTimeFieldFilter as a DateTimeFieldFilter3
+func (t DateTimeFieldFilter) AsDateTimeFieldFilter3() (DateTimeFieldFilter3, error) {
+	var body DateTimeFieldFilter3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDateTimeFieldFilter3 overwrites any union data inside the DateTimeFieldFilter as the provided DateTimeFieldFilter3
+func (t *DateTimeFieldFilter) FromDateTimeFieldFilter3(v DateTimeFieldFilter3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDateTimeFieldFilter3 performs a merge with any union data inside the DateTimeFieldFilter, using the provided DateTimeFieldFilter3
+func (t *DateTimeFieldFilter) MergeDateTimeFieldFilter3(v DateTimeFieldFilter3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDateTimeFieldFilter4 returns the union data inside the DateTimeFieldFilter as a DateTimeFieldFilter4
+func (t DateTimeFieldFilter) AsDateTimeFieldFilter4() (DateTimeFieldFilter4, error) {
+	var body DateTimeFieldFilter4
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDateTimeFieldFilter4 overwrites any union data inside the DateTimeFieldFilter as the provided DateTimeFieldFilter4
+func (t *DateTimeFieldFilter) FromDateTimeFieldFilter4(v DateTimeFieldFilter4) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDateTimeFieldFilter4 performs a merge with any union data inside the DateTimeFieldFilter, using the provided DateTimeFieldFilter4
+func (t *DateTimeFieldFilter) MergeDateTimeFieldFilter4(v DateTimeFieldFilter4) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDateTimeFieldFilter5 returns the union data inside the DateTimeFieldFilter as a DateTimeFieldFilter5
+func (t DateTimeFieldFilter) AsDateTimeFieldFilter5() (DateTimeFieldFilter5, error) {
+	var body DateTimeFieldFilter5
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDateTimeFieldFilter5 overwrites any union data inside the DateTimeFieldFilter as the provided DateTimeFieldFilter5
+func (t *DateTimeFieldFilter) FromDateTimeFieldFilter5(v DateTimeFieldFilter5) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDateTimeFieldFilter5 performs a merge with any union data inside the DateTimeFieldFilter, using the provided DateTimeFieldFilter5
+func (t *DateTimeFieldFilter) MergeDateTimeFieldFilter5(v DateTimeFieldFilter5) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t DateTimeFieldFilter) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *DateTimeFieldFilter) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsInvalidParameterStandard returns the union data inside the InvalidParameters_Item as a InvalidParameterStandard
 func (t InvalidParameters_Item) AsInvalidParameterStandard() (InvalidParameterStandard, error) {
@@ -442,20 +1117,365 @@ func (t *InvalidParameters_Item) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsStringFieldEqualsFilter0 returns the union data inside the StringFieldEqualsFilter as a StringFieldEqualsFilter0
+func (t StringFieldEqualsFilter) AsStringFieldEqualsFilter0() (StringFieldEqualsFilter0, error) {
+	var body StringFieldEqualsFilter0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromStringFieldEqualsFilter0 overwrites any union data inside the StringFieldEqualsFilter as the provided StringFieldEqualsFilter0
+func (t *StringFieldEqualsFilter) FromStringFieldEqualsFilter0(v StringFieldEqualsFilter0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeStringFieldEqualsFilter0 performs a merge with any union data inside the StringFieldEqualsFilter, using the provided StringFieldEqualsFilter0
+func (t *StringFieldEqualsFilter) MergeStringFieldEqualsFilter0(v StringFieldEqualsFilter0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsStringFieldEqualsFilter1 returns the union data inside the StringFieldEqualsFilter as a StringFieldEqualsFilter1
+func (t StringFieldEqualsFilter) AsStringFieldEqualsFilter1() (StringFieldEqualsFilter1, error) {
+	var body StringFieldEqualsFilter1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromStringFieldEqualsFilter1 overwrites any union data inside the StringFieldEqualsFilter as the provided StringFieldEqualsFilter1
+func (t *StringFieldEqualsFilter) FromStringFieldEqualsFilter1(v StringFieldEqualsFilter1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeStringFieldEqualsFilter1 performs a merge with any union data inside the StringFieldEqualsFilter, using the provided StringFieldEqualsFilter1
+func (t *StringFieldEqualsFilter) MergeStringFieldEqualsFilter1(v StringFieldEqualsFilter1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t StringFieldEqualsFilter) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *StringFieldEqualsFilter) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsStringFieldEqualsFilter returns the union data inside the StringFieldFilter as a StringFieldEqualsFilter
+func (t StringFieldFilter) AsStringFieldEqualsFilter() (StringFieldEqualsFilter, error) {
+	var body StringFieldEqualsFilter
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromStringFieldEqualsFilter overwrites any union data inside the StringFieldFilter as the provided StringFieldEqualsFilter
+func (t *StringFieldFilter) FromStringFieldEqualsFilter(v StringFieldEqualsFilter) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeStringFieldEqualsFilter performs a merge with any union data inside the StringFieldFilter, using the provided StringFieldEqualsFilter
+func (t *StringFieldFilter) MergeStringFieldEqualsFilter(v StringFieldEqualsFilter) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsStringFieldContainsFilter returns the union data inside the StringFieldFilter as a StringFieldContainsFilter
+func (t StringFieldFilter) AsStringFieldContainsFilter() (StringFieldContainsFilter, error) {
+	var body StringFieldContainsFilter
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromStringFieldContainsFilter overwrites any union data inside the StringFieldFilter as the provided StringFieldContainsFilter
+func (t *StringFieldFilter) FromStringFieldContainsFilter(v StringFieldContainsFilter) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeStringFieldContainsFilter performs a merge with any union data inside the StringFieldFilter, using the provided StringFieldContainsFilter
+func (t *StringFieldFilter) MergeStringFieldContainsFilter(v StringFieldContainsFilter) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsStringFieldOContainsFilter returns the union data inside the StringFieldFilter as a StringFieldOContainsFilter
+func (t StringFieldFilter) AsStringFieldOContainsFilter() (StringFieldOContainsFilter, error) {
+	var body StringFieldOContainsFilter
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromStringFieldOContainsFilter overwrites any union data inside the StringFieldFilter as the provided StringFieldOContainsFilter
+func (t *StringFieldFilter) FromStringFieldOContainsFilter(v StringFieldOContainsFilter) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeStringFieldOContainsFilter performs a merge with any union data inside the StringFieldFilter, using the provided StringFieldOContainsFilter
+func (t *StringFieldFilter) MergeStringFieldOContainsFilter(v StringFieldOContainsFilter) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsStringFieldOEQFilter returns the union data inside the StringFieldFilter as a StringFieldOEQFilter
+func (t StringFieldFilter) AsStringFieldOEQFilter() (StringFieldOEQFilter, error) {
+	var body StringFieldOEQFilter
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromStringFieldOEQFilter overwrites any union data inside the StringFieldFilter as the provided StringFieldOEQFilter
+func (t *StringFieldFilter) FromStringFieldOEQFilter(v StringFieldOEQFilter) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeStringFieldOEQFilter performs a merge with any union data inside the StringFieldFilter, using the provided StringFieldOEQFilter
+func (t *StringFieldFilter) MergeStringFieldOEQFilter(v StringFieldOEQFilter) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsStringFieldNEQFilter returns the union data inside the StringFieldFilter as a StringFieldNEQFilter
+func (t StringFieldFilter) AsStringFieldNEQFilter() (StringFieldNEQFilter, error) {
+	var body StringFieldNEQFilter
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromStringFieldNEQFilter overwrites any union data inside the StringFieldFilter as the provided StringFieldNEQFilter
+func (t *StringFieldFilter) FromStringFieldNEQFilter(v StringFieldNEQFilter) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeStringFieldNEQFilter performs a merge with any union data inside the StringFieldFilter, using the provided StringFieldNEQFilter
+func (t *StringFieldFilter) MergeStringFieldNEQFilter(v StringFieldNEQFilter) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t StringFieldFilter) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *StringFieldFilter) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsULID returns the union data inside the ULIDOrResourceKey as a ULID
+func (t ULIDOrResourceKey) AsULID() (ULID, error) {
+	var body ULID
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromULID overwrites any union data inside the ULIDOrResourceKey as the provided ULID
+func (t *ULIDOrResourceKey) FromULID(v ULID) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeULID performs a merge with any union data inside the ULIDOrResourceKey, using the provided ULID
+func (t *ULIDOrResourceKey) MergeULID(v ULID) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsResourceKey returns the union data inside the ULIDOrResourceKey as a ResourceKey
+func (t ULIDOrResourceKey) AsResourceKey() (ResourceKey, error) {
+	var body ResourceKey
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResourceKey overwrites any union data inside the ULIDOrResourceKey as the provided ResourceKey
+func (t *ULIDOrResourceKey) FromResourceKey(v ResourceKey) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResourceKey performs a merge with any union data inside the ULIDOrResourceKey, using the provided ResourceKey
+func (t *ULIDOrResourceKey) MergeResourceKey(v ResourceKey) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ULIDOrResourceKey) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ULIDOrResourceKey) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// List customers
+	// (GET /openmeter/customers)
+	ListCustomers(w http.ResponseWriter, r *http.Request)
+	// Create customer
+	// (POST /openmeter/customers)
+	CreateCustomer(w http.ResponseWriter, r *http.Request)
+	// Delete customer
+	// (DELETE /openmeter/customers/{customerId})
+	DeleteCustomer(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Get customer
+	// (GET /openmeter/customers/{customerId})
+	GetCustomer(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Update customer
+	// (PATCH /openmeter/customers/{customerId})
+	UpdateCustomer(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Upsert customer
+	// (PUT /openmeter/customers/{customerId})
+	UpsertCustomer(w http.ResponseWriter, r *http.Request, customerId ULID)
 	// Ingest metering events
-	// (POST /metering/events)
+	// (POST /openmeter/events)
 	IngestMeteringEvents(w http.ResponseWriter, r *http.Request)
+	// List meters
+	// (GET /openmeter/meters)
+	ListMeters(w http.ResponseWriter, r *http.Request)
+	// Create meter
+	// (POST /openmeter/meters)
+	CreateMeter(w http.ResponseWriter, r *http.Request)
+	// Get meter
+	// (GET /openmeter/meters/{meterIdOrKey})
+	GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrKey ULIDOrResourceKey)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
 
+// List customers
+// (GET /openmeter/customers)
+func (_ Unimplemented) ListCustomers(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create customer
+// (POST /openmeter/customers)
+func (_ Unimplemented) CreateCustomer(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete customer
+// (DELETE /openmeter/customers/{customerId})
+func (_ Unimplemented) DeleteCustomer(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get customer
+// (GET /openmeter/customers/{customerId})
+func (_ Unimplemented) GetCustomer(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update customer
+// (PATCH /openmeter/customers/{customerId})
+func (_ Unimplemented) UpdateCustomer(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Upsert customer
+// (PUT /openmeter/customers/{customerId})
+func (_ Unimplemented) UpsertCustomer(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Ingest metering events
-// (POST /metering/events)
+// (POST /openmeter/events)
 func (_ Unimplemented) IngestMeteringEvents(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List meters
+// (GET /openmeter/meters)
+func (_ Unimplemented) ListMeters(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create meter
+// (POST /openmeter/meters)
+func (_ Unimplemented) CreateMeter(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get meter
+// (GET /openmeter/meters/{meterIdOrKey})
+func (_ Unimplemented) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrKey ULIDOrResourceKey) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -468,11 +1488,182 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// IngestMeteringEvents operation middleware
-func (siw *ServerInterfaceWrapper) IngestMeteringEvents(w http.ResponseWriter, r *http.Request) {
+// ListCustomers operation middleware
+func (siw *ServerInterfaceWrapper) ListCustomers(w http.ResponseWriter, r *http.Request) {
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCustomers(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCustomer operation middleware
+func (siw *ServerInterfaceWrapper) CreateCustomer(w http.ResponseWriter, r *http.Request) {
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCustomer(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteCustomer operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCustomer(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteCustomer(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCustomer operation middleware
+func (siw *ServerInterfaceWrapper) GetCustomer(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCustomer(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateCustomer operation middleware
+func (siw *ServerInterfaceWrapper) UpdateCustomer(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateCustomer(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpsertCustomer operation middleware
+func (siw *ServerInterfaceWrapper) UpsertCustomer(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpsertCustomer(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// IngestMeteringEvents operation middleware
+func (siw *ServerInterfaceWrapper) IngestMeteringEvents(w http.ResponseWriter, r *http.Request) {
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.IngestMeteringEvents(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMeters operation middleware
+func (siw *ServerInterfaceWrapper) ListMeters(w http.ResponseWriter, r *http.Request) {
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMeters(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateMeter operation middleware
+func (siw *ServerInterfaceWrapper) CreateMeter(w http.ResponseWriter, r *http.Request) {
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateMeter(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMeter operation middleware
+func (siw *ServerInterfaceWrapper) GetMeter(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	// ------------- Path parameter "meterIdOrKey" -------------
+	var meterIdOrKey ULIDOrResourceKey
+
+	err = runtime.BindStyledParameterWithOptions("simple", "meterIdOrKey", chi.URLParam(r, "meterIdOrKey"), &meterIdOrKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "meterIdOrKey", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMeter(w, r, meterIdOrKey)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -596,7 +1787,34 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/metering/events", wrapper.IngestMeteringEvents)
+		r.Get(options.BaseURL+"/openmeter/customers", wrapper.ListCustomers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/customers", wrapper.CreateCustomer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/openmeter/customers/{customerId}", wrapper.DeleteCustomer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/customers/{customerId}", wrapper.GetCustomer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/openmeter/customers/{customerId}", wrapper.UpdateCustomer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/openmeter/customers/{customerId}", wrapper.UpsertCustomer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/events", wrapper.IngestMeteringEvents)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/meters", wrapper.ListMeters)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/meters", wrapper.CreateMeter)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/meters/{meterIdOrKey}", wrapper.GetMeter)
 	})
 
 	return r
@@ -604,55 +1822,119 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
-
-	"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",
-	"aCkAAA==",
+	"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",
+	"/wcAAP//keEW0ISVAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

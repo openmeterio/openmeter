@@ -1,11 +1,21 @@
 namespace Shared;
 
 const MeteringAndBillingTitle = "Metering & Billing";
+const OpenMeterTitle = "OpenMeter";
 const MetersTag = "Meters";
 const MetersDescription = "Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.";
 
-const MeteringEventsTag = "Metering Events";
-const MeteringEventsDescription = "Metering events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.";
+const EventsTag = "Metering Events";
+const EventsDescription = "Metering events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.";
+
+const CustomersTag = "Billing Customers";
+const CustomersDescription = "Customers are used to track usage of your product or service. Customers can be individuals or organizations that can subscribe to plans and have access to features.";
+
+const EntitlementsTag = "Billing Entitlements";
+const EntitlementsDescription = "Entitlements are used to control access to features for customers.";
+
+const SubscriptionsTag = "Billing Subscriptions";
+const SubscriptionsDescription = "Subscriptions are used to track usage of your product or service. Subscriptions can be individuals or organizations that can subscribe to plans and have access to features.";
 
 const UnstableExtension = "x-unstable";
 const InternalExtension = "x-internal";

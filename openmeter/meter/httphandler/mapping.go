@@ -208,7 +208,7 @@ func (h *handler) getFilterCustomer(ctx context.Context, namespace string, filte
 	// List customers
 	customers, err := h.customerService.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace:   namespace,
-		CustomerIDs: filterCustomerIds,
+		CustomerIDs: &filter.FilterString{In: &filterCustomerIds},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list customers: %w", err)

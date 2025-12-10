@@ -2,8 +2,11 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi";
 import "@typespec/openapi3";
-import "./shared/index.tsp";
+import "./customers/index.tsp";
 import "./events/index.tsp";
+import "./meters/index.tsp";
+import "./shared/index.tsp";
+import "./subscriptions/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -23,13 +26,36 @@ using TypeSpec.OpenAPI;
 })
 @server("https://127.0.0.1/api/v3", "Local")
 @server("https://openmeter.cloud/api/v3", "Cloud")
-@tagMetadata(
-  Shared.MeteringEventsTag,
-  #{ description: Shared.MeteringEventsDescription }
-)
+@tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
+@tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
+@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 namespace OpenMeter;
 
-@route("/metering/events")
-@tag(Shared.MeteringEventsTag)
-@friendlyName("OpenMeter: ${Shared.MeteringEventsTag}")
-interface MeteringEventsEndpoints extends Events.MeteringEventsOperations {}
+@route("/openmeter/events")
+@tag(Shared.EventsTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.EventsTag}")
+interface EventsEndpoints extends Events.EventsOperations {}
+
+@route("/openmeter/customers")
+@tag(Shared.CustomersTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.CustomersTag}")
+interface CustomersEndpoints extends Customers.CustomersOperations {}
+
+@route("/openmeter/meters")
+@tag(Shared.MetersTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.MetersTag}")
+interface MetersEndpoints extends Meters.MetersOperations {}
+
+// @route("/openmeter/customers/{customerId}/subscriptions")
+// @tag(Shared.CustomersTag)
+// @tag(Shared.SubscriptionsTag)
+// @friendlyName("OpenMeter: ${Shared.SubscriptionsTag}")
+// interface CustomerSubscriptionsEndpoints
+//   extends Subscriptions.CustomerSubscriptionsOperations {}
+
+// @route("/openmeter/customers/{customerId}/entitlements/{featureKey}")
+// @tag(Shared.CustomersTag)
+// @tag(Shared.EntitlementsTag)
+// @friendlyName("OpenMeter: ${Shared.EntitlementsTag}")
+// interface CustomerEntitlementsEndpoints
+//   extends Entitlements.CustomerEntitlementsOperations {}
