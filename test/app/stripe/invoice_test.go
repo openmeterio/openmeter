@@ -282,7 +282,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			BillingAddress: &models.Address{
 				Country: lo.ToPtr(models.CountryCode("US")),
 			},
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},
@@ -1047,7 +1047,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		CustomerMutate: customer.CustomerMutate{
 			Name:     "Test Customer",
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},
@@ -1220,7 +1220,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 		CustomerMutate: customer.CustomerMutate{
 			Name:     "Test Customer",
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},

@@ -2180,6 +2180,16 @@ func CustomerNameContainsFold(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldContainsFold(FieldCustomerName, v))
 }
 
+// CustomerUsageAttributionIsNil applies the IsNil predicate on the "customer_usage_attribution" field.
+func CustomerUsageAttributionIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldCustomerUsageAttribution))
+}
+
+// CustomerUsageAttributionNotNil applies the NotNil predicate on the "customer_usage_attribution" field.
+func CustomerUsageAttributionNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldCustomerUsageAttribution))
+}
+
 // NumberEQ applies the EQ predicate on the "number" field.
 func NumberEQ(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldNumber, v))

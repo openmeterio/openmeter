@@ -152,7 +152,7 @@ func Test_SubjectService(t *testing.T) {
 						CustomerMutate: customer.CustomerMutate{
 							Key:  lo.ToPtr(sub1.Key),
 							Name: lo.FromPtrOr(sub1.DisplayName, sub1.Key),
-							UsageAttribution: customer.CustomerUsageAttribution{
+							UsageAttribution: &customer.CustomerUsageAttribution{
 								SubjectKeys: []string{
 									sub1.Key,
 								},

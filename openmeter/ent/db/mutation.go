@@ -12938,9 +12938,22 @@ func (m *BillingInvoiceMutation) OldCustomerUsageAttribution(ctx context.Context
 	return oldValue.CustomerUsageAttribution, nil
 }
 
+// ClearCustomerUsageAttribution clears the value of the "customer_usage_attribution" field.
+func (m *BillingInvoiceMutation) ClearCustomerUsageAttribution() {
+	m.customer_usage_attribution = nil
+	m.clearedFields[billinginvoice.FieldCustomerUsageAttribution] = struct{}{}
+}
+
+// CustomerUsageAttributionCleared returns if the "customer_usage_attribution" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) CustomerUsageAttributionCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldCustomerUsageAttribution]
+	return ok
+}
+
 // ResetCustomerUsageAttribution resets all changes to the "customer_usage_attribution" field.
 func (m *BillingInvoiceMutation) ResetCustomerUsageAttribution() {
 	m.customer_usage_attribution = nil
+	delete(m.clearedFields, billinginvoice.FieldCustomerUsageAttribution)
 }
 
 // SetNumber sets the "number" field.
@@ -15263,6 +15276,9 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldCustomerKey) {
 		fields = append(fields, billinginvoice.FieldCustomerKey)
 	}
+	if m.FieldCleared(billinginvoice.FieldCustomerUsageAttribution) {
+		fields = append(fields, billinginvoice.FieldCustomerUsageAttribution)
+	}
 	if m.FieldCleared(billinginvoice.FieldDescription) {
 		fields = append(fields, billinginvoice.FieldDescription)
 	}
@@ -15375,6 +15391,9 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldCustomerKey:
 		m.ClearCustomerKey()
+		return nil
+	case billinginvoice.FieldCustomerUsageAttribution:
+		m.ClearCustomerUsageAttribution()
 		return nil
 	case billinginvoice.FieldDescription:
 		m.ClearDescription()

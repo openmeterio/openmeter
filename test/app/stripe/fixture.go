@@ -94,10 +94,12 @@ func (s *Fixture) setupApp(ctx context.Context, namespace string) (app.App, erro
 
 // Create test customers
 func (s *Fixture) setupCustomer(ctx context.Context, namespace string) (*customer.Customer, error) {
+	customerKey := fmt.Sprintf("test-customer-%d", rand.Intn(1000000))
 	customer, err := s.customer.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Test Customer",
+			Key:  &customerKey,
 		},
 	})
 	if err != nil {

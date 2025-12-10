@@ -52,7 +52,7 @@ func (v *Validator) ValidateUpdateCustomer(ctx context.Context, input customer.U
 	hasSub := len(subscriptions.Items) > 0
 
 	// If there's an update to the subject keys we need additional checks
-	if input.CustomerMutate.UsageAttribution.SubjectKeys != nil {
+	if input.CustomerMutate.UsageAttribution != nil && input.CustomerMutate.UsageAttribution.SubjectKeys != nil {
 		currentCustomer, err := v.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 			CustomerID: &customer.CustomerID{
 				Namespace: input.CustomerID.Namespace,
@@ -77,11 +77,16 @@ func (v *Validator) ValidateUpdateCustomer(ctx context.Context, input customer.U
 
 		// Let's check the two subjectKey arrays are the same
 		if hasSub {
-			if len(currentCustomer.UsageAttribution.SubjectKeys) != len(input.CustomerMutate.UsageAttribution.SubjectKeys) {
+			var currentSubjectKeys []string
+			if currentCustomer.UsageAttribution != nil {
+				currentSubjectKeys = currentCustomer.UsageAttribution.SubjectKeys
+			}
+
+			if len(currentSubjectKeys) != len(input.CustomerMutate.UsageAttribution.SubjectKeys) {
 				return fmt.Errorf("cannot change subject keys for customer with active subscriptions")
 			}
 
-			for i, key := range currentCustomer.UsageAttribution.SubjectKeys {
+			for i, key := range currentSubjectKeys {
 				if key != input.CustomerMutate.UsageAttribution.SubjectKeys[i] {
 					return fmt.Errorf("cannot change subject keys for customer with active subscriptions")
 				}

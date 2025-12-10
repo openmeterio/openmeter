@@ -172,20 +172,22 @@ func (p SubjectProvisioner) EnsureSubjects(ctx context.Context, cus *customer.Cu
 
 	var errs []error
 
-	for _, subKey := range cus.UsageAttribution.SubjectKeys {
-		sub, err := p.EnsureSubject(ctx, cus, subKey)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
+	if cus.UsageAttribution != nil {
+		for _, subKey := range cus.UsageAttribution.SubjectKeys {
+			sub, err := p.EnsureSubject(ctx, cus, subKey)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
 
-		if sub.Key != subKey {
-			errs = append(errs,
-				models.NewGenericValidationError(
-					fmt.Errorf("use subject key instead of id for usage attribution [namespace=%s customer.id=%s customer.usage_attribution_key: %s]",
-						cus.Namespace, cus.ID, subKey),
-				),
-			)
+			if sub.Key != subKey {
+				errs = append(errs,
+					models.NewGenericValidationError(
+						fmt.Errorf("use subject key instead of id for usage attribution [namespace=%s customer.id=%s customer.usage_attribution_key: %s]",
+							cus.Namespace, cus.ID, subKey),
+					),
+				)
+			}
 		}
 	}
 

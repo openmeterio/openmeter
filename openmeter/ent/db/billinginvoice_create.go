@@ -843,9 +843,6 @@ func (_c *BillingInvoiceCreate) check() error {
 			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_name": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.CustomerUsageAttribution(); !ok {
-		return &ValidationError{Name: "customer_usage_attribution", err: errors.New(`db: missing required field "BillingInvoice.customer_usage_attribution"`)}
-	}
 	if v, ok := _c.mutation.CustomerUsageAttribution(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "customer_usage_attribution", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_usage_attribution": %w`, err)}
@@ -1802,6 +1799,12 @@ func (u *BillingInvoiceUpsert) UpdateCustomerUsageAttribution() *BillingInvoiceU
 	return u
 }
 
+// ClearCustomerUsageAttribution clears the value of the "customer_usage_attribution" field.
+func (u *BillingInvoiceUpsert) ClearCustomerUsageAttribution() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCustomerUsageAttribution)
+	return u
+}
+
 // SetNumber sets the "number" field.
 func (u *BillingInvoiceUpsert) SetNumber(v string) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldNumber, v)
@@ -2721,6 +2724,13 @@ func (u *BillingInvoiceUpsertOne) SetCustomerUsageAttribution(v *billing.Version
 func (u *BillingInvoiceUpsertOne) UpdateCustomerUsageAttribution() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateCustomerUsageAttribution()
+	})
+}
+
+// ClearCustomerUsageAttribution clears the value of the "customer_usage_attribution" field.
+func (u *BillingInvoiceUpsertOne) ClearCustomerUsageAttribution() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerUsageAttribution()
 	})
 }
 
@@ -3863,6 +3873,13 @@ func (u *BillingInvoiceUpsertBulk) SetCustomerUsageAttribution(v *billing.Versio
 func (u *BillingInvoiceUpsertBulk) UpdateCustomerUsageAttribution() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateCustomerUsageAttribution()
+	})
+}
+
+// ClearCustomerUsageAttribution clears the value of the "customer_usage_attribution" field.
+func (u *BillingInvoiceUpsertBulk) ClearCustomerUsageAttribution() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCustomerUsageAttribution()
 	})
 }
 

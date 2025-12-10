@@ -73,7 +73,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				PhoneNumber: lo.ToPtr("1234567890"),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test-subject-1", "test-subject-2"},
 			},
 		},
@@ -297,7 +297,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					// Usage attribution fields
 					Key:        customerEntity.Key,
 					CustomerID: customerEntity.ID,
-					UsageAttribution: billing.CustomerUsageAttribution{
+					UsageAttribution: &billing.CustomerUsageAttribution{
 						SubjectKeys: customerEntity.UsageAttribution.SubjectKeys,
 					},
 
@@ -442,6 +442,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
+			Key:          lo.ToPtr("test-customer"),
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
 				Country: lo.ToPtr(models.CountryCode("US")),
@@ -843,6 +844,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 
 				CustomerMutate: customer.CustomerMutate{
 					Name:         "Test Customer",
+					Key:          lo.ToPtr("test-customer"),
 					PrimaryEmail: lo.ToPtr("test@test.com"),
 					BillingAddress: &models.Address{
 						Country: lo.ToPtr(models.CountryCode("US")),
@@ -905,6 +907,7 @@ func (s *InvoicingTestSuite) TestPaymentProcessingEnteredAt() {
 
 		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
+			Key:          lo.ToPtr("test-customer"),
 			PrimaryEmail: lo.ToPtr("test@example.com"),
 			BillingAddress: &models.Address{
 				Country: lo.ToPtr(models.CountryCode("US")),
@@ -950,6 +953,7 @@ func (s *InvoicingTestSuite) TestStatusDetailsSimulationDoesNotMutatePaymentProc
 
 		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
+			Key:          lo.ToPtr("test-customer"),
 			PrimaryEmail: lo.ToPtr("status-details@example.com"),
 			BillingAddress: &models.Address{
 				Country: lo.ToPtr(models.CountryCode("US")),
@@ -1313,6 +1317,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 				CustomerMutate: customer.CustomerMutate{
 					Name:         "Test Customer",
+					Key:          lo.ToPtr("test-customer"),
 					PrimaryEmail: lo.ToPtr("test@test.com"),
 					BillingAddress: &models.Address{
 						Country: lo.ToPtr(models.CountryCode("US")),
@@ -2704,7 +2709,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 				PhoneNumber: lo.ToPtr("1234567890"),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test-subject-1"},
 			},
 		},
@@ -3216,7 +3221,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 				Country: lo.ToPtr(models.CountryCode("US")),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test-subject-1"},
 			},
 		},
@@ -3384,7 +3389,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		CustomerMutate: customer.CustomerMutate{
 			Name:     "Test Customer",
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test-subject-1"},
 			},
 		},
@@ -3504,7 +3509,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 		CustomerMutate: customer.CustomerMutate{
 			Name:     "Test Customer",
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test-subject-1"},
 			},
 		},

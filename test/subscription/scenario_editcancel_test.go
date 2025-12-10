@@ -110,7 +110,7 @@ func TestEditingAndCanceling(t *testing.T) {
 		Namespace: namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Test Customer",
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject_1"},
 			},
 		},
@@ -131,7 +131,7 @@ func TestEditingAndCanceling(t *testing.T) {
 			Namespace: namespace,
 			CustomerMutate: customer.CustomerMutate{
 				Name: "Test Customer",
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{fmt.Sprintf("subject_%d", i+2)},
 				},
 			},

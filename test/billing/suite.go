@@ -287,7 +287,7 @@ func (s *BaseSuite) CreateTestCustomer(ns string, subjectKey string) *customer.C
 				PostalCode: lo.ToPtr("12345"),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{subjectKey},
 			},
 		},

@@ -4101,6 +4101,7 @@ export interface components {
       /**
        * Key
        * @description An optional unique key of the customer.
+       *     Either key or usageAttribution.subjectKeys must be provided.
        *     Useful to reference the customer in external systems.
        *     For example, your database ID.
        */
@@ -4108,8 +4109,9 @@ export interface components {
       /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
+       *     Either key or usageAttribution.subjectKeys must be provided.
        */
-      usageAttribution: components['schemas']['CustomerUsageAttribution']
+      usageAttribution?: components['schemas']['CustomerUsageAttribution']
       /**
        * Primary Email
        * @description The primary email address of the customer.
@@ -4207,6 +4209,7 @@ export interface components {
       /**
        * Key
        * @description An optional unique key of the customer.
+       *     Either key or usageAttribution.subjectKeys must be provided.
        *     Useful to reference the customer in external systems.
        *     For example, your database ID.
        */
@@ -4214,8 +4217,9 @@ export interface components {
       /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
+       *     Either key or usageAttribution.subjectKeys must be provided.
        */
-      usageAttribution: components['schemas']['CustomerUsageAttribution']
+      usageAttribution?: components['schemas']['CustomerUsageAttribution']
       /**
        * Primary Email
        * @description The primary email address of the customer.
@@ -4296,6 +4300,7 @@ export interface components {
       /**
        * Key
        * @description An optional unique key of the customer.
+       *     Either key or usageAttribution.subjectKeys must be provided.
        *     Useful to reference the customer in external systems.
        *     For example, your database ID.
        */
@@ -4303,8 +4308,9 @@ export interface components {
       /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
+       *     Either key or usageAttribution.subjectKeys must be provided.
        */
-      usageAttribution: components['schemas']['CustomerUsageAttribution']
+      usageAttribution?: components['schemas']['CustomerUsageAttribution']
       /**
        * Primary Email
        * @description The primary email address of the customer.

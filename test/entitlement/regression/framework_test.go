@@ -256,7 +256,7 @@ func createCustomerAndSubject(t *testing.T, subjectService subject.Service, cust
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
 			Key: lo.ToPtr(key),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{key},
 			},
 			Name: name,

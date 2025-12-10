@@ -33,7 +33,7 @@ func TestEvents(t *testing.T) {
 			ID:   "test-customer-id",
 			Name: "Test Customer",
 		},
-		UsageAttribution: customer.CustomerUsageAttribution{
+		UsageAttribution: &customer.CustomerUsageAttribution{
 			SubjectKeys: []string{"test-subject-key"},
 		},
 		PrimaryEmail: lo.ToPtr("test@example.com"),

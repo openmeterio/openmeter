@@ -80,7 +80,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 			PrimaryEmail:   &TestPrimaryEmail,
 			Currency:       &TestCurrency,
 			BillingAddress: &TestAddress,
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
 			Metadata: &models.Metadata{
@@ -127,7 +127,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 			Namespace: s.namespace,
 			CustomerMutate: customer.CustomerMutate{
 				Name: TestName,
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: TestSubjectKeys,
 				},
 			},
@@ -147,7 +147,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 			CustomerMutate: customer.CustomerMutate{
 				Key:  lo.ToPtr(createdCustomer.ID), // Overlaps with id of existing customer
 				Name: TestName,
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{"subject-1"},
 				},
 			},
@@ -167,7 +167,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 			CustomerMutate: customer.CustomerMutate{
 				Key:  lo.ToPtr(TestSubjectKeys[0]), // Overlaps with subject of existing customer
 				Name: TestName,
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{"subject-1"},
 				},
 			},
@@ -187,7 +187,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 			CustomerMutate: customer.CustomerMutate{
 				Key:  lo.ToPtr("customer-no-subjects"),
 				Name: "Customer Without Subjects",
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{},
 				},
 			},
@@ -195,7 +195,8 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 
 		require.NoError(t, err, "Creating customer without subject keys must not return error")
 		require.NotNil(t, customerWithoutSubjects, "Customer without subjects must not be nil")
-		require.Empty(t, customerWithoutSubjects.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must be empty")
+		// UsageAttribution is nil when there are no subject keys
+		require.Nil(t, customerWithoutSubjects.UsageAttribution, "Customer usage attribution must be nil when no subject keys")
 	})
 }
 
@@ -210,7 +211,7 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: TestName,
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
 		},
@@ -235,7 +236,7 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 			PrimaryEmail:   &TestPrimaryEmail,
 			Currency:       &TestCurrency,
 			BillingAddress: &TestAddress,
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: newSubjectKeys,
 			},
 			Metadata: &models.Metadata{
@@ -297,7 +298,7 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 		CustomerMutate: customer.CustomerMutate{
 			Key:  lo.ToPtr(otherCustomerKey),
 			Name: TestName,
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{otherCustomerSubjectKey},
 			},
 		},
@@ -314,7 +315,7 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 		CustomerMutate: customer.CustomerMutate{
 			Key:  lo.ToPtr(otherCustomerKey), // Overlaps with key of existing customer
 			Name: TestName,
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
 		},
@@ -335,7 +336,7 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 		CustomerMutate: customer.CustomerMutate{
 			Key:  lo.ToPtr(otherCustomerSubjectKey), // Overlaps with subject of existing customer
 			Name: TestName,
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
 		},
@@ -360,7 +361,7 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: TestName,
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
 		},
@@ -438,7 +439,7 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 			PrimaryEmail:   &TestPrimaryEmail,
 			Currency:       &TestCurrency,
 			BillingAddress: &TestAddress,
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: newSubjectKeys,
 			},
 		},
@@ -489,7 +490,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 		CustomerMutate: customer.CustomerMutate{
 			Key:  lo.ToPtr("customer-1"),
 			Name: "Customer 1",
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-1"},
 			},
 			PrimaryEmail: lo.ToPtr("customer-1@test.com"),
@@ -503,7 +504,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Customer 2",
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-2"},
 			},
 			PrimaryEmail: lo.ToPtr("customer-2@test.com"),
@@ -519,7 +520,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 		Namespace: differentNamespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Customer 3",
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-3"},
 			},
 		},
@@ -619,7 +620,7 @@ func (s *CustomerHandlerTestSuite) TestListCustomerUsageAttributions(ctx context
 		CustomerMutate: customer.CustomerMutate{
 			Key:  lo.ToPtr("customer-1"),
 			Name: "Customer 1",
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"customer-1-subject-1", "customer-1-subject-2"},
 			},
 		},
@@ -632,7 +633,7 @@ func (s *CustomerHandlerTestSuite) TestListCustomerUsageAttributions(ctx context
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Customer 2",
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"customer-2-subject-1"},
 			},
 		},
@@ -680,7 +681,7 @@ func (s *CustomerHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 		CustomerMutate: customer.CustomerMutate{
 			Name: TestName,
 			Key:  lo.ToPtr(TestKey),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
 		},
@@ -754,7 +755,7 @@ func (s *CustomerHandlerTestSuite) TestGetByUsageAttribution(ctx context.Context
 		CustomerMutate: customer.CustomerMutate{
 			Name: TestName,
 			Key:  lo.ToPtr(TestKey),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
 		},
@@ -817,7 +818,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: TestName,
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
 		},

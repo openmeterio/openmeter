@@ -42,7 +42,7 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 				Country: lo.ToPtr(models.CountryCode("US")),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},

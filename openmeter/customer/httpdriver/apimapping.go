@@ -20,16 +20,23 @@ func MapCustomerCreate(body api.CustomerCreate) customer.CustomerMutate {
 		metadata = lo.ToPtr(models.NewMetadata(*body.Metadata))
 	}
 
-	return customer.CustomerMutate{
-		Key:              body.Key,
-		Name:             body.Name,
-		Description:      body.Description,
-		UsageAttribution: customer.CustomerUsageAttribution(body.UsageAttribution),
-		PrimaryEmail:     body.PrimaryEmail,
-		BillingAddress:   MapAddress(body.BillingAddress),
-		Currency:         mapCurrency(body.Currency),
-		Metadata:         metadata,
+	mut := customer.CustomerMutate{
+		Key:            body.Key,
+		Name:           body.Name,
+		Description:    body.Description,
+		PrimaryEmail:   body.PrimaryEmail,
+		BillingAddress: MapAddress(body.BillingAddress),
+		Currency:       mapCurrency(body.Currency),
+		Metadata:       metadata,
 	}
+
+	if body.UsageAttribution != nil {
+		mut.UsageAttribution = &customer.CustomerUsageAttribution{
+			SubjectKeys: body.UsageAttribution.SubjectKeys,
+		}
+	}
+
+	return mut
 }
 
 func MapCustomerReplaceUpdate(body api.CustomerReplaceUpdate) customer.CustomerMutate {
@@ -38,16 +45,24 @@ func MapCustomerReplaceUpdate(body api.CustomerReplaceUpdate) customer.CustomerM
 	if body.Metadata != nil {
 		metadata = lo.ToPtr(models.NewMetadata(*body.Metadata))
 	}
-	return customer.CustomerMutate{
-		Key:              body.Key,
-		Name:             body.Name,
-		Description:      body.Description,
-		UsageAttribution: customer.CustomerUsageAttribution(body.UsageAttribution),
-		PrimaryEmail:     body.PrimaryEmail,
-		BillingAddress:   MapAddress(body.BillingAddress),
-		Currency:         mapCurrency(body.Currency),
-		Metadata:         metadata,
+
+	mut := customer.CustomerMutate{
+		Key:            body.Key,
+		Name:           body.Name,
+		Description:    body.Description,
+		PrimaryEmail:   body.PrimaryEmail,
+		BillingAddress: MapAddress(body.BillingAddress),
+		Currency:       mapCurrency(body.Currency),
+		Metadata:       metadata,
 	}
+
+	if body.UsageAttribution != nil {
+		mut.UsageAttribution = &customer.CustomerUsageAttribution{
+			SubjectKeys: body.UsageAttribution.SubjectKeys,
+		}
+	}
+
+	return mut
 }
 
 func mapCurrency(apiCurrency *string) *currencyx.Code {
@@ -113,17 +128,20 @@ func FromAnnotations(annotations models.Annotations) *api.Annotations {
 func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscription, expand customer.Expands) (api.Customer, error) {
 	// Map the customer to the API Customer
 	apiCustomer := api.Customer{
-		Id:               c.ManagedResource.ID,
-		Key:              c.Key,
-		Name:             c.Name,
-		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
-		PrimaryEmail:     c.PrimaryEmail,
-		Description:      c.Description,
-		CreatedAt:        c.CreatedAt,
-		UpdatedAt:        c.UpdatedAt,
-		DeletedAt:        c.DeletedAt,
-		Metadata:         FromMetadata(lo.FromPtr(c.Metadata)),
-		Annotations:      FromAnnotations(lo.FromPtr(c.Annotation)),
+		Id:           c.ManagedResource.ID,
+		Key:          c.Key,
+		Name:         c.Name,
+		PrimaryEmail: c.PrimaryEmail,
+		Description:  c.Description,
+		CreatedAt:    c.CreatedAt,
+		UpdatedAt:    c.UpdatedAt,
+		DeletedAt:    c.DeletedAt,
+		Metadata:     FromMetadata(lo.FromPtr(c.Metadata)),
+		Annotations:  FromAnnotations(lo.FromPtr(c.Annotation)),
+	}
+
+	if c.UsageAttribution != nil {
+		apiCustomer.UsageAttribution = &api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys}
 	}
 
 	if c.BillingAddress != nil {

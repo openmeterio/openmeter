@@ -175,7 +175,7 @@ func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespac
 				UpdatedAt: now,
 			}),
 			Key: lo.ToPtr("test-customer-1"),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test-subject-1"},
 			},
 			PrimaryEmail: lo.ToPtr("test-customer-1@example.com"),

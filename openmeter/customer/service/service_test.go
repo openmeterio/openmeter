@@ -34,7 +34,7 @@ func Test_CustomerService(t *testing.T) {
 				CustomerMutate: customer.CustomerMutate{
 					Key:  lo.ToPtr("acme-inc"),
 					Name: "ACME Inc.",
-					UsageAttribution: customer.CustomerUsageAttribution{
+					UsageAttribution: &customer.CustomerUsageAttribution{
 						SubjectKeys: []string{
 							"acme-inc",
 						},
@@ -115,7 +115,7 @@ func Test_CustomerService(t *testing.T) {
 					CustomerMutate: customer.CustomerMutate{
 						Key:  cus.Key,
 						Name: cus.Name,
-						UsageAttribution: customer.CustomerUsageAttribution{
+						UsageAttribution: &customer.CustomerUsageAttribution{
 							SubjectKeys: subjectKeys,
 						},
 					},

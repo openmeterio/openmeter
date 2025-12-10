@@ -55,7 +55,7 @@ func TestEntitlementV2(t *testing.T) {
 		{
 			resp, err := client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 				Name:             "Entitlement V2 Customer",
-				UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: []string{v2Subject}},
+				UsageAttribution: &api.CustomerUsageAttribution{SubjectKeys: []string{v2Subject}},
 			})
 			require.NoError(t, err)
 			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)

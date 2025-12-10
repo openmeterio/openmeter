@@ -256,7 +256,7 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 
 	snap := snapshot.NewSnapshotEvent(
 		*in.Entitlement,
-		subj,
+		subj, // may be nil for customers without usage attribution
 		cust,
 		*in.Feature,
 		lo.FromPtrOr(in.OverrideOperation, snapshot.ValueOperationUpdate),
@@ -323,7 +323,7 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, entitlementEnti
 	// Build snapshot payload via constructor (namespace derived from entitlement)
 	snap := snapshot.NewSnapshotEvent(
 		*entitlementEntity,
-		subj,
+		subj, // may be nil for customers without usage attribution
 		cust,
 		*feature,
 		snapshot.ValueOperationDelete,

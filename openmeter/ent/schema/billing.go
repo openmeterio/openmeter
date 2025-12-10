@@ -878,7 +878,8 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.String("customer_name").
 			NotEmpty(),
 
-		field.JSON("customer_usage_attribution", &billing.VersionedCustomerUsageAttribution{}),
+		field.JSON("customer_usage_attribution", &billing.VersionedCustomerUsageAttribution{}).
+			Optional(),
 
 		// Invoice number
 		field.String("number"),

@@ -306,10 +306,6 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			// Customer snapshot about usage attribution fields
 			SetCustomerID(input.Customer.ID).
 			SetNillableCustomerKey(input.Customer.Key).
-			SetCustomerUsageAttribution(&billing.VersionedCustomerUsageAttribution{
-				Type:                     billing.CustomerUsageAttributionTypeVersion,
-				CustomerUsageAttribution: input.Customer.UsageAttribution,
-			}).
 			// Workflow (cloned)
 			SetBillingWorkflowConfigID(clonedWorkflowConfig.ID).
 			// TODO[later]: By cloning the AppIDs here we could support changing the apps in the billing profile if needed
@@ -346,6 +342,9 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 				SetNillableCustomerAddressLine1(customer.BillingAddress.Line1).
 				SetNillableCustomerAddressLine2(customer.BillingAddress.Line2).
 				SetNillableCustomerAddressPhoneNumber(customer.BillingAddress.PhoneNumber)
+		}
+		if usageAttr := mapCustomerUsageAttributionToDB(input.Customer.UsageAttribution); usageAttr != nil {
+			createMut = createMut.SetCustomerUsageAttribution(usageAttr)
 		}
 		createMut = createMut.
 			SetCustomerName(customer.Name)
@@ -672,7 +671,7 @@ func (a *adapter) mapInvoiceBaseFromDB(ctx context.Context, invoice *db.BillingI
 				Line2:       invoice.CustomerAddressLine2,
 				PhoneNumber: invoice.CustomerAddressPhoneNumber,
 			},
-			UsageAttribution: invoice.CustomerUsageAttribution.CustomerUsageAttribution,
+			UsageAttribution: mapCustomerUsageAttributionFromDB(invoice.CustomerUsageAttribution),
 		},
 		Period:    mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
 		IssuedAt:  convert.TimePtrIn(invoice.IssuedAt, time.UTC),
@@ -775,6 +774,25 @@ func mapPeriodFromDB(start, end *time.Time) *billing.Period {
 	return &billing.Period{
 		Start: start.In(time.UTC),
 		End:   end.In(time.UTC),
+	}
+}
+
+func mapCustomerUsageAttributionFromDB(vua *billing.VersionedCustomerUsageAttribution) *billing.CustomerUsageAttribution {
+	if vua == nil {
+		return nil
+	}
+	return &billing.CustomerUsageAttribution{
+		SubjectKeys: vua.SubjectKeys,
+	}
+}
+
+func mapCustomerUsageAttributionToDB(ua *billing.CustomerUsageAttribution) *billing.VersionedCustomerUsageAttribution {
+	if ua == nil {
+		return nil
+	}
+	return &billing.VersionedCustomerUsageAttribution{
+		Type:                     billing.CustomerUsageAttributionTypeVersion,
+		CustomerUsageAttribution: *ua,
 	}
 }
 

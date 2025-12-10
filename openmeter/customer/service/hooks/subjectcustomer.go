@@ -107,17 +107,23 @@ func (s subjectCustomerHook) PostDelete(ctx context.Context, sub *subject.Subjec
 		CustomerMutate: func() customer.CustomerMutate {
 			mut := cus.AsCustomerMutate()
 
-			mut.UsageAttribution.SubjectKeys = lo.Filter(mut.UsageAttribution.SubjectKeys, func(key string, _ int) bool {
-				return key != sub.Key
-			})
+			if mut.UsageAttribution != nil {
+				mut.UsageAttribution.SubjectKeys = lo.Filter(mut.UsageAttribution.SubjectKeys, func(key string, _ int) bool {
+					return key != sub.Key
+				})
+			}
 
 			return mut
 		}(),
 	})
 
 	if cus != nil {
+		var subjectKeysStr string
+		if cus.UsageAttribution != nil {
+			subjectKeysStr = strings.Join(cus.UsageAttribution.SubjectKeys, ", ")
+		}
 		span.AddEvent("updated customer usage attribution", trace.WithAttributes(
-			attribute.String("customer.usage_attribution.subject_keys", strings.Join(cus.UsageAttribution.SubjectKeys, ", ")),
+			attribute.String("customer.usage_attribution.subject_keys", subjectKeysStr),
 		))
 	}
 
@@ -226,7 +232,12 @@ func CmpSubjectCustomer(s *subject.Subject, c *customer.Customer) bool {
 		return false
 	}
 
-	if !lo.Contains(c.UsageAttribution.SubjectKeys, s.Key) {
+	var subjectKeys []string
+	if c.UsageAttribution != nil {
+		subjectKeys = c.UsageAttribution.SubjectKeys
+	}
+
+	if !lo.Contains(subjectKeys, s.Key) {
 		return false
 	}
 
@@ -338,7 +349,12 @@ func (p CustomerProvisioner) getCustomerForSubject(ctx context.Context, sub *sub
 	// while the Subject is not included in the Customers usage attribution.
 	// In this case the Customer must not match the Subject.
 	if cus != nil && cus.DeletedAt == nil {
-		if lo.Contains(cus.UsageAttribution.SubjectKeys, sub.Key) {
+		var subjectKeys []string
+		if cus.UsageAttribution != nil {
+			subjectKeys = cus.UsageAttribution.SubjectKeys
+		}
+
+		if lo.Contains(subjectKeys, sub.Key) {
 			return cus, nil
 		}
 
@@ -477,7 +493,7 @@ func (p CustomerProvisioner) EnsureCustomer(ctx context.Context, sub *subject.Su
 				}(),
 				Name:        lo.FromPtrOr(sub.DisplayName, sub.Key),
 				Description: nil,
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{sub.Key},
 				},
 				PrimaryEmail:   nil,

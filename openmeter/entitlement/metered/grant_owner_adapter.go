@@ -96,10 +96,15 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 		return def, models.NewGenericValidationError(fmt.Errorf("meter queries require customer filtering for entitlement %s", id.ID))
 	}
 
+	var subjectKeys []string
+	if ent.Customer.UsageAttribution != nil {
+		subjectKeys = ent.Customer.UsageAttribution.SubjectKeys
+	}
+
 	streamingCustomer := ownerCustomer{
 		id:          ent.Customer.ID,
 		key:         ent.Customer.Key,
-		subjectKeys: ent.Customer.UsageAttribution.SubjectKeys,
+		subjectKeys: subjectKeys,
 	}
 
 	queryParams.FilterCustomer = []streaming.Customer{streamingCustomer}

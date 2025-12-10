@@ -524,6 +524,12 @@ func (_u *BillingInvoiceUpdate) SetCustomerUsageAttribution(v *billing.Versioned
 	return _u
 }
 
+// ClearCustomerUsageAttribution clears the value of the "customer_usage_attribution" field.
+func (_u *BillingInvoiceUpdate) ClearCustomerUsageAttribution() *BillingInvoiceUpdate {
+	_u.mutation.ClearCustomerUsageAttribution()
+	return _u
+}
+
 // SetNumber sets the "number" field.
 func (_u *BillingInvoiceUpdate) SetNumber(v string) *BillingInvoiceUpdate {
 	_u.mutation.SetNumber(v)
@@ -1220,6 +1226,9 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if value, ok := _u.mutation.CustomerUsageAttribution(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
+	}
+	if _u.mutation.CustomerUsageAttributionCleared() {
+		_spec.ClearField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)
@@ -1949,6 +1958,12 @@ func (_u *BillingInvoiceUpdateOne) SetCustomerUsageAttribution(v *billing.Versio
 	return _u
 }
 
+// ClearCustomerUsageAttribution clears the value of the "customer_usage_attribution" field.
+func (_u *BillingInvoiceUpdateOne) ClearCustomerUsageAttribution() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearCustomerUsageAttribution()
+	return _u
+}
+
 // SetNumber sets the "number" field.
 func (_u *BillingInvoiceUpdateOne) SetNumber(v string) *BillingInvoiceUpdateOne {
 	_u.mutation.SetNumber(v)
@@ -2675,6 +2690,9 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 	}
 	if value, ok := _u.mutation.CustomerUsageAttribution(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
+	}
+	if _u.mutation.CustomerUsageAttributionCleared() {
+		_spec.ClearField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)

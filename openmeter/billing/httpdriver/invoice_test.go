@@ -41,7 +41,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			Currency:     lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},

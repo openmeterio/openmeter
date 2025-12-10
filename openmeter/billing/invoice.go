@@ -620,35 +620,47 @@ type (
 var _ streaming.Customer = &InvoiceCustomer{}
 
 // NewInvoiceCustomer creates a new InvoiceCustomer from a customer.Customer
-func NewInvoiceCustomer(customer customer.Customer) InvoiceCustomer {
-	return InvoiceCustomer{
-		Key:              customer.Key,
-		CustomerID:       customer.ID,
-		Name:             customer.Name,
-		BillingAddress:   customer.BillingAddress,
-		UsageAttribution: customer.UsageAttribution,
+func NewInvoiceCustomer(cust customer.Customer) InvoiceCustomer {
+	ic := InvoiceCustomer{
+		Key:            cust.Key,
+		CustomerID:     cust.ID,
+		Name:           cust.Name,
+		BillingAddress: cust.BillingAddress,
 	}
+
+	if cust.UsageAttribution != nil {
+		ic.UsageAttribution = &CustomerUsageAttribution{
+			SubjectKeys: cust.UsageAttribution.SubjectKeys,
+		}
+	}
+
+	return ic
 }
 
 // InvoiceCustomer represents a customer that is used in an invoice
 // We use a specific model as we snapshot the customer at the time of invoice creation,
 // and we don't want to modify the customer entity after it has been sent to the customer.
 type InvoiceCustomer struct {
-	Key              *string                  `json:"key,omitempty"`
-	CustomerID       string                   `json:"customerId,omitempty"`
-	Name             string                   `json:"name"`
-	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
-	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
+	Key              *string                   `json:"key,omitempty"`
+	CustomerID       string                    `json:"customerId,omitempty"`
+	Name             string                    `json:"name"`
+	BillingAddress   *models.Address           `json:"billingAddress,omitempty"`
+	UsageAttribution *CustomerUsageAttribution `json:"usageAttribution,omitempty"`
 }
 
 // GetUsageAttribution returns the customer usage attribution
 // implementing the streaming.CustomerUsageAttribution interface
 func (c InvoiceCustomer) GetUsageAttribution() streaming.CustomerUsageAttribution {
-	return streaming.CustomerUsageAttribution{
-		ID:          c.CustomerID,
-		Key:         c.Key,
-		SubjectKeys: c.UsageAttribution.SubjectKeys,
+	ua := streaming.CustomerUsageAttribution{
+		ID:  c.CustomerID,
+		Key: c.Key,
 	}
+
+	if c.UsageAttribution != nil {
+		ua.SubjectKeys = c.UsageAttribution.SubjectKeys
+	}
+
+	return ua
 }
 
 // Validate validates the invoice customer

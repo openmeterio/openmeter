@@ -51,10 +51,12 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	// Given we have an existing customer
+	custKey := "johny-the-doe-1"
 	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
+			Key:  &custKey,
 		},
 	})
 	require.NoError(s.T(), err)
@@ -158,10 +160,12 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	// Given we have an existing customer
+	custKey := "johny-the-doe-2"
 	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
+			Key:  &custKey,
 		},
 	})
 	require.NoError(s.T(), err)
@@ -234,10 +238,12 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
+	custKey := "johny-the-doe-3"
 	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
+			Key:  &custKey,
 		},
 	})
 	require.NoError(s.T(), err)
@@ -327,11 +333,13 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
+	custKey := "johny-the-doe-4"
 	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
+			Key:  &custKey,
 			BillingAddress: &models.Address{
 				City:    lo.ToPtr("Berlin"),
 				Country: lo.ToPtr(models.CountryCode("DE")),
@@ -383,11 +391,13 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
+	custKey := "johny-the-doe-5"
 	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
+			Key:  &custKey,
 		},
 	})
 
@@ -453,10 +463,12 @@ func (s *CustomerOverrideTestSuite) TestGetCustomerApp() {
 	require.NotNil(s.T(), defaultProfile)
 
 	// Create a customer
+	custKey := "johny-the-doe-6"
 	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
+			Key:  &custKey,
 		},
 	})
 	require.NoError(s.T(), err)
@@ -497,10 +509,12 @@ func (s *CustomerOverrideTestSuite) TestListCustomerOverrides() {
 
 	customers := []*customer.Customer{}
 	for _, name := range []string{"custNoOverride", "custOverride", "custPinnedToDefault"} {
+		custKey := name
 		cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 			Namespace: ns,
 			CustomerMutate: customer.CustomerMutate{
 				Name: name,
+				Key:  &custKey,
 			},
 		})
 		require.NoError(s.T(), err)
