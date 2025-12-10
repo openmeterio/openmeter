@@ -128,6 +128,22 @@ func init() {
 		v3MeterPaginatedResponse.Meta = responseCursorMetaToV3CursorMeta(source.Meta)
 		return v3MeterPaginatedResponse, nil
 	}
+	ConvertUpdateCustomerRequestToCustomerMutate = func(source v3.UpdateCustomerRequest) customer.CustomerMutate {
+		var customerCustomerMutate customer.CustomerMutate
+		if source.Name != nil {
+			customerCustomerMutate.Name = *source.Name
+		}
+		customerCustomerMutate.Description = source.Description
+		customerCustomerMutate.UsageAttribution = pV3BillingCustomerUsageAttributionToCustomerCustomerUsageAttribution(source.UsageAttribution)
+		customerCustomerMutate.PrimaryEmail = source.PrimaryEmail
+		if source.Currency != nil {
+			currencyxCode := currencyx.Code(*source.Currency)
+			customerCustomerMutate.Currency = &currencyxCode
+		}
+		customerCustomerMutate.BillingAddress = pV3BillingAddressToPModelsAddress(source.BillingAddress)
+		customerCustomerMutate.Metadata = pV3LabelsToPModelsMetadata(source.Labels)
+		return customerCustomerMutate
+	}
 }
 func customerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source customer.CustomerUsageAttribution) *v3.BillingCustomerUsageAttribution {
 	var v3BillingCustomerUsageAttribution v3.BillingCustomerUsageAttribution

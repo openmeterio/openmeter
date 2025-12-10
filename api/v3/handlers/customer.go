@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -23,7 +22,7 @@ type CustomerHandler interface {
 	CreateCustomer() CreateCustomerHandler
 	DeleteCustomer() DeleteCustomerHandler
 	GetCustomer() GetCustomerHandler
-	// UpdateCustomer() UpdateCustomerHandler
+	UpdateCustomer() UpdateCustomerHandler
 }
 
 type customerHandler struct {
@@ -94,8 +93,6 @@ func (h *customerHandler) ListCustomers() ListCustomersHandler {
 					}
 				}
 			}
-
-			slog.Info("request", "request", req)
 
 			return req, nil
 		},
@@ -273,6 +270,85 @@ func (h *customerHandler) DeleteCustomer() DeleteCustomerHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("delete-customer"),
+			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+		)...,
+	)
+}
+
+type (
+	UpdateCustomerRequest struct {
+		Namespace      string
+		CustomerID     string
+		CustomerMutate customer.CustomerMutate
+	}
+	UpdateCustomerParams   = string
+	UpdateCustomerResponse = api.BillingCustomer
+	UpdateCustomerHandler  httptransport.HandlerWithArgs[UpdateCustomerRequest, UpdateCustomerResponse, UpdateCustomerParams]
+)
+
+// UpdateCustomer returns a handler for updating a customer.
+func (h *customerHandler) UpdateCustomer() UpdateCustomerHandler {
+	return httptransport.NewHandlerWithArgs[UpdateCustomerRequest, UpdateCustomerResponse, UpdateCustomerParams](
+		func(ctx context.Context, r *http.Request, customerID UpdateCustomerParams) (UpdateCustomerRequest, error) {
+			body := api.UpdateCustomerRequest{}
+			if err := request.ParseBody(r, &body); err != nil {
+				return UpdateCustomerRequest{}, fmt.Errorf("field to decode update customer request: %w", err)
+			}
+
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return UpdateCustomerRequest{}, err
+			}
+
+			req := UpdateCustomerRequest{
+				Namespace:  ns,
+				CustomerID: customerID,
+				// Key cannot be updated according to api.UpdateCustomerRequest.
+				// Therefore, at this point we don't have a key yet. It is ignored in this conversion.
+				CustomerMutate: ConvertUpdateCustomerRequestToCustomerMutate(body),
+			}
+
+			return req, nil
+		},
+		func(ctx context.Context, request UpdateCustomerRequest) (UpdateCustomerResponse, error) {
+			// TODO: we should not allow key identifier for mutable operations
+			// Get the customer
+			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerID: &customer.CustomerID{
+					ID:        request.CustomerID,
+					Namespace: request.Namespace,
+				},
+			})
+			if err != nil {
+				return UpdateCustomerResponse{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return UpdateCustomerResponse{},
+					apierrors.NewPreconditionFailedError(
+						ctx,
+						fmt.Sprintf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
+			}
+
+			updatedCustomer, err := h.service.UpdateCustomer(ctx, customer.UpdateCustomerInput{
+				CustomerID:     cus.GetID(),
+				CustomerMutate: request.CustomerMutate,
+			})
+			if err != nil {
+				return UpdateCustomerResponse{}, err
+			}
+
+			if updatedCustomer == nil {
+				return UpdateCustomerResponse{}, fmt.Errorf("failed to update customer")
+			}
+
+			return ConvertCustomerRequestToBillingCustomer(*updatedCustomer), nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[UpdateCustomerResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("update-customer"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)

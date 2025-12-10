@@ -36,6 +36,10 @@ var (
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotation
 	ConvertCreateCustomerRequestToCustomerMutate func(createCustomerRequest api.CreateCustomerRequest) customer.CustomerMutate
+	// goverter:map Labels Metadata
+	// goverter:ignore Annotation
+	// goverter:ignore Key
+	ConvertUpdateCustomerRequestToCustomerMutate func(updateCustomerRequest api.UpdateCustomerRequest) customer.CustomerMutate
 	ConvertCustomerListResponse                  func(customers response.CursorPaginationResponse[customer.Customer]) api.CustomerPaginatedResponse
 	// goverter:map Metadata Labels
 	// goverter:map GroupBy Dimensions
