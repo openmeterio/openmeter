@@ -11018,9 +11018,6 @@ class GrantsOperations:
         balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will
         not be affected.
 
-        ⚠️ **Deprecated**: Use ``DELETE /api/v2/grants/{grantId}`
-        <#tag/entitlements/delete/api/v2/grants/{grantId}>`_ instead.
-
         :param grant_id: Required.
         :type grant_id: str
         :return: None

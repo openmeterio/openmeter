@@ -66,11 +66,7 @@ interface GrantsEndpoints {
   /**
    * Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
    * For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
-   *
-   * ⚠️ __Deprecated__: Use [`DELETE /api/v2/grants/{grantId}`](#tag/entitlements/delete/api/v2/grants/{grantId}) instead.
    */
-  #deprecated "Use `DELETE /api/v2/grants/{grantId}` instead"
-  #suppress "deprecated" "V1 Grants APIs will be removed on December 1st, 2025"
   @delete
   @operationId("voidGrant")
   @summary("Void grant")
