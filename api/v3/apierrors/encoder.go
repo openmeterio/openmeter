@@ -4,9 +4,10 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
-	"github.com/samber/lo"
 )
 
 // GenericErrorEncoder is an error encoder that encodes the error as a generic error.

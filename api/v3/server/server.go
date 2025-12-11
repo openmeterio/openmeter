@@ -14,7 +14,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
-	"github.com/openmeterio/openmeter/api/v3/handlers"
+	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -61,7 +61,7 @@ type Server struct {
 	swagger *openapi3.T
 
 	// handlers
-	eventsHandler handlers.EventsHandler
+	eventsHandler eventshandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -95,7 +95,7 @@ func NewServer(config *Config) (*Server, error) {
 		return ns, nil
 	}
 
-	eventsHandler := handlers.NewEventsHandler(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
+	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	return &Server{
 		Config:        config,

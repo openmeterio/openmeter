@@ -1,4 +1,4 @@
-package handlers
+package events
 
 import (
 	"context"
@@ -16,35 +16,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type EventsHandler interface {
-	IngestEvents() IngestEventsHandler
-}
-
-type eventsHandler struct {
-	resolveNamespace func(ctx context.Context) (string, error)
-	service          ingest.Service
-	options          []httptransport.HandlerOption
-}
-
-func NewEventsHandler(
-	resolveNamespace func(ctx context.Context) (string, error),
-	service ingest.Service,
-	options ...httptransport.HandlerOption,
-) EventsHandler {
-	return &eventsHandler{
-		resolveNamespace: resolveNamespace,
-		service:          service,
-		options:          options,
-	}
-}
-
 type (
 	IngestEventsRequest  = ingest.IngestEventsRequest
 	IngestEventsResponse = *struct{}
 	IngestEventsHandler  httptransport.Handler[ingest.IngestEventsRequest, IngestEventsResponse]
 )
 
-func (h *eventsHandler) IngestEvents() IngestEventsHandler {
+func (h *handler) IngestEvents() IngestEventsHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (ingest.IngestEventsRequest, error) {
 			req := ingest.IngestEventsRequest{}
