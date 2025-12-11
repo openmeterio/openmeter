@@ -2,11 +2,14 @@ package meter
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -331,6 +334,54 @@ func TestMeterValidation(t *testing.T) {
 			if tt.error != nil && err == nil {
 				t.Errorf("expected error %v, got nil", tt.error)
 			}
+		})
+	}
+}
+
+func Test_EventTypeFilter(t *testing.T) {
+	var reservedEventTypePatterns []*EventTypePattern
+
+	patterns := []string{
+		`^om\.`,
+		`^_\.`,
+	}
+
+	for _, pattern := range patterns {
+		re, err := regexp.Compile(pattern)
+		require.NoErrorf(t, err, "invalid regexp pattern '%s'", pattern)
+
+		reservedEventTypePatterns = append(reservedEventTypePatterns, re)
+	}
+
+	validator := NewEventTypeValidator(reservedEventTypePatterns)
+
+	tests := []struct {
+		name      string
+		eventType string
+
+		expectedMatch bool
+	}{
+		{
+			name:          "Random",
+			eventType:     "event-type-1",
+			expectedMatch: false,
+		},
+		{
+			name:          "Openmeter",
+			eventType:     "om.event-type-1",
+			expectedMatch: true,
+		},
+		{
+			name:          "System",
+			eventType:     "_.event-type-1",
+			expectedMatch: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := validator(test.eventType)
+			assert.Equal(t, test.expectedMatch, err != nil)
 		})
 	}
 }

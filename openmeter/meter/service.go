@@ -143,26 +143,6 @@ func (i CreateMeterInput) ValidateWith(validators ...models.ValidatorFunc[Create
 	return models.Validate(i, validators...)
 }
 
-func ValidateCreateMeterInputWithReservedEventTypes(reserved []*EventTypePattern) models.ValidatorFunc[CreateMeterInput] {
-	return func(input CreateMeterInput) error {
-		if input.AllowReservedEventTypes {
-			return nil
-		}
-
-		for _, pattern := range reserved {
-			if pattern == nil {
-				continue
-			}
-
-			if ok := pattern.MatchString(input.EventType); ok {
-				return fmt.Errorf("event type '%s' is reserved: matched pattern '%s'", input.EventType, pattern.String())
-			}
-		}
-
-		return nil
-	}
-}
-
 // Validate validates the create meter input.
 func (i CreateMeterInput) Validate() error {
 	var errs []error
@@ -216,6 +196,8 @@ type UpdateMeterInput struct {
 	GroupBy     map[string]string
 	Metadata    models.Metadata
 	Annotations *models.Annotations
+
+	inputOptions
 }
 
 // Validate validates the create meter input.
@@ -246,6 +228,8 @@ func (i UpdateMeterInput) Validate(valueProperty *string) error {
 type DeleteMeterInput struct {
 	Namespace string
 	IDOrSlug  string
+
+	inputOptions
 }
 
 // Validate validates the delete meter input.
