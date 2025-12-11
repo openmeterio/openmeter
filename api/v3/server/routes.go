@@ -43,7 +43,7 @@ func (s *Server) ListCustomers(w http.ResponseWriter, r *http.Request, params ap
 }
 
 func (s *Server) UpsertCustomer(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
+	s.customersHandler.UpsertCustomer().With(customerId).ServeHTTP(w, r)
 }
 
 func (s *Server) DeleteCustomer(w http.ResponseWriter, r *http.Request, customerId api.ULID) {

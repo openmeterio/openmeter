@@ -12,7 +12,7 @@ type Handler interface {
 	CreateCustomer() CreateCustomerHandler
 	DeleteCustomer() DeleteCustomerHandler
 	GetCustomer() GetCustomerHandler
-	// UpdateCustomer() UpdateCustomerHandler
+	UpsertCustomer() UpsertCustomerHandler
 }
 
 type handler struct {

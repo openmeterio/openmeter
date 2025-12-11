@@ -67,6 +67,20 @@ func init() {
 		customerCreateCustomerInput.CustomerMutate = ConvertCreateCustomerRequestToCustomerMutate(source)
 		return customerCreateCustomerInput
 	}
+	ConvertUpsertCustomerRequestToCustomerMutate = func(source v3.UpsertCustomerRequest) customer.CustomerMutate {
+		var customerCustomerMutate customer.CustomerMutate
+		customerCustomerMutate.Name = source.Name
+		customerCustomerMutate.Description = source.Description
+		customerCustomerMutate.UsageAttribution = pV3BillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(source.UsageAttribution)
+		customerCustomerMutate.PrimaryEmail = source.PrimaryEmail
+		if source.Currency != nil {
+			currencyxCode := currencyx.Code(*source.Currency)
+			customerCustomerMutate.Currency = &currencyxCode
+		}
+		customerCustomerMutate.BillingAddress = pV3BillingAddressToPModelsAddress(source.BillingAddress)
+		customerCustomerMutate.Metadata = pV3LabelsToPModelsMetadata(source.Labels)
+		return customerCustomerMutate
+	}
 }
 func modelsMetadataToV3Labels(source models.Metadata) v3.Labels {
 	var v3Labels v3.Labels
