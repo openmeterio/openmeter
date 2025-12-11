@@ -73,6 +73,9 @@ type ListMetersParams struct {
 
 	// IncludeDeleted is a flag to include deleted meters in the list.
 	IncludeDeleted bool
+
+	// Filter by event types
+	EventTypes *[]string
 }
 
 // Validate validates the list meters parameters.
@@ -95,7 +98,14 @@ func (p ListMetersParams) Validate() error {
 		for _, slug := range *p.SlugFilter {
 			if slug == "" {
 				errs = append(errs, errors.New("slug filter must not contain empty string"))
-				break
+			}
+		}
+	}
+
+	if p.EventTypes != nil {
+		for _, eventType := range *p.EventTypes {
+			if eventType == "" {
+				errs = append(errs, errors.New("event type filter must not contain empty string"))
 			}
 		}
 	}
