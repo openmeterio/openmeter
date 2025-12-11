@@ -9,10 +9,10 @@ import (
 
 type Handler interface {
 	ListCustomers() ListCustomersHandler
-	//CreateCustomer() CreateCustomerHandler
-	//DeleteCustomer() DeleteCustomerHandler
-	//GetCustomer() GetCustomerHandler
-	//UpdateCustomer() UpdateCustomerHandler
+	// CreateCustomer() CreateCustomerHandler
+	// DeleteCustomer() DeleteCustomerHandler
+	// GetCustomer() GetCustomerHandler
+	// UpdateCustomer() UpdateCustomerHandler
 }
 
 type handler struct {

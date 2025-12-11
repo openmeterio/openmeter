@@ -61,5 +61,5 @@ model PagePaginatedResponse<T> {
   @pageItems
   data: T[];
 
-  meta: Common.PaginatedMeta;
+  meta: Common.PageMeta;
 }

@@ -35,27 +35,18 @@ model Resource {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   labels?: Common.Labels;
 
-  // TODO: is this needed?
-  #suppress "@openmeter/api-spec/casing" ""
-  #suppress "@openmeter/api-spec/doc-decorator" "shared model"
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  public_labels?: Common.PublicLabels;
-
-  #suppress "@openmeter/api-spec/casing" ""
   /**
    * An ISO-8601 timestamp representation of entity creation date.
    */
   @visibility(Lifecycle.Read)
   created_at?: DateTime;
 
-  #suppress "@openmeter/api-spec/casing" ""
   /**
    * An ISO-8601 timestamp representation of entity last update date.
    */
   @visibility(Lifecycle.Read)
   updated_at?: DateTime;
 
-  #suppress "@openmeter/api-spec/casing" ""
   /**
    * An ISO-8601 timestamp representation of entity deletion date.
    */

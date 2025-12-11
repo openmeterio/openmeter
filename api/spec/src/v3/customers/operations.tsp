@@ -18,6 +18,7 @@ namespace Customers;
  */
 @friendlyName("ListCustomersParams")
 model ListCustomersParams {
+  ...Common.PagePaginationQuery,
   /**
    * Sort customers returned in the response.
    * Supported sort attributes are:
@@ -33,7 +34,7 @@ model ListCustomersParams {
    * The `desc` suffix is used to specify a descending order.
    * Multiple sort attributes may be provided via a comma separated list.
    */
-  @query
+  @query(#{name: "sort"})
   sort?: Common.SortQuery;
 }
 
@@ -63,7 +64,6 @@ interface CustomersOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   list(
-    ...Common.CursorPageQuery,
     ...ListCustomersParams,
   ): Shared.CursorPaginatedResponse<Customer> | Common.ErrorResponses;
 
@@ -78,18 +78,6 @@ interface CustomersOperations {
     @body
     customer: Shared.UpsertRequest<Customer>,
   ): Shared.UpsertResponse<Customer> | Common.NotFound | Common.ErrorResponses;
-
-  @patch
-  @operationId("update-customer")
-  @summary("Update customer")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  update(
-    @path customerId: Shared.ULID,
-
-    @body
-    customer: Shared.UpdateRequest<Customer>,
-  ): Shared.UpdateResponse<Customer> | Common.NotFound | Common.ErrorResponses;
 
   @delete
   @operationId("delete-customer")
