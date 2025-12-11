@@ -10,7 +10,7 @@ import (
 type Handler interface {
 	ListCustomers() ListCustomersHandler
 	CreateCustomer() CreateCustomerHandler
-	// DeleteCustomer() DeleteCustomerHandler
+	DeleteCustomer() DeleteCustomerHandler
 	// GetCustomer() GetCustomerHandler
 	// UpdateCustomer() UpdateCustomerHandler
 }
