@@ -160,7 +160,7 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 					Key:         lo.ToPtr(sub.Key),
 					Name:        "Org. 1",
 					Description: nil,
-					UsageAttribution: customer.CustomerUsageAttribution{
+					UsageAttribution: &customer.CustomerUsageAttribution{
 						SubjectKeys: []string{
 							"not-" + sub.Key,
 						},
@@ -199,7 +199,7 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 					Key:         lo.ToPtr("not-" + sub.Key),
 					Name:        "Org. 30",
 					Description: nil,
-					UsageAttribution: customer.CustomerUsageAttribution{
+					UsageAttribution: &customer.CustomerUsageAttribution{
 						SubjectKeys: []string{
 							sub.Key,
 						},

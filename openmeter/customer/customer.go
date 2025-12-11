@@ -41,40 +41,52 @@ var _ streaming.Customer = &Customer{}
 type Customer struct {
 	models.ManagedResource
 
-	Key              *string                  `json:"key,omitempty"`
-	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
-	PrimaryEmail     *string                  `json:"primaryEmail,omitempty"`
-	Currency         *currencyx.Code          `json:"currency,omitempty"`
-	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
-	Metadata         *models.Metadata         `json:"metadata,omitempty"`
-	Annotation       *models.Annotations      `json:"annotations,omitempty"`
+	Key              *string                   `json:"key,omitempty"`
+	UsageAttribution *CustomerUsageAttribution `json:"usageAttribution,omitempty"`
+	PrimaryEmail     *string                   `json:"primaryEmail,omitempty"`
+	Currency         *currencyx.Code           `json:"currency,omitempty"`
+	BillingAddress   *models.Address           `json:"billingAddress,omitempty"`
+	Metadata         *models.Metadata          `json:"metadata,omitempty"`
+	Annotation       *models.Annotations       `json:"annotations,omitempty"`
 
 	ActiveSubscriptionIDs mo.Option[[]string]
 }
 
 // AsCustomerMutate returns a CustomerMutate from the Customer
 func (c Customer) AsCustomerMutate() CustomerMutate {
-	return CustomerMutate{
-		Key:              c.Key,
-		Name:             c.Name,
-		Description:      c.Description,
-		UsageAttribution: c.UsageAttribution,
-		PrimaryEmail:     c.PrimaryEmail,
-		Currency:         c.Currency,
-		BillingAddress:   c.BillingAddress,
-		Metadata:         c.Metadata,
-		Annotation:       c.Annotation,
+	mut := CustomerMutate{
+		Key:            c.Key,
+		Name:           c.Name,
+		Description:    c.Description,
+		PrimaryEmail:   c.PrimaryEmail,
+		Currency:       c.Currency,
+		BillingAddress: c.BillingAddress,
+		Metadata:       c.Metadata,
+		Annotation:     c.Annotation,
 	}
+
+	if c.UsageAttribution != nil {
+		mut.UsageAttribution = &CustomerUsageAttribution{
+			SubjectKeys: c.UsageAttribution.SubjectKeys,
+		}
+	}
+
+	return mut
 }
 
 // GetUsageAttribution returns the customer usage attribution
 // implementing the streaming.CustomerUsageAttribution interface
 func (c Customer) GetUsageAttribution() streaming.CustomerUsageAttribution {
-	return streaming.CustomerUsageAttribution{
-		ID:          c.ID,
-		Key:         c.Key,
-		SubjectKeys: c.UsageAttribution.SubjectKeys,
+	ua := streaming.CustomerUsageAttribution{
+		ID:  c.ID,
+		Key: c.Key,
 	}
+
+	if c.UsageAttribution != nil {
+		ua.SubjectKeys = c.UsageAttribution.SubjectKeys
+	}
+
+	return ua
 }
 
 // GetID returns the customer id
@@ -106,19 +118,34 @@ func (c Customer) Validate() error {
 			return models.NewGenericValidationError(err)
 		}
 	}
+
+	// Either key or usageAttribution.subjectKeys must be provided
+	hasKey := c.Key != nil && *c.Key != ""
+	hasSubjectKeys := c.UsageAttribution != nil && len(c.UsageAttribution.SubjectKeys) > 0
+
+	if !hasKey && !hasSubjectKeys {
+		return models.NewGenericValidationError(errors.New("either key or usageAttribution.subjectKeys must be provided"))
+	}
+
+	if c.UsageAttribution != nil {
+		if err := c.UsageAttribution.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 type CustomerMutate struct {
-	Key              *string                  `json:"key,omitempty"`
-	Name             string                   `json:"name"`
-	Description      *string                  `json:"description,omitempty"`
-	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
-	PrimaryEmail     *string                  `json:"primaryEmail"`
-	Currency         *currencyx.Code          `json:"currency"`
-	BillingAddress   *models.Address          `json:"billingAddress"`
-	Metadata         *models.Metadata         `json:"metadata"`
-	Annotation       *models.Annotations      `json:"annotations,omitempty"`
+	Key              *string                   `json:"key,omitempty"`
+	Name             string                    `json:"name"`
+	Description      *string                   `json:"description,omitempty"`
+	UsageAttribution *CustomerUsageAttribution `json:"usageAttribution,omitempty"`
+	PrimaryEmail     *string                   `json:"primaryEmail"`
+	Currency         *currencyx.Code           `json:"currency"`
+	BillingAddress   *models.Address           `json:"billingAddress"`
+	Metadata         *models.Metadata          `json:"metadata"`
+	Annotation       *models.Annotations       `json:"annotations,omitempty"`
 }
 
 func (c CustomerMutate) Validate() error {
@@ -136,8 +163,18 @@ func (c CustomerMutate) Validate() error {
 		}
 	}
 
-	if err := c.UsageAttribution.Validate(); err != nil {
-		return err
+	// Either key or usageAttribution.subjectKeys must be provided
+	hasKey := c.Key != nil && *c.Key != ""
+	hasSubjectKeys := c.UsageAttribution != nil && len(c.UsageAttribution.SubjectKeys) > 0
+
+	if !hasKey && !hasSubjectKeys {
+		return models.NewGenericValidationError(errors.New("either key or usageAttribution.subjectKeys must be provided"))
+	}
+
+	if c.UsageAttribution != nil {
+		if err := c.UsageAttribution.Validate(); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -59,7 +59,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 				ID: entitlementID.Namespace,
 			},
 			CustomerID:               ent.Customer.ID,
-			CustomerUsageAttribution: ent.Customer.UsageAttribution,
+			CustomerUsageAttribution: lo.FromPtr(ent.Customer.UsageAttribution),
 			ResetAt:                  params.At,
 			RetainAnchor:             params.RetainAnchor,
 			ResetRequestedAt:         time.Now(),

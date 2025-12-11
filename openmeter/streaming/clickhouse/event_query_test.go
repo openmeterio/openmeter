@@ -109,7 +109,7 @@ func TestQueryEventsTable(t *testing.T) {
 							},
 							ID: "customer1",
 						},
-						UsageAttribution: customer.CustomerUsageAttribution{
+						UsageAttribution: &customer.CustomerUsageAttribution{
 							SubjectKeys: []string{"subject1", "subject2"},
 						},
 					},
@@ -120,7 +120,7 @@ func TestQueryEventsTable(t *testing.T) {
 							},
 							ID: "customer2",
 						},
-						UsageAttribution: customer.CustomerUsageAttribution{
+						UsageAttribution: &customer.CustomerUsageAttribution{
 							SubjectKeys: []string{"subject3"},
 						},
 					},

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
@@ -314,7 +315,7 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 			Namespace: models.NamespaceID{
 				ID: ent.Namespace,
 			},
-			Subject:   custSubj.Subject,
+			Subject:   lo.FromPtr(custSubj.Subject), // Subject is deprecated, use empty if nil
 			Customer:  custSubj.Customer,
 			Value:     nil, // explicit nil for deleted events
 			Feature:   feat,
@@ -375,7 +376,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 			Namespace: models.NamespaceID{
 				ID: ent.Namespace,
 			},
-			Subject:   custSubj.Subject,
+			Subject:   lo.FromPtr(custSubj.Subject), // Subject is deprecated, use empty if nil
 			Customer:  custSubj.Customer,
 			Feature:   feat,
 			Operation: snapshot.ValueOperationUpdate,
@@ -416,5 +417,6 @@ func (r *Recalculator) getFeature(ctx context.Context, featureID pkgmodels.Names
 // customerAndSubject is a helper struct to be used in the cache
 type customerAndSubject struct {
 	Customer customer.Customer
-	Subject  subject.Subject
+	// Subject is optional - may be nil if customer has no usage attribution with subject keys
+	Subject *subject.Subject
 }

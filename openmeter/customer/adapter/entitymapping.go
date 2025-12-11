@@ -40,13 +40,17 @@ func CustomerFromDBEntity(e db.Customer, expands customer.Expands) (*customer.Cu
 			Name:        e.Name,
 			Description: e.Description,
 		}),
-		UsageAttribution: customer.CustomerUsageAttribution{
-			SubjectKeys: subjectKeys,
-		},
 		PrimaryEmail: e.PrimaryEmail,
 		Currency:     e.Currency,
 		Metadata:     metadata,
 		Annotation:   annotations,
+	}
+
+	// Only set UsageAttribution if there are subject keys
+	if len(subjectKeys) > 0 {
+		result.UsageAttribution = &customer.CustomerUsageAttribution{
+			SubjectKeys: subjectKeys,
+		}
 	}
 
 	if slices.Contains(expands, customer.ExpandSubscriptions) {

@@ -6736,7 +6736,7 @@ export const createCustomerBody = zod
       .max(createCustomerBodyKeyMax)
       .optional()
       .describe(
-        'An optional unique key of the customer.\nUseful to reference the customer in external systems.\nFor example, your database ID.',
+        'An optional unique key of the customer.\nEither key or usageAttribution.subjectKeys must be provided.\nUseful to reference the customer in external systems.\nFor example, your database ID.',
       ),
     metadata: zod
       .record(zod.string(), zod.coerce.string())
@@ -6775,7 +6775,10 @@ export const createCustomerBody = zod
       .describe(
         'Mapping to attribute metered usage to the customer.\nOne customer can have zero or more subjects,\nbut one subject can only belong to one customer.',
       )
-      .describe('Mapping to attribute metered usage to the customer'),
+      .optional()
+      .describe(
+        'Mapping to attribute metered usage to the customer\nEither key or usageAttribution.subjectKeys must be provided.',
+      ),
   })
   .describe('Resource create operation model.')
 
@@ -6980,7 +6983,7 @@ export const updateCustomerBody = zod
       .max(updateCustomerBodyKeyMax)
       .optional()
       .describe(
-        'An optional unique key of the customer.\nUseful to reference the customer in external systems.\nFor example, your database ID.',
+        'An optional unique key of the customer.\nEither key or usageAttribution.subjectKeys must be provided.\nUseful to reference the customer in external systems.\nFor example, your database ID.',
       ),
     metadata: zod
       .record(zod.string(), zod.coerce.string())
@@ -7019,7 +7022,10 @@ export const updateCustomerBody = zod
       .describe(
         'Mapping to attribute metered usage to the customer.\nOne customer can have zero or more subjects,\nbut one subject can only belong to one customer.',
       )
-      .describe('Mapping to attribute metered usage to the customer'),
+      .optional()
+      .describe(
+        'Mapping to attribute metered usage to the customer\nEither key or usageAttribution.subjectKeys must be provided.',
+      ),
   })
   .describe('Resource update operation model.')
 
@@ -12436,7 +12442,7 @@ export const createStripeCheckoutSessionBody = zod
               .max(createStripeCheckoutSessionBodyCustomerKeyMaxOne)
               .optional()
               .describe(
-                'An optional unique key of the customer.\nUseful to reference the customer in external systems.\nFor example, your database ID.',
+                'An optional unique key of the customer.\nEither key or usageAttribution.subjectKeys must be provided.\nUseful to reference the customer in external systems.\nFor example, your database ID.',
               ),
             metadata: zod
               .record(zod.string(), zod.coerce.string())
@@ -12477,7 +12483,10 @@ export const createStripeCheckoutSessionBody = zod
               .describe(
                 'Mapping to attribute metered usage to the customer.\nOne customer can have zero or more subjects,\nbut one subject can only belong to one customer.',
               )
-              .describe('Mapping to attribute metered usage to the customer'),
+              .optional()
+              .describe(
+                'Mapping to attribute metered usage to the customer\nEither key or usageAttribution.subjectKeys must be provided.',
+              ),
           })
           .describe('Resource create operation model.'),
       ])

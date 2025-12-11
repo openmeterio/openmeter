@@ -2839,7 +2839,7 @@ class Customer(_Model):
     :vartype deleted_at: ~datetime.datetime
     :ivar key: Key.
     :vartype key: str
-    :ivar usage_attribution: Usage Attribution. Required.
+    :ivar usage_attribution: Usage Attribution.
     :vartype usage_attribution: ~openmeter._generated.models.CustomerUsageAttribution
     :ivar primary_email: Primary Email.
     :vartype primary_email: str
@@ -2871,10 +2871,10 @@ class Customer(_Model):
     """Deletion Time."""
     key: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Key."""
-    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(
+    usage_attribution: Optional["_models.CustomerUsageAttribution"] = rest_field(
         name="usageAttribution", visibility=["read", "create", "update", "delete", "query"]
     )
-    """Usage Attribution. Required."""
+    """Usage Attribution."""
     primary_email: Optional[str] = rest_field(
         name="primaryEmail", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -2897,10 +2897,10 @@ class Customer(_Model):
         self,
         *,
         name: str,
-        usage_attribution: "_models.CustomerUsageAttribution",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         key: Optional[str] = None,
+        usage_attribution: Optional["_models.CustomerUsageAttribution"] = None,
         primary_email: Optional[str] = None,
         currency: Optional[str] = None,
         billing_address: Optional["_models.Address"] = None,
@@ -2988,7 +2988,7 @@ class CustomerCreate(_Model):
     :vartype metadata: ~openmeter._generated.models.Metadata
     :ivar key: Key.
     :vartype key: str
-    :ivar usage_attribution: Usage Attribution. Required.
+    :ivar usage_attribution: Usage Attribution.
     :vartype usage_attribution: ~openmeter._generated.models.CustomerUsageAttribution
     :ivar primary_email: Primary Email.
     :vartype primary_email: str
@@ -3006,10 +3006,10 @@ class CustomerCreate(_Model):
     """Metadata."""
     key: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Key."""
-    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(
+    usage_attribution: Optional["_models.CustomerUsageAttribution"] = rest_field(
         name="usageAttribution", visibility=["read", "create", "update", "delete", "query"]
     )
-    """Usage Attribution. Required."""
+    """Usage Attribution."""
     primary_email: Optional[str] = rest_field(
         name="primaryEmail", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -3026,10 +3026,10 @@ class CustomerCreate(_Model):
         self,
         *,
         name: str,
-        usage_attribution: "_models.CustomerUsageAttribution",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         key: Optional[str] = None,
+        usage_attribution: Optional["_models.CustomerUsageAttribution"] = None,
         primary_email: Optional[str] = None,
         currency: Optional[str] = None,
         billing_address: Optional["_models.Address"] = None,
@@ -3158,7 +3158,7 @@ class CustomerReplaceUpdate(_Model):
     :vartype metadata: ~openmeter._generated.models.Metadata
     :ivar key: Key.
     :vartype key: str
-    :ivar usage_attribution: Usage Attribution. Required.
+    :ivar usage_attribution: Usage Attribution.
     :vartype usage_attribution: ~openmeter._generated.models.CustomerUsageAttribution
     :ivar primary_email: Primary Email.
     :vartype primary_email: str
@@ -3176,10 +3176,10 @@ class CustomerReplaceUpdate(_Model):
     """Metadata."""
     key: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Key."""
-    usage_attribution: "_models.CustomerUsageAttribution" = rest_field(
+    usage_attribution: Optional["_models.CustomerUsageAttribution"] = rest_field(
         name="usageAttribution", visibility=["read", "create", "update", "delete", "query"]
     )
-    """Usage Attribution. Required."""
+    """Usage Attribution."""
     primary_email: Optional[str] = rest_field(
         name="primaryEmail", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -3196,10 +3196,10 @@ class CustomerReplaceUpdate(_Model):
         self,
         *,
         name: str,
-        usage_attribution: "_models.CustomerUsageAttribution",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         key: Optional[str] = None,
+        usage_attribution: Optional["_models.CustomerUsageAttribution"] = None,
         primary_email: Optional[str] = None,
         currency: Optional[str] = None,
         billing_address: Optional["_models.Address"] = None,

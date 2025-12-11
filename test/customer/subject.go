@@ -38,7 +38,7 @@ func (s *CustomerHandlerTestSuite) TestSubjectDeletion(ctx context.Context, t *t
 			CustomerMutate: customer.CustomerMutate{
 				Key:  lo.ToPtr("customer-1"),
 				Name: "Customer 1",
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{"customer-1-subject-1"},
 				},
 			},
@@ -55,7 +55,8 @@ func (s *CustomerHandlerTestSuite) TestSubjectDeletion(ctx context.Context, t *t
 			},
 			CustomerMutate: func() customer.CustomerMutate {
 				mut := cust.AsCustomerMutate()
-				mut.UsageAttribution.SubjectKeys = []string{}
+				// Set UsageAttribution to nil to remove all subject keys
+				mut.UsageAttribution = nil
 
 				return mut
 			}(),
@@ -86,7 +87,7 @@ func (s *CustomerHandlerTestSuite) TestSubjectDeletion(ctx context.Context, t *t
 			CustomerMutate: customer.CustomerMutate{
 				Key:  lo.ToPtr("customer-2"),
 				Name: "Customer 2",
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{"customer-2-subject-1"},
 				},
 			},
@@ -120,7 +121,8 @@ func (s *CustomerHandlerTestSuite) TestSubjectDeletion(ctx context.Context, t *t
 		require.NoError(t, err, "Getting customer must not return error")
 		require.NotNil(t, cust, "Customer must not be nil")
 
-		require.Equal(t, []string{}, cust.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must be empty")
+		// UsageAttribution is nil when there are no subject keys
+		require.Nil(t, cust.UsageAttribution, "Customer usage attribution must be nil when no subject keys")
 	})
 
 	t.Run("Should NOT error if customer WITH entitlements has no more subjects after deletion", func(t *testing.T) {
@@ -130,7 +132,7 @@ func (s *CustomerHandlerTestSuite) TestSubjectDeletion(ctx context.Context, t *t
 			CustomerMutate: customer.CustomerMutate{
 				Key:  lo.ToPtr("customer-3"),
 				Name: "Customer 3",
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{"customer-3-subject-1"},
 				},
 			},
@@ -182,7 +184,8 @@ func (s *CustomerHandlerTestSuite) TestSubjectDeletion(ctx context.Context, t *t
 		})
 		require.NoError(t, err, "Getting customer must not return error")
 		require.NotNil(t, cust, "Customer must not be nil")
-		require.Equal(t, []string{}, cust.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must be empty")
+		// UsageAttribution is nil when there are no subject keys
+		require.Nil(t, cust.UsageAttribution, "Customer usage attribution must be nil when no subject keys")
 	})
 }
 
@@ -332,7 +335,7 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Integration Customer",
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: subjectKeys,
 			},
 		},

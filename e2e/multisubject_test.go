@@ -47,7 +47,7 @@ func TestMultiSubject(t *testing.T) {
 				PhoneNumber: lo.ToPtr("1234567890"),
 				PostalCode:  lo.ToPtr("12345"),
 			},
-			UsageAttribution: api.CustomerUsageAttribution{
+			UsageAttribution: &api.CustomerUsageAttribution{
 				SubjectKeys: subjectKeys,
 			},
 		})

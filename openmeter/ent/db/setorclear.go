@@ -799,6 +799,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearCustomerKey(value *string) *BillingI
 	return u.SetCustomerKey(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearCustomerUsageAttribution(value **billing.VersionedCustomerUsageAttribution) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCustomerUsageAttribution()
+	}
+	return u.SetCustomerUsageAttribution(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCustomerUsageAttribution(value **billing.VersionedCustomerUsageAttribution) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCustomerUsageAttribution()
+	}
+	return u.SetCustomerUsageAttribution(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearDescription(value *string) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearDescription()

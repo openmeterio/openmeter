@@ -435,7 +435,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_SetsCollectionAtToNextAnchor
 		CustomerMutate: customer.CustomerMutate{
 			Name:           "Test Customer",
 			BillingAddress: &models.Address{Country: lo.ToPtr(models.CountryCode("US"))},
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test-subject-1"},
 			},
 		},

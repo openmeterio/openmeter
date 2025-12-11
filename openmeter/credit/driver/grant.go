@@ -258,7 +258,9 @@ func (h *grantHandler) ListGrantsV2() ListGrantsV2Handler {
 							)
 					}
 
-					subjectKeys = append(subjectKeys, cus.UsageAttribution.SubjectKeys...)
+					if cus.UsageAttribution != nil {
+						subjectKeys = append(subjectKeys, cus.UsageAttribution.SubjectKeys...)
+					}
 				}
 			}
 

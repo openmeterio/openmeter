@@ -523,7 +523,7 @@ func TestList(t *testing.T) {
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			CustomerMutate: customer.CustomerMutate{
 				Name: "Test Customer 1",
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{"subject-1"},
 				},
 			},
@@ -534,7 +534,7 @@ func TestList(t *testing.T) {
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			CustomerMutate: customer.CustomerMutate{
 				Name: "Test Customer 2",
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{"subject-2"},
 				},
 			},
@@ -545,7 +545,7 @@ func TestList(t *testing.T) {
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			CustomerMutate: customer.CustomerMutate{
 				Name: "Test Customer 3",
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{"subject-3"},
 				},
 			},
@@ -556,7 +556,7 @@ func TestList(t *testing.T) {
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			CustomerMutate: customer.CustomerMutate{
 				Name: "Test Customer 4",
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{"subject-4"},
 				},
 			},

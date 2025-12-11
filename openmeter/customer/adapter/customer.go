@@ -300,7 +300,7 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 		// Create customer subjects
 		// TODO: customer.AddSubjects produces an invalid database query so we create it separately in a transaction.
 		// The number and shape of the queries executed is the same, it's a devex thing only.
-		if len(input.UsageAttribution.SubjectKeys) > 0 {
+		if input.UsageAttribution != nil && len(input.UsageAttribution.SubjectKeys) > 0 {
 			_, err = repo.db.CustomerSubjects.
 				CreateBulk(
 					lo.Map(
@@ -626,9 +626,17 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			return nil, fmt.Errorf("invalid query result: nil customer received")
 		}
 
+		var previousSubjectKeys, newSubjectKeys []string
+		if previousCustomer.UsageAttribution != nil {
+			previousSubjectKeys = previousCustomer.UsageAttribution.SubjectKeys
+		}
+		if input.UsageAttribution != nil {
+			newSubjectKeys = input.UsageAttribution.SubjectKeys
+		}
+
 		subKeysToRemove, subKeysToAdd := lo.Difference(
-			lo.Uniq(previousCustomer.UsageAttribution.SubjectKeys),
-			lo.Uniq(input.UsageAttribution.SubjectKeys),
+			lo.Uniq(previousSubjectKeys),
+			lo.Uniq(newSubjectKeys),
 		)
 
 		now := clock.Now().UTC()

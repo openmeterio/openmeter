@@ -398,7 +398,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 				Name:         "another",
 				PrimaryEmail: lo.ToPtr("mail@me.uk"),
 				Currency:     lo.ToPtr(currencyx.Code("USD")),
-				UsageAttribution: customer.CustomerUsageAttribution{
+				UsageAttribution: &customer.CustomerUsageAttribution{
 					SubjectKeys: []string{"another"},
 				},
 			},

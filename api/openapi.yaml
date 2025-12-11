@@ -15233,7 +15233,6 @@ components:
         - name
         - createdAt
         - updatedAt
-        - usageAttribution
       properties:
         id:
           type: string
@@ -15287,13 +15286,16 @@ components:
           maxLength: 256
           description: |-
             An optional unique key of the customer.
+            Either key or usageAttribution.subjectKeys must be provided.
             Useful to reference the customer in external systems.
             For example, your database ID.
           title: Key
         usageAttribution:
           allOf:
             - $ref: '#/components/schemas/CustomerUsageAttribution'
-          description: Mapping to attribute metered usage to the customer
+          description: |-
+            Mapping to attribute metered usage to the customer
+            Either key or usageAttribution.subjectKeys must be provided.
           title: Usage Attribution
         primaryEmail:
           type: string
@@ -15420,7 +15422,6 @@ components:
       type: object
       required:
         - name
-        - usageAttribution
       properties:
         name:
           type: string
@@ -15446,13 +15447,16 @@ components:
           maxLength: 256
           description: |-
             An optional unique key of the customer.
+            Either key or usageAttribution.subjectKeys must be provided.
             Useful to reference the customer in external systems.
             For example, your database ID.
           title: Key
         usageAttribution:
           allOf:
             - $ref: '#/components/schemas/CustomerUsageAttribution'
-          description: Mapping to attribute metered usage to the customer
+          description: |-
+            Mapping to attribute metered usage to the customer
+            Either key or usageAttribution.subjectKeys must be provided.
           title: Usage Attribution
         primaryEmail:
           type: string
@@ -15534,7 +15538,6 @@ components:
       type: object
       required:
         - name
-        - usageAttribution
       properties:
         name:
           type: string
@@ -15560,13 +15563,16 @@ components:
           maxLength: 256
           description: |-
             An optional unique key of the customer.
+            Either key or usageAttribution.subjectKeys must be provided.
             Useful to reference the customer in external systems.
             For example, your database ID.
           title: Key
         usageAttribution:
           allOf:
             - $ref: '#/components/schemas/CustomerUsageAttribution'
-          description: Mapping to attribute metered usage to the customer
+          description: |-
+            Mapping to attribute metered usage to the customer
+            Either key or usageAttribution.subjectKeys must be provided.
           title: Usage Attribution
         primaryEmail:
           type: string

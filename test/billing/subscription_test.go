@@ -309,7 +309,7 @@ func (s *SubscriptionTestSuite) createCustomerWithSubscription(ctx context.Conte
 
 		CustomerMutate: customer.CustomerMutate{
 			Name: customerKey,
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{customerKey},
 			},
 		},

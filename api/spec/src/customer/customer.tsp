@@ -210,6 +210,7 @@ model Customer {
 
   /**
    * An optional unique key of the customer.
+   * Either key or usageAttribution.subjectKeys must be provided.
    * Useful to reference the customer in external systems.
    * For example, your database ID.
    */
@@ -218,9 +219,10 @@ model Customer {
 
   /**
    * Mapping to attribute metered usage to the customer
+   * Either key or usageAttribution.subjectKeys must be provided.
    */
   @summary("Usage Attribution")
-  usageAttribution: CustomerUsageAttribution;
+  usageAttribution?: CustomerUsageAttribution;
 
   /**
    * The primary email address of the customer.

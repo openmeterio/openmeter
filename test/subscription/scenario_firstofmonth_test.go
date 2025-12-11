@@ -155,7 +155,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 		Namespace: namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Test Customer",
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject_1"},
 			},
 		},
@@ -386,7 +386,7 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 		Namespace: namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name:             "Test Customer",
-			UsageAttribution: customer.CustomerUsageAttribution{SubjectKeys: []string{"subject_1"}},
+			UsageAttribution: &customer.CustomerUsageAttribution{SubjectKeys: []string{"subject_1"}},
 		},
 	})
 	require.NoError(t, err)

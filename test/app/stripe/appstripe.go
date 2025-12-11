@@ -461,10 +461,12 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	require.NoError(t, err, "Create billing profile must not return error")
 
 	// Create customer without stripe data
+	customerWithoutStripeDataKey := "test-customer-without-stripe"
 	customerWithoutStripeData, err := s.Env.Customer().CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Test Customer Without Stripe",
+			Key:  &customerWithoutStripeDataKey,
 		},
 	})
 
@@ -732,6 +734,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		CustomerID: testCustomer.GetID(),
 		CustomerMutate: customer.CustomerMutate{
 			Name:             testCustomer.Name,
+			Key:              testCustomer.Key,
 			UsageAttribution: testCustomer.UsageAttribution,
 			Currency:         lo.ToPtr(currencyx.Code("USD")),
 		},

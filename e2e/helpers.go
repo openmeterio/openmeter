@@ -25,7 +25,7 @@ func CreateCustomerWithSubject(t *testing.T, client *api.ClientWithResponses, cu
 		Currency:     lo.ToPtr("USD"),
 		Key:          lo.ToPtr(customerKey),
 		PrimaryEmail: lo.ToPtr(fmt.Sprintf("test-%s@test.com", customerKey)),
-		UsageAttribution: api.CustomerUsageAttribution{
+		UsageAttribution: &api.CustomerUsageAttribution{
 			SubjectKeys: []string{subjectKey},
 		},
 	})

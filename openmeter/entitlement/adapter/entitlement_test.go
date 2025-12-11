@@ -106,7 +106,7 @@ func createCustomerWithSubject(t *testing.T, subjectRepo subject.Service, custom
 		Namespace: namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Customer 1",
-			UsageAttribution: customer.CustomerUsageAttribution{
+			UsageAttribution: &customer.CustomerUsageAttribution{
 				SubjectKeys: []string{subjectKey},
 			},
 		},

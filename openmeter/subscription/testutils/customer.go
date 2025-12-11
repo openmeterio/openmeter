@@ -103,7 +103,7 @@ var ExampleCustomerEntity customer.Customer = customer.Customer{
 	},
 	PrimaryEmail: lo.ToPtr("mail@me.uk"),
 	Currency:     lo.ToPtr(currencyx.Code("USD")),
-	UsageAttribution: customer.CustomerUsageAttribution{
+	UsageAttribution: &customer.CustomerUsageAttribution{
 		SubjectKeys: []string{"john-doe"},
 	},
 }

@@ -78,7 +78,7 @@ func NewBalanceSnapshotEvent(in BalanceSnapshotEventInput) snapshot.SnapshotEven
 							Namespace: in.Namespace,
 						},
 					},
-					UsageAttribution: customer.CustomerUsageAttribution{
+					UsageAttribution: &customer.CustomerUsageAttribution{
 						SubjectKeys: []string{TestSubjectKey},
 					},
 				},

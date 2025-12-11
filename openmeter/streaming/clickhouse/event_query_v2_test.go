@@ -131,7 +131,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 								ID: "customer1-id",
 							},
 							Key: lo.ToPtr("customer1-key"),
-							UsageAttribution: customer.CustomerUsageAttribution{
+							UsageAttribution: &customer.CustomerUsageAttribution{
 								SubjectKeys: []string{"customer1-subject1", "customer1-subject2"},
 							},
 						},
@@ -143,7 +143,7 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 								ID: "customer2-id",
 							},
 							Key: lo.ToPtr("customer2-key"),
-							UsageAttribution: customer.CustomerUsageAttribution{
+							UsageAttribution: &customer.CustomerUsageAttribution{
 								SubjectKeys: []string{"customer2-subject1", "customer2-subject2"},
 							},
 						},
@@ -245,7 +245,7 @@ func TestQueryEventsTableV2_ToCountRowSQL(t *testing.T) {
 								},
 								ID: "customer1",
 							},
-							UsageAttribution: customer.CustomerUsageAttribution{
+							UsageAttribution: &customer.CustomerUsageAttribution{
 								SubjectKeys: []string{"subject1"},
 							},
 						},

@@ -668,9 +668,12 @@ func mapInvoiceCustomerToAPI(c billing.InvoiceCustomer) api.BillingInvoiceCustom
 		Id:   lo.ToPtr(c.CustomerID),
 		Key:  c.Key,
 		Name: lo.EmptyableToPtr(c.Name),
-		UsageAttribution: api.CustomerUsageAttribution{
+	}
+
+	if c.UsageAttribution != nil {
+		out.UsageAttribution = api.CustomerUsageAttribution{
 			SubjectKeys: c.UsageAttribution.SubjectKeys,
-		},
+		}
 	}
 
 	if a != nil && !lo.IsEmpty(*a) {
