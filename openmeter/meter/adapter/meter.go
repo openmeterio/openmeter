@@ -38,9 +38,14 @@ func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 		query = query.Where(meterdb.KeyIn(*params.SlugFilter...))
 	}
 
+	if params.EventTypes != nil {
+		query = query.Where(meterdb.EventTypeIn(*params.EventTypes...))
+	}
+
 	// Ordering
 	if params.Order != "" {
-		order := []sql.OrderTermOption{}
+		var order []sql.OrderTermOption
+
 		if !params.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(params.Order)
 		}

@@ -1701,6 +1701,11 @@ var (
 					Where: "deleted_at IS NULL",
 				},
 			},
+			{
+				Name:    "meter_namespace_event_type",
+				Unique:  false,
+				Columns: []*schema.Column{MetersColumns[1], MetersColumns[10]},
+			},
 		},
 	}
 	// NotificationChannelsColumns holds the columns for the "notification_channels" table.
