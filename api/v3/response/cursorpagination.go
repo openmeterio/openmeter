@@ -27,7 +27,7 @@ type CursorMetaPage struct {
 	Previous nullable.Nullable[string] `json:"previous"`
 
 	// Size of the requested page
-	Size float32 `json:"size"`
+	Size int `json:"size"`
 }
 
 // CursorPaginationResponse represents the response structure for cursor-based pagination

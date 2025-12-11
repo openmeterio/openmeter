@@ -65,7 +65,7 @@ interface CustomersOperations {
   @extension(Shared.InternalExtension, true)
   list(
     ...ListCustomersParams,
-  ): Shared.CursorPaginatedResponse<Customer> | Common.ErrorResponses;
+  ): Shared.PagePaginatedResponse<Customer> | Common.ErrorResponses;
 
   @put
   @operationId("upsert-customer")

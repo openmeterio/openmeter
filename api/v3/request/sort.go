@@ -57,7 +57,10 @@ func (s SortBy) Validate() error {
 }
 
 func (s *SortBy) UnmarshalText(text []byte) error {
-	parts := strings.Split(string(text), " ")
+	parts := strings.Fields(string(text))
+	if len(parts) == 0 {
+		return ErrSortByInvalid
+	}
 	if len(parts) > 2 {
 		return ErrSortByInvalid
 	}

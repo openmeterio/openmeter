@@ -10,10 +10,9 @@ type PageMeta struct {
 }
 
 type PageMetaPage struct {
-	Size           int  `json:"size"`
-	Number         int  `json:"number"`
-	Total          *int `json:"total,omitempty"`
-	EstimatedTotal *int `json:"estimatedTotal,omitempty"`
+	Size   int  `json:"size"`
+	Number int  `json:"number"`
+	Total  *int `json:"total,omitempty"`
 }
 
 func NewPagePaginationResponse[T any](items []T, page PageMetaPage) PagePaginationResponse[T] {

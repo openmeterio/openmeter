@@ -153,11 +153,11 @@ model PageNumber {
  */
 @friendlyName("PaginatedMeta")
 @useRef("../../../../common/definitions/metadatas.yaml#/components/schemas/PaginatedMeta")
-model PagePaginatedMeta {
+model PageMeta {
   /**
    * Page metadata.
    */
-  page: PageMeta;
+  page: PagePaginatedMeta;
 }
 
 /**
@@ -165,7 +165,7 @@ model PagePaginatedMeta {
  */
 @friendlyName("PageMeta")
 @useRef("../../../../common/definitions/metadatas.yaml#/components/schemas/PageMeta")
-model PageMeta {
+model PagePaginatedMeta {
   /**
    * Page number.
    */

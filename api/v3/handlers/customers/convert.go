@@ -1,5 +1,4 @@
-//go:generate go tool github.com/jmattheis/goverter/cmd/goverter gen ./
-
+//go:generate go run github.com/jmattheis/goverter/cmd/goverter gen ./
 package customers
 
 import (
@@ -14,6 +13,7 @@ import (
 // goverter:useZeroValueOnPointerInconsistency
 // goverter:useUnderlyingTypeMethods
 // goverter:matchIgnoreCase
+// goverter:extend IntToFloat32
 var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
@@ -30,10 +30,14 @@ var (
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotation
 	ConvertCreateCustomerRequestToCustomerMutate func(createCustomerRequest api.CreateCustomerRequest) customer.CustomerMutate
-	ConvertCustomerListResponse                  func(customers response.CursorPaginationResponse[customer.Customer]) api.CustomerPaginatedResponse
+	ConvertCustomerListResponse                  func(customers response.PagePaginationResponse[customer.Customer]) api.CustomerPagePaginatedResponse
 )
 
 //goverter:context namespace
 func NamespaceFromContext(namespace string) string {
 	return namespace
+}
+
+func IntToFloat32(i int) float32 {
+	return float32(i)
 }

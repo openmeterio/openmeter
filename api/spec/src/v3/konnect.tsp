@@ -5,6 +5,8 @@ import "@typespec/openapi3";
 import "./shared/index.tsp";
 import "./events/index.tsp";
 import "./customers/index.tsp";
+import "./entitlements/index.tsp";
+import "./meters/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -28,8 +30,14 @@ using TypeSpec.OpenAPI;
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
 @tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
+@tagMetadata(Shared.EntitlementsTag, #{ description: Shared.EntitlementsDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
+
+@route("/openmeter/meters")
+@tag(Shared.MetersTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.MetersTag}")
+interface MetersEndpoints extends Meters.MetersOperations {}
 
 @route("/openmeter/events")
 @tag(Shared.EventsTag)
@@ -40,6 +48,13 @@ interface EventsEndpoints extends Events.EventsOperations {}
 @tag(Shared.CustomersTag)
 @friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.CustomersTag}")
 interface CustomersEndpoints extends Customers.CustomersOperations {}
+
+@route("/openmeter/customers/{customerId}/entitlements/{featureKey}")
+@tag(Shared.CustomersTag)
+@tag(Shared.EntitlementsTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.EntitlementsTag}")
+interface CustomerEntitlementsEndpoints
+  extends Entitlements.CustomerEntitlementsOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.

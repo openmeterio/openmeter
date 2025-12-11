@@ -33,7 +33,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				return ListCustomersRequest{}, err
 			}
 
-			var page pagination.Page
+			page := pagination.NewPage(1, 20)
 			if params.Page != nil {
 				page = pagination.NewPage(
 					lo.FromPtrOr(params.Page.Number, 1),

@@ -5,6 +5,7 @@ import "@typespec/openapi3";
 import "./events/index.tsp";
 import "./shared/index.tsp";
 import "./customers/index.tsp";
+import "./entitlements/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -27,7 +28,13 @@ using TypeSpec.OpenAPI;
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
 @tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
+@tagMetadata(Shared.EntitlementsTag, #{ description: Shared.EntitlementsDescription })
 namespace OpenMeter;
+
+@route("/openmeter/meters")
+@tag(Shared.MetersTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.MetersTag}")
+interface MetersEndpoints extends Meters.MetersOperations {}
 
 @route("/openmeter/events")
 @tag(Shared.EventsTag)
@@ -38,3 +45,10 @@ interface EventsEndpoints extends Events.EventsOperations {}
 @tag(Shared.CustomersTag)
 @friendlyName("${Shared.OpenMeterTitle}: ${Shared.CustomersTag}")
 interface CustomersEndpoints extends Customers.CustomersOperations {}
+
+@route("/openmeter/customers/{customerId}/entitlements/{featureKey}")
+@tag(Shared.CustomersTag)
+@tag(Shared.EntitlementsTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.EntitlementsTag}")
+interface CustomerEntitlementsEndpoints
+  extends Entitlements.CustomerEntitlementsOperations {}

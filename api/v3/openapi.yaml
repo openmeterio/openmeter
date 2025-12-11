@@ -17,6 +17,8 @@ servers:
     description: Local
     variables: {}
 tags:
+  - name: Billing Entitlements
+    description: Entitlements are used to control access to features for customers.
   - name: Meters
     description: Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.
   - name: Billing Customers
@@ -63,11 +65,11 @@ paths:
         - $ref: '#/components/parameters/ListCustomersParams.sort'
       responses:
         '200':
-          description: Cursor paginated response.
+          description: Page paginated response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CustomerPaginatedResponse'
+                $ref: '#/components/schemas/CustomerPagePaginatedResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -181,6 +183,45 @@ paths:
         - Billing Customers
       x-internal: true
       x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{featureKey}:
+    get:
+      operationId: check-customer-feature-access
+      summary: Check customer feature access
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: featureKey
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResourceKey'
+      responses:
+        '200':
+          description: EntitlementCheck response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementCheck'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+        - Billing Entitlements
+      x-internal: true
+      x-unstable: true
   /openmeter/events:
     post:
       operationId: ingest-metering-events
@@ -221,6 +262,93 @@ paths:
                 - type: array
                   items:
                     $ref: '#/components/schemas/MeteringEvent'
+  /openmeter/meters:
+    post:
+      operationId: create-meter
+      summary: Create meter
+      description: Create a meter.
+      responses:
+        '201':
+          description: Meter created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meter'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Meters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMeterRequest'
+    get:
+      operationId: list-meters
+      summary: List meters
+      description: List meters.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Meters
+  /openmeter/meters/{meterId}:
+    get:
+      operationId: get-meter
+      summary: Get meter
+      description: Get a meter by ID.
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Meter response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meter'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Meters
 components:
   parameters:
     ListCustomersParams.sort:
@@ -379,6 +507,35 @@ components:
         Mapping to attribute metered usage to the customer.
         One customer can have zero or more subjects,
         but one subject can only belong to one customer.
+    BillingEntitlementCheck:
+      type: object
+      required:
+        - type
+        - has_access
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementType'
+          description: The type of the entitlement.
+          readOnly: true
+        has_access:
+          type: boolean
+          description: Whether the customer has access to the feature.
+          readOnly: true
+        config:
+          type: string
+          format: json
+          description: Only available for static entitlements.
+          example: '{ "rateLimit": 100 }'
+          readOnly: true
+      description: Entitlement check result.
+    BillingEntitlementType:
+      type: string
+      enum:
+        - metered
+        - static
+        - boolean
+      description: The type of the entitlement.
     CountryCode:
       type: string
       minLength: 2
@@ -437,6 +594,70 @@ components:
             Used for tax and invoicing.
           title: Billing Address
       description: Customer create request.
+    CreateMeterRequest:
+      type: object
+      required:
+        - name
+        - key
+        - aggregation
+        - event_type_filter
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        aggregation:
+          allOf:
+            - $ref: '#/components/schemas/MeterAggregation'
+          description: The aggregation type to use for the meter.
+        event_type_filter:
+          type: string
+          minLength: 1
+          description: The event type to include in the aggregation.
+          example: prompt
+        event_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The date since the meter should include events.
+            Useful to skip old events.
+            If not specified, all historical events are included.
+        value_property:
+          type: string
+          minLength: 1
+          description: |-
+            JSONPath expression to extract the value from the ingested event's data property.
+
+            The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+
+            For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+          example: $.tokens
+        dimensions:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Named JSONPath expressions to extract the group by values from the event data.
+
+            Keys must be unique and consist only alphanumeric and underscore characters.
+          example:
+            type: $.type
+      description: Meter create request.
     CurrencyCode:
       type: string
       minLength: 3
@@ -446,7 +667,7 @@ components:
         Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
         Custom three-letter currency codes are also supported for convenience.
       example: USD
-    CustomerPaginatedResponse:
+    CustomerPagePaginatedResponse:
       type: object
       required:
         - data
@@ -457,8 +678,8 @@ components:
           items:
             $ref: '#/components/schemas/BillingCustomer'
         meta:
-          $ref: '#/components/schemas/CursorMeta'
-      description: Cursor paginated response.
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     Customers.UsageAttributionKey:
       type: string
       minLength: 1
@@ -468,6 +689,127 @@ components:
       description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
       title: RFC3339 Date-Time
       example: '2023-01-01T01:01:01.001Z'
+    Meter:
+      type: object
+      required:
+        - id
+        - name
+        - key
+        - aggregation
+        - event_type_filter
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        aggregation:
+          allOf:
+            - $ref: '#/components/schemas/MeterAggregation'
+          description: The aggregation type to use for the meter.
+        event_type_filter:
+          type: string
+          minLength: 1
+          description: The event type to include in the aggregation.
+          example: prompt
+        event_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The date since the meter should include events.
+            Useful to skip old events.
+            If not specified, all historical events are included.
+        value_property:
+          type: string
+          minLength: 1
+          description: |-
+            JSONPath expression to extract the value from the ingested event's data property.
+
+            The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+
+            For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+          example: $.tokens
+        dimensions:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Named JSONPath expressions to extract the group by values from the event data.
+
+            Keys must be unique and consist only alphanumeric and underscore characters.
+          example:
+            type: $.type
+      description: A meter is a configuration that defines how to match and aggregate events.
+      example:
+        id: 01G65Z755AFWAKHE12NY0CQ9FH
+        key: tokens_total
+        name: Tokens Total
+        description: AI Token Usage
+        aggregation: sum
+        event_type_filter: prompt
+        value_property: $.tokens
+        dimensions:
+          model: $.model
+          type: $.type
+        created_at: '2024-01-01T01:01:01.001Z'
+        updated_at: '2024-01-01T01:01:01.001Z'
+    MeterAggregation:
+      type: string
+      enum:
+        - sum
+        - count
+        - unique_count
+        - avg
+        - min
+        - max
+        - latest
+      description: The aggregation type to use for the meter.
+    MeterPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Meter'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     MeteringEvent:
       type: object
       required:
@@ -629,43 +971,36 @@ components:
         pattern: ^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$
         minLength: 1
         maxLength: 63
-    CursorMetaPage:
+    PageMeta:
       type: object
+      description: Contains pagination query parameters and the total number of objects returned.
       required:
+        - number
         - size
-        - next
-        - previous
+        - total
       properties:
-        first:
-          description: URI to the first page
-          type: string
-          format: path
-        last:
-          description: URI to the last page
-          type: string
-          format: path
-        next:
-          description: URI to the next page
-          type: string
-          format: path
-          nullable: true
-        previous:
-          description: URI to the previous page
-          type: string
-          format: path
-          nullable: true
+        number:
+          type: number
+          example: 1
+          x-speakeasy-terraform-ignore: true
         size:
-          description: Requested page size
           type: number
           example: 10
-    CursorMeta:
+          x-speakeasy-terraform-ignore: true
+        total:
+          type: number
+          example: 100
+          x-speakeasy-terraform-ignore: true
+    PaginatedMeta:
       type: object
-      description: Pagination metadata.
-      required:
-        - page
+      title: PaginatedMeta
+      x-speakeasy-terraform-ignore: true
+      description: returns the pagination information
       properties:
         page:
-          $ref: '#/components/schemas/CursorMetaPage'
+          $ref: '#/components/schemas/PageMeta'
+      required:
+        - page
     BaseError:
       type: object
       title: Error

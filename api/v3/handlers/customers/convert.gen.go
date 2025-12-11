@@ -4,7 +4,6 @@
 package customers
 
 import (
-	nullable "github.com/oapi-codegen/nullable"
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	response "github.com/openmeterio/openmeter/api/v3/response"
 	customer "github.com/openmeterio/openmeter/openmeter/customer"
@@ -30,16 +29,16 @@ func init() {
 		customerCustomerMutate.Metadata = pV3LabelsToPModelsMetadata(source.Labels)
 		return customerCustomerMutate
 	}
-	ConvertCustomerListResponse = func(source response.CursorPaginationResponse[customer.Customer]) v3.CustomerPaginatedResponse {
-		var v3CustomerPaginatedResponse v3.CustomerPaginatedResponse
+	ConvertCustomerListResponse = func(source response.PagePaginationResponse[customer.Customer]) v3.CustomerPagePaginatedResponse {
+		var v3CustomerPagePaginatedResponse v3.CustomerPagePaginatedResponse
 		if source.Data != nil {
-			v3CustomerPaginatedResponse.Data = make([]v3.BillingCustomer, len(source.Data))
+			v3CustomerPagePaginatedResponse.Data = make([]v3.BillingCustomer, len(source.Data))
 			for i := 0; i < len(source.Data); i++ {
-				v3CustomerPaginatedResponse.Data[i] = ConvertCustomerRequestToBillingCustomer(source.Data[i])
+				v3CustomerPagePaginatedResponse.Data[i] = ConvertCustomerRequestToBillingCustomer(source.Data[i])
 			}
 		}
-		v3CustomerPaginatedResponse.Meta = responseCursorMetaToV3CursorMeta(source.Meta)
-		return v3CustomerPaginatedResponse
+		v3CustomerPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
+		return v3CustomerPagePaginatedResponse
 	}
 	ConvertCustomerRequestToBillingCustomer = func(source customer.Customer) v3.BillingCustomer {
 		var v3BillingCustomer v3.BillingCustomer
@@ -78,9 +77,6 @@ func modelsMetadataToV3Labels(source models.Metadata) v3.Labels {
 		}
 	}
 	return v3Labels
-}
-func nullableNullableToNullableNullable(source nullable.Nullable[string]) nullable.Nullable[string] {
-	return source
 }
 func pCustomerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source *customer.CustomerUsageAttribution) *v3.BillingCustomerUsageAttribution {
 	var pV3BillingCustomerUsageAttribution *v3.BillingCustomerUsageAttribution
@@ -152,19 +148,19 @@ func pV3LabelsToPModelsMetadata(source *v3.Labels) *models.Metadata {
 	}
 	return pModelsMetadata
 }
-func responseCursorMetaPageToV3CursorMetaPage(source response.CursorMetaPage) v3.CursorMetaPage {
-	var v3CursorMetaPage v3.CursorMetaPage
-	v3CursorMetaPage.First = source.First
-	v3CursorMetaPage.Last = source.Last
-	v3CursorMetaPage.Next = nullableNullableToNullableNullable(source.Next)
-	v3CursorMetaPage.Previous = nullableNullableToNullableNullable(source.Previous)
-	v3CursorMetaPage.Size = source.Size
-	return v3CursorMetaPage
+func responsePageMetaPageToV3PageMeta(source response.PageMetaPage) v3.PageMeta {
+	var v3PageMeta v3.PageMeta
+	v3PageMeta.Number = IntToFloat32(source.Number)
+	v3PageMeta.Size = IntToFloat32(source.Size)
+	if source.Total != nil {
+		v3PageMeta.Total = IntToFloat32(*source.Total)
+	}
+	return v3PageMeta
 }
-func responseCursorMetaToV3CursorMeta(source response.CursorMeta) v3.CursorMeta {
-	var v3CursorMeta v3.CursorMeta
-	v3CursorMeta.Page = responseCursorMetaPageToV3CursorMetaPage(source.Page)
-	return v3CursorMeta
+func responsePageMetaToV3PaginatedMeta(source response.PageMeta) v3.PaginatedMeta {
+	var v3PaginatedMeta v3.PaginatedMeta
+	v3PaginatedMeta.Page = responsePageMetaPageToV3PageMeta(source.Page)
+	return v3PaginatedMeta
 }
 func timeTimeToPTimeTime(source time.Time) *time.Time {
 	return &source

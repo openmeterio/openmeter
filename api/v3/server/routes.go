@@ -8,6 +8,20 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 )
 
+// Meters
+
+func (s *Server) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
+	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
+}
+
+func (s *Server) CreateMeter(w http.ResponseWriter, r *http.Request) {
+	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
+}
+
+func (s *Server) GetMeter(w http.ResponseWriter, r *http.Request, meterId api.ULID) {
+	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
+}
+
 // Events
 
 func (s *Server) IngestMeteringEvents(w http.ResponseWriter, r *http.Request) {
@@ -34,4 +48,8 @@ func (s *Server) UpsertCustomer(w http.ResponseWriter, r *http.Request, customer
 
 func (s *Server) DeleteCustomer(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
 	s.customersHandler.DeleteCustomer().With(customerId).ServeHTTP(w, r)
+}
+
+func (s *Server) CheckCustomerFeatureAccess(w http.ResponseWriter, r *http.Request, customerId api.ULID, featureKey api.ResourceKey) {
+	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
 }
