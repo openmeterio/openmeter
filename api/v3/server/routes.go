@@ -17,7 +17,7 @@ func (s *Server) IngestMeteringEvents(w http.ResponseWriter, r *http.Request) {
 // Customers
 
 func (s *Server) CreateCustomer(w http.ResponseWriter, r *http.Request) {
-	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
+	s.customersHandler.CreateCustomer().ServeHTTP(w, r)
 }
 
 func (s *Server) GetCustomer(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
