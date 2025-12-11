@@ -257,8 +257,7 @@ components:
             type: integer
           number:
             type: integer
-      explode: false
-      style: form
+      style: deepObject
   schemas:
     BillingAddress:
       type: object

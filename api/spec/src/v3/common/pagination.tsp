@@ -33,7 +33,7 @@ model PagePaginationQuery {
   /**
    * Determines which page of the collection to retrieve.
    */
-  @query
+  @query(#{ explode: true, style: "deepObject" })
   page?: {
     size?: integer;
     number?: integer;
