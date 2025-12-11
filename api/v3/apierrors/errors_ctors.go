@@ -45,6 +45,11 @@ const (
 	NotFoundDetail  = "The requested %s was not found"
 	NotFoundDetails = "The requested %s were not found: %v"
 
+	// Method Not Allowed
+	MethodNotAllowedType   = "https://kongapi.info/konnect/method-not-allowed"
+	MethodNotAllowedTitle  = "Method Not Allowed"
+	MethodNotAllowedDetail = "The requested method is not allowed"
+
 	// BadRequest
 	BadRequestType  = "https://kongapi.info/konnect/bad-request"
 	BadRequestTitle = "Bad Request"
@@ -172,15 +177,25 @@ func NewNotFoundErrors(
 	}
 }
 
+// NewMethodNotAllowedError generates a method not allowed error.
+func NewMethodNotAllowedError(ctx context.Context) *BaseAPIError {
+	return &BaseAPIError{
+		Type:     MethodNotAllowedType,
+		Status:   http.StatusMethodNotAllowed,
+		Title:    MethodNotAllowedTitle,
+		Instance: instance(ctx),
+		Detail:   MethodNotAllowedDetail,
+		ctx:      ctx,
+	}
+}
+
 // NewBadRequestError generates a bad request error.
-// TODO: this is a bit cumbersome to work with in the API handler. Need to think
-// how we validate schemas and maybe generate this (more) automagically.
 func NewBadRequestError(ctx context.Context, err error, invalidFields InvalidParameters) *BaseAPIError {
 	return &BaseAPIError{
-		Type:   BadRequestType,
-		Status: http.StatusBadRequest,
-		Title:  BadRequestTitle,
-		// Instance:          instance(ctx),
+		Type:              BadRequestType,
+		Status:            http.StatusBadRequest,
+		Title:             BadRequestTitle,
+		Instance:          instance(ctx),
 		InvalidParameters: invalidFields,
 		UnderlyingError:   err,
 		Detail:            fmt.Sprintf("%s: %s", BadRequestTitle, invalidFields.String()),

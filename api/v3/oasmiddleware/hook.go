@@ -1,6 +1,7 @@
 package oasmiddleware
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -27,8 +28,7 @@ func OasRouteNotFoundErrorHook(err error, w http.ResponseWriter, r *http.Request
 // OasValidationErrorHook handles the error when a request is not matching the
 // OAS spec definition for a given route in the validation router.
 // This will stop the request lifecycle and return an AIP compliant 400 response
-func OasValidationErrorHook(err error, w http.ResponseWriter, r *http.Request) bool {
-	ctx := r.Context()
+func OasValidationErrorHook(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 	switch err := err.(type) {
 	case nil:
 		return false
