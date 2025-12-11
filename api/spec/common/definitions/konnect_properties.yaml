@@ -15,22 +15,20 @@ components:
         pattern: '^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$'
         minLength: 1
         maxLength: 63
-    LabelsUpdate:
+    PublicLabels:
+      title: PublicLabels
       type: object
-      nullable: true
+      example:
+        category: finance
+      maxProperties: 50
       description: |
-        Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. 
+        Public labels store information about an entity that can be used for filtering a list of objects.
 
-        Labels are intended to store **INTERNAL** metadata.
+        Public labels are intended to store **PUBLIC** metadata. 
 
         Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
-      example:
-        env: test
-      maxProperties: 50
       additionalProperties:
         type: string
         pattern: '^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$'
         minLength: 1
         maxLength: 63
-        nullable: true
-      writeOnly: true

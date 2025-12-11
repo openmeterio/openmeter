@@ -47,12 +47,12 @@ func OasValidationErrorHook(ctx context.Context, err error, w http.ResponseWrite
 				HandleAPIError(w, r)
 		} else {
 			apierrors.
-				NewBadRequestError(ctx, SanitizeSensitiveFieldValues(err), ToAipError(err)).
+				NewBadRequestError(ctx, SanitizeSensitiveFieldValues(err), invalidParams).
 				HandleAPIError(w, r)
 		}
 		return true
 	case *openapi3filter.RequestError:
-		if err.Parameter.In == "path" {
+		if err.Parameter != nil && err.Parameter.In == "path" {
 			apierrors.
 				NewNotFoundError(ctx, err, "entity").
 				HandleAPIError(w, r)

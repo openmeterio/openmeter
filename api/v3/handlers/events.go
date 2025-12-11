@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"mime"
 	"net/http"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -55,7 +56,10 @@ func (h *eventsHandler) IngestEvents() IngestEventsHandler {
 
 			req.Namespace = namespace
 
-			contentType := r.Header.Get("Content-Type")
+			contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+			if err != nil {
+				return req, apierrors.NewBadRequestError(ctx, err, nil)
+			}
 
 			switch contentType {
 			case "application/json":

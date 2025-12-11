@@ -72,7 +72,7 @@ const (
 	EmptySetCursorType = "Empty Set Cursor"
 )
 
-// NewInternalError generates a not found error.
+// NewInternalError generates an internal server error.
 func NewInternalError(ctx context.Context, err error) *BaseAPIError {
 	return &BaseAPIError{
 		Type:            InternalType,
@@ -88,11 +88,11 @@ func NewInternalError(ctx context.Context, err error) *BaseAPIError {
 // NewServiceUnavailable generates a not found error.
 func NewServiceUnavailable(ctx context.Context, err error) *BaseAPIError {
 	return &BaseAPIError{
-		Type:            InternalType,
+		Type:            UnavailableType,
 		Status:          http.StatusServiceUnavailable,
-		Title:           InternalTitle,
+		Title:           UnavailableTitle,
 		Instance:        instance(ctx),
-		Detail:          InternalDetail,
+		Detail:          UnavailableDetail,
 		UnderlyingError: err,
 		ctx:             ctx,
 	}
@@ -129,7 +129,7 @@ func NewForbiddenErrorDetail(ctx context.Context, detailMessage string) *BaseAPI
 	return &BaseAPIError{
 		Type:     ForbiddenType,
 		Status:   http.StatusForbidden,
-		Title:    ForbiddenDetail,
+		Title:    ForbiddenTitle,
 		Instance: instance(ctx),
 		Detail:   MakeSentenceCase(detailMessage),
 		ctx:      ctx,
@@ -221,7 +221,7 @@ func NewRateLimitError(ctx context.Context) *BaseAPIError {
 	return &BaseAPIError{
 		Type:     RateLimitType,
 		Status:   http.StatusTooManyRequests,
-		Title:    RateLimitDetail,
+		Title:    RateLimitTitle,
 		Instance: instance(ctx),
 		Detail:   RateLimitDetail,
 		ctx:      ctx,
@@ -257,16 +257,21 @@ func NewEmptySetResponse(ctx context.Context, cursorPagination bool) *BaseAPIErr
 
 func NewNotImplementedError(ctx context.Context, err error) *BaseAPIError {
 	return &BaseAPIError{
-		Type:   NotImplementedType,
-		Status: http.StatusNotImplemented,
-		Title:  NotImplementedTitle,
-		Detail: NotImplementedDetail,
-		ctx:    ctx,
+		Type:            NotImplementedType,
+		Status:          http.StatusNotImplemented,
+		Title:           NotImplementedTitle,
+		Instance:        instance(ctx),
+		Detail:          NotImplementedDetail,
+		UnderlyingError: err,
+		ctx:             ctx,
 	}
 }
 
 // MakeSentenceCase takes any string and returns a Sentence case version of it
 func MakeSentenceCase(msg string) string {
+	if msg == "" {
+		return ""
+	}
 	return strings.ToUpper(msg[:1]) + msg[1:]
 }
 
