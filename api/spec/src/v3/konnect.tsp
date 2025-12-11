@@ -4,6 +4,10 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "./shared/index.tsp";
 import "./events/index.tsp";
+import "./customers/index.tsp";
+import "./entitlements/index.tsp";
+import "./meters/index.tsp";
+import "./subscriptions/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -24,16 +28,41 @@ using TypeSpec.OpenAPI;
 // TODO: Uncomment this when the Singapore production region is available
 // @server("https://sg.api.konghq.com/v3", "Singapore Production region")
 @server("https://global.api.konghq.com/v3", "Global Production region")
+@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
-@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
+@tagMetadata(Shared.SubscriptionsTag, #{ description: Shared.SubscriptionsDescription })
+@tagMetadata(Shared.EntitlementsTag, #{ description: Shared.EntitlementsDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
+
+@route("/openmeter/meters")
+@tag(Shared.MetersTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.MetersTag}")
+interface MetersEndpoints extends Meters.MetersOperations {}
 
 @route("/openmeter/events")
 @tag(Shared.EventsTag)
 @friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.EventsTag}")
 interface EventsEndpoints extends Events.EventsOperations {}
+
+@route("/openmeter/customers")
+@tag(Shared.CustomersTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.CustomersTag}")
+interface CustomersEndpoints extends Customers.CustomersOperations {}
+
+@route("/openmeter/customers/{customerId}/subscriptions")
+@tag(Shared.CustomersTag)
+@tag(Shared.SubscriptionsTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.CustomersTag}: ${Shared.SubscriptionsTag}")
+interface CustomerSubscriptionsEndpoints extends Subscriptions.CustomerSubscriptionsOperations {}
+
+@route("/openmeter/customers/{customerId}/entitlements/{featureKey}")
+@tag(Shared.CustomersTag)
+@tag(Shared.EntitlementsTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.EntitlementsTag}")
+interface CustomerEntitlementsEndpoints
+  extends Entitlements.CustomerEntitlementsOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.

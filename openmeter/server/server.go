@@ -93,6 +93,7 @@ func NewServer(config *Config) (*Server, error) {
 		NamespaceDecoder: namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
 		ErrorHandler:     config.RouterConfig.ErrorHandler,
 		IngestService:    config.RouterConfig.IngestService,
+		CustomerService:  config.RouterConfig.Customer,
 		Middlewares: []func(http.Handler) http.Handler{
 			middleware.RealIP,
 			middleware.RequestID,

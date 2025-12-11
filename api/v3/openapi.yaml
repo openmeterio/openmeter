@@ -13,17 +13,290 @@ servers:
   - url: https://openmeter.cloud/api/v3
     description: Cloud
     variables: {}
-  - url: https://127.0.0.1/api/v3
-    description: Local
-    variables: {}
 tags:
-  - name: Meters
-    description: Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.
+  - name: Billing Entitlements
+    description: Entitlements are used to control access to features for customers.
+  - name: Billing Subscriptions
+    description: Subscriptions are used to track usage of your product or service. Subscriptions can be individuals or organizations that can subscribe to plans and have access to features.
   - name: Billing Customers
     description: Customers are used to track usage of your product or service. Customers can be individuals or organizations that can subscribe to plans and have access to features.
   - name: Metering Events
     description: Metering events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.
+  - name: Meters
+    description: Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.
 paths:
+  /openmeter/customers:
+    post:
+      operationId: create-customer
+      summary: Create customer
+      responses:
+        '201':
+          description: Customer created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+      x-internal: true
+      x-unstable: true
+    get:
+      operationId: list-customers
+      summary: List customers
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - $ref: '#/components/parameters/ListCustomersParams.sort'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      x-internal: true
+      x-unstable: true
+  /openmeter/customers/{customerId}:
+    get:
+      operationId: get-customer
+      summary: Get customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Customer response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      x-internal: true
+      x-unstable: true
+    put:
+      operationId: upsert-customer
+      summary: Upsert customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Customer upsert response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertCustomerRequest'
+      x-internal: true
+      x-unstable: true
+    delete:
+      operationId: delete-customer
+      summary: Delete customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      x-internal: true
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{featureKey}:
+    get:
+      operationId: check-customer-feature-access
+      summary: Check customer feature access
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: featureKey
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResourceKey'
+      responses:
+        '200':
+          description: EntitlementCheck response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementCheck'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+        - Billing Entitlements
+      x-internal: true
+      x-unstable: true
+  /openmeter/customers/{customerId}/subscriptions:
+    post:
+      operationId: create-customer-subscription
+      summary: Create customer subscription
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: Subscription created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+        - Billing Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionRequest'
+      x-internal: true
+      x-unstable: true
+    get:
+      operationId: list-customer-subscriptions
+      summary: List customer subscriptions
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+        - Billing Subscriptions
+      x-internal: true
+      x-unstable: true
   /openmeter/events:
     post:
       operationId: ingest-metering-events
@@ -64,14 +337,630 @@ paths:
                 - type: array
                   items:
                     $ref: '#/components/schemas/MeteringEvent'
+  /openmeter/meters:
+    post:
+      operationId: create-meter
+      summary: Create meter
+      description: Create a meter.
+      responses:
+        '201':
+          description: Meter created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meter'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Meters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMeterRequest'
+    get:
+      operationId: list-meters
+      summary: List meters
+      description: List meters.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Meters
+  /openmeter/meters/{meterId}:
+    get:
+      operationId: get-meter
+      summary: Get meter
+      description: Get a meter by ID.
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Meter response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meter'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Meters
 components:
+  parameters:
+    ListCustomersParams.sort:
+      name: sort
+      in: query
+      required: false
+      description: |-
+        Sort customers returned in the response.
+        Supported sort attributes are:
+        - `key`
+        - `id`
+        - `name`
+        - `primary_email`
+        - `created_at` (default)
+        - `updated_at`
+        - `deleted_at`
+
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+        Multiple sort attributes may be provided via a comma separated list.
+      schema:
+        $ref: '#/components/schemas/SortQuery'
+      explode: false
+      style: form
+    PagePaginationQuery:
+      name: page
+      in: query
+      required: false
+      description: Determines which page of the collection to retrieve.
+      schema:
+        type: object
+        properties:
+          size:
+            type: integer
+          number:
+            type: integer
+      style: deepObject
   schemas:
+    BillingAddress:
+      type: object
+      properties:
+        country:
+          allOf:
+            - $ref: '#/components/schemas/CountryCode'
+          description: Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+          title: Country
+        postal_code:
+          type: string
+          description: Postal code.
+          title: Postal Code
+        state:
+          type: string
+          description: State or province.
+          title: State
+        city:
+          type: string
+          description: City.
+          title: City
+        line1:
+          type: string
+          description: First line of the address.
+          title: Line 1
+        line2:
+          type: string
+          description: Second line of the address.
+          title: Line 2
+        phone_number:
+          type: string
+          description: Phone number.
+          title: Phone Number
+      description: Address
+    BillingCustomer:
+      type: object
+      required:
+        - id
+        - name
+        - key
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer by the event subject.
+          title: Usage Attribution
+        primary_email:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency of the customer.
+            Used for billing, tax and invoicing.
+          title: Currency
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/BillingAddress'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+      description: Customers can be individuals or organizations that can subscribe to plans and have access to features.
+    BillingCustomerUsageAttribution:
+      type: object
+      required:
+        - subject_keys
+      properties:
+        subject_keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customers.UsageAttributionKey'
+          minItems: 0
+          description: |-
+            The subjects that are attributed to the customer.
+            Can be empty when no usage event subjects are associated with the customer.
+          title: Subject Keys
+      description: |-
+        Mapping to attribute metered usage to the customer.
+        One customer can have zero or more subjects,
+        but one subject can only belong to one customer.
+    BillingEntitlementCheck:
+      type: object
+      required:
+        - type
+        - has_access
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementType'
+          description: The type of the entitlement.
+          readOnly: true
+        has_access:
+          type: boolean
+          description: Whether the customer has access to the feature.
+          readOnly: true
+        config:
+          type: string
+          format: json
+          description: Only available for static entitlements.
+          example: '{ "rateLimit": 100 }'
+          readOnly: true
+      description: Entitlement check result.
+    BillingEntitlementType:
+      type: string
+      enum:
+        - metered
+        - static
+        - boolean
+      description: The type of the entitlement.
+    BillingSubscription:
+      type: object
+      required:
+        - id
+        - name
+        - plan
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        plan:
+          allOf:
+            - $ref: '#/components/schemas/PlanReference'
+          description: Plan reference.
+      description: A subscription is a customer's subscription to a plan.
+    CountryCode:
+      type: string
+      minLength: 2
+      maxLength: 2
+      pattern: ^[A-Z]{2}$
+      description: |-
+        [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
+        Custom two-letter country codes are also supported for convenience.
+      example: US
+    CreateCustomerRequest:
+      type: object
+      required:
+        - name
+        - key
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer by the event subject.
+          title: Usage Attribution
+        primary_email:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency of the customer.
+            Used for billing, tax and invoicing.
+          title: Currency
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/BillingAddress'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+      description: Customer create request.
+    CreateMeterRequest:
+      type: object
+      required:
+        - name
+        - key
+        - aggregation
+        - event_type_filter
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        aggregation:
+          allOf:
+            - $ref: '#/components/schemas/MeterAggregation'
+          description: The aggregation type to use for the meter.
+        event_type_filter:
+          type: string
+          minLength: 1
+          description: The event type to include in the aggregation.
+          example: prompt
+        event_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The date since the meter should include events.
+            Useful to skip old events.
+            If not specified, all historical events are included.
+        value_property:
+          type: string
+          minLength: 1
+          description: |-
+            JSONPath expression to extract the value from the ingested event's data property.
+
+            The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+
+            For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+          example: $.tokens
+        dimensions:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Named JSONPath expressions to extract the group by values from the event data.
+
+            Keys must be unique and consist only alphanumeric and underscore characters.
+          example:
+            type: $.type
+      description: Meter create request.
+    CreateSubscriptionRequest:
+      type: object
+      required:
+        - name
+        - plan
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        plan:
+          allOf:
+            - $ref: '#/components/schemas/PlanReference'
+          description: Plan reference.
+      description: Subscription create request.
+    CurrencyCode:
+      type: string
+      minLength: 3
+      maxLength: 3
+      pattern: ^[A-Z]{3}$
+      description: |-
+        Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
+        Custom three-letter currency codes are also supported for convenience.
+      example: USD
+    CustomerPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCustomer'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
+    Customers.UsageAttributionKey:
+      type: string
+      minLength: 1
     DateTime:
       type: string
       format: date-time
       description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
       title: RFC3339 Date-Time
       example: '2023-01-01T01:01:01.001Z'
+    Meter:
+      type: object
+      required:
+        - id
+        - name
+        - key
+        - aggregation
+        - event_type_filter
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        aggregation:
+          allOf:
+            - $ref: '#/components/schemas/MeterAggregation'
+          description: The aggregation type to use for the meter.
+        event_type_filter:
+          type: string
+          minLength: 1
+          description: The event type to include in the aggregation.
+          example: prompt
+        event_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The date since the meter should include events.
+            Useful to skip old events.
+            If not specified, all historical events are included.
+        value_property:
+          type: string
+          minLength: 1
+          description: |-
+            JSONPath expression to extract the value from the ingested event's data property.
+
+            The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+
+            For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+          example: $.tokens
+        dimensions:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Named JSONPath expressions to extract the group by values from the event data.
+
+            Keys must be unique and consist only alphanumeric and underscore characters.
+          example:
+            type: $.type
+      description: A meter is a configuration that defines how to match and aggregate events.
+      example:
+        id: 01G65Z755AFWAKHE12NY0CQ9FH
+        key: tokens_total
+        name: Tokens Total
+        description: AI Token Usage
+        aggregation: sum
+        event_type_filter: prompt
+        value_property: $.tokens
+        dimensions:
+          model: $.model
+          type: $.type
+        created_at: '2024-01-01T01:01:01.001Z'
+        updated_at: '2024-01-01T01:01:01.001Z'
+    MeterAggregation:
+      type: string
+      enum:
+        - sum
+        - count
+        - unique_count
+        - avg
+        - min
+        - max
+        - latest
+      description: The aggregation type to use for the meter.
+    MeterPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Meter'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     MeteringEvent:
       type: object
       required:
@@ -149,6 +1038,145 @@ components:
           tokens: 100
           model: gpt-4o
           type: input
+    PlanReference:
+      oneOf:
+        - $ref: '#/components/schemas/ULID'
+        - type: object
+          properties:
+            key:
+              $ref: '#/components/schemas/ResourceKey'
+            version:
+              type: integer
+          required:
+            - key
+      description: Reference to a plan by its id or key and version.
+    ResourceKey:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+      description: A key is a unique string that is used to identify a resource.
+      title: Resource Key
+      example: resource_key
+    SubscriptionPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingSubscription'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
+    ULID:
+      type: string
+      pattern: ^[0-7][0-9A-HJKMNP-TV-Z]{25}$
+      description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      title: ULID
+      example: 01G65Z755AFWAKHE12NY0CQ9FH
+    UpsertCustomerRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer by the event subject.
+          title: Usage Attribution
+        primary_email:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency of the customer.
+            Used for billing, tax and invoicing.
+          title: Currency
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/BillingAddress'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+      description: Customer upsert request.
+    SortQuery:
+      title: SortQuery
+      type: string
+      example: created_at desc
+      description: |
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+        Multiple sort attributes may be provided via a comma separated list.
+        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
+    Labels:
+      title: Labels
+      type: object
+      example:
+        env: test
+      maxProperties: 50
+      description: |
+        Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. 
+
+        Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+      additionalProperties:
+        type: string
+        pattern: ^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$
+        minLength: 1
+        maxLength: 63
+    PageMeta:
+      type: object
+      description: Contains pagination query parameters and the total number of objects returned.
+      required:
+        - number
+        - size
+        - total
+      properties:
+        number:
+          type: number
+          example: 1
+          x-speakeasy-terraform-ignore: true
+        size:
+          type: number
+          example: 10
+          x-speakeasy-terraform-ignore: true
+        total:
+          type: number
+          example: 100
+          x-speakeasy-terraform-ignore: true
+    PaginatedMeta:
+      type: object
+      title: PaginatedMeta
+      x-speakeasy-terraform-ignore: true
+      description: returns the pagination information
+      properties:
+        page:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+        - page
     BaseError:
       type: object
       title: Error
@@ -426,6 +1454,36 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Forbidden
+    NotFoundError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 404
+            title:
+              example: Not Found
+            type:
+              example: https://httpstatuses.com/404
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Not found
+    ConflictError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 409
+            title:
+              example: Conflict
+            type:
+              example: https://httpstatuses.com/409
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Conflict
   responses:
     BadRequest:
       description: Bad Request
@@ -463,6 +1521,21 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/BaseError'
+    NotFound:
+      description: Not Found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/NotFoundError'
+          examples:
+            NotFoundExample:
+              $ref: '#/components/examples/NotFoundExample'
+    Conflict:
+      description: Conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ConflictError'
   examples:
     UnauthorizedExample:
       value:
@@ -476,3 +1549,9 @@ components:
         title: Forbidden
         instance: kong:trace:2723154947768991354
         detail: You do not have permission to perform this action
+    NotFoundExample:
+      value:
+        status: 404
+        title: Not Found
+        instance: kong:trace:6816496025408232265
+        detail: Not Found
