@@ -4,6 +4,7 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "./events/index.tsp";
 import "./shared/index.tsp";
+import "./customers/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -32,3 +33,8 @@ namespace OpenMeter;
 @tag(Shared.EventsTag)
 @friendlyName("${Shared.OpenMeterTitle}: ${Shared.EventsTag}")
 interface EventsEndpoints extends Events.EventsOperations {}
+
+@route("/openmeter/customers")
+@tag(Shared.CustomersTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.CustomersTag}")
+interface CustomersEndpoints extends Customers.CustomersOperations {}

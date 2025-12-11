@@ -24,6 +24,201 @@ tags:
   - name: Metering Events
     description: Metering events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.
 paths:
+  /openmeter/customers:
+    post:
+      operationId: create-customer
+      summary: Create customer
+      responses:
+        '201':
+          description: Customer created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+      x-internal: true
+      x-unstable: true
+    get:
+      operationId: list-customers
+      summary: List customers
+      parameters:
+        - $ref: '#/components/parameters/CursorPageQuery'
+        - $ref: '#/components/parameters/ListCustomersParams'
+      responses:
+        '200':
+          description: Cursor paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerPaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      x-internal: true
+      x-unstable: true
+  /openmeter/customers/{customerId}:
+    get:
+      operationId: get-customer
+      summary: Get customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Customer response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      x-internal: true
+      x-unstable: true
+    put:
+      operationId: upsert-customer
+      summary: Upsert customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Customer upsert response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertCustomerRequest'
+      x-internal: true
+      x-unstable: true
+    patch:
+      operationId: update-customer
+      summary: Update customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Customer updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerRequest'
+      x-internal: true
+      x-unstable: true
+    delete:
+      operationId: delete-customer
+      summary: Delete customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - Billing Customers
+      x-internal: true
+      x-unstable: true
   /openmeter/events:
     post:
       operationId: ingest-metering-events
@@ -65,7 +260,240 @@ paths:
                   items:
                     $ref: '#/components/schemas/MeteringEvent'
 components:
+  parameters:
+    ListCustomersParams:
+      name: sort
+      in: query
+      required: false
+      description: |-
+        Sort customers returned in the response.
+        Supported sort attributes are:
+        - `key`
+        - `id`
+        - `name`
+        - `primary_email`
+        - `created_at` (default)
+        - `updated_at`
+        - `deleted_at`
+
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+        Multiple sort attributes may be provided via a comma separated list.
+      schema:
+        $ref: '#/components/schemas/SortQuery'
+      explode: false
+      style: form
+    CursorPageQuery:
+      name: page
+      description: Determines which page of the collection to retrieve.
+      required: false
+      in: query
+      schema:
+        $ref: '#/components/schemas/CursorPageParameters'
   schemas:
+    BillingAddress:
+      type: object
+      properties:
+        country:
+          allOf:
+            - $ref: '#/components/schemas/CountryCode'
+          description: Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+          title: Country
+        postal_code:
+          type: string
+          description: Postal code.
+          title: Postal Code
+        state:
+          type: string
+          description: State or province.
+          title: State
+        city:
+          type: string
+          description: City.
+          title: City
+        line1:
+          type: string
+          description: First line of the address.
+          title: Line 1
+        line2:
+          type: string
+          description: Second line of the address.
+          title: Line 2
+        phone_number:
+          type: string
+          description: Phone number.
+          title: Phone Number
+      description: Address
+    BillingCustomer:
+      type: object
+      required:
+        - id
+        - name
+        - key
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer by the event subject.
+          title: Usage Attribution
+        primary_email:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency of the customer.
+            Used for billing, tax and invoicing.
+          title: Currency
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/BillingAddress'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+      description: Customers can be individuals or organizations that can subscribe to plans and have access to features.
+    BillingCustomerUsageAttribution:
+      type: object
+      required:
+        - subject_keys
+      properties:
+        subject_keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customers.UsageAttributionKey'
+          minItems: 0
+          description: |-
+            The subjects that are attributed to the customer.
+            Can be empty when no usage event subjects are associated with the customer.
+          title: Subject Keys
+      description: |-
+        Mapping to attribute metered usage to the customer.
+        One customer can have zero or more subjects,
+        but one subject can only belong to one customer.
+    CountryCode:
+      type: string
+      minLength: 2
+      maxLength: 2
+      pattern: ^[A-Z]{2}$
+      description: |-
+        [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
+        Custom two-letter country codes are also supported for convenience.
+      example: US
+    CreateCustomerRequest:
+      type: object
+      required:
+        - name
+        - key
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer by the event subject.
+          title: Usage Attribution
+        primary_email:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency of the customer.
+            Used for billing, tax and invoicing.
+          title: Currency
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/BillingAddress'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+      description: Customer create request.
+    CurrencyCode:
+      type: string
+      minLength: 3
+      maxLength: 3
+      pattern: ^[A-Z]{3}$
+      description: |-
+        Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
+        Custom three-letter currency codes are also supported for convenience.
+      example: USD
+    CustomerPaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCustomer'
+        meta:
+          $ref: '#/components/schemas/CursorMeta'
+      description: Cursor paginated response.
+    Customers.UsageAttributionKey:
+      type: string
+      minLength: 1
     DateTime:
       type: string
       format: date-time
@@ -149,6 +577,186 @@ components:
           tokens: 100
           model: gpt-4o
           type: input
+    ResourceKey:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+      description: A key is a unique string that is used to identify a resource.
+      title: Resource Key
+      example: resource_key
+    ULID:
+      type: string
+      pattern: ^[0-7][0-9A-HJKMNP-TV-Z]{25}$
+      description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      title: ULID
+      example: 01G65Z755AFWAKHE12NY0CQ9FH
+    UpdateCustomerRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer by the event subject.
+          title: Usage Attribution
+        primary_email:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency of the customer.
+            Used for billing, tax and invoicing.
+          title: Currency
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/BillingAddress'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+      description: Customer update request.
+    UpsertCustomerRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer by the event subject.
+          title: Usage Attribution
+        primary_email:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency of the customer.
+            Used for billing, tax and invoicing.
+          title: Currency
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/BillingAddress'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+      description: Customer upsert request.
+    CursorPageParameters:
+      type: object
+      properties:
+        size:
+          type: integer
+          description: The number of items included per page.
+          example: 10
+        after:
+          type: string
+          description: Cursor param specifying the page (i.e. the next page) of data returned.
+          example: ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ
+        before:
+          type: string
+          description: Cursor param specifying the page (i.e. the previous page) of data returned.
+          example: ewogICJpZCI6ICJoZWxsbyB3b3JsZCIKfQ
+    SortQuery:
+      title: SortQuery
+      type: string
+      example: created_at desc
+      description: |
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+        Multiple sort attributes may be provided via a comma separated list.
+        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
+    Labels:
+      title: Labels
+      type: object
+      example:
+        env: test
+      maxProperties: 50
+      description: |
+        Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. 
+
+        Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+      additionalProperties:
+        type: string
+        pattern: ^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$
+        minLength: 1
+        maxLength: 63
+    CursorMetaPage:
+      type: object
+      required:
+        - size
+        - next
+        - previous
+      properties:
+        first:
+          description: URI to the first page
+          type: string
+          format: path
+        last:
+          description: URI to the last page
+          type: string
+          format: path
+        next:
+          description: URI to the next page
+          type: string
+          format: path
+          nullable: true
+        previous:
+          description: URI to the previous page
+          type: string
+          format: path
+          nullable: true
+        size:
+          description: Requested page size
+          type: number
+          example: 10
+    CursorMeta:
+      type: object
+      description: Pagination metadata.
+      required:
+        - page
+      properties:
+        page:
+          $ref: '#/components/schemas/CursorMetaPage'
     BaseError:
       type: object
       title: Error
@@ -426,6 +1034,21 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Forbidden
+    NotFoundError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 404
+            title:
+              example: Not Found
+            type:
+              example: https://httpstatuses.com/404
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Not found
   responses:
     BadRequest:
       description: Bad Request
@@ -463,6 +1086,15 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/BaseError'
+    NotFound:
+      description: Not Found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/NotFoundError'
+          examples:
+            NotFoundExample:
+              $ref: '#/components/examples/NotFoundExample'
   examples:
     UnauthorizedExample:
       value:
@@ -476,3 +1108,9 @@ components:
         title: Forbidden
         instance: kong:trace:2723154947768991354
         detail: You do not have permission to perform this action
+    NotFoundExample:
+      value:
+        status: 404
+        title: Not Found
+        instance: kong:trace:6816496025408232265
+        detail: Not Found
