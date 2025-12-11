@@ -6,6 +6,7 @@ import "./events/index.tsp";
 import "./shared/index.tsp";
 import "./customers/index.tsp";
 import "./entitlements/index.tsp";
+import "./subscriptions/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -23,11 +24,11 @@ using TypeSpec.OpenAPI;
   },
   termsOfService: "https://openmeter.cloud/terms-of-service",
 })
-@server("https://127.0.0.1/api/v3", "Local")
 @server("https://openmeter.cloud/api/v3", "Cloud")
+@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
-@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
+@tagMetadata(Shared.SubscriptionsTag, #{ description: Shared.SubscriptionsDescription })
 @tagMetadata(Shared.EntitlementsTag, #{ description: Shared.EntitlementsDescription })
 namespace OpenMeter;
 
@@ -45,6 +46,12 @@ interface EventsEndpoints extends Events.EventsOperations {}
 @tag(Shared.CustomersTag)
 @friendlyName("${Shared.OpenMeterTitle}: ${Shared.CustomersTag}")
 interface CustomersEndpoints extends Customers.CustomersOperations {}
+
+@route("/openmeter/customers/{customerId}/subscriptions")
+@tag(Shared.CustomersTag)
+@tag(Shared.SubscriptionsTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.CustomersTag}: ${Shared.SubscriptionsTag}")
+interface CustomerSubscriptionsEndpoints extends Subscriptions.CustomerSubscriptionsOperations {}
 
 @route("/openmeter/customers/{customerId}/entitlements/{featureKey}")
 @tag(Shared.CustomersTag)

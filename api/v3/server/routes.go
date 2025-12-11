@@ -53,3 +53,11 @@ func (s *Server) DeleteCustomer(w http.ResponseWriter, r *http.Request, customer
 func (s *Server) CheckCustomerFeatureAccess(w http.ResponseWriter, r *http.Request, customerId api.ULID, featureKey api.ResourceKey) {
 	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
 }
+
+func (s *Server) CreateCustomerSubscription(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
+}
+
+func (s *Server) ListCustomerSubscriptions(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCustomerSubscriptionsParams) {
+	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
+}
