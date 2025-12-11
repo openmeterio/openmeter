@@ -13,9 +13,6 @@ servers:
   - url: https://openmeter.cloud/api/v3
     description: Cloud
     variables: {}
-  - url: https://127.0.0.1/api/v3
-    description: Local
-    variables: {}
 tags:
   - name: Billing Entitlements
     description: Entitlements are used to control access to features for customers.

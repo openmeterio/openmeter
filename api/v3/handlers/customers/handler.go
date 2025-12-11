@@ -11,7 +11,7 @@ type Handler interface {
 	ListCustomers() ListCustomersHandler
 	CreateCustomer() CreateCustomerHandler
 	DeleteCustomer() DeleteCustomerHandler
-	// GetCustomer() GetCustomerHandler
+	GetCustomer() GetCustomerHandler
 	// UpdateCustomer() UpdateCustomerHandler
 }
 

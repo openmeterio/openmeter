@@ -35,7 +35,7 @@ func (s *Server) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetCustomer(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
+	s.customersHandler.GetCustomer().With(customerId).ServeHTTP(w, r)
 }
 
 func (s *Server) ListCustomers(w http.ResponseWriter, r *http.Request, params api.ListCustomersParams) {
