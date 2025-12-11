@@ -24,17 +24,16 @@ using TypeSpec.OpenAPI;
 // TODO: Uncomment this when the Singapore production region is available
 // @server("https://sg.api.konghq.com/v3", "Singapore Production region")
 @server("https://global.api.konghq.com/v3", "Global Production region")
-@tagMetadata(
-  Shared.MeteringEventsTag,
-  #{ description: Shared.MeteringEventsDescription }
-)
+@tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
+@tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
+@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
 
-@route("/metering/events")
-@tag(Shared.MeteringEventsTag)
-@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.MeteringEventsTag}")
-interface MeteringEventsEndpoints extends Events.MeteringEventsOperations {}
+@route("/openmeter/events")
+@tag(Shared.EventsTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.EventsTag}")
+interface EventsEndpoints extends Events.EventsOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.

@@ -160,3 +160,37 @@ model PageNumber {
   @useRef("../../../../common/definitions/metadatas.yaml#/components/parameters/PageNumber")
   `page[number]`?: integer;
 }
+
+/**
+ * Pagination metadata.
+ */
+@friendlyName("PaginatedMeta")
+@useRef("../../../../common/definitions/metadatas.yaml#/components/schemas/PaginatedMeta")
+model PaginatedMeta {
+  /**
+   * Page metadata.
+   */
+  page: PageMeta;
+}
+
+/**
+ * Pagination information.
+ */
+@friendlyName("PageMeta")
+@useRef("../../../../common/definitions/metadatas.yaml#/components/schemas/PageMeta")
+model PageMeta {
+  /**
+   * Page number.
+   */
+  number: integer;
+
+  /**
+   * Page size.
+   */
+  size: integer;
+
+  /**
+   * Total number of items in the collection.
+   */
+  total: integer;
+}

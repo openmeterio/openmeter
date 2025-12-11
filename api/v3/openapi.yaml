@@ -17,16 +17,20 @@ servers:
     description: Local
     variables: {}
 tags:
+  - name: Meters
+    description: Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.
+  - name: Billing Customers
+    description: Customers are used to track usage of your product or service. Customers can be individuals or organizations that can subscribe to plans and have access to features.
   - name: Metering Events
     description: Metering events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.
 paths:
-  /metering/events:
+  /openmeter/events:
     post:
       operationId: ingest-metering-events
       description: Ingests an event or batch of events following the CloudEvents specification.
       summary: Ingest metering events
       responses:
-        '204':
+        '202':
           description: The events have been ingested and are being processed asynchronously.
         '400':
           $ref: '#/components/responses/BadRequest'
