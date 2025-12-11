@@ -11,7 +11,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -597,8 +596,8 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		OrderBy:   api.CustomerOrderByName,
-		Order:     sortx.Order(api.SortOrderDESC),
+		OrderBy:   "name",
+		Order:     sortx.OrderDesc,
 	})
 
 	require.NoError(t, err, "Listing customers with order by name must not return error")

@@ -47,6 +47,16 @@ union ULIDOrResourceKey {
 scalar ExternalResourceKey extends string;
 
 /**
+ * ULID ID or External Resource Key.
+ */
+@friendlyName("ULIDOrExternalResourceKey")
+@summary("ULID ID or External Resource Key")
+union ULIDOrExternalResourceKey {
+  id: ULID,
+  key: ExternalResourceKey,
+}
+
+/**
  * [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
  */
 @encode(DateTimeKnownEncoding.rfc3339)
