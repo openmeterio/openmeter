@@ -38,6 +38,16 @@ func (h *handler) ListMeters() ListMetersHandler {
 				)
 			}
 
+			if err := page.Validate(); err != nil {
+				return ListMetersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+					apierrors.InvalidParameter{
+						Field:  "page",
+						Reason: err.Error(),
+						Source: apierrors.InvalidParamSourceQuery,
+					},
+				})
+			}
+
 			req := ListMetersRequest{
 				Namespace: ns,
 				Page:      page,
