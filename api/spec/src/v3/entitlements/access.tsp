@@ -1,5 +1,5 @@
+import "../../types.tsp";
 import "./entitlements.tsp";
-import "../common/json.tsp";
 
 namespace Entitlements;
 
@@ -14,6 +14,13 @@ model EntitlementAccessResult {
   @example(EntitlementType.static)
   @visibility(Lifecycle.Read)
   type: EntitlementType;
+
+  /**
+   * The feature key of the entitlement.
+   */
+  @example("available_models")
+  @visibility(Lifecycle.Read)
+  feature_key: ExternalKey;
 
   /**
    * Whether the customer has access to the feature.
@@ -31,5 +38,5 @@ model EntitlementAccessResult {
    */
   @example(#{ availableModels: #["gpt-5", "gpt-4o"] })
   @visibility(Lifecycle.Read)
-  config?: Common.JsonValue;
+  config?: unknown;
 }

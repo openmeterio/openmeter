@@ -1,11 +1,9 @@
 package server
 
 import (
-	"errors"
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
-	"github.com/openmeterio/openmeter/api/v3/apierrors"
 )
 
 // Meters
@@ -53,7 +51,8 @@ func (s *Server) DeleteCustomer(w http.ResponseWriter, r *http.Request, customer
 	s.customersHandler.DeleteCustomer().With(customerId).ServeHTTP(w, r)
 }
 
+// Customers Entitlement Access
+
 func (s *Server) ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	// TODO: implement
-	apierrors.NewNotImplementedError(r.Context(), errors.New("not implemented")).HandleAPIError(w, r)
+	s.customersEntitlementHandler.ListCustomerEntitlementAccess().With(customerId).ServeHTTP(w, r)
 }

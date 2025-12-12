@@ -17,7 +17,19 @@ namespace Entitlements;
 @friendlyName("ListCustomerEntitlementAccessResponse")
 model ListCustomerEntitlementAccessResponse {
   @Http.statusCode _: 200;
-  @body body: EntitlementAccessResult[];
+  @body body: ListCustomerEntitlementAccessResponseData;
+}
+
+/**
+ * List customer entitlement access response data.
+ */
+@friendlyName("ListCustomerEntitlementAccessResponseData")
+model ListCustomerEntitlementAccessResponseData {
+  /**
+   * The list of entitlement access results.
+   */
+  @visibility(Lifecycle.Read)
+  data: EntitlementAccessResult[];
 }
 
 interface CustomerEntitlementsOperations {

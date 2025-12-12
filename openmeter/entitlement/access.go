@@ -6,6 +6,7 @@ type Access struct {
 }
 
 type EntitlementValueWithId struct {
+	Type  EntitlementType
 	Value EntitlementValue
 	ID    string
 }

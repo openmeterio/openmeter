@@ -198,9 +198,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/BillingEntitlementAccessResult'
+                $ref: '#/components/schemas/ListCustomerEntitlementAccessResponseData'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -529,6 +527,7 @@ components:
       type: object
       required:
         - type
+        - feature_key
         - has_access
       properties:
         type:
@@ -536,6 +535,13 @@ components:
             - $ref: '#/components/schemas/BillingEntitlementType'
           description: The type of the entitlement.
           example: static
+          readOnly: true
+        feature_key:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: The feature key of the entitlement.
+          example: available_models
           readOnly: true
         has_access:
           type: boolean
@@ -546,8 +552,6 @@ components:
           example: true
           readOnly: true
         config:
-          allOf:
-            - $ref: '#/components/schemas/JsonValue'
           description: |-
             Only available for static entitlements.
             Config is the JSON parsable configuration of the entitlement.
@@ -722,29 +726,18 @@ components:
       description: ExternalResourceKey is a unique string that is used to identify a resource in an external system.
       title: External Resource Key
       example: 019ae40f-4258-7f15-9491-842f42a7d6ac
-    JsonArray:
-      type: array
-      items:
-        $ref: '#/components/schemas/JsonValue'
-      description: JSON array (named type for JsonValue[]).
-    JsonObject:
+    ListCustomerEntitlementAccessResponseData:
       type: object
-      additionalProperties:
-        $ref: '#/components/schemas/JsonValue'
-      description: JSON object.
-    JsonValue:
-      anyOf:
-        - anyOf:
-            - type: string
-            - type: integer
-              format: int32
-            - type: number
-              format: double
-            - type: boolean
-          nullable: true
-        - $ref: '#/components/schemas/JsonObject'
-        - $ref: '#/components/schemas/JsonArray'
-      description: JSON value.
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementAccessResult'
+          description: The list of entitlement access results.
+          readOnly: true
+      description: List customer entitlement access response data.
     Meter:
       type: object
       required:
