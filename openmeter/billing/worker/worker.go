@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -31,6 +32,7 @@ type WorkerOptions struct {
 	// External connectors
 
 	SubscriptionService subscription.Service
+	LockdownNamespaces  []string
 }
 
 func (w WorkerOptions) Validate() error {
@@ -77,6 +79,7 @@ type Worker struct {
 	asyncAdvanceHandler     *asyncadvance.Handler
 
 	nonPublishingHandler *grouphandler.NoPublishingHandler
+	lockdownNamespaces   []string
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -97,6 +100,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 		billingService:          opts.BillingService,
 		subscriptionSyncHandler: opts.BillingSubscriptionSyncHandler,
 		asyncAdvanceHandler:     asyncAdvancer,
+		lockdownNamespaces:      opts.LockdownNamespaces,
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
@@ -136,24 +140,52 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 		opts.Router.MetricMeter,
 
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CreatedEvent) error {
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {
+				return nil
+			}
+
 			return w.subscriptionSyncHandler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {
+				return nil
+			}
+
 			return w.subscriptionSyncHandler.HandleCancelledEvent(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.ContinuedEvent) error {
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {
+				return nil
+			}
+
 			return w.subscriptionSyncHandler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.UpdatedView.Subscription.Namespace) {
+				return nil
+			}
+
 			return w.subscriptionSyncHandler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, event.UpdatedView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.SubscriptionSyncEvent) error {
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {
+				return nil
+			}
+
 			return w.subscriptionSyncHandler.HandleSubscriptionSyncEvent(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceInvoiceEvent) error {
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.Invoice.Namespace) {
+				return nil
+			}
+
 			return w.asyncAdvanceHandler.Handle(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.EventInvoice.Invoice.Namespace) {
+				return nil
+			}
+
 			return w.subscriptionSyncHandler.HandleInvoiceCreation(ctx, event.EventInvoice)
 		}),
 	)

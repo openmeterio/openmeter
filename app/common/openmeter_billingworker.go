@@ -78,6 +78,7 @@ func NewBillingWorkerOptions(
 	billingAdapter billing.Adapter,
 	subscriptionServices SubscriptionServiceWithWorkflow,
 	subsSyncHandler *billingworkersubscription.Handler,
+	billingFsConfig config.BillingFeatureSwitchesConfiguration,
 	logger *slog.Logger,
 ) billingworker.WorkerOptions {
 	return billingworker.WorkerOptions{
@@ -90,6 +91,9 @@ func NewBillingWorkerOptions(
 		SubscriptionService:            subscriptionServices.Service,
 		BillingSubscriptionSyncHandler: subsSyncHandler,
 		Logger:                         logger,
+
+		// Feature switches
+		LockdownNamespaces: billingFsConfig.NamespaceLockdown,
 	}
 }
 

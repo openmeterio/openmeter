@@ -291,7 +291,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingService, adapter, subscriptionServiceWithWorkflow, handler, logger)
+	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingService, adapter, subscriptionServiceWithWorkflow, handler, billingFeatureSwitchesConfiguration, logger)
 	worker, err := common.NewBillingWorker(workerOptions)
 	if err != nil {
 		cleanup6()
