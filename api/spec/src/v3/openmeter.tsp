@@ -27,6 +27,10 @@ using TypeSpec.OpenAPI;
 @tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
+@tagMetadata(
+  Shared.EntitlementsTag,
+  #{ description: Shared.EntitlementsDescription }
+)
 namespace OpenMeter;
 
 @route("/openmeter/events")
@@ -43,3 +47,10 @@ interface MetersEndpoints extends Meters.MetersOperations {}
 @tag(Shared.CustomersTag)
 @friendlyName("${Shared.OpenMeterTitle}: ${Shared.CustomersTag}")
 interface CustomersEndpoints extends Customers.CustomersOperations {}
+
+@route("/openmeter/customers/{customerId}/entitlement-access")
+@tag(Shared.CustomersTag)
+@tag(Shared.EntitlementsTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.EntitlementsTag}")
+interface CustomerEntitlementsEndpoints
+  extends Entitlements.CustomerEntitlementsOperations {}

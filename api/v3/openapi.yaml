@@ -14,6 +14,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
+  - name: OpenMeter Entitlements
+    description: Entitlements are used to control access to features for customers.
   - name: OpenMeter Customers
     description: Customers are used to track usage of your product or service. Customers can be individuals or organizations that can subscribe to plans and have access to features.
   - name: Metering Events
@@ -178,6 +180,42 @@ paths:
           $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Customers
+      x-internal: true
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlement-access:
+    get:
+      operationId: list-customer-entitlement-access
+      summary: List customer entitlement access
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: List the customer's active features and their access.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BillingEntitlementAccessResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Customers
+        - OpenMeter Entitlements
       x-internal: true
       x-unstable: true
   /openmeter/events:
@@ -487,6 +525,35 @@ components:
         Mapping to attribute metered usage to the customer.
         One customer can have zero or more subjects,
         but one subject can only belong to one customer.
+    BillingEntitlementAccessResult:
+      type: object
+      required:
+        - type
+        - has_access
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementType'
+          description: The type of the entitlement.
+          readOnly: true
+        has_access:
+          type: boolean
+          description: Whether the customer has access to the feature.
+          readOnly: true
+        config:
+          type: string
+          format: json
+          description: Only available for static entitlements.
+          example: '{ "rateLimit": 100 }'
+          readOnly: true
+      description: Entitlement access result.
+    BillingEntitlementType:
+      type: string
+      enum:
+        - metered
+        - static
+        - boolean
+      description: The type of the entitlement.
     CountryCode:
       type: string
       minLength: 2
