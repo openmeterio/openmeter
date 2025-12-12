@@ -4,6 +4,7 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "./shared/index.tsp";
 import "./events/index.tsp";
+import "./customers/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -26,7 +27,6 @@ using TypeSpec.OpenAPI;
 @server("https://global.api.konghq.com/v3", "Global Production region")
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
-@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
 
@@ -34,6 +34,11 @@ namespace MeteringAndBilling;
 @tag(Shared.EventsTag)
 @friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.EventsTag}")
 interface EventsEndpoints extends Events.EventsOperations {}
+
+@route("/openmeter/customers")
+@tag(Shared.CustomersTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.CustomersTag}")
+interface CustomersEndpoints extends Customers.CustomersOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.

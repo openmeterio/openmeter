@@ -4,6 +4,7 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "./events/index.tsp";
 import "./shared/index.tsp";
+import "./customers/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -21,14 +22,17 @@ using TypeSpec.OpenAPI;
   },
   termsOfService: "https://openmeter.cloud/terms-of-service",
 })
-@server("https://127.0.0.1/api/v3", "Local")
 @server("https://openmeter.cloud/api/v3", "Cloud")
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
-@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 namespace OpenMeter;
 
 @route("/openmeter/events")
 @tag(Shared.EventsTag)
 @friendlyName("${Shared.OpenMeterTitle}: ${Shared.EventsTag}")
 interface EventsEndpoints extends Events.EventsOperations {}
+
+@route("/openmeter/customers")
+@tag(Shared.CustomersTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.CustomersTag}")
+interface CustomersEndpoints extends Customers.CustomersOperations {}

@@ -9,7 +9,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -87,11 +86,11 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		}
 
 		switch input.OrderBy {
-		case api.CustomerOrderById:
+		case "id":
 			query = query.Order(customerdb.ByID(order...))
-		case api.CustomerOrderByCreatedAt:
+		case "created_at":
 			query = query.Order(customerdb.ByCreatedAt(order...))
-		case api.CustomerOrderByName:
+		case "name":
 			fallthrough
 		default:
 			query = query.Order(customerdb.ByName(order...))

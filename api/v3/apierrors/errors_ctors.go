@@ -54,6 +54,11 @@ const (
 	BadRequestType  = "https://kongapi.info/konnect/bad-request"
 	BadRequestTitle = "Bad Request"
 
+	// Gone
+	GoneType   = "https://kongapi.info/konnect/gone"
+	GoneTitle  = "Gone"
+	GoneDetail = "The requested resource is no longer available"
+
 	// Precondition Failed
 	PreconditionFailedType  = "https://kongapi.info/konnect/precondition-failed"
 	PreconditionFailedTitle = "Precondition Failed"
@@ -200,6 +205,19 @@ func NewBadRequestError(ctx context.Context, err error, invalidFields InvalidPar
 		UnderlyingError:   err,
 		Detail:            fmt.Sprintf("%s: %s", BadRequestTitle, invalidFields.String()),
 		ctx:               ctx,
+	}
+}
+
+// NewGoneError generates a gone error.
+func NewGoneError(ctx context.Context, err error) *BaseAPIError {
+	return &BaseAPIError{
+		Type:            GoneType,
+		Status:          http.StatusGone,
+		Title:           GoneTitle,
+		Instance:        instance(ctx),
+		Detail:          GoneDetail,
+		UnderlyingError: err,
+		ctx:             ctx,
 	}
 }
 

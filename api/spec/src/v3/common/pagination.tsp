@@ -10,8 +10,8 @@ namespace Common;
 /**
  * Cursor page query.
  */
-@friendlyName("CursorPageQuery")
-model CursorPageQuery {
+@friendlyName("CursorPaginationQuery")
+model CursorPaginationQuery {
   /**
    * Determines which page of the collection to retrieve.
    */
@@ -22,6 +22,21 @@ model CursorPageQuery {
     size?: integer;
     after?: string;
     before?: string;
+  };
+}
+
+/**
+ * Page pagination query.
+ */
+@friendlyName("PagePaginationQuery")
+model PagePaginationQuery {
+  /**
+   * Determines which page of the collection to retrieve.
+   */
+  @query(#{ explode: true, style: "deepObject" })
+  page?: {
+    size?: integer;
+    number?: integer;
   };
 }
 
@@ -71,34 +86,6 @@ model CursorMeta {
    * Page metadata.
    */
   page: CursorMetaPage;
-}
-
-/**
- * Cursor pagination metadata with total.
- */
-@friendlyName("CursorMetaWithTotal")
-@useRef("../../../../common/definitions/metadatas.yaml#/components/schemas/CursorMetaWithTotal")
-model CursorMetaWithTotal {
-  ...CursorMeta;
-
-  /**
-   * Total number of items in the collection.
-   */
-  total: integer;
-}
-
-/**
- * Cursor pagination metadata with estimated total.
- */
-@friendlyName("CursorMetaWithEstimatedTotal")
-@useRef("../../../../common/definitions/metadatas.yaml#/components/schemas/CursorMetaWithEstimatedTotal")
-model CursorMetaWithEstimatedTotal {
-  ...CursorMeta;
-
-  /**
-   * Estimated total number of items in the collection.
-   */
-  estimated_total: integer;
 }
 
 /**
@@ -166,11 +153,11 @@ model PageNumber {
  */
 @friendlyName("PaginatedMeta")
 @useRef("../../../../common/definitions/metadatas.yaml#/components/schemas/PaginatedMeta")
-model PaginatedMeta {
+model PageMeta {
   /**
    * Page metadata.
    */
-  page: PageMeta;
+  page: PagePaginatedMeta;
 }
 
 /**
@@ -178,7 +165,7 @@ model PaginatedMeta {
  */
 @friendlyName("PageMeta")
 @useRef("../../../../common/definitions/metadatas.yaml#/components/schemas/PageMeta")
-model PageMeta {
+model PagePaginatedMeta {
   /**
    * Page number.
    */

@@ -135,11 +135,152 @@ type BaseError struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// BillingAddress Address
+type BillingAddress struct {
+	// City City.
+	City *string `json:"city,omitempty"`
+
+	// Country Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+	Country *CountryCode `json:"country,omitempty"`
+
+	// Line1 First line of the address.
+	Line1 *string `json:"line1,omitempty"`
+
+	// Line2 Second line of the address.
+	Line2 *string `json:"line2,omitempty"`
+
+	// PhoneNumber Phone number.
+	PhoneNumber *string `json:"phone_number,omitempty"`
+
+	// PostalCode Postal code.
+	PostalCode *string `json:"postal_code,omitempty"`
+
+	// State State or province.
+	State *string `json:"state,omitempty"`
+}
+
+// BillingCustomer Customers can be individuals or organizations that can subscribe to plans and have access to features.
+type BillingCustomer struct {
+	// BillingAddress The billing address of the customer.
+	// Used for tax and invoicing.
+	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
+
+	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt *DateTime `json:"created_at,omitempty"`
+
+	// Currency Currency of the customer.
+	// Used for billing, tax and invoicing.
+	Currency *CurrencyCode `json:"currency,omitempty"`
+
+	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *DateTime `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+	Id          ULID    `json:"id"`
+
+	// Key ExternalResourceKey is a unique string that is used to identify a resource in an external system.
+	Key ExternalResourceKey `json:"key"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// PrimaryEmail The primary email address of the customer.
+	PrimaryEmail *string `json:"primary_email,omitempty"`
+
+	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+
+	// UsageAttribution Mapping to attribute metered usage to the customer by the event subject.
+	UsageAttribution *BillingCustomerUsageAttribution `json:"usage_attribution,omitempty"`
+}
+
+// BillingCustomerUsageAttribution Mapping to attribute metered usage to the customer.
+// One customer can have zero or more subjects,
+// but one subject can only belong to one customer.
+type BillingCustomerUsageAttribution struct {
+	// SubjectKeys The subjects that are attributed to the customer.
+	// Can be empty when no usage event subjects are associated with the customer.
+	SubjectKeys []UsageAttributionSubjectKey `json:"subject_keys"`
+}
+
+// CountryCode [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
+// Custom two-letter country codes are also supported for convenience.
+type CountryCode = string
+
+// CreateCustomerRequest Customer create request.
+type CreateCustomerRequest struct {
+	// BillingAddress The billing address of the customer.
+	// Used for tax and invoicing.
+	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
+
+	// Currency Currency of the customer.
+	// Used for billing, tax and invoicing.
+	Currency *CurrencyCode `json:"currency,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Key ExternalResourceKey is a unique string that is used to identify a resource in an external system.
+	Key ExternalResourceKey `json:"key"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// PrimaryEmail The primary email address of the customer.
+	PrimaryEmail *string `json:"primary_email,omitempty"`
+
+	// UsageAttribution Mapping to attribute metered usage to the customer by the event subject.
+	UsageAttribution *BillingCustomerUsageAttribution `json:"usage_attribution,omitempty"`
+}
+
+// CurrencyCode Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
+// Custom three-letter currency codes are also supported for convenience.
+type CurrencyCode = string
+
+// CustomerPagePaginatedResponse Page paginated response.
+type CustomerPagePaginatedResponse struct {
+	Data []BillingCustomer `json:"data"`
+
+	// Meta returns the pagination information
+	Meta PaginatedMeta `json:"meta"`
+}
+
 // DateTime [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
 type DateTime = time.Time
 
+// ExternalResourceKey ExternalResourceKey is a unique string that is used to identify a resource in an external system.
+type ExternalResourceKey = string
+
 // ForbiddenError defines model for ForbiddenError.
 type ForbiddenError struct {
+	Detail   interface{} `json:"detail"`
+	Instance interface{} `json:"instance"`
+	Status   interface{} `json:"status"`
+	Title    interface{} `json:"title"`
+	Type     interface{} `json:"type,omitempty"`
+}
+
+// GoneError defines model for GoneError.
+type GoneError struct {
 	Detail   interface{} `json:"detail"`
 	Instance interface{} `json:"instance"`
 	Status   interface{} `json:"status"`
@@ -224,6 +365,11 @@ type InvalidParameters_Item struct {
 // InvalidRules invalid parameters rules
 type InvalidRules string
 
+// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+//
+// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+type Labels map[string]string
+
 // MeteringEvent Metering event following the CloudEvents specification.
 type MeteringEvent struct {
 	// Data The event payload.
@@ -258,6 +404,37 @@ type MeteringEvent struct {
 // MeteringEventDatacontenttype Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
 type MeteringEventDatacontenttype string
 
+// NotFoundError defines model for NotFoundError.
+type NotFoundError struct {
+	Detail   interface{} `json:"detail"`
+	Instance interface{} `json:"instance"`
+	Status   interface{} `json:"status"`
+	Title    interface{} `json:"title"`
+	Type     interface{} `json:"type,omitempty"`
+}
+
+// PageMeta Contains pagination query parameters and the total number of objects returned.
+type PageMeta struct {
+	Number float32 `json:"number"`
+	Size   float32 `json:"size"`
+	Total  float32 `json:"total"`
+}
+
+// PaginatedMeta returns the pagination information
+type PaginatedMeta struct {
+	// Page Contains pagination query parameters and the total number of objects returned.
+	Page PageMeta `json:"page"`
+}
+
+// SortQuery The `asc` suffix is optional as the default sort order is ascending.
+// The `desc` suffix is used to specify a descending order.
+// Multiple sort attributes may be provided via a comma separated list.
+// JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
+type SortQuery = string
+
+// ULID ULID (Universally Unique Lexicographically Sortable Identifier).
+type ULID = string
+
 // UnauthorizedError defines model for UnauthorizedError.
 type UnauthorizedError struct {
 	Detail   interface{} `json:"detail"`
@@ -267,11 +444,61 @@ type UnauthorizedError struct {
 	Type     interface{} `json:"type,omitempty"`
 }
 
+// UpsertCustomerRequest Customer upsert request.
+type UpsertCustomerRequest struct {
+	// BillingAddress The billing address of the customer.
+	// Used for tax and invoicing.
+	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
+
+	// Currency Currency of the customer.
+	// Used for billing, tax and invoicing.
+	Currency *CurrencyCode `json:"currency,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// PrimaryEmail The primary email address of the customer.
+	PrimaryEmail *string `json:"primary_email,omitempty"`
+
+	// UsageAttribution Mapping to attribute metered usage to the customer by the event subject.
+	UsageAttribution *BillingCustomerUsageAttribution `json:"usage_attribution,omitempty"`
+}
+
+// UsageAttributionSubjectKey Subject key.
+type UsageAttributionSubjectKey = string
+
+// ListCustomersParamsSort The `asc` suffix is optional as the default sort order is ascending.
+// The `desc` suffix is used to specify a descending order.
+// Multiple sort attributes may be provided via a comma separated list.
+// JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
+type ListCustomersParamsSort = SortQuery
+
+// PagePaginationQuery defines model for PagePaginationQuery.
+type PagePaginationQuery struct {
+	Number *int `json:"number,omitempty"`
+	Size   *int `json:"size,omitempty"`
+}
+
 // BadRequest defines model for BadRequest.
 type BadRequest = BadRequestError
 
 // Forbidden defines model for Forbidden.
 type Forbidden = ForbiddenError
+
+// Gone defines model for Gone.
+type Gone = GoneError
 
 // Internal standard error
 type Internal = BaseError
@@ -279,8 +506,27 @@ type Internal = BaseError
 // NotAvailable standard error
 type NotAvailable = BaseError
 
+// NotFound defines model for NotFound.
+type NotFound = NotFoundError
+
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = UnauthorizedError
+
+// ListCustomersParams defines parameters for ListCustomers.
+type ListCustomersParams struct {
+	// Page Determines which page of the collection to retrieve.
+	Page *PagePaginationQuery `json:"page,omitempty"`
+
+	// Sort Sort customers returned in the response.
+	// Supported sort attributes are:
+	// - `id`
+	// - `name` (default)
+	// - `created_at`
+	//
+	// The `asc` suffix is optional as the default sort order is ascending.
+	// The `desc` suffix is used to specify a descending order.
+	Sort *ListCustomersParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+}
 
 // IngestMeteringEventsApplicationCloudeventsBatchPlusJSONBody defines parameters for IngestMeteringEvents.
 type IngestMeteringEventsApplicationCloudeventsBatchPlusJSONBody = []MeteringEvent
@@ -292,6 +538,12 @@ type IngestMeteringEventsJSONBody struct {
 
 // IngestMeteringEventsJSONBody1 defines parameters for IngestMeteringEvents.
 type IngestMeteringEventsJSONBody1 = []MeteringEvent
+
+// CreateCustomerJSONRequestBody defines body for CreateCustomer for application/json ContentType.
+type CreateCustomerJSONRequestBody = CreateCustomerRequest
+
+// UpsertCustomerJSONRequestBody defines body for UpsertCustomer for application/json ContentType.
+type UpsertCustomerJSONRequestBody = UpsertCustomerRequest
 
 // IngestMeteringEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestMeteringEvents for application/cloudevents+json ContentType.
 type IngestMeteringEventsApplicationCloudeventsPlusJSONRequestBody = MeteringEvent
@@ -444,6 +696,21 @@ func (t *InvalidParameters_Item) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// List customers
+	// (GET /openmeter/customers)
+	ListCustomers(w http.ResponseWriter, r *http.Request, params ListCustomersParams)
+	// Create customer
+	// (POST /openmeter/customers)
+	CreateCustomer(w http.ResponseWriter, r *http.Request)
+	// Delete customer
+	// (DELETE /openmeter/customers/{customerId})
+	DeleteCustomer(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Get customer
+	// (GET /openmeter/customers/{customerId})
+	GetCustomer(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Upsert customer
+	// (PUT /openmeter/customers/{customerId})
+	UpsertCustomer(w http.ResponseWriter, r *http.Request, customerId ULID)
 	// Ingest metering events
 	// (POST /openmeter/events)
 	IngestMeteringEvents(w http.ResponseWriter, r *http.Request)
@@ -452,6 +719,36 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// List customers
+// (GET /openmeter/customers)
+func (_ Unimplemented) ListCustomers(w http.ResponseWriter, r *http.Request, params ListCustomersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create customer
+// (POST /openmeter/customers)
+func (_ Unimplemented) CreateCustomer(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete customer
+// (DELETE /openmeter/customers/{customerId})
+func (_ Unimplemented) DeleteCustomer(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get customer
+// (GET /openmeter/customers/{customerId})
+func (_ Unimplemented) GetCustomer(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Upsert customer
+// (PUT /openmeter/customers/{customerId})
+func (_ Unimplemented) UpsertCustomer(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Ingest metering events
 // (POST /openmeter/events)
@@ -467,6 +764,130 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListCustomers operation middleware
+func (siw *ServerInterfaceWrapper) ListCustomers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCustomersParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("deepObject", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCustomers(w, r, params)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCustomer operation middleware
+func (siw *ServerInterfaceWrapper) CreateCustomer(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCustomer(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteCustomer operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCustomer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteCustomer(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCustomer operation middleware
+func (siw *ServerInterfaceWrapper) GetCustomer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCustomer(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpsertCustomer operation middleware
+func (siw *ServerInterfaceWrapper) UpsertCustomer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpsertCustomer(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // IngestMeteringEvents operation middleware
 func (siw *ServerInterfaceWrapper) IngestMeteringEvents(w http.ResponseWriter, r *http.Request) {
@@ -596,6 +1017,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/customers", wrapper.ListCustomers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/customers", wrapper.CreateCustomer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/openmeter/customers/{customerId}", wrapper.DeleteCustomer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/customers/{customerId}", wrapper.GetCustomer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/openmeter/customers/{customerId}", wrapper.UpsertCustomer)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/openmeter/events", wrapper.IngestMeteringEvents)
 	})
 
@@ -605,57 +1041,92 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"yH//UCsAAA==",
+	"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",
+	"AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

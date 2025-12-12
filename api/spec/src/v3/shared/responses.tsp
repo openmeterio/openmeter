@@ -18,6 +18,13 @@ model CreateResponse<T extends {}> {
   @Http.body body: T;
 }
 
+@doc("{name} upsert response.", T)
+@friendlyName("Upsert{name}Response", T)
+model UpsertResponse<T extends {}> {
+  @Http.statusCode _: 200;
+  @Http.body body: T;
+}
+
 @doc("{name} updated response.", T)
 @friendlyName("Update{name}Response", T)
 model UpdateResponse<T extends {}> {
@@ -54,5 +61,5 @@ model PagePaginatedResponse<T> {
   @pageItems
   data: T[];
 
-  meta: Common.PaginatedMeta;
+  meta: Common.PageMeta;
 }

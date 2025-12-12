@@ -8,13 +8,13 @@ const MetersDescription = "Meters specify how to aggregate events for billing an
 const EventsTag = "Metering Events";
 const EventsDescription = "Metering events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.";
 
-const CustomersTag = "Billing Customers";
+const CustomersTag = "OpenMeter Customers";
 const CustomersDescription = "Customers are used to track usage of your product or service. Customers can be individuals or organizations that can subscribe to plans and have access to features.";
 
-const EntitlementsTag = "Billing Entitlements";
+const EntitlementsTag = "OpenMeter Entitlements";
 const EntitlementsDescription = "Entitlements are used to control access to features for customers.";
 
-const SubscriptionsTag = "Billing Subscriptions";
+const SubscriptionsTag = "OpenMeter Subscriptions";
 const SubscriptionsDescription = "Subscriptions are used to track usage of your product or service. Subscriptions can be individuals or organizations that can subscribe to plans and have access to features.";
 
 const UnstableExtension = "x-unstable";
