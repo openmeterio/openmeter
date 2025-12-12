@@ -147,6 +147,9 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
 			return w.subscriptionSyncHandler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, event.UpdatedView, time.Now())
 		}),
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.SubscriptionSyncEvent) error {
+			return w.subscriptionSyncHandler.HandleSubscriptionSyncEvent(ctx, event)
+		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceInvoiceEvent) error {
 			return w.asyncAdvanceHandler.Handle(ctx, event)
 		}),

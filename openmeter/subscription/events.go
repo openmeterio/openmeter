@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/session"
@@ -193,4 +194,49 @@ func (s UpdatedEvent) EventMetadata() metadata.EventMetadata {
 
 func (s UpdatedEvent) Validate() error {
 	return s.UpdatedView.Validate(true)
+}
+
+type SubscriptionSyncEvent struct {
+	Subscription Subscription `json:"subscription"`
+}
+
+func NewSubscriptionSyncEvent(ctx context.Context, sub Subscription) SubscriptionSyncEvent {
+	return SubscriptionSyncEvent{
+		Subscription: sub,
+	}
+}
+
+var (
+	_ marshaler.Event = SubscriptionSyncEvent{}
+
+	subscriptionSyncEventName = metadata.GetEventName(metadata.EventType{
+		Subsystem: EventSubsystem,
+		Name:      "subscription.sync",
+		Version:   "v1",
+	})
+)
+
+func (s SubscriptionSyncEvent) EventName() string {
+	return subscriptionSyncEventName
+}
+
+func (s SubscriptionSyncEvent) Validate() error {
+	var errs []error
+
+	if err := s.Subscription.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if s.Subscription.CustomerId == "" {
+		errs = append(errs, errors.New("customer id is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+func (s SubscriptionSyncEvent) EventMetadata() metadata.EventMetadata {
+	return metadata.EventMetadata{
+		Source:  metadata.ComposeResourcePath(s.Subscription.Namespace, metadata.EntitySubscription, s.Subscription.ID),
+		Subject: metadata.ComposeResourcePath(s.Subscription.Namespace, metadata.EntityCustomer, s.Subscription.CustomerId),
+	}
 }
