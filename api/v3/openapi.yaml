@@ -58,6 +58,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
         - $ref: '#/components/parameters/ListCustomersParams.sort'
+        - $ref: '#/components/parameters/ListCustomersParams.filter'
       responses:
         '200':
           description: Page paginated response.
@@ -336,6 +337,14 @@ paths:
         - Meters
 components:
   parameters:
+    ListCustomersParams.filter:
+      name: filter
+      in: query
+      required: false
+      description: Filter customers returned in the response.
+      schema:
+        $ref: '#/components/schemas/ListCustomersParamsFilter'
+      style: deepObject
     ListCustomersParams.sort:
       name: sort
       in: query
@@ -644,6 +653,16 @@ components:
       description: ExternalResourceKey is a unique string that is used to identify a resource in an external system.
       title: External Resource Key
       example: 019ae40f-4258-7f15-9491-842f42a7d6ac
+    ListCustomersParamsFilter:
+      type: object
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ExternalResourceKey'
+          description: |-
+            Filter customers by key.
+            Case-insensitive partial match.
+      description: Filter options for listing customers.
     Meter:
       type: object
       required:

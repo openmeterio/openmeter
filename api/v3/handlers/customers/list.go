@@ -68,11 +68,30 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				order = sort.Order.ToSortxOrder()
 			}
 
+			var filterKey *string
+			if params.Filter != nil {
+				if params.Filter.Key != nil {
+					key := lo.FromPtr(params.Filter.Key)
+					if len(key) < 1 || len(key) > 256 {
+						return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, fmt.Errorf("invalid key length"), apierrors.InvalidParameters{
+							apierrors.InvalidParameter{
+								Field:  "filter.key",
+								Reason: "key length must be between 1 and 256 characters",
+								Source: apierrors.InvalidParamSourceQuery,
+							},
+						})
+					}
+
+					filterKey = params.Filter.Key
+				}
+			}
+
 			req := ListCustomersRequest{
 				Namespace: ns,
 				Page:      page,
 				OrderBy:   orderBy,
 				Order:     order,
+				Key:       filterKey,
 			}
 
 			return req, nil
