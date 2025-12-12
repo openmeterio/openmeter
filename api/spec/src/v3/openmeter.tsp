@@ -2,8 +2,9 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi";
 import "@typespec/openapi3";
-import "./events/index.tsp";
 import "./shared/index.tsp";
+import "./events/index.tsp";
+import "./meters/index.tsp";
 import "./customers/index.tsp";
 
 using TypeSpec.Http;
@@ -31,6 +32,11 @@ namespace OpenMeter;
 @tag(Shared.EventsTag)
 @friendlyName("${Shared.OpenMeterTitle}: ${Shared.EventsTag}")
 interface EventsEndpoints extends Events.EventsOperations {}
+
+@route("/openmeter/meters")
+@tag(Shared.MetersTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.MetersTag}")
+interface MetersEndpoints extends Meters.MetersOperations {}
 
 @route("/openmeter/customers")
 @tag(Shared.CustomersTag)
