@@ -24,7 +24,7 @@ type (
 	UpsertCustomerHandler  httptransport.HandlerWithArgs[UpsertCustomerRequest, UpsertCustomerResponse, UpsertCustomerParams]
 )
 
-// UpdateCustomer returns a handler for updating a customer.
+// UpsertCustomer returns a handler for updating a customer.
 func (h *handler) UpsertCustomer() UpsertCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, customerID UpsertCustomerParams) (UpsertCustomerRequest, error) {
@@ -49,7 +49,12 @@ func (h *handler) UpsertCustomer() UpsertCustomerHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request UpsertCustomerRequest) (UpsertCustomerResponse, error) {
-			// Get the customer
+			// FIXME: begin
+			//  Normally, we should avoid putting business logic in handlers, and we should avoid such extra
+			//  round-trips, since service.UpdateCustomer performs similar checks under the hood.
+			//  However, in v3 customer API, key cannot be updated, and service.UpdateCustomer will wipe the key in the
+			//  DB if it was nil in the input. Therefore, in order to avoid wiping the key, we need to get
+			//  and "backfill" it from the existing customer entity.
 			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
 				CustomerID: &customer.CustomerID{
 					ID:        request.CustomerID,
@@ -74,6 +79,7 @@ func (h *handler) UpsertCustomer() UpsertCustomerHandler {
 
 			// Use the key from the just retrieved customer, as it is required by the UpdateCustomer service method.
 			request.CustomerMutate.Key = cus.Key
+			// FIXME: end
 
 			updatedCustomer, err := h.service.UpdateCustomer(ctx, customer.UpdateCustomerInput{
 				CustomerID:     cus.GetID(),
