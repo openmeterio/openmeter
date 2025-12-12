@@ -35,6 +35,7 @@ func (h *handler) DeleteMeter() DeleteMeterHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteMeterRequest) (DeleteMeterResponse, error) {
+			// FIXME: make delete idempotent, return 204 for repeated deletion
 			err := h.service.DeleteMeter(ctx, meter.DeleteMeterInput{
 				Namespace: request.Namespace,
 				IDOrSlug:  request.IDOrSlug,
