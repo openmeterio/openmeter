@@ -41,6 +41,16 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				)
 			}
 
+			if err := page.Validate(); err != nil {
+				return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+					apierrors.InvalidParameter{
+						Field:  "page",
+						Reason: err.Error(),
+						Source: apierrors.InvalidParamSourceQuery,
+					},
+				})
+			}
+
 			var orderBy string
 			var order sortx.Order
 			if params.Sort != nil {
