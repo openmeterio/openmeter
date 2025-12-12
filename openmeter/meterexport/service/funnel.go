@@ -49,16 +49,16 @@ func (p funnelParams) validateUnsupportedParams() []error {
 		errs = append(errs, errors.New("filter customer is not supported"))
 	}
 
-	if len(p.queryParams.FilterSubject) > 0 {
-		errs = append(errs, errors.New("filter subject is not supported"))
-	}
-
 	if len(p.queryParams.FilterGroupBy) > 0 {
 		errs = append(errs, errors.New("filter group by is not supported"))
 	}
 
-	if len(p.queryParams.GroupBy) > 0 {
-		errs = append(errs, errors.New("group by is not supported"))
+	// GroupBy subject is allowed (used internally for per-subject export)
+	for _, g := range p.queryParams.GroupBy {
+		if g != "subject" {
+			errs = append(errs, errors.New("group by is only supported for subject"))
+			break
+		}
 	}
 
 	return errs

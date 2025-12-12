@@ -28,7 +28,7 @@ type Service interface {
 	//
 	// NOTE: Currently only SUM and COUNT meters are supported.
 	// NOTE: GroupBy values are not yet supported.
-	// NOTE: Subjects and Customers are not honored in the exported data.
+	// NOTE: Customers are not honored in the exported data.
 	ExportSyntheticMeterData(ctx context.Context, config DataExportConfig, result chan<- streaming.RawEvent, err chan<- error) error
 
 	// ExportSyntheticMeterDataIter is an iterator-based wrapper around ExportSyntheticMeterData.
