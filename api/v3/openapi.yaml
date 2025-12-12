@@ -379,13 +379,7 @@ components:
       required: false
       description: Filter customers returned in the response.
       schema:
-        type: object
-        properties:
-          key:
-            type: string
-            description: |-
-              Filter customers by key.
-              Case-insensitive partial match.
+        $ref: '#/components/schemas/ListCustomersParamsFilter'
       style: deepObject
     ListCustomersParams.sort:
       name: sort
@@ -751,6 +745,16 @@ components:
           description: The list of entitlement access results.
           readOnly: true
       description: List customer entitlement access response data.
+    ListCustomersParamsFilter:
+      type: object
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ExternalResourceKey'
+          description: |-
+            Filter customers by key.
+            Case-insensitive partial match.
+      description: Filter options for listing customers.
     Meter:
       type: object
       required:
