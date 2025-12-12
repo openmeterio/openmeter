@@ -63,6 +63,9 @@ aggregation:
     password: default
     database: openmeter
 
+    retry:
+      enabled: true
+
 sink:
   groupId: openmeter-sink-worker
   minCommitCount: 500

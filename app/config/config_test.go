@@ -143,6 +143,11 @@ func TestComplete(t *testing.T) {
 				MaxIdleConns:    5,
 				ConnMaxLifetime: 10 * time.Minute,
 				BlockBufferSize: 10,
+				Retry: ClickhouseQueryRetryConfig{
+					Enabled:           true,
+					MaxTries:          3,
+					RetryWaitDuration: 20 * time.Millisecond,
+				},
 			},
 			EventsTableName: "om_events",
 			AsyncInsert:     false,

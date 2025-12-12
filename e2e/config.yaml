@@ -17,6 +17,8 @@ ingest:
 aggregation:
   clickhouse:
     address: clickhouse:9000
+    retry:
+      enabled: true
 
 sink:
   minCommitCount: 500
