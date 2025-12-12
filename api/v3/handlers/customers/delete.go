@@ -2,11 +2,10 @@ package customers
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
-	"github.com/openmeterio/openmeter/openmeter/customer"
+	customer "github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -36,26 +35,10 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteCustomerRequest) (DeleteCustomerResponse, error) {
-			// Get the customer
-			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
-				CustomerID: &customer.CustomerID{
-					ID:        request.CustomerID,
-					Namespace: request.Namespace,
-				},
+			err := h.service.DeleteCustomer(ctx, customer.DeleteCustomerInput{
+				Namespace: request.Namespace,
+				ID:        request.CustomerID,
 			})
-			if err != nil {
-				return nil, err
-			}
-
-			if cus == nil {
-				return nil, apierrors.NewNotFoundError(ctx, errors.New("customer not found"), "customer")
-			}
-
-			if cus.IsDeleted() {
-				return nil, nil
-			}
-
-			err = h.service.DeleteCustomer(ctx, cus.GetID())
 			if err != nil {
 				return nil, err
 			}
