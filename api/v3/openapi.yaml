@@ -343,13 +343,7 @@ components:
       required: false
       description: Filter customers returned in the response.
       schema:
-        type: object
-        properties:
-          key:
-            type: string
-            description: |-
-              Filter customers by key.
-              Case-insensitive partial match.
+        $ref: '#/components/schemas/ListCustomersParamsFilter'
       style: deepObject
     ListCustomersParams.sort:
       name: sort
@@ -659,6 +653,16 @@ components:
       description: ExternalResourceKey is a unique string that is used to identify a resource in an external system.
       title: External Resource Key
       example: 019ae40f-4258-7f15-9491-842f42a7d6ac
+    ListCustomersParamsFilter:
+      type: object
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ExternalResourceKey'
+          description: |-
+            Filter customers by key.
+            Case-insensitive partial match.
+      description: Filter options for listing customers.
     Meter:
       type: object
       required:
