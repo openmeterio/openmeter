@@ -16,6 +16,8 @@ servers:
 tags:
   - name: OpenMeter Entitlements
     description: Entitlements are used to control access to features for customers.
+  - name: OpenMeter Subscriptions
+    description: Subscriptions are used to track usage of your product or service. Subscriptions can be individuals or organizations that can subscribe to plans and have access to features.
   - name: OpenMeter Customers
     description: Customers are used to track usage of your product or service. Customers can be individuals or organizations that can subscribe to plans and have access to features.
   - name: Metering Events
@@ -370,6 +372,105 @@ paths:
           $ref: '#/components/responses/NotAvailable'
       tags:
         - Meters
+  /openmeter/subscriptions:
+    get:
+      operationId: list-subscriptions
+      summary: List subscriptions
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - $ref: '#/components/parameters/ListSubscriptionsParams.sort'
+        - $ref: '#/components/parameters/ListSubscriptionsParams.filter'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
+  /openmeter/subscriptions/{customerId}:
+    post:
+      operationId: create-subscription
+      summary: Create subscription
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: Subscription created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionRequest'
+  /openmeter/subscriptions/{subscriptionId}:
+    get:
+      operationId: get-subscription
+      summary: Get subscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Subscription response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
 components:
   parameters:
     ListCustomersParams.sort:
@@ -381,6 +482,35 @@ components:
         Supported sort attributes are:
         - `id`
         - `name` (default)
+        - `created_at`
+
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+      schema:
+        $ref: '#/components/schemas/SortQuery'
+      explode: false
+      style: form
+    ListSubscriptionsParams.filter:
+      name: filter
+      in: query
+      required: false
+      description: Filter subscriptions.
+      schema:
+        type: object
+        properties:
+          customer_id:
+            allOf:
+              - $ref: '#/components/schemas/ULID'
+            description: Filter subscriptions by customer ID.
+      style: deepObject
+    ListSubscriptionsParams.sort:
+      name: sort
+      in: query
+      required: false
+      description: |-
+        Sort subscriptions returned in the response.
+        Supported sort attributes are:
+        - `id`
         - `created_at`
 
         The `asc` suffix is optional as the default sort order is ascending.
@@ -567,6 +697,79 @@ components:
         - static
         - boolean
       description: The type of the entitlement.
+    BillingSubscription:
+      type: object
+      required:
+        - id
+        - plan_id
+        - customer_id
+        - billing_anchor
+        - billing_cadence
+        - status
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        plan_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The plan ID of the subscription.
+          title: Plan ID
+          readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The customer ID of the subscription.
+          title: Customer ID
+        billing_anchor:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The billing anchor of the subscription.
+          title: Billing anchor
+          readOnly: true
+        billing_cadence:
+          type: string
+          format: duration
+          description: |-
+            The billing cadence for the subscriptions.
+            Defines how often customers are billed using ISO8601 duration format.
+            Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+          title: Billing cadence
+          example: P1M
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionStatus'
+          description: The status of the subscription.
+          title: Status
+          readOnly: true
+      description: Customer subscription.
+    BillingSubscriptionStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+        - canceled
+        - scheduled
+      description: Subscription status.
     CountryCode:
       type: string
       minLength: 2
@@ -689,6 +892,25 @@ components:
           example:
             type: $.type
       description: Meter create request.
+    CreateSubscriptionRequest:
+      type: object
+      required:
+        - customer_id
+        - plan
+      properties:
+        labels:
+          $ref: '#/components/schemas/Labels'
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The customer ID of the subscription.
+          title: Customer ID
+        plan:
+          allOf:
+            - $ref: '#/components/schemas/PlanReference'
+          description: The plan reference for the subscription.
+          title: Plan Reference
+      description: Subscription create request.
     CurrencyCode:
       type: string
       minLength: 3
@@ -934,6 +1156,23 @@ components:
           tokens: 100
           model: gpt-4o
           type: input
+    PlanReference:
+      oneOf:
+        - type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/ULID'
+          required:
+            - id
+        - type: object
+          properties:
+            key:
+              $ref: '#/components/schemas/ResourceKey'
+            version:
+              type: integer
+          required:
+            - key
+      description: Reference to a plan by its id or key and version.
     ResourceKey:
       type: string
       minLength: 1
@@ -942,6 +1181,19 @@ components:
       description: A key is a unique string that is used to identify a resource.
       title: Resource Key
       example: resource_key
+    SubscriptionPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingSubscription'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     ULID:
       type: string
       pattern: ^[0-7][0-9A-HJKMNP-TV-Z]{25}$
@@ -1359,6 +1611,21 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Gone
+    ConflictError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 409
+            title:
+              example: Conflict
+            type:
+              example: https://httpstatuses.com/409
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Conflict
   responses:
     BadRequest:
       description: Bad Request
@@ -1411,6 +1678,12 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/GoneError'
+    Conflict:
+      description: Conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ConflictError'
   examples:
     UnauthorizedExample:
       value:
