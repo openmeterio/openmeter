@@ -66,9 +66,13 @@ func (h *handler) ListCustomerEntitlementAccess() ListCustomerEntitlementAccessH
 			// Convert the access to the API response
 			items := make([]api.BillingEntitlementAccessResult, 0, len(access.Entitlements))
 			for featureKey, entitlement := range access.Entitlements {
-				item, err := mapEntitlementValueToAPI(featureKey, entitlement.Value)
+				found, item, err := mapEntitlementValueToAPI(featureKey, entitlement.Value)
 				if err != nil {
 					return ListCustomerEntitlementAccessResponse{}, err
+				}
+
+				if !found {
+					continue
 				}
 
 				items = append(items, item)
