@@ -40,13 +40,14 @@ type CursorPaginationResponse[T any] struct {
 
 // NewCursorPaginationResponse creates a new pagination response from an ordered list of items.
 // T must implement the Item interface for cursor generation.
-func NewCursorPaginationResponse[T pagination.Item](items []T) CursorPaginationResponse[T] {
+func NewCursorPaginationResponse[T pagination.Item](items []T, pageSize int) CursorPaginationResponse[T] {
 	result := CursorPaginationResponse[T]{
 		Data: items,
 		Meta: CursorMeta{
 			Page: CursorMetaPage{
 				Next:     nullable.NewNullNullable[string](),
 				Previous: nullable.NewNullNullable[string](),
+				Size:     pageSize,
 			},
 		},
 	}

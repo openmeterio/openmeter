@@ -3,7 +3,6 @@ package customers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -31,7 +30,7 @@ func (h *handler) UpsertCustomer() UpsertCustomerHandler {
 		func(ctx context.Context, r *http.Request, customerID UpsertCustomerParams) (UpsertCustomerRequest, error) {
 			body := api.UpsertCustomerRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
-				return UpsertCustomerRequest{}, fmt.Errorf("field to decode update customer request: %w", err)
+				return UpsertCustomerRequest{}, err
 			}
 
 			ns, err := h.resolveNamespace(ctx)
