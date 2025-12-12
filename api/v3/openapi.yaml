@@ -14,11 +14,12 @@ servers:
     description: Cloud
     variables: {}
 tags:
-  - name: Meters
   - name: OpenMeter Customers
     description: Customers are used to track usage of your product or service. Customers can be individuals or organizations that can subscribe to plans and have access to features.
   - name: Metering Events
     description: Metering events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.
+  - name: Meters
+    description: Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.
 paths:
   /openmeter/customers:
     post:

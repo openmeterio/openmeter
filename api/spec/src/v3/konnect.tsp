@@ -26,6 +26,7 @@ using TypeSpec.OpenAPI;
 // TODO: Uncomment this when the Singapore production region is available
 // @server("https://sg.api.konghq.com/v3", "Singapore Production region")
 @server("https://global.api.konghq.com/v3", "Global Production region")
+@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)

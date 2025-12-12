@@ -24,6 +24,7 @@ using TypeSpec.OpenAPI;
   termsOfService: "https://openmeter.cloud/terms-of-service",
 })
 @server("https://openmeter.cloud/api/v3", "Cloud")
+@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
 namespace OpenMeter;
