@@ -88,28 +88,37 @@ func NewServer(config *Config) (*Server, error) {
 
 	r := chi.NewRouter()
 
-	v3API, err := v3server.NewServer(&v3server.Config{
-		BaseURL:            "/api/v3",
-		NamespaceDecoder:   namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
-		ErrorHandler:       config.RouterConfig.ErrorHandler,
-		IngestService:      config.RouterConfig.IngestService,
-		CustomerService:    config.RouterConfig.Customer,
-		EntitlementService: config.RouterConfig.EntitlementConnector,
-		MeterService:       config.RouterConfig.MeterManageService,
-		Middlewares: []func(http.Handler) http.Handler{
-			middleware.RealIP,
-			middleware.RequestID,
-			func(h http.Handler) http.Handler {
-				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					ctx := r.Context()
-					ctx = contextx.WithAttrs(ctx, server.GetRequestAttributes(r))
+	v3Middlewares := []func(http.Handler) http.Handler{
+		middleware.RealIP,
+		middleware.RequestID,
+		func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				ctx := r.Context()
+				ctx = contextx.WithAttrs(ctx, server.GetRequestAttributes(r))
 
-					h.ServeHTTP(w, r.WithContext(ctx))
-				})
-			},
-			server.NewRequestLoggerMiddleware(slog.Default().Handler()),
-			middleware.Recoverer,
+				h.ServeHTTP(w, r.WithContext(ctx))
+			})
 		},
+		server.NewRequestLoggerMiddleware(slog.Default().Handler()),
+		middleware.Recoverer,
+	}
+	// Append PostAuthMiddlewares (e.g., FFXConfigContextMiddleware) to V3 API middlewares
+	for _, mw := range config.PostAuthMiddlewares {
+		v3Middlewares = append(v3Middlewares, mw)
+	}
+
+	v3API, err := v3server.NewServer(&v3server.Config{
+		BaseURL:                 "/api/v3",
+		NamespaceDecoder:        namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
+		ErrorHandler:            config.RouterConfig.ErrorHandler,
+		IngestService:           config.RouterConfig.IngestService,
+		CustomerService:         config.RouterConfig.Customer,
+		EntitlementService:      config.RouterConfig.EntitlementConnector,
+		MeterService:            config.RouterConfig.MeterManageService,
+		PlanService:             config.RouterConfig.Plan,
+		PlanSubscriptionService: config.RouterConfig.PlanSubscriptionService,
+		SubscriptionService:     config.RouterConfig.SubscriptionService,
+		Middlewares:             v3Middlewares,
 	})
 	if err != nil {
 		slog.Error("failed to create v3 API", "error", err)
