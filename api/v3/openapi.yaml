@@ -60,6 +60,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
         - $ref: '#/components/parameters/ListCustomersParams.sort'
+        - $ref: '#/components/parameters/ListCustomersParams.filter'
       responses:
         '200':
           description: Page paginated response.
@@ -372,6 +373,20 @@ paths:
         - Meters
 components:
   parameters:
+    ListCustomersParams.filter:
+      name: filter
+      in: query
+      required: false
+      description: Filter customers returned in the response.
+      schema:
+        type: object
+        properties:
+          key:
+            type: string
+            description: |-
+              Filter customers by key.
+              Case-insensitive partial match.
+      style: deepObject
     ListCustomersParams.sort:
       name: sort
       in: query

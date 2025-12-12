@@ -32,6 +32,18 @@ model ListCustomersParams {
    */
   @query(#{ name: "sort" })
   sort?: Common.SortQuery;
+
+  /**
+   * Filter customers returned in the response.
+   */
+  @query(#{ style: "deepObject", explode: true })
+  filter?: {
+    /**
+     * Filter customers by key.
+     * Case-insensitive partial match.
+     */
+    key?: string;
+  };
 }
 
 interface CustomersOperations {
