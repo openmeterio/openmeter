@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	clickhouseconnector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
+	streamingretry "github.com/openmeterio/openmeter/openmeter/streaming/retry"
 )
 
 var Streaming = wire.NewSet(
@@ -27,7 +28,10 @@ func NewStreamingConnector(
 	progressmanager progressmanager.Service,
 	namespaceManager *namespace.Manager,
 ) (streaming.Connector, error) {
-	connector, err := clickhouseconnector.New(ctx, clickhouseconnector.Config{
+	var connector streaming.Connector
+	var err error
+
+	connector, err = clickhouseconnector.New(ctx, clickhouseconnector.Config{
 		ClickHouse:          clickHouse,
 		Database:            conf.ClickHouse.Database,
 		EventsTableName:     conf.EventsTableName,
@@ -41,6 +45,18 @@ func NewStreamingConnector(
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse connector: %w", err)
+	}
+
+	if conf.ClickHouse.Retry.Enabled {
+		connector, err = streamingretry.New(streamingretry.Config{
+			DownstreamConnector: connector,
+			Logger:              logger,
+			RetryWaitDuration:   conf.ClickHouse.Retry.RetryWaitDuration,
+			MaxTries:            conf.ClickHouse.Retry.MaxTries,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init retry connector: %w", err)
+		}
 	}
 
 	err = namespaceManager.RegisterHandler(connector)
