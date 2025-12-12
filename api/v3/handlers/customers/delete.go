@@ -44,7 +44,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 				},
 			})
 			if err != nil {
-				return DeleteCustomerRequest{}, err
+				return nil, err
 			}
 
 			if cus == nil {
