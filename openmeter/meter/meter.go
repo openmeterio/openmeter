@@ -14,6 +14,22 @@ var groupByKeyRegExp = regexp.MustCompile(`^[a-zA-Z_][0-9a-zA-Z_]*$`)
 
 type EventTypePattern = regexp.Regexp
 
+func NewEventTypeValidator(reserved []*EventTypePattern) models.ValidatorFunc[string] {
+	return func(eventType string) error {
+		for _, pattern := range reserved {
+			if pattern == nil {
+				continue
+			}
+
+			if ok := pattern.MatchString(eventType); ok {
+				return fmt.Errorf("event type '%s' matched reserved pattern '%s'", eventType, pattern.String())
+			}
+		}
+
+		return nil
+	}
+}
+
 type MeterAggregation string
 
 // Note: keep values up to date in the meter package
@@ -137,6 +153,11 @@ func (f OrderBy) Values() []OrderBy {
 	}
 }
 
+var (
+	_ models.Validator              = (*Meter)(nil)
+	_ models.CustomValidator[Meter] = (*Meter)(nil)
+)
+
 // Meter is the meter model
 type Meter struct {
 	models.ManagedResource `mapstructure:",squash"`
@@ -151,77 +172,81 @@ type Meter struct {
 	GroupBy       map[string]string
 }
 
-func (m1 Meter) Equal(m2 Meter) error {
-	if m1.Namespace != m2.Namespace {
+func (m Meter) ValidateWith(validators ...models.ValidatorFunc[Meter]) error {
+	return models.Validate(m, validators...)
+}
+
+func (m Meter) Equal(m2 Meter) error {
+	if m.Namespace != m2.Namespace {
 		return errors.New("namespace mismatch")
 	}
 
-	if m1.Key != m2.Key {
+	if m.Key != m2.Key {
 		return errors.New("key mismatch")
 	}
 
-	if m1.Name != m2.Name {
+	if m.Name != m2.Name {
 		return errors.New("name mismatch")
 	}
 
-	if m1.Description != nil && m2.Description != nil {
-		if *m1.Description != *m2.Description {
+	if m.Description != nil && m2.Description != nil {
+		if *m.Description != *m2.Description {
 			return errors.New("description mismatch")
 		}
 	}
 
-	if m1.Description == nil && m2.Description != nil {
+	if m.Description == nil && m2.Description != nil {
 		return errors.New("description mismatch")
 	}
 
-	if m1.Description != nil && m2.Description == nil {
+	if m.Description != nil && m2.Description == nil {
 		return errors.New("description mismatch")
 	}
 
-	if m1.Aggregation != m2.Aggregation {
+	if m.Aggregation != m2.Aggregation {
 		return errors.New("aggregation mismatch")
 	}
 
-	if m1.EventType != m2.EventType {
+	if m.EventType != m2.EventType {
 		return errors.New("event type mismatch")
 	}
 
-	if m1.ValueProperty != nil && m2.ValueProperty != nil {
-		if *m1.ValueProperty != *m2.ValueProperty {
+	if m.ValueProperty != nil && m2.ValueProperty != nil {
+		if *m.ValueProperty != *m2.ValueProperty {
 			return errors.New("value property mismatch")
 		}
 	}
 
-	if m1.ValueProperty == nil && m2.ValueProperty != nil {
+	if m.ValueProperty == nil && m2.ValueProperty != nil {
 		return errors.New("value property mismatch")
 	}
 
-	if m1.ValueProperty != nil && m2.ValueProperty == nil {
+	if m.ValueProperty != nil && m2.ValueProperty == nil {
 		return errors.New("value property mismatch")
 	}
 
-	if len(m1.GroupBy) != len(m2.GroupBy) {
+	if len(m.GroupBy) != len(m2.GroupBy) {
 		return errors.New("group by mismatch")
 	}
 
-	for key, value := range m1.GroupBy {
+	for key, value := range m.GroupBy {
 		if m2Value, ok := m2.GroupBy[key]; !ok || value != m2Value {
 			return errors.New("group by mismatch")
 		}
 	}
 
-	if !m1.Metadata.Equal(m2.Metadata) {
+	if !m.Metadata.Equal(m2.Metadata) {
 		return errors.New("metadata mismatch")
 	}
 
-	if !m1.Annotations.Equal(m2.Annotations) {
+	if !m.Annotations.Equal(m2.Annotations) {
 		return errors.New("annotations mismatch")
 	}
 
 	return nil
 }
 
-func (m *Meter) Validate() error {
+func (m Meter) Validate() error {
 	var errs []error
 
 	if err := m.ManagedResource.Validate(); err != nil {

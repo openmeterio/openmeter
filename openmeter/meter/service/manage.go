@@ -21,7 +21,7 @@ type ManageService struct {
 	adapter            *adapter.Adapter
 	publisher          eventbus.Publisher
 	namespaceManager   *namespace.Manager
-	reservedEventTypes []*meter.EventTypePattern
+	eventTypeValidator models.ValidatorFunc[string]
 }
 
 func NewManage(
@@ -35,7 +35,7 @@ func NewManage(
 		adapter:            adapter,
 		publisher:          publisher,
 		namespaceManager:   namespaceManager,
-		reservedEventTypes: reservedEventTypes,
+		eventTypeValidator: meter.NewEventTypeValidator(reservedEventTypes),
 	}
 }
 
@@ -51,11 +51,12 @@ func (s *ManageService) CreateMeter(ctx context.Context, input meter.CreateMeter
 		return meter.Meter{}, fmt.Errorf("invalid create meter params: %w", err)
 	}
 
-	if err := input.ValidateWith(
-		// Validate with reserved event types
-		meter.ValidateCreateMeterInputWithReservedEventTypes(s.reservedEventTypes),
-	); err != nil {
-		return meter.Meter{}, fmt.Errorf("invalid create meter params: %w", err)
+	// Validate input with reserved event types
+	if !input.AllowReservedEventTypes {
+		err := s.eventTypeValidator(input.EventType)
+		if err != nil {
+			return meter.Meter{}, models.NewGenericValidationError(fmt.Errorf("invalid event type: %w", err))
+		}
 	}
 
 	// Create the meter
@@ -82,7 +83,10 @@ func (s *ManageService) CreateMeter(ctx context.Context, input meter.CreateMeter
 // DeleteMeter deletes a meter
 func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeterInput) error {
 	// Get the meter
-	getMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput(input))
+	getMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+		Namespace: input.Namespace,
+		IDOrSlug:  input.IDOrSlug,
+	})
 	if err != nil {
 		return err
 	}
@@ -90,6 +94,14 @@ func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeter
 	// Check if the meter is already deleted
 	if getMeter.DeletedAt != nil {
 		return meter.NewMeterNotFoundError(getMeter.Key)
+	}
+
+	// Validate input with reserved event types
+	if !input.AllowReservedEventTypes {
+		err = s.eventTypeValidator(getMeter.EventType)
+		if err != nil {
+			return models.NewGenericValidationError(fmt.Errorf("invalid event type: %w", err))
+		}
 	}
 
 	// Check if the meter has active features
@@ -125,7 +137,10 @@ func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeter
 	}
 
 	// Get the deleted meter
-	deletedMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput(input))
+	deletedMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+		Namespace: input.Namespace,
+		IDOrSlug:  input.IDOrSlug,
+	})
 	if err != nil {
 		return err
 	}
@@ -150,7 +165,15 @@ func (s *ManageService) UpdateMeter(ctx context.Context, input meter.UpdateMeter
 		return meter.Meter{}, err
 	}
 
-	if err := input.Validate(currentMeter.ValueProperty); err != nil {
+	// Validate input with reserved event types
+	if !input.AllowReservedEventTypes {
+		err = s.eventTypeValidator(currentMeter.EventType)
+		if err != nil {
+			return meter.Meter{}, models.NewGenericValidationError(fmt.Errorf("invalid event type: %w", err))
+		}
+	}
+
+	if err = input.Validate(currentMeter.ValueProperty); err != nil {
 		return meter.Meter{}, models.NewGenericValidationError(err)
 	}
 
