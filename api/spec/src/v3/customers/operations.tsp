@@ -23,17 +23,12 @@ model ListCustomersParams {
   /**
    * Sort customers returned in the response.
    * Supported sort attributes are:
-   * - `key`
    * - `id`
-   * - `name`
-   * - `primary_email`
-   * - `created_at` (default)
-   * - `updated_at`
-   * - `deleted_at`
+   * - `name` (default)
+   * - `created_at`
    *
    * The `asc` suffix is optional as the default sort order is ascending.
    * The `desc` suffix is used to specify a descending order.
-   * Multiple sort attributes may be provided via a comma separated list.
    */
   @query(#{ name: "sort" })
   sort?: Common.SortQuery;
