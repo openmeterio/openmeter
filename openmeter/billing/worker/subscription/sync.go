@@ -121,6 +121,19 @@ func (h *Handler) invoicePendingLines(ctx context.Context, customer customer.Cus
 	})
 }
 
+func (h *Handler) HandleSubscriptionSyncEvent(ctx context.Context, event *subscription.SubscriptionSyncEvent) error {
+	if event == nil {
+		return nil
+	}
+
+	subsView, err := h.subscriptionService.GetView(ctx, event.Subscription.NamespacedID)
+	if err != nil {
+		return fmt.Errorf("getting subscription view: %w", err)
+	}
+
+	return h.SyncronizeSubscriptionAndInvoiceCustomer(ctx, subsView, time.Now())
+}
+
 func (h *Handler) SyncronizeSubscriptionAndInvoiceCustomer(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
 	span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.SynchronizeSubscriptionAndInvoiceCustomer", trace.WithAttributes(
 		attribute.String("subscription_id", subs.Subscription.ID),
