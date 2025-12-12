@@ -6,6 +6,23 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 )
 
+// Meters
+func (s *Server) CreateMeter(w http.ResponseWriter, r *http.Request) {
+	s.metersHandler.CreateMeter().ServeHTTP(w, r)
+}
+
+func (s *Server) GetMeter(w http.ResponseWriter, r *http.Request, meterId api.ULID) {
+	s.metersHandler.GetMeter().With(meterId).ServeHTTP(w, r)
+}
+
+func (s *Server) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
+	s.metersHandler.ListMeters().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) DeleteMeter(w http.ResponseWriter, r *http.Request, meterId api.ULID) {
+	s.metersHandler.DeleteMeter().With(meterId).ServeHTTP(w, r)
+}
+
 // Events
 
 func (s *Server) IngestMeteringEvents(w http.ResponseWriter, r *http.Request) {

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	customershandler "github.com/openmeterio/openmeter/api/v3/handlers/customers"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
+	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -53,6 +54,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("error handler is required"))
 	}
 
+	if c.MeterService == nil {
+		errs = append(errs, errors.New("meter service is required"))
+	}
+
 	if c.IngestService == nil {
 		errs = append(errs, errors.New("ingest service is required"))
 	}
@@ -72,6 +77,7 @@ type Server struct {
 	// handlers
 	eventsHandler    eventshandler.Handler
 	customersHandler customershandler.Handler
+	metersHandler    metershandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -107,12 +113,14 @@ func NewServer(config *Config) (*Server, error) {
 
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
+	metersHandler := metershandler.New(resolveNamespace, config.MeterService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	return &Server{
 		Config:           config,
 		swagger:          swagger,
 		eventsHandler:    eventsHandler,
 		customersHandler: customersHandler,
+		metersHandler:    metersHandler,
 	}, nil
 }
 

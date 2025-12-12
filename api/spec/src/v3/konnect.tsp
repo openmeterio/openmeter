@@ -4,6 +4,7 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "./shared/index.tsp";
 import "./events/index.tsp";
+import "./meters/index.tsp";
 import "./customers/index.tsp";
 
 using TypeSpec.Http;
@@ -25,6 +26,7 @@ using TypeSpec.OpenAPI;
 // TODO: Uncomment this when the Singapore production region is available
 // @server("https://sg.api.konghq.com/v3", "Singapore Production region")
 @server("https://global.api.konghq.com/v3", "Global Production region")
+@tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
@@ -34,6 +36,11 @@ namespace MeteringAndBilling;
 @tag(Shared.EventsTag)
 @friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.EventsTag}")
 interface EventsEndpoints extends Events.EventsOperations {}
+
+@route("/openmeter/meters")
+@tag(Shared.MetersTag)
+@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.MetersTag}")
+interface MetersEndpoints extends Meters.MetersOperations {}
 
 @route("/openmeter/customers")
 @tag(Shared.CustomersTag)
