@@ -69,34 +69,8 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				)
 			}
 
-			// Get the plan entity
-			var getPlanInput plan.GetPlanInput
-
-			if body.PlanId != nil {
-				getPlanInput = plan.GetPlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: ns,
-						ID:        *body.PlanId,
-					},
-				}
-			} else if body.PlanKey != nil {
-				getPlanInput = plan.GetPlanInput{}
-				// We use setters because namespace only exists on namespaced ID
-				// But here we don't have a namespaced ID
-				getPlanInput.Namespace = ns
-				getPlanInput.Key = *body.PlanKey
-
-				if body.PlanVersion != nil {
-					getPlanInput.Version = *body.PlanVersion
-				} else {
-					getPlanInput.IncludeLatest = true
-				}
-			} else {
-				return CreateSubscriptionRequest{}, errors.New("plan id or plan key must be set")
-			}
-
-			// Get the plan entity
-			planEntity, err := h.planService.GetPlan(ctx, getPlanInput)
+			// Get the plan entity by ID or key to validate it exists
+			planEntity, err := h.getPlanByIDOrKey(ctx, ns, body.PlanId, body.PlanKey, body.PlanVersion)
 			if err != nil {
 				return CreateSubscriptionRequest{}, fmt.Errorf("failed to get plan: %w", err)
 			}
@@ -109,7 +83,8 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			})
 
 			// Convert the request to a create subscription workflow input
-			workflowInput, err := ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(ns, body)
+			subscriptionName := fmt.Sprintf("%s v%d", planEntity.Key, planEntity.Version)
+			workflowInput, err := ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(ns, subscriptionName, body)
 			if err != nil {
 				return CreateSubscriptionRequest{}, err
 			}
@@ -138,4 +113,36 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
+}
+
+// getPlanByIDOrKey gets a plan by ID or key helper function
+func (h *handler) getPlanByIDOrKey(ctx context.Context, namespace string, planID *string, planKey *string, planVersion *int) (*plan.Plan, error) {
+	// Get the plan entity, to validate it exists
+	var getPlanInput plan.GetPlanInput
+
+	if planID != nil {
+		getPlanInput = plan.GetPlanInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: namespace,
+				ID:        *planID,
+			},
+		}
+	} else if planKey != nil {
+		getPlanInput = plan.GetPlanInput{}
+		// We use setters because namespace only exists on namespaced ID
+		// But here we don't have a namespaced ID
+		getPlanInput.Namespace = namespace
+		getPlanInput.Key = *planKey
+
+		if planVersion != nil {
+			getPlanInput.Version = *planVersion
+		} else {
+			getPlanInput.IncludeLatest = true
+		}
+	} else {
+		return nil, errors.New("plan id or plan key must be set")
+	}
+
+	// Get the plan entity
+	return h.planService.GetPlan(ctx, getPlanInput)
 }

@@ -82,17 +82,6 @@ model Subscription {
   billing_anchor: Shared.DateTime;
 
   /**
-   * The billing cadence for the subscriptions.
-   * Defines how often customers are billed using ISO8601 duration format.
-   * Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
-  @summary("Billing cadence")
-  @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1M"))
-  billing_cadence: duration;
-
-  /**
    * The status of the subscription.
    */
   @visibility(Lifecycle.Read)

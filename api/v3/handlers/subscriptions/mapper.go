@@ -12,14 +12,13 @@ import (
 
 func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription) api.BillingSubscription {
 	subscriptionAPI := api.BillingSubscription{
-		Id:             subscription.ID,
-		CustomerId:     subscription.CustomerId,
-		BillingAnchor:  subscription.BillingAnchor,
-		BillingCadence: subscription.BillingCadence.String(),
-		Status:         api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
-		CreatedAt:      &subscription.CreatedAt,
-		UpdatedAt:      &subscription.UpdatedAt,
-		DeletedAt:      subscription.DeletedAt,
+		Id:            subscription.ID,
+		CustomerId:    subscription.CustomerId,
+		BillingAnchor: subscription.BillingAnchor,
+		Status:        api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
+		CreatedAt:     &subscription.CreatedAt,
+		UpdatedAt:     &subscription.UpdatedAt,
+		DeletedAt:     subscription.DeletedAt,
 	}
 
 	// Only set if the subscription is created from a plan
@@ -33,12 +32,13 @@ func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription
 }
 
 // ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput converts a create subscription request to a create subscription workflow input
-func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(namespace string, createSubscriptionRequest api.BillingSubscriptionCreate) (subscriptionworkflow.CreateSubscriptionWorkflowInput, error) {
+func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(namespace string, name string, createSubscriptionRequest api.BillingSubscriptionCreate) (subscriptionworkflow.CreateSubscriptionWorkflowInput, error) {
 	workflowInput := subscriptionworkflow.CreateSubscriptionWorkflowInput{
 		Namespace:     namespace,
 		CustomerID:    createSubscriptionRequest.CustomerId,
 		BillingAnchor: createSubscriptionRequest.BillingAnchor,
 		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Name: name,
 			Timing: subscription.Timing{
 				// TODO: accept from request
 				Enum: lo.ToPtr(subscription.TimingImmediate),

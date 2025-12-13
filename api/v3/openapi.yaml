@@ -702,7 +702,6 @@ components:
         - id
         - customer_id
         - billing_anchor
-        - billing_cadence
         - status
       properties:
         id:
@@ -762,15 +761,6 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: The billing anchor of the subscription.
           title: Billing anchor
-        billing_cadence:
-          type: string
-          format: duration
-          description: |-
-            The billing cadence for the subscriptions.
-            Defines how often customers are billed using ISO8601 duration format.
-            Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
-          title: Billing cadence
-          example: P1M
         status:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionStatus'
@@ -782,7 +772,6 @@ components:
       type: object
       required:
         - customer_id
-        - billing_cadence
       properties:
         labels:
           $ref: '#/components/schemas/Labels'
@@ -817,15 +806,6 @@ components:
             The plan version of the subscription, if any.
             Set if subscription is created from a plan.
           title: Plan Version
-        billing_cadence:
-          type: string
-          format: duration
-          description: |-
-            The billing cadence for the subscriptions.
-            Defines how often customers are billed using ISO8601 duration format.
-            Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
-          title: Billing cadence
-          example: P1M
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'
