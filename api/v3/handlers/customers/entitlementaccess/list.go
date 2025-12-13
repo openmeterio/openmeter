@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -52,8 +51,8 @@ func (h *handler) ListCustomerEntitlementAccess() ListCustomerEntitlementAccessH
 
 			if cus != nil && cus.IsDeleted() {
 				return ListCustomerEntitlementAccessResponse{},
-					models.NewGenericPreConditionFailedError(
-						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					apierrors.NewPreconditionFailedError(ctx,
+						fmt.Sprintf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
 					)
 			}
 
