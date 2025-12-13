@@ -1,5 +1,4 @@
 import "../shared/index.tsp";
-import "../packages/plan.tsp";
 
 namespace Subscriptions;
 
@@ -15,37 +14,70 @@ enum SubscriptionStatus {
 }
 
 /**
- * Customer subscription.
+ * Subscription create request.
+ */
+@friendlyName("BillingSubscriptionCreate")
+model SubscriptionCreate {
+  ...Shared.CreateRequest<OmitProperties<Subscription, "billing_anchor">>;
+
+  /**
+   * The billing anchor of the subscription.
+   * Defaults to now if not provided.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Billing anchor")
+  billing_anchor?: Shared.DateTime;
+}
+
+/**
+ * Subscription.
  */
 @friendlyName("BillingSubscription")
 model Subscription {
   ...OmitProperties<Shared.Resource, "name" | "description">;
 
   /**
-   * The plan ID of the subscription.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Plan ID")
-  plan_id: Shared.ULID;
-
-  /**
    * The customer ID of the subscription.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Customer ID")
   customer_id: Shared.ULID;
 
   /**
-   * The plan reference for the subscription.
+   * The plan ID of the subscription.
+   * Set if subscription is created from a plan.
+   *
+   * ID or Key of the plan is required if creating a subscription from a plan.
+   * If both are provided, the ID will be used.
    */
-  @visibility(Lifecycle.Create, Lifecycle.Update)
-  @summary("Plan Reference")
-  plan: Packages.Reference;
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Plan ID")
+  plan_id?: Shared.ULID;
+
+  /**
+   * The plan Key of the subscription, if any.
+   * Set if subscription is created from a plan.
+   *
+   * ID or Key of the plan is required if creating a subscription from a plan.
+   * If both are provided, the ID will be used.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Plan Key")
+  plan_key?: Shared.ResourceKey;
+
+  /**
+   * The plan version of the subscription, if any.
+   * Set if subscription is created from a plan.
+   *
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Plan Version")
+  plan_version?: integer;
 
   /**
    * The billing anchor of the subscription.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Billing anchor")
   billing_anchor: Shared.DateTime;
 
@@ -54,7 +86,7 @@ model Subscription {
    * Defines how often customers are billed using ISO8601 duration format.
    * Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Billing cadence")
   @encode(DurationKnownEncoding.ISO8601)
   @example(duration.fromISO("P1M"))

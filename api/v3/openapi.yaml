@@ -373,44 +373,9 @@ paths:
       tags:
         - Meters
   /openmeter/subscriptions:
-    get:
-      operationId: list-subscriptions
-      summary: List subscriptions
-      parameters:
-        - $ref: '#/components/parameters/PagePaginationQuery'
-        - $ref: '#/components/parameters/ListSubscriptionsParams.sort'
-        - $ref: '#/components/parameters/ListSubscriptionsParams.filter'
-      responses:
-        '200':
-          description: Page paginated response.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubscriptionPagePaginatedResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
-      tags:
-        - OpenMeter Subscriptions
-  /openmeter/subscriptions/{customerId}:
     post:
       operationId: create-subscription
       summary: Create subscription
-      parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            $ref: '#/components/schemas/ULID'
       responses:
         '201':
           description: Subscription created response.
@@ -439,7 +404,39 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateSubscriptionRequest'
+              $ref: '#/components/schemas/BillingSubscriptionCreate'
+      x-internal: true
+      x-unstable: true
+    get:
+      operationId: list-subscriptions
+      summary: List subscriptions
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - $ref: '#/components/parameters/ListSubscriptionsParams.sort'
+        - $ref: '#/components/parameters/ListSubscriptionsParams.filter'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
+      x-internal: true
+      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}:
     get:
       operationId: get-subscription
@@ -471,6 +468,8 @@ paths:
           $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Subscriptions
+      x-internal: true
+      x-unstable: true
 components:
   parameters:
     ListCustomersParams.sort:
@@ -701,7 +700,6 @@ components:
       type: object
       required:
         - id
-        - plan_id
         - customer_id
         - billing_anchor
         - billing_cadence
@@ -728,23 +726,42 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of entity deletion date.
           readOnly: true
-        plan_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The plan ID of the subscription.
-          title: Plan ID
-          readOnly: true
         customer_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
           description: The customer ID of the subscription.
           title: Customer ID
+        plan_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            The plan ID of the subscription.
+            Set if subscription is created from a plan.
+
+            ID or Key of the plan is required if creating a subscription from a plan.
+            If both are provided, the ID will be used.
+          title: Plan ID
+        plan_key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            The plan Key of the subscription, if any.
+            Set if subscription is created from a plan.
+
+            ID or Key of the plan is required if creating a subscription from a plan.
+            If both are provided, the ID will be used.
+          title: Plan Key
+        plan_version:
+          type: integer
+          description: |-
+            The plan version of the subscription, if any.
+            Set if subscription is created from a plan.
+          title: Plan Version
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: The billing anchor of the subscription.
           title: Billing anchor
-          readOnly: true
         billing_cadence:
           type: string
           format: duration
@@ -754,14 +771,69 @@ components:
             Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
           title: Billing cadence
           example: P1M
-          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionStatus'
           description: The status of the subscription.
           title: Status
           readOnly: true
-      description: Customer subscription.
+      description: Subscription.
+    BillingSubscriptionCreate:
+      type: object
+      required:
+        - customer_id
+        - billing_cadence
+      properties:
+        labels:
+          $ref: '#/components/schemas/Labels'
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The customer ID of the subscription.
+          title: Customer ID
+        plan_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            The plan ID of the subscription.
+            Set if subscription is created from a plan.
+
+            ID or Key of the plan is required if creating a subscription from a plan.
+            If both are provided, the ID will be used.
+          title: Plan ID
+        plan_key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            The plan Key of the subscription, if any.
+            Set if subscription is created from a plan.
+
+            ID or Key of the plan is required if creating a subscription from a plan.
+            If both are provided, the ID will be used.
+          title: Plan Key
+        plan_version:
+          type: integer
+          description: |-
+            The plan version of the subscription, if any.
+            Set if subscription is created from a plan.
+          title: Plan Version
+        billing_cadence:
+          type: string
+          format: duration
+          description: |-
+            The billing cadence for the subscriptions.
+            Defines how often customers are billed using ISO8601 duration format.
+            Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+          title: Billing cadence
+          example: P1M
+        billing_anchor:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The billing anchor of the subscription.
+            Defaults to now if not provided.
+          title: Billing anchor
+      description: Subscription create request.
     BillingSubscriptionStatus:
       type: string
       enum:
@@ -892,25 +964,6 @@ components:
           example:
             type: $.type
       description: Meter create request.
-    CreateSubscriptionRequest:
-      type: object
-      required:
-        - customer_id
-        - plan
-      properties:
-        labels:
-          $ref: '#/components/schemas/Labels'
-        customer_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The customer ID of the subscription.
-          title: Customer ID
-        plan:
-          allOf:
-            - $ref: '#/components/schemas/PlanReference'
-          description: The plan reference for the subscription.
-          title: Plan Reference
-      description: Subscription create request.
     CurrencyCode:
       type: string
       minLength: 3
@@ -1156,23 +1209,6 @@ components:
           tokens: 100
           model: gpt-4o
           type: input
-    PlanReference:
-      oneOf:
-        - type: object
-          properties:
-            id:
-              $ref: '#/components/schemas/ULID'
-          required:
-            - id
-        - type: object
-          properties:
-            key:
-              $ref: '#/components/schemas/ResourceKey'
-            version:
-              type: integer
-          required:
-            - key
-      description: Reference to a plan by its id or key and version.
     ResourceKey:
       type: string
       minLength: 1

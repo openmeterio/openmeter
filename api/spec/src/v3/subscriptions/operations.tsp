@@ -47,9 +47,10 @@ interface SubscriptionsOperations {
   @post
   @operationId("create-subscription")
   @summary("Create subscription")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   create(
-    @path customerId: Shared.ULID,
-    @body request: Shared.CreateRequest<Subscription>,
+    @body subscription: SubscriptionCreate,
   ):
     | Shared.CreateResponse<Subscription>
     | Common.NotFound
@@ -59,6 +60,8 @@ interface SubscriptionsOperations {
   @get
   @operationId("list-subscriptions")
   @summary("List subscriptions")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   list(
     ...ListSubscriptionsParams,
   ): Shared.PagePaginatedResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
@@ -66,6 +69,8 @@ interface SubscriptionsOperations {
   @get
   @operationId("get-subscription")
   @summary("Get subscription")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   get(
     @path subscriptionId: Shared.ULID,
   ): Shared.GetResponse<Subscription> | Common.NotFound | Common.ErrorResponses;

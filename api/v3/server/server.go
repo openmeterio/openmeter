@@ -18,6 +18,7 @@ import (
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
+	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -25,6 +26,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -36,10 +40,13 @@ type Config struct {
 	Middlewares      []func(http.Handler) http.Handler
 
 	// services
-	MeterService       meter.ManageService
-	IngestService      ingest.Service
-	CustomerService    customer.Service
-	EntitlementService entitlement.Service
+	MeterService            meter.ManageService
+	IngestService           ingest.Service
+	CustomerService         customer.Service
+	EntitlementService      entitlement.Service
+	PlanService             plan.Service
+	PlanSubscriptionService plansubscription.PlanSubscriptionService
+	SubscriptionService     subscription.Service
 }
 
 func (c *Config) Validate() error {
@@ -73,6 +80,18 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("entitlement service is required"))
 	}
 
+	if c.PlanService == nil {
+		errs = append(errs, errors.New("plan service is required"))
+	}
+
+	if c.PlanSubscriptionService == nil {
+		errs = append(errs, errors.New("plan subscription service is required"))
+	}
+
+	if c.SubscriptionService == nil {
+		errs = append(errs, errors.New("subscription service is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -86,6 +105,7 @@ type Server struct {
 	customersHandler            customershandler.Handler
 	customersEntitlementHandler customersentitlementhandler.Handler
 	metersHandler               metershandler.Handler
+	subscriptionsHandler        subscriptionshandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -123,6 +143,7 @@ func NewServer(config *Config) (*Server, error) {
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, httptransport.WithErrorHandler(config.ErrorHandler))
+	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	return &Server{
 		Config:                      config,
@@ -131,6 +152,7 @@ func NewServer(config *Config) (*Server, error) {
 		customersHandler:            customersHandler,
 		customersEntitlementHandler: customersEntitlementHandler,
 		metersHandler:               metersHandler,
+		subscriptionsHandler:        subscriptionsHandler,
 	}, nil
 }
 
