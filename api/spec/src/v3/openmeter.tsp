@@ -6,6 +6,7 @@ import "./shared/index.tsp";
 import "./events/index.tsp";
 import "./meters/index.tsp";
 import "./customers/index.tsp";
+import "./subscriptions/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -27,6 +28,10 @@ using TypeSpec.OpenAPI;
 @tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
+@tagMetadata(
+  Shared.SubscriptionsTag,
+  #{ description: Shared.SubscriptionsDescription }
+)
 @tagMetadata(
   Shared.EntitlementsTag,
   #{ description: Shared.EntitlementsDescription }
@@ -54,3 +59,9 @@ interface CustomersEndpoints extends Customers.CustomersOperations {}
 @friendlyName("${Shared.OpenMeterTitle}: ${Shared.EntitlementsTag}")
 interface CustomerEntitlementsEndpoints
   extends Entitlements.CustomerEntitlementsOperations {}
+
+@route("/openmeter/subscriptions")
+@tag(Shared.SubscriptionsTag)
+@friendlyName("${Shared.OpenMeterTitle}: ${Shared.SubscriptionsTag}")
+interface SubscriptionsEndpoints
+  extends Subscriptions.SubscriptionsOperations {}

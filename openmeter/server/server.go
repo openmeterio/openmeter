@@ -89,13 +89,16 @@ func NewServer(config *Config) (*Server, error) {
 	r := chi.NewRouter()
 
 	v3API, err := v3server.NewServer(&v3server.Config{
-		BaseURL:            "/api/v3",
-		NamespaceDecoder:   namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
-		ErrorHandler:       config.RouterConfig.ErrorHandler,
-		IngestService:      config.RouterConfig.IngestService,
-		CustomerService:    config.RouterConfig.Customer,
-		EntitlementService: config.RouterConfig.EntitlementConnector,
-		MeterService:       config.RouterConfig.MeterManageService,
+		BaseURL:                 "/api/v3",
+		NamespaceDecoder:        namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
+		ErrorHandler:            config.RouterConfig.ErrorHandler,
+		IngestService:           config.RouterConfig.IngestService,
+		CustomerService:         config.RouterConfig.Customer,
+		EntitlementService:      config.RouterConfig.EntitlementConnector,
+		MeterService:            config.RouterConfig.MeterManageService,
+		PlanService:             config.RouterConfig.Plan,
+		PlanSubscriptionService: config.RouterConfig.PlanSubscriptionService,
+		SubscriptionService:     config.RouterConfig.SubscriptionService,
 		Middlewares: []func(http.Handler) http.Handler{
 			middleware.RealIP,
 			middleware.RequestID,
