@@ -31,18 +31,10 @@ func mapEntitlementValueToAPI(featureKey string, entitlementValue entitlement.En
 
 		// If config is not nil, unmarshal it
 		if ent.Config != nil {
-			var jsonValue interface{}
+			var jsonValue string
 
-			// FIXME (pmarton): static config is double json encoded, we need to unmarshal it twice
-			var inner string
-			if err := json.Unmarshal(ent.Config, &inner); err != nil {
-				return true, api.BillingEntitlementAccessResult{}, models.NewGenericValidationError(
-					fmt.Errorf("failed to unmarshal static entitlement config: %w", err),
-				)
-			}
-
-			// Return config as JSON value
-			if err := json.Unmarshal([]byte(inner), &jsonValue); err != nil {
+			// FIXME (pmarton): static config is double json encoded, we need to unmarshal before returning it
+			if err := json.Unmarshal(ent.Config, &jsonValue); err != nil {
 				return true, api.BillingEntitlementAccessResult{}, models.NewGenericValidationError(
 					fmt.Errorf("failed to unmarshal static entitlement config: %w", err),
 				)
