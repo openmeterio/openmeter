@@ -1,12 +1,13 @@
 package subscriptions
 
 import (
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	models "github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription) api.BillingSubscription {
