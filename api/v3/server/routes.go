@@ -50,3 +50,9 @@ func (s *Server) UpsertCustomer(w http.ResponseWriter, r *http.Request, customer
 func (s *Server) DeleteCustomer(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
 	s.customersHandler.DeleteCustomer().With(customerId).ServeHTTP(w, r)
 }
+
+// Customers Entitlement Access
+
+func (s *Server) ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	s.customersEntitlementHandler.ListCustomerEntitlementAccess().With(customerId).ServeHTTP(w, r)
+}

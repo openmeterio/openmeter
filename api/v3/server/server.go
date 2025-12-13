@@ -15,11 +15,13 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	customershandler "github.com/openmeterio/openmeter/api/v3/handlers/customers"
+	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -34,9 +36,10 @@ type Config struct {
 	Middlewares      []func(http.Handler) http.Handler
 
 	// services
-	MeterService    meter.ManageService
-	IngestService   ingest.Service
-	CustomerService customer.Service
+	MeterService       meter.ManageService
+	IngestService      ingest.Service
+	CustomerService    customer.Service
+	EntitlementService entitlement.Service
 }
 
 func (c *Config) Validate() error {
@@ -66,6 +69,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("customer service is required"))
 	}
 
+	if c.EntitlementService == nil {
+		errs = append(errs, errors.New("entitlement service is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -75,9 +82,10 @@ type Server struct {
 	swagger *openapi3.T
 
 	// handlers
-	eventsHandler    eventshandler.Handler
-	customersHandler customershandler.Handler
-	metersHandler    metershandler.Handler
+	eventsHandler               eventshandler.Handler
+	customersHandler            customershandler.Handler
+	customersEntitlementHandler customersentitlementhandler.Handler
+	metersHandler               metershandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -113,14 +121,16 @@ func NewServer(config *Config) (*Server, error) {
 
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
+	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	return &Server{
-		Config:           config,
-		swagger:          swagger,
-		eventsHandler:    eventsHandler,
-		customersHandler: customersHandler,
-		metersHandler:    metersHandler,
+		Config:                      config,
+		swagger:                     swagger,
+		eventsHandler:               eventsHandler,
+		customersHandler:            customersHandler,
+		customersEntitlementHandler: customersEntitlementHandler,
+		metersHandler:               metersHandler,
 	}, nil
 }
 

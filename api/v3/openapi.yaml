@@ -14,6 +14,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
+  - name: OpenMeter Entitlements
+    description: Entitlements are used to control access to features for customers.
   - name: OpenMeter Customers
     description: Customers are used to track usage of your product or service. Customers can be individuals or organizations that can subscribe to plans and have access to features.
   - name: Metering Events
@@ -178,6 +180,40 @@ paths:
           $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Customers
+      x-internal: true
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlement-access:
+    get:
+      operationId: list-customer-entitlement-access
+      summary: List customer entitlement access
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: List the customer's active features and their access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListCustomerEntitlementAccessResponseData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Customers
+        - OpenMeter Entitlements
       x-internal: true
       x-unstable: true
   /openmeter/events:
@@ -487,6 +523,50 @@ components:
         Mapping to attribute metered usage to the customer.
         One customer can have zero or more subjects,
         but one subject can only belong to one customer.
+    BillingEntitlementAccessResult:
+      type: object
+      required:
+        - type
+        - feature_key
+        - has_access
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementType'
+          description: The type of the entitlement.
+          example: static
+          readOnly: true
+        feature_key:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: The feature key of the entitlement.
+          example: available_models
+          readOnly: true
+        has_access:
+          type: boolean
+          description: |-
+            Whether the customer has access to the feature.
+            Always true for `boolean` and `static` entitlements.
+            Depends on balance for `metered` entitlements.
+          example: true
+          readOnly: true
+        config:
+          type: string
+          description: |-
+            Only available for static entitlements.
+            Config is the JSON parsable configuration of the entitlement.
+            Useful to describe per customer configuration.
+          example: '{ "availableModels": ["gpt-5", "gpt-4o"] }'
+          readOnly: true
+      description: Entitlement access result.
+    BillingEntitlementType:
+      type: string
+      enum:
+        - metered
+        - static
+        - boolean
+      description: The type of the entitlement.
     CountryCode:
       type: string
       minLength: 2
@@ -644,6 +724,18 @@ components:
       description: ExternalResourceKey is a unique string that is used to identify a resource in an external system.
       title: External Resource Key
       example: 019ae40f-4258-7f15-9491-842f42a7d6ac
+    ListCustomerEntitlementAccessResponseData:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementAccessResult'
+          description: The list of entitlement access results.
+          readOnly: true
+      description: List customer entitlement access response data.
     Meter:
       type: object
       required:

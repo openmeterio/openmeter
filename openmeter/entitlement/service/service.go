@@ -269,6 +269,7 @@ func (c *service) GetAccess(ctx context.Context, namespace string, customerId st
 
 			// Store the result
 			result.Store(entit.FeatureKey, entitlement.EntitlementValueWithId{
+				Type:  entit.GetType(),
 				Value: entValue,
 				ID:    entit.ID,
 			})
