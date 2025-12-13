@@ -49,9 +49,7 @@ interface SubscriptionsOperations {
   @summary("Create subscription")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
-  create(
-    @body subscription: SubscriptionCreate,
-  ):
+  create(@body subscription: SubscriptionCreate):
     | Shared.CreateResponse<Subscription>
     | Common.NotFound
     | Common.Conflict
