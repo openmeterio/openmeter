@@ -36,7 +36,7 @@ model EntitlementAccessResult {
    * Config is the JSON parsable configuration of the entitlement.
    * Useful to describe per customer configuration.
    */
-  @example(#{ availableModels: #["gpt-5", "gpt-4o"] })
+  @example("{ \"availableModels\": [\"gpt-5\", \"gpt-4o\"] }")
   @visibility(Lifecycle.Read)
-  config?: unknown;
+  config?: string;
 }
