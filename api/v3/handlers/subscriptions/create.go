@@ -101,10 +101,6 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				return CreateSubscriptionRequest{}, fmt.Errorf("failed to get plan: %w", err)
 			}
 
-			fmt.Println("planEntity.BillingCadence", planEntity.BillingCadence)
-			fmt.Println("planEntity.Version", planEntity.Version)
-			fmt.Println("planEntity.Key", planEntity.Key)
-
 			// Convert the plan entity to a plan input
 			planInput := plansubscription.PlanInput{}
 			planInput.FromRef(&plansubscription.PlanRefInput{
