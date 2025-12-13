@@ -730,37 +730,21 @@ components:
             - $ref: '#/components/schemas/ULID'
           description: The customer ID of the subscription.
           title: Customer ID
+          readOnly: true
         plan_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
           description: |-
             The plan ID of the subscription.
             Set if subscription is created from a plan.
-
-            ID or Key of the plan is required if creating a subscription from a plan.
-            If both are provided, the ID will be used.
           title: Plan ID
-        plan_key:
-          allOf:
-            - $ref: '#/components/schemas/ResourceKey'
-          description: |-
-            The plan Key of the subscription, if any.
-            Set if subscription is created from a plan.
-
-            ID or Key of the plan is required if creating a subscription from a plan.
-            If both are provided, the ID will be used.
-          title: Plan Key
-        plan_version:
-          type: integer
-          description: |-
-            The plan version of the subscription, if any.
-            Set if subscription is created from a plan.
-          title: Plan Version
+          readOnly: true
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: The billing anchor of the subscription.
           title: Billing anchor
+          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionStatus'
@@ -770,16 +754,27 @@ components:
       description: Subscription.
     BillingSubscriptionCreate:
       type: object
-      required:
-        - customer_id
       properties:
         labels:
           $ref: '#/components/schemas/Labels'
         customer_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
-          description: The customer ID of the subscription.
+          description: |-
+            The ID of the customer to create the subscription for.
+
+            Either customer ID or customer key must be provided.
+            If both are provided, the ID will be used.
           title: Customer ID
+        customer_key:
+          allOf:
+            - $ref: '#/components/schemas/ExternalResourceKey'
+          description: |-
+            The key of the customer to create the subscription for.
+
+            Either customer ID or customer key must be provided.
+            If both are provided, the ID will be used.
+          title: Customer Key
         plan_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
@@ -804,7 +799,7 @@ components:
           type: integer
           description: |-
             The plan version of the subscription, if any.
-            Set if subscription is created from a plan.
+            If not provided, the latest version of the plan will be used.
           title: Plan Version
         billing_anchor:
           allOf:

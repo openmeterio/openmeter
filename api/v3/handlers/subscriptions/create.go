@@ -42,13 +42,29 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				return CreateSubscriptionRequest{}, err
 			}
 
+			// Validate that either customer ID or customer key is provided
+			if body.CustomerId == nil && body.CustomerKey == nil {
+				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(ctx,
+					fmt.Errorf("customer id or customer key is required"),
+					[]apierrors.InvalidParameter{
+						{
+							Field:  "customer_id",
+							Reason: "customer id or customer key is required",
+							Source: apierrors.InvalidParamSourceBody,
+							Rule:   "required",
+						},
+						{
+							Field:  "customer_key",
+							Reason: "customer id or customer key is required",
+							Source: apierrors.InvalidParamSourceBody,
+							Rule:   "required",
+						},
+					},
+				)
+			}
+
 			// Get the customer to validate it exists
-			_, err = h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-				CustomerID: &customer.CustomerID{
-					Namespace: ns,
-					ID:        body.CustomerId,
-				},
-			})
+			customerEntity, err := h.getCustomerByIDOrKey(ctx, ns, body.CustomerId, body.CustomerKey)
 			if err != nil {
 				return CreateSubscriptionRequest{}, fmt.Errorf("failed to get customer: %w", err)
 			}
@@ -84,7 +100,12 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 
 			// Convert the request to a create subscription workflow input
 			subscriptionName := fmt.Sprintf("%s v%d", planEntity.Key, planEntity.Version)
-			workflowInput, err := ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(ns, subscriptionName, body)
+			workflowInput, err := ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(
+				ns,
+				customerEntity.GetID(),
+				subscriptionName,
+				body,
+			)
 			if err != nil {
 				return CreateSubscriptionRequest{}, err
 			}
@@ -113,6 +134,32 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
+}
+
+// getCustomerByIDOrKey gets a customer by ID or key helper function
+
+func (h *handler) getCustomerByIDOrKey(ctx context.Context, namespace string, customerID *string, customerKey *string) (*customer.Customer, error) {
+	var getCustomerInput customer.GetCustomerInput
+
+	if customerID != nil {
+		getCustomerInput = customer.GetCustomerInput{
+			CustomerID: &customer.CustomerID{
+				Namespace: namespace,
+				ID:        *customerID,
+			},
+		}
+	} else if customerKey != nil {
+		getCustomerInput = customer.GetCustomerInput{
+			CustomerKey: &customer.CustomerKey{
+				Namespace: namespace,
+				Key:       *customerKey,
+			},
+		}
+	} else {
+		return nil, fmt.Errorf("customer id or customer key is required")
+	}
+
+	return h.customerService.GetCustomer(ctx, getCustomerInput)
 }
 
 // getPlanByIDOrKey gets a plan by ID or key helper function

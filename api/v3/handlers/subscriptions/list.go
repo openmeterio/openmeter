@@ -57,21 +57,24 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 				Page:       page,
 			}
 
-			// Filter by customer ID
-			if params.Filter.CustomerId != nil {
-				// Get the customer to validate it exists
-				_, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-					CustomerID: &customer.CustomerID{
-						Namespace: ns,
-						ID:        *params.Filter.CustomerId,
-					},
-				})
-				if err != nil {
-					return ListSubscriptionsRequest{}, err
-				}
+			// Filters
+			if params.Filter != nil {
+				// Filter by customer ID
+				if params.Filter.CustomerId != nil {
+					// Get the customer to validate it exists
+					_, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+						CustomerID: &customer.CustomerID{
+							Namespace: ns,
+							ID:        *params.Filter.CustomerId,
+						},
+					})
+					if err != nil {
+						return ListSubscriptionsRequest{}, err
+					}
 
-				// Add the customer ID filter to the request
-				req.CustomerIDs = []string{*params.Filter.CustomerId}
+					// Add the customer ID filter to the request
+					req.CustomerIDs = []string{*params.Filter.CustomerId}
+				}
 			}
 
 			return req, nil

@@ -4,6 +4,7 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -24,21 +25,24 @@ func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription
 	// Only set if the subscription is created from a plan
 	if subscription.PlanRef != nil {
 		subscriptionAPI.PlanId = &subscription.PlanRef.Id
-		subscriptionAPI.PlanKey = &subscription.PlanRef.Key
-		subscriptionAPI.PlanVersion = &subscription.PlanRef.Version
 	}
 
 	return subscriptionAPI
 }
 
 // ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput converts a create subscription request to a create subscription workflow input
-func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(namespace string, name string, createSubscriptionRequest api.BillingSubscriptionCreate) (subscriptionworkflow.CreateSubscriptionWorkflowInput, error) {
+func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(
+	namespace string,
+	customerID customer.CustomerID,
+	subscriptionName string,
+	createSubscriptionRequest api.BillingSubscriptionCreate,
+) (subscriptionworkflow.CreateSubscriptionWorkflowInput, error) {
 	workflowInput := subscriptionworkflow.CreateSubscriptionWorkflowInput{
 		Namespace:     namespace,
-		CustomerID:    createSubscriptionRequest.CustomerId,
+		CustomerID:    customerID.ID,
 		BillingAnchor: createSubscriptionRequest.BillingAnchor,
 		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
-			Name: name,
+			Name: subscriptionName,
 			Timing: subscription.Timing{
 				// TODO: accept from request
 				Enum: lo.ToPtr(subscription.TimingImmediate),
