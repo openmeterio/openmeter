@@ -17,6 +17,7 @@ func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription
 		CustomerId:    subscription.CustomerId,
 		BillingAnchor: subscription.BillingAnchor,
 		Status:        api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
+		Labels:        lo.ToPtr(api.Labels(subscription.Metadata)),
 		CreatedAt:     &subscription.CreatedAt,
 		UpdatedAt:     &subscription.UpdatedAt,
 		DeletedAt:     subscription.DeletedAt,
