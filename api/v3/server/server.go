@@ -10,7 +10,6 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
-	oapimiddleware "github.com/oapi-codegen/nethttp-middleware"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
@@ -170,6 +169,31 @@ func (s *Server) RegisterRoutes(r chi.Router) {
 				HandleAPIError(w, r)
 		})
 
+		validationRouter, err := oasmiddleware.NewValidationRouter(
+			context.Background(),
+			s.swagger,
+			&oasmiddleware.ValidationRouterOpts{
+				DeleteServers: true,
+				ServerPrefix:  s.BaseURL,
+			},
+		)
+		if err != nil {
+			slog.Error("failed to create validation router", "error", err)
+			return
+		}
+
+		validationMiddleware := oasmiddleware.ValidateRequest(validationRouter, oasmiddleware.ValidateRequestOption{
+			RouteNotFoundHook: oasmiddleware.OasRouteNotFoundErrorHook,
+			RouteValidationErrorHook: func(err error, w http.ResponseWriter, r *http.Request) bool {
+				return oasmiddleware.OasValidationErrorHook(r.Context(), err, w, r)
+			},
+			FilterOptions: &openapi3filter.Options{
+				// No-op auth: auth is handled by other middleware.
+				AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+				MultiError:         true,
+			},
+		})
+
 		// Serve the OpenAPI spec
 		r.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
 			_ = render.RenderJSON(w, s.swagger)
@@ -181,21 +205,10 @@ func (s *Server) RegisterRoutes(r chi.Router) {
 
 		_ = api.HandlerWithOptions(s, api.ChiServerOptions{
 			BaseRouter: r,
-			Middlewares: []api.MiddlewareFunc{oapimiddleware.OapiRequestValidatorWithOptions(s.swagger, &oapimiddleware.Options{
-				ErrorHandlerWithOpts: func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request, opts oapimiddleware.ErrorHandlerOpts) {
-					oasmiddleware.OasValidationErrorHook(ctx, err, w, r)
-				},
-				SilenceServersWarning: true,
-				Options: openapi3filter.Options{
-					AuthenticationFunc:        openapi3filter.NoopAuthenticationFunc,
-					SkipSettingDefaults:       false,
-					MultiError:                true,
-					ExcludeRequestQueryParams: true,
-				},
-			})},
-			ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-				s.ErrorHandler.HandleContext(r.Context(), err)
+			Middlewares: []api.MiddlewareFunc{
+				validationMiddleware,
 			},
+			ErrorHandlerFunc: apierrors.NewV3ErrorHandlerFunc(s.ErrorHandler),
 		})
 	})
 }
