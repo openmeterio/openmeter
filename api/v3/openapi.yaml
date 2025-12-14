@@ -377,7 +377,10 @@ components:
       name: filter
       in: query
       required: false
-      description: Filter customers returned in the response.
+      description: |-
+        Filter customers returned in the response.
+
+        To filter customers by key add the following query param: filter[key]=my-db-id
       schema:
         $ref: '#/components/schemas/ListCustomersParamsFilter'
       style: deepObject

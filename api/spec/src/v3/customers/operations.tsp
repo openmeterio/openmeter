@@ -47,6 +47,8 @@ model ListCustomersParams {
 
   /**
    * Filter customers returned in the response.
+   *
+   * To filter customers by key add the following query param: filter[key]=my-db-id
    */
   @query(#{ style: "deepObject", explode: true })
   filter?: ListCustomersParamsFilter;
