@@ -196,6 +196,10 @@ func NewMethodNotAllowedError(ctx context.Context) *BaseAPIError {
 
 // NewBadRequestError generates a bad request error.
 func NewBadRequestError(ctx context.Context, err error, invalidFields InvalidParameters) *BaseAPIError {
+	detail := BadRequestTitle
+	if len(invalidFields) > 0 {
+		detail = fmt.Sprintf("%s: %s", BadRequestTitle, invalidFields.String())
+	}
 	return &BaseAPIError{
 		Type:              BadRequestType,
 		Status:            http.StatusBadRequest,
@@ -203,7 +207,7 @@ func NewBadRequestError(ctx context.Context, err error, invalidFields InvalidPar
 		Instance:          instance(ctx),
 		InvalidParameters: invalidFields,
 		UnderlyingError:   err,
-		Detail:            fmt.Sprintf("%s: %s", BadRequestTitle, invalidFields.String()),
+		Detail:            detail,
 		ctx:               ctx,
 	}
 }
