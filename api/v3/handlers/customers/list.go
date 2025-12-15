@@ -68,11 +68,17 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				order = sort.Order.ToSortxOrder()
 			}
 
+			var filterKey *string
+			if params.Filter != nil {
+				filterKey = params.Filter.Key
+			}
+
 			req := ListCustomersRequest{
 				Namespace: ns,
 				Page:      page,
 				OrderBy:   orderBy,
 				Order:     order,
+				Key:       filterKey,
 			}
 
 			return req, nil

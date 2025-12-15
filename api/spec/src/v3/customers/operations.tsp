@@ -14,6 +14,18 @@ using TypeSpec.OpenAPI;
 namespace Customers;
 
 /**
+ * Filter options for listing customers.
+ */
+@friendlyName("ListCustomersParamsFilter")
+model ListCustomersParamsFilter {
+  /**
+   * Filter customers by key.
+   * Case-insensitive partial match.
+   */
+  key?: Shared.ExternalResourceKey;
+}
+
+/**
  * Query params for listing customers.
  */
 @friendlyName("ListCustomersParams")
@@ -32,6 +44,14 @@ model ListCustomersParams {
    */
   @query(#{ name: "sort" })
   sort?: Common.SortQuery;
+
+  /**
+   * Filter customers returned in the response.
+   *
+   * To filter customers by key add the following query param: filter[key]=my-db-id
+   */
+  @query(#{ style: "deepObject", explode: true })
+  filter?: ListCustomersParamsFilter;
 }
 
 interface CustomersOperations {

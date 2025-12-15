@@ -60,6 +60,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
         - $ref: '#/components/parameters/ListCustomersParams.sort'
+        - $ref: '#/components/parameters/ListCustomersParams.filter'
       responses:
         '200':
           description: Page paginated response.
@@ -372,6 +373,17 @@ paths:
         - Meters
 components:
   parameters:
+    ListCustomersParams.filter:
+      name: filter
+      in: query
+      required: false
+      description: |-
+        Filter customers returned in the response.
+
+        To filter customers by key add the following query param: filter[key]=my-db-id
+      schema:
+        $ref: '#/components/schemas/ListCustomersParamsFilter'
+      style: deepObject
     ListCustomersParams.sort:
       name: sort
       in: query
@@ -736,6 +748,16 @@ components:
           description: The list of entitlement access results.
           readOnly: true
       description: List customer entitlement access response data.
+    ListCustomersParamsFilter:
+      type: object
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ExternalResourceKey'
+          description: |-
+            Filter customers by key.
+            Case-insensitive partial match.
+      description: Filter options for listing customers.
     Meter:
       type: object
       required:
