@@ -116,9 +116,14 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, err
 	}
 
+	var v3RegisterErr error
 	r.Group(func(r chi.Router) {
-		v3API.RegisterRoutes(r)
+		v3RegisterErr = v3API.RegisterRoutes(r)
 	})
+	if v3RegisterErr != nil {
+		slog.Error("failed to register v3 API routes", "error", v3RegisterErr)
+		return nil, fmt.Errorf("register v3 routes: %w", v3RegisterErr)
+	}
 
 	r.Group(func(r chi.Router) {
 		// Apply middlewares
