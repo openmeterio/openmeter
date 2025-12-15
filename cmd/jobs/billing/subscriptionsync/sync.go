@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openmeterio/openmeter/cmd/jobs/internal"
-	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 )
 
 const (
@@ -35,7 +35,7 @@ var ListCmd = func() *cobra.Command {
 		Use:   "list",
 		Short: "List subscriptions which can be synced",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			subs, err := internal.App.BillingSubscriptionReconciler.ListSubscriptions(cmd.Context(), billingworkersubscription.ReconcilerListSubscriptionsInput{
+			subs, err := internal.App.BillingSubscriptionReconciler.ListSubscriptions(cmd.Context(), reconciler.ReconcilerListSubscriptionsInput{
 				Namespaces: namespaces,
 				Customers:  customerIDs,
 				Lookback:   lookback,
@@ -74,7 +74,7 @@ var AllCmd = func() *cobra.Command {
 		Use:   "all",
 		Short: "Sync all subscriptions",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return internal.App.BillingSubscriptionReconciler.All(cmd.Context(), billingworkersubscription.ReconcilerAllInput{
+			return internal.App.BillingSubscriptionReconciler.All(cmd.Context(), reconciler.ReconcilerAllInput{
 				Namespaces: namespaces,
 				Customers:  customerIDs,
 				Lookback:   lookback,

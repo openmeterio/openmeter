@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 )
 
 var _ customer.RequestValidator = (*Validator)(nil)
 
-func NewValidator(billingService billing.Service, syncService *billingworkersubscription.Handler, subscriptionService subscription.Service) (*Validator, error) {
+func NewValidator(billingService billing.Service, syncService subscriptionsync.Service, subscriptionService subscription.Service) (*Validator, error) {
 	if billingService == nil {
 		return nil, fmt.Errorf("billing service is required")
 	}
@@ -33,7 +33,7 @@ func NewValidator(billingService billing.Service, syncService *billingworkersubs
 type Validator struct {
 	customer.NoopRequestValidator
 	billingService      billing.Service
-	syncService         *billingworkersubscription.Handler
+	syncService         subscriptionsync.Service
 	subscriptionService subscription.Service
 }
 
@@ -62,7 +62,7 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 				return err
 			}
 
-			if err := v.syncService.SyncronizeSubscription(ctx, view, time.Now()); err != nil {
+			if err := v.syncService.SynchronizeSubscription(ctx, view, time.Now()); err != nil {
 				return err
 			}
 		}

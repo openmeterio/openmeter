@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
-	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
+	billingworkersubscriptionreconciler "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -45,7 +45,7 @@ type Application struct {
 	Billing                       billing.Service
 	BillingAutoAdvancer           *billingworkerautoadvance.AutoAdvancer
 	BillingCollector              *billingworkercollect.InvoiceCollector
-	BillingSubscriptionReconciler *billingworkersubscription.Reconciler
+	BillingSubscriptionReconciler *billingworkersubscriptionreconciler.Reconciler
 	EntClient                     *db.Client
 	EventPublisher                eventbus.Publisher
 	EntitlementRegistry           *registry.Entitlement
@@ -82,7 +82,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Namespace,
 		common.NewBillingAutoAdvancer,
 		common.NewBillingCollector,
-		common.NewBillingSubscriptionHandler,
+		common.NewBillingSubscriptionSyncService,
 		common.NewBillingSubscriptionReconciler,
 		common.NewDefaultTextMapPropagator,
 		common.NewServerPublisher,

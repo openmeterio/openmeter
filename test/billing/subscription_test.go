@@ -14,7 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -30,7 +31,7 @@ type SubscriptionTestSuite struct {
 	BaseSuite
 	SubscriptionMixin
 
-	SubscriptionSyncHandler *billingworkersubscription.Handler
+	SubscriptionSyncService subscriptionsync.Service
 }
 
 func TestSubscription(t *testing.T) {
@@ -41,7 +42,7 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 	s.SubscriptionMixin.SetupSuite(s.T(), s.GetSubscriptionMixInDependencies())
 
-	handler, err := billingworkersubscription.New(billingworkersubscription.Config{
+	service, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		BillingService:      s.BillingService,
 		Logger:              slog.Default(),
 		Tracer:              noop.NewTracerProvider().Tracer("test"),
@@ -49,9 +50,9 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 		SubscriptionService: s.SubscriptionService,
 	})
 	s.NoError(err)
-	s.NotNil(handler)
+	s.NotNil(service)
 
-	s.SubscriptionSyncHandler = handler
+	s.SubscriptionSyncService = service
 }
 
 func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
@@ -329,7 +330,7 @@ func (s *SubscriptionTestSuite) createCustomerWithSubscription(ctx context.Conte
 	s.NoError(err)
 	s.NotNil(subsView)
 
-	s.NoError(s.SubscriptionSyncHandler.SyncronizeSubscription(ctx, subsView, clock.Now()))
+	s.NoError(s.SubscriptionSyncService.SynchronizeSubscription(ctx, subsView, clock.Now()))
 
 	return cust
 }

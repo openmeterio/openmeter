@@ -213,7 +213,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 	clock.SetTime(currentTime.Add(time.Minute))
 
 	// 5th, let's synchronize the invoice
-	require.NoError(t, tDeps.workerHandler.SyncronizeSubscription(ctx, view, firstOfMonth.AddDate(0, 1, 0)))
+	require.NoError(t, tDeps.subscriptionSyncService.SynchronizeSubscription(ctx, view, firstOfMonth.AddDate(0, 1, 0)))
 
 	// 6th, let's check the invoice
 	invoices, err := tDeps.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
@@ -422,7 +422,7 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 	clock.SetTime(cancelAt.Add(time.Hour * 1))
 
 	// Sync up to the next anchor (July 1st). Lines should remain on gathering invoice until then.
-	require.NoError(t, tDeps.workerHandler.SyncronizeSubscriptionAndInvoiceCustomer(ctx, view, firstOfNextMonth))
+	require.NoError(t, tDeps.subscriptionSyncService.SynchronizeSubscriptionAndInvoiceCustomer(ctx, view, firstOfNextMonth))
 
 	invoices, err := tDeps.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Namespaces: []string{namespace},

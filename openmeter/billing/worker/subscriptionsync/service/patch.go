@@ -1,4 +1,4 @@
-package billingworkersubscription
+package service
 
 import (
 	"fmt"
@@ -139,7 +139,7 @@ func newCreateLinePatch(line billing.Line) linePatch {
 	}
 }
 
-func (h *Handler) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarchy) ([]linePatch, error) {
+func (s *Service) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarchy) ([]linePatch, error) {
 	switch lineOrHierarchy.Type() {
 	case billing.LineOrHierarchyTypeLine:
 		line, err := lineOrHierarchy.AsLine()

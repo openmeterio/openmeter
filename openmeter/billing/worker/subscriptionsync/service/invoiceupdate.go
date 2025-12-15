@@ -1,4 +1,4 @@
-package billingworkersubscription
+package service
 
 import (
 	"context"

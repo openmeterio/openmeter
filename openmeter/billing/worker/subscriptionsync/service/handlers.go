@@ -1,4 +1,4 @@
-package billingworkersubscription
+package service
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 
 // HandleCancelledEvent is a handler for the subscription cancel event, it will make sure that
 // we synchronize the
-func (h *Handler) HandleCancelledEvent(ctx context.Context, event *subscription.CancelledEvent) error {
+func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.CancelledEvent) error {
 	now := clock.Now()
 
 	// For canceled events, we skip the pre-sync invoice creation, as we don't want to create an invoice that we
@@ -23,7 +23,7 @@ func (h *Handler) HandleCancelledEvent(ctx context.Context, event *subscription.
 
 	if event.Spec.ActiveTo == nil {
 		// Let's do one sync, just to make sure we have at least the new items lined up
-		err := h.SyncronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, now)
+		err := s.SynchronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, now)
 		if err != nil {
 			return err
 		}
@@ -32,7 +32,7 @@ func (h *Handler) HandleCancelledEvent(ctx context.Context, event *subscription.
 	}
 
 	// Let's sync up to the end of the subscription
-	err := h.SyncronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, *event.Spec.ActiveTo)
+	err := s.SynchronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, *event.Spec.ActiveTo)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,11 @@ func (h *Handler) HandleCancelledEvent(ctx context.Context, event *subscription.
 
 // HandleInvoiceCreation is a handler for the invoice creation event, it will make sure that
 // we are backfilling the items consumed by invoice creation into the gathering invoice.
-func (h *Handler) HandleInvoiceCreation(ctx context.Context, event billing.EventInvoice) error {
+func (s *Service) HandleInvoiceCreation(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
+	if event == nil {
+		return nil
+	}
+
 	if event.Invoice.Status == billing.InvoiceStatusGathering {
 		return nil
 	}
@@ -58,7 +62,7 @@ func (h *Handler) HandleInvoiceCreation(ctx context.Context, event billing.Event
 	)
 
 	for _, subscriptionID := range affectedSubscriptions {
-		subsView, err := h.subscriptionService.GetView(ctx, models.NamespacedID{
+		subsView, err := s.subscriptionService.GetView(ctx, models.NamespacedID{
 			Namespace: event.Invoice.Namespace,
 			ID:        subscriptionID,
 		})
@@ -68,7 +72,7 @@ func (h *Handler) HandleInvoiceCreation(ctx context.Context, event billing.Event
 
 		// We use the current time as reference point instead of the invoice, as if we are delayed
 		// we might want to provision more lines
-		if err := h.SyncronizeSubscription(ctx, subsView, clock.Now()); err != nil {
+		if err := s.SynchronizeSubscription(ctx, subsView, clock.Now()); err != nil {
 			return fmt.Errorf("syncing subscription[%s]: %w", subscriptionID, err)
 		}
 	}
