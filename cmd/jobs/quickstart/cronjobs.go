@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openmeterio/openmeter/cmd/jobs/internal"
-	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
+	reconciler "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 )
 
 var Cron = &cobra.Command{
@@ -34,7 +34,7 @@ var Cron = &cobra.Command{
 			gocron.NewTask(func() {
 				slog.Info("Syncing subscriptions")
 
-				err := internal.App.BillingSubscriptionReconciler.All(cmd.Context(), billingworkersubscription.ReconcilerAllInput{
+				err := internal.App.BillingSubscriptionReconciler.All(cmd.Context(), reconciler.ReconcilerAllInput{
 					Namespaces: namespaces,
 					Lookback:   time.Hour,
 				})

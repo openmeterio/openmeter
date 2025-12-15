@@ -17,7 +17,8 @@ import (
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
-	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	pcsubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	subscription "github.com/openmeterio/openmeter/openmeter/subscription"
@@ -34,7 +35,7 @@ type testDeps struct {
 	pcSubscriptionService       pcsubscription.PlanSubscriptionService
 	subscriptionService         subscription.Service
 	subscriptionWorkflowService subscriptionworkflow.Service
-	workerHandler               *billingworkersubscription.Handler
+	subscriptionSyncService     subscriptionsync.Service
 	billingService              billing.Service
 	sandboxApp                  app.App
 	cleanup                     func(t *testing.T) // Cleanup function
@@ -97,7 +98,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	billingService = billingService.WithInvoiceCalculator(invoiceCalculator)
 
-	workerHandler, err := billingworkersubscription.New(billingworkersubscription.Config{
+	subscriptionSyncService, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		BillingService:      billingService,
 		Logger:              slog.Default(),
 		Tracer:              noop.NewTracerProvider().Tracer("test"),
@@ -147,7 +148,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		subscriptionService:         deps.SubscriptionService,
 		subscriptionWorkflowService: deps.WorkflowService,
 		cleanup:                     dbDeps.Cleanup,
-		workerHandler:               workerHandler,
+		subscriptionSyncService:     subscriptionSyncService,
 		billingService:              billingService,
 		sandboxApp:                  sandboxApp,
 	}

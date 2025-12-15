@@ -1,4 +1,4 @@
-package billingworkersubscription
+package service
 
 import (
 	"context"
@@ -35,7 +35,7 @@ import (
 type SuiteBase struct {
 	billingtest.BaseSuite
 	billingtest.SubscriptionMixin
-	Handler *Handler
+	Service *Service
 
 	Namespace               string
 	Customer                *customer.Customer
@@ -46,7 +46,7 @@ func (s *SuiteBase) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 	s.SubscriptionMixin.SetupSuite(s.T(), s.GetSubscriptionMixInDependencies())
 
-	handler, err := New(Config{
+	service, err := New(Config{
 		BillingService:      s.BillingService,
 		Logger:              slog.Default(),
 		Tracer:              noop.NewTracerProvider().Tracer("test"),
@@ -55,7 +55,7 @@ func (s *SuiteBase) SetupSuite() {
 	})
 	s.NoError(err)
 
-	s.Handler = handler
+	s.Service = service
 }
 
 func (s *SuiteBase) BeforeTest(ctx context.Context, suiteName, testName string) {
@@ -114,7 +114,7 @@ func (s *SuiteBase) AfterTest(ctx context.Context, suiteName, testName string) {
 	s.NoError(err, "Replacing meters must not return error")
 
 	s.MockStreamingConnector.Reset()
-	s.Handler.featureFlags = FeatureFlags{}
+	s.Service.featureFlags = FeatureFlags{}
 }
 
 func (s *SuiteBase) gatheringInvoice(ctx context.Context, namespace string, customerID string) billing.Invoice {
@@ -159,8 +159,8 @@ func (s *SuiteBase) expectNoGatheringInvoice(ctx context.Context, namespace stri
 }
 
 func (s *SuiteBase) enableProrating() {
-	s.Handler.featureFlags.EnableFlatFeeInAdvanceProrating = true
-	s.Handler.featureFlags.EnableFlatFeeInArrearsProrating = true
+	s.Service.featureFlags.EnableFlatFeeInAdvanceProrating = true
+	s.Service.featureFlags.EnableFlatFeeInArrearsProrating = true
 }
 
 func (s *SuiteBase) getLineByChildID(invoice billing.Invoice, childID string) *billing.Line {

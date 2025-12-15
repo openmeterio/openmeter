@@ -1,4 +1,4 @@
-package billingworkersubscription
+package reconciler
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -20,14 +21,14 @@ import (
 // this is essential, as the invoice creation is purley event driven. In case a processing error happens,
 // we might fail to create an invoice, and stop processing the subscription.
 type Reconciler struct {
-	subscriptionSync    *Handler
+	subscriptionSync    subscriptionsync.Service
 	subscriptionService subscription.Service
 	customerService     customer.Service
 	logger              *slog.Logger
 }
 
 type ReconcilerConfig struct {
-	SubscriptionSync    *Handler
+	SubscriptionSync    subscriptionsync.Service
 	SubscriptionService subscription.Service
 	CustomerService     customer.Service
 	Logger              *slog.Logger
@@ -123,7 +124,7 @@ func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.Na
 		return nil
 	}
 
-	return r.subscriptionSync.SyncronizeSubscription(ctx, subsView, time.Now())
+	return r.subscriptionSync.SynchronizeSubscription(ctx, subsView, time.Now())
 }
 
 type ReconcilerAllInput = ReconcilerListSubscriptionsInput

@@ -15,7 +15,9 @@ import (
 	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/validators/subscription"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
-	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
+	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -71,12 +73,12 @@ func BillingService(
 		return nil, err
 	}
 
-	handler, err := NewBillingSubscriptionHandler(logger, subscriptionServices, service, billingAdapter, tracer)
+	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, service, billingAdapter, tracer)
 	if err != nil {
 		return nil, err
 	}
 
-	validator, err := billingcustomer.NewValidator(service, handler, subscriptionServices.Service)
+	validator, err := billingcustomer.NewValidator(service, subscriptionSyncService, subscriptionServices.Service)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +112,8 @@ func NewBillingCollector(logger *slog.Logger, service billing.Service, fs config
 	})
 }
 
-func NewBillingSubscriptionReconciler(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, subscriptionSync *billingworkersubscription.Handler, customerService customer.Service) (*billingworkersubscription.Reconciler, error) {
-	return billingworkersubscription.NewReconciler(billingworkersubscription.ReconcilerConfig{
+func NewBillingSubscriptionReconciler(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, subscriptionSync subscriptionsync.Service, customerService customer.Service) (*reconciler.Reconciler, error) {
+	return reconciler.NewReconciler(reconciler.ReconcilerConfig{
 		SubscriptionService: subsServices.Service,
 		SubscriptionSync:    subscriptionSync,
 		Logger:              logger,
@@ -119,8 +121,8 @@ func NewBillingSubscriptionReconciler(logger *slog.Logger, subsServices Subscrip
 	})
 }
 
-func NewBillingSubscriptionHandler(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingService billing.Service, billingAdapter billing.Adapter, tracer trace.Tracer) (*billingworkersubscription.Handler, error) {
-	return billingworkersubscription.New(billingworkersubscription.Config{
+func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingService billing.Service, billingAdapter billing.Adapter, tracer trace.Tracer) (subscriptionsync.Service, error) {
+	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		SubscriptionService: subsServices.Service,
 		BillingService:      billingService,
 		TxCreator:           billingAdapter,

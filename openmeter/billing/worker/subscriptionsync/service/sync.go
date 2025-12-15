@@ -1,10 +1,9 @@
-package billingworkersubscription
+package service
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -20,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -29,40 +27,6 @@ import (
 const (
 	SubscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 )
-
-type FeatureFlags struct {
-	EnableFlatFeeInAdvanceProrating bool
-	EnableFlatFeeInArrearsProrating bool
-}
-
-type Config struct {
-	BillingService      billing.Service
-	SubscriptionService subscription.Service
-	TxCreator           transaction.Creator
-	FeatureFlags        FeatureFlags
-	Logger              *slog.Logger
-	Tracer              trace.Tracer
-}
-
-func (c Config) Validate() error {
-	if c.BillingService == nil {
-		return fmt.Errorf("billing service is required")
-	}
-
-	if c.SubscriptionService == nil {
-		return fmt.Errorf("subscription service is required")
-	}
-
-	if c.TxCreator == nil {
-		return fmt.Errorf("transaction creator is required")
-	}
-
-	if c.Logger == nil {
-		return fmt.Errorf("logger is required")
-	}
-
-	return nil
-}
 
 type InvoiceByID map[string]billing.Invoice
 
@@ -76,36 +40,13 @@ func (i InvoiceByID) IsGatheringInvoice(invoiceID string) bool {
 	return invoice.Status == billing.InvoiceStatusGathering
 }
 
-type Handler struct {
-	billingService      billing.Service
-	subscriptionService subscription.Service
-	txCreator           transaction.Creator
-	featureFlags        FeatureFlags
-	logger              *slog.Logger
-	tracer              trace.Tracer
-}
-
-func New(config Config) (*Handler, error) {
-	if err := config.Validate(); err != nil {
-		return nil, err
-	}
-	return &Handler{
-		billingService:      config.BillingService,
-		txCreator:           config.TxCreator,
-		featureFlags:        config.FeatureFlags,
-		subscriptionService: config.SubscriptionService,
-		logger:              config.Logger,
-		tracer:              config.Tracer,
-	}, nil
-}
-
-func (h *Handler) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
-	span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.invoicePendingLines", trace.WithAttributes(
+func (s *Service) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
+	span := tracex.StartWithNoValue(ctx, s.tracer, "billing.worker.subscription.sync.invoicePendingLines", trace.WithAttributes(
 		attribute.String("customer_id", customer.ID),
 	))
 
 	return span.Wrap(func(ctx context.Context) error {
-		_, err := h.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		_, err := s.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer:                   customer,
 			ProgressiveBillingOverride: lo.ToPtr(false),
 		})
@@ -121,27 +62,27 @@ func (h *Handler) invoicePendingLines(ctx context.Context, customer customer.Cus
 	})
 }
 
-func (h *Handler) HandleSubscriptionSyncEvent(ctx context.Context, event *subscription.SubscriptionSyncEvent) error {
+func (s *Service) HandleSubscriptionSyncEvent(ctx context.Context, event *subscription.SubscriptionSyncEvent) error {
 	if event == nil {
 		return nil
 	}
 
-	subsView, err := h.subscriptionService.GetView(ctx, event.Subscription.NamespacedID)
+	subsView, err := s.subscriptionService.GetView(ctx, event.Subscription.NamespacedID)
 	if err != nil {
 		return fmt.Errorf("getting subscription view: %w", err)
 	}
 
-	return h.SyncronizeSubscriptionAndInvoiceCustomer(ctx, subsView, time.Now())
+	return s.SynchronizeSubscriptionAndInvoiceCustomer(ctx, subsView, time.Now())
 }
 
-func (h *Handler) SyncronizeSubscriptionAndInvoiceCustomer(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
-	span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.SynchronizeSubscriptionAndInvoiceCustomer", trace.WithAttributes(
+func (s *Service) SynchronizeSubscriptionAndInvoiceCustomer(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
+	span := tracex.StartWithNoValue(ctx, s.tracer, "billing.worker.subscription.sync.SynchronizeSubscriptionAndInvoiceCustomer", trace.WithAttributes(
 		attribute.String("subscription_id", subs.Subscription.ID),
 		attribute.String("as_of", asOf.Format(time.RFC3339)),
 	))
 
 	return span.Wrap(func(ctx context.Context) error {
-		if err := h.SyncronizeSubscription(ctx, subs, asOf); err != nil {
+		if err := s.SynchronizeSubscription(ctx, subs, asOf); err != nil {
 			return fmt.Errorf("synchronize subscription: %w", err)
 		}
 
@@ -150,7 +91,7 @@ func (h *Handler) SyncronizeSubscriptionAndInvoiceCustomer(ctx context.Context, 
 			ID:        subs.Subscription.CustomerId,
 		}
 		// Invoice any pending lines invoicable now, so that any in advance fees are invoiced immediately.
-		if err := h.invoicePendingLines(ctx, customerID); err != nil {
+		if err := s.invoicePendingLines(ctx, customerID); err != nil {
 			return fmt.Errorf("invoice pending lines (post): %w [customer_id=%s]", err, customerID.ID)
 		}
 
@@ -158,15 +99,15 @@ func (h *Handler) SyncronizeSubscriptionAndInvoiceCustomer(ctx context.Context, 
 	})
 }
 
-func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
-	span := tracex.StartWithNoValue(ctx, h.tracer, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
+func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
+	span := tracex.StartWithNoValue(ctx, s.tracer, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
 		attribute.String("subscription_id", subs.Subscription.ID),
 		attribute.String("as_of", asOf.Format(time.RFC3339)),
 	))
 
 	return span.Wrap(func(ctx context.Context) error {
 		if !subs.Spec.HasBillables() {
-			h.logger.DebugContext(ctx, "subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
+			s.logger.DebugContext(ctx, "subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
 			return nil
 		}
 
@@ -177,7 +118,7 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 
 		// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
 		// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
-		_, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		_, err := s.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 			Customer: customerID,
 		})
 		if err != nil {
@@ -189,12 +130,12 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 			return fmt.Errorf("getting currency calculator: %w", err)
 		}
 
-		return h.billingService.WithLock(ctx, customer.CustomerID{
+		return s.billingService.WithLock(ctx, customer.CustomerID{
 			Namespace: subs.Subscription.Namespace,
 			ID:        subs.Subscription.CustomerId,
 		}, func(ctx context.Context) error {
 			// Let's fetch the invoices for the customer
-			invoices, err := h.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			invoices, err := s.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
 				Namespaces: []string{subs.Subscription.Namespace},
 				Customers:  []string{customerID.ID},
 			})
@@ -207,7 +148,7 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 			})
 
 			// Calculate per line patches
-			linesDiff, err := h.compareSubscriptionWithExistingLines(ctx, subs, asOf)
+			linesDiff, err := s.compareSubscriptionWithExistingLines(ctx, subs, asOf)
 			if err != nil {
 				return err
 			}
@@ -216,14 +157,14 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 				return nil
 			}
 
-			patches, err := h.getPatchesFromPlan(linesDiff, subs, currency, invoiceByID)
+			patches, err := s.getPatchesFromPlan(linesDiff, subs, currency, invoiceByID)
 			if err != nil {
 				return err
 			}
 
 			// Apply the patches to the customer's invoices
 
-			newLinePatches, err := h.getNewUpcomingLinePatches(ctx,
+			newLinePatches, err := s.getNewUpcomingLinePatches(ctx,
 				subs,
 				currency,
 				linesDiff.NewSubscriptionItems,
@@ -234,7 +175,7 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 
 			patches = append(patches, newLinePatches...)
 
-			invoiceUpdater := NewInvoiceUpdater(h.billingService, h.logger)
+			invoiceUpdater := NewInvoiceUpdater(s.billingService, s.logger)
 			if err := invoiceUpdater.ApplyPatches(ctx, customerID, patches); err != nil {
 				return fmt.Errorf("updating invoices: %w", err)
 			}
@@ -256,8 +197,8 @@ type subscriptionSyncPlanLineUpsert struct {
 }
 
 // calculateSyncPlan calculates the sync plan for the subscription, it returns the lines to delete, the lines to upsert and the new subscription items.
-func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (*subscriptionSyncPlan, error) {
-	span := tracex.Start[*subscriptionSyncPlan](ctx, h.tracer, "billing.worker.subscription.sync.compareSubscriptionWithExistingLines")
+func (s *Service) compareSubscriptionWithExistingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (*subscriptionSyncPlan, error) {
+	span := tracex.Start[*subscriptionSyncPlan](ctx, s.tracer, "billing.worker.subscription.sync.compareSubscriptionWithExistingLines")
 
 	return span.Wrap(func(ctx context.Context) (*subscriptionSyncPlan, error) {
 		// Let's see what's in scope for the subscription
@@ -266,13 +207,13 @@ func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs
 			return timeutil.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
 		})
 
-		inScopeLines, err := h.collectUpcomingLines(ctx, subs, asOf)
+		inScopeLines, err := s.collectUpcomingLines(ctx, subs, asOf)
 		if err != nil {
 			return nil, fmt.Errorf("collecting upcoming lines: %w", err)
 		}
 
 		// Let's load the existing lines for the subscription
-		existingLines, err := h.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
+		existingLines, err := s.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
 			Namespace:      subs.Subscription.Namespace,
 			SubscriptionID: subs.Subscription.ID,
 		})
@@ -297,7 +238,7 @@ func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs
 		}
 
 		// let's correct the period start (+invoiceAt) for any upcoming lines if needed
-		inScopeLines, err = h.correctPeriodStartForUpcomingLines(ctx, subs.Subscription.ID, inScopeLines, existingLinesByUniqueID)
+		inScopeLines, err = s.correctPeriodStartForUpcomingLines(ctx, subs.Subscription.ID, inScopeLines, existingLinesByUniqueID)
 		if err != nil {
 			return nil, fmt.Errorf("correcting period start for upcoming lines: %w", err)
 		}
@@ -356,7 +297,7 @@ func (h *Handler) compareSubscriptionWithExistingLines(ctx context.Context, subs
 //
 // The adjustment only happens if the line is subscription managed and has billing.subscription.sync.ignore annotation. This esentially
 // allows for reanchoring if the period calculation changes.
-func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscriptionID string, inScopeLines []subscriptionItemWithPeriods, existingLinesByUniqueID map[string]billing.LineOrHierarchy) ([]subscriptionItemWithPeriods, error) {
+func (s *Service) correctPeriodStartForUpcomingLines(ctx context.Context, subscriptionID string, inScopeLines []subscriptionItemWithPeriods, existingLinesByUniqueID map[string]billing.LineOrHierarchy) ([]subscriptionItemWithPeriods, error) {
 	for idx, line := range inScopeLines {
 		if line.PeriodIndex == 0 {
 			// This is the first period, so we don't need to correct the period start
@@ -365,7 +306,7 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 
 		// We are not correcting periods for lines that are already ignored
 		if existingCurrentLine, ok := existingLinesByUniqueID[line.UniqueID]; ok {
-			syncIgnore, err := h.lineOrHierarchyHasAnnotation(existingCurrentLine, billing.AnnotationSubscriptionSyncIgnore)
+			syncIgnore, err := s.lineOrHierarchyHasAnnotation(existingCurrentLine, billing.AnnotationSubscriptionSyncIgnore)
 			if err != nil {
 				return nil, fmt.Errorf("checking if line has subscription sync ignore annotation: %w", err)
 			}
@@ -389,7 +330,7 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 			continue
 		}
 
-		existingPreviousLineSyncIgnoreAnnotation, err := h.lineOrHierarchyHasAnnotation(existingPreviousLine, billing.AnnotationSubscriptionSyncIgnore)
+		existingPreviousLineSyncIgnoreAnnotation, err := s.lineOrHierarchyHasAnnotation(existingPreviousLine, billing.AnnotationSubscriptionSyncIgnore)
 		if err != nil {
 			return nil, fmt.Errorf("checking if previous line has subscription sync ignore annotation: %w", err)
 		}
@@ -399,7 +340,7 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 		}
 
 		// If the previous line does not have the AnnotationSubscriptionSyncForceContinuousLines annotations, we don't need to perform the period correction
-		existingPreviousLineSyncForceContinuousLinesAnnotation, err := h.lineOrHierarchyHasAnnotation(existingPreviousLine, billing.AnnotationSubscriptionSyncForceContinuousLines)
+		existingPreviousLineSyncForceContinuousLinesAnnotation, err := s.lineOrHierarchyHasAnnotation(existingPreviousLine, billing.AnnotationSubscriptionSyncForceContinuousLines)
 		if err != nil {
 			return nil, fmt.Errorf("checking if previous line has subscription sync force continuous lines annotation: %w", err)
 		}
@@ -433,7 +374,7 @@ func (h *Handler) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 	return inScopeLines, nil
 }
 
-func (h *Handler) lineOrHierarchyHasAnnotation(lineOrHierarchy billing.LineOrHierarchy, annotation string) (bool, error) {
+func (s *Service) lineOrHierarchyHasAnnotation(lineOrHierarchy billing.LineOrHierarchy, annotation string) (bool, error) {
 	switch lineOrHierarchy.Type() {
 	case billing.LineOrHierarchyTypeLine:
 		previousLine, err := lineOrHierarchy.AsLine()
@@ -441,20 +382,20 @@ func (h *Handler) lineOrHierarchyHasAnnotation(lineOrHierarchy billing.LineOrHie
 			return false, fmt.Errorf("getting previous line: %w", err)
 		}
 
-		return h.lineHasAnnotation(previousLine, annotation), nil
+		return s.lineHasAnnotation(previousLine, annotation), nil
 	case billing.LineOrHierarchyTypeHierarchy:
 		hierarchy, err := lineOrHierarchy.AsHierarchy()
 		if err != nil {
 			return false, fmt.Errorf("getting previous hierarchy: %w", err)
 		}
 
-		return h.hierarchyHasAnnotation(hierarchy, annotation), nil
+		return s.hierarchyHasAnnotation(hierarchy, annotation), nil
 	default:
 		return false, nil
 	}
 }
 
-func (h *Handler) lineHasAnnotation(line *billing.Line, annotation string) bool {
+func (s *Service) lineHasAnnotation(line *billing.Line, annotation string) bool {
 	if line.ManagedBy != billing.SubscriptionManagedLine {
 		// We only correct the period start for subscription managed lines, for manual edits
 		// we should not apply this logic, as the user might have created a setup where the period start
@@ -465,25 +406,25 @@ func (h *Handler) lineHasAnnotation(line *billing.Line, annotation string) bool 
 	return line.Annotations.GetBool(annotation)
 }
 
-func (h *Handler) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, annotation string) bool {
+func (s *Service) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, annotation string) bool {
 	servicePeriod := hierarchy.Group.ServicePeriod
 
 	// The correction can only happen if the last line the progressively billed group is in scope for the period correction
 	for _, line := range hierarchy.Lines {
 		if line.Line.Period.End.Equal(servicePeriod.End) {
-			return h.lineHasAnnotation(line.Line, annotation)
+			return s.lineHasAnnotation(line.Line, annotation)
 		}
 	}
 
 	return false
 }
 
-func (h *Handler) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.SubscriptionView, currency currencyx.Calculator, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.SubscriptionView, currency currencyx.Calculator, invoiceByID InvoiceByID) ([]linePatch, error) {
 	patches := make([]linePatch, 0, len(p.LinesToDelete)+len(p.LinesToUpsert))
 
 	// Let's update the existing lines
 	for _, line := range p.LinesToDelete {
-		deletePatches, err := h.getDeletePatchesForLine(line)
+		deletePatches, err := s.getDeletePatchesForLine(line)
 		if err != nil {
 			return nil, fmt.Errorf("getting delete patches for line: %w", err)
 		}
@@ -492,7 +433,7 @@ func (h *Handler) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 	}
 
 	for _, line := range p.LinesToUpsert {
-		expectedLine, err := h.lineFromSubscritionRateCard(subs, line.Target, currency)
+		expectedLine, err := s.lineFromSubscritionRateCard(subs, line.Target, currency)
 		if err != nil {
 			return nil, fmt.Errorf("generating expected line[%s]: %w", line.Target.UniqueID, err)
 		}
@@ -500,7 +441,7 @@ func (h *Handler) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 		// The line have 0 amount, so we are not going to bill it. This can happen if we are quickly changing subscriptions
 		// immediately.
 		if expectedLine == nil {
-			deletePatches, err := h.getDeletePatchesForLine(line.Existing)
+			deletePatches, err := s.getDeletePatchesForLine(line.Existing)
 			if err != nil {
 				return nil, fmt.Errorf("getting delete patches for line: %w", err)
 			}
@@ -509,7 +450,7 @@ func (h *Handler) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 			continue
 		}
 
-		updatePatches, err := h.getPatchesForExistingLineOrHierarchy(line.Existing, expectedLine, invoiceByID)
+		updatePatches, err := s.getPatchesForExistingLineOrHierarchy(line.Existing, expectedLine, invoiceByID)
 		if err != nil {
 			return nil, fmt.Errorf("updating line[%s]: %w", line.Target.UniqueID, err)
 		}
@@ -530,14 +471,14 @@ func (h *Handler) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 //
 // This approach allows us to not to have to poll all the subscriptions periodically, but we can act when an invoice is created or when
 // a subscription is updated.
-func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) ([]subscriptionItemWithPeriods, error) {
-	span := tracex.Start[[]subscriptionItemWithPeriods](ctx, h.tracer, "billing.worker.subscription.sync.collectUpcomingLines")
+func (s *Service) collectUpcomingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) ([]subscriptionItemWithPeriods, error) {
+	span := tracex.Start[[]subscriptionItemWithPeriods](ctx, s.tracer, "billing.worker.subscription.sync.collectUpcomingLines")
 
 	return span.Wrap(func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
 		inScopeLines := make([]subscriptionItemWithPeriods, 0, 128)
 
 		for _, phase := range subs.Phases {
-			iterator, err := NewPhaseIterator(h.logger, h.tracer, subs, phase.SubscriptionPhase.Key)
+			iterator, err := NewPhaseIterator(s.logger, s.tracer, subs, phase.SubscriptionPhase.Key)
 			if err != nil {
 				return nil, fmt.Errorf("creating phase iterator: %w", err)
 			}
@@ -555,7 +496,7 @@ func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.Su
 				// Due to logic constraints, we cannot generate these lines before the subscription actually starts
 				switch {
 				case subscription.IsValidationIssueWithCode(err, subscription.ErrCodeSubscriptionBillingPeriodQueriedBeforeSubscriptionStart):
-					h.logger.InfoContext(ctx, "asOf is before subscription start, advancing generation time to subscription start", "subscription_id", subs.Subscription.ID, "as_of", asOf, "subscription_start", subs.Spec.ActiveFrom)
+					s.logger.InfoContext(ctx, "asOf is before subscription start, advancing generation time to subscription start", "subscription_id", subs.Subscription.ID, "as_of", asOf, "subscription_start", subs.Spec.ActiveFrom)
 
 					// We advance until subscription start to generate the first set of lines (if later we cancel or stg else, sync will handle that)
 					generationLimit = subs.Subscription.ActiveFrom
@@ -598,7 +539,7 @@ func (h *Handler) collectUpcomingLines(ctx context.Context, subs subscription.Su
 	})
 }
 
-func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.Line, error) {
+func (s *Service) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.Line, error) {
 	line := &billing.Line{
 		LineBase: billing.LineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -612,7 +553,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			TaxConfig:              item.Spec.RateCard.AsMeta().TaxConfig,
 			Period:                 item.ServicePeriod,
 			InvoiceAt:              item.GetInvoiceAt(),
-			RateCardDiscounts:      h.discountsToBillingDiscounts(item.Spec.RateCard.AsMeta().Discounts),
+			RateCardDiscounts:      s.discountsToBillingDiscounts(item.Spec.RateCard.AsMeta().Discounts),
 
 			Subscription: &billing.SubscriptionReference{
 				SubscriptionID: subs.Subscription.ID,
@@ -643,7 +584,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		// TODO[OM-1040]: We should support rounding errors in prorating calculations (such as 1/3 of a dollar is $0.33, 3*$0.33 is $0.99, if we bill
 		// $1.00 in three equal pieces we should charge the customer $0.01 as the last split)
 		perUnitAmount := currency.RoundToPrecision(price.Amount)
-		if !item.ServicePeriod.IsEmpty() && h.shouldProrate(item, subs) {
+		if !item.ServicePeriod.IsEmpty() && s.shouldProrate(item, subs) {
 			perUnitAmount = currency.RoundToPrecision(price.Amount.Mul(item.PeriodPercentage()))
 		}
 
@@ -675,7 +616,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 	return line, nil
 }
 
-func (h *Handler) discountsToBillingDiscounts(discounts productcatalog.Discounts) billing.Discounts {
+func (s *Service) discountsToBillingDiscounts(discounts productcatalog.Discounts) billing.Discounts {
 	out := billing.Discounts{}
 
 	if discounts.Usage != nil {
@@ -693,7 +634,7 @@ func (h *Handler) discountsToBillingDiscounts(discounts productcatalog.Discounts
 	return out
 }
 
-func (h *Handler) shouldProrate(item subscriptionItemWithPeriods, subView subscription.SubscriptionView) bool {
+func (s *Service) shouldProrate(item subscriptionItemWithPeriods, subView subscription.SubscriptionView) bool {
 	if !subView.Subscription.ProRatingConfig.Enabled {
 		return false
 	}
@@ -717,9 +658,9 @@ func (h *Handler) shouldProrate(item subscriptionItemWithPeriods, subView subscr
 	}
 }
 
-func (h *Handler) getNewUpcomingLinePatches(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriods) ([]linePatch, error) {
+func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriods) ([]linePatch, error) {
 	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriods) (*billing.Line, error) {
-		line, err := h.lineFromSubscritionRateCard(subs, subsItem, currency)
+		line, err := s.lineFromSubscritionRateCard(subs, subsItem, currency)
 		if err != nil {
 			return nil, fmt.Errorf("generating line from subscription item [%s]: %w", subsItem.SubscriptionItem.ID, err)
 		}
@@ -739,7 +680,7 @@ func (h *Handler) getNewUpcomingLinePatches(ctx context.Context, subs subscripti
 	}), nil
 }
 
-func (h *Handler) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// TODO/WARNING[later]: This logic should be fine with everything that can be billed progressively, however the following use-cases
 	// will behave strangely:
 	//
@@ -757,20 +698,20 @@ func (h *Handler) getPatchesForExistingLineOrHierarchy(existingLine billing.Line
 			return nil, fmt.Errorf("getting line: %w", err)
 		}
 
-		return h.getPatchesForExistingLine(line, expectedLine, invoiceByID)
+		return s.getPatchesForExistingLine(line, expectedLine, invoiceByID)
 	case billing.LineOrHierarchyTypeHierarchy:
 		group, err := existingLine.AsHierarchy()
 		if err != nil {
 			return nil, fmt.Errorf("getting hierarchy: %w", err)
 		}
 
-		return h.getPatchesForExistingHierarchy(group, expectedLine, invoiceByID)
+		return s.getPatchesForExistingHierarchy(group, expectedLine, invoiceByID)
 	default:
 		return nil, fmt.Errorf("unsupported line or hierarchy type: %s", existingLine.Type())
 	}
 }
 
-func (h *Handler) getPatchesForExistingLine(existingLine *billing.Line, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLine(existingLine *billing.Line, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// Lines can be manually marked as ignored in syncing, which is used for cases where we're doing backwards incompatible changes
 	if expectedLine.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 		return nil, nil
@@ -844,7 +785,7 @@ func (h *Handler) getPatchesForExistingLine(existingLine *billing.Line, expected
 	}, nil
 }
 
-func (h *Handler) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// Parts of the line has been already invoiced using progressive invoicing, so we need to examine the children
 
 	// Nothing to do here, as split lines are UBP lines and thus we don't need the flat fee corrections

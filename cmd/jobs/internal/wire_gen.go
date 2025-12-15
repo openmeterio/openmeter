@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -340,7 +340,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	handler, err := common.NewBillingSubscriptionHandler(logger, subscriptionServiceWithWorkflow, billingService, billingAdapter, tracer)
+	subscriptionsyncService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingService, billingAdapter, tracer)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -350,7 +350,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	reconciler, err := common.NewBillingSubscriptionReconciler(logger, subscriptionServiceWithWorkflow, handler, customerService)
+	reconciler, err := common.NewBillingSubscriptionReconciler(logger, subscriptionServiceWithWorkflow, subscriptionsyncService, customerService)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -403,7 +403,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	webhookHandler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, svix)
+	handler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, svix)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -413,7 +413,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventHandler, cleanup7, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, repository, webhookHandler)
+	eventHandler, cleanup7, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, repository, handler)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -423,7 +423,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	notificationService, err := common.NewNotificationService(logger, repository, webhookHandler, eventHandler, featureConnector)
+	notificationService, err := common.NewNotificationService(logger, repository, handler, eventHandler, featureConnector)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -508,7 +508,7 @@ type Application struct {
 	Billing                       billing.Service
 	BillingAutoAdvancer           *billingworkeradvance.AutoAdvancer
 	BillingCollector              *billingworkercollect.InvoiceCollector
-	BillingSubscriptionReconciler *billingworkersubscription.Reconciler
+	BillingSubscriptionReconciler *reconciler.Reconciler
 	EntClient                     *db.Client
 	EventPublisher                eventbus.Publisher
 	EntitlementRegistry           *registry.Entitlement
