@@ -444,15 +444,13 @@ paths:
       summary: Cancel subscription
       description: |-
         Cancels the subscription.
-        Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancellation time.
+        Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancelation time.
       parameters:
         - name: subscriptionId
           in: path
           required: true
           schema:
-            type: string
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            $ref: '#/components/schemas/ULID'
       responses:
         '200':
           description: Subscription updated response.
@@ -496,9 +494,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            $ref: '#/components/schemas/ULID'
       responses:
         '200':
           description: The request has succeeded.
@@ -540,9 +536,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            $ref: '#/components/schemas/ULID'
       responses:
         '200':
           description: Subscription updated response.
@@ -901,6 +895,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
           description: If not provided the subscription is canceled immediately.
+          default: immediate
       description: Request for canceling a subscription.
     BillingSubscriptionChange:
       type: object

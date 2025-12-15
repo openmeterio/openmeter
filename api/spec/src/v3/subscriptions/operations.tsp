@@ -116,7 +116,7 @@ interface SubscriptionsOperations {
 
   /**
    * Cancels the subscription.
-   * Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancellation time.
+   * Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancelation time.
    */
   @post
   @operationId("cancel-subscription")
@@ -124,7 +124,7 @@ interface SubscriptionsOperations {
   @route("/cancel")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
-  cancel(@path subscriptionId: ULID, @body body: SubscriptionCancel):
+  cancel(@path subscriptionId: Shared.ULID, @body body: SubscriptionCancel):
     | Shared.UpdateResponse<Subscription>
     | Common.NotFound
     | Common.Conflict
@@ -139,7 +139,7 @@ interface SubscriptionsOperations {
   @route("/unschedule-cancelation")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
-  unscheduleCancelation(@path subscriptionId: ULID):
+  unscheduleCancelation(@path subscriptionId: Shared.ULID):
     | Shared.UpdateResponse<Subscription>
     | Common.NotFound
     | Common.Conflict
@@ -156,7 +156,7 @@ interface SubscriptionsOperations {
   @extension(Shared.InternalExtension, true)
   @route("/change")
   change(
-    @path subscriptionId: ULID,
+    @path subscriptionId: Shared.ULID,
 
     @body
     body: SubscriptionChange,

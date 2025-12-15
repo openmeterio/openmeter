@@ -47,5 +47,3 @@ func (h *handler) UnscheduleCancelation() UnscheduleCancelationHandler {
 		)...,
 	)
 }
-
-
