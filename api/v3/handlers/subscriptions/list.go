@@ -9,7 +9,6 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/response"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -61,17 +60,6 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 			if params.Filter != nil {
 				// Filter by customer ID
 				if params.Filter.CustomerId != nil {
-					// Get the customer to validate it exists
-					_, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-						CustomerID: &customer.CustomerID{
-							Namespace: ns,
-							ID:        *params.Filter.CustomerId,
-						},
-					})
-					if err != nil {
-						return ListSubscriptionsRequest{}, err
-					}
-
 					// Add the customer ID filter to the request
 					req.CustomerIDs = []string{*params.Filter.CustomerId}
 				}
