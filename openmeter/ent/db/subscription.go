@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -76,9 +77,11 @@ type SubscriptionEdges struct {
 	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
 	// Addons holds the value of the addons edge.
 	Addons []*SubscriptionAddon `json:"addons,omitempty"`
+	// BillingSyncState holds the value of the billing_sync_state edge.
+	BillingSyncState *SubscriptionBillingSyncState `json:"billing_sync_state,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [7]bool
 }
 
 // PlanOrErr returns the Plan value or an error if the edge
@@ -137,6 +140,17 @@ func (e SubscriptionEdges) AddonsOrErr() ([]*SubscriptionAddon, error) {
 		return e.Addons, nil
 	}
 	return nil, &NotLoadedError{edge: "addons"}
+}
+
+// BillingSyncStateOrErr returns the BillingSyncState value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e SubscriptionEdges) BillingSyncStateOrErr() (*SubscriptionBillingSyncState, error) {
+	if e.BillingSyncState != nil {
+		return e.BillingSyncState, nil
+	} else if e.loadedTypes[6] {
+		return nil, &NotFoundError{label: subscriptionbillingsyncstate.Label}
+	}
+	return nil, &NotLoadedError{edge: "billing_sync_state"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -318,6 +332,11 @@ func (_m *Subscription) QueryBillingSplitLineGroups() *BillingInvoiceSplitLineGr
 // QueryAddons queries the "addons" edge of the Subscription entity.
 func (_m *Subscription) QueryAddons() *SubscriptionAddonQuery {
 	return NewSubscriptionClient(_m.config).QueryAddons(_m)
+}
+
+// QueryBillingSyncState queries the "billing_sync_state" edge of the Subscription entity.
+func (_m *Subscription) QueryBillingSyncState() *SubscriptionBillingSyncStateQuery {
+	return NewSubscriptionClient(_m.config).QueryBillingSyncState(_m)
 }
 
 // Update returns a builder for updating this Subscription.

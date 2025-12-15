@@ -46,6 +46,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
@@ -1474,6 +1475,25 @@ func init() {
 	subscriptionaddonquantityDescID := subscriptionaddonquantityMixinFields0[0].Descriptor()
 	// subscriptionaddonquantity.DefaultID holds the default value on creation for the id field.
 	subscriptionaddonquantity.DefaultID = subscriptionaddonquantityDescID.Default.(func() string)
+	subscriptionbillingsyncstateMixin := schema.SubscriptionBillingSyncState{}.Mixin()
+	subscriptionbillingsyncstateMixinFields0 := subscriptionbillingsyncstateMixin[0].Fields()
+	_ = subscriptionbillingsyncstateMixinFields0
+	subscriptionbillingsyncstateMixinFields1 := subscriptionbillingsyncstateMixin[1].Fields()
+	_ = subscriptionbillingsyncstateMixinFields1
+	subscriptionbillingsyncstateFields := schema.SubscriptionBillingSyncState{}.Fields()
+	_ = subscriptionbillingsyncstateFields
+	// subscriptionbillingsyncstateDescNamespace is the schema descriptor for namespace field.
+	subscriptionbillingsyncstateDescNamespace := subscriptionbillingsyncstateMixinFields1[0].Descriptor()
+	// subscriptionbillingsyncstate.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscriptionbillingsyncstate.NamespaceValidator = subscriptionbillingsyncstateDescNamespace.Validators[0].(func(string) error)
+	// subscriptionbillingsyncstateDescSubscriptionID is the schema descriptor for subscription_id field.
+	subscriptionbillingsyncstateDescSubscriptionID := subscriptionbillingsyncstateFields[0].Descriptor()
+	// subscriptionbillingsyncstate.SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.
+	subscriptionbillingsyncstate.SubscriptionIDValidator = subscriptionbillingsyncstateDescSubscriptionID.Validators[0].(func(string) error)
+	// subscriptionbillingsyncstateDescID is the schema descriptor for id field.
+	subscriptionbillingsyncstateDescID := subscriptionbillingsyncstateMixinFields0[0].Descriptor()
+	// subscriptionbillingsyncstate.DefaultID holds the default value on creation for the id field.
+	subscriptionbillingsyncstate.DefaultID = subscriptionbillingsyncstateDescID.Default.(func() string)
 	subscriptionitemMixin := schema.SubscriptionItem{}.Mixin()
 	subscriptionitemMixinFields0 := subscriptionitemMixin[0].Fields()
 	_ = subscriptionitemMixinFields0

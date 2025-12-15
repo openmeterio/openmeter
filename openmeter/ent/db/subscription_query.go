@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 )
 
@@ -36,6 +37,7 @@ type SubscriptionQuery struct {
 	withBillingLines           *BillingInvoiceLineQuery
 	withBillingSplitLineGroups *BillingInvoiceSplitLineGroupQuery
 	withAddons                 *SubscriptionAddonQuery
+	withBillingSyncState       *SubscriptionBillingSyncStateQuery
 	modifiers                  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -198,6 +200,28 @@ func (_q *SubscriptionQuery) QueryAddons() *SubscriptionAddonQuery {
 			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
 			sqlgraph.To(subscriptionaddon.Table, subscriptionaddon.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscription.AddonsTable, subscription.AddonsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingSyncState chains the current query on the "billing_sync_state" edge.
+func (_q *SubscriptionQuery) QueryBillingSyncState() *SubscriptionBillingSyncStateQuery {
+	query := (&SubscriptionBillingSyncStateClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
+			sqlgraph.To(subscriptionbillingsyncstate.Table, subscriptionbillingsyncstate.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, subscription.BillingSyncStateTable, subscription.BillingSyncStateColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -403,6 +427,7 @@ func (_q *SubscriptionQuery) Clone() *SubscriptionQuery {
 		withBillingLines:           _q.withBillingLines.Clone(),
 		withBillingSplitLineGroups: _q.withBillingSplitLineGroups.Clone(),
 		withAddons:                 _q.withAddons.Clone(),
+		withBillingSyncState:       _q.withBillingSyncState.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -472,6 +497,17 @@ func (_q *SubscriptionQuery) WithAddons(opts ...func(*SubscriptionAddonQuery)) *
 		opt(query)
 	}
 	_q.withAddons = query
+	return _q
+}
+
+// WithBillingSyncState tells the query-builder to eager-load the nodes that are connected to
+// the "billing_sync_state" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SubscriptionQuery) WithBillingSyncState(opts ...func(*SubscriptionBillingSyncStateQuery)) *SubscriptionQuery {
+	query := (&SubscriptionBillingSyncStateClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingSyncState = query
 	return _q
 }
 
@@ -553,13 +589,14 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	var (
 		nodes       = []*Subscription{}
 		_spec       = _q.querySpec()
-		loadedTypes = [6]bool{
+		loadedTypes = [7]bool{
 			_q.withPlan != nil,
 			_q.withCustomer != nil,
 			_q.withPhases != nil,
 			_q.withBillingLines != nil,
 			_q.withBillingSplitLineGroups != nil,
 			_q.withAddons != nil,
+			_q.withBillingSyncState != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -622,6 +659,12 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		if err := _q.loadAddons(ctx, query, nodes,
 			func(n *Subscription) { n.Edges.Addons = []*SubscriptionAddon{} },
 			func(n *Subscription, e *SubscriptionAddon) { n.Edges.Addons = append(n.Edges.Addons, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingSyncState; query != nil {
+		if err := _q.loadBillingSyncState(ctx, query, nodes, nil,
+			func(n *Subscription, e *SubscriptionBillingSyncState) { n.Edges.BillingSyncState = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -801,6 +844,33 @@ func (_q *SubscriptionQuery) loadAddons(ctx context.Context, query *Subscription
 	}
 	query.Where(predicate.SubscriptionAddon(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(subscription.AddonsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SubscriptionID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "subscription_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *SubscriptionQuery) loadBillingSyncState(ctx context.Context, query *SubscriptionBillingSyncStateQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *SubscriptionBillingSyncState)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Subscription)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(subscriptionbillingsyncstate.FieldSubscriptionID)
+	}
+	query.Where(predicate.SubscriptionBillingSyncState(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscription.BillingSyncStateColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

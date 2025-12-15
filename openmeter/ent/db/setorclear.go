@@ -3095,6 +3095,20 @@ func (u *SubscriptionAddonQuantityUpdateOne) SetOrClearDeletedAt(value *time.Tim
 	return u.SetDeletedAt(*value)
 }
 
+func (u *SubscriptionBillingSyncStateUpdate) SetOrClearNextSyncAfter(value *time.Time) *SubscriptionBillingSyncStateUpdate {
+	if value == nil {
+		return u.ClearNextSyncAfter()
+	}
+	return u.SetNextSyncAfter(*value)
+}
+
+func (u *SubscriptionBillingSyncStateUpdateOne) SetOrClearNextSyncAfter(value *time.Time) *SubscriptionBillingSyncStateUpdateOne {
+	if value == nil {
+		return u.ClearNextSyncAfter()
+	}
+	return u.SetNextSyncAfter(*value)
+}
+
 func (u *SubscriptionItemUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
