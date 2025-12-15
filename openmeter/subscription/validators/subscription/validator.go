@@ -2,7 +2,6 @@ package subscriptionvalidators
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -69,7 +68,7 @@ func (v SubscriptionUniqueConstraintValidator) BeforeCreate(ctx context.Context,
 
 	specs, err = v.validateUniqueConstraint(ctx, specs)
 	if err != nil {
-		return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
+		return fmt.Errorf("inconsistency error: already scheduled subscriptions are overlapping: %w", err)
 	}
 
 	specs, err = v.includeSubSpec(spec, specs)
@@ -121,7 +120,7 @@ func (v SubscriptionUniqueConstraintValidator) BeforeUpdate(ctx context.Context,
 
 	specs, err = v.validateUniqueConstraint(ctx, specs)
 	if err != nil {
-		return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
+		return fmt.Errorf("inconsistency error: already scheduled subscriptions are overlapping: %w", err)
 	}
 
 	specs, err = v.includeSubSpec(targetSpec, specs)
@@ -166,7 +165,7 @@ func (v SubscriptionUniqueConstraintValidator) BeforeContinue(ctx context.Contex
 
 	specs, err = v.validateUniqueConstraint(ctx, specs)
 	if err != nil {
-		return errors.New("inconsistency error: already scheduled subscriptions are overlapping")
+		return fmt.Errorf("inconsistency error: already scheduled subscriptions are overlapping: %w", err)
 	}
 
 	specs, err = v.includeSubSpec(spec, specs)

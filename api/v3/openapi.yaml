@@ -16,6 +16,8 @@ servers:
 tags:
   - name: OpenMeter Entitlements
     description: Entitlements are used to control access to features for customers.
+  - name: OpenMeter Subscriptions
+    description: Subscriptions are used to track usage of your product or service. Subscriptions can be individuals or organizations that can subscribe to plans and have access to features.
   - name: OpenMeter Customers
     description: Customers are used to track usage of your product or service. Customers can be individuals or organizations that can subscribe to plans and have access to features.
   - name: Metering Events
@@ -371,6 +373,228 @@ paths:
           $ref: '#/components/responses/NotAvailable'
       tags:
         - Meters
+  /openmeter/subscriptions:
+    post:
+      operationId: create-subscription
+      summary: Create subscription
+      responses:
+        '201':
+          description: Subscription created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingSubscriptionCreate'
+      x-internal: true
+      x-unstable: true
+    get:
+      operationId: list-subscriptions
+      summary: List subscriptions
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - $ref: '#/components/parameters/ListSubscriptionsParams.sort'
+        - $ref: '#/components/parameters/ListSubscriptionsParams.filter'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
+      x-internal: true
+      x-unstable: true
+  /openmeter/subscriptions/cancel/{subscriptionId}:
+    post:
+      operationId: cancel-subscription
+      summary: Cancel subscription
+      description: |-
+        Cancels the subscription.
+        Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancelation time.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Subscription updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingSubscriptionCancel'
+      x-internal: true
+      x-unstable: true
+  /openmeter/subscriptions/change/{subscriptionId}:
+    post:
+      operationId: change-subscription
+      summary: Change subscription
+      description: |-
+        Closes a running subscription and starts a new one according to the specification.
+        Can be used for upgrades, downgrades, and plan changes.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscriptionChangeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingSubscriptionChange'
+      x-internal: true
+      x-unstable: true
+  /openmeter/subscriptions/unschedule-cancelation/{subscriptionId}:
+    post:
+      operationId: unschedule-cancelation
+      summary: Unschedule subscription cancelation
+      description: Unschedules the subscription cancelation.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Subscription updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
+      x-internal: true
+      x-unstable: true
+  /openmeter/subscriptions/{subscriptionId}:
+    get:
+      operationId: get-subscription
+      summary: Get subscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Subscription response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
+      x-internal: true
+      x-unstable: true
 components:
   parameters:
     ListCustomersParams.filter:
@@ -393,6 +617,35 @@ components:
         Supported sort attributes are:
         - `id`
         - `name` (default)
+        - `created_at`
+
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+      schema:
+        $ref: '#/components/schemas/SortQuery'
+      explode: false
+      style: form
+    ListSubscriptionsParams.filter:
+      name: filter
+      in: query
+      required: false
+      description: Filter subscriptions.
+      schema:
+        type: object
+        properties:
+          customer_id:
+            allOf:
+              - $ref: '#/components/schemas/ULID'
+            description: Filter subscriptions by customer ID.
+      style: deepObject
+    ListSubscriptionsParams.sort:
+      name: sort
+      in: query
+      required: false
+      description: |-
+        Sort subscriptions returned in the response.
+        Supported sort attributes are:
+        - `id`
         - `created_at`
 
         The `asc` suffix is optional as the default sort order is ascending.
@@ -579,6 +832,217 @@ components:
         - static
         - boolean
       description: The type of the entitlement.
+    BillingSubscription:
+      type: object
+      required:
+        - id
+        - customer_id
+        - billing_anchor
+        - status
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The customer ID of the subscription.
+          title: Customer ID
+          readOnly: true
+        plan_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            The plan ID of the subscription.
+            Set if subscription is created from a plan.
+          title: Plan ID
+          readOnly: true
+        billing_anchor:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The billing anchor of the subscription.
+          title: Billing anchor
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionStatus'
+          description: The status of the subscription.
+          title: Status
+          readOnly: true
+      description: Subscription.
+    BillingSubscriptionCancel:
+      type: object
+      properties:
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+          description: If not provided the subscription is canceled immediately.
+          default: immediate
+      description: Request for canceling a subscription.
+    BillingSubscriptionChange:
+      type: object
+      required:
+        - timing
+      properties:
+        labels:
+          $ref: '#/components/schemas/Labels'
+        plan_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            The plan ID of the subscription.
+            Set if subscription is created from a plan.
+
+            ID or Key of the plan is required if creating a subscription from a plan.
+            If both are provided, the ID will be used.
+          title: Plan ID
+        plan_key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            The plan Key of the subscription, if any.
+            Set if subscription is created from a plan.
+
+            ID or Key of the plan is required if creating a subscription from a plan.
+            If both are provided, the ID will be used.
+          title: Plan Key
+        plan_version:
+          type: integer
+          description: |-
+            The plan version of the subscription, if any.
+            If not provided, the latest version of the plan will be used.
+          title: Plan Version
+        billing_anchor:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The billing anchor of the subscription.
+            Defaults to now if not provided.
+          title: Billing anchor
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+          description: |-
+            Timing configuration for the change, when the change should take effect.
+            For changing a subscription, the accepted values depend on the subscription configuration.
+      description: Request for changing a subscription.
+    BillingSubscriptionChangeResponse:
+      type: object
+      required:
+        - current
+        - next
+      properties:
+        current:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscription'
+          description: The current subscription before the change.
+        next:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscription'
+          description: The new state of the subscription after the change.
+      description: Response for changing a subscription.
+    BillingSubscriptionCreate:
+      type: object
+      properties:
+        labels:
+          $ref: '#/components/schemas/Labels'
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            The ID of the customer to create the subscription for.
+
+            Either customer ID or customer key must be provided.
+            If both are provided, the ID will be used.
+          title: Customer ID
+        customer_key:
+          allOf:
+            - $ref: '#/components/schemas/ExternalResourceKey'
+          description: |-
+            The key of the customer to create the subscription for.
+
+            Either customer ID or customer key must be provided.
+            If both are provided, the ID will be used.
+          title: Customer Key
+        plan_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            The plan ID of the subscription.
+            Set if subscription is created from a plan.
+
+            ID or Key of the plan is required if creating a subscription from a plan.
+            If both are provided, the ID will be used.
+          title: Plan ID
+        plan_key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            The plan Key of the subscription, if any.
+            Set if subscription is created from a plan.
+
+            ID or Key of the plan is required if creating a subscription from a plan.
+            If both are provided, the ID will be used.
+          title: Plan Key
+        plan_version:
+          type: integer
+          description: |-
+            The plan version of the subscription, if any.
+            If not provided, the latest version of the plan will be used.
+          title: Plan Version
+        billing_anchor:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The billing anchor of the subscription.
+            Defaults to now if not provided.
+          title: Billing anchor
+      description: Subscription create request.
+    BillingSubscriptionEditTiming:
+      oneOf:
+        - $ref: '#/components/schemas/BillingSubscriptionEditTimingEnum'
+        - type: string
+          format: date-time
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
+      description: |-
+        Subscription edit timing defined when the changes should take effect.
+        If the provided configuration is not supported by the subscription, an error will be returned.
+    BillingSubscriptionEditTimingEnum:
+      type: string
+      enum:
+        - immediate
+        - next_billing_cycle
+      description: |-
+        Subscription edit timing.
+        When immediate, the requested changes take effect immediately.
+        When next_billing_cycle, the requested changes take effect at the next billing cycle.
+    BillingSubscriptionStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+        - canceled
+        - scheduled
+      description: Subscription status.
     CountryCode:
       type: string
       minLength: 2
@@ -964,6 +1428,19 @@ components:
       description: A key is a unique string that is used to identify a resource.
       title: Resource Key
       example: resource_key
+    SubscriptionPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingSubscription'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     ULID:
       type: string
       pattern: ^[0-7][0-9A-HJKMNP-TV-Z]{25}$
@@ -1381,6 +1858,21 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Gone
+    ConflictError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 409
+            title:
+              example: Conflict
+            type:
+              example: https://httpstatuses.com/409
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Conflict
   responses:
     BadRequest:
       description: Bad Request
@@ -1433,6 +1925,12 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/GoneError'
+    Conflict:
+      description: Conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ConflictError'
   examples:
     UnauthorizedExample:
       value:

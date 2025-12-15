@@ -56,3 +56,29 @@ func (s *Server) DeleteCustomer(w http.ResponseWriter, r *http.Request, customer
 func (s *Server) ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
 	s.customersEntitlementHandler.ListCustomerEntitlementAccess().With(customerId).ServeHTTP(w, r)
 }
+
+// Subscriptions
+
+func (s *Server) CreateSubscription(w http.ResponseWriter, r *http.Request) {
+	s.subscriptionsHandler.CreateSubscription().ServeHTTP(w, r)
+}
+
+func (s *Server) ListSubscriptions(w http.ResponseWriter, r *http.Request, params api.ListSubscriptionsParams) {
+	s.subscriptionsHandler.ListSubscriptions().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionsHandler.GetSubscription().With(subscriptionId).ServeHTTP(w, r)
+}
+
+func (s *Server) CancelSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionsHandler.CancelSubscription().With(subscriptionId).ServeHTTP(w, r)
+}
+
+func (s *Server) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionsHandler.UnscheduleCancelation().With(subscriptionId).ServeHTTP(w, r)
+}
+
+func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionsHandler.ChangeSubscription().With(subscriptionId).ServeHTTP(w, r)
+}

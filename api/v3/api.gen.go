@@ -28,6 +28,20 @@ const (
 	BillingEntitlementTypeStatic  BillingEntitlementType = "static"
 )
 
+// Defines values for BillingSubscriptionEditTimingEnum.
+const (
+	BillingSubscriptionEditTimingEnumImmediate        BillingSubscriptionEditTimingEnum = "immediate"
+	BillingSubscriptionEditTimingEnumNextBillingCycle BillingSubscriptionEditTimingEnum = "next_billing_cycle"
+)
+
+// Defines values for BillingSubscriptionStatus.
+const (
+	BillingSubscriptionStatusActive    BillingSubscriptionStatus = "active"
+	BillingSubscriptionStatusCanceled  BillingSubscriptionStatus = "canceled"
+	BillingSubscriptionStatusInactive  BillingSubscriptionStatus = "inactive"
+	BillingSubscriptionStatusScheduled BillingSubscriptionStatus = "scheduled"
+)
+
 // Defines values for InvalidParameterChoiceItemRule.
 const (
 	InvalidParameterChoiceItemRuleEnum InvalidParameterChoiceItemRule = "enum"
@@ -252,6 +266,154 @@ type BillingEntitlementAccessResult struct {
 
 // BillingEntitlementType The type of the entitlement.
 type BillingEntitlementType string
+
+// BillingSubscription Subscription.
+type BillingSubscription struct {
+	// BillingAnchor The billing anchor of the subscription.
+	BillingAnchor DateTime `json:"billing_anchor"`
+
+	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt *DateTime `json:"created_at,omitempty"`
+
+	// CustomerId The customer ID of the subscription.
+	CustomerId ULID `json:"customer_id"`
+
+	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *DateTime `json:"deleted_at,omitempty"`
+	Id        ULID      `json:"id"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// PlanId The plan ID of the subscription.
+	// Set if subscription is created from a plan.
+	PlanId *ULID `json:"plan_id,omitempty"`
+
+	// Status The status of the subscription.
+	Status BillingSubscriptionStatus `json:"status"`
+
+	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+}
+
+// BillingSubscriptionCancel Request for canceling a subscription.
+type BillingSubscriptionCancel struct {
+	// Timing If not provided the subscription is canceled immediately.
+	Timing *BillingSubscriptionEditTiming `json:"timing,omitempty"`
+}
+
+// BillingSubscriptionChange Request for changing a subscription.
+type BillingSubscriptionChange struct {
+	// BillingAnchor The billing anchor of the subscription.
+	// Defaults to now if not provided.
+	BillingAnchor *DateTime `json:"billing_anchor,omitempty"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// PlanId The plan ID of the subscription.
+	// Set if subscription is created from a plan.
+	//
+	// ID or Key of the plan is required if creating a subscription from a plan.
+	// If both are provided, the ID will be used.
+	PlanId *ULID `json:"plan_id,omitempty"`
+
+	// PlanKey The plan Key of the subscription, if any.
+	// Set if subscription is created from a plan.
+	//
+	// ID or Key of the plan is required if creating a subscription from a plan.
+	// If both are provided, the ID will be used.
+	PlanKey *ResourceKey `json:"plan_key,omitempty"`
+
+	// PlanVersion The plan version of the subscription, if any.
+	// If not provided, the latest version of the plan will be used.
+	PlanVersion *int `json:"plan_version,omitempty"`
+
+	// Timing Timing configuration for the change, when the change should take effect.
+	// For changing a subscription, the accepted values depend on the subscription configuration.
+	Timing BillingSubscriptionEditTiming `json:"timing"`
+}
+
+// BillingSubscriptionChangeResponse Response for changing a subscription.
+type BillingSubscriptionChangeResponse struct {
+	// Current The current subscription before the change.
+	Current BillingSubscription `json:"current"`
+
+	// Next The new state of the subscription after the change.
+	Next BillingSubscription `json:"next"`
+}
+
+// BillingSubscriptionCreate Subscription create request.
+type BillingSubscriptionCreate struct {
+	// BillingAnchor The billing anchor of the subscription.
+	// Defaults to now if not provided.
+	BillingAnchor *DateTime `json:"billing_anchor,omitempty"`
+
+	// CustomerId The ID of the customer to create the subscription for.
+	//
+	// Either customer ID or customer key must be provided.
+	// If both are provided, the ID will be used.
+	CustomerId *ULID `json:"customer_id,omitempty"`
+
+	// CustomerKey The key of the customer to create the subscription for.
+	//
+	// Either customer ID or customer key must be provided.
+	// If both are provided, the ID will be used.
+	CustomerKey *ExternalResourceKey `json:"customer_key,omitempty"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// PlanId The plan ID of the subscription.
+	// Set if subscription is created from a plan.
+	//
+	// ID or Key of the plan is required if creating a subscription from a plan.
+	// If both are provided, the ID will be used.
+	PlanId *ULID `json:"plan_id,omitempty"`
+
+	// PlanKey The plan Key of the subscription, if any.
+	// Set if subscription is created from a plan.
+	//
+	// ID or Key of the plan is required if creating a subscription from a plan.
+	// If both are provided, the ID will be used.
+	PlanKey *ResourceKey `json:"plan_key,omitempty"`
+
+	// PlanVersion The plan version of the subscription, if any.
+	// If not provided, the latest version of the plan will be used.
+	PlanVersion *int `json:"plan_version,omitempty"`
+}
+
+// BillingSubscriptionEditTiming Subscription edit timing defined when the changes should take effect.
+// If the provided configuration is not supported by the subscription, an error will be returned.
+type BillingSubscriptionEditTiming struct {
+	union json.RawMessage
+}
+
+// BillingSubscriptionEditTiming1 [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+type BillingSubscriptionEditTiming1 = time.Time
+
+// BillingSubscriptionEditTimingEnum Subscription edit timing.
+// When immediate, the requested changes take effect immediately.
+// When next_billing_cycle, the requested changes take effect at the next billing cycle.
+type BillingSubscriptionEditTimingEnum string
+
+// BillingSubscriptionStatus Subscription status.
+type BillingSubscriptionStatus string
+
+// ConflictError defines model for ConflictError.
+type ConflictError struct {
+	Detail   interface{} `json:"detail"`
+	Instance interface{} `json:"instance"`
+	Status   interface{} `json:"status"`
+	Title    interface{} `json:"title"`
+	Type     interface{} `json:"type,omitempty"`
+}
 
 // CountryCode [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
 // Custom two-letter country codes are also supported for convenience.
@@ -597,6 +759,14 @@ type ResourceKey = string
 // JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
 type SortQuery = string
 
+// SubscriptionPagePaginatedResponse Page paginated response.
+type SubscriptionPagePaginatedResponse struct {
+	Data []BillingSubscription `json:"data"`
+
+	// Meta returns the pagination information
+	Meta PaginatedMeta `json:"meta"`
+}
+
 // ULID ULID (Universally Unique Lexicographically Sortable Identifier).
 type ULID = string
 
@@ -650,6 +820,18 @@ type UsageAttributionSubjectKey = string
 // JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
 type ListCustomersParamsSort = SortQuery
 
+// ListSubscriptionsParamsFilter defines model for ListSubscriptionsParams.filter.
+type ListSubscriptionsParamsFilter struct {
+	// CustomerId Filter subscriptions by customer ID.
+	CustomerId *ULID `json:"customer_id,omitempty"`
+}
+
+// ListSubscriptionsParamsSort The `asc` suffix is optional as the default sort order is ascending.
+// The `desc` suffix is used to specify a descending order.
+// Multiple sort attributes may be provided via a comma separated list.
+// JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
+type ListSubscriptionsParamsSort = SortQuery
+
 // PagePaginationQuery defines model for PagePaginationQuery.
 type PagePaginationQuery struct {
 	Number *int `json:"number,omitempty"`
@@ -658,6 +840,9 @@ type PagePaginationQuery struct {
 
 // BadRequest defines model for BadRequest.
 type BadRequest = BadRequestError
+
+// Conflict defines model for Conflict.
+type Conflict = ConflictError
 
 // Forbidden defines model for Forbidden.
 type Forbidden = ForbiddenError
@@ -715,6 +900,24 @@ type ListMetersParams struct {
 	Page *PagePaginationQuery `json:"page,omitempty"`
 }
 
+// ListSubscriptionsParams defines parameters for ListSubscriptions.
+type ListSubscriptionsParams struct {
+	// Page Determines which page of the collection to retrieve.
+	Page *PagePaginationQuery `json:"page,omitempty"`
+
+	// Sort Sort subscriptions returned in the response.
+	// Supported sort attributes are:
+	// - `id`
+	// - `created_at`
+	//
+	// The `asc` suffix is optional as the default sort order is ascending.
+	// The `desc` suffix is used to specify a descending order.
+	Sort *ListSubscriptionsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+
+	// Filter Filter subscriptions.
+	Filter *ListSubscriptionsParamsFilter `json:"filter,omitempty"`
+}
+
 // CreateCustomerJSONRequestBody defines body for CreateCustomer for application/json ContentType.
 type CreateCustomerJSONRequestBody = CreateCustomerRequest
 
@@ -732,6 +935,77 @@ type IngestMeteringEventsJSONRequestBody IngestMeteringEventsJSONBody
 
 // CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
 type CreateMeterJSONRequestBody = CreateMeterRequest
+
+// CreateSubscriptionJSONRequestBody defines body for CreateSubscription for application/json ContentType.
+type CreateSubscriptionJSONRequestBody = BillingSubscriptionCreate
+
+// CancelSubscriptionJSONRequestBody defines body for CancelSubscription for application/json ContentType.
+type CancelSubscriptionJSONRequestBody = BillingSubscriptionCancel
+
+// ChangeSubscriptionJSONRequestBody defines body for ChangeSubscription for application/json ContentType.
+type ChangeSubscriptionJSONRequestBody = BillingSubscriptionChange
+
+// AsBillingSubscriptionEditTimingEnum returns the union data inside the BillingSubscriptionEditTiming as a BillingSubscriptionEditTimingEnum
+func (t BillingSubscriptionEditTiming) AsBillingSubscriptionEditTimingEnum() (BillingSubscriptionEditTimingEnum, error) {
+	var body BillingSubscriptionEditTimingEnum
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingSubscriptionEditTimingEnum overwrites any union data inside the BillingSubscriptionEditTiming as the provided BillingSubscriptionEditTimingEnum
+func (t *BillingSubscriptionEditTiming) FromBillingSubscriptionEditTimingEnum(v BillingSubscriptionEditTimingEnum) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingSubscriptionEditTimingEnum performs a merge with any union data inside the BillingSubscriptionEditTiming, using the provided BillingSubscriptionEditTimingEnum
+func (t *BillingSubscriptionEditTiming) MergeBillingSubscriptionEditTimingEnum(v BillingSubscriptionEditTimingEnum) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingSubscriptionEditTiming1 returns the union data inside the BillingSubscriptionEditTiming as a BillingSubscriptionEditTiming1
+func (t BillingSubscriptionEditTiming) AsBillingSubscriptionEditTiming1() (BillingSubscriptionEditTiming1, error) {
+	var body BillingSubscriptionEditTiming1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingSubscriptionEditTiming1 overwrites any union data inside the BillingSubscriptionEditTiming as the provided BillingSubscriptionEditTiming1
+func (t *BillingSubscriptionEditTiming) FromBillingSubscriptionEditTiming1(v BillingSubscriptionEditTiming1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingSubscriptionEditTiming1 performs a merge with any union data inside the BillingSubscriptionEditTiming, using the provided BillingSubscriptionEditTiming1
+func (t *BillingSubscriptionEditTiming) MergeBillingSubscriptionEditTiming1(v BillingSubscriptionEditTiming1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingSubscriptionEditTiming) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingSubscriptionEditTiming) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsInvalidParameterStandard returns the union data inside the InvalidParameters_Item as a InvalidParameterStandard
 func (t InvalidParameters_Item) AsInvalidParameterStandard() (InvalidParameterStandard, error) {
@@ -908,6 +1182,24 @@ type ServerInterface interface {
 	// Get meter
 	// (GET /openmeter/meters/{meterId})
 	GetMeter(w http.ResponseWriter, r *http.Request, meterId ULID)
+	// List subscriptions
+	// (GET /openmeter/subscriptions)
+	ListSubscriptions(w http.ResponseWriter, r *http.Request, params ListSubscriptionsParams)
+	// Create subscription
+	// (POST /openmeter/subscriptions)
+	CreateSubscription(w http.ResponseWriter, r *http.Request)
+	// Cancel subscription
+	// (POST /openmeter/subscriptions/cancel/{subscriptionId})
+	CancelSubscription(w http.ResponseWriter, r *http.Request, subscriptionId ULID)
+	// Change subscription
+	// (POST /openmeter/subscriptions/change/{subscriptionId})
+	ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId ULID)
+	// Unschedule subscription cancelation
+	// (POST /openmeter/subscriptions/unschedule-cancelation/{subscriptionId})
+	UnscheduleCancelation(w http.ResponseWriter, r *http.Request, subscriptionId ULID)
+	// Get subscription
+	// (GET /openmeter/subscriptions/{subscriptionId})
+	GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId ULID)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -977,6 +1269,42 @@ func (_ Unimplemented) DeleteMeter(w http.ResponseWriter, r *http.Request, meter
 // Get meter
 // (GET /openmeter/meters/{meterId})
 func (_ Unimplemented) GetMeter(w http.ResponseWriter, r *http.Request, meterId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List subscriptions
+// (GET /openmeter/subscriptions)
+func (_ Unimplemented) ListSubscriptions(w http.ResponseWriter, r *http.Request, params ListSubscriptionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create subscription
+// (POST /openmeter/subscriptions)
+func (_ Unimplemented) CreateSubscription(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Cancel subscription
+// (POST /openmeter/subscriptions/cancel/{subscriptionId})
+func (_ Unimplemented) CancelSubscription(w http.ResponseWriter, r *http.Request, subscriptionId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Change subscription
+// (POST /openmeter/subscriptions/change/{subscriptionId})
+func (_ Unimplemented) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Unschedule subscription cancelation
+// (POST /openmeter/subscriptions/unschedule-cancelation/{subscriptionId})
+func (_ Unimplemented) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, subscriptionId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get subscription
+// (GET /openmeter/subscriptions/{subscriptionId})
+func (_ Unimplemented) GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId ULID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1251,6 +1579,163 @@ func (siw *ServerInterfaceWrapper) GetMeter(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// ListSubscriptions operation middleware
+func (siw *ServerInterfaceWrapper) ListSubscriptions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSubscriptionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("deepObject", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "filter" -------------
+
+	err = runtime.BindQueryParameter("deepObject", true, false, "filter", r.URL.Query(), &params.Filter)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSubscriptions(w, r, params)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSubscription operation middleware
+func (siw *ServerInterfaceWrapper) CreateSubscription(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSubscription(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CancelSubscription operation middleware
+func (siw *ServerInterfaceWrapper) CancelSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", chi.URLParam(r, "subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CancelSubscription(w, r, subscriptionId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ChangeSubscription operation middleware
+func (siw *ServerInterfaceWrapper) ChangeSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", chi.URLParam(r, "subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ChangeSubscription(w, r, subscriptionId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnscheduleCancelation operation middleware
+func (siw *ServerInterfaceWrapper) UnscheduleCancelation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", chi.URLParam(r, "subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnscheduleCancelation(w, r, subscriptionId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSubscription operation middleware
+func (siw *ServerInterfaceWrapper) GetSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", chi.URLParam(r, "subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSubscription(w, r, subscriptionId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -1397,6 +1882,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/openmeter/meters/{meterId}", wrapper.GetMeter)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/subscriptions", wrapper.ListSubscriptions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/subscriptions", wrapper.CreateSubscription)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/subscriptions/cancel/{subscriptionId}", wrapper.CancelSubscription)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/subscriptions/change/{subscriptionId}", wrapper.ChangeSubscription)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/subscriptions/unschedule-cancelation/{subscriptionId}", wrapper.UnscheduleCancelation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/subscriptions/{subscriptionId}", wrapper.GetSubscription)
+	})
 
 	return r
 }
@@ -1404,115 +1907,136 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"XnWRCoFTyYSqY0cZd/p/AwAA//+Y7MOPmogAAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
