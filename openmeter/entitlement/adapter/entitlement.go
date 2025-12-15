@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -508,7 +509,16 @@ func (a *entitlementDBAdapter) mapEntitlementEntity(e *db.Entitlement) (*entitle
 	}
 
 	if e.Config != nil {
-		ent.Config = e.Config
+		// Config in DB is double-encoded (stored as JSON string with quotes)
+		// Unwrap one layer when reading from DB so the domain model has correct encoding
+		var configStr string
+		if err := json.Unmarshal(e.Config, &configStr); err == nil {
+			// Successfully unmarshaled as string - store the unwrapped JSON
+			ent.Config = []byte(configStr)
+		} else {
+			// Couldn't unmarshal as string - use as-is
+			ent.Config = e.Config
+		}
 	}
 
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
