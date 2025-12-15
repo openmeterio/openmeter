@@ -2,7 +2,6 @@ package subscriptions
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -49,8 +48,7 @@ func ConvertBillingSubscriptionEditTimingToSubscriptionTiming(t api.BillingSubsc
 	// Try decoding as a custom RFC3339 datetime first, otherwise it would also decode as a "string enum"
 	// and we'd never be able to distinguish enum vs datetime.
 	if custom, err := t.AsBillingSubscriptionEditTiming1(); err == nil {
-		ct := time.Time(custom)
-		return subscription.Timing{Custom: &ct}, nil
+		return subscription.Timing{Custom: &custom}, nil
 	}
 
 	enum, err := t.AsBillingSubscriptionEditTimingEnum()
