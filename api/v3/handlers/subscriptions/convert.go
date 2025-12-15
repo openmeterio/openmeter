@@ -1,6 +1,9 @@
 package subscriptions
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -29,6 +32,33 @@ func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription
 	}
 
 	return subscriptionAPI
+}
+
+func ConvertBillingSubscriptionEditTimingEnumToSubscriptionTiming(t api.BillingSubscriptionEditTimingEnum) (subscription.Timing, error) {
+	switch string(t) {
+	case "immediate":
+		return subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}, nil
+	case "next_billing_cycle":
+		return subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)}, nil
+	default:
+		return subscription.Timing{}, models.NewGenericValidationError(fmt.Errorf("invalid timing: %s", t))
+	}
+}
+
+func ConvertBillingSubscriptionEditTimingToSubscriptionTiming(t api.BillingSubscriptionEditTiming) (subscription.Timing, error) {
+	// Try decoding as a custom RFC3339 datetime first, otherwise it would also decode as a "string enum"
+	// and we'd never be able to distinguish enum vs datetime.
+	if custom, err := t.AsBillingSubscriptionEditTiming1(); err == nil {
+		ct := time.Time(custom)
+		return subscription.Timing{Custom: &ct}, nil
+	}
+
+	enum, err := t.AsBillingSubscriptionEditTimingEnum()
+	if err != nil {
+		return subscription.Timing{}, models.NewGenericValidationError(fmt.Errorf("invalid timing"))
+	}
+
+	return ConvertBillingSubscriptionEditTimingEnumToSubscriptionTiming(enum)
 }
 
 // ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput converts a create subscription request to a create subscription workflow input

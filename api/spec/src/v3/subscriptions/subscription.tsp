@@ -1,4 +1,7 @@
+import "@typespec/openapi";
 import "../shared/index.tsp";
+
+using TypeSpec.OpenAPI;
 
 namespace Subscriptions;
 
@@ -11,6 +14,28 @@ enum SubscriptionStatus {
   inactive,
   canceled,
   scheduled,
+}
+
+/**
+ * Subscription edit timing.
+ * When immediate, the requested changes take effect immediately.
+ * When next_billing_cycle, the requested changes take effect at the next billing cycle.
+ */
+@friendlyName("BillingSubscriptionEditTimingEnum")
+enum SubscriptionEditTimingEnum {
+  immediate: "immediate",
+  next_billing_cycle: "next_billing_cycle",
+}
+
+/**
+ * Subscription edit timing defined when the changes should take effect.
+ * If the provided configuration is not supported by the subscription, an error will be returned.
+ */
+@oneOf
+@friendlyName("BillingSubscriptionEditTiming")
+union SubscriptionEditTiming {
+  Enum: SubscriptionEditTimingEnum,
+  Custom: DateTime,
 }
 
 /**

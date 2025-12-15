@@ -20,7 +20,7 @@ import (
 type (
 	CreateSubscriptionRequest  = plansubscription.CreateSubscriptionRequest
 	CreateSubscriptionResponse = api.BillingSubscription
-	CreateSubscriptionHandler  httptransport.Handler[CreateSubscriptionRequest, CreateSubscriptionResponse]
+	CreateSubscriptionHandler  = httptransport.Handler[CreateSubscriptionRequest, CreateSubscriptionResponse]
 )
 
 // CreateSubscription returns a new httptransport.Handler for creating a subscription.

@@ -70,3 +70,15 @@ func (s *Server) ListSubscriptions(w http.ResponseWriter, r *http.Request, param
 func (s *Server) GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
 	s.subscriptionsHandler.GetSubscription().With(subscriptionId).ServeHTTP(w, r)
 }
+
+func (s *Server) CancelSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionsHandler.CancelSubscription().With(subscriptionId).ServeHTTP(w, r)
+}
+
+func (s *Server) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionsHandler.UnscheduleCancelation().With(subscriptionId).ServeHTTP(w, r)
+}
+
+func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionsHandler.ChangeSubscription().With(subscriptionId).ServeHTTP(w, r)
+}

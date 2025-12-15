@@ -14,6 +14,9 @@ type Handler interface {
 	ListSubscriptions() ListSubscriptionsHandler
 	GetSubscription() GetSubscriptionHandler
 	CreateSubscription() CreateSubscriptionHandler
+	CancelSubscription() CancelSubscriptionHandler
+	UnscheduleCancelation() UnscheduleCancelationHandler
+	ChangeSubscription() ChangeSubscriptionHandler
 }
 
 type handler struct {

@@ -20,7 +20,7 @@ type (
 	ListSubscriptionsRequest  = subscription.ListSubscriptionsInput
 	ListSubscriptionsResponse = response.PagePaginationResponse[api.BillingSubscription]
 	ListSubscriptionsParams   = api.ListSubscriptionsParams
-	ListSubscriptionsHandler  httptransport.HandlerWithArgs[ListSubscriptionsRequest, ListSubscriptionsResponse, ListSubscriptionsParams]
+	ListSubscriptionsHandler  = httptransport.HandlerWithArgs[ListSubscriptionsRequest, ListSubscriptionsResponse, ListSubscriptionsParams]
 )
 
 func (h *handler) ListSubscriptions() ListSubscriptionsHandler {

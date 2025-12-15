@@ -43,6 +43,47 @@ model ListSubscriptionsParams {
   };
 }
 
+/**
+ * Request for canceling a subscription.
+ */
+@friendlyName("BillingSubscriptionCancel")
+model SubscriptionCancel {
+  /**
+   * If not provided the subscription is canceled immediately.
+   */
+  timing?: SubscriptionEditTiming = SubscriptionEditTimingEnum.immediate;
+}
+
+/**
+ * Request for changing a subscription.
+ */
+@friendlyName("BillingSubscriptionChange")
+model SubscriptionChange {
+  ...OmitProperties<SubscriptionCreate, "customer_id" | "customer_key">;
+
+  /**
+   * Timing configuration for the change, when the change should take effect.
+   * For changing a subscription, the accepted values depend on the subscription configuration.
+   */
+  timing: SubscriptionEditTiming;
+}
+
+/**
+ * Response for changing a subscription.
+ */
+@friendlyName("BillingSubscriptionChangeResponse")
+model SubscriptionChangeResponse {
+  /**
+   * The current subscription before the change.
+   */
+  current: Subscription;
+
+  /**
+   * The new state of the subscription after the change.
+   */
+  next: Subscription;
+}
+
 interface SubscriptionsOperations {
   @post
   @operationId("create-subscription")
@@ -72,4 +113,56 @@ interface SubscriptionsOperations {
   get(
     @path subscriptionId: Shared.ULID,
   ): Shared.GetResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
+
+  /**
+   * Cancels the subscription.
+   * Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancellation time.
+   */
+  @post
+  @operationId("cancel-subscription")
+  @summary("Cancel subscription")
+  @route("/cancel")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  cancel(@path subscriptionId: ULID, @body body: SubscriptionCancel):
+    | Shared.UpdateResponse<Subscription>
+    | Common.NotFound
+    | Common.Conflict
+    | Common.ErrorResponses;
+
+  /**
+   * Unschedules the subscription cancelation.
+   */
+  @post
+  @operationId("unschedule-cancelation")
+  @summary("Unschedule subscription cancelation")
+  @route("/unschedule-cancelation")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  unscheduleCancelation(@path subscriptionId: ULID):
+    | Shared.UpdateResponse<Subscription>
+    | Common.NotFound
+    | Common.Conflict
+    | Common.ErrorResponses;
+
+  /**
+   * Closes a running subscription and starts a new one according to the specification.
+   * Can be used for upgrades, downgrades, and plan changes.
+   */
+  @post
+  @operationId("change-subscription")
+  @summary("Change subscription")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @route("/change")
+  change(
+    @path subscriptionId: ULID,
+
+    @body
+    body: SubscriptionChange,
+  ):
+    | SubscriptionChangeResponse
+    | Common.NotFound
+    | Common.Conflict
+    | Common.ErrorResponses;
 }
