@@ -13,9 +13,9 @@ import (
 
 const httpStatusCodeErrorAttribute = "openmeter.http.status_code"
 
-type v3ErrorMapping struct {
-	match func(err error) bool
-	build func(ctx context.Context, err error) *BaseAPIError
+type ErrorMapping struct {
+	Match func(err error) bool
+	Build func(ctx context.Context, err error) *BaseAPIError
 }
 
 // NewV3ErrorHandlerFunc returns an oapi-codegen ChiServerOptions.ErrorHandlerFunc implementation.
@@ -23,41 +23,7 @@ type v3ErrorMapping struct {
 // It is invoked when the generated router fails request binding (query/path/header parsing).
 // The main purpose is to ensure we always write a response (otherwise net/http defaults to 200 with
 // an empty body), and to keep error-to-status mapping consistent with our model error types.
-func NewV3ErrorHandlerFunc(logger errorsx.Handler) func(w http.ResponseWriter, r *http.Request, err error) {
-	// Mirrors pkg/framework/commonhttp/encoder.go GenericErrorEncoder ordering (after the status-code attribute mapping).
-	mappings := []v3ErrorMapping{
-		{
-			match: models.IsGenericConflictError,
-			build: func(ctx context.Context, err error) *BaseAPIError { return NewConflictError(ctx, err, err.Error()) },
-		},
-		{
-			match: models.IsGenericForbiddenError,
-			build: func(ctx context.Context, err error) *BaseAPIError { return NewForbiddenError(ctx, err) },
-		},
-		{
-			match: models.IsGenericNotImplementedError,
-			build: func(ctx context.Context, err error) *BaseAPIError { return NewNotImplementedError(ctx, err) },
-		},
-		{
-			match: models.IsGenericValidationError,
-			build: func(ctx context.Context, err error) *BaseAPIError { return NewBadRequestError(ctx, err, nil) },
-		},
-		{
-			match: models.IsGenericNotFoundError,
-			build: func(ctx context.Context, err error) *BaseAPIError { return NewNotFoundError(ctx, err, "") },
-		},
-		{
-			match: models.IsGenericUnauthorizedError,
-			build: func(ctx context.Context, err error) *BaseAPIError { return NewUnauthenticatedError(ctx, err) },
-		},
-		{
-			match: models.IsGenericPreConditionFailedError,
-			build: func(ctx context.Context, err error) *BaseAPIError {
-				return NewPreconditionFailedError(ctx, err.Error())
-			},
-		},
-	}
-
+func NewV3ErrorHandlerFunc(logger errorsx.Handler, mappings []ErrorMapping) func(w http.ResponseWriter, r *http.Request, err error) {
 	return func(w http.ResponseWriter, r *http.Request, err error) {
 		if err == nil {
 			return
@@ -90,9 +56,9 @@ func NewV3ErrorHandlerFunc(logger errorsx.Handler) func(w http.ResponseWriter, r
 		}
 
 		for _, m := range mappings {
-			if m.match(err) {
+			if m.Match(err) {
 				logger.HandleContext(ctx, err)
-				m.build(ctx, err).HandleAPIError(w, r)
+				m.Build(ctx, err).HandleAPIError(w, r)
 				return
 			}
 		}
