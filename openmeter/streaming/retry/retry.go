@@ -8,7 +8,9 @@ import (
 	"log/slog"
 	"time"
 
+	chproto "github.com/ClickHouse/ch-go/proto"
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -154,6 +156,14 @@ func isErrorRetirable(ctx context.Context, c *Connector, err error) bool {
 	if errors.Is(err, clickhouse.ErrAcquireConnTimeout) {
 		c.logger.WarnContext(ctx, "clickhouse acquire connection timeout, connection pool is full", "error", err)
 		return true
+	}
+
+	chException, ok := lo.ErrorsAs[*clickhouse.Exception](err)
+	if ok {
+		// During upscale/downscale of the cluster CH might return this error, so let's retry.
+		if chException.Code == int32(chproto.ErrAllConnectionTriesFailed) {
+			return true
+		}
 	}
 
 	return false
