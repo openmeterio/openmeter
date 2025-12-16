@@ -121,7 +121,7 @@ interface SubscriptionsOperations {
   @post
   @operationId("cancel-subscription")
   @summary("Cancel subscription")
-  @route("/cancel")
+  @route("/{subscriptionId}/cancel")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   cancel(@path subscriptionId: Shared.ULID, @body body: SubscriptionCancel):
@@ -136,7 +136,7 @@ interface SubscriptionsOperations {
   @post
   @operationId("unschedule-cancelation")
   @summary("Unschedule subscription cancelation")
-  @route("/unschedule-cancelation")
+  @route("/{subscriptionId}/unschedule-cancelation")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   unscheduleCancelation(@path subscriptionId: Shared.ULID):
@@ -154,7 +154,7 @@ interface SubscriptionsOperations {
   @summary("Change subscription")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
-  @route("/change")
+  @route("/{subscriptionId}/change")
   change(
     @path subscriptionId: Shared.ULID,
 

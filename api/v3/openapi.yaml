@@ -438,7 +438,40 @@ paths:
         - OpenMeter Subscriptions
       x-internal: true
       x-unstable: true
-  /openmeter/subscriptions/cancel/{subscriptionId}:
+  /openmeter/subscriptions/{subscriptionId}:
+    get:
+      operationId: get-subscription
+      summary: Get subscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Subscription response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NotAvailable'
+      tags:
+        - OpenMeter Subscriptions
+      x-internal: true
+      x-unstable: true
+  /openmeter/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancel-subscription
       summary: Cancel subscription
@@ -482,7 +515,7 @@ paths:
               $ref: '#/components/schemas/BillingSubscriptionCancel'
       x-internal: true
       x-unstable: true
-  /openmeter/subscriptions/change/{subscriptionId}:
+  /openmeter/subscriptions/{subscriptionId}/change:
     post:
       operationId: change-subscription
       summary: Change subscription
@@ -526,7 +559,7 @@ paths:
               $ref: '#/components/schemas/BillingSubscriptionChange'
       x-internal: true
       x-unstable: true
-  /openmeter/subscriptions/unschedule-cancelation/{subscriptionId}:
+  /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unschedule-cancelation
       summary: Unschedule subscription cancelation
@@ -554,39 +587,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
-      tags:
-        - OpenMeter Subscriptions
-      x-internal: true
-      x-unstable: true
-  /openmeter/subscriptions/{subscriptionId}:
-    get:
-      operationId: get-subscription
-      summary: Get subscription
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            $ref: '#/components/schemas/ULID'
-      responses:
-        '200':
-          description: Subscription response.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BillingSubscription'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/Internal'
         '503':
