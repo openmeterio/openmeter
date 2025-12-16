@@ -289,6 +289,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateMeterRequest'
+      x-internal: true
+      x-unstable: true
     get:
       operationId: list-meters
       summary: List meters
@@ -314,6 +316,8 @@ paths:
           $ref: '#/components/responses/NotAvailable'
       tags:
         - Meters
+      x-internal: true
+      x-unstable: true
   /openmeter/meters/{meterId}:
     get:
       operationId: get-meter
@@ -346,6 +350,8 @@ paths:
           $ref: '#/components/responses/NotAvailable'
       tags:
         - Meters
+      x-internal: true
+      x-unstable: true
     delete:
       operationId: delete-meter
       summary: Delete meter
@@ -373,6 +379,8 @@ paths:
           $ref: '#/components/responses/NotAvailable'
       tags:
         - Meters
+      x-internal: true
+      x-unstable: true
   /openmeter/subscriptions:
     post:
       operationId: create-subscription
