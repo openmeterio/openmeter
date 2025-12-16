@@ -60,6 +60,8 @@ const (
 	EdgeBillingSplitLineGroups = "billing_split_line_groups"
 	// EdgeAddons holds the string denoting the addons edge name in mutations.
 	EdgeAddons = "addons"
+	// EdgeBillingSyncState holds the string denoting the billing_sync_state edge name in mutations.
+	EdgeBillingSyncState = "billing_sync_state"
 	// Table holds the table name of the subscription in the database.
 	Table = "subscriptions"
 	// PlanTable is the table that holds the plan relation/edge.
@@ -104,6 +106,13 @@ const (
 	AddonsInverseTable = "subscription_addons"
 	// AddonsColumn is the table column denoting the addons relation/edge.
 	AddonsColumn = "subscription_id"
+	// BillingSyncStateTable is the table that holds the billing_sync_state relation/edge.
+	BillingSyncStateTable = "subscription_billing_sync_states"
+	// BillingSyncStateInverseTable is the table name for the SubscriptionBillingSyncState entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionbillingsyncstate" package.
+	BillingSyncStateInverseTable = "subscription_billing_sync_states"
+	// BillingSyncStateColumn is the table column denoting the billing_sync_state relation/edge.
+	BillingSyncStateColumn = "subscription_id"
 )
 
 // Columns holds all SQL columns for subscription fields.
@@ -311,6 +320,13 @@ func ByAddons(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAddonsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByBillingSyncStateField orders the results by billing_sync_state field.
+func ByBillingSyncStateField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingSyncStateStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newPlanStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -351,5 +367,12 @@ func newAddonsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AddonsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AddonsTable, AddonsColumn),
+	)
+}
+func newBillingSyncStateStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingSyncStateInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, BillingSyncStateTable, BillingSyncStateColumn),
 	)
 }

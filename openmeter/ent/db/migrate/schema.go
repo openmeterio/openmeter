@@ -2422,6 +2422,46 @@ var (
 			},
 		},
 	}
+	// SubscriptionBillingSyncStatesColumns holds the columns for the "subscription_billing_sync_states" table.
+	SubscriptionBillingSyncStatesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "has_billables", Type: field.TypeBool},
+		{Name: "synced_at", Type: field.TypeTime},
+		{Name: "next_sync_after", Type: field.TypeTime, Nullable: true},
+		{Name: "subscription_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionBillingSyncStatesTable holds the schema information for the "subscription_billing_sync_states" table.
+	SubscriptionBillingSyncStatesTable = &schema.Table{
+		Name:       "subscription_billing_sync_states",
+		Columns:    SubscriptionBillingSyncStatesColumns,
+		PrimaryKey: []*schema.Column{SubscriptionBillingSyncStatesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_billing_sync_states_subscriptions_billing_sync_state",
+				Columns:    []*schema.Column{SubscriptionBillingSyncStatesColumns[5]},
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionbillingsyncstate_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionBillingSyncStatesColumns[0]},
+			},
+			{
+				Name:    "subscriptionbillingsyncstate_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionBillingSyncStatesColumns[1]},
+			},
+			{
+				Name:    "subscriptionbillingsyncstate_namespace_subscription_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionBillingSyncStatesColumns[1], SubscriptionBillingSyncStatesColumns[5]},
+			},
+		},
+	}
 	// SubscriptionItemsColumns holds the columns for the "subscription_items" table.
 	SubscriptionItemsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2697,6 +2737,7 @@ var (
 		SubscriptionsTable,
 		SubscriptionAddonsTable,
 		SubscriptionAddonQuantitiesTable,
+		SubscriptionBillingSyncStatesTable,
 		SubscriptionItemsTable,
 		SubscriptionPhasesTable,
 		UsageResetsTable,
@@ -2758,6 +2799,7 @@ func init() {
 	SubscriptionAddonsTable.ForeignKeys[0].RefTable = AddonsTable
 	SubscriptionAddonsTable.ForeignKeys[1].RefTable = SubscriptionsTable
 	SubscriptionAddonQuantitiesTable.ForeignKeys[0].RefTable = SubscriptionAddonsTable
+	SubscriptionBillingSyncStatesTable.ForeignKeys[0].RefTable = SubscriptionsTable
 	SubscriptionItemsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	SubscriptionItemsTable.ForeignKeys[1].RefTable = SubscriptionPhasesTable
 	SubscriptionPhasesTable.ForeignKeys[0].RefTable = SubscriptionsTable
