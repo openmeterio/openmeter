@@ -13,37 +13,6 @@ using TypeSpec.OpenAPI;
 namespace Subscriptions;
 
 /**
- * Query params for listing subscriptions.
- */
-@friendlyName("ListSubscriptionsParams")
-model ListSubscriptionsParams {
-  ...Common.PagePaginationQuery;
-
-  /**
-   * Sort subscriptions returned in the response.
-   * Supported sort attributes are:
-   * - `id`
-   * - `created_at`
-   *
-   * The `asc` suffix is optional as the default sort order is ascending.
-   * The `desc` suffix is used to specify a descending order.
-   */
-  @query(#{ name: "sort" })
-  sort?: Common.SortQuery;
-
-  /**
-   * Filter subscriptions.
-   */
-  @query(#{ style: "deepObject", explode: true })
-  filter?: {
-    /**
-     * Filter subscriptions by customer ID.
-     */
-    customer_id?: Shared.ULID;
-  };
-}
-
-/**
  * Request for canceling a subscription.
  */
 @friendlyName("BillingSubscriptionCancel")
@@ -102,7 +71,30 @@ interface SubscriptionsOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   list(
-    ...ListSubscriptionsParams,
+    ...Common.PagePaginationQuery,
+
+    /**
+     * Sort subscriptions returned in the response.
+     * Supported sort attributes are:
+     * - `id`
+     * - `created_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending.
+     * The `desc` suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter subscriptions.
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: {
+      /**
+       * Filter subscriptions by customer ID.
+       */
+      customer_id?: Shared.ULID;
+    },
   ): Shared.PagePaginatedResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
 
   @get

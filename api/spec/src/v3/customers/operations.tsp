@@ -25,35 +25,6 @@ model ListCustomersParamsFilter {
   key?: Shared.ExternalResourceKey;
 }
 
-/**
- * Query params for listing customers.
- */
-@friendlyName("ListCustomersParams")
-model ListCustomersParams {
-  ...Common.PagePaginationQuery;
-
-  /**
-   * Sort customers returned in the response.
-   * Supported sort attributes are:
-   * - `id`
-   * - `name` (default)
-   * - `created_at`
-   *
-   * The `asc` suffix is optional as the default sort order is ascending.
-   * The `desc` suffix is used to specify a descending order.
-   */
-  @query(#{ name: "sort" })
-  sort?: Common.SortQuery;
-
-  /**
-   * Filter customers returned in the response.
-   *
-   * To filter customers by key add the following query param: filter[key]=my-db-id
-   */
-  @query(#{ style: "deepObject", explode: true })
-  filter?: ListCustomersParamsFilter;
-}
-
 interface CustomersOperations {
   @post
   @operationId("create-customer")
@@ -80,7 +51,28 @@ interface CustomersOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   list(
-    ...ListCustomersParams,
+    ...Common.PagePaginationQuery,
+
+    /**
+     * Sort customers returned in the response.
+     * Supported sort attributes are:
+     * - `id`
+     * - `name` (default)
+     * - `created_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending.
+     * The `desc` suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter customers returned in the response.
+     *
+     * To filter customers by key add the following query param: filter[key]=my-db-id
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListCustomersParamsFilter,
   ): Shared.PagePaginatedResponse<Customer> | Common.ErrorResponses;
 
   @put

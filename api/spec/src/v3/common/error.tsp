@@ -119,9 +119,4 @@ model NotAvailable {
   @statusCode _: 503;
 }
 
-alias ErrorResponses =
-  | BadRequest
-  | Unauthorized
-  | Forbidden
-  | Internal
-  | NotAvailable;
+alias ErrorResponses = BadRequest | Unauthorized | Forbidden;
