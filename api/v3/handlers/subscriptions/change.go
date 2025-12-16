@@ -54,18 +54,18 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 
 			// Currently only plan-based subscription change is supported, so plan ref is required.
 			if body.Plan.Id == nil && body.Plan.Key == nil {
-				reason := "one of plan_id or plan_key is required"
+				reason := "one of plan.id or plan.key is required"
 				return ChangeSubscriptionRequest{}, apierrors.NewBadRequestError(ctx,
 					errors.New(reason),
 					[]apierrors.InvalidParameter{
 						{
-							Field:  "plan_id",
+							Field:  "plan.id",
 							Reason: reason,
 							Source: apierrors.InvalidParamSourceBody,
 							Rule:   "required",
 						},
 						{
-							Field:  "plan_key",
+							Field:  "plan.key",
 							Reason: reason,
 							Source: apierrors.InvalidParamSourceBody,
 							Rule:   "required",

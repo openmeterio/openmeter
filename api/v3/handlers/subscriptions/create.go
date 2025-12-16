@@ -41,18 +41,18 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 
 			// Validate that either customer ID or customer key is provided
 			if body.Customer.Id == nil && body.Customer.Key == nil {
-				reason := "one of customer_id or customer_key is required"
+				reason := "one of customer.id or customer.key is required"
 				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(ctx,
 					errors.New(reason),
 					[]apierrors.InvalidParameter{
 						{
-							Field:  "customer_id",
+							Field:  "customer.id",
 							Reason: reason,
 							Source: apierrors.InvalidParamSourceBody,
 							Rule:   "required",
 						},
 						{
-							Field:  "customer_key",
+							Field:  "customer.key",
 							Reason: reason,
 							Source: apierrors.InvalidParamSourceBody,
 							Rule:   "required",
@@ -69,19 +69,19 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 
 			// TODO: implement custom subscription creation
 			if body.Plan.Id == nil && body.Plan.Key == nil {
-				reason := "one of plan_id or plan_key is required"
+				reason := "one of plan.id or plan.key is required"
 				// We use bad request error because not implemented does not provide the error context
 				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(ctx,
 					errors.New(reason),
 					[]apierrors.InvalidParameter{
 						{
-							Field:  "plan_id",
+							Field:  "plan.id",
 							Reason: reason,
 							Source: apierrors.InvalidParamSourceBody,
 							Rule:   "required",
 						},
 						{
-							Field:  "plan_key",
+							Field:  "plan.key",
 							Reason: reason,
 							Source: apierrors.InvalidParamSourceBody,
 							Rule:   "required",
