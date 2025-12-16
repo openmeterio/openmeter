@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -22,7 +23,7 @@ func (SubscriptionBillingSyncState) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
-		field.Bool("has_billables").Immutable(),
+		field.Bool("has_billables"),
 		field.Time("synced_at"),
 		field.Time("next_sync_after").Optional().Nillable(),
 	}

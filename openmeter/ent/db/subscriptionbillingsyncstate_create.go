@@ -270,6 +270,18 @@ type (
 	}
 )
 
+// SetHasBillables sets the "has_billables" field.
+func (u *SubscriptionBillingSyncStateUpsert) SetHasBillables(v bool) *SubscriptionBillingSyncStateUpsert {
+	u.Set(subscriptionbillingsyncstate.FieldHasBillables, v)
+	return u
+}
+
+// UpdateHasBillables sets the "has_billables" field to the value that was provided on create.
+func (u *SubscriptionBillingSyncStateUpsert) UpdateHasBillables() *SubscriptionBillingSyncStateUpsert {
+	u.SetExcluded(subscriptionbillingsyncstate.FieldHasBillables)
+	return u
+}
+
 // SetSyncedAt sets the "synced_at" field.
 func (u *SubscriptionBillingSyncStateUpsert) SetSyncedAt(v time.Time) *SubscriptionBillingSyncStateUpsert {
 	u.Set(subscriptionbillingsyncstate.FieldSyncedAt, v)
@@ -323,9 +335,6 @@ func (u *SubscriptionBillingSyncStateUpsertOne) UpdateNewValues() *SubscriptionB
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(subscriptionbillingsyncstate.FieldSubscriptionID)
 		}
-		if _, exists := u.create.mutation.HasBillables(); exists {
-			s.SetIgnore(subscriptionbillingsyncstate.FieldHasBillables)
-		}
 	}))
 	return u
 }
@@ -355,6 +364,20 @@ func (u *SubscriptionBillingSyncStateUpsertOne) Update(set func(*SubscriptionBil
 		set(&SubscriptionBillingSyncStateUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetHasBillables sets the "has_billables" field.
+func (u *SubscriptionBillingSyncStateUpsertOne) SetHasBillables(v bool) *SubscriptionBillingSyncStateUpsertOne {
+	return u.Update(func(s *SubscriptionBillingSyncStateUpsert) {
+		s.SetHasBillables(v)
+	})
+}
+
+// UpdateHasBillables sets the "has_billables" field to the value that was provided on create.
+func (u *SubscriptionBillingSyncStateUpsertOne) UpdateHasBillables() *SubscriptionBillingSyncStateUpsertOne {
+	return u.Update(func(s *SubscriptionBillingSyncStateUpsert) {
+		s.UpdateHasBillables()
+	})
 }
 
 // SetSyncedAt sets the "synced_at" field.
@@ -581,9 +604,6 @@ func (u *SubscriptionBillingSyncStateUpsertBulk) UpdateNewValues() *Subscription
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(subscriptionbillingsyncstate.FieldSubscriptionID)
 			}
-			if _, exists := b.mutation.HasBillables(); exists {
-				s.SetIgnore(subscriptionbillingsyncstate.FieldHasBillables)
-			}
 		}
 	}))
 	return u
@@ -614,6 +634,20 @@ func (u *SubscriptionBillingSyncStateUpsertBulk) Update(set func(*SubscriptionBi
 		set(&SubscriptionBillingSyncStateUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetHasBillables sets the "has_billables" field.
+func (u *SubscriptionBillingSyncStateUpsertBulk) SetHasBillables(v bool) *SubscriptionBillingSyncStateUpsertBulk {
+	return u.Update(func(s *SubscriptionBillingSyncStateUpsert) {
+		s.SetHasBillables(v)
+	})
+}
+
+// UpdateHasBillables sets the "has_billables" field to the value that was provided on create.
+func (u *SubscriptionBillingSyncStateUpsertBulk) UpdateHasBillables() *SubscriptionBillingSyncStateUpsertBulk {
+	return u.Update(func(s *SubscriptionBillingSyncStateUpsert) {
+		s.UpdateHasBillables()
+	})
 }
 
 // SetSyncedAt sets the "synced_at" field.

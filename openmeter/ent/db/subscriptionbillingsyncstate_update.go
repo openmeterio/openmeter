@@ -28,6 +28,20 @@ func (_u *SubscriptionBillingSyncStateUpdate) Where(ps ...predicate.Subscription
 	return _u
 }
 
+// SetHasBillables sets the "has_billables" field.
+func (_u *SubscriptionBillingSyncStateUpdate) SetHasBillables(v bool) *SubscriptionBillingSyncStateUpdate {
+	_u.mutation.SetHasBillables(v)
+	return _u
+}
+
+// SetNillableHasBillables sets the "has_billables" field if the given value is not nil.
+func (_u *SubscriptionBillingSyncStateUpdate) SetNillableHasBillables(v *bool) *SubscriptionBillingSyncStateUpdate {
+	if v != nil {
+		_u.SetHasBillables(*v)
+	}
+	return _u
+}
+
 // SetSyncedAt sets the "synced_at" field.
 func (_u *SubscriptionBillingSyncStateUpdate) SetSyncedAt(v time.Time) *SubscriptionBillingSyncStateUpdate {
 	_u.mutation.SetSyncedAt(v)
@@ -114,6 +128,9 @@ func (_u *SubscriptionBillingSyncStateUpdate) sqlSave(ctx context.Context) (_nod
 			}
 		}
 	}
+	if value, ok := _u.mutation.HasBillables(); ok {
+		_spec.SetField(subscriptionbillingsyncstate.FieldHasBillables, field.TypeBool, value)
+	}
 	if value, ok := _u.mutation.SyncedAt(); ok {
 		_spec.SetField(subscriptionbillingsyncstate.FieldSyncedAt, field.TypeTime, value)
 	}
@@ -141,6 +158,20 @@ type SubscriptionBillingSyncStateUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SubscriptionBillingSyncStateMutation
+}
+
+// SetHasBillables sets the "has_billables" field.
+func (_u *SubscriptionBillingSyncStateUpdateOne) SetHasBillables(v bool) *SubscriptionBillingSyncStateUpdateOne {
+	_u.mutation.SetHasBillables(v)
+	return _u
+}
+
+// SetNillableHasBillables sets the "has_billables" field if the given value is not nil.
+func (_u *SubscriptionBillingSyncStateUpdateOne) SetNillableHasBillables(v *bool) *SubscriptionBillingSyncStateUpdateOne {
+	if v != nil {
+		_u.SetHasBillables(*v)
+	}
+	return _u
 }
 
 // SetSyncedAt sets the "synced_at" field.
@@ -258,6 +289,9 @@ func (_u *SubscriptionBillingSyncStateUpdateOne) sqlSave(ctx context.Context) (_
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.HasBillables(); ok {
+		_spec.SetField(subscriptionbillingsyncstate.FieldHasBillables, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.SyncedAt(); ok {
 		_spec.SetField(subscriptionbillingsyncstate.FieldSyncedAt, field.TypeTime, value)
