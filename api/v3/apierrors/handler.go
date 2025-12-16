@@ -13,17 +13,12 @@ import (
 
 const httpStatusCodeErrorAttribute = "openmeter.http.status_code"
 
-type ErrorMapping struct {
-	Match func(err error) bool
-	Build func(ctx context.Context, err error) *BaseAPIError
-}
-
 // NewV3ErrorHandlerFunc returns an oapi-codegen ChiServerOptions.ErrorHandlerFunc implementation.
 //
 // It is invoked when the generated router fails request binding (query/path/header parsing).
 // The main purpose is to ensure we always write a response (otherwise net/http defaults to 200 with
 // an empty body), and to keep error-to-status mapping consistent with our model error types.
-func NewV3ErrorHandlerFunc(logger errorsx.Handler, mappings []ErrorMapping) func(w http.ResponseWriter, r *http.Request, err error) {
+func NewV3ErrorHandlerFunc(logger errorsx.Handler) func(w http.ResponseWriter, r *http.Request, err error) {
 	return func(w http.ResponseWriter, r *http.Request, err error) {
 		if err == nil {
 			return
@@ -51,14 +46,6 @@ func NewV3ErrorHandlerFunc(logger errorsx.Handler, mappings []ErrorMapping) func
 			if mapped := apiErrorFromHTTPStatus(ctx, status, err); mapped != nil {
 				logger.HandleContext(ctx, err)
 				mapped.HandleAPIError(w, r)
-				return
-			}
-		}
-
-		for _, m := range mappings {
-			if m.Match(err) {
-				logger.HandleContext(ctx, err)
-				m.Build(ctx, err).HandleAPIError(w, r)
 				return
 			}
 		}
