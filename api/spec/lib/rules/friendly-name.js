@@ -12,6 +12,7 @@ export const friendlyNameRule = createRule({
       if (
         node.name &&
         !node.name.endsWith('Operations') &&
+        !node.name.endsWith('Endpoints') &&
         !node.decorators.some((d) => d.decorator.name === '$friendlyName')
       ) {
         context.reportDiagnostic({

@@ -33,6 +33,7 @@ enum SubscriptionEditTimingEnum {
  */
 @oneOf
 @friendlyName("BillingSubscriptionEditTiming")
+@example(SubscriptionEditTimingEnum.immediate)
 union SubscriptionEditTiming {
   Enum: SubscriptionEditTimingEnum,
   Custom: Shared.DateTime,

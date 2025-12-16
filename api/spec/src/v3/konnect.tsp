@@ -44,29 +44,23 @@ namespace MeteringAndBilling;
 
 @route("/openmeter/events")
 @tag(Shared.EventsTag)
-@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.EventsTag}")
 interface EventsEndpoints extends Events.EventsOperations {}
 
 @route("/openmeter/meters")
 @tag(Shared.MetersTag)
-@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.MetersTag}")
 interface MetersEndpoints extends Meters.MetersOperations {}
 
 @route("/openmeter/customers")
 @tag(Shared.CustomersTag)
-@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.CustomersTag}")
 interface CustomersEndpoints extends Customers.CustomersOperations {}
 
 @route("/openmeter/customers/{customerId}/entitlement-access")
-@tag(Shared.CustomersTag)
 @tag(Shared.EntitlementsTag)
-@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.EntitlementsTag}")
 interface CustomerEntitlementsEndpoints
   extends Entitlements.CustomerEntitlementsOperations {}
 
 @route("/openmeter/subscriptions")
 @tag(Shared.SubscriptionsTag)
-@friendlyName("${Shared.MeteringAndBillingTitle}: ${Shared.SubscriptionsTag}")
 interface SubscriptionsEndpoints
   extends Subscriptions.SubscriptionsOperations {}
 

@@ -42,10 +42,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Customers
       requestBody:
@@ -61,8 +57,32 @@ paths:
       summary: List customers
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
-        - $ref: '#/components/parameters/ListCustomersParams.sort'
-        - $ref: '#/components/parameters/ListCustomersParams.filter'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort customers returned in the response.
+            Supported sort attributes are:
+            - `id`
+            - `name` (default)
+            - `created_at`
+
+            The `asc` suffix is optional as the default sort order is ascending.
+            The `desc` suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter customers returned in the response.
+
+            To filter customers by key add the following query param: filter[key]=my-db-id
+          schema:
+            $ref: '#/components/schemas/ListCustomersParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -76,10 +96,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Customers
       x-internal: true
@@ -109,10 +125,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Customers
       x-internal: true
@@ -143,10 +155,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '410':
           $ref: '#/components/responses/Gone'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Customers
       requestBody:
@@ -177,10 +185,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Customers
       x-internal: true
@@ -210,12 +214,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
-        - OpenMeter Customers
         - OpenMeter Entitlements
       x-internal: true
       x-unstable: true
@@ -233,10 +232,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       x-internal: true
       x-unstable: true
       tags:
@@ -277,10 +272,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - Meters
       requestBody:
@@ -310,10 +301,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - Meters
       x-internal: true
@@ -344,10 +331,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - Meters
       x-internal: true
@@ -373,10 +356,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - Meters
       x-internal: true
@@ -402,10 +381,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Subscriptions
       requestBody:
@@ -421,8 +396,18 @@ paths:
       summary: List subscriptions
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
-        - $ref: '#/components/parameters/ListSubscriptionsParams.sort'
-        - $ref: '#/components/parameters/ListSubscriptionsParams.filter'
+        - name: filter
+          in: query
+          required: false
+          description: Filter subscriptions.
+          schema:
+            type: object
+            properties:
+              customer_id:
+                allOf:
+                  - $ref: '#/components/schemas/ULID'
+                description: Filter subscriptions by customer ID.
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -438,10 +423,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Subscriptions
       x-internal: true
@@ -471,10 +452,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Subscriptions
       x-internal: true
@@ -509,10 +486,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Subscriptions
       requestBody:
@@ -553,10 +526,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Subscriptions
       requestBody:
@@ -595,73 +564,12 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/NotAvailable'
       tags:
         - OpenMeter Subscriptions
       x-internal: true
       x-unstable: true
 components:
   parameters:
-    ListCustomersParams.filter:
-      name: filter
-      in: query
-      required: false
-      description: |-
-        Filter customers returned in the response.
-
-        To filter customers by key add the following query param: filter[key]=my-db-id
-      schema:
-        $ref: '#/components/schemas/ListCustomersParamsFilter'
-      style: deepObject
-    ListCustomersParams.sort:
-      name: sort
-      in: query
-      required: false
-      description: |-
-        Sort customers returned in the response.
-        Supported sort attributes are:
-        - `id`
-        - `name` (default)
-        - `created_at`
-
-        The `asc` suffix is optional as the default sort order is ascending.
-        The `desc` suffix is used to specify a descending order.
-      schema:
-        $ref: '#/components/schemas/SortQuery'
-      explode: false
-      style: form
-    ListSubscriptionsParams.filter:
-      name: filter
-      in: query
-      required: false
-      description: Filter subscriptions.
-      schema:
-        type: object
-        properties:
-          customer_id:
-            allOf:
-              - $ref: '#/components/schemas/ULID'
-            description: Filter subscriptions by customer ID.
-      style: deepObject
-    ListSubscriptionsParams.sort:
-      name: sort
-      in: query
-      required: false
-      description: |-
-        Sort subscriptions returned in the response.
-        Supported sort attributes are:
-        - `id`
-        - `created_at`
-
-        The `asc` suffix is optional as the default sort order is ascending.
-        The `desc` suffix is used to specify a descending order.
-      schema:
-        $ref: '#/components/schemas/SortQuery'
-      explode: false
-      style: form
     PagePaginationQuery:
       name: page
       in: query
@@ -1069,6 +977,7 @@ components:
       description: |-
         Subscription edit timing defined when the changes should take effect.
         If the provided configuration is not supported by the subscription, an error will be returned.
+      example: immediate
     BillingSubscriptionEditTimingEnum:
       type: string
       enum:
@@ -1941,18 +1850,6 @@ components:
           examples:
             UnauthorizedExample:
               $ref: '#/components/examples/ForbiddenExample'
-    Internal:
-      description: Internal
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/BaseError'
-    NotAvailable:
-      description: Service not available
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/BaseError'
     NotFound:
       description: Not Found
       content:
