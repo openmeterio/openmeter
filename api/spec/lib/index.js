@@ -6,6 +6,7 @@ import { operationSummaryRule } from './rules/operation-summary.js'
 import { operationIdKebabCaseRule } from './rules/operation-id.js'
 import { noNullableRule } from './rules/no-nullable.js'
 import { compositionOverInheritanceRule } from './rules/composition-over-inheritance.js'
+import { repeatedPrefixGroupingRule } from './rules/field-prefix.js'
 
 const packageName = '@openmeter/api-spec'
 
@@ -19,6 +20,7 @@ const rules = [
   operationSummaryRule,
   operationIdKebabCaseRule,
   compositionOverInheritanceRule,
+  repeatedPrefixGroupingRule,
 ]
 
 export const $linter = defineLinter({
@@ -43,6 +45,7 @@ export const $linter = defineLinter({
         [`${packageName}/${operationSummaryRule.name}`]: true,
         [`${packageName}/${operationIdKebabCaseRule.name}`]: true,
         [`${packageName}/${compositionOverInheritanceRule.name}`]: true,
+        [`${packageName}/${repeatedPrefixGroupingRule.name}`]: true,
       },
     },
   },

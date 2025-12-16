@@ -41,7 +41,7 @@ model Meter {
    * If not specified, all historical events are included.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
-  event_from?: Shared.DateTime;
+  events_from?: Shared.DateTime;
 
   /**
    * JSONPath expression to extract the value from the ingested event's data property.

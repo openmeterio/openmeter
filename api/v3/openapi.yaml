@@ -802,9 +802,8 @@ components:
           example: static
           readOnly: true
         feature_key:
-          type: string
-          minLength: 1
-          maxLength: 256
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
           description: The feature key of the entitlement.
           example: available_models
           readOnly: true
@@ -900,36 +899,64 @@ components:
     BillingSubscriptionChange:
       type: object
       required:
+        - customer
+        - plan
         - timing
       properties:
         labels:
           $ref: '#/components/schemas/Labels'
-        plan_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: |-
-            The plan ID of the subscription.
-            Set if subscription is created from a plan.
+        customer:
+          type: object
+          properties:
+            id:
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: |-
+                The ID of the customer to create the subscription for.
 
-            ID or Key of the plan is required if creating a subscription from a plan.
-            If both are provided, the ID will be used.
-          title: Plan ID
-        plan_key:
-          allOf:
-            - $ref: '#/components/schemas/ResourceKey'
-          description: |-
-            The plan Key of the subscription, if any.
-            Set if subscription is created from a plan.
+                Either customer ID or customer key must be provided.
+                If both are provided, the ID will be used.
+              title: Customer ID
+            key:
+              allOf:
+                - $ref: '#/components/schemas/ExternalResourceKey'
+              description: |-
+                The key of the customer to create the subscription for.
 
-            ID or Key of the plan is required if creating a subscription from a plan.
-            If both are provided, the ID will be used.
-          title: Plan Key
-        plan_version:
-          type: integer
-          description: |-
-            The plan version of the subscription, if any.
-            If not provided, the latest version of the plan will be used.
-          title: Plan Version
+                Either customer ID or customer key must be provided.
+                If both are provided, the ID will be used.
+              title: Customer Key
+          description: The customer to create the subscription for.
+        plan:
+          type: object
+          properties:
+            id:
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: |-
+                The plan ID of the subscription.
+                Set if subscription is created from a plan.
+
+                ID or Key of the plan is required if creating a subscription from a plan.
+                If both are provided, the ID will be used.
+              title: Plan ID
+            key:
+              allOf:
+                - $ref: '#/components/schemas/ResourceKey'
+              description: |-
+                The plan Key of the subscription, if any.
+                Set if subscription is created from a plan.
+
+                ID or Key of the plan is required if creating a subscription from a plan.
+                If both are provided, the ID will be used.
+              title: Plan Key
+            version:
+              type: integer
+              description: |-
+                The plan version of the subscription, if any.
+                If not provided, the latest version of the plan will be used.
+              title: Plan Version
+          description: The plan reference of the subscription.
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -961,53 +988,64 @@ components:
       description: Response for changing a subscription.
     BillingSubscriptionCreate:
       type: object
+      required:
+        - customer
+        - plan
       properties:
         labels:
           $ref: '#/components/schemas/Labels'
-        customer_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: |-
-            The ID of the customer to create the subscription for.
+        customer:
+          type: object
+          properties:
+            id:
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: |-
+                The ID of the customer to create the subscription for.
 
-            Either customer ID or customer key must be provided.
-            If both are provided, the ID will be used.
-          title: Customer ID
-        customer_key:
-          allOf:
-            - $ref: '#/components/schemas/ExternalResourceKey'
-          description: |-
-            The key of the customer to create the subscription for.
+                Either customer ID or customer key must be provided.
+                If both are provided, the ID will be used.
+              title: Customer ID
+            key:
+              allOf:
+                - $ref: '#/components/schemas/ExternalResourceKey'
+              description: |-
+                The key of the customer to create the subscription for.
 
-            Either customer ID or customer key must be provided.
-            If both are provided, the ID will be used.
-          title: Customer Key
-        plan_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: |-
-            The plan ID of the subscription.
-            Set if subscription is created from a plan.
+                Either customer ID or customer key must be provided.
+                If both are provided, the ID will be used.
+              title: Customer Key
+          description: The customer to create the subscription for.
+        plan:
+          type: object
+          properties:
+            id:
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: |-
+                The plan ID of the subscription.
+                Set if subscription is created from a plan.
 
-            ID or Key of the plan is required if creating a subscription from a plan.
-            If both are provided, the ID will be used.
-          title: Plan ID
-        plan_key:
-          allOf:
-            - $ref: '#/components/schemas/ResourceKey'
-          description: |-
-            The plan Key of the subscription, if any.
-            Set if subscription is created from a plan.
+                ID or Key of the plan is required if creating a subscription from a plan.
+                If both are provided, the ID will be used.
+              title: Plan ID
+            key:
+              allOf:
+                - $ref: '#/components/schemas/ResourceKey'
+              description: |-
+                The plan Key of the subscription, if any.
+                Set if subscription is created from a plan.
 
-            ID or Key of the plan is required if creating a subscription from a plan.
-            If both are provided, the ID will be used.
-          title: Plan Key
-        plan_version:
-          type: integer
-          description: |-
-            The plan version of the subscription, if any.
-            If not provided, the latest version of the plan will be used.
-          title: Plan Version
+                ID or Key of the plan is required if creating a subscription from a plan.
+                If both are provided, the ID will be used.
+              title: Plan Key
+            version:
+              type: integer
+              description: |-
+                The plan version of the subscription, if any.
+                If not provided, the latest version of the plan will be used.
+              title: Plan Version
+          description: The plan reference of the subscription.
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -1019,10 +1057,7 @@ components:
     BillingSubscriptionEditTiming:
       oneOf:
         - $ref: '#/components/schemas/BillingSubscriptionEditTimingEnum'
-        - type: string
-          format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          example: '2023-01-01T01:01:01.001Z'
+        - $ref: '#/components/schemas/DateTime'
       description: |-
         Subscription edit timing defined when the changes should take effect.
         If the provided configuration is not supported by the subscription, an error will be returned.
@@ -1137,7 +1172,7 @@ components:
           minLength: 1
           description: The event type to include in the aggregation.
           example: prompt
-        event_from:
+        events_from:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
@@ -1278,7 +1313,7 @@ components:
           minLength: 1
           description: The event type to include in the aggregation.
           example: prompt
-        event_from:
+        events_from:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-

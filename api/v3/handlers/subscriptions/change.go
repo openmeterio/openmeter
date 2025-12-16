@@ -53,7 +53,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 			}
 
 			// Currently only plan-based subscription change is supported, so plan ref is required.
-			if body.PlanId == nil && body.PlanKey == nil {
+			if body.Plan.Id == nil && body.Plan.Key == nil {
 				reason := "one of plan_id or plan_key is required"
 				return ChangeSubscriptionRequest{}, apierrors.NewBadRequestError(ctx,
 					errors.New(reason),
@@ -75,7 +75,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 			}
 
 			// Validate that plan exists and resolve to a concrete version
-			planEntity, err := h.getPlanByIDOrKey(ctx, ns, body.PlanId, body.PlanKey, body.PlanVersion)
+			planEntity, err := h.getPlanByIDOrKey(ctx, ns, body.Plan.Id, body.Plan.Key, body.Plan.Version)
 			if err != nil {
 				return ChangeSubscriptionRequest{}, err
 			}

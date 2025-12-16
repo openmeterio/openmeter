@@ -20,7 +20,7 @@ func init() {
 		meterCreateMeterInput.Description = source.Description
 		meterCreateMeterInput.Aggregation = ConvertAPIMeterAggregationToMeterAggregation(source.Aggregation)
 		meterCreateMeterInput.EventType = source.EventType
-		meterCreateMeterInput.EventFrom = source.EventFrom
+		meterCreateMeterInput.EventFrom = source.EventsFrom
 		meterCreateMeterInput.ValueProperty = source.ValueProperty
 		if source.Dimensions != nil {
 			meterCreateMeterInput.GroupBy = (*source.Dimensions)
@@ -46,8 +46,8 @@ func init() {
 		v3Meter.DeletedAt = source.ManagedResource.ManagedModel.DeletedAt
 		v3Meter.Description = source.ManagedResource.Description
 		v3Meter.Dimensions = &source.GroupBy
-		v3Meter.EventFrom = source.EventFrom
 		v3Meter.EventType = source.EventType
+		v3Meter.EventsFrom = source.EventFrom
 		v3Meter.Id = source.ManagedResource.ID
 		v3Meter.Key = source.Key
 		v3Meter.Labels = modelsMetadataToPV3Labels(source.Metadata)
