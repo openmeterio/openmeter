@@ -20,6 +20,8 @@ interface MetersOperations {
   @post
   @operationId("create-meter")
   @summary("Create meter")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   create(
     @body meter: Shared.CreateRequest<Meter>,
   ): Shared.CreateResponse<Meter> | Common.ErrorResponses;
@@ -30,6 +32,8 @@ interface MetersOperations {
   @get
   @operationId("get-meter")
   @summary("Get meter")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   get(
     @path meterId: Shared.ULID,
   ): Shared.GetResponse<Meter> | Common.NotFound | Common.ErrorResponses;
@@ -40,6 +44,8 @@ interface MetersOperations {
   @get
   @operationId("list-meters")
   @summary("List meters")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   list(
     ...Common.PagePaginationQuery,
   ): Shared.PagePaginatedResponse<Meter> | Common.ErrorResponses;
@@ -50,6 +56,8 @@ interface MetersOperations {
   @delete
   @operationId("delete-meter")
   @summary("Delete meter")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   delete(
     @path meterId: Shared.ULID,
   ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;

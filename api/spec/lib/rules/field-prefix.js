@@ -29,8 +29,6 @@ export const repeatedPrefixGroupingRule = createRule({
           }
 
           const prefix = name.slice(0, underscoreIndex)
-          if (!prefix) continue
-
           const list = byPrefix.get(prefix) ?? []
           list.push(name)
           byPrefix.set(prefix, list)
