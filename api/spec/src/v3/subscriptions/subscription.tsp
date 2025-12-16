@@ -35,7 +35,7 @@ enum SubscriptionEditTimingEnum {
 @friendlyName("BillingSubscriptionEditTiming")
 union SubscriptionEditTiming {
   Enum: SubscriptionEditTimingEnum,
-  Custom: DateTime,
+  Custom: Shared.DateTime,
 }
 
 /**
@@ -49,54 +49,64 @@ model SubscriptionCreate {
   >>;
 
   /**
-   * The ID of the customer to create the subscription for.
-   *
-   * Either customer ID or customer key must be provided.
-   * If both are provided, the ID will be used.
+   * The customer to create the subscription for.
    */
-  @visibility(Lifecycle.Create)
-  @summary("Customer ID")
-  customer_id?: Shared.ULID;
+  customer: {
+    /**
+     * The ID of the customer to create the subscription for.
+     *
+     * Either customer ID or customer key must be provided.
+     * If both are provided, the ID will be used.
+     */
+    @visibility(Lifecycle.Create)
+    @summary("Customer ID")
+    id?: Shared.ULID;
+
+    /**
+     * The key of the customer to create the subscription for.
+     *
+     * Either customer ID or customer key must be provided.
+     * If both are provided, the ID will be used.
+     */
+    @visibility(Lifecycle.Create)
+    @summary("Customer Key")
+    key?: Shared.ExternalResourceKey;
+  };
 
   /**
-   * The key of the customer to create the subscription for.
-   *
-   * Either customer ID or customer key must be provided.
-   * If both are provided, the ID will be used.
+   * The plan reference of the subscription.
    */
-  @visibility(Lifecycle.Create)
-  @summary("Customer Key")
-  customer_key?: Shared.ExternalResourceKey;
+  plan: {
+    /**
+     * The plan ID of the subscription.
+     * Set if subscription is created from a plan.
+     *
+     * ID or Key of the plan is required if creating a subscription from a plan.
+     * If both are provided, the ID will be used.
+     */
+    @visibility(Lifecycle.Create)
+    @summary("Plan ID")
+    id?: Shared.ULID;
 
-  /**
-   * The plan ID of the subscription.
-   * Set if subscription is created from a plan.
-   *
-   * ID or Key of the plan is required if creating a subscription from a plan.
-   * If both are provided, the ID will be used.
-   */
-  @visibility(Lifecycle.Create)
-  @summary("Plan ID")
-  plan_id?: Shared.ULID;
+    /**
+     * The plan Key of the subscription, if any.
+     * Set if subscription is created from a plan.
+     *
+     * ID or Key of the plan is required if creating a subscription from a plan.
+     * If both are provided, the ID will be used.
+     */
+    @visibility(Lifecycle.Create)
+    @summary("Plan Key")
+    key?: Shared.ResourceKey;
 
-  /**
-   * The plan Key of the subscription, if any.
-   * Set if subscription is created from a plan.
-   *
-   * ID or Key of the plan is required if creating a subscription from a plan.
-   * If both are provided, the ID will be used.
-   */
-  @visibility(Lifecycle.Create)
-  @summary("Plan Key")
-  plan_key?: Shared.ResourceKey;
-
-  /**
-   * The plan version of the subscription, if any.
-   * If not provided, the latest version of the plan will be used.
-   */
-  @visibility(Lifecycle.Create)
-  @summary("Plan Version")
-  plan_version?: integer;
+    /**
+     * The plan version of the subscription, if any.
+     * If not provided, the latest version of the plan will be used.
+     */
+    @visibility(Lifecycle.Create)
+    @summary("Plan Version")
+    version?: integer;
+  };
 
   /**
    * The billing anchor of the subscription.

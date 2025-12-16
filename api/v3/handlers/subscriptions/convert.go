@@ -47,7 +47,7 @@ func ConvertBillingSubscriptionEditTimingEnumToSubscriptionTiming(t api.BillingS
 func ConvertBillingSubscriptionEditTimingToSubscriptionTiming(t api.BillingSubscriptionEditTiming) (subscription.Timing, error) {
 	// Try decoding as a custom RFC3339 datetime first, otherwise it would also decode as a "string enum"
 	// and we'd never be able to distinguish enum vs datetime.
-	if custom, err := t.AsBillingSubscriptionEditTiming1(); err == nil {
+	if custom, err := t.AsDateTime(); err == nil {
 		return subscription.Timing{Custom: &custom}, nil
 	}
 

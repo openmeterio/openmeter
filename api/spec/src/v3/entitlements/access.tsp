@@ -1,5 +1,5 @@
-import "../../types.tsp";
 import "./entitlements.tsp";
+import "../shared/index.tsp";
 
 namespace Entitlements;
 
@@ -20,7 +20,7 @@ model EntitlementAccessResult {
    */
   @example("available_models")
   @visibility(Lifecycle.Read)
-  feature_key: ExternalKey;
+  feature_key: Shared.ResourceKey;
 
   /**
    * Whether the customer has access to the feature.

@@ -40,19 +40,19 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			}
 
 			// Validate that either customer ID or customer key is provided
-			if body.CustomerId == nil && body.CustomerKey == nil {
-				reason := "one of customer_id or customer_key is required"
+			if body.Customer.Id == nil && body.Customer.Key == nil {
+				reason := "one of customer.id or customer.key is required"
 				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(ctx,
 					errors.New(reason),
 					[]apierrors.InvalidParameter{
 						{
-							Field:  "customer_id",
+							Field:  "customer.id",
 							Reason: reason,
 							Source: apierrors.InvalidParamSourceBody,
 							Rule:   "required",
 						},
 						{
-							Field:  "customer_key",
+							Field:  "customer.key",
 							Reason: reason,
 							Source: apierrors.InvalidParamSourceBody,
 							Rule:   "required",
@@ -62,26 +62,26 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			}
 
 			// Get the customer to validate it exists
-			customerEntity, err := h.getCustomerByIDOrKey(ctx, ns, body.CustomerId, body.CustomerKey)
+			customerEntity, err := h.getCustomerByIDOrKey(ctx, ns, body.Customer.Id, body.Customer.Key)
 			if err != nil {
 				return CreateSubscriptionRequest{}, fmt.Errorf("failed to get customer: %w", err)
 			}
 
 			// TODO: implement custom subscription creation
-			if body.PlanId == nil && body.PlanKey == nil {
-				reason := "one of plan_id or plan_key is required"
+			if body.Plan.Id == nil && body.Plan.Key == nil {
+				reason := "one of plan.id or plan.key is required"
 				// We use bad request error because not implemented does not provide the error context
 				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(ctx,
 					errors.New(reason),
 					[]apierrors.InvalidParameter{
 						{
-							Field:  "plan_id",
+							Field:  "plan.id",
 							Reason: reason,
 							Source: apierrors.InvalidParamSourceBody,
 							Rule:   "required",
 						},
 						{
-							Field:  "plan_key",
+							Field:  "plan.key",
 							Reason: reason,
 							Source: apierrors.InvalidParamSourceBody,
 							Rule:   "required",
@@ -91,7 +91,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			}
 
 			// Get the plan entity by ID or key to validate it exists
-			planEntity, err := h.getPlanByIDOrKey(ctx, ns, body.PlanId, body.PlanKey, body.PlanVersion)
+			planEntity, err := h.getPlanByIDOrKey(ctx, ns, body.Plan.Id, body.Plan.Key, body.Plan.Version)
 			if err != nil {
 				return CreateSubscriptionRequest{}, fmt.Errorf("failed to get plan: %w", err)
 			}

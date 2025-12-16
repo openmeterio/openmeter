@@ -21,11 +21,13 @@ var (
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Dimensions GroupBy
 	// goverter:map Labels Metadata
+	// goverter:map EventsFrom EventFrom
 	// goverter:ignore Annotations
 	// goverter:ignore inputOptions
 	ConvertFromCreateMeterRequestToCreateMeterInput func(namespace string, createMeterRequest api.CreateMeterRequest) meter.CreateMeterInput
 	// goverter:map Metadata Labels
 	// goverter:map GroupBy Dimensions
+	// goverter:map EventFrom EventsFrom
 	// goverter:map ManagedResource.ID Id
 	// goverter:map ManagedResource.Description Description
 	// goverter:map ManagedResource.Name Name
