@@ -102,10 +102,6 @@ func NewServer(config *Config) (*Server, error) {
 		server.NewRequestLoggerMiddleware(slog.Default().Handler()),
 		middleware.Recoverer,
 	}
-	// Append PostAuthMiddlewares (e.g., FFXConfigContextMiddleware) to V3 API middlewares
-	for _, mw := range config.PostAuthMiddlewares {
-		v3Middlewares = append(v3Middlewares, mw)
-	}
 
 	v3API, err := v3server.NewServer(&v3server.Config{
 		BaseURL:                 "/api/v3",

@@ -30,6 +30,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Config struct {
@@ -207,7 +208,50 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 			Middlewares: []api.MiddlewareFunc{
 				validationMiddleware,
 			},
-			ErrorHandlerFunc: apierrors.NewV3ErrorHandlerFunc(s.ErrorHandler),
+			ErrorHandlerFunc: apierrors.NewV3ErrorHandlerFunc(s.ErrorHandler, []apierrors.ErrorMapping{
+				{
+					Match: models.IsGenericConflictError,
+					Build: func(ctx context.Context, err error) *apierrors.BaseAPIError {
+						return apierrors.NewConflictError(ctx, err, err.Error())
+					},
+				},
+				{
+					Match: models.IsGenericForbiddenError,
+					Build: func(ctx context.Context, err error) *apierrors.BaseAPIError {
+						return apierrors.NewForbiddenError(ctx, err)
+					},
+				},
+				{
+					Match: models.IsGenericNotImplementedError,
+					Build: func(ctx context.Context, err error) *apierrors.BaseAPIError {
+						return apierrors.NewNotImplementedError(ctx, err)
+					},
+				},
+				{
+					Match: models.IsGenericValidationError,
+					Build: func(ctx context.Context, err error) *apierrors.BaseAPIError {
+						return apierrors.NewBadRequestError(ctx, err, nil)
+					},
+				},
+				{
+					Match: models.IsGenericNotFoundError,
+					Build: func(ctx context.Context, err error) *apierrors.BaseAPIError {
+						return apierrors.NewNotFoundError(ctx, err, "")
+					},
+				},
+				{
+					Match: models.IsGenericUnauthorizedError,
+					Build: func(ctx context.Context, err error) *apierrors.BaseAPIError {
+						return apierrors.NewUnauthenticatedError(ctx, err)
+					},
+				},
+				{
+					Match: models.IsGenericPreConditionFailedError,
+					Build: func(ctx context.Context, err error) *apierrors.BaseAPIError {
+						return apierrors.NewPreconditionFailedError(ctx, err.Error())
+					},
+				},
+			}),
 		})
 	})
 
