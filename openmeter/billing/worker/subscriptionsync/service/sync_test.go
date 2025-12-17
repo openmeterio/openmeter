@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -4745,4 +4746,231 @@ func (s *SubscriptionHandlerTestSuite) TestFirstDayOfMonthBillingForSubPeriodLen
 
 	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", invoice)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateNoBillables() {
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2025-10-15T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	// Given
+	//	a subscription with no billables
+	// When
+	// 	we synchronize the subscription
+	// Then
+	//  the sync state should be updated to reflect that the subscription has no billables
+
+	planInput := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: false,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	plan, err := s.PlanService.CreatePlan(ctx, planInput)
+	s.NoError(err)
+
+	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, s.Namespace, productcatalogsubscription.PlanRefInput{
+		Key:     plan.Key,
+		Version: lo.ToPtr(1),
+	})
+	s.NoError(err)
+
+	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(clock.Now()),
+			},
+			Name: "subs-1",
+		},
+		Namespace:  s.Namespace,
+		CustomerID: s.Customer.ID,
+	}, subscriptionPlan)
+
+	s.NoError(err)
+	s.NotNil(subsView)
+
+	clock.FreezeTime(s.mustParseTime("2024-01-20T00:00:00Z")) // This will be the present
+
+	s.NoError(s.Service.SynchronizeSubscriptionAndInvoiceCustomer(ctx, subsView, clock.Now()))
+
+	syncStates, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
+		{
+			Namespace: subsView.Subscription.Namespace,
+			ID:        subsView.Subscription.ID,
+		},
+	})
+
+	require.NoError(s.T(), err)
+	require.Len(s.T(), syncStates, 1)
+
+	s.Equal(subscriptionsync.SyncState{
+		SubscriptionID: models.NamespacedID{
+			Namespace: subsView.Subscription.Namespace,
+			ID:        subsView.Subscription.ID,
+		},
+		HasBillables:  false,
+		SyncedAt:      clock.Now().UTC(),
+		NextSyncAfter: nil,
+	}, syncStates[0])
+}
+
+func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateWithFreePhaseActiveInTheFuture() {
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2025-10-15T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	// Given
+	//	a subscription with a free phase, then a paid subscription
+	//  the subscription only active from the future
+	// When
+	// 	we synchronize the subscription
+	// Then
+	//  the sync state should be updated to reflect that the subscription has billables and the next sync after is the future
+
+	planInput := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: false,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("free-phase", "P2M"), // two months
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+				{
+					PhaseMeta: s.phaseMeta("paid-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	plan, err := s.PlanService.CreatePlan(ctx, planInput)
+	s.NoError(err)
+
+	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, s.Namespace, productcatalogsubscription.PlanRefInput{
+		Key:     plan.Key,
+		Version: lo.ToPtr(1),
+	})
+	s.NoError(err)
+
+	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(clock.Now()),
+			},
+			Name: "subs-1",
+		},
+		Namespace:  s.Namespace,
+		CustomerID: s.Customer.ID,
+	}, subscriptionPlan)
+
+	s.NoError(err)
+	s.NotNil(subsView)
+
+	clock.FreezeTime(s.mustParseTime("2024-01-20T00:00:00Z")) // This will be the present
+
+	s.NoError(s.Service.SynchronizeSubscriptionAndInvoiceCustomer(ctx, subsView, clock.Now()))
+
+	syncStates, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
+		{
+			Namespace: subsView.Subscription.Namespace,
+			ID:        subsView.Subscription.ID,
+		},
+	})
+
+	require.NoError(s.T(), err)
+	require.Len(s.T(), syncStates, 1)
+
+	s.Equal(subscriptionsync.SyncState{
+		SubscriptionID: models.NamespacedID{
+			Namespace: subsView.Subscription.Namespace,
+			ID:        subsView.Subscription.ID,
+		},
+		HasBillables:  true,
+		SyncedAt:      clock.Now().UTC(),
+		NextSyncAfter: lo.ToPtr(s.mustParseTime("2025-12-15T00:00:00Z")),
+	}, syncStates[0])
+
+	// Let's advance the clock to simulate the next sync happening
+	clock.FreezeTime(s.mustParseTime("2025-12-15T01:00:00Z"))
+	s.NoError(s.Service.SynchronizeSubscriptionAndInvoiceCustomer(ctx, subsView, clock.Now()))
+
+	syncStates, err = s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
+		{
+			Namespace: subsView.Subscription.Namespace,
+			ID:        subsView.Subscription.ID,
+		},
+	})
+
+	require.NoError(s.T(), err)
+	require.Len(s.T(), syncStates, 1)
+
+	s.Equal(subscriptionsync.SyncState{
+		SubscriptionID: models.NamespacedID{
+			Namespace: subsView.Subscription.Namespace,
+			ID:        subsView.Subscription.ID,
+		},
+		HasBillables:  true,
+		SyncedAt:      clock.Now().UTC(),
+		NextSyncAfter: lo.ToPtr(s.mustParseTime("2026-01-15T00:00:00Z")),
+	}, syncStates[0])
 }

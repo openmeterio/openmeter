@@ -82,6 +82,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Namespace,
 		common.NewBillingAutoAdvancer,
 		common.NewBillingCollector,
+		common.NewBillingSubscriptionSyncAdapter,
 		common.NewBillingSubscriptionSyncService,
 		common.NewBillingSubscriptionReconciler,
 		common.NewDefaultTextMapPropagator,

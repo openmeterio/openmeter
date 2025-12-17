@@ -340,7 +340,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionsyncService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingService, billingAdapter, tracer)
+	subscriptionsyncAdapter, err := common.NewBillingSubscriptionSyncAdapter(client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	subscriptionsyncService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingService, subscriptionsyncAdapter, tracer)
 	if err != nil {
 		cleanup6()
 		cleanup5()

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
@@ -18,12 +19,12 @@ type FeatureFlags struct {
 }
 
 type Config struct {
-	BillingService      billing.Service
-	SubscriptionService subscription.Service
-	TxCreator           transaction.Creator
-	FeatureFlags        FeatureFlags
-	Logger              *slog.Logger
-	Tracer              trace.Tracer
+	BillingService          billing.Service
+	SubscriptionService     subscription.Service
+	SubscriptionSyncAdapter subscriptionsync.Adapter
+	FeatureFlags            FeatureFlags
+	Logger                  *slog.Logger
+	Tracer                  trace.Tracer
 }
 
 func (c Config) Validate() error {
@@ -35,7 +36,7 @@ func (c Config) Validate() error {
 		return fmt.Errorf("subscription service is required")
 	}
 
-	if c.TxCreator == nil {
+	if c.SubscriptionSyncAdapter == nil {
 		return fmt.Errorf("transaction creator is required")
 	}
 
@@ -53,12 +54,12 @@ func (c Config) Validate() error {
 var _ subscriptionsync.Service = (*Service)(nil)
 
 type Service struct {
-	billingService      billing.Service
-	subscriptionService subscription.Service
-	txCreator           transaction.Creator
-	featureFlags        FeatureFlags
-	logger              *slog.Logger
-	tracer              trace.Tracer
+	billingService          billing.Service
+	subscriptionService     subscription.Service
+	subscriptionSyncAdapter subscriptionsync.Adapter
+	featureFlags            FeatureFlags
+	logger                  *slog.Logger
+	tracer                  trace.Tracer
 }
 
 func New(config Config) (*Service, error) {
@@ -66,11 +67,17 @@ func New(config Config) (*Service, error) {
 		return nil, err
 	}
 	return &Service{
-		billingService:      config.BillingService,
-		txCreator:           config.TxCreator,
-		featureFlags:        config.FeatureFlags,
-		subscriptionService: config.SubscriptionService,
-		logger:              config.Logger,
-		tracer:              config.Tracer,
+		billingService:          config.BillingService,
+		subscriptionSyncAdapter: config.SubscriptionSyncAdapter,
+		featureFlags:            config.FeatureFlags,
+		subscriptionService:     config.SubscriptionService,
+		logger:                  config.Logger,
+		tracer:                  config.Tracer,
 	}, nil
+}
+
+func (s *Service) GetSyncStates(ctx context.Context, input subscriptionsync.GetSyncStatesInput) ([]subscriptionsync.SyncState, error) {
+	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) ([]subscriptionsync.SyncState, error) {
+		return s.subscriptionSyncAdapter.GetSyncStates(ctx, input)
+	})
 }

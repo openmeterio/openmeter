@@ -16,6 +16,7 @@ import (
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -121,12 +122,18 @@ func NewBillingSubscriptionReconciler(logger *slog.Logger, subsServices Subscrip
 	})
 }
 
-func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingService billing.Service, billingAdapter billing.Adapter, tracer trace.Tracer) (subscriptionsync.Service, error) {
+func NewBillingSubscriptionSyncAdapter(db *entdb.Client) (subscriptionsync.Adapter, error) {
+	return subscriptionsyncadapter.New(subscriptionsyncadapter.Config{
+		Client: db,
+	})
+}
+
+func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingService billing.Service, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer) (subscriptionsync.Service, error) {
 	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
-		SubscriptionService: subsServices.Service,
-		BillingService:      billingService,
-		TxCreator:           billingAdapter,
-		Logger:              logger,
-		Tracer:              tracer,
+		SubscriptionService:     subsServices.Service,
+		BillingService:          billingService,
+		SubscriptionSyncAdapter: subscriptionSyncAdapter,
+		Logger:                  logger,
+		Tracer:                  tracer,
 	})
 }

@@ -13,10 +13,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -107,6 +109,19 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 
 	return span.Wrap(func(ctx context.Context) error {
 		if !subs.Spec.HasBillables() {
+			// If the subscription has no billables, we need to update the sync state to reflect that and make sure
+			// that we skip sync going forward.
+			if err := s.subscriptionSyncAdapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
+				SubscriptionID: models.NamespacedID{
+					ID:        subs.Subscription.ID,
+					Namespace: subs.Subscription.Namespace,
+				},
+				HasBillables: false,
+				SyncedAt:     asOf,
+			}); err != nil {
+				return fmt.Errorf("upserting sync state: %w", err)
+			}
+
 			s.logger.DebugContext(ctx, "subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
 			return nil
 		}
@@ -153,7 +168,19 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 				return err
 			}
 
-			if linesDiff == nil {
+			if linesDiff == nil || linesDiff.IsEmpty() {
+				generationLimit := time.Time{}
+				if linesDiff != nil {
+					generationLimit = linesDiff.SubscriptionMaxGenerationTimeLimit
+				}
+
+				if err := s.updateSyncState(ctx, updateSyncStateInput{
+					SubscriptionView:       subs,
+					MaxGenerationTimeLimit: generationLimit,
+				}); err != nil {
+					return fmt.Errorf("updating sync state: %w", err)
+				}
+
 				return nil
 			}
 
@@ -180,15 +207,77 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 				return fmt.Errorf("updating invoices: %w", err)
 			}
 
+			if err := s.updateSyncState(ctx, updateSyncStateInput{
+				SubscriptionView:       subs,
+				MaxGenerationTimeLimit: linesDiff.SubscriptionMaxGenerationTimeLimit,
+			}); err != nil {
+				return fmt.Errorf("updating sync state: %w", err)
+			}
+
 			return nil
 		})
 	})
 }
 
+type updateSyncStateInput struct {
+	SubscriptionView       subscription.SubscriptionView
+	MaxGenerationTimeLimit time.Time
+}
+
+func (s *Service) updateSyncState(ctx context.Context, in updateSyncStateInput) error {
+	span := tracex.StartWithNoValue(ctx, s.tracer, "billing.worker.subscription.sync.updateSyncState", trace.WithAttributes(
+		attribute.String("subscription_id", in.SubscriptionView.Subscription.ID),
+		attribute.String("max_generation_time_limit", in.MaxGenerationTimeLimit.Format(time.RFC3339)),
+	))
+
+	return span.Wrap(func(ctx context.Context) error {
+		// Failsafe: we have already validated that the subscription has billables
+		if !in.SubscriptionView.Spec.HasBillables() {
+			return s.subscriptionSyncAdapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
+				SubscriptionID: models.NamespacedID{
+					ID:        in.SubscriptionView.Subscription.ID,
+					Namespace: in.SubscriptionView.Subscription.Namespace,
+				},
+				HasBillables: false,
+				SyncedAt:     time.Now(),
+			})
+		}
+
+		nextSyncAfter := in.MaxGenerationTimeLimit
+
+		if in.MaxGenerationTimeLimit.IsZero() {
+			// Fallback: we cannot determine the next sync after, so we'll just mandate the sync
+			if nextSyncAfter.IsZero() {
+				s.logger.WarnContext(ctx, "cannot determine the next sync after, syncing immediately", "subscription_id", in.SubscriptionView.Subscription.ID)
+				nextSyncAfter = clock.Now().UTC()
+			}
+		}
+
+		return s.subscriptionSyncAdapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
+			SubscriptionID: models.NamespacedID{
+				ID:        in.SubscriptionView.Subscription.ID,
+				Namespace: in.SubscriptionView.Subscription.Namespace,
+			},
+			HasBillables:  true,
+			NextSyncAfter: lo.ToPtr(nextSyncAfter),
+			SyncedAt:      clock.Now().UTC(),
+		})
+	})
+}
+
 type subscriptionSyncPlan struct {
-	NewSubscriptionItems []subscriptionItemWithPeriods
-	LinesToDelete        []billing.LineOrHierarchy
-	LinesToUpsert        []subscriptionSyncPlanLineUpsert
+	NewSubscriptionItems               []subscriptionItemWithPeriods
+	LinesToDelete                      []billing.LineOrHierarchy
+	LinesToUpsert                      []subscriptionSyncPlanLineUpsert
+	SubscriptionMaxGenerationTimeLimit time.Time
+}
+
+func (s *subscriptionSyncPlan) IsEmpty() bool {
+	if s == nil {
+		return true
+	}
+
+	return len(s.NewSubscriptionItems) == 0 && len(s.LinesToDelete) == 0 && len(s.LinesToUpsert) == 0
 }
 
 type subscriptionSyncPlanLineUpsert struct {
@@ -207,10 +296,12 @@ func (s *Service) compareSubscriptionWithExistingLines(ctx context.Context, subs
 			return timeutil.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
 		})
 
-		inScopeLines, err := s.collectUpcomingLines(ctx, subs, asOf)
+		upcomingLinesResult, err := s.collectUpcomingLines(ctx, subs, asOf)
 		if err != nil {
 			return nil, fmt.Errorf("collecting upcoming lines: %w", err)
 		}
+
+		inScopeLines := upcomingLinesResult.Lines
 
 		// Let's load the existing lines for the subscription
 		existingLines, err := s.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
@@ -223,7 +314,9 @@ func (s *Service) compareSubscriptionWithExistingLines(ctx context.Context, subs
 
 		if len(inScopeLines) == 0 && len(existingLines) == 0 {
 			// The subscription has no invoicable items, no present lines exist, so there's nothing to do
-			return nil, nil
+			return &subscriptionSyncPlan{
+				SubscriptionMaxGenerationTimeLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit,
+			}, nil
 		}
 
 		existingLinesByUniqueID, unique := slicesx.UniqueGroupBy(
@@ -287,8 +380,9 @@ func (s *Service) compareSubscriptionWithExistingLines(ctx context.Context, subs
 			NewSubscriptionItems: lo.Map(newLines, func(id string, _ int) subscriptionItemWithPeriods {
 				return inScopeLinesByUniqueID[id]
 			}),
-			LinesToDelete: linesToDelete,
-			LinesToUpsert: linesToUpsert,
+			LinesToDelete:                      linesToDelete,
+			LinesToUpsert:                      linesToUpsert,
+			SubscriptionMaxGenerationTimeLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit,
 		}, nil
 	})
 }
@@ -461,7 +555,10 @@ func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 	return patches, nil
 }
 
-// TODO[OM-1038]: manually deleted lines might come back to draft/gathering invoices (see ticket)
+type collectUpcomingLinesResult struct {
+	Lines                              []subscriptionItemWithPeriods
+	SubscriptionMaxGenerationTimeLimit time.Time
+}
 
 // collectUpcomingLines collects the upcoming lines for the subscription, if it does not return any lines the subscription doesn't
 // have any invoicable items.
@@ -471,16 +568,18 @@ func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 //
 // This approach allows us to not to have to poll all the subscriptions periodically, but we can act when an invoice is created or when
 // a subscription is updated.
-func (s *Service) collectUpcomingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) ([]subscriptionItemWithPeriods, error) {
-	span := tracex.Start[[]subscriptionItemWithPeriods](ctx, s.tracer, "billing.worker.subscription.sync.collectUpcomingLines")
+func (s *Service) collectUpcomingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (collectUpcomingLinesResult, error) {
+	span := tracex.Start[collectUpcomingLinesResult](ctx, s.tracer, "billing.worker.subscription.sync.collectUpcomingLines")
 
-	return span.Wrap(func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
+	return span.Wrap(func(ctx context.Context) (collectUpcomingLinesResult, error) {
 		inScopeLines := make([]subscriptionItemWithPeriods, 0, 128)
+
+		maxGenerationTimeLimit := time.Time{}
 
 		for _, phase := range subs.Phases {
 			iterator, err := NewPhaseIterator(s.logger, s.tracer, subs, phase.SubscriptionPhase.Key)
 			if err != nil {
-				return nil, fmt.Errorf("creating phase iterator: %w", err)
+				return collectUpcomingLinesResult{}, fmt.Errorf("creating phase iterator: %w", err)
 			}
 
 			if !iterator.HasInvoicableItems() {
@@ -501,7 +600,7 @@ func (s *Service) collectUpcomingLines(ctx context.Context, subs subscription.Su
 					// We advance until subscription start to generate the first set of lines (if later we cancel or stg else, sync will handle that)
 					generationLimit = subs.Subscription.ActiveFrom
 				default:
-					return nil, fmt.Errorf("getting aligned billing period: %w", err)
+					return collectUpcomingLinesResult{}, fmt.Errorf("getting aligned billing period: %w", err)
 				}
 			}
 
@@ -524,7 +623,11 @@ func (s *Service) collectUpcomingLines(ctx context.Context, subs subscription.Su
 
 			items, err := iterator.Generate(ctx, generationLimit)
 			if err != nil {
-				return nil, fmt.Errorf("generating items: %w", err)
+				return collectUpcomingLinesResult{}, fmt.Errorf("generating items: %w", err)
+			}
+
+			if maxGenerationTimeLimit.Before(generationLimit) {
+				maxGenerationTimeLimit = generationLimit
 			}
 
 			inScopeLines = append(inScopeLines, items...)
@@ -535,7 +638,10 @@ func (s *Service) collectUpcomingLines(ctx context.Context, subs subscription.Su
 			}
 		}
 
-		return inScopeLines, nil
+		return collectUpcomingLinesResult{
+			Lines:                              inScopeLines,
+			SubscriptionMaxGenerationTimeLimit: maxGenerationTimeLimit,
+		}, nil
 	})
 }
 
