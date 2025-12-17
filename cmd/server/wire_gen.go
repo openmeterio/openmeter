@@ -274,7 +274,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	billingFeatureSwitchesConfiguration := billingConfiguration.FeatureSwitches
-	billingService, err := common.BillingService(logger, appService, billingAdapter, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, billingFeatureSwitchesConfiguration, tracer)
+	billingService, err := common.BillingService(logger, appService, billingAdapter, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, tracer)
 	if err != nil {
 		cleanup6()
 		cleanup5()

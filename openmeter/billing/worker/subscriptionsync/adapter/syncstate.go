@@ -3,12 +3,14 @@ package adapter
 import (
 	"context"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 var _ subscriptionsync.SyncStateAdapter = (*adapter)(nil)
@@ -27,9 +29,15 @@ func (a *adapter) InvalidateSyncState(ctx context.Context, input subscriptionsyn
 func (a *adapter) GetSyncStates(ctx context.Context, input subscriptionsync.GetSyncStatesInput) ([]subscriptionsync.SyncState, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]subscriptionsync.SyncState, error) {
 		res, err := tx.db.SubscriptionBillingSyncState.Query().
-			Where(subscriptionbillingsyncstate.SubscriptionIDIn(lo.Map(input, func(id models.NamespacedID, _ int) string {
-				return id.ID
-			})...)).All(ctx)
+			Where(
+				subscriptionbillingsyncstate.Or(
+					lo.Map(input, func(id models.NamespacedID, _ int) predicate.SubscriptionBillingSyncState {
+						return subscriptionbillingsyncstate.And(
+							subscriptionbillingsyncstate.SubscriptionID(id.ID),
+							subscriptionbillingsyncstate.Namespace(id.Namespace),
+						)
+					})...),
+			).All(ctx)
 		if err != nil {
 			return nil, err
 		}

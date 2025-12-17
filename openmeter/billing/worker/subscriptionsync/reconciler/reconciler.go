@@ -153,7 +153,6 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 		})...)
 
 		pageIndex++
-
 	}
 
 	return out, nil

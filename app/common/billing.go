@@ -54,6 +54,7 @@ func BillingService(
 	eventPublisher eventbus.Publisher,
 	billingConfig config.BillingConfiguration,
 	subscriptionServices SubscriptionServiceWithWorkflow,
+	db *entdb.Client,
 	fsConfig config.BillingFeatureSwitchesConfiguration,
 	tracer trace.Tracer,
 ) (billing.Service, error) {
@@ -74,7 +75,12 @@ func BillingService(
 		return nil, err
 	}
 
-	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, service, billingAdapter, tracer)
+	// To prevent circular dependencies, we create the validator here
+	subscriptionSyncAdapter, err := NewBillingSubscriptionSyncAdapter(db)
+	if err != nil {
+		return nil, err
+	}
+	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, service, subscriptionSyncAdapter, tracer)
 	if err != nil {
 		return nil, err
 	}

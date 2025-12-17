@@ -37,7 +37,7 @@ func (c Config) Validate() error {
 	}
 
 	if c.SubscriptionSyncAdapter == nil {
-		return fmt.Errorf("transaction creator is required")
+		return fmt.Errorf("subscription sync adapter is required")
 	}
 
 	if c.Logger == nil {

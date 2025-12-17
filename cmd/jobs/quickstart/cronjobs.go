@@ -35,8 +35,11 @@ var Cron = &cobra.Command{
 				slog.Info("Syncing subscriptions")
 
 				err := internal.App.BillingSubscriptionReconciler.All(cmd.Context(), reconciler.ReconcilerAllInput{
-					Namespaces: namespaces,
-					Lookback:   time.Hour,
+					ReconcilerListSubscriptionsInput: reconciler.ReconcilerListSubscriptionsInput{
+						Namespaces: namespaces,
+						Lookback:   time.Hour,
+					},
+					Force: false,
 				})
 				if err != nil {
 					slog.Error("Error syncing subscriptions", "error", err)

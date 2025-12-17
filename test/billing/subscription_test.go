@@ -15,6 +15,7 @@ import (
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -42,12 +43,17 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 	s.SubscriptionMixin.SetupSuite(s.T(), s.GetSubscriptionMixInDependencies())
 
+	subscriptionSyncAdapter, err := subscriptionsyncadapter.New(subscriptionsyncadapter.Config{
+		Client: s.DBClient,
+	})
+	s.NoError(err)
+
 	service, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
-		BillingService:      s.BillingService,
-		Logger:              slog.Default(),
-		Tracer:              noop.NewTracerProvider().Tracer("test"),
-		TxCreator:           s.BillingAdapter,
-		SubscriptionService: s.SubscriptionService,
+		BillingService:          s.BillingService,
+		Logger:                  slog.Default(),
+		Tracer:                  noop.NewTracerProvider().Tracer("test"),
+		SubscriptionSyncAdapter: subscriptionSyncAdapter,
+		SubscriptionService:     s.SubscriptionService,
 	})
 	s.NoError(err)
 	s.NotNil(service)

@@ -18,6 +18,7 @@ import (
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	pcsubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
@@ -98,12 +99,17 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	billingService = billingService.WithInvoiceCalculator(invoiceCalculator)
 
+	subscriptionSyncAdapter, err := subscriptionsyncadapter.New(subscriptionsyncadapter.Config{
+		Client: deps.DBDeps.DBClient,
+	})
+	require.NoError(t, err)
+
 	subscriptionSyncService, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
-		BillingService:      billingService,
-		Logger:              slog.Default(),
-		Tracer:              noop.NewTracerProvider().Tracer("test"),
-		TxCreator:           billingAdapter,
-		SubscriptionService: deps.SubscriptionService,
+		BillingService:          billingService,
+		Logger:                  slog.Default(),
+		Tracer:                  noop.NewTracerProvider().Tracer("test"),
+		SubscriptionSyncAdapter: subscriptionSyncAdapter,
+		SubscriptionService:     deps.SubscriptionService,
 	})
 	require.NoError(t, err)
 

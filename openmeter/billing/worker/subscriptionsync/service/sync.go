@@ -109,17 +109,10 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 
 	return span.Wrap(func(ctx context.Context) error {
 		if !subs.Spec.HasBillables() {
-			// If the subscription has no billables, we need to update the sync state to reflect that and make sure
-			// that we skip sync going forward.
-			if err := s.subscriptionSyncAdapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
-				SubscriptionID: models.NamespacedID{
-					ID:        subs.Subscription.ID,
-					Namespace: subs.Subscription.Namespace,
-				},
-				HasBillables: false,
-				SyncedAt:     asOf,
+			if err := s.updateSyncState(ctx, updateSyncStateInput{
+				SubscriptionView: subs,
 			}); err != nil {
-				return fmt.Errorf("upserting sync state: %w", err)
+				return fmt.Errorf("updating sync state: %w", err)
 			}
 
 			s.logger.DebugContext(ctx, "subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
@@ -231,7 +224,6 @@ func (s *Service) updateSyncState(ctx context.Context, in updateSyncStateInput) 
 	))
 
 	return span.Wrap(func(ctx context.Context) error {
-		// Failsafe: we have already validated that the subscription has billables
 		if !in.SubscriptionView.Spec.HasBillables() {
 			return s.subscriptionSyncAdapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
 				SubscriptionID: models.NamespacedID{
@@ -239,7 +231,7 @@ func (s *Service) updateSyncState(ctx context.Context, in updateSyncStateInput) 
 					Namespace: in.SubscriptionView.Subscription.Namespace,
 				},
 				HasBillables: false,
-				SyncedAt:     time.Now(),
+				SyncedAt:     clock.Now().UTC(),
 			})
 		}
 
