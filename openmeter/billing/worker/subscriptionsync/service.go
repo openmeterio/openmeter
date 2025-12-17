@@ -11,6 +11,7 @@ import (
 type Service interface {
 	EventHandler
 	SyncService
+	SyncStateService
 }
 
 type SyncService interface {
@@ -22,4 +23,8 @@ type EventHandler interface {
 	HandleCancelledEvent(ctx context.Context, event *subscription.CancelledEvent) error
 	HandleSubscriptionSyncEvent(ctx context.Context, event *subscription.SubscriptionSyncEvent) error
 	HandleInvoiceCreation(ctx context.Context, event *billing.InvoiceCreatedEvent) error
+}
+
+type SyncStateService interface {
+	GetSyncStates(ctx context.Context, input GetSyncStatesInput) ([]SyncState, error)
 }

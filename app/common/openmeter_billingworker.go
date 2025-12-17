@@ -39,6 +39,7 @@ var BillingWorker = wire.NewSet(
 
 	NewBillingWorkerOptions,
 	NewBillingWorker,
+	NewBillingSubscriptionSyncAdapter,
 	NewBillingSubscriptionSyncService,
 	BillingWorkerGroup,
 )

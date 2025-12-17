@@ -14,7 +14,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
+)
+
+const (
+	defaultWindowSize = 10_000
 )
 
 // Reconciler is a component that periodically reconciles the subscription state with the billing state
@@ -81,24 +86,76 @@ func (i ReconcilerListSubscriptionsInput) Validate() error {
 	return nil
 }
 
-func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSubscriptionsInput) ([]subscription.Subscription, error) {
+type SubscriptionWithSyncState struct {
+	subscription.Subscription
+	*subscriptionsync.SyncState
+}
+
+func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSubscriptionsInput) ([]SubscriptionWithSyncState, error) {
 	if err := in.Validate(); err != nil {
 		return nil, err
 	}
 
-	subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces:  in.Namespaces,
-		CustomerIDs: in.Customers,
-		ActiveInPeriod: &timeutil.StartBoundedPeriod{
-			From: clock.Now().Add(-in.Lookback),
-			To:   lo.ToPtr(clock.Now()),
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list subscriptions: %w", err)
+	pageIndex := 1
+
+	var out []SubscriptionWithSyncState
+
+	for {
+		subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
+			Namespaces:  in.Namespaces,
+			CustomerIDs: in.Customers,
+			ActiveInPeriod: &timeutil.StartBoundedPeriod{
+				From: clock.Now().Add(-in.Lookback),
+				To:   lo.ToPtr(clock.Now()),
+			},
+			Page: pagination.Page{
+				PageNumber: pageIndex,
+				PageSize:   defaultWindowSize,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list subscriptions: %w", err)
+		}
+
+		if len(subscriptions.Items) == 0 {
+			break
+		}
+
+		syncStates, err := r.subscriptionSync.GetSyncStates(ctx, lo.Map(subscriptions.Items, func(item subscription.Subscription, _ int) models.NamespacedID {
+			return models.NamespacedID{
+				ID:        item.ID,
+				Namespace: item.Namespace,
+			}
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get sync states: %w", err)
+		}
+
+		syncStatesBySubscriptionID := lo.SliceToMap(syncStates, func(syncState subscriptionsync.SyncState) (models.NamespacedID, subscriptionsync.SyncState) {
+			return models.NamespacedID{
+				ID:        syncState.SubscriptionID.ID,
+				Namespace: syncState.SubscriptionID.Namespace,
+			}, syncState
+		})
+
+		out = append(out, lo.Map(subscriptions.Items, func(item subscription.Subscription, _ int) SubscriptionWithSyncState {
+			existingSyncState, ok := syncStatesBySubscriptionID[item.NamespacedID]
+
+			var syncState *subscriptionsync.SyncState
+			if ok {
+				syncState = lo.ToPtr(existingSyncState)
+			}
+
+			return SubscriptionWithSyncState{
+				Subscription: item,
+				SyncState:    syncState,
+			}
+		})...)
+
+		pageIndex++
 	}
 
-	return subscriptions.Items, nil
+	return out, nil
 }
 
 func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.NamespacedID) error {
@@ -127,16 +184,36 @@ func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.Na
 	return r.subscriptionSync.SynchronizeSubscription(ctx, subsView, time.Now())
 }
 
-type ReconcilerAllInput = ReconcilerListSubscriptionsInput
+type ReconcilerAllInput struct {
+	ReconcilerListSubscriptionsInput
+	Force bool
+}
 
 func (r *Reconciler) All(ctx context.Context, in ReconcilerAllInput) error {
-	subscriptions, err := r.ListSubscriptions(ctx, in)
+	subscriptions, err := r.ListSubscriptions(ctx, in.ReconcilerListSubscriptionsInput)
 	if err != nil {
 		return fmt.Errorf("failed to list subscriptions: %w", err)
 	}
 
 	var outErr error
 	for _, subscription := range subscriptions {
+		if !in.Force && subscription.SyncState != nil {
+			if !subscription.SyncState.HasBillables {
+				r.logger.InfoContext(ctx, "subscription has no billables, skipping reconciliation", "subscription_id", subscription.NamespacedID)
+				continue
+			}
+
+			if subscription.SyncState.NextSyncAfter == nil {
+				r.logger.InfoContext(ctx, "subscription has no next sync after, skipping reconciliation", "subscription_id", subscription.NamespacedID)
+				continue
+			}
+
+			if subscription.SyncState.NextSyncAfter.After(clock.Now()) {
+				r.logger.InfoContext(ctx, "subscription next sync after is in the future, skipping reconciliation", "subscription_id", subscription.NamespacedID)
+				continue
+			}
+		}
+
 		if err := r.ReconcileSubscription(ctx, subscription.NamespacedID); err != nil {
 			r.logger.ErrorContext(ctx, "failed to reconcile subscription", "error", err)
 

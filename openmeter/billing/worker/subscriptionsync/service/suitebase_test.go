@@ -15,6 +15,8 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -36,6 +38,7 @@ type SuiteBase struct {
 	billingtest.BaseSuite
 	billingtest.SubscriptionMixin
 	Service *Service
+	Adapter subscriptionsync.Adapter
 
 	Namespace               string
 	Customer                *customer.Customer
@@ -46,12 +49,18 @@ func (s *SuiteBase) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 	s.SubscriptionMixin.SetupSuite(s.T(), s.GetSubscriptionMixInDependencies())
 
+	adapter, err := adapter.New(adapter.Config{
+		Client: s.DBClient,
+	})
+	s.NoError(err)
+	s.Adapter = adapter
+
 	service, err := New(Config{
-		BillingService:      s.BillingService,
-		Logger:              slog.Default(),
-		Tracer:              noop.NewTracerProvider().Tracer("test"),
-		TxCreator:           s.BillingAdapter,
-		SubscriptionService: s.SubscriptionService,
+		BillingService:          s.BillingService,
+		Logger:                  slog.Default(),
+		Tracer:                  noop.NewTracerProvider().Tracer("test"),
+		SubscriptionSyncAdapter: adapter,
+		SubscriptionService:     s.SubscriptionService,
 	})
 	s.NoError(err)
 
