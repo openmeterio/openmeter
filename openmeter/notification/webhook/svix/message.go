@@ -327,7 +327,7 @@ func (h svixHandler) ResendMessage(ctx context.Context, params webhook.ResendMes
 			return fmt.Errorf("failed to generate idempotency key: %w", err)
 		}
 
-		err = h.client.MessageAttempt.Resend(ctx, params.Namespace, params.EventID, params.ChannelID, &svix.MessageAttemptResendOptions{
+		_, err = h.client.MessageAttempt.Resend(ctx, params.Namespace, params.EventID, params.ChannelID, &svix.MessageAttemptResendOptions{
 			IdempotencyKey: &idempotencyKey,
 		})
 		if err = internal.WrapSvixError(err); err != nil {
