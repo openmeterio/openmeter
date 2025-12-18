@@ -60,7 +60,7 @@ func (r *namespacedFeatureResolver) Resolve(ctx context.Context, id, key *string
 	features, err := r.service.ListFeatures(ctx, feature.ListFeaturesParams{
 		IDsOrKeys:       featureIDOrKey,
 		Namespace:       r.namespace,
-		IncludeArchived: true,
+		IncludeArchived: false,
 		Page: pagination.Page{
 			PageSize:   100,
 			PageNumber: 1,
