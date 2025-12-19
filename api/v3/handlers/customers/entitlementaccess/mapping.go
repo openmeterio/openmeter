@@ -1,13 +1,16 @@
 package customersentitlement
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // mapEntitlementValueToAPI maps an entitlement value to an API entitlement access result.
@@ -26,9 +29,17 @@ func mapEntitlementValueToAPI(featureKey string, entitlementValue entitlement.En
 			HasAccess:  ent.HasAccess(),
 		}
 
-		// Config is now properly encoded (unwrapped at DB layer)
+		// If config is not nil, unmarshal it
 		if ent.Config != nil {
-			jsonValue := string(ent.Config)
+			var jsonValue string
+
+			// FIXME (pmarton): static config is double json encoded, we need to unmarshal before returning it
+			if err := json.Unmarshal(ent.Config, &jsonValue); err != nil {
+				return true, api.BillingEntitlementAccessResult{}, models.NewGenericValidationError(
+					fmt.Errorf("failed to unmarshal static entitlement config: %w", err),
+				)
+			}
+
 			accessResult.Config = &jsonValue
 		}
 

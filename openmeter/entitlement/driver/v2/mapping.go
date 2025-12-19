@@ -1,7 +1,6 @@
 package entitlementdriverv2
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -122,18 +121,10 @@ func (parserV2) ToMeteredV2(m *meteredentitlement.Entitlement, e *entitlement.En
 }
 
 func (parserV2) ToStaticV2(s *staticentitlement.Entitlement, e *entitlement.Entitlement, customerId string, customerKey *string) (*api.EntitlementStaticV2, error) {
-	// Config is now properly encoded (unwrapped at DB layer)
-	// Marshal it to JSON string for API response
-	configJSON, err := json.Marshal(string(s.Config))
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal config: %w", err)
-	}
-
 	v := api.EntitlementStaticV2{
 		ActiveFrom:         s.ActiveFromTime(),
 		ActiveTo:           s.ActiveToTime(),
 		Annotations:        lo.EmptyableToPtr(api.Annotations(e.Annotations)),
-		Config:             configJSON,
 		CreatedAt:          s.CreatedAt,
 		CustomerId:         customerId,
 		CustomerKey:        customerKey,
@@ -349,7 +340,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 			FeatureKey:       v.FeatureKey,
 			UsageAttribution: usageAttribution,
 			EntitlementType:  entitlement.EntitlementTypeStatic,
-			Config:           v.Config,
+			Config:           []byte(v.Config),
 		}
 		if v.UsagePeriod != nil {
 			iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
