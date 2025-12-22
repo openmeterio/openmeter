@@ -10,7 +10,7 @@ replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527
 require (
 	entgo.io/ent v0.14.5
 	github.com/AppsFlyer/go-sundheit v0.6.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.40.3
+	github.com/ClickHouse/clickhouse-go/v2 v2.42.0
 	github.com/IBM/sarama v1.46.3
 	github.com/ThreeDotsLabs/watermill v1.5.1
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.1.2
@@ -434,7 +434,7 @@ require (
 	github.com/oschwald/geoip2-golang v1.13.0 // indirect
 	github.com/oschwald/maxminddb-golang v1.13.1 // indirect
 	github.com/parquet-go/parquet-go v0.25.1 // indirect
-	github.com/paulmach/orb v0.11.1 // indirect
+	github.com/paulmach/orb v0.12.0 // indirect
 	github.com/pebbe/zmq4 v1.4.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
