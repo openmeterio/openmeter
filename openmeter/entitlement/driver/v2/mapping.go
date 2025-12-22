@@ -137,6 +137,7 @@ func (parserV2) ToStaticV2(s *staticentitlement.Entitlement, e *entitlement.Enti
 		UpdatedAt:          s.UpdatedAt,
 		CurrentUsagePeriod: mapPeriodPtr(s.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriodPtr(e.UsagePeriod),
+		Config:             s.Config,
 	}
 	return &v, nil
 }
@@ -340,7 +341,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 			FeatureKey:       v.FeatureKey,
 			UsageAttribution: usageAttribution,
 			EntitlementType:  entitlement.EntitlementTypeStatic,
-			Config:           []byte(v.Config),
+			Config:           v.Config,
 		}
 		if v.UsagePeriod != nil {
 			iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
