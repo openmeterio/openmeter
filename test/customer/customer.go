@@ -607,7 +607,6 @@ func (s *CustomerHandlerTestSuite) TestListWithSubscription(ctx context.Context,
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		Plan:      lo.ToPtr(plan.ID),
 		PlanKey:   lo.ToPtr("unknown-plan-key"),
 	})
 
