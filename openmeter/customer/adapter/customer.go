@@ -96,7 +96,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 				))
 			}
 
-			query.Where(
+			query = query.Where(
 				customerdb.HasSubscriptionWith(subscriptionPredicates...),
 			)
 		}
