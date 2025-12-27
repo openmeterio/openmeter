@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -32,6 +33,7 @@ var _ Handler = (*handler)(nil)
 type handler struct {
 	service             customer.Service
 	entitlementService  entitlement.Service
+	planService         plan.Service
 	subscriptionService subscription.Service
 	namespaceDecoder    namespacedriver.NamespaceDecoder
 	options             []httptransport.HandlerOption
@@ -49,15 +51,17 @@ func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
 func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	service customer.Service,
-	subscriptionService subscription.Service,
 	entitlementService entitlement.Service,
+	planService plan.Service,
+	subscriptionService subscription.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
 		service:             service,
+		entitlementService:  entitlementService,
+		planService:         planService,
 		subscriptionService: subscriptionService,
 		namespaceDecoder:    namespaceDecoder,
-		entitlementService:  entitlementService,
 		options:             options,
 	}
 }

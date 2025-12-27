@@ -2981,6 +2981,7 @@ paths:
         - $ref: '#/components/parameters/queryCustomerList.name'
         - $ref: '#/components/parameters/queryCustomerList.primaryEmail'
         - $ref: '#/components/parameters/queryCustomerList.subject'
+        - $ref: '#/components/parameters/queryCustomerList.planId'
         - $ref: '#/components/parameters/queryCustomerList.planKey'
         - $ref: '#/components/parameters/queryCustomerList.expand'
       responses:
@@ -12877,11 +12878,27 @@ components:
         type: string
       explode: false
       style: form
+    queryCustomerList.planId:
+      name: planId
+      in: query
+      required: false
+      description: |-
+        Filter customers by the plan ID of their subscription.
+        Mutually exclusive with planKey.
+      schema:
+        type: string
+        pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        example: 01G65Z755AFWAKHE12NY0CQ9FH
+      explode: false
+      style: form
     queryCustomerList.planKey:
       name: planKey
       in: query
       required: false
-      description: Filter customers by the plan key of their susbcription.
+      description: |-
+        Filter customers by the plan key of their subscription.
+        Case sensitive exact match of the plan key.
+        Mutually exclusive with planId.
       schema:
         type: string
       explode: false

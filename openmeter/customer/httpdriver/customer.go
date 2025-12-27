@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -38,6 +39,45 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				return ListCustomersRequest{}, err
 			}
 
+			// Check if the plan by ID exists
+			if params.PlanId != nil {
+				_, err := h.planService.GetPlan(ctx, plan.GetPlanInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: ns,
+						ID:        *params.PlanId,
+					},
+				})
+				if err != nil {
+					if models.IsGenericNotFoundError(err) {
+						return ListCustomersRequest{}, models.NewGenericPreConditionFailedError(
+							fmt.Errorf("plan by id %s not found", *params.PlanId),
+						)
+					}
+
+					return ListCustomersRequest{}, err
+				}
+			}
+
+			// Check if the plan by Key exists
+			if params.PlanKey != nil {
+				_, err := h.planService.GetPlan(ctx, plan.GetPlanInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: ns,
+					},
+					Key: *params.PlanKey,
+				})
+				if err != nil {
+					if models.IsGenericNotFoundError(err) {
+						return ListCustomersRequest{}, models.NewGenericPreConditionFailedError(
+							fmt.Errorf("plan by key %s not found", *params.PlanKey),
+						)
+					}
+
+					return ListCustomersRequest{}, err
+				}
+			}
+
+			// Create the request
 			req := ListCustomersRequest{
 				Namespace: ns,
 
@@ -56,6 +96,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				Name:         params.Name,
 				PrimaryEmail: params.PrimaryEmail,
 				Subject:      params.Subject,
+				PlanID:       params.PlanId,
 				PlanKey:      params.PlanKey,
 
 				// Modifiers
@@ -75,6 +116,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListCustomersRequest) (ListCustomersResponse, error) {
+			// List the customers
 			resp, err := h.service.ListCustomers(ctx, request)
 			if err != nil {
 				return ListCustomersResponse{}, fmt.Errorf("failed to list customers: %w", err)

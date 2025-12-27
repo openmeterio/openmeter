@@ -11801,7 +11801,12 @@ export interface components {
     /** @description Filter customers by name.
      *     Case-insensitive partial match. */
     'queryCustomerList.name': string
-    /** @description Filter customers by the plan key of their susbcription. */
+    /** @description Filter customers by the plan ID of their subscription.
+     *     Mutually exclusive with planKey. */
+    'queryCustomerList.planId': string
+    /** @description Filter customers by the plan key of their subscription.
+     *     Case sensitive exact match of the plan key.
+     *     Mutually exclusive with planId. */
     'queryCustomerList.planKey': string
     /** @description Filter customers by primary email.
      *     Case-insensitive partial match. */
@@ -12584,6 +12589,8 @@ export type ParameterQueryCustomerListKey =
   components['parameters']['queryCustomerList.key']
 export type ParameterQueryCustomerListName =
   components['parameters']['queryCustomerList.name']
+export type ParameterQueryCustomerListPlanId =
+  components['parameters']['queryCustomerList.planId']
 export type ParameterQueryCustomerListPlanKey =
   components['parameters']['queryCustomerList.planKey']
 export type ParameterQueryCustomerListPrimaryEmail =
@@ -16243,7 +16250,12 @@ export interface operations {
         /** @description Filter customers by usage attribution subject.
          *     Case-insensitive partial match. */
         subject?: components['parameters']['queryCustomerList.subject']
-        /** @description Filter customers by the plan key of their susbcription. */
+        /** @description Filter customers by the plan ID of their subscription.
+         *     Mutually exclusive with planKey. */
+        planId?: components['parameters']['queryCustomerList.planId']
+        /** @description Filter customers by the plan key of their subscription.
+         *     Case sensitive exact match of the plan key.
+         *     Mutually exclusive with planId. */
         planKey?: components['parameters']['queryCustomerList.planKey']
         /** @description What parts of the list output to expand in listings */
         expand?: components['parameters']['queryCustomerList.expand']
