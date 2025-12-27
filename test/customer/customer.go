@@ -1030,12 +1030,14 @@ func (s *CustomerHandlerTestSuite) createMockPlan(ctx context.Context, t *testin
 	require.NotNil(t, testPlan, "Plan must not be nil")
 
 	// Publish the plan
-	s.Env.Plan().PublishPlan(ctx, plan.PublishPlanInput{
+	testPlan, err = s.Env.Plan().PublishPlan(ctx, plan.PublishPlanInput{
 		NamespacedID: testPlan.NamespacedID,
 		EffectivePeriod: productcatalog.EffectivePeriod{
 			EffectiveFrom: lo.ToPtr(clock.Now()),
 		},
 	})
+	require.NoError(t, err, "Publishing plan must not return error")
+	require.NotNil(t, testPlan, "Published plan must not be nil")
 
 	return *testPlan
 }
