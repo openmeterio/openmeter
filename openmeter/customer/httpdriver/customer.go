@@ -56,7 +56,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				Name:         params.Name,
 				PrimaryEmail: params.PrimaryEmail,
 				Subject:      params.Subject,
-				Plan:         params.Plan,
+				PlanID:       params.PlanId,
 				PlanKey:      params.PlanKey,
 
 				// Modifiers

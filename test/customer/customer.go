@@ -585,7 +585,7 @@ func (s *CustomerHandlerTestSuite) TestListWithSubscription(ctx context.Context,
 	list, err := service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		Plan:      lo.ToPtr(plan.ID),
+		PlanID:    lo.ToPtr(plan.ID),
 	})
 
 	require.NoError(t, err, "Listing customers with key filter must not return error")
@@ -617,7 +617,7 @@ func (s *CustomerHandlerTestSuite) TestListWithSubscription(ctx context.Context,
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		Plan:      lo.ToPtr(plan.ID),
+		PlanID:    lo.ToPtr(plan.ID),
 		PlanKey:   lo.ToPtr(plan.Key),
 	})
 

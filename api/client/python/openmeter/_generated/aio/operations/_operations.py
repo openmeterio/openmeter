@@ -1608,7 +1608,7 @@ class CustomersOperations:
         name: Optional[str] = None,
         primary_email: Optional[str] = None,
         subject: Optional[str] = None,
-        plan: Optional[str] = None,
+        plan_id: Optional[str] = None,
         plan_key: Optional[str] = None,
         expand: Optional[List[Union[str, _models.CustomerExpand]]] = None,
         **kwargs: Any
@@ -1644,12 +1644,12 @@ class CustomersOperations:
         :keyword subject: Filter customers by usage attribution subject.
          Case-insensitive partial match. Default value is None.
         :paramtype subject: str
-        :keyword plan: Filter customers by the plan ID of their subscription.
+        :keyword plan_id: Filter customers by the plan ID of their subscription.
          Mutually exclusive with planKey. Default value is None.
-        :paramtype plan: str
+        :paramtype plan_id: str
         :keyword plan_key: Filter customers by the plan key of their subscription.
          Case sensitive exact match of the plan key.
-         Mutually exclusive with plan. Default value is None.
+         Mutually exclusive with planId. Default value is None.
         :paramtype plan_key: str
         :keyword expand: What parts of the list output to expand in listings. Default value is None.
         :paramtype expand: list[str or ~openmeter.models.CustomerExpand]
@@ -1680,7 +1680,7 @@ class CustomersOperations:
             name=name,
             primary_email=primary_email,
             subject=subject,
-            plan=plan,
+            plan_id=plan_id,
             plan_key=plan_key,
             expand=expand,
             headers=_headers,

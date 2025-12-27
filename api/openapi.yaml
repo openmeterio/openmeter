@@ -2980,7 +2980,7 @@ paths:
         - $ref: '#/components/parameters/queryCustomerList.name'
         - $ref: '#/components/parameters/queryCustomerList.primaryEmail'
         - $ref: '#/components/parameters/queryCustomerList.subject'
-        - $ref: '#/components/parameters/queryCustomerList.plan'
+        - $ref: '#/components/parameters/queryCustomerList.planId'
         - $ref: '#/components/parameters/queryCustomerList.planKey'
         - $ref: '#/components/parameters/queryCustomerList.expand'
       responses:
@@ -12873,8 +12873,8 @@ components:
         type: string
       explode: false
       style: form
-    queryCustomerList.plan:
-      name: plan
+    queryCustomerList.planId:
+      name: planId
       in: query
       required: false
       description: |-
@@ -12893,7 +12893,7 @@ components:
       description: |-
         Filter customers by the plan key of their subscription.
         Case sensitive exact match of the plan key.
-        Mutually exclusive with plan.
+        Mutually exclusive with planId.
       schema:
         type: string
       explode: false

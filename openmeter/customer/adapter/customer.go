@@ -79,13 +79,13 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		}
 
 		// Subscription filters
-		if input.Plan != nil || input.PlanKey != nil {
+		if input.PlanID != nil || input.PlanKey != nil {
 			subscriptionPredicates := activeSubscriptionFilterPredicates(now)
 
 			// Plan ID filter
-			if input.Plan != nil {
+			if input.PlanID != nil {
 				subscriptionPredicates = append(subscriptionPredicates, subscriptiondb.HasPlanWith(
-					plandb.ID(*input.Plan),
+					plandb.ID(*input.PlanID),
 				))
 			}
 

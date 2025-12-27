@@ -6790,7 +6790,7 @@ export const listCustomersQueryPageDefault = 1 as const
 export const listCustomersQueryPageSizeDefault = 100 as const
 export const listCustomersQueryPageSizeMax = 1000 as const
 export const listCustomersQueryIncludeDeletedDefault = false as const
-export const listCustomersQueryPlanRegExp =
+export const listCustomersQueryPlanIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
 export const listCustomersQueryParams = zod.object({
@@ -6832,9 +6832,9 @@ export const listCustomersQueryParams = zod.object({
     .max(listCustomersQueryPageSizeMax)
     .default(listCustomersQueryPageSizeDefault)
     .describe('The maximum number of items per page.\n\nDefault is 100.'),
-  plan: zod.coerce
+  planId: zod.coerce
     .string()
-    .regex(listCustomersQueryPlanRegExp)
+    .regex(listCustomersQueryPlanIdRegExp)
     .optional()
     .describe(
       'Filter customers by the plan ID of their subscription.\nMutually exclusive with planKey.',
@@ -6843,7 +6843,7 @@ export const listCustomersQueryParams = zod.object({
     .string()
     .optional()
     .describe(
-      'Filter customers by the plan key of their subscription.\nCase sensitive exact match of the plan key.\nMutually exclusive with plan.',
+      'Filter customers by the plan key of their subscription.\nCase sensitive exact match of the plan key.\nMutually exclusive with planId.',
     ),
   primaryEmail: zod.coerce
     .string()

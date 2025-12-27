@@ -308,7 +308,7 @@ type ListCustomersInput struct {
 	Name         *string
 	PrimaryEmail *string
 	Subject      *string
-	Plan         *string
+	PlanID       *string
 	PlanKey      *string
 	CustomerIDs  []string
 
@@ -325,8 +325,8 @@ func (i ListCustomersInput) Validate() error {
 		return models.NewGenericValidationError(err)
 	}
 
-	if i.Plan != nil && i.PlanKey != nil {
-		return models.NewGenericValidationError(errors.New("plan and planKey cannot be provided at the same time"))
+	if i.PlanID != nil && i.PlanKey != nil {
+		return models.NewGenericValidationError(errors.New("plan id and plan key cannot be provided at the same time"))
 	}
 
 	return nil
