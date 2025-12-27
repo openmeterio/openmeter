@@ -348,8 +348,9 @@ func NewRouter(config Config) (*Router, error) {
 	router.customerHandler = customerhttpdriver.New(
 		staticNamespaceDecoder,
 		config.Customer,
-		config.SubscriptionService,
 		config.EntitlementConnector,
+		config.Plan,
+		config.SubscriptionService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

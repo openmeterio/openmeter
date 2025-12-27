@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -38,6 +39,45 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				return ListCustomersRequest{}, err
 			}
 
+			// Check if the plan by ID exists
+			if params.PlanId != nil {
+				_, err := h.planService.GetPlan(ctx, plan.GetPlanInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: ns,
+						ID:        *params.PlanId,
+					},
+				})
+				if err != nil {
+					if models.IsGenericNotFoundError(err) {
+						return ListCustomersRequest{}, models.NewGenericPreConditionFailedError(
+							fmt.Errorf("plan by id %s not found", *params.PlanId),
+						)
+					}
+
+					return ListCustomersRequest{}, err
+				}
+			}
+
+			// Check if the plan by Key exists
+			if params.PlanKey != nil {
+				_, err := h.planService.GetPlan(ctx, plan.GetPlanInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: ns,
+					},
+					Key: *params.PlanKey,
+				})
+				if err != nil {
+					if models.IsGenericNotFoundError(err) {
+						return ListCustomersRequest{}, models.NewGenericPreConditionFailedError(
+							fmt.Errorf("plan by key %s not found", *params.PlanKey),
+						)
+					}
+
+					return ListCustomersRequest{}, err
+				}
+			}
+
+			// Create the request
 			req := ListCustomersRequest{
 				Namespace: ns,
 
