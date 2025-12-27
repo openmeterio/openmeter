@@ -163,7 +163,17 @@ model ListCustomersParams {
   subject?: string;
 
   /**
-   * Filter customers by the plan key of their susbcription.
+   * Filter customers by the plan ID of their subscription.
+   * Mutually exclusive with planKey.
+   */
+  @query
+  @example("01KCZXM1TB1W4VS3HMACN0B5P5")
+  plan?: ULID;
+
+  /**
+   * Filter customers by the plan key of their subscription.
+   * Case sensitive exact match of the plan key.
+   * Mutually exclusive with plan.
    */
   @query
   @example("pro_plan")

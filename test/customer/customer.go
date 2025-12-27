@@ -353,7 +353,6 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 	s.setupNamespace(t)
 
 	cService := s.Env.Customer()
-	sService := s.Env.Subscription()
 
 	// Create a customer with mandatory fields
 	originalCustomer, err := cService.CreateCustomer(ctx, customer.CreateCustomerInput{
@@ -371,58 +370,7 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 	require.Equal(t, TestName, originalCustomer.Name, "Customer name must match")
 	require.Equal(t, TestSubjectKeys, originalCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
 
-	emptyExamplePlan := plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: s.namespace,
-		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:           "Empty Plan",
-				Currency:       currency.Code("USD"),
-				BillingCadence: datetime.MustParseDuration(t, "P1M"),
-				ProRatingConfig: productcatalog.ProRatingConfig{
-					Enabled: true,
-					Mode:    productcatalog.ProRatingModeProratePrices,
-				},
-			},
-			Phases: []productcatalog.Phase{
-				{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:  "empty-phase",
-						Name: "Empty Phase",
-					},
-					RateCards: []productcatalog.RateCard{
-						&productcatalog.FlatFeeRateCard{
-							RateCardMeta: productcatalog.RateCardMeta{
-								Key:  "empty-rate-card",
-								Name: "Empty Rate Card",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// Let's create a subscription for the customer
-	p, err := plansubscriptionservice.PlanFromPlanInput(emptyExamplePlan)
-	require.Nil(t, err)
-
-	now := clock.Now()
-
-	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-		CustomerId:    originalCustomer.ID,
-		Name:          "Test Subscription",
-		Currency:      currencyx.Code("USD"),
-		ActiveFrom:    now,
-		BillingAnchor: now,
-	})
-	require.Nil(t, err)
-
-	clock.SetTime(clock.Now().Add(1 * time.Minute))
-
-	_, err = sService.Create(ctx, s.namespace, spec)
-	require.Nil(t, err)
+	_, _ = s.startMockSubscription(ctx, t, originalCustomer.GetID())
 
 	// Update the customer with new UsageAttribution
 	newName := "New Name"
@@ -605,6 +553,76 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	require.Equal(t, 1, list.Page.PageNumber, "Customers page must be 0")
 	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "Customer 2 must be first in order")
 	require.Equal(t, createCustomer1.ID, list.Items[1].ID, "Customer 1 must be second in order")
+}
+
+// TestListWithSubscription tests the listing of customers with subscription
+func (s *CustomerHandlerTestSuite) TestListWithSubscription(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	service := s.Env.Customer()
+	cService := s.Env.Customer()
+
+	// Create a customer with mandatory fields
+	testCutomer, err := cService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Name: TestName,
+			UsageAttribution: &customer.CustomerUsageAttribution{
+				SubjectKeys: TestSubjectKeys,
+			},
+		},
+	})
+
+	require.NoError(t, err, "Creating customer must not return error")
+	require.NotNil(t, testCutomer, "Customer must not be nil")
+	require.Equal(t, TestName, testCutomer.Name, "Customer name must match")
+	require.Equal(t, TestSubjectKeys, testCutomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+
+	plan, _ := s.startMockSubscription(ctx, t, testCutomer.GetID())
+	page := pagination.Page{PageNumber: 1, PageSize: 10}
+
+	// List customers with plan ID filter
+	list, err := service.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		Plan:      lo.ToPtr(plan.ID),
+	})
+
+	require.NoError(t, err, "Listing customers with key filter must not return error")
+	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
+	require.Equal(t, testCutomer.ID, list.Items[0].ID, "Customer ID must match")
+
+	// List customers with plan key filter
+	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		PlanKey:   lo.ToPtr(plan.Key),
+	})
+
+	require.NoError(t, err, "Listing customers with plan key filter must not return error")
+	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
+	require.Equal(t, testCutomer.ID, list.Items[0].ID, "Customer ID must match")
+
+	// List customers with unknown plan key
+	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		Plan:      lo.ToPtr(plan.ID),
+		PlanKey:   lo.ToPtr("unknown-plan-key"),
+	})
+
+	require.NoError(t, err, "Listing customers with unknown plan key must not return error")
+	require.Equal(t, 0, list.TotalCount, "Customers total count must be 0")
+
+	// List customers with both plan ID and key filter
+	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		Plan:      lo.ToPtr(plan.ID),
+		PlanKey:   lo.ToPtr(plan.Key),
+	})
+
+	require.True(t, models.IsGenericValidationError(err), "Listing customers with both plan ID and key filter must return validation error")
 }
 
 // TestListCustomerUsageAttributions tests the listing of customer usage attributions
@@ -959,4 +977,93 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	// Deleting the customer is now allowed
 	err = custService.DeleteCustomer(ctx, createdCustomer.GetID())
 	require.NoError(t, err, "Deleting customer must not return error")
+}
+
+// startMockSubscription starts a mock subscription for a customer
+func (s *CustomerHandlerTestSuite) startMockSubscription(
+	ctx context.Context,
+	t *testing.T,
+	customerId customer.CustomerID,
+) (plan.Plan, subscription.Subscription) {
+	plan := s.createMockPlan(ctx, t)
+	sub := s.startSubscriptionFromPlan(ctx, t, plan, customerId)
+	return plan, sub
+}
+
+// createMockPlan creates a mock plan for a customer
+func (s *CustomerHandlerTestSuite) createMockPlan(ctx context.Context, t *testing.T) plan.Plan {
+	// Create the plan
+	testPlan, err := s.Env.Plan().CreatePlan(ctx, plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Empty Plan",
+				Key:            "empty-plan",
+				Version:        1,
+				Currency:       currency.Code("USD"),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:  "empty-phase",
+						Name: "Empty Phase",
+					},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "empty-rate-card",
+								Name: "Empty Rate Card",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err, "Creating plan must not return error")
+	require.NotNil(t, testPlan, "Plan must not be nil")
+
+	// Publish the plan
+	s.Env.Plan().PublishPlan(ctx, plan.PublishPlanInput{
+		NamespacedID: testPlan.NamespacedID,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(clock.Now()),
+		},
+	})
+
+	return *testPlan
+}
+
+// startSubscriptionFromPlan starts a subscription from a plan
+func (s *CustomerHandlerTestSuite) startSubscriptionFromPlan(
+	ctx context.Context,
+	t *testing.T,
+	plan plan.Plan,
+	customerId customer.CustomerID,
+) subscription.Subscription {
+	now := clock.Now()
+	subscriptionPlan := plansubscriptionservice.PlanFromPlan(plan)
+
+	spec, err := subscription.NewSpecFromPlan(subscriptionPlan, subscription.CreateSubscriptionCustomerInput{
+		CustomerId:    customerId.ID,
+		Name:          "Test Subscription",
+		Currency:      currencyx.Code("USD"),
+		ActiveFrom:    now,
+		BillingAnchor: now,
+	})
+	require.Nil(t, err)
+
+	clock.SetTime(clock.Now().Add(1 * time.Minute))
+
+	sub, err := s.Env.Subscription().Create(ctx, s.namespace, spec)
+	require.Nil(t, err)
+
+	return sub
 }

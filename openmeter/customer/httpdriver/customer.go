@@ -56,6 +56,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				Name:         params.Name,
 				PrimaryEmail: params.PrimaryEmail,
 				Subject:      params.Subject,
+				Plan:         params.Plan,
 				PlanKey:      params.PlanKey,
 
 				// Modifiers
@@ -75,6 +76,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListCustomersRequest) (ListCustomersResponse, error) {
+			// List the customers
 			resp, err := h.service.ListCustomers(ctx, request)
 			if err != nil {
 				return ListCustomersResponse{}, fmt.Errorf("failed to list customers: %w", err)
