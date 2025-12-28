@@ -563,7 +563,7 @@ func (s *CustomerHandlerTestSuite) TestListWithSubscription(ctx context.Context,
 	cService := s.Env.Customer()
 
 	// Create a customer with mandatory fields
-	testCutomer, err := cService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	testCustomer, err := cService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: TestName,
@@ -574,11 +574,11 @@ func (s *CustomerHandlerTestSuite) TestListWithSubscription(ctx context.Context,
 	})
 
 	require.NoError(t, err, "Creating customer must not return error")
-	require.NotNil(t, testCutomer, "Customer must not be nil")
-	require.Equal(t, TestName, testCutomer.Name, "Customer name must match")
-	require.Equal(t, TestSubjectKeys, testCutomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+	require.NotNil(t, testCustomer, "Customer must not be nil")
+	require.Equal(t, TestName, testCustomer.Name, "Customer name must match")
+	require.Equal(t, TestSubjectKeys, testCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
 
-	plan, _ := s.startMockSubscription(ctx, t, testCutomer.GetID())
+	plan, _ := s.startMockSubscription(ctx, t, testCustomer.GetID())
 	page := pagination.Page{PageNumber: 1, PageSize: 10}
 
 	// List customers with plan ID filter
@@ -590,7 +590,7 @@ func (s *CustomerHandlerTestSuite) TestListWithSubscription(ctx context.Context,
 
 	require.NoError(t, err, "Listing customers with key filter must not return error")
 	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
-	require.Equal(t, testCutomer.ID, list.Items[0].ID, "Customer ID must match")
+	require.Equal(t, testCustomer.ID, list.Items[0].ID, "Customer ID must match")
 
 	// List customers with plan key filter
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
@@ -601,17 +601,25 @@ func (s *CustomerHandlerTestSuite) TestListWithSubscription(ctx context.Context,
 
 	require.NoError(t, err, "Listing customers with plan key filter must not return error")
 	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
-	require.Equal(t, testCutomer.ID, list.Items[0].ID, "Customer ID must match")
+	require.Equal(t, testCustomer.ID, list.Items[0].ID, "Customer ID must match")
 
-	// List customers with unknown plan key
+	// List customers with empty string plan ID must return validation error
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace: s.namespace,
 		Page:      page,
-		PlanKey:   lo.ToPtr("unknown-plan-key"),
+		PlanID:    lo.ToPtr(""),
 	})
 
-	require.NoError(t, err, "Listing customers with unknown plan key must not return error")
-	require.Equal(t, 0, list.TotalCount, "Customers total count must be 0")
+	require.True(t, models.IsGenericValidationError(err), "Listing customers with empty string plan ID must return validation error")
+
+	// List customers with empty string plan key must return validation error
+	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		PlanKey:   lo.ToPtr(""),
+	})
+
+	require.True(t, models.IsGenericValidationError(err), "Listing customers with empty string plan key must return validation error")
 
 	// List customers with both plan ID and key filter
 	list, err = service.ListCustomers(ctx, customer.ListCustomersInput{

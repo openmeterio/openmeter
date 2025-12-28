@@ -186,6 +186,10 @@ func (c Config) Validate() error {
 		return errors.New("notification service is required")
 	}
 
+	if c.Plan == nil {
+		return errors.New("plan service is required")
+	}
+
 	if c.PlanAddon == nil {
 		return errors.New("plan add-on service is required")
 	}
