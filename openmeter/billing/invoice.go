@@ -656,7 +656,7 @@ func (c InvoiceCustomer) GetUsageAttribution() streaming.CustomerUsageAttributio
 		Key: c.Key,
 	}
 
-	if c.UsageAttribution != nil {
+	if c.UsageAttribution != nil && len(c.UsageAttribution.SubjectKeys) > 0 {
 		ua.SubjectKeys = c.UsageAttribution.SubjectKeys
 	}
 

@@ -50,7 +50,6 @@ var (
 	ErrInvoiceLineNoPeriodChangeForSplitLine                     = NewValidationError("invoice_line_no_period_change_for_split_line", "invoice line period cannot be changed for split lines")
 	ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden = NewValidationError("invoice_line_progressive_billing_usage_discount_update_forbidden", "usage discount cannot be updated on a partially invoiced line")
 	ErrInvoiceCreateNoLines                                      = NewValidationError("invoice_create_no_lines", "the new invoice would have no lines")
-	ErrInvoiceCreateUBPLineCustomerHasNoSubjects                 = NewValidationError("invoice_create_ubp_line_customer_has_no_subjects", "creating an usage based line: customer has no subjects")
 	ErrInvoiceCreateUBPLinePeriodIsEmpty                         = NewValidationError("invoice_create_ubp_line_period_is_empty", "creating an usage based line: truncated period is empty")
 	ErrInvoiceLineCurrencyMismatch                               = NewValidationError("invoice_line_currency_mismatch", "invoice line currency mismatch")
 
