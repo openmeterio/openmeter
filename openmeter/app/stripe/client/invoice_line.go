@@ -37,7 +37,11 @@ func (c *stripeAppClient) AddInvoiceLines(ctx context.Context, input AddInvoiceL
 	}
 
 	// Map the invoice item IDs to the line IDs
-	itemIDToLineID := make(map[string]string, len(invoice.Lines.Data))
+	capacity := 0
+	if invoice.Lines != nil {
+		capacity = len(invoice.Lines.Data)
+	}
+	itemIDToLineID := make(map[string]string, capacity)
 	if invoice.Lines != nil {
 		for _, invoiceLineItem := range invoice.Lines.Data {
 			if invoiceLineItem != nil && invoiceLineItem.InvoiceItem != nil {
