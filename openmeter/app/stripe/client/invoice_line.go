@@ -47,20 +47,20 @@ func (c *stripeAppClient) AddInvoiceLines(ctx context.Context, input AddInvoiceL
 	}
 
 	// Lookup the line IDs for the invoice items
-	lines := make([]StripeInvoiceItemWithLineID, 0, len(createdInvoiceItems))
-	for _, item := range createdInvoiceItems {
-		lineID, found := itemIDToLineID[item.ID]
+	createdLines := make([]StripeInvoiceItemWithLineID, 0, len(createdInvoiceItems))
+	for _, createdInvoiceItem := range createdInvoiceItems {
+		lineID, found := itemIDToLineID[createdInvoiceItem.ID]
 		if !found {
-			return nil, fmt.Errorf("stripe add invoice lines: line not found: %s", item.ID)
+			return nil, fmt.Errorf("stripe add invoice lines: line not found: %s", createdInvoiceItem.ID)
 		}
 
-		lines = append(lines, StripeInvoiceItemWithLineID{
-			InvoiceItem: item,
+		createdLines = append(createdLines, StripeInvoiceItemWithLineID{
+			InvoiceItem: createdInvoiceItem,
 			LineID:      lineID,
 		})
 	}
 
-	return lines, nil
+	return createdLines, nil
 }
 
 // UpdateInvoiceLines is the input for updating invoice lines on a Stripe invoice.
