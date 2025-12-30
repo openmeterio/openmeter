@@ -153,12 +153,13 @@ func TestCreateEntitlementWithGrants(t *testing.T) {
 func TestScheduling(t *testing.T) {
 	namespace := "ns1"
 
-	dummyAttribution := streaming.CustomerUsageAttribution{
-		ID: "01K3HJMFE6FW7PS470BYZ3NCR2",
-		SubjectKeys: []string{
+	dummyAttribution := streaming.NewCustomerUsageAttribution(
+		"01K3HJMFE6FW7PS470BYZ3NCR2",
+		nil,
+		[]string{
 			"subject1",
 		},
-	}
+	)
 
 	conn, deps := setupDependecies(t)
 	defer deps.Teardown()
@@ -560,12 +561,13 @@ func TestScheduling(t *testing.T) {
 func TestSuperseding(t *testing.T) {
 	namespace := "ns2"
 
-	dummyAttribution := streaming.CustomerUsageAttribution{
-		ID: "01K3HJMFE6FW7PS470BYZ3NCR2",
-		SubjectKeys: []string{
+	dummyAttribution := streaming.NewCustomerUsageAttribution(
+		"01K3HJMFE6FW7PS470BYZ3NCR2",
+		nil,
+		[]string{
 			"subject1",
 		},
-	}
+	)
 
 	conn, deps := setupDependecies(t)
 	defer deps.Teardown()

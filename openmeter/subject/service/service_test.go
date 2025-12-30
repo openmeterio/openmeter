@@ -177,13 +177,13 @@ func Test_SubjectService(t *testing.T) {
 						Namespace:  namespace,
 						FeatureID:  feat.ID,
 						FeatureKey: feat.Key,
-						UsageAttribution: streaming.CustomerUsageAttribution{
-							ID:  cus.ID,
-							Key: cus.Key,
-							SubjectKeys: []string{
+						UsageAttribution: streaming.NewCustomerUsageAttribution(
+							cus.ID,
+							cus.Key,
+							[]string{
 								sub1.Key,
 							},
-						},
+						),
 						EntitlementType:         entitlement.EntitlementTypeMetered,
 						Metadata:                nil,
 						ActiveFrom:              lo.ToPtr(now),

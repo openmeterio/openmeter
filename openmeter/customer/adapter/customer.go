@@ -185,14 +185,7 @@ func (a *adapter) ListCustomerUsageAttributions(ctx context.Context, input custo
 				return response, err
 			}
 
-			usageAttribution := streaming.CustomerUsageAttribution{
-				ID:          item.ID,
-				SubjectKeys: subjectKeys,
-			}
-
-			if item.Key != "" {
-				usageAttribution.Key = &item.Key
-			}
+			usageAttribution := streaming.NewCustomerUsageAttribution(item.ID, &item.Key, subjectKeys)
 
 			result = append(result, usageAttribution)
 		}

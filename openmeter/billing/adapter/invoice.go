@@ -787,11 +787,7 @@ func mapCustomerUsageAttributionFromDB(customerID string, customerKey *string, v
 	switch vua.Type {
 	case billing.CustomerUsageAttributionTypeVersionV1:
 		// For version 1, we backfill the usage attribution from the explicit fields
-		return &streaming.CustomerUsageAttribution{
-			ID:          customerID,
-			Key:         customerKey,
-			SubjectKeys: vua.CustomerUsageAttribution.SubjectKeys,
-		}
+		return lo.ToPtr(streaming.NewCustomerUsageAttribution(customerID, customerKey, vua.CustomerUsageAttribution.SubjectKeys))
 	case billing.CustomerUsageAttributionTypeVersionV2:
 		return &vua.CustomerUsageAttribution
 	default:

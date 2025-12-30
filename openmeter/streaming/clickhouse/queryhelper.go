@@ -78,13 +78,7 @@ func customersWhere(eventsTableName string, customers []streaming.Customer, quer
 
 	// Collect all the subjects from the customers
 	for _, customer := range customers {
-		// Add the customer key to the filter if it exists
-		if customer.GetUsageAttribution().Key != nil {
-			subjects = append(subjects, *customer.GetUsageAttribution().Key)
-		}
-
-		// Add each subject key to the filter
-		subjects = append(subjects, customer.GetUsageAttribution().SubjectKeys...)
+		subjects = append(subjects, customer.GetUsageAttribution().GetValues()...)
 	}
 
 	// If there are no subjects, we return an empty subject filter
