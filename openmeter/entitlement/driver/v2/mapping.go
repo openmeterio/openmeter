@@ -1,6 +1,7 @@
 package entitlementdriverv2
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -137,8 +138,15 @@ func (parserV2) ToStaticV2(s *staticentitlement.Entitlement, e *entitlement.Enti
 		UpdatedAt:          s.UpdatedAt,
 		CurrentUsagePeriod: mapPeriodPtr(s.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriodPtr(e.UsagePeriod),
-		Config:             s.Config,
 	}
+
+	var err error
+
+	v.Config, err = json.Marshal(s.Config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal static entitlement config: %w", err)
+	}
+
 	return &v, nil
 }
 
@@ -341,8 +349,19 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 			FeatureKey:       v.FeatureKey,
 			UsageAttribution: usageAttribution,
 			EntitlementType:  entitlement.EntitlementTypeStatic,
-			Config:           v.Config,
 		}
+
+		if len(v.Config) > 0 {
+			var config string
+
+			err = json.Unmarshal(v.Config, &config)
+			if err != nil {
+				return entCreateInp, grantsInp, fmt.Errorf("failed to unmarshal static entitlement config: %w", err)
+			}
+
+			entCreateInp.Config = lo.ToPtr(config)
+		}
+
 		if v.UsagePeriod != nil {
 			iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
 			if err != nil {

@@ -50,7 +50,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is required"}
 	}
 
-	if !json.Valid(model.Config) {
+	if !json.Valid([]byte(*model.Config)) {
 		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not valid JSON"}
 	}
 
@@ -93,7 +93,7 @@ func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.En
 }
 
 type StaticEntitlementValue struct {
-	Config []byte `json:"config,omitempty"`
+	Config string `json:"config"`
 }
 
 var _ entitlement.EntitlementValue = &StaticEntitlementValue{}

@@ -52,9 +52,12 @@ func (Entitlement) Fields() []ent.Field {
 		field.Uint8("issue_after_reset_priority").Optional().Nillable().Immutable(),
 		field.Bool("is_soft_limit").Optional().Nillable().Immutable(),
 		field.Bool("preserve_overage_at_reset").Optional().Nillable().Immutable(),
-		field.JSON("config", []byte{}).SchemaType(map[string]string{
-			dialect.Postgres: "jsonb",
-		}).Optional(),
+		field.String("config").
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 		field.String("usage_period_interval").GoType(datetime.ISODurationString("")).Optional().Nillable().Immutable(),
 		field.Time("usage_period_anchor").Optional().Nillable().Comment("Historically this field had been overwritten with each anchor reset, now we keep the original anchor time and the value is populated from the last reset which is queried dynamically"),
 		// TODO: get rid of current_usage_period in the db and make it calculated

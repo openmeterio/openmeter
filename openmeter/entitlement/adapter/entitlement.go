@@ -176,7 +176,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 			}
 
 			if ent.Config != nil {
-				cmd.SetConfig(ent.Config)
+				cmd.SetNillableConfig(ent.Config)
 			}
 
 			res, err := cmd.Save(ctx)

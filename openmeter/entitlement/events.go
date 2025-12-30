@@ -67,7 +67,7 @@ type entitlementEventV2EntitlementLiteral struct {
 	PreserveOverageAtReset  *bool      `json:"preserveOverageAtReset,omitempty"`
 
 	// static
-	Config []byte `json:"config,omitempty"`
+	Config *string `json:"config,omitempty"`
 }
 
 func (e entitlementEventV2EntitlementLiteral) ToDomainEntitlement() Entitlement {

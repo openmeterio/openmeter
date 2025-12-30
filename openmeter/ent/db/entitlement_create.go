@@ -208,8 +208,16 @@ func (_c *EntitlementCreate) SetNillablePreserveOverageAtReset(v *bool) *Entitle
 }
 
 // SetConfig sets the "config" field.
-func (_c *EntitlementCreate) SetConfig(v []uint8) *EntitlementCreate {
+func (_c *EntitlementCreate) SetConfig(v string) *EntitlementCreate {
 	_c.mutation.SetConfig(v)
+	return _c
+}
+
+// SetNillableConfig sets the "config" field if the given value is not nil.
+func (_c *EntitlementCreate) SetNillableConfig(v *string) *EntitlementCreate {
+	if v != nil {
+		_c.SetConfig(*v)
+	}
 	return _c
 }
 
@@ -548,8 +556,8 @@ func (_c *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec, e
 		_node.PreserveOverageAtReset = &value
 	}
 	if value, ok := _c.mutation.Config(); ok {
-		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
-		_node.Config = value
+		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
+		_node.Config = &value
 	}
 	if value, ok := _c.mutation.UsagePeriodInterval(); ok {
 		_spec.SetField(entitlement.FieldUsagePeriodInterval, field.TypeString, value)
@@ -792,7 +800,7 @@ func (u *EntitlementUpsert) ClearActiveTo() *EntitlementUpsert {
 }
 
 // SetConfig sets the "config" field.
-func (u *EntitlementUpsert) SetConfig(v []uint8) *EntitlementUpsert {
+func (u *EntitlementUpsert) SetConfig(v string) *EntitlementUpsert {
 	u.Set(entitlement.FieldConfig, v)
 	return u
 }
@@ -1046,7 +1054,7 @@ func (u *EntitlementUpsertOne) ClearActiveTo() *EntitlementUpsertOne {
 }
 
 // SetConfig sets the "config" field.
-func (u *EntitlementUpsertOne) SetConfig(v []uint8) *EntitlementUpsertOne {
+func (u *EntitlementUpsertOne) SetConfig(v string) *EntitlementUpsertOne {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.SetConfig(v)
 	})
@@ -1485,7 +1493,7 @@ func (u *EntitlementUpsertBulk) ClearActiveTo() *EntitlementUpsertBulk {
 }
 
 // SetConfig sets the "config" field.
-func (u *EntitlementUpsertBulk) SetConfig(v []uint8) *EntitlementUpsertBulk {
+func (u *EntitlementUpsertBulk) SetConfig(v string) *EntitlementUpsertBulk {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.SetConfig(v)
 	})

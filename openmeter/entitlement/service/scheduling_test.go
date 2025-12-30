@@ -513,7 +513,7 @@ func TestScheduling(t *testing.T) {
 							Annotations: models.Annotations{
 								"subscription.id": "sub_123",
 							},
-							Config: []byte(`{"value": "100"}`),
+							Config: lo.ToPtr(`{"value": "100"}`),
 						},
 					)
 					assert.NoError(t, err)

@@ -55,7 +55,7 @@ type Entitlement struct {
 	// PreserveOverageAtReset holds the value of the "preserve_overage_at_reset" field.
 	PreserveOverageAtReset *bool `json:"preserve_overage_at_reset,omitempty"`
 	// Config holds the value of the "config" field.
-	Config []uint8 `json:"config,omitempty"`
+	Config *string `json:"config,omitempty"`
 	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
 	UsagePeriodInterval *datetime.ISODurationString `json:"usage_period_interval,omitempty"`
 	// Historically this field had been overwritten with each anchor reset, now we keep the original anchor time and the value is populated from the last reset which is queried dynamically
@@ -154,7 +154,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case entitlement.FieldMetadata, entitlement.FieldConfig:
+		case entitlement.FieldMetadata:
 			values[i] = new([]byte)
 		case entitlement.FieldIsSoftLimit, entitlement.FieldPreserveOverageAtReset:
 			values[i] = new(sql.NullBool)
@@ -162,7 +162,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case entitlement.FieldIssueAfterResetPriority:
 			values[i] = new(sql.NullInt64)
-		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldFeatureKey, entitlement.FieldCustomerID, entitlement.FieldUsagePeriodInterval:
+		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldFeatureKey, entitlement.FieldCustomerID, entitlement.FieldConfig, entitlement.FieldUsagePeriodInterval:
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldActiveFrom, entitlement.FieldActiveTo, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -296,12 +296,11 @@ func (_m *Entitlement) assignValues(columns []string, values []any) error {
 				*_m.PreserveOverageAtReset = value.Bool
 			}
 		case entitlement.FieldConfig:
-			if value, ok := values[i].(*[]byte); !ok {
+			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field config", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Config); err != nil {
-					return fmt.Errorf("unmarshal field config: %w", err)
-				}
+			} else if value.Valid {
+				_m.Config = new(string)
+				*_m.Config = value.String
 			}
 		case entitlement.FieldUsagePeriodInterval:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -467,8 +466,10 @@ func (_m *Entitlement) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("config=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Config))
+	if v := _m.Config; v != nil {
+		builder.WriteString("config=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	if v := _m.UsagePeriodInterval; v != nil {
 		builder.WriteString("usage_period_interval=")
