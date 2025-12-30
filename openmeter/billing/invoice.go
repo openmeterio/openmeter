@@ -621,13 +621,20 @@ var _ streaming.Customer = &InvoiceCustomer{}
 
 // NewInvoiceCustomer creates a new InvoiceCustomer from a customer.Customer
 func NewInvoiceCustomer(cust customer.Customer) InvoiceCustomer {
-	return InvoiceCustomer{
-		Key:              cust.Key,
-		CustomerID:       cust.ID,
-		Name:             cust.Name,
-		BillingAddress:   cust.BillingAddress,
-		UsageAttribution: lo.ToPtr(cust.GetUsageAttribution()),
+	ic := InvoiceCustomer{
+		Key:            cust.Key,
+		CustomerID:     cust.ID,
+		Name:           cust.Name,
+		BillingAddress: cust.BillingAddress,
 	}
+
+	// If the customer has a usage attribution, we add it to the invoice customer
+	// We use the validator but this is not an error, we allow non usage based invoices without usage attribution.
+	if err := cust.GetUsageAttribution().Validate(); err == nil {
+		ic.UsageAttribution = lo.ToPtr(cust.GetUsageAttribution())
+	}
+
+	return ic
 }
 
 // InvoiceCustomer represents a customer that is used in an invoice
