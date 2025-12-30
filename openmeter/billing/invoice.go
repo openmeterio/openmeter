@@ -652,7 +652,12 @@ type InvoiceCustomer struct {
 // GetUsageAttribution returns the customer usage attribution
 // implementing the streaming.CustomerUsageAttribution interface
 func (c InvoiceCustomer) GetUsageAttribution() streaming.CustomerUsageAttribution {
-	return streaming.NewCustomerUsageAttribution(c.CustomerID, c.Key, c.UsageAttribution.SubjectKeys)
+	subjectKeys := []string{}
+	if c.UsageAttribution != nil {
+		subjectKeys = c.UsageAttribution.SubjectKeys
+	}
+
+	return streaming.NewCustomerUsageAttribution(c.CustomerID, c.Key, subjectKeys)
 }
 
 // Validate validates the invoice customer

@@ -76,7 +76,13 @@ func (c Customer) AsCustomerMutate() CustomerMutate {
 // GetUsageAttribution returns the customer usage attribution
 // implementing the streaming.CustomerUsageAttribution interface
 func (c Customer) GetUsageAttribution() streaming.CustomerUsageAttribution {
-	return streaming.NewCustomerUsageAttribution(c.ID, c.Key, c.UsageAttribution.SubjectKeys)
+	subjectKeys := []string{}
+
+	if c.UsageAttribution != nil {
+		subjectKeys = c.UsageAttribution.SubjectKeys
+	}
+
+	return streaming.NewCustomerUsageAttribution(c.ID, c.Key, subjectKeys)
 }
 
 // GetID returns the customer id
