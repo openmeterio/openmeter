@@ -14,7 +14,7 @@ import (
 // ListInvoiceLineItems lists the invoice line items for a given Stripe invoice.
 func (c *stripeAppClient) ListInvoiceLineItems(ctx context.Context, stripeInvoiceID string) ([]*stripe.InvoiceLineItem, error) {
 	if stripeInvoiceID == "" {
-		return nil, errors.New("stripe get invoice line itemsstripe invoice id is required")
+		return nil, errors.New("stripe get invoice line items: invoice id is required")
 	}
 
 	invoiceLineItems := []*stripe.InvoiceLineItem{}

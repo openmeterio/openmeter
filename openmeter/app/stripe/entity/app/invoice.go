@@ -319,8 +319,6 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		return nil, fmt.Errorf("failed to get existing line items from stripe: %w", err)
 	}
 
-	fmt.Println("stripeInvoiceLineItems", stripeInvoiceLineItems)
-
 	stripeLinesByID := make(map[string]*stripe.InvoiceLineItem)
 
 	for _, stripeLine := range stripeInvoiceLineItems {
