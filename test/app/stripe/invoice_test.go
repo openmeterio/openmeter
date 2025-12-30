@@ -784,6 +784,14 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// Which will go into update path of the upsert invoice.
 		updateInvoice.ExternalIDs.Invoicing = "stripe-invoice-id"
 
+		// We call a list invoice line items first to compare the updated lines to the existing lines.
+		// This is used to determine which lines to add, remove or update.
+		s.StripeAppClient.
+			On("ListInvoiceLineItems", stripeInvoice.ID).
+			Once().
+			// We return the existing lines before the update.
+			Return(stripeInvoice.Lines.Data, nil)
+
 		stripeInvoiceUpdated := &stripe.Invoice{
 			ID:       stripeInvoice.ID,
 			Customer: stripeInvoice.Customer,
@@ -1170,6 +1178,11 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.Len(invoice.ValidationIssues, 0)
 
 	// Editing the invoice should also work
+	s.StripeAppClient.
+		On("ListInvoiceLineItems", "stripe-invoice-id").
+		Once().
+		Return([]*stripe.InvoiceLineItem{}, nil)
+
 	s.StripeAppClient.
 		On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
 			AutomaticTaxEnabled: true,

@@ -307,22 +307,24 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Existing lines that were not updated are removed.
 	stripeLinesToRemove := make(map[string]bool)
 
-	for _, stripeLine := range stripeInvoice.Lines.Data {
-		stripeLinesToRemove[stripeLine.ID] = true
-	}
-
 	var (
 		stripeLineAdd     []*stripe.InvoiceItemParams
 		stripeLinesUpdate []*stripeclient.StripeInvoiceItemWithID
 		stripeLinesRemove []string
 	)
 
-	leafLines := invoice.GetLeafLinesWithConsolidatedTaxBehavior()
+	// Get the existing line items from Stripe to build the maps
+	stripeInvoiceLineItems, err := stripeClient.ListInvoiceLineItems(ctx, stripeInvoice.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get existing line items from stripe: %w", err)
+	}
 
-	// Helper to get a Stripe line item by ID
 	stripeLinesByID := make(map[string]*stripe.InvoiceLineItem)
 
-	for _, stripeLine := range stripeInvoice.Lines.Data {
+	for _, stripeLine := range stripeInvoiceLineItems {
+		// We set all to true and the code later clears the ones that we keep
+		stripeLinesToRemove[stripeLine.ID] = true
+
 		stripeLinesByID[stripeLine.ID] = stripeLine
 		// This allows looking up by stripe invoice item ID too (in case we ran into any inconsistencies going forward)
 		if stripeLine.InvoiceItem != nil {
@@ -331,7 +333,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// Iterate over the leaf lines
-	for _, line := range leafLines {
+	for _, line := range invoice.GetLeafLinesWithConsolidatedTaxBehavior() {
 		amountDiscountsById, err := line.AmountDiscounts.GetByID()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get amount discounts by ID: %w", err)
