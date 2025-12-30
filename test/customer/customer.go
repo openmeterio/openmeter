@@ -654,15 +654,16 @@ func (s *CustomerHandlerTestSuite) TestListCustomerUsageAttributions(ctx context
 	require.Equal(t, createCustomer2.ID, list.Items[1].ID, "Customer 2 must be second in order")
 
 	expectedItems := []streaming.CustomerUsageAttribution{
-		{
-			ID:          createCustomer1.ID,
-			Key:         createCustomer1.Key,
-			SubjectKeys: []string{"customer-1-subject-1", "customer-1-subject-2"},
-		},
-		{
-			ID:          createCustomer2.ID,
-			SubjectKeys: []string{"customer-2-subject-1"},
-		},
+		streaming.NewCustomerUsageAttribution(
+			createCustomer1.ID,
+			createCustomer1.Key,
+			[]string{"customer-1-subject-1", "customer-1-subject-2"},
+		),
+		streaming.NewCustomerUsageAttribution(
+			createCustomer2.ID,
+			createCustomer2.Key,
+			[]string{"customer-2-subject-1"},
+		),
 	}
 
 	require.Equal(t, expectedItems, list.Items, "Customer usage attributions must match")

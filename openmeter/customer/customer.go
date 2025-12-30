@@ -76,16 +76,13 @@ func (c Customer) AsCustomerMutate() CustomerMutate {
 // GetUsageAttribution returns the customer usage attribution
 // implementing the streaming.CustomerUsageAttribution interface
 func (c Customer) GetUsageAttribution() streaming.CustomerUsageAttribution {
-	ua := streaming.CustomerUsageAttribution{
-		ID:  c.ID,
-		Key: c.Key,
-	}
+	subjectKeys := []string{}
 
 	if c.UsageAttribution != nil {
-		ua.SubjectKeys = c.UsageAttribution.SubjectKeys
+		subjectKeys = c.UsageAttribution.SubjectKeys
 	}
 
-	return ua
+	return streaming.NewCustomerUsageAttribution(c.ID, c.Key, subjectKeys)
 }
 
 // GetID returns the customer id
@@ -232,7 +229,9 @@ func (i CustomerIDOrKey) Validate() error {
 
 var _ models.Validator = (*CustomerUsageAttribution)(nil)
 
-// CustomerUsageAttribution represents the usage attribution for a customer
+// CustomerUsageAttribution represents the additional fields for a customer usage attribution
+// Do not use this struct directly, use the GetUsageAttribution method instead that implements the streaming.CustomerUsageAttribution interface
+// The customer usage attribution is more than just the subject keys, it also includes key for example.
 type CustomerUsageAttribution struct {
 	SubjectKeys []string `json:"subjectKeys"`
 }

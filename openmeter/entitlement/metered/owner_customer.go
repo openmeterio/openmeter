@@ -13,9 +13,5 @@ type ownerCustomer struct {
 var _ streaming.Customer = ownerCustomer{}
 
 func (c ownerCustomer) GetUsageAttribution() streaming.CustomerUsageAttribution {
-	return streaming.CustomerUsageAttribution{
-		ID:          c.id,
-		Key:         c.key,
-		SubjectKeys: c.subjectKeys,
-	}
+	return streaming.NewCustomerUsageAttribution(c.id, c.key, c.subjectKeys)
 }

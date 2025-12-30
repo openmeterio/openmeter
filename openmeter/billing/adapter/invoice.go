@@ -779,7 +779,7 @@ func mapPeriodFromDB(start, end *time.Time) *billing.Period {
 	}
 }
 
-func mapCustomerUsageAttributionFromDB(customerID string, customerKey *string, vua *billing.VersionedCustomerUsageAttribution) *billing.CustomerUsageAttribution {
+func mapCustomerUsageAttributionFromDB(customerID string, customerKey *string, vua *billing.VersionedCustomerUsageAttribution) *streaming.CustomerUsageAttribution {
 	if vua == nil {
 		return nil
 	}
@@ -787,11 +787,7 @@ func mapCustomerUsageAttributionFromDB(customerID string, customerKey *string, v
 	switch vua.Type {
 	case billing.CustomerUsageAttributionTypeVersionV1:
 		// For version 1, we backfill the usage attribution from the explicit fields
-		return &streaming.CustomerUsageAttribution{
-			ID:          customerID,
-			Key:         customerKey,
-			SubjectKeys: vua.CustomerUsageAttribution.SubjectKeys,
-		}
+		return lo.ToPtr(streaming.NewCustomerUsageAttribution(customerID, customerKey, vua.CustomerUsageAttribution.SubjectKeys))
 	case billing.CustomerUsageAttributionTypeVersionV2:
 		return &vua.CustomerUsageAttribution
 	default:
@@ -800,6 +796,12 @@ func mapCustomerUsageAttributionFromDB(customerID string, customerKey *string, v
 }
 
 func mapCustomerUsageAttributionToDB(customer customer.Customer) *billing.VersionedCustomerUsageAttribution {
+	// We allow invoices without usage attribution, but we don't store them in the database.
+	// We only allow them when lines are not usage based.
+	if err := customer.GetUsageAttribution().Validate(); err != nil {
+		return nil
+	}
+
 	return &billing.VersionedCustomerUsageAttribution{
 		Type:                     billing.CustomerUsageAttributionTypeVersionV2,
 		CustomerUsageAttribution: customer.GetUsageAttribution(),
