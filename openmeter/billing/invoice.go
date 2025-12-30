@@ -604,11 +604,12 @@ type InvoiceStatusDetails struct {
 }
 
 const (
-	CustomerUsageAttributionTypeVersion = "customer_usage_attribution.v1"
+	CustomerUsageAttributionTypeVersionV1 = "customer_usage_attribution.v1"
+	CustomerUsageAttributionTypeVersionV2 = "customer_usage_attribution.v2"
 )
 
 type (
-	CustomerUsageAttribution          = customer.CustomerUsageAttribution
+	CustomerUsageAttribution          = streaming.CustomerUsageAttribution
 	VersionedCustomerUsageAttribution struct {
 		CustomerUsageAttribution `json:",inline"`
 		Type                     string `json:"type"`
