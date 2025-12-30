@@ -1,7 +1,6 @@
 package streaming
 
 import (
-	"encoding/json"
 	"errors"
 	"slices"
 
@@ -15,11 +14,17 @@ type Customer interface {
 
 // NewCustomerUsageAttribution creates a new CustomerUsageAttribution
 func NewCustomerUsageAttribution(id string, key *string, subjectKeys []string) CustomerUsageAttribution {
-	return CustomerUsageAttribution{
+	customerUsageAttribution := CustomerUsageAttribution{
 		ID:          id,
 		Key:         key,
 		SubjectKeys: subjectKeys,
 	}
+
+	if customerUsageAttribution.SubjectKeys == nil {
+		customerUsageAttribution.SubjectKeys = []string{}
+	}
+
+	return customerUsageAttribution
 }
 
 // CustomerUsageAttribution holds customer fields that map usage to a customer
@@ -79,24 +84,4 @@ func (ua CustomerUsageAttribution) Equal(other CustomerUsageAttribution) bool {
 	}
 
 	return slices.Equal(ua.SubjectKeys, other.SubjectKeys)
-}
-
-// MarshalJSON implements json.Marshaler for CustomerUsageAttribution.
-// It ensures that nil SubjectKeys is serialized as an empty JSON array [] instead of null.
-func (ua CustomerUsageAttribution) MarshalJSON() ([]byte, error) {
-	type Alias CustomerUsageAttribution
-
-	// Ensure SubjectKeys is never nil - use empty slice if nil
-	subjectKeys := ua.SubjectKeys
-	if subjectKeys == nil {
-		subjectKeys = []string{}
-	}
-
-	return json.Marshal(&struct {
-		*Alias
-		SubjectKeys []string `json:"subjectKeys"`
-	}{
-		Alias:       (*Alias)(&ua),
-		SubjectKeys: subjectKeys,
-	})
 }

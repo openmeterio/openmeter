@@ -1,77 +1,12 @@
 package streaming
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-func TestCustomerUsageAttributionMarshalJSON(t *testing.T) {
-	key := "test-key"
-
-	tests := []struct {
-		name     string
-		attrib   CustomerUsageAttribution
-		expected string
-	}{
-		{
-			name: "nil SubjectKeys should serialize as empty array",
-			attrib: CustomerUsageAttribution{
-				ID:          "customer-1",
-				Key:         &key,
-				SubjectKeys: nil,
-			},
-			expected: `{"id":"customer-1","key":"test-key","subjectKeys":[]}`,
-		},
-		{
-			name: "empty SubjectKeys should serialize as empty array",
-			attrib: CustomerUsageAttribution{
-				ID:          "customer-2",
-				Key:         &key,
-				SubjectKeys: []string{},
-			},
-			expected: `{"id":"customer-2","key":"test-key","subjectKeys":[]}`,
-		},
-		{
-			name: "SubjectKeys with values should serialize correctly",
-			attrib: CustomerUsageAttribution{
-				ID:          "customer-3",
-				Key:         &key,
-				SubjectKeys: []string{"key1", "key2"},
-			},
-			expected: `{"id":"customer-3","key":"test-key","subjectKeys":["key1","key2"]}`,
-		},
-		{
-			name: "nil Key should serialize as null",
-			attrib: CustomerUsageAttribution{
-				ID:          "customer-4",
-				Key:         nil,
-				SubjectKeys: []string{"key1"},
-			},
-			expected: `{"id":"customer-4","key":null,"subjectKeys":["key1"]}`,
-		},
-		{
-			name: "nil Key and nil SubjectKeys should serialize correctly",
-			attrib: CustomerUsageAttribution{
-				ID:          "customer-5",
-				Key:         nil,
-				SubjectKeys: nil,
-			},
-			expected: `{"id":"customer-5","key":null,"subjectKeys":[]}`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := json.Marshal(tt.attrib)
-			assert.NoError(t, err)
-			assert.JSONEq(t, tt.expected, string(got))
-		})
-	}
-}
 
 func TestCustomerUsageAttributionValidate(t *testing.T) {
 	key := "test-key"
