@@ -334,8 +334,6 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		}
 	}
 
-	fmt.Println("stripeLinesByID", stripeLinesByID, stripeInvoice.ID)
-
 	// Iterate over the leaf lines
 	for _, line := range invoice.GetLeafLinesWithConsolidatedTaxBehavior() {
 		amountDiscountsById, err := line.AmountDiscounts.GetByID()
