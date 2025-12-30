@@ -11,6 +11,30 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
+// GetInvoiceLineItems gets the invoice line items for a given Stripe invoice ID.
+func (c *stripeAppClient) GetInvoiceLineItems(ctx context.Context, stripeInvoiceID string) ([]*stripe.InvoiceLineItem, error) {
+	invoiceLineItems := []*stripe.InvoiceLineItem{}
+
+	// Stripe SDK paginates automatically by default, so we don't need to handle pagination here.
+	invoiceLineItemsIterator := c.client.Invoices.ListLines(&stripe.InvoiceListLinesParams{
+		Invoice: &stripeInvoiceID,
+	})
+
+	// Map the invoice item IDs to the line IDs
+	for invoiceLineItemsIterator.Next() {
+		invoiceLine := invoiceLineItemsIterator.InvoiceLineItem()
+		if invoiceLine != nil && invoiceLine.InvoiceItem != nil {
+			invoiceLineItems = append(invoiceLineItems, invoiceLine)
+		}
+	}
+
+	if invoiceLineItemsIterator.Err() != nil {
+		return nil, fmt.Errorf("stripe get invoice line items: %w", invoiceLineItemsIterator.Err())
+	}
+
+	return invoiceLineItems, nil
+}
+
 // AddInvoiceLines is the input for adding invoice lines to a Stripe invoice.
 func (c *stripeAppClient) AddInvoiceLines(ctx context.Context, input AddInvoiceLinesInput) ([]StripeInvoiceItemWithLineID, error) {
 	if err := input.Validate(); err != nil {
@@ -30,37 +54,29 @@ func (c *stripeAppClient) AddInvoiceLines(ctx context.Context, input AddInvoiceL
 		return nil, nil
 	}
 
-	// Get the invoice to map the line IDs to the invoice item IDs
-	invoice, err := c.client.Invoices.Get(input.StripeInvoiceID, nil)
+	// Creating an invoice item in Stripe does not return it's Stripe Invoice Line Item ID,
+	// so we need to list the invoice line items to get the line IDs.
+	invoiceLineItems, err := c.GetInvoiceLineItems(ctx, input.StripeInvoiceID)
 	if err != nil {
-		return nil, fmt.Errorf("stripe add invoice lines: get invoice: %w", err)
+		return nil, fmt.Errorf("stripe add invoice lines: get invoice line items: %w", err)
 	}
 
-	// Map the invoice item IDs to the line IDs
-	capacity := 0
-	if invoice.Lines != nil {
-		capacity = len(invoice.Lines.Data)
-	}
-	itemIDToLineID := make(map[string]string, capacity)
-	if invoice.Lines != nil {
-		for _, invoiceLineItem := range invoice.Lines.Data {
-			if invoiceLineItem != nil && invoiceLineItem.InvoiceItem != nil {
-				itemIDToLineID[invoiceLineItem.InvoiceItem.ID] = invoiceLineItem.ID
-			}
-		}
-	}
+	// We know the invoice item ID from the creation above so we key line items by that
+	invoiceLineItemByInvoiceItemID := lo.KeyBy(invoiceLineItems, func(i *stripe.InvoiceLineItem) string {
+		return i.InvoiceItem.ID
+	})
 
 	// Lookup the line IDs for the invoice items
 	createdLines := make([]StripeInvoiceItemWithLineID, 0, len(createdInvoiceItems))
 	for _, createdInvoiceItem := range createdInvoiceItems {
-		lineID, found := itemIDToLineID[createdInvoiceItem.ID]
+		invoiceLineItem, found := invoiceLineItemByInvoiceItemID[createdInvoiceItem.ID]
 		if !found {
 			return nil, fmt.Errorf("stripe add invoice lines: line not found: %s", createdInvoiceItem.ID)
 		}
 
 		createdLines = append(createdLines, StripeInvoiceItemWithLineID{
 			InvoiceItem: createdInvoiceItem,
-			LineID:      lineID,
+			LineID:      invoiceLineItem.ID,
 		})
 	}
 
