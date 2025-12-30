@@ -11,8 +11,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-// GetInvoiceLineItems gets the invoice line items for a given Stripe invoice ID.
-func (c *stripeAppClient) GetInvoiceLineItems(ctx context.Context, stripeInvoiceID string) ([]*stripe.InvoiceLineItem, error) {
+// ListInvoiceLineItems lists the invoice line items for a given Stripe invoice.
+func (c *stripeAppClient) ListInvoiceLineItems(ctx context.Context, stripeInvoiceID string) ([]*stripe.InvoiceLineItem, error) {
+	if stripeInvoiceID == "" {
+		return nil, errors.New("stripe get invoice line itemsstripe invoice id is required")
+	}
+
 	invoiceLineItems := []*stripe.InvoiceLineItem{}
 
 	// Stripe SDK paginates automatically by default, so we don't need to handle pagination here.
@@ -56,7 +60,7 @@ func (c *stripeAppClient) AddInvoiceLines(ctx context.Context, input AddInvoiceL
 
 	// Creating an invoice item in Stripe does not return it's Stripe Invoice Line Item ID,
 	// so we need to list the invoice line items to get the line IDs.
-	invoiceLineItems, err := c.GetInvoiceLineItems(ctx, input.StripeInvoiceID)
+	invoiceLineItems, err := c.ListInvoiceLineItems(ctx, input.StripeInvoiceID)
 	if err != nil {
 		return nil, fmt.Errorf("stripe add invoice lines: get invoice line items: %w", err)
 	}

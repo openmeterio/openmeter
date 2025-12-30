@@ -131,6 +131,11 @@ func (c *StripeAppClientMock) FinalizeInvoice(ctx context.Context, input stripec
 }
 
 // Invoice Lines
+func (c *StripeAppClientMock) ListInvoiceLineItems(ctx context.Context, stripeInvoiceID string) ([]*stripe.InvoiceLineItem, error) {
+	args := c.Called(stripeInvoiceID)
+	return args.Get(0).([]*stripe.InvoiceLineItem), args.Error(1)
+}
+
 func (c *StripeAppClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) ([]stripeclient.StripeInvoiceItemWithLineID, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
