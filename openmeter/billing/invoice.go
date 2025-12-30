@@ -621,17 +621,12 @@ var _ streaming.Customer = &InvoiceCustomer{}
 
 // NewInvoiceCustomer creates a new InvoiceCustomer from a customer.Customer
 func NewInvoiceCustomer(cust customer.Customer) InvoiceCustomer {
-	subjectKeys := []string{}
-	if cust.UsageAttribution != nil {
-		subjectKeys = cust.UsageAttribution.SubjectKeys
-	}
-
 	return InvoiceCustomer{
 		Key:              cust.Key,
 		CustomerID:       cust.ID,
 		Name:             cust.Name,
 		BillingAddress:   cust.BillingAddress,
-		UsageAttribution: lo.ToPtr(streaming.NewCustomerUsageAttribution(cust.ID, cust.Key, subjectKeys)),
+		UsageAttribution: lo.ToPtr(cust.GetUsageAttribution()),
 	}
 }
 
