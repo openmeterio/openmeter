@@ -298,6 +298,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					Key:        customerEntity.Key,
 					CustomerID: customerEntity.ID,
 					UsageAttribution: &billing.CustomerUsageAttribution{
+						ID:          customerEntity.ID,
+						Key:         customerEntity.Key,
 						SubjectKeys: customerEntity.UsageAttribution.SubjectKeys,
 					},
 

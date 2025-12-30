@@ -13,11 +13,13 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -343,7 +345,7 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 				SetNillableCustomerAddressLine2(customer.BillingAddress.Line2).
 				SetNillableCustomerAddressPhoneNumber(customer.BillingAddress.PhoneNumber)
 		}
-		if usageAttr := mapCustomerUsageAttributionToDB(input.Customer.UsageAttribution); usageAttr != nil {
+		if usageAttr := mapCustomerUsageAttributionToDB(input.Customer); usageAttr != nil {
 			createMut = createMut.SetCustomerUsageAttribution(usageAttr)
 		}
 		createMut = createMut.
@@ -671,7 +673,7 @@ func (a *adapter) mapInvoiceBaseFromDB(ctx context.Context, invoice *db.BillingI
 				Line2:       invoice.CustomerAddressLine2,
 				PhoneNumber: invoice.CustomerAddressPhoneNumber,
 			},
-			UsageAttribution: mapCustomerUsageAttributionFromDB(invoice.CustomerUsageAttribution),
+			UsageAttribution: mapCustomerUsageAttributionFromDB(invoice.CustomerID, invoice.CustomerKey, invoice.CustomerUsageAttribution),
 		},
 		Period:    mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
 		IssuedAt:  convert.TimePtrIn(invoice.IssuedAt, time.UTC),
@@ -777,22 +779,30 @@ func mapPeriodFromDB(start, end *time.Time) *billing.Period {
 	}
 }
 
-func mapCustomerUsageAttributionFromDB(vua *billing.VersionedCustomerUsageAttribution) *billing.CustomerUsageAttribution {
+func mapCustomerUsageAttributionFromDB(customerID string, customerKey *string, vua *billing.VersionedCustomerUsageAttribution) *billing.CustomerUsageAttribution {
 	if vua == nil {
 		return nil
 	}
-	return &billing.CustomerUsageAttribution{
-		SubjectKeys: vua.SubjectKeys,
+
+	switch vua.Type {
+	case billing.CustomerUsageAttributionTypeVersionV1:
+		// For version 1, we backfill the usage attribution from the explicit fields
+		return &streaming.CustomerUsageAttribution{
+			ID:          customerID,
+			Key:         customerKey,
+			SubjectKeys: vua.CustomerUsageAttribution.SubjectKeys,
+		}
+	case billing.CustomerUsageAttributionTypeVersionV2:
+		return &vua.CustomerUsageAttribution
+	default:
+		return nil
 	}
 }
 
-func mapCustomerUsageAttributionToDB(ua *billing.CustomerUsageAttribution) *billing.VersionedCustomerUsageAttribution {
-	if ua == nil {
-		return nil
-	}
+func mapCustomerUsageAttributionToDB(customer customer.Customer) *billing.VersionedCustomerUsageAttribution {
 	return &billing.VersionedCustomerUsageAttribution{
-		Type:                     billing.CustomerUsageAttributionTypeVersion,
-		CustomerUsageAttribution: *ua,
+		Type:                     billing.CustomerUsageAttributionTypeVersionV2,
+		CustomerUsageAttribution: customer.GetUsageAttribution(),
 	}
 }
 

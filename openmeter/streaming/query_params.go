@@ -87,9 +87,9 @@ type Customer interface {
 
 // CustomerUsageAttribution holds customer fields that map usage to a customer
 type CustomerUsageAttribution struct {
-	ID          string
-	Key         *string
-	SubjectKeys []string
+	ID          string   `json:"id"`
+	Key         *string  `json:"key"`
+	SubjectKeys []string `json:"subjectKeys"`
 }
 
 func (ua CustomerUsageAttribution) Validate() error {
