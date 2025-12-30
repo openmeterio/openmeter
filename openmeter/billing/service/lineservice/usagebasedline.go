@@ -59,9 +59,9 @@ func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.Inv
 		return err
 	}
 
-	if targetInvoice.Customer.UsageAttribution == nil || len(targetInvoice.Customer.UsageAttribution.SubjectKeys) == 0 {
+	if err := targetInvoice.Customer.Validate(); err != nil {
 		return billing.ValidationError{
-			Err: billing.ErrInvoiceCreateUBPLineCustomerHasNoSubjects,
+			Err: billing.ErrInvoiceCreateUBPLineCustomerUsageAttributionInvalid,
 		}
 	}
 
