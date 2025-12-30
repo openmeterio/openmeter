@@ -5,7 +5,7 @@ tmp_dir = "tmp"
 [build]
   args_bin = ["--config", "./config.yaml"]
   bin = "./tmp/openmeter-server"
-  cmd = "go build -tags dynamic -o ./tmp/openmeter-server ./cmd/server"
+  cmd = "go build -gcflags=\"all=-N -l\" -tags dynamic -o ./tmp/openmeter-server ./cmd/server"
   delay = 0
   exclude_dir = ["assets", "ci", "deploy", "docs", "examples", "testdata", "quickstart", "tmp", "vendor", "api/client", "node_modules"]
   exclude_file = []
@@ -23,7 +23,7 @@ tmp_dir = "tmp"
   rerun = false
   rerun_delay = 500
   send_interrupt = true
-  stop_on_error = false
+  stop_on_error = true
 
 [color]
   app = ""
