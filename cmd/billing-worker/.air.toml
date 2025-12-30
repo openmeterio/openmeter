@@ -5,7 +5,7 @@ tmp_dir = "tmp"
 [build]
   args_bin = ["--config", "./config.yaml", "--telemetry-address", ":10002"]
   bin = "./tmp/openmeter-billing-worker"
-  cmd = "go build -tags dynamic -o ./tmp/openmeter-billing-worker ./cmd/billing-worker"
+  cmd = "go build -gcflags=\"all=-N -l\" -tags dynamic -o ./tmp/openmeter-billing-worker ./cmd/billing-worker"
   delay = 0
   exclude_dir = ["assets", "ci", "deploy", "docs", "examples", "testdata", "quickstart", "tmp", "vendor", "api/client", "node_modules"]
   exclude_file = []
