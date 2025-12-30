@@ -66,7 +66,19 @@ func (ua CustomerUsageAttribution) GetValues() []string {
 
 // Equal checks if two CustomerUsageAttributions are equal
 func (ua CustomerUsageAttribution) Equal(other CustomerUsageAttribution) bool {
-	return ua.ID == other.ID && ua.Key == other.Key && slices.Equal(ua.SubjectKeys, other.SubjectKeys)
+	if ua.ID != other.ID {
+		return false
+	}
+
+	// Compare Key values, handling nil cases
+	if (ua.Key == nil) != (other.Key == nil) {
+		return false
+	}
+	if ua.Key != nil && *ua.Key != *other.Key {
+		return false
+	}
+
+	return slices.Equal(ua.SubjectKeys, other.SubjectKeys)
 }
 
 // MarshalJSON implements json.Marshaler for CustomerUsageAttribution.
