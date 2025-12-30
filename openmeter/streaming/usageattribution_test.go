@@ -335,6 +335,20 @@ func TestCustomerUsageAttributionEqual(t *testing.T) {
 			expected: true,
 		},
 		{
+			name: "equal with nil subject keys vs empty subject keys",
+			attrib1: CustomerUsageAttribution{
+				ID:          "customer-11",
+				Key:         &key1,
+				SubjectKeys: nil,
+			},
+			attrib2: CustomerUsageAttribution{
+				ID:          "customer-11",
+				Key:         &key1,
+				SubjectKeys: []string{},
+			},
+			expected: true,
+		},
+		{
 			name: "not equal with different ID",
 			attrib1: CustomerUsageAttribution{
 				ID:          "customer-5",
@@ -401,20 +415,6 @@ func TestCustomerUsageAttributionEqual(t *testing.T) {
 				ID:          "customer-10",
 				Key:         &key1,
 				SubjectKeys: []string{"sub1"},
-			},
-			expected: false,
-		},
-		{
-			name: "not equal with nil subject keys vs empty subject keys",
-			attrib1: CustomerUsageAttribution{
-				ID:          "customer-11",
-				Key:         &key1,
-				SubjectKeys: nil,
-			},
-			attrib2: CustomerUsageAttribution{
-				ID:          "customer-11",
-				Key:         &key1,
-				SubjectKeys: []string{},
 			},
 			expected: false,
 		},

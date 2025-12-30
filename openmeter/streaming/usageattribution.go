@@ -24,8 +24,11 @@ func NewCustomerUsageAttribution(id string, key *string, subjectKeys []string) C
 
 // CustomerUsageAttribution holds customer fields that map usage to a customer
 type CustomerUsageAttribution struct {
-	ID          string   `json:"id"`
-	Key         *string  `json:"key"`
+	// We don't attribute usage to the customer by ID but we need it to be able to map subjects to customers
+	ID string `json:"id"`
+	// We attribute usage to the customer by key
+	Key *string `json:"key"`
+	// We attribute usage to the customer by subject keys
 	SubjectKeys []string `json:"subjectKeys"`
 }
 

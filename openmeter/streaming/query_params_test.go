@@ -18,7 +18,7 @@ type testCustomer struct {
 }
 
 func (c testCustomer) GetUsageAttribution() CustomerUsageAttribution {
-	return CustomerUsageAttribution(c)
+	return NewCustomerUsageAttribution(c.ID, c.Key, c.SubjectKeys)
 }
 
 func TestQueryParamsValidate(t *testing.T) {
