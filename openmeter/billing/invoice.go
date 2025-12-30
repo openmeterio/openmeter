@@ -609,10 +609,9 @@ const (
 )
 
 type (
-	CustomerUsageAttribution          = streaming.CustomerUsageAttribution
 	VersionedCustomerUsageAttribution struct {
-		CustomerUsageAttribution `json:",inline"`
-		Type                     string `json:"type"`
+		streaming.CustomerUsageAttribution `json:",inline"`
+		Type                               string `json:"type"`
 	}
 )
 
@@ -622,31 +621,29 @@ var _ streaming.Customer = &InvoiceCustomer{}
 
 // NewInvoiceCustomer creates a new InvoiceCustomer from a customer.Customer
 func NewInvoiceCustomer(cust customer.Customer) InvoiceCustomer {
-	ic := InvoiceCustomer{
-		Key:            cust.Key,
-		CustomerID:     cust.ID,
-		Name:           cust.Name,
-		BillingAddress: cust.BillingAddress,
-	}
-
+	subjectKeys := []string{}
 	if cust.UsageAttribution != nil {
-		ic.UsageAttribution = &CustomerUsageAttribution{
-			SubjectKeys: cust.UsageAttribution.SubjectKeys,
-		}
+		subjectKeys = cust.UsageAttribution.SubjectKeys
 	}
 
-	return ic
+	return InvoiceCustomer{
+		Key:              cust.Key,
+		CustomerID:       cust.ID,
+		Name:             cust.Name,
+		BillingAddress:   cust.BillingAddress,
+		UsageAttribution: lo.ToPtr(streaming.NewCustomerUsageAttribution(cust.ID, cust.Key, subjectKeys)),
+	}
 }
 
 // InvoiceCustomer represents a customer that is used in an invoice
 // We use a specific model as we snapshot the customer at the time of invoice creation,
 // and we don't want to modify the customer entity after it has been sent to the customer.
 type InvoiceCustomer struct {
-	Key              *string                   `json:"key,omitempty"`
-	CustomerID       string                    `json:"customerId,omitempty"`
-	Name             string                    `json:"name"`
-	BillingAddress   *models.Address           `json:"billingAddress,omitempty"`
-	UsageAttribution *CustomerUsageAttribution `json:"usageAttribution,omitempty"`
+	Key              *string                             `json:"key,omitempty"`
+	CustomerID       string                              `json:"customerId,omitempty"`
+	Name             string                              `json:"name"`
+	BillingAddress   *models.Address                     `json:"billingAddress,omitempty"`
+	UsageAttribution *streaming.CustomerUsageAttribution `json:"usageAttribution,omitempty"`
 }
 
 // GetUsageAttribution returns the customer usage attribution

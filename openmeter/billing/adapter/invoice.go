@@ -779,7 +779,7 @@ func mapPeriodFromDB(start, end *time.Time) *billing.Period {
 	}
 }
 
-func mapCustomerUsageAttributionFromDB(customerID string, customerKey *string, vua *billing.VersionedCustomerUsageAttribution) *billing.CustomerUsageAttribution {
+func mapCustomerUsageAttributionFromDB(customerID string, customerKey *string, vua *billing.VersionedCustomerUsageAttribution) *streaming.CustomerUsageAttribution {
 	if vua == nil {
 		return nil
 	}
