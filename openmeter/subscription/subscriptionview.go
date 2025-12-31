@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/samber/lo"
+	"github.com/wI2L/jsondiff"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -158,8 +159,12 @@ func (s *SubscriptionItemView) Validate() error {
 				return fmt.Errorf("entitlement template for Item %s has invalid JSON config: %w", s.SubscriptionItem.Key, err)
 			}
 
-			// FIXME(chrisgacsal): we should not compare JSON documents as strings
-			if configJSON != lo.FromPtr(ent.Config) {
+			diff, err := jsondiff.CompareJSON([]byte(configJSON), []byte(lo.FromPtr(ent.Config)))
+			if err != nil {
+				return fmt.Errorf("failed to compare entitlement with template config for Item %s: %w", s.SubscriptionItem.Key, err)
+			}
+
+			if len(diff) > 0 {
 				return fmt.Errorf("entitlement %s config does not match template config", s.Entitlement.Entitlement.ID)
 			}
 

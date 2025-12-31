@@ -173,10 +173,15 @@ require (
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/timeplus-io/proton-go-driver/v2 v2.1.2 // indirect
 	github.com/tmc/langchaingo v0.1.13 // indirect
 	github.com/twmb/franz-go/pkg/kadm v1.16.0 // indirect
 	github.com/twmb/franz-go/pkg/sr v1.4.0 // indirect
+	github.com/wI2L/jsondiff v0.7.0 // indirect
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
