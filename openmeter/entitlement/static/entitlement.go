@@ -1,13 +1,15 @@
 package staticentitlement
 
 import (
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 )
 
 type Entitlement struct {
 	entitlement.GenericProperties
 
-	Config []byte `json:"config,omitempty"`
+	Config string `json:"config"`
 }
 
 func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, error) {
@@ -15,12 +17,12 @@ func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, 
 		return nil, &entitlement.WrongTypeError{Expected: entitlement.EntitlementTypeStatic, Actual: model.EntitlementType}
 	}
 
-	if model.Config == nil {
+	if lo.FromPtr(model.Config) == "" {
 		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is required"}
 	}
 
 	return &Entitlement{
 		GenericProperties: model.GenericProperties,
-		Config:            model.Config,
+		Config:            *model.Config,
 	}, nil
 }

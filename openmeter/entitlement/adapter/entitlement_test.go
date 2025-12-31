@@ -480,7 +480,7 @@ func TestEntitlementLoadsSubjectAndCustomerAndPreservesAcrossTypedMapping(t *tes
 		FeatureKey:       featureKey,
 		UsageAttribution: cust.GetUsageAttribution(),
 		EntitlementType:  entitlement.EntitlementTypeStatic,
-		Config:           []byte(`{"on":true}`),
+		Config:           lo.ToPtr(`{"on":true}`),
 	})
 	require.NoError(t, err)
 

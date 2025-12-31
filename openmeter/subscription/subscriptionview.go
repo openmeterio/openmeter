@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"slices"
@@ -150,12 +151,15 @@ func (s *SubscriptionItemView) Validate() error {
 				return fmt.Errorf("entitlement template for Item %s is not static: %w", s.SubscriptionItem.Key, err)
 			}
 
-			cfgBytes1, err := e.Config.MarshalJSON()
+			var configJSON string
+
+			err = json.Unmarshal(e.Config, &configJSON)
 			if err != nil {
-				return fmt.Errorf("failed to marshal entitlement template %s config: %w", s.Entitlement.Entitlement.ID, err)
+				return fmt.Errorf("entitlement template for Item %s has invalid JSON config: %w", s.SubscriptionItem.Key, err)
 			}
 
-			if string(cfgBytes1) != string(ent.Config) {
+			// FIXME(chrisgacsal): we should not compare JSON documents as strings
+			if configJSON != lo.FromPtr(ent.Config) {
 				return fmt.Errorf("entitlement %s config does not match template config", s.Entitlement.Entitlement.ID)
 			}
 

@@ -219,7 +219,7 @@ func TestGetAccess(t *testing.T) {
 			FeatureKey:       lo.ToPtr("test-static"),
 			FeatureID:        &feat.ID,
 			EntitlementType:  entitlement.EntitlementTypeStatic,
-			Config:           []byte(`{"value": 10}`),
+			Config:           lo.ToPtr(`{"value": 10}`),
 		}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, ent)

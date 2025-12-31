@@ -2115,14 +2115,14 @@ func (u *EntitlementUpdateOne) SetOrClearActiveTo(value *time.Time) *Entitlement
 	return u.SetActiveTo(*value)
 }
 
-func (u *EntitlementUpdate) SetOrClearConfig(value *[]uint8) *EntitlementUpdate {
+func (u *EntitlementUpdate) SetOrClearConfig(value *string) *EntitlementUpdate {
 	if value == nil {
 		return u.ClearConfig()
 	}
 	return u.SetConfig(*value)
 }
 
-func (u *EntitlementUpdateOne) SetOrClearConfig(value *[]uint8) *EntitlementUpdateOne {
+func (u *EntitlementUpdateOne) SetOrClearConfig(value *string) *EntitlementUpdateOne {
 	if value == nil {
 		return u.ClearConfig()
 	}

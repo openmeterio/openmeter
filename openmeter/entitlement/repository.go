@@ -89,7 +89,7 @@ type CreateEntitlementRepoInputs struct {
 	IssueAfterReset         *float64               `json:"issueAfterReset,omitempty"`
 	IssueAfterResetPriority *uint8                 `json:"issueAfterResetPriority,omitempty"`
 	IsSoftLimit             *bool                  `json:"isSoftLimit,omitempty"`
-	Config                  []byte                 `json:"config,omitempty"`
+	Config                  *string                `json:"config,omitempty"`
 	UsagePeriod             *UsagePeriodInput      `json:"usagePeriod,omitempty"`
 	CurrentUsagePeriod      *timeutil.ClosedPeriod `json:"currentUsagePeriod,omitempty"`
 	PreserveOverageAtReset  *bool                  `json:"preserveOverageAtReset,omitempty"`

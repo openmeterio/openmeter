@@ -1455,7 +1455,7 @@ var (
 		{Name: "issue_after_reset_priority", Type: field.TypeUint8, Nullable: true},
 		{Name: "is_soft_limit", Type: field.TypeBool, Nullable: true},
 		{Name: "preserve_overage_at_reset", Type: field.TypeBool, Nullable: true},
-		{Name: "config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "usage_period_interval", Type: field.TypeString, Nullable: true},
 		{Name: "usage_period_anchor", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_start", Type: field.TypeTime, Nullable: true},

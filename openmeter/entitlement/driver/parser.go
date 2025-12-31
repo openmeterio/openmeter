@@ -1,6 +1,7 @@
 package entitlementdriver
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -97,9 +98,13 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 		SubjectKey:         subjKey,
 		Type:               api.EntitlementStaticType(static.EntitlementType),
 		UpdatedAt:          static.UpdatedAt,
-		Config:             static.Config,
 		CurrentUsagePeriod: mapPeriod(static.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
+	}
+
+	apiRes.Config, err = json.Marshal(static.Config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal static entitlement config: %w", err)
 	}
 
 	return apiRes, nil
@@ -190,7 +195,7 @@ func MapEntitlementValueToAPI(entitlementValue entitlement.EntitlementValue) (ap
 	case *staticentitlement.StaticEntitlementValue:
 		var config *string
 		if len(ent.Config) > 0 {
-			config = convert.ToPointer(string(ent.Config))
+			config = lo.ToPtr(ent.Config)
 		}
 
 		return api.EntitlementValue{
@@ -310,8 +315,19 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttri
 			FeatureKey:       v.FeatureKey,
 			UsageAttribution: usageAttribution,
 			EntitlementType:  entitlement.EntitlementTypeStatic,
-			Config:           []byte(v.Config),
 		}
+
+		if len(v.Config) > 0 {
+			var config string
+
+			err = json.Unmarshal(v.Config, &config)
+			if err != nil {
+				return request, fmt.Errorf("failed to unmarshal static entitlement config: %w", err)
+			}
+
+			request.Config = lo.ToPtr(config)
+		}
+
 		if v.UsagePeriod != nil {
 			iv, err := MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
 			if err != nil {

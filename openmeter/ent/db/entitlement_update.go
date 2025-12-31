@@ -10,7 +10,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -93,14 +92,16 @@ func (_u *EntitlementUpdate) ClearActiveTo() *EntitlementUpdate {
 }
 
 // SetConfig sets the "config" field.
-func (_u *EntitlementUpdate) SetConfig(v []uint8) *EntitlementUpdate {
+func (_u *EntitlementUpdate) SetConfig(v string) *EntitlementUpdate {
 	_u.mutation.SetConfig(v)
 	return _u
 }
 
-// AppendConfig appends value to the "config" field.
-func (_u *EntitlementUpdate) AppendConfig(v []uint8) *EntitlementUpdate {
-	_u.mutation.AppendConfig(v)
+// SetNillableConfig sets the "config" field if the given value is not nil.
+func (_u *EntitlementUpdate) SetNillableConfig(v *string) *EntitlementUpdate {
+	if v != nil {
+		_u.SetConfig(*v)
+	}
 	return _u
 }
 
@@ -430,15 +431,10 @@ func (_u *EntitlementUpdate) sqlSave(ctx context.Context) (_node int, err error)
 		_spec.ClearField(entitlement.FieldPreserveOverageAtReset, field.TypeBool)
 	}
 	if value, ok := _u.mutation.Config(); ok {
-		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
-	}
-	if value, ok := _u.mutation.AppendedConfig(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, entitlement.FieldConfig, value)
-		})
+		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
 	}
 	if _u.mutation.ConfigCleared() {
-		_spec.ClearField(entitlement.FieldConfig, field.TypeJSON)
+		_spec.ClearField(entitlement.FieldConfig, field.TypeString)
 	}
 	if _u.mutation.UsagePeriodIntervalCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeString)
@@ -730,14 +726,16 @@ func (_u *EntitlementUpdateOne) ClearActiveTo() *EntitlementUpdateOne {
 }
 
 // SetConfig sets the "config" field.
-func (_u *EntitlementUpdateOne) SetConfig(v []uint8) *EntitlementUpdateOne {
+func (_u *EntitlementUpdateOne) SetConfig(v string) *EntitlementUpdateOne {
 	_u.mutation.SetConfig(v)
 	return _u
 }
 
-// AppendConfig appends value to the "config" field.
-func (_u *EntitlementUpdateOne) AppendConfig(v []uint8) *EntitlementUpdateOne {
-	_u.mutation.AppendConfig(v)
+// SetNillableConfig sets the "config" field if the given value is not nil.
+func (_u *EntitlementUpdateOne) SetNillableConfig(v *string) *EntitlementUpdateOne {
+	if v != nil {
+		_u.SetConfig(*v)
+	}
 	return _u
 }
 
@@ -1097,15 +1095,10 @@ func (_u *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlement
 		_spec.ClearField(entitlement.FieldPreserveOverageAtReset, field.TypeBool)
 	}
 	if value, ok := _u.mutation.Config(); ok {
-		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
-	}
-	if value, ok := _u.mutation.AppendedConfig(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, entitlement.FieldConfig, value)
-		})
+		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
 	}
 	if _u.mutation.ConfigCleared() {
-		_spec.ClearField(entitlement.FieldConfig, field.TypeJSON)
+		_spec.ClearField(entitlement.FieldConfig, field.TypeString)
 	}
 	if _u.mutation.UsagePeriodIntervalCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeString)

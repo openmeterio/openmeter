@@ -1,6 +1,7 @@
 package entitlement
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"slices"
@@ -94,7 +95,7 @@ type CreateEntitlementInputs struct {
 	IssueAfterReset         *float64               `json:"issueAfterReset,omitempty"`
 	IssueAfterResetPriority *uint8                 `json:"issueAfterResetPriority,omitempty"`
 	IsSoftLimit             *bool                  `json:"isSoftLimit,omitempty"`
-	Config                  []byte                 `json:"config,omitempty"`
+	Config                  *string                `json:"config,omitempty"`
 	UsagePeriod             *UsagePeriodInput      `json:"usagePeriod,omitempty"`
 	PreserveOverageAtReset  *bool                  `json:"preserveOverageAtReset,omitempty"`
 
@@ -217,6 +218,16 @@ func (c CreateEntitlementInputs) Validate() error {
 		}
 	}
 
+	if c.EntitlementType == EntitlementTypeStatic {
+		if c.Config == nil {
+			return fmt.Errorf("config is required for static entitlements")
+		}
+
+		if !json.Valid([]byte(*c.Config)) {
+			return fmt.Errorf("invalid JSON config")
+		}
+	}
+
 	return nil
 }
 
@@ -238,7 +249,7 @@ type Entitlement struct {
 	PreserveOverageAtReset  *bool      `json:"preserveOverageAtReset,omitempty"`
 
 	// static
-	Config []byte `json:"config,omitempty"`
+	Config *string `json:"config,omitempty"`
 }
 
 func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {

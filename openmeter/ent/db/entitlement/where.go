@@ -136,6 +136,11 @@ func PreserveOverageAtReset(v bool) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldPreserveOverageAtReset, v))
 }
 
+// Config applies equality check predicate on the "config" field. It's identical to ConfigEQ.
+func Config(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldConfig, v))
+}
+
 // UsagePeriodInterval applies equality check predicate on the "usage_period_interval" field. It's identical to UsagePeriodIntervalEQ.
 func UsagePeriodInterval(v datetime.ISODurationString) predicate.Entitlement {
 	vc := string(v)
@@ -867,6 +872,61 @@ func PreserveOverageAtResetNotNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldNotNull(FieldPreserveOverageAtReset))
 }
 
+// ConfigEQ applies the EQ predicate on the "config" field.
+func ConfigEQ(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldConfig, v))
+}
+
+// ConfigNEQ applies the NEQ predicate on the "config" field.
+func ConfigNEQ(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldConfig, v))
+}
+
+// ConfigIn applies the In predicate on the "config" field.
+func ConfigIn(vs ...string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldConfig, vs...))
+}
+
+// ConfigNotIn applies the NotIn predicate on the "config" field.
+func ConfigNotIn(vs ...string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldConfig, vs...))
+}
+
+// ConfigGT applies the GT predicate on the "config" field.
+func ConfigGT(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldConfig, v))
+}
+
+// ConfigGTE applies the GTE predicate on the "config" field.
+func ConfigGTE(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldConfig, v))
+}
+
+// ConfigLT applies the LT predicate on the "config" field.
+func ConfigLT(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldConfig, v))
+}
+
+// ConfigLTE applies the LTE predicate on the "config" field.
+func ConfigLTE(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldConfig, v))
+}
+
+// ConfigContains applies the Contains predicate on the "config" field.
+func ConfigContains(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldContains(FieldConfig, v))
+}
+
+// ConfigHasPrefix applies the HasPrefix predicate on the "config" field.
+func ConfigHasPrefix(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldHasPrefix(FieldConfig, v))
+}
+
+// ConfigHasSuffix applies the HasSuffix predicate on the "config" field.
+func ConfigHasSuffix(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldHasSuffix(FieldConfig, v))
+}
+
 // ConfigIsNil applies the IsNil predicate on the "config" field.
 func ConfigIsNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldIsNull(FieldConfig))
@@ -875,6 +935,16 @@ func ConfigIsNil() predicate.Entitlement {
 // ConfigNotNil applies the NotNil predicate on the "config" field.
 func ConfigNotNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldNotNull(FieldConfig))
+}
+
+// ConfigEqualFold applies the EqualFold predicate on the "config" field.
+func ConfigEqualFold(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEqualFold(FieldConfig, v))
+}
+
+// ConfigContainsFold applies the ContainsFold predicate on the "config" field.
+func ConfigContainsFold(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldContainsFold(FieldConfig, v))
 }
 
 // UsagePeriodIntervalEQ applies the EQ predicate on the "usage_period_interval" field.

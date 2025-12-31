@@ -282,6 +282,11 @@ func ByPreserveOverageAtReset(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPreserveOverageAtReset, opts...).ToFunc()
 }
 
+// ByConfig orders the results by the config field.
+func ByConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldConfig, opts...).ToFunc()
+}
+
 // ByUsagePeriodInterval orders the results by the usage_period_interval field.
 func ByUsagePeriodInterval(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUsagePeriodInterval, opts...).ToFunc()

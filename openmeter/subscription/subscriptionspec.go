@@ -930,7 +930,15 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 			return def, true, fmt.Errorf("failed to get static entitlement template: %w", err)
 		}
 		scheduleInput.Metadata = tpl.Metadata
-		scheduleInput.Config = tpl.Config
+
+		var configJSON string
+
+		err = json.Unmarshal(tpl.Config, &configJSON)
+		if err != nil {
+			return def, true, fmt.Errorf("failed to unmarshal static entitlement template config: %w", err)
+		}
+
+		scheduleInput.Config = &configJSON
 	case entitlement.EntitlementTypeMetered:
 		tpl, err := meta.EntitlementTemplate.AsMetered()
 		if err != nil {
