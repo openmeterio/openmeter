@@ -1,12 +1,12 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
-	"golang.org/x/net/context"
 
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
