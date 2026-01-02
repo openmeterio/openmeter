@@ -33,10 +33,13 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (pagination.Result[customer.Customer], error) {
 		// Build the database query
 		now := clock.Now().UTC()
+		expandSubscriptions := slices.Contains(input.Expands, customer.ExpandSubscriptions)
 
 		query := repo.db.Customer.Query().Where(customerdb.Namespace(input.Namespace))
 		query = WithSubjects(query, now)
-		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
+
+		// Expands
+		if expandSubscriptions {
 			query = WithActiveSubscriptions(query, now)
 		}
 
@@ -71,12 +74,31 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			))
 		}
 
-		if input.PlanKey != nil {
-			applyActiveSubscriptionFilterWithPlanKey(query, now, *input.PlanKey)
-		}
-
 		if len(input.CustomerIDs) > 0 {
 			query = query.Where(customerdb.IDIn(input.CustomerIDs...))
+		}
+
+		// Subscription filters
+		if input.PlanID != nil || input.PlanKey != nil {
+			subscriptionPredicates := activeSubscriptionFilterPredicates(now)
+
+			// Plan ID filter
+			if input.PlanID != nil {
+				subscriptionPredicates = append(subscriptionPredicates, subscriptiondb.HasPlanWith(
+					plandb.ID(*input.PlanID),
+				))
+			}
+
+			// Plan key filter
+			if input.PlanKey != nil {
+				subscriptionPredicates = append(subscriptionPredicates, subscriptiondb.HasPlanWith(
+					plandb.Key(*input.PlanKey),
+				))
+			}
+
+			query = query.Where(
+				customerdb.HasSubscriptionWith(subscriptionPredicates...),
+			)
 		}
 
 		// Order
@@ -725,28 +747,13 @@ func WithSubjects(q *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
 // WithActiveSubscriptions returns a query with the subscription
 func WithActiveSubscriptions(query *entdb.CustomerQuery, at time.Time) *entdb.CustomerQuery {
 	return query.WithSubscription(func(query *entdb.SubscriptionQuery) {
-		applyActiveSubscriptionFilter(query, at)
+		query.Where(activeSubscriptionFilterPredicates(at)...)
 		query.WithPlan()
 	})
 }
 
-func applyActiveSubscriptionFilter(query *entdb.SubscriptionQuery, at time.Time) {
-	query.Where(activeSubscriptionFilter(at)...)
-}
-
-func applyActiveSubscriptionFilterWithPlanKey(query *entdb.CustomerQuery, at time.Time, planKey string) {
-	predicates := activeSubscriptionFilter(at)
-
-	predicates = append(predicates, subscriptiondb.HasPlanWith(
-		plandb.Key(planKey),
-	))
-
-	query.Where(
-		customerdb.HasSubscriptionWith(predicates...),
-	)
-}
-
-func activeSubscriptionFilter(at time.Time) []predicate.Subscription {
+// activeSubscriptionFilterPredicates returns the active subscription predicates
+func activeSubscriptionFilterPredicates(at time.Time) []predicate.Subscription {
 	return []predicate.Subscription{
 		subscriptiondb.ActiveFromLTE(at),
 		subscriptiondb.Or(

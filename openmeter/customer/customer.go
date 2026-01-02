@@ -307,6 +307,7 @@ type ListCustomersInput struct {
 	Name         *string
 	PrimaryEmail *string
 	Subject      *string
+	PlanID       *string
 	PlanKey      *string
 	CustomerIDs  []string
 
@@ -314,20 +315,66 @@ type ListCustomersInput struct {
 	Expands Expands
 }
 
+// Validate validates the ListCustomersInput
 func (i ListCustomersInput) Validate() error {
+	// Validate the namespace
 	if i.Namespace == "" {
 		return models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
+	// Validate the expands
 	if err := i.Expands.Validate(); err != nil {
 		return models.NewGenericValidationError(err)
+	}
+
+	// Mutually exclusive filters
+	if i.PlanID != nil && i.PlanKey != nil {
+		return models.NewGenericValidationError(errors.New("plan id and plan key cannot be provided at the same time"))
+	}
+
+	// Validate the plan ID filter
+	if i.PlanID != nil && *i.PlanID == "" {
+		return models.NewGenericValidationError(errors.New("plan id cannot be empty when provided"))
+	}
+
+	// Validate the plan key filter
+	if i.PlanKey != nil && *i.PlanKey == "" {
+		return models.NewGenericValidationError(errors.New("plan key cannot be empty when provided"))
+	}
+
+	// Validate the customer IDs filter
+	if len(i.CustomerIDs) > 0 {
+		for _, customerID := range i.CustomerIDs {
+			if customerID == "" {
+				return models.NewGenericValidationError(errors.New("customer id cannot be empty when provided"))
+			}
+		}
+	}
+
+	// Validate the key filter
+	if i.Key != nil && *i.Key == "" {
+		return models.NewGenericValidationError(errors.New("key cannot be empty when provided"))
+	}
+
+	// Validate the name filter
+	if i.Name != nil && *i.Name == "" {
+		return models.NewGenericValidationError(errors.New("name cannot be empty when provided"))
+	}
+
+	// Validate the primary email filter
+	if i.PrimaryEmail != nil && *i.PrimaryEmail == "" {
+		return models.NewGenericValidationError(errors.New("primary email cannot be empty when provided"))
+	}
+
+	// Validate the subject filter
+	if i.Subject != nil && *i.Subject == "" {
+		return models.NewGenericValidationError(errors.New("subject cannot be empty when provided"))
 	}
 
 	return nil
 }
 
 // ListCustomerUsageAttributionsInput represents the input for the ListCustomerUsageAttributions method
-
 type ListCustomerUsageAttributionsInput struct {
 	Namespace string
 	pagination.Page
