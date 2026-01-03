@@ -10,9 +10,9 @@ import (
 
 // ExportSyntheticMeterDataIter wraps ExportSyntheticMeterData with an iterator interface.
 // If the caller stops iterating early, the underlying operation is canceled.
-func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, config meterexport.DataExportConfig) (iter.Seq2[streaming.RawEvent, error], error) {
+func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, params meterexport.DataExportParams) (iter.Seq2[streaming.RawEvent, error], error) {
 	// Validate upfront so we can return an error before creating the iterator
-	if _, _, err := s.validateAndGetMeter(ctx, config); err != nil {
+	if _, _, err := s.validateAndGetMeter(ctx, params.DataExportConfig); err != nil {
 		return nil, err
 	}
 
@@ -29,7 +29,7 @@ func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, config meter
 
 		// Start the export in a goroutine
 		go func() {
-			if err := s.ExportSyntheticMeterData(ctx, config, resultCh, errCh); err != nil {
+			if err := s.ExportSyntheticMeterData(ctx, params, resultCh, errCh); err != nil {
 				startupErrCh <- err
 			}
 			close(startupErrCh)

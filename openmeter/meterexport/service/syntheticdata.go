@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -55,13 +54,13 @@ func (s *service) validateAndGetMeter(ctx context.Context, config meterexport.Da
 	return m, descriptor, nil
 }
 
-func (s *service) ExportSyntheticMeterData(ctx context.Context, config meterexport.DataExportConfig, resultCh chan<- streaming.RawEvent, errCh chan<- error) error {
+func (s *service) ExportSyntheticMeterData(ctx context.Context, params meterexport.DataExportParams, resultCh chan<- streaming.RawEvent, errCh chan<- error) error {
 	defer func() {
 		close(resultCh)
 		close(errCh)
 	}()
 
-	m, _, err := s.validateAndGetMeter(ctx, config)
+	m, _, err := s.validateAndGetMeter(ctx, params.DataExportConfig)
 	if err != nil {
 		return err
 	}
@@ -122,10 +121,10 @@ func (s *service) ExportSyntheticMeterData(ctx context.Context, config meterexpo
 		return s.funnel(ctx, funnelParams{
 			meter: m,
 			queryParams: streaming.QueryParams{
-				From:           &config.Period.From,
-				To:             config.Period.To,
-				WindowSize:     &config.ExportWindowSize,
-				WindowTimeZone: time.UTC,
+				From:           &params.Period.From,
+				To:             params.Period.To,
+				WindowSize:     &params.ExportWindowSize,
+				WindowTimeZone: params.ExportWindowTimeZone,
 				GroupBy:        []string{"subject"},
 			},
 		}, meterRowCh, meterRowErrCh)
