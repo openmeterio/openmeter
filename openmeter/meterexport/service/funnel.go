@@ -101,6 +101,7 @@ func (s *service) funnel(ctx context.Context, params funnelParams, resultCh chan
 			To:             &queryTo,
 			WindowSize:     params.queryParams.WindowSize,
 			WindowTimeZone: params.queryParams.WindowTimeZone,
+			GroupBy:        params.queryParams.GroupBy,
 		}
 
 		rows, err := s.StreamingConnector.QueryMeter(ctx, params.meter.Namespace, params.meter, queryParams)
