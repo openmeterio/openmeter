@@ -49,16 +49,8 @@ func (p funnelParams) validateUnsupportedParams() []error {
 		errs = append(errs, errors.New("filter customer is not supported"))
 	}
 
-	if len(p.queryParams.FilterSubject) > 0 {
-		errs = append(errs, errors.New("filter subject is not supported"))
-	}
-
 	if len(p.queryParams.FilterGroupBy) > 0 {
 		errs = append(errs, errors.New("filter group by is not supported"))
-	}
-
-	if len(p.queryParams.GroupBy) > 0 {
-		errs = append(errs, errors.New("group by is not supported"))
 	}
 
 	return errs
@@ -101,6 +93,7 @@ func (s *service) funnel(ctx context.Context, params funnelParams, resultCh chan
 			To:             &queryTo,
 			WindowSize:     params.queryParams.WindowSize,
 			WindowTimeZone: params.queryParams.WindowTimeZone,
+			GroupBy:        params.queryParams.GroupBy,
 		}
 
 		rows, err := s.StreamingConnector.QueryMeter(ctx, params.meter.Namespace, params.meter, queryParams)

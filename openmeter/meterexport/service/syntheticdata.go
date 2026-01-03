@@ -126,6 +126,7 @@ func (s *service) ExportSyntheticMeterData(ctx context.Context, config meterexpo
 				To:             config.Period.To,
 				WindowSize:     &config.ExportWindowSize,
 				WindowTimeZone: time.UTC,
+				GroupBy:        []string{"subject"},
 			},
 		}, meterRowCh, meterRowErrCh)
 	})
@@ -146,7 +147,7 @@ func (s *service) createEventFromMeterRow(m meter.Meter, row meter.MeterQueryRow
 		ID:         ulid.Make().String(),
 		Type:       m.EventType, // We reuse the same type as the source meter
 		Source:     fmt.Sprintf("%s:%s/%s", s.EventSourceGroup, m.Namespace, m.ID),
-		Subject:    s.ExportSubject,
+		Subject:    lo.FromPtr(row.Subject),
 		IngestedAt: clock.Now(),
 		Time:       row.WindowStart,
 		CustomerID: nil,
