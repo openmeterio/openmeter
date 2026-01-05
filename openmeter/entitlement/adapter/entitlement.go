@@ -260,16 +260,24 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 
 			result := make([]balanceworker.ListAffectedEntitlementsResponse, 0)
 
+			now := clock.Now()
+
 			for _, pair := range eventFilters {
 				entities, err := repo.db.Entitlement.Query().
 					Where(
 						db_entitlement.Namespace(pair.Namespace),
 						db_entitlement.HasCustomerWith(
 							customerdb.Namespace(pair.Namespace),
-							customerNotDeletedAt(clock.Now()),
-							customerdb.HasSubjectsWith(
-								customersubjectsdb.SubjectKey(pair.EventSubject),
-								customersubjectsdb.DeletedAtIsNil(),
+							customerNotDeletedAt(now),
+							customerdb.Or(
+								customerdb.Key(pair.EventSubject),
+								customerdb.HasSubjectsWith(
+									customersubjectsdb.SubjectKey(pair.EventSubject),
+									customersubjectsdb.Or(
+										customersubjectsdb.DeletedAtIsNil(),
+										customersubjectsdb.DeletedAtGT(now),
+									),
+								),
 							),
 						),
 						db_entitlement.HasFeatureWith(db_feature.MeterSlugIn(pair.MeterSlugs...)),
@@ -277,7 +285,7 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 					WithFeature().
 					WithCustomer(
 						func(q *db.CustomerQuery) {
-							customeradapter.WithSubjects(q, clock.Now())
+							customeradapter.WithSubjects(q, now)
 						},
 					).
 					All(ctx)
