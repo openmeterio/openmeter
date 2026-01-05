@@ -83,16 +83,18 @@ func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.Namespace
 func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams) (pagination.Result[grant.Grant], error) {
 	query := g.db.Grant.Query().Where(db_grant.Namespace(params.Namespace))
 
+	now := clock.Now()
+
 	if params.OwnerID != nil {
 		query = query.Where(db_grant.OwnerID(*params.OwnerID))
 	}
 
 	if !params.IncludeDeleted {
 		query = query.Where(
-			db_grant.Or(db_grant.DeletedAtIsNil(), db_grant.DeletedAtGT(clock.Now())),
+			db_grant.Or(db_grant.DeletedAtIsNil(), db_grant.DeletedAtGT(now)),
 			db_grant.HasEntitlementWith(db_entitlement.Or(
 				db_entitlement.DeletedAtIsNil(),
-				db_entitlement.DeletedAtGT(clock.Now()),
+				db_entitlement.DeletedAtGT(now),
 			)),
 		)
 	}
@@ -103,12 +105,12 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 				customerdb.IDIn(params.CustomerIDs...),
 				customerdb.Or(
 					customerdb.DeletedAtIsNil(),
-					customerdb.DeletedAtGT(clock.Now()),
+					customerdb.DeletedAtGT(now),
 				),
 			),
 			db_entitlement.Or(
 				db_entitlement.DeletedAtIsNil(),
-				db_entitlement.DeletedAtGT(clock.Now()),
+				db_entitlement.DeletedAtGT(now),
 			),
 		))
 	}
@@ -118,11 +120,14 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 			db_entitlement.HasCustomerWith(
 				customerdb.HasSubjectsWith(
 					customersubjectsdb.SubjectKeyIn(params.SubjectKeys...),
-					customersubjectsdb.DeletedAtIsNil(),
+					customersubjectsdb.Or(
+						customersubjectsdb.DeletedAtIsNil(),
+						customersubjectsdb.DeletedAtGT(now),
+					),
 				),
 				customerdb.Or(
 					customerdb.DeletedAtIsNil(),
-					customerdb.DeletedAtGT(clock.Now()),
+					customerdb.DeletedAtGT(now),
 				),
 			),
 		))
