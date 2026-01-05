@@ -5722,7 +5722,7 @@ export interface components {
       readonly overage?: number
       /**
        * Format: double
-       * @description The summed value of all grant amounts that are active at the time of the query.
+       * @description Only available for metered entitlements. The summed amount of all grant active at query time PLUS the used amount of since inactive grants.
        * @example 100
        */
       readonly totalAvailableGrantAmount?: number

@@ -90,7 +90,7 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		Balance:                   res.Snapshot.Balance(),
 		UsageInPeriod:             res.Snapshot.Usage.Usage,
 		Overage:                   res.Snapshot.Overage,
-		TotalAvailableGrantAmount: res.RunParams.TotalAvailableGrantAmount(),
+		TotalAvailableGrantAmount: res.TotalAvailableGrantAmount(),
 		StartOfPeriod:             startOfPeriod,
 	}, nil
 }

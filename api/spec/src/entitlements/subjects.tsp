@@ -272,7 +272,7 @@ model EntitlementValue {
   overage?: float64;
 
   /**
-   * The summed value of all grant amounts that are active at the time of the query.
+   * Only available for metered entitlements. The summed amount of all grant active at query time PLUS the used amount of since inactive grants.
    */
   @example(100)
   @visibility(Lifecycle.Read)
