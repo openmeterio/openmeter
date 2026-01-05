@@ -97,6 +97,22 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 		)
 	}
 
+	if len(params.CustomerIDs) > 0 {
+		query = query.Where(db_grant.HasEntitlementWith(
+			db_entitlement.HasCustomerWith(
+				customerdb.IDIn(params.CustomerIDs...),
+				customerdb.Or(
+					customerdb.DeletedAtIsNil(),
+					customerdb.DeletedAtGT(clock.Now()),
+				),
+			),
+			db_entitlement.Or(
+				db_entitlement.DeletedAtIsNil(),
+				db_entitlement.DeletedAtGT(clock.Now()),
+			),
+		))
+	}
+
 	if len(params.SubjectKeys) > 0 {
 		query = query.Where(db_grant.HasEntitlementWith(
 			db_entitlement.HasCustomerWith(
@@ -104,7 +120,10 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 					customersubjectsdb.SubjectKeyIn(params.SubjectKeys...),
 					customersubjectsdb.DeletedAtIsNil(),
 				),
-				customerdb.DeletedAtIsNil(),
+				customerdb.Or(
+					customerdb.DeletedAtIsNil(),
+					customerdb.DeletedAtGT(clock.Now()),
+				),
 			),
 		))
 	}

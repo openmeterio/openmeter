@@ -3,7 +3,6 @@ package creditdriver
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"slices"
 
@@ -240,9 +239,12 @@ func (h *grantHandler) ListGrantsV2() ListGrantsV2Handler {
 				return ListGrantsV2HandlerRequest{}, err
 			}
 
-			// Build subject keys from customers if provided
-			subjectKeys := []string{}
-			if p.Params.Customer != nil {
+			// Resolve customers by ID or Key
+			var customerIDs []string
+
+			if p.Params.Customer != nil && len(*p.Params.Customer) > 0 {
+				customerIDs = make([]string, 0, len(*p.Params.Customer))
+
 				for _, idOrKey := range *p.Params.Customer {
 					cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 						CustomerIDOrKey: &customer.CustomerIDOrKey{Namespace: ns, IDOrKey: idOrKey},
@@ -251,16 +253,12 @@ func (h *grantHandler) ListGrantsV2() ListGrantsV2Handler {
 						return ListGrantsV2HandlerRequest{}, err
 					}
 
+					// Skip deleted customers
 					if cus != nil && cus.IsDeleted() {
-						return ListGrantsV2HandlerRequest{},
-							models.NewGenericPreConditionFailedError(
-								fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
-							)
+						continue
 					}
 
-					if cus.UsageAttribution != nil {
-						subjectKeys = append(subjectKeys, cus.UsageAttribution.SubjectKeys...)
-					}
+					customerIDs = append(customerIDs, cus.ID)
 				}
 			}
 
@@ -270,7 +268,7 @@ func (h *grantHandler) ListGrantsV2() ListGrantsV2Handler {
 				Order:            commonhttp.GetSortOrder(api.SortOrderASC, p.Params.Order),
 				OrderBy:          grant.OrderBy(strcase.CamelToSnake(defaultx.WithDefault((*string)(p.Params.OrderBy), string(grant.OrderByEffectiveAt)))),
 				FeatureIdsOrKeys: convert.DerefHeaderPtr[string](p.Params.Feature),
-				SubjectKeys:      subjectKeys,
+				CustomerIDs:      customerIDs,
 			}
 
 			// Pagination: support both page/pageSize and limit/offset

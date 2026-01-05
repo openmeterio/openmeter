@@ -43,6 +43,7 @@ type ListParams struct {
 	Namespace        string
 	OwnerID          *string
 	IncludeDeleted   bool
+	CustomerIDs      []string
 	SubjectKeys      []string
 	FeatureIdsOrKeys []string
 	Page             pagination.Page
