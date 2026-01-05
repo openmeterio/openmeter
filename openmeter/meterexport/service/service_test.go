@@ -53,7 +53,7 @@ func TestExportSyntheticMeterData(t *testing.T) {
 	tests := []struct {
 		name           string
 		meter          meter.Meter
-		config         meterexport.DataExportConfig
+		params         meterexport.DataExportParams
 		events         []testutils.SimpleEvent
 		wantErr        bool
 		wantErrMsg     string
@@ -76,11 +76,14 @@ func TestExportSyntheticMeterData(t *testing.T) {
 				EventType:     "test-event",
 				ValueProperty: lo.ToPtr("$.value"),
 			},
-			config: meterexport.DataExportConfig{
-				ExportWindowSize: meter.WindowSizeMinute,
-				MeterID: models.NamespacedID{
-					Namespace: "test-ns",
-					ID:        "meter-1",
+			params: meterexport.DataExportParams{
+				DataExportConfig: meterexport.DataExportConfig{
+					ExportWindowSize:     meter.WindowSizeMinute,
+					ExportWindowTimeZone: time.UTC,
+					MeterID: models.NamespacedID{
+						Namespace: "test-ns",
+						ID:        "meter-1",
+					},
 				},
 				Period: timeutil.StartBoundedPeriod{
 					From: now.Add(-10 * time.Minute),
@@ -110,11 +113,14 @@ func TestExportSyntheticMeterData(t *testing.T) {
 				Aggregation: meter.MeterAggregationCount,
 				EventType:   "count-event",
 			},
-			config: meterexport.DataExportConfig{
-				ExportWindowSize: meter.WindowSizeMinute,
-				MeterID: models.NamespacedID{
-					Namespace: "test-ns",
-					ID:        "meter-count",
+			params: meterexport.DataExportParams{
+				DataExportConfig: meterexport.DataExportConfig{
+					ExportWindowSize:     meter.WindowSizeMinute,
+					ExportWindowTimeZone: time.UTC,
+					MeterID: models.NamespacedID{
+						Namespace: "test-ns",
+						ID:        "meter-count",
+					},
 				},
 				Period: timeutil.StartBoundedPeriod{
 					From: now.Add(-5 * time.Minute),
@@ -144,11 +150,14 @@ func TestExportSyntheticMeterData(t *testing.T) {
 				EventType:     "avg-event",
 				ValueProperty: lo.ToPtr("$.value"),
 			},
-			config: meterexport.DataExportConfig{
-				ExportWindowSize: meter.WindowSizeMinute,
-				MeterID: models.NamespacedID{
-					Namespace: "test-ns",
-					ID:        "meter-avg",
+			params: meterexport.DataExportParams{
+				DataExportConfig: meterexport.DataExportConfig{
+					ExportWindowSize:     meter.WindowSizeMinute,
+					ExportWindowTimeZone: time.UTC,
+					MeterID: models.NamespacedID{
+						Namespace: "test-ns",
+						ID:        "meter-avg",
+					},
 				},
 				Period: timeutil.StartBoundedPeriod{
 					From: now.Add(-5 * time.Minute),
@@ -161,11 +170,14 @@ func TestExportSyntheticMeterData(t *testing.T) {
 		{
 			name:  "should fail validation with missing meter ID",
 			meter: meter.Meter{},
-			config: meterexport.DataExportConfig{
-				ExportWindowSize: meter.WindowSizeMinute,
-				MeterID: models.NamespacedID{
-					Namespace: "test-ns",
-					ID:        "",
+			params: meterexport.DataExportParams{
+				DataExportConfig: meterexport.DataExportConfig{
+					ExportWindowSize:     meter.WindowSizeMinute,
+					ExportWindowTimeZone: time.UTC,
+					MeterID: models.NamespacedID{
+						Namespace: "test-ns",
+						ID:        "",
+					},
 				},
 				Period: timeutil.StartBoundedPeriod{
 					From: now.Add(-5 * time.Minute),
@@ -178,11 +190,14 @@ func TestExportSyntheticMeterData(t *testing.T) {
 		{
 			name:  "should fail when meter not found",
 			meter: meter.Meter{},
-			config: meterexport.DataExportConfig{
-				ExportWindowSize: meter.WindowSizeMinute,
-				MeterID: models.NamespacedID{
-					Namespace: "test-ns",
-					ID:        "non-existent",
+			params: meterexport.DataExportParams{
+				DataExportConfig: meterexport.DataExportConfig{
+					ExportWindowSize:     meter.WindowSizeMinute,
+					ExportWindowTimeZone: time.UTC,
+					MeterID: models.NamespacedID{
+						Namespace: "test-ns",
+						ID:        "non-existent",
+					},
 				},
 				Period: timeutil.StartBoundedPeriod{
 					From: now.Add(-5 * time.Minute),
@@ -221,7 +236,7 @@ func TestExportSyntheticMeterData(t *testing.T) {
 
 			// Execute
 			ctx := context.Background()
-			err = svc.ExportSyntheticMeterData(ctx, tt.config, resultCh, errCh)
+			err = svc.ExportSyntheticMeterData(ctx, tt.params, resultCh, errCh)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -232,7 +247,7 @@ func TestExportSyntheticMeterData(t *testing.T) {
 			require.NoError(t, err)
 
 			// Get descriptor separately
-			descriptor, err := svc.GetTargetMeterDescriptor(ctx, tt.config)
+			descriptor, err := svc.GetTargetMeterDescriptor(ctx, tt.params.DataExportConfig)
 			require.NoError(t, err)
 
 			// Collect results
@@ -319,11 +334,14 @@ func TestExportSyntheticMeterData_ContextCancellation(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 
-		config := meterexport.DataExportConfig{
-			ExportWindowSize: meter.WindowSizeMinute,
-			MeterID: models.NamespacedID{
-				Namespace: "test-ns",
-				ID:        "meter-1",
+		params := meterexport.DataExportParams{
+			DataExportConfig: meterexport.DataExportConfig{
+				ExportWindowSize:     meter.WindowSizeMinute,
+				ExportWindowTimeZone: time.UTC,
+				MeterID: models.NamespacedID{
+					Namespace: "test-ns",
+					ID:        "meter-1",
+				},
 			},
 			Period: timeutil.StartBoundedPeriod{
 				From: now.Add(-1000 * time.Minute),
@@ -335,7 +353,7 @@ func TestExportSyntheticMeterData_ContextCancellation(t *testing.T) {
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			_ = svc.ExportSyntheticMeterData(ctx, config, resultCh, errCh)
+			_ = svc.ExportSyntheticMeterData(ctx, params, resultCh, errCh)
 		}()
 
 		// Receive first event to confirm operation started
@@ -395,11 +413,14 @@ func TestExportSyntheticMeterData_ContextCancellation(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		config := meterexport.DataExportConfig{
-			ExportWindowSize: meter.WindowSizeMinute,
-			MeterID: models.NamespacedID{
-				Namespace: "test-ns",
-				ID:        "meter-1",
+		params := meterexport.DataExportParams{
+			DataExportConfig: meterexport.DataExportConfig{
+				ExportWindowSize:     meter.WindowSizeMinute,
+				ExportWindowTimeZone: time.UTC,
+				MeterID: models.NamespacedID{
+					Namespace: "test-ns",
+					ID:        "meter-1",
+				},
 			},
 			Period: timeutil.StartBoundedPeriod{
 				From: now.Add(-10 * time.Minute),
@@ -407,7 +428,7 @@ func TestExportSyntheticMeterData_ContextCancellation(t *testing.T) {
 			},
 		}
 
-		exportErr := svc.ExportSyntheticMeterData(ctx, config, resultCh, errCh)
+		exportErr := svc.ExportSyntheticMeterData(ctx, params, resultCh, errCh)
 
 		// The function itself doesn't return an error for context cancellation
 		// (it's a streaming operation - errors go to channel)
@@ -505,11 +526,14 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		config := meterexport.DataExportConfig{
-			ExportWindowSize: meter.WindowSizeMinute,
-			MeterID: models.NamespacedID{
-				Namespace: "test-ns",
-				ID:        "meter-1",
+		params := meterexport.DataExportParams{
+			DataExportConfig: meterexport.DataExportConfig{
+				ExportWindowSize:     meter.WindowSizeMinute,
+				ExportWindowTimeZone: time.UTC,
+				MeterID: models.NamespacedID{
+					Namespace: "test-ns",
+					ID:        "meter-1",
+				},
 			},
 			Period: timeutil.StartBoundedPeriod{
 				From: now.Add(-10 * time.Minute),
@@ -518,7 +542,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 		}
 
 		// Get descriptor first
-		descriptor, err := svc.GetTargetMeterDescriptor(context.Background(), config)
+		descriptor, err := svc.GetTargetMeterDescriptor(context.Background(), params.DataExportConfig)
 		require.NoError(t, err)
 
 		// Verify descriptor
@@ -526,7 +550,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 		assert.Equal(t, testMeter.EventType, descriptor.EventType)
 		assert.NotNil(t, descriptor.ValueProperty)
 
-		seq, err := svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		seq, err := svc.ExportSyntheticMeterDataIter(context.Background(), params)
 		require.NoError(t, err)
 
 		// Collect events from iterator
@@ -568,11 +592,14 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		config := meterexport.DataExportConfig{
-			ExportWindowSize: meter.WindowSizeMinute,
-			MeterID: models.NamespacedID{
-				Namespace: "test-ns",
-				ID:        "meter-1",
+		params := meterexport.DataExportParams{
+			DataExportConfig: meterexport.DataExportConfig{
+				ExportWindowSize:     meter.WindowSizeMinute,
+				ExportWindowTimeZone: time.UTC,
+				MeterID: models.NamespacedID{
+					Namespace: "test-ns",
+					ID:        "meter-1",
+				},
 			},
 			Period: timeutil.StartBoundedPeriod{
 				From: now.Add(-100 * time.Minute),
@@ -580,7 +607,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 			},
 		}
 
-		seq, err := svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		seq, err := svc.ExportSyntheticMeterDataIter(context.Background(), params)
 		require.NoError(t, err)
 
 		// Only consume first 3 events then break
@@ -612,11 +639,13 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		config := meterexport.DataExportConfig{
-			ExportWindowSize: meter.WindowSizeMinute,
-			MeterID: models.NamespacedID{
-				Namespace: "test-ns",
-				ID:        "", // Missing ID
+		params := meterexport.DataExportParams{
+			DataExportConfig: meterexport.DataExportConfig{
+				ExportWindowSize: meter.WindowSizeMinute,
+				MeterID: models.NamespacedID{
+					Namespace: "test-ns",
+					ID:        "", // Missing ID
+				},
 			},
 			Period: timeutil.StartBoundedPeriod{
 				From: now.Add(-10 * time.Minute),
@@ -624,7 +653,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 			},
 		}
 
-		_, err = svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		_, err = svc.ExportSyntheticMeterDataIter(context.Background(), params)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "meter id is required")
 	})
@@ -658,11 +687,14 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		config := meterexport.DataExportConfig{
-			ExportWindowSize: meter.WindowSizeMinute,
-			MeterID: models.NamespacedID{
-				Namespace: "test-ns",
-				ID:        "meter-avg",
+		params := meterexport.DataExportParams{
+			DataExportConfig: meterexport.DataExportConfig{
+				ExportWindowSize:     meter.WindowSizeMinute,
+				ExportWindowTimeZone: time.UTC,
+				MeterID: models.NamespacedID{
+					Namespace: "test-ns",
+					ID:        "meter-avg",
+				},
 			},
 			Period: timeutil.StartBoundedPeriod{
 				From: now.Add(-10 * time.Minute),
@@ -670,7 +702,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 			},
 		}
 
-		_, err = svc.ExportSyntheticMeterDataIter(context.Background(), config)
+		_, err = svc.ExportSyntheticMeterDataIter(context.Background(), params)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported meter aggregation")
 	})

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"iter"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -29,7 +30,7 @@ type Service interface {
 	// NOTE: Currently only SUM and COUNT meters are supported.
 	// NOTE: GroupBy values are not yet supported.
 	// NOTE: Customers are not honored in the exported data.
-	ExportSyntheticMeterData(ctx context.Context, config DataExportConfig, result chan<- streaming.RawEvent, err chan<- error) error
+	ExportSyntheticMeterData(ctx context.Context, params DataExportParams, result chan<- streaming.RawEvent, err chan<- error) error
 
 	// ExportSyntheticMeterDataIter is an iterator-based wrapper around ExportSyntheticMeterData.
 	// It returns an iter.Seq2 that yields events and errors. The iterator handles channel management internally.
@@ -43,7 +44,7 @@ type Service interface {
 	//       if err != nil { handle error }
 	//       process(event)
 	//   }
-	ExportSyntheticMeterDataIter(ctx context.Context, config DataExportConfig) (iter.Seq2[streaming.RawEvent, error], error)
+	ExportSyntheticMeterDataIter(ctx context.Context, params DataExportParams) (iter.Seq2[streaming.RawEvent, error], error)
 }
 
 // TargetMeterDescriptor is a minimal MeterCreateInput which can accurately represent the exported data.
@@ -57,11 +58,11 @@ type DataExportConfig struct {
 	// Defines in what pre-aggregated windows the synthetic data will be exported in
 	ExportWindowSize meter.WindowSize
 
+	// The time zone used when exporting the synthetic data
+	ExportWindowTimeZone *time.Location
+
 	// The source meter to export data from
 	MeterID models.NamespacedID
-
-	// The period to export data for
-	Period timeutil.StartBoundedPeriod
 }
 
 func (c DataExportConfig) Validate() error {
@@ -69,6 +70,10 @@ func (c DataExportConfig) Validate() error {
 
 	if c.ExportWindowSize == "" {
 		errs = append(errs, errors.New("export window size is required"))
+	}
+
+	if c.ExportWindowTimeZone == nil {
+		errs = append(errs, errors.New("export window time zone is required"))
 	}
 
 	if c.MeterID.Namespace == "" {
@@ -79,7 +84,24 @@ func (c DataExportConfig) Validate() error {
 		errs = append(errs, errors.New("meter id is required"))
 	}
 
-	if err := c.Period.Validate(); err != nil {
+	return errors.Join(errs...)
+}
+
+type DataExportParams struct {
+	DataExportConfig
+
+	// The period to export data for
+	Period timeutil.StartBoundedPeriod
+}
+
+func (p DataExportParams) Validate() error {
+	var errs []error
+
+	if err := p.DataExportConfig.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := p.Period.Validate(); err != nil {
 		errs = append(errs, err)
 	}
 
